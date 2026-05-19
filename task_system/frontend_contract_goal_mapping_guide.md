@@ -99,6 +99,17 @@ Add:
 - `../architecture/18_performance.md`
 - `../architecture/30_dynamic_loading.md`
 
+### Runtime validation + Playwright
+
+Add:
+- `../architecture/17_testing.md`
+- `../architecture/21_realtime.md`
+- `../architecture/27_responsive.md`
+- `../architecture/28_surfaces.md`
+- `../architecture/31_animations.md`
+- `../architecture/33_vaul_drawer.md`
+- `../architecture/34_runtime_validation.md`
+
 ---
 
 ## Trigger expansion map
@@ -119,6 +130,14 @@ Add:
 - "profile", "avatar", "current user", "useCurrentUser" → `25`
 - "persistence", "localStorage", "IndexedDB", "persisted cache", "cold boot" → `26`
 - "test", "testing", "vitest", "MSW", "renderHook" → `17`
+- "playwright", "e2e", "browser test", "runtime test", "runtime validation", "browser validation" → `34`
+- "console error", "uncaught exception", "page error", "console.error" → `34`
+- "mobile validation", "mobile test", "viewport test", "responsive test" → `27`, `34`
+- "trace", "playwright trace", "screenshot", "video", "test artifact" → `34`
+- "websocket validation", "socket test", "realtime validation", "realtime test" → `21`, `34`
+- "optimistic update validation", "optimistic rollback", "mutation validation" → `08`, `34`
+- "interaction validation", "flow validation", "interaction test" → `34`
+- "data-testid", "testid", "selector strategy", "stable selector" → `17`, `34`
 - "environment", "env var", "VITE_", "import.meta.env" → `03`
 - "dto", "view model", "client_id", "response schema", "toXxxViewModel" → `24`
 - "memoization", "useMemo", "useCallback", "React.memo", "virtualize" → `18`

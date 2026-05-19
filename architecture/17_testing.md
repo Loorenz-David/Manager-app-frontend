@@ -2,7 +2,22 @@
 
 ## Definition
 
-Tests verify behavior, not implementation. Each layer of the frontend has a distinct testing approach. The test stack is Vitest + @testing-library/react + MSW v2.
+Tests verify behavior, not implementation. Each layer of the frontend has a distinct testing approach. Two validation layers are mandatory and serve different purposes. This contract covers the logic and component layer. The runtime validation layer is defined in `34_runtime_validation.md`.
+
+---
+
+## Validation layers
+
+Two distinct validation layers are mandatory. Neither substitutes for the other.
+
+| Layer | Tool | Scope | Completion signal |
+|---|---|---|---|
+| Logic + component | Vitest + RTL + MSW | Hooks, mutations, components in isolation | Behavioral correctness in a simulated environment |
+| Runtime | Playwright | Full browser: DOM, network, animations, gestures, realtime | Feature correctness in the actual browser |
+
+Vitest confirms logic and component behavior. It cannot confirm that drawers open with the correct gesture, that optimistic updates render before the network response, that socket events produce DOM changes, that the correct HTTP requests are sent, or that no console errors occur. Playwright confirms these.
+
+An implementation is not complete until both layers pass. See `34_runtime_validation.md` for the complete runtime validation contract, agent workflow, and completion checklist.
 
 ---
 
@@ -195,9 +210,27 @@ Query DOM elements in this order of preference:
 5. `getByDisplayValue` — current value of an input/select
 6. `getByAltText` — image alt text
 7. `getByTitle` — title attribute
-8. `getByTestId` — last resort only, and only with `data-testid`
+8. `getByTestId` — last resort in Vitest + RTL tests; **required** in Playwright runtime validation
 
 Never query by class name, ID, or element type.
+
+---
+
+## `data-testid` — runtime validation targets
+
+The query priority above applies to Vitest + RTL component tests — prefer accessible queries. For Playwright runtime validation, `data-testid` is not a last resort. It is the required selector strategy.
+
+All feature-critical interactive elements must expose a stable `data-testid` attribute. Class names, text content, and element structure change with styling and copy updates. `data-testid` attributes are stable contracts between the implementation and the runtime validator.
+
+Feature-critical elements that require `data-testid`:
+- Primary action buttons — create, submit, confirm, delete, save
+- List and table rows that represent an entity
+- Filter and sort controls
+- Drawer and modal containers
+- Form fields targeted in runtime validation flows
+- Status indicators — connection status, empty states, error states
+
+See `34_runtime_validation.md` for the full `data-testid` naming convention and element requirements.
 
 ---
 
@@ -222,3 +255,21 @@ Never query by class name, ID, or element type.
 - **Never create a test-specific component wrapper** that bypasses the real hook — test the real hook.
 - **Never import Zustand stores in tests to set initial state.** Render with the real providers and interact through the UI.
 - **Never skip the `onUnhandledRequest: 'error'` option** in the MSW server setup.
+
+---
+
+## Implementation completion
+
+An implementation passes Vitest + RTL tests when each unit and component behavior is verified in isolation. This is necessary but not sufficient.
+
+An implementation is complete only when Playwright runtime validation also passes:
+
+- No console errors during the feature flow
+- No uncaught exceptions
+- All interaction flows complete successfully in the browser
+- Network requests match expected patterns
+- Responsive layout validates at mobile (390×844) and desktop (1440×900) viewports
+- Realtime synchronization produces correct DOM updates
+- Drawer and modal open, close, and gesture behavior succeeds
+
+See `34_runtime_validation.md` for the complete runtime validation protocol, agent workflow, and full completion checklist.
