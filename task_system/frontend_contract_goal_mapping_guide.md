@@ -46,6 +46,41 @@ If a contract's pattern feels ambiguous, re-read it carefully or ask for clarifi
 
 ---
 
+## Domain grounding rule
+
+**Contract examples are illustrative only. They are not your domain.**
+
+Every contract in `../architecture/` uses `Invoice`, `InvoiceDetailPage`, `invoiceKeys`, `customer_id`, `amount_cents`, and similar names throughout. These are teaching examples that demonstrate structure — not field names, entity names, or types to use in implementation.
+
+**Before writing any implementation plan or any code:**
+
+1. Identify which planning table(s) cover the entities you are building.
+2. Read those tables to establish:
+   - Actual entity names (`Task`, `WorkingSection`, `Item` — not `Invoice`)
+   - Actual field names and types (`assigned_at`, `step_state` — not `due_date`, `amount_cents`)
+   - Actual Zod schema shapes and constraints
+   - Actual relationships, foreign keys, and status enums
+3. Use only those names in your plan and code. Never copy entity names or field names from contract examples.
+
+Planning tables live at:
+`docs/architecture/under_construction/intention/planning_tables/`
+
+| Domain | Table path |
+|---|---|
+| Tasks | `planning_tables/task/` |
+| Items | `planning_tables/item/` |
+| Customers | `planning_tables/customer/` |
+| Upholstery | `planning_tables/upholstery/` |
+| Users | `planning_tables/user/` |
+| Working sections | `planning_tables/working_sections/working_section/` |
+| Analytics | `planning_tables/working_sections/analytics/` |
+| Base / shared | `planning_tables/base/` |
+| Isolated tables | `planning_tables/isolated_tables/` |
+
+If no planning table exists for the domain you are implementing, stop and ask the user before proceeding. Do not invent field names from the contract examples.
+
+---
+
 ## Core contracts (always include)
 
 - `../architecture/01_architecture.md`
@@ -145,6 +180,9 @@ Add:
 ---
 
 ## Output format (required before coding)
+
+Domain tables consulted:
+- `planning_tables/<domain>/<file>.md`: `<what was established — entity names, field names, schema shapes>`
 
 Selected contracts:
 - `<file>`: `<reason>`
