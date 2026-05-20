@@ -18,9 +18,9 @@ implementation details are missing.
 
 ## Contracts to load
 
-- `backend/architecture/01_architecture.md`: boundary guardrails
-- `backend/architecture/05_errors.md`: failure-mode awareness
-- `backend/task_system/backend_contract_goal_mapping_guide.md`: baseline contract routing context
+- `architecture/01_architecture.md`: layer boundaries and hard dependency rules
+- `architecture/13_errors.md`: failure-mode awareness
+- `task_system/frontend_contract_goal_mapping_guide.md`: baseline contract routing context
 
 ## Clarification protocol
 
@@ -38,7 +38,7 @@ implementation details are missing.
 
 ## Output format
 
-Follow `backend/skills/_shared/output_format.md`.
+Follow `task_system/frontend_contract_goal_mapping_guide.md` output format section.
 
 ## Done criteria
 
@@ -48,4 +48,6 @@ Follow `backend/skills/_shared/output_format.md`.
 
 ## Quality gate
 
-Apply `backend/skills/_shared/quality_gate.md`.
+- `npm run typecheck`: zero TypeScript errors once implementation proceeds
+- All tests relevant to the changed scope pass
+- No console errors at runtime

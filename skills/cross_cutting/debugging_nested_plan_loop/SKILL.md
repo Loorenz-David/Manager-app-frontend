@@ -18,30 +18,34 @@ Run debug-stage planning as a nested lifecycle linked to an implemented parent p
 
 ## Contracts to load
 
-- `backend/skills/_shared/plan_lifecycle_contract.md`: nested lifecycle transitions
-- `backend/architecture/05_errors.md`: error and failure modeling
-- `backend/architecture/15_testing.md`: regression test expectations
-- `backend/architecture/49_observability_runtime.md`: diagnostics and traceability
+- `architecture/13_errors.md`: error and failure modeling
+- `architecture/17_testing.md`: regression test expectations
+- `architecture/34_runtime_validation.md`: runtime diagnostics, console error detection,
+  Playwright trace and screenshot artifacts
 
 ## Execution protocol
 
-1. Create debug plan in `backend/docs/debugging/` with parent references.
-2. Clarify repro conditions and acceptance criteria for fix.
-3. Review debug plan and approve.
-4. Implement fix and add regression coverage.
-5. Write debug summary under `backend/docs/architecture/implemented_summaries/`.
+1. Create debug plan in `docs/debugging/` using `TEMPLATE_DEBUG_PLAN.md`,
+   with parent plan and parent summary references in the metadata.
+2. Clarify reproduction conditions and acceptance criteria for the fix.
+3. Review debug plan and get approval.
+4. Implement fix and add regression coverage (Vitest unit + Playwright runtime).
+5. Write debug summary under `docs/architecture/implemented_summaries/`.
 6. Archive debug plan with links to parent plan and debug summary.
 
 ## Output format
 
-Follow `backend/skills/_shared/output_format.md`.
+- Debug plan path: `docs/debugging/DEBUG_<parent_slug>_<ticket>_<YYYYMMDD>.md`
+- Summary path: `docs/architecture/implemented_summaries/SUMMARY_<slug>_<YYYYMMDD>.md`
 
 ## Done criteria
 
 - Parent-child traceability is complete.
-- Fix is validated with regression evidence.
+- Fix is validated with regression evidence (typecheck + Vitest + Playwright).
 - Debug artifacts are archived with references.
 
 ## Quality gate
 
-Apply `backend/skills/_shared/quality_gate.md`.
+- `npm run typecheck`: zero TypeScript errors
+- `npm run test -- --grep <scope>`: relevant Vitest tests pass
+- `npx playwright test --grep <feature> --project=mobile`: no regressions

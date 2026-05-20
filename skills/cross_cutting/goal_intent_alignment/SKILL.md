@@ -18,9 +18,10 @@ intent before any code changes are proposed.
 
 ## Contracts to load
 
-- `backend/architecture/01_architecture.md`: layer boundaries
-- `backend/architecture/04_context.md`: service seam constraints
-- `backend/architecture/21_naming_conventions.md`: consistent naming and intent clarity
+- `architecture/01_architecture.md`: layer boundaries and feature dependency rules
+- `architecture/15_feature_structure.md`: feature slice structure and naming conventions
+- `task_system/frontend_contract_goal_mapping_guide.md`: contract routing and domain
+  grounding rule (read planning tables before naming entities)
 
 ## Execution protocol
 
@@ -28,18 +29,23 @@ intent before any code changes are proposed.
 2. Extract explicit requirements and assumptions.
 3. Identify missing decisions that block safe implementation.
 4. Ask focused clarification questions for blocking decisions.
-5. Propose a bounded implementation plan only after answers are received.
+5. Confirm which planning table covers the domain before naming any entity
+   (`docs/architecture/under_construction/intention/planning_tables/`).
+6. Propose a bounded implementation plan only after answers are received.
 
 ## Output format
 
-Follow `backend/skills/_shared/output_format.md`.
+Follow `task_system/frontend_contract_goal_mapping_guide.md` output format section.
 
 ## Done criteria
 
 - Goal and intent are aligned in explicit language.
+- Domain entities are grounded in the planning tables, not contract examples.
 - Blocking ambiguities are resolved or listed as unanswered.
 - Plan is bounded by agreed scope.
 
 ## Quality gate
 
-Apply `backend/skills/_shared/quality_gate.md`.
+- `npm run typecheck`: zero TypeScript errors once implementation proceeds
+- All tests relevant to the changed scope pass
+- No console errors at runtime

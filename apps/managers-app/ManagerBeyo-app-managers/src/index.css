@@ -1,11 +1,44 @@
 @import "tailwindcss";
 
+@theme {
+  --color-background: #f8f7f2;
+  --color-foreground: #161615;
+  --color-muted: #e8e1d6;
+  --color-muted-foreground: #706659;
+  --color-primary: #183a63;
+  --color-border: #d4cdc4;
+  --color-input: #ffffff;
+  --color-destructive: #c0392b;
+}
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
 body {
   margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: "SF Pro Display", "Segoe UI", sans-serif;
 }

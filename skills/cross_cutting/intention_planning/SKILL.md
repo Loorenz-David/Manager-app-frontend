@@ -32,10 +32,6 @@ plans that deliver toward the goal.
 - Known constraints or non-goals
 - Any existing implementation plans to link (optional at creation time)
 
-## Contracts to load
-
-- `backend/skills/_shared/plan_lifecycle_contract.md`: lifecycle states
-
 ## Execution protocol
 
 1. Ask the user to state the goal in one sentence if it is not already clear.
@@ -43,7 +39,7 @@ plans that deliver toward the goal.
 3. Set scope boundary: what is explicitly out of scope or a non-goal.
 4. Identify any existing implementation plans to link.
 5. Create the intention plan at:
-   `backend/docs/architecture/under_construction/intention/INTENTION_<slug>_<YYYYMMDD>.md`
+   `docs/architecture/under_construction/intention/INTENTION_<slug>_<YYYYMMDD>.md`
    using `TEMPLATE_INTENTION_PLAN.md` as the base.
 6. When a new implementation plan is created for this goal, add it to the
    "Linked implementation plans" table and add a progress note.
@@ -52,9 +48,7 @@ plans that deliver toward the goal.
 
 ## Output format
 
-Follow `backend/skills/_shared/output_format.md`.
-
-Saved path: `backend/docs/architecture/under_construction/intention/INTENTION_<slug>_<YYYYMMDD>.md`
+Saved path: `docs/architecture/under_construction/intention/INTENTION_<slug>_<YYYYMMDD>.md`
 
 ## Done criteria
 
@@ -66,4 +60,6 @@ Saved path: `backend/docs/architecture/under_construction/intention/INTENTION_<s
 
 ## Quality gate
 
-Apply `backend/skills/_shared/quality_gate.md`.
+- Intention plan file exists at the correct path.
+- Success criteria have at least one measurable outcome.
+- No implementation code produced — this skill is planning only.
