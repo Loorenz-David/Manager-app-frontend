@@ -1,6 +1,4 @@
-import type { TasksState } from '../types';
-
-export type TasksViewController = TasksState;
+export type TasksViewController = Record<string, never>;
 
 export function useTasksViewController(): TasksViewController {
   return {};

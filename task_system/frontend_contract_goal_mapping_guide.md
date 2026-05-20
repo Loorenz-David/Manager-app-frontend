@@ -250,6 +250,15 @@ When running document-only, agents must apply the protocol above manually.
 
 **Rule:** If a change benefits all apps → update canonical here and re-stamp. If it is app-specific → write it in the `*_local.md` companion.
 
+### Known local companions (index)
+
+| Canonical | Local companion | What it overrides |
+|---|---|---|
+| `01_architecture.md` | `01_architecture_local.md` | `route-entry.tsx` pattern for primary tab routes |
+| `04_api_client.md` | `04_api_client_local.md` | Backend error shape (flat string, no `field_errors`), refresh response envelope (`body.data.access_token`), `decodeTokenClaims()` export |
+| `12_auth.md` | `12_auth_local.md` | `AuthUser` type, sign-in body (`app_scope: 'admin'`), sign-out endpoint (`/logout`), `AuthProvider` boot uses JWT claims for workspace/role/permissions, no OAuth |
+| `28_surfaces.md` | `28_surfaces_local.md` | Active surface types (`slide`, `sheet`, `modal`); `drawer` excluded |
+
 ---
 
 ## Feature build order quick reference

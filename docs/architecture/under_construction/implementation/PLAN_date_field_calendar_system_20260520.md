@@ -662,28 +662,19 @@ export type SurfaceId = keyof typeof surfaceRegistry;
 
 ---
 
-### Step 11 — Task feature date types
+### Step 11 — Task feature date types ✅ ALREADY IMPLEMENTED
 
-Open `src/features/tasks/types.ts`. The existing scaffold has `export type TasksState = Record<string, never>`. Extend it by adding date field schemas that will be used when the full task creation form is built.
+`src/features/tasks/types.ts` already contains all three date fields. **No file changes required for this step.**
 
-Add to `types.ts`:
+**What already exists:**
+- `DateOnlySchema` is defined in `src/types/common.ts` as `z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format. Expected YYYY-MM-DD.')` — this is the authoritative date-only schema for the entire app.
+- `TaskSchema`, `CreateTaskInputSchema`, and `UpdateTaskInputSchema` all include `ready_by_at`, `scheduled_start_at`, and `scheduled_end_at` using `DateOnlySchema.nullable()` (and `.optional()` on the input schemas).
 
-```ts
-// ─── Date field schemas (used by task form field composition) ────────────────
-// Frontend sends date-only strings ("YYYY-MM-DD"). Backend resolves timezone.
-// All three fields are nullable — partial ranges and missing deadlines are valid.
+**What this means for Steps 12–13:**
+The task field components bind to **flat paths** (`ready_by_at`, `scheduled_start_at`, `scheduled_end_at`) because `CreateTaskInputSchema` declares these fields at the top level — not nested under a `task:` namespace. If a future compound form wraps them under `task:`, the field paths must be updated to `task.ready_by_at` etc. Document this in a JSDoc comment on each component.
 
-const DATE_ONLY = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date.');
-
-export const TaskDateFieldsSchema = z.object({
-  ready_by_at:         DATE_ONLY.nullable(),
-  scheduled_start_at:  DATE_ONLY.nullable(),
-  scheduled_end_at:    DATE_ONLY.nullable(),
-});
-export type TaskDateFields = z.infer<typeof TaskDateFieldsSchema>;
-```
-
-Export `TaskDateFieldsSchema` and `TaskDateFields` from `src/features/tasks/index.ts`.
+**`date-utils.ts` note:**
+The `parseISOToDate` and `serializeDateToISO` utility functions in Step 1 operate on raw strings and do not need to import from `@/types/common`. If inline schema validation is ever needed inside a utility, import `DateOnlySchema` from `@/types/common` rather than redefining the regex. A separate `TaskDateFieldsSchema` is **not needed** — the fields are already part of the main task schemas.
 
 ---
 
@@ -701,7 +692,7 @@ import { DateFieldTrigger, formatDateDisplay } from '@/components/primitives/dat
 export function TaskReadyByDateField() {
   const { control } = useFormContext();
   const { field, fieldState } = useController({
-    name: 'task.ready_by_at',
+    name: 'ready_by_at',
     control,
   });
   const invalid = Boolean(fieldState.error);
@@ -736,7 +727,7 @@ export function TaskReadyByDateField() {
 }
 ```
 
-**Field path**: `task.ready_by_at` — assumes the parent form schema nests task fields under `task:`. If the parent schema uses flat paths (`ready_by_at` directly), update accordingly. The path is the only thing that varies per usage context — document this in a JSDoc comment on the component.
+**Field path**: `ready_by_at` — flat path matching `CreateTaskInputSchema`. If this component is ever used inside a compound form schema that wraps task fields under a `task:` namespace, update to `task.ready_by_at`. Document in a JSDoc comment on the component.
 
 ---
 
@@ -754,11 +745,11 @@ import { DateRangeFieldTrigger, formatDateDisplay } from '@/components/primitive
 export function TaskDeliveryDateField() {
   const { control } = useFormContext();
   const { field: startField, fieldState: startState } = useController({
-    name: 'task.scheduled_start_at',
+    name: 'scheduled_start_at',
     control,
   });
   const { field: endField, fieldState: endState } = useController({
-    name: 'task.scheduled_end_at',
+    name: 'scheduled_end_at',
     control,
   });
   const invalid = Boolean(startState.error) || Boolean(endState.error);
@@ -807,9 +798,9 @@ Add to the existing `index.ts`:
 ```ts
 export { TaskReadyByDateField } from './components/fields/TaskReadyByDateField';
 export { TaskDeliveryDateField } from './components/fields/TaskDeliveryDateField';
-export { TaskDateFieldsSchema } from './types';
-export type { TaskDateFields } from './types';
 ```
+
+**Note**: `TaskDateFieldsSchema` is not exported — the date fields exist as part of `CreateTaskInputSchema` and `TaskSchema` directly (see Step 11). Import `DateOnlySchema` from `@/types/common` if a consumer needs the date-string validator.
 
 ---
 
@@ -841,11 +832,11 @@ src/
   app/
     surface-registry.ts               ← add calendarSurfaces spread (MODIFIED)
   features/tasks/
-    types.ts                          ← add TaskDateFieldsSchema (MODIFIED)
-    index.ts                          ← export date fields + schema (MODIFIED)
+    types.ts                          ← no changes (date fields already present)
+    index.ts                          ← add date field component exports (MODIFIED)
     components/fields/
-      TaskReadyByDateField.tsx        ← ready_by_at field
-      TaskDeliveryDateField.tsx       ← scheduled_start_at + scheduled_end_at field
+      TaskReadyByDateField.tsx        ← ready_by_at field (flat path)
+      TaskDeliveryDateField.tsx       ← scheduled_start_at + scheduled_end_at (flat paths)
 ```
 
 ---

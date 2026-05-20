@@ -4,10 +4,5 @@ import { selectIsAuthenticated, useAuthStore } from '@/store/auth.store';
 
 export function ProtectedRoute(): React.JSX.Element {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
-
-  if (!isAuthenticated && !import.meta.env.DEV) {
-    return <Navigate replace to={ROUTES.signIn} />;
-  }
-
-  return <Outlet />;
+  return isAuthenticated ? <Outlet /> : <Navigate replace to={ROUTES.signIn} />;
 }

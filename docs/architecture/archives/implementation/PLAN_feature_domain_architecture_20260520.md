@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_feature_domain_architecture_20260520`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `claude-sonnet-4-6`
 - Created at (UTC): `2026-05-20T12:00:00Z`
-- Last updated at (UTC): `2026-05-20T12:00:00Z`
+- Last updated at (UTC): `2026-05-20T13:04:43Z`
 - Related issue/ticket: —
 - Intention plan: —
 
@@ -38,12 +38,12 @@
 
 ## Clarifications required
 
-- [ ] **Enum values for task domain enums**: `TaskTypeEnum`, `TaskStateEnum`, `TaskPriorityEnum`, `TaskReturnSourceEnum`, `TaskItemLocationEnum`, `TaskReturnMethodEnum`, `TaskFulfillmentMethodEnum`, `TaskStepStateEnum`, `TaskStepReadinessStatusEnum` — the plan uses `z.string()` placeholders. Codex must replace with exact string literals before merging (check backend Python enum definitions).
-- [ ] **Enum values for case domain enums**: `CaseStateEnum`, `CaseLinkEntityTypeEnum`, `CaseLinkRoleEnum` — same as above, `z.string()` placeholder.
+- [x] **Enum values for task domain enums** resolved from `../backend/app/beyo_manager/domain/tasks/enums.py` and `../backend/app/beyo_manager/domain/task_steps/enums.py`.
+- [x] **Enum values for case domain enums** resolved from `../backend/app/beyo_manager/domain/cases/enums.py`.
 - [ ] **Backend `data` field shape per endpoint**: The API readme shows `data: any` for all 200 responses. The inner payload structure per endpoint (e.g. does list return `{ items: Task[], total: number }` or `Task[]` directly?) must be confirmed before implementing API functions. This plan defines entity schemas; API function response schema wrappers are deferred.
-- [ ] **Customers: no `secondary_email` / `secondary_phone_number`** in the DB table or API endpoints. The previous field composition plan (`PLAN_customer_item_features_field_composition_20260520.md`) included these fields — that plan must be revised to remove them or confirm they are stored in `additional_details` JSON.
-- [ ] **Item `state` enum**: `ItemStateEnum` values unknown. Use `z.string()` placeholder.
-- [ ] **Upholstery currency enum**: `UpholsteryCurrencyEnum` values unknown (likely `'swedish_krona' | 'danish_krona' | 'euro'` — confirm).
+- [x] **Customers: no `secondary_email` / `secondary_phone_number`** confirmed by backend table and endpoint contracts; the downstream field-composition plan was updated with a clarifying note.
+- [x] **Item `state` enum** resolved from `../backend/app/beyo_manager/domain/items/enums.py`.
+- [x] **Upholstery currency enum** resolved from `../backend/app/beyo_manager/domain/upholstery/enums.py`.
 
 ## Acceptance criteria
 
@@ -2125,11 +2125,12 @@ Expected: zero TypeScript errors. Resolve any import issues before marking compl
 ## Review log
 
 - `2026-05-20` `claude-sonnet-4-6`: Initial plan created
+- `2026-05-20T13:04:43Z` `Codex`: Implemented the domain type/query-key architecture, grounded enum literals from backend source, updated the customer/item field-composition follow-up note, and validated with `npm run typecheck` plus `npm run build`.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
+- Current state: `archived`
+- Next state: `—`
 - Transition owner: `david`
 
 ---
