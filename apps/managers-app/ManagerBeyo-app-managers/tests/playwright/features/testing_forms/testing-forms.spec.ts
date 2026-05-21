@@ -18,6 +18,11 @@ async function openTestingForms(page: Page, auth: AuthHelper) {
   await expect(page.getByTestId('testing-forms-form')).toBeVisible();
 }
 
+async function openCustomerStep(page: Page) {
+  await page.getByTestId('staged-form-step-customer-indicator').click({ force: true });
+  await expect(page.getByTestId('customer-field-group')).toBeVisible();
+}
+
 async function selectFirstCalendarDay(page: Page, scopeTestId: string) {
   const calendar = page.getByTestId(scopeTestId);
   const firstDay = calendar.getByRole('button', { name: /20\d{2}/ }).first();
@@ -30,6 +35,9 @@ test.describe('Testing forms surface', () => {
   test.beforeEach(async ({ page, auth }) => {
     test.skip(!hasCredentials, 'Set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD in .env to run');
     await openTestingForms(page, auth);
+    await page.evaluate(() => {
+      window.localStorage.removeItem('managerbeyo.phone-input.last-country.v1');
+    });
   });
 
   test('renders all field groups and key selectors', async ({ page }) => {
@@ -43,8 +51,7 @@ test.describe('Testing forms surface', () => {
     await expect(page.getByTestId('item-category-selection-field')).toBeVisible();
     await expect(page.getByTestId('item-issues-field')).toBeVisible();
 
-    await page.getByTestId('staged-form-step-customer-indicator').click();
-    await expect(page.getByTestId('customer-field-group')).toBeVisible();
+    await openCustomerStep(page);
     await expect(page.getByTestId('customer-display-name-input')).toBeVisible();
     await expect(page.getByTestId('customer-type-input')).toBeVisible();
     await expect(page.getByTestId('customer-email-input')).toBeVisible();
@@ -67,14 +74,16 @@ test.describe('Testing forms surface', () => {
     await page.getByTestId('item-article-number-input').fill('ART-100');
     await page.getByTestId('item-sku-input').fill('SKU-100');
     await page.getByTestId('item-quantity-input').fill('2');
+    await page.getByTestId('item-quantity-increment-button').click();
+    await page.getByTestId('item-quantity-decrement-button').click();
     await page.getByTestId('item-currency-input').selectOption('swedish_krona');
     await page.getByTestId('item-position-input').fill('Front showroom');
 
-    await page.getByTestId('staged-form-step-customer-indicator').click();
+    await openCustomerStep(page);
     await page.getByTestId('customer-display-name-input').fill('Jane Example');
     await page.getByTestId('customer-type-input').selectOption('person');
     await page.getByTestId('customer-email-input').fill('jane@example.com');
-    await page.getByTestId('customer-phone-input').fill('+46701234567');
+    await page.getByTestId('customer-phone-input').fill('0737262136');
     await page.getByTestId('customer-address-street-input').fill('Main Street 1');
     await page.getByTestId('customer-address-city-input').fill('Stockholm');
     await page.getByTestId('customer-address-postal-code-input').fill('11122');
@@ -88,15 +97,42 @@ test.describe('Testing forms surface', () => {
     await expect(page.getByTestId('item-currency-input')).toHaveValue('swedish_krona');
     await expect(page.getByTestId('item-position-input')).toHaveValue('Front showroom');
 
-    await page.getByTestId('staged-form-step-customer-indicator').click();
+    await openCustomerStep(page);
     await expect(page.getByTestId('customer-display-name-input')).toHaveValue('Jane Example');
     await expect(page.getByTestId('customer-type-input')).toHaveValue('person');
     await expect(page.getByTestId('customer-email-input')).toHaveValue('jane@example.com');
-    await expect(page.getByTestId('customer-phone-input')).toHaveValue('+46701234567');
+    await expect(page.getByTestId('customer-phone-input')).toHaveValue('073-726 21 36');
+    await expect(page.getByTestId('customer-phone-country-selector')).toContainText('+46');
     await expect(page.getByTestId('customer-address-street-input')).toHaveValue('Main Street 1');
     await expect(page.getByTestId('customer-address-city-input')).toHaveValue('Stockholm');
     await expect(page.getByTestId('customer-address-postal-code-input')).toHaveValue('11122');
     await expect(page.getByTestId('customer-address-country-input')).toHaveValue('Sweden');
+  });
+
+  test('supports country selection and remembers the last selected prefix', async ({ page }) => {
+    await openCustomerStep(page);
+
+    await expect(page.getByTestId('customer-phone-country-selector')).toContainText('+46');
+    await page.getByTestId('customer-phone-country-selector').click();
+    await expect(page.getByTestId('phone-country-picker-sheet')).toBeVisible();
+    await page.getByTestId('phone-country-dk-option').click();
+    await expect(page.getByTestId('phone-country-picker-sheet')).not.toBeVisible();
+    await expect(page.getByTestId('customer-phone-country-selector')).toContainText('+45');
+
+    await page.getByRole('button', { name: 'Go back' }).click();
+    await expect(page).toHaveURL(/\/tasks$/);
+    await page.getByTestId('open-testing-forms-button').click();
+    await expect(page.getByTestId('testing-forms-form')).toBeVisible();
+
+    const customerSelector = page.getByTestId('customer-phone-country-selector');
+    if (!(await customerSelector.isVisible().catch(() => false))) {
+      await page.getByTestId('item-quantity-input').fill('1');
+      await page.getByTestId('item-currency-input').selectOption('swedish_krona');
+      await page.getByTestId('staged-form-advance-button').click();
+      await expect(page.getByTestId('customer-field-group')).toBeVisible();
+    }
+
+    await expect(customerSelector).toContainText('+45');
   });
 
   test('supports task box pickers and calendar flows', async ({ page }) => {

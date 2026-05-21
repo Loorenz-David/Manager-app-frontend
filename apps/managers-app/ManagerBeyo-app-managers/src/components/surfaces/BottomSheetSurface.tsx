@@ -80,7 +80,7 @@ export function BottomSheetSurface({
               {title ? `${title} sheet content` : 'Sheet content'}
             </Drawer.Description>
 
-            <div className={cn('relative flex-shrink-0', title || actions ? 'border-b' : '')}>
+            <div className="relative flex-shrink-0">
               <Drawer.Handle className="absolute inset-0 z-0 !m-0 !h-full !w-full !rounded-none !bg-transparent !opacity-100" />
 
               <div className="pointer-events-none relative z-10 flex h-9 items-start justify-center pt-3">

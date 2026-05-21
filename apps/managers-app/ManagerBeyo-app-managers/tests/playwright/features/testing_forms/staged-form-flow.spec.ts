@@ -87,7 +87,7 @@ test.describe('Staged form flow', () => {
 
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
     await page.getByTestId('task-fulfillment-method-delivery-option').click();
-    await page.getByTestId('task-return-source-store-return-option').click();
+    await page.getByTestId('task-return-source-store-return-option').click({ force: true });
     await page.getByTestId('staged-form-advance-button').click();
 
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();

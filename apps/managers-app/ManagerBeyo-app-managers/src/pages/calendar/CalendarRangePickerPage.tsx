@@ -1,13 +1,14 @@
 import { useContext, useEffect, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 
+import { BoxSlidePicker } from '@/components/primitives';
 import {
-  DateRangeSelectionTabs,
   DayCalendar,
   formatDateDisplay,
   parseISOToDate,
   serializeDateToISO,
 } from '@/components/primitives/date';
+import { resolveRangeSelection } from '@/lib/date/resolve-range-selection';
 import {
   SurfaceHeaderContext,
   SurfacePropsContext,
@@ -54,40 +55,87 @@ export function CalendarRangePickerPage() {
     setActiveTarget(rawProps.initialTarget ?? 'from');
   }, [rawProps.initialTarget]);
 
-  function handleDaySelect(date: Date | undefined) {
-    if (!date) return;
+  function handleDaySelect(date: Date) {
+    const resolution = resolveRangeSelection({
+      activeTarget,
+      clickedDate: date,
+      fromDate,
+      toDate,
+    });
 
-    if (activeTarget === 'from') {
-      setFromDate(date);
-      rawProps.onFromSelect(serializeDateToISO(date));
-      setActiveTarget('to');
-      return;
+    setFromDate(resolution.fromDate);
+    setToDate(resolution.toDate);
+    rawProps.onFromSelect(
+      resolution.fromDate ? serializeDateToISO(resolution.fromDate) : null,
+    );
+    rawProps.onToSelect(
+      resolution.toDate ? serializeDateToISO(resolution.toDate) : null,
+    );
+    setActiveTarget(resolution.nextActiveTarget);
+
+    if (resolution.shouldClose) {
+      header?.requestClose();
     }
-
-    setToDate(date);
-    rawProps.onToSelect(serializeDateToISO(date));
-    header?.requestClose();
   }
 
   return (
     <div data-testid="calendar-range-picker-page">
-      <DateRangeSelectionTabs
-        activeTarget={activeTarget}
-        fromLabel={
-          fromDate ? formatDateDisplay(serializeDateToISO(fromDate)) : undefined
-        }
-        fromPlaceholder={rawProps.fromLabel ?? 'Select start'}
-        onFromPress={() => setActiveTarget('from')}
-        onToPress={() => setActiveTarget('to')}
-        toLabel={toDate ? formatDateDisplay(serializeDateToISO(toDate)) : undefined}
-        toPlaceholder={rawProps.toLabel ?? 'Select end'}
+      <BoxSlidePicker
+        className="mx-4 mt-2 mb-4"
+        dataTestId="date-range-selection-tabs"
+        options={[
+          {
+            value: 'from',
+            testId: 'date-range-from-tab',
+            label: (
+              <span className="flex min-w-0 flex-col items-center">
+                <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/90">
+                  From
+                </span>
+                <span
+                  className={
+                    fromDate
+                      ? 'mt-0.5 text-sm font-medium text-foreground'
+                      : 'mt-0.5 text-sm font-medium text-muted-foreground'
+                  }
+                >
+                  {fromDate
+                    ? formatDateDisplay(serializeDateToISO(fromDate))
+                    : (rawProps.fromLabel ?? 'Select start')}
+                </span>
+              </span>
+            ),
+          },
+          {
+            value: 'to',
+            testId: 'date-range-to-tab',
+            label: (
+              <span className="flex min-w-0 flex-col items-center">
+                <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/90">
+                  To
+                </span>
+                <span
+                  className={
+                    toDate
+                      ? 'mt-0.5 text-sm font-medium text-foreground'
+                      : 'mt-0.5 text-sm font-medium text-muted-foreground'
+                  }
+                >
+                  {toDate
+                    ? formatDateDisplay(serializeDateToISO(toDate))
+                    : (rawProps.toLabel ?? 'Select end')}
+                </span>
+              </span>
+            ),
+          },
+        ]}
+        value={activeTarget}
+        onValueChange={setActiveTarget}
       />
       <DayCalendar
         mode="range"
-        onSelect={(range: DateRange | undefined) => {
-          if (!range) return;
-          handleDaySelect(activeTarget === 'from' ? range.from : range.to);
-        }}
+        onDayClick={handleDaySelect}
+        onSelect={(_range: DateRange | undefined) => {}}
         selected={{ from: fromDate, to: toDate }}
       />
     </div>

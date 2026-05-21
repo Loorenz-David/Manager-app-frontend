@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm, type FieldPath } from 'react-hook-form';
+import { Controller, FormProvider, useForm, type FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
 import { StagedForm, StagedFormStep } from '@/components/primitives';
@@ -10,8 +10,12 @@ import {
   ItemDetailsFieldsSchema,
   ItemIssuesField,
   ItemIssuesFieldsSchema,
+  ItemUpholsteryField,
+  ItemUpholsteryFieldsSchema,
 } from '@/features/items';
 import {
+  TaskAdditionalDetailsField,
+  TaskAdditionalDetailsFieldsSchema,
   TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
@@ -30,12 +34,14 @@ const TASK_RETURN_SOURCE = [
 const TestingFormsSchema = z.object({
   customer: CustomerFieldsSchema,
   item: ItemDetailsFieldsSchema,
+  item_upholstery: ItemUpholsteryFieldsSchema,
   item_issues: ItemIssuesFieldsSchema.shape.item_issues,
   ready_by_at: DateOnlySchema.nullable().optional(),
   scheduled_start_at: DateOnlySchema.nullable().optional(),
   scheduled_end_at: DateOnlySchema.nullable().optional(),
   fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
   return_source: z.enum(TASK_RETURN_SOURCE).optional(),
+  additional_details: TaskAdditionalDetailsFieldsSchema.shape.additional_details,
 });
 
 type TestingFormsValues = z.input<typeof TestingFormsSchema>;
@@ -66,12 +72,16 @@ export function TestingFormsContent(): React.JSX.Element {
         item_category_id: undefined,
         major_category: undefined,
       },
+      item_upholstery: {
+        upholstery_client_id: null,
+      },
       item_issues: [],
       ready_by_at: null,
       scheduled_start_at: null,
       scheduled_end_at: null,
       fulfillment_method: undefined,
       return_source: undefined,
+      additional_details: '',
     },
   });
 
@@ -84,9 +94,9 @@ export function TestingFormsContent(): React.JSX.Element {
     mode: 'free',
     onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
       const stepFieldsMap: Record<string, FieldPath<TestingFormsValues>[]> = {
-        item: ['item', 'item_issues'],
+        item: ['item', 'item_upholstery', 'item_issues'],
         customer: ['customer'],
-        task: ['fulfillment_method', 'return_source'],
+        task: ['fulfillment_method', 'return_source', 'additional_details'],
       };
 
       // On the last step, validate all steps so skipped ones show error state.
@@ -107,7 +117,6 @@ export function TestingFormsContent(): React.JSX.Element {
         console.log('testing_forms submit', values);
       })(),
   });
-
   return (
     <FormProvider {...form}>
       <form
@@ -141,6 +150,26 @@ export function TestingFormsContent(): React.JSX.Element {
               <div className="flex flex-col gap-4">
                 <ItemDetailsFieldGroup />
                 <ItemCategorySelectionField />
+                <Controller
+                  name="item_upholstery.upholstery_client_id"
+                  control={form.control}
+                  render={({ field }) => (
+                    <div className="flex flex-col gap-1.5">
+                      <label
+                        className="text-sm font-medium text-muted-foreground"
+                        htmlFor="testing-forms-item-upholstery-field"
+                      >
+                        Upholstery
+                      </label>
+                      <ItemUpholsteryField
+                        value={field.value}
+                        onChange={field.onChange}
+                        title="Select upholstery"
+                        description="Choose the upholstery assigned to this item."
+                      />
+                    </div>
+                  )}
+                />
                 <ItemIssuesField />
               </div>
             </section>
@@ -169,6 +198,7 @@ export function TestingFormsContent(): React.JSX.Element {
               <div className="flex flex-col gap-4">
                 <TaskFulfillmentMethodField />
                 <TaskReturnSourceField />
+                <TaskAdditionalDetailsField />
                 <TaskReadyByDateField />
                 <TaskDeliveryDateField />
               </div>

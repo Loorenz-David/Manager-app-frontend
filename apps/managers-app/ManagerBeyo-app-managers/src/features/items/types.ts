@@ -231,3 +231,9 @@ export const ItemIssuesFieldsSchema = z.object({
 
 export type ItemIssueFieldEntry = z.infer<typeof ItemIssuesFieldSchema>;
 export type ItemIssuesFields = z.infer<typeof ItemIssuesFieldsSchema>;
+
+export const ItemUpholsteryFieldsSchema = z.object({
+  upholstery_client_id: z.string().nullable().optional(),
+});
+
+export type ItemUpholsteryFields = z.infer<typeof ItemUpholsteryFieldsSchema>;

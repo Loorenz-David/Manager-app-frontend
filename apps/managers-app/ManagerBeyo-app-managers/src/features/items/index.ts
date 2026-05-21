@@ -8,10 +8,12 @@ export { ItemIssuesField } from './components/fields/ItemIssuesField';
 export { ItemPositionField } from './components/fields/ItemPositionField';
 export { ItemQuantityField } from './components/fields/ItemQuantityField';
 export { ItemSkuField } from './components/fields/ItemSkuField';
+export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
 export { itemSurfaces } from './surfaces';
 
 export { ItemDetailsFieldsSchema } from './types';
 export { ItemIssuesFieldSchema, ItemIssuesFieldsSchema } from './types';
+export { ItemUpholsteryFieldsSchema } from './types';
 export type {
   CreateItemInput,
   Item,
@@ -19,6 +21,7 @@ export type {
   ItemDetailsFields,
   ItemIssueFieldEntry,
   ItemIssuesFields,
+  ItemUpholsteryFields,
   ItemViewModel,
   ListItemsParams,
   UpdateItemInput,

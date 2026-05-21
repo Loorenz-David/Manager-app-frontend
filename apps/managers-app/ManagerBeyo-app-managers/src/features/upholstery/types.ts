@@ -95,6 +95,16 @@ export type UpholsteryInventoryViewModel = UpholsteryInventory & {
   condition_label: string;
 };
 
+// ─── Picker record (mock shape — future: hydrated from API) ───────────────────
+
+export type UpholsteryPickerRecord = {
+  client_id: string;
+  name: string;
+  code: string | null;
+  image: string;
+  current_available_amount_meters: number;
+};
+
 const metersFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 2,
@@ -104,6 +114,10 @@ function formatMeters(value: string | null): string | null {
   if (!value) return null;
   const num = Number.parseFloat(value);
   return Number.isNaN(num) ? null : `${metersFormatter.format(num)} m`;
+}
+
+export function formatPickerMeters(value: number): string {
+  return `${metersFormatter.format(value)} m`;
 }
 
 export function toUpholsteryInventoryViewModel(

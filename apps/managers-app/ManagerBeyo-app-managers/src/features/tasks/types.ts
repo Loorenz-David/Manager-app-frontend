@@ -142,6 +142,11 @@ export type ListTasksParams = {
   offset?: number;
 };
 
+export const TaskAdditionalDetailsFieldsSchema = z.object({
+  additional_details: z.string().max(4000).optional(),
+});
+export type TaskAdditionalDetailsFields = z.infer<typeof TaskAdditionalDetailsFieldsSchema>;
+
 export type TaskViewModel = Task & {
   display_number: string;
   state_label: string;

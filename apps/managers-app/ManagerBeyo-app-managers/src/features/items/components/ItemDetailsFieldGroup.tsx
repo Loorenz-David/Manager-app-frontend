@@ -13,10 +13,8 @@ export function ItemDetailsFieldGroup() {
         <ItemArticleNumberField />
         <ItemSkuField />
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <ItemQuantityField />
-        <ItemCurrencyField />
-      </div>
+      <ItemQuantityField />
+      <ItemCurrencyField />
       <ItemPositionField />
     </div>
   );

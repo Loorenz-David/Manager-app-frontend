@@ -15,11 +15,16 @@ export type {
   BoxPickerSelectionMode,
   BoxPickerVisualVariant,
 } from './box-picker';
+export { BoxSlidePicker, BoxSlidePickerOption } from './box-slide-picker';
+export type {
+  BoxSlidePickerOptionButtonProps,
+  BoxSlidePickerOptionType,
+  BoxSlidePickerProps,
+} from './box-slide-picker';
 
 export {
   DateFieldTrigger,
   DateRangeFieldTrigger,
-  DateRangeSelectionTabs,
   DayCalendar,
   formatDateDisplay,
   parseISOToDate,
@@ -33,3 +38,20 @@ export type {
   StepStatus,
   StepStatusMap,
 } from './staged-form';
+
+export { PhoneInput, CountryPrefixSelector, CountryFlag } from './phone-input';
+export type {
+  CountryPrefixSelectorProps,
+  PhoneCountryPickerSurfaceProps,
+  PhoneInputProps,
+} from './phone-input';
+
+export { NumberInput, NumberStepperButton } from './number-input';
+export type {
+  NumberInputChangeMeta,
+  NumberInputProps,
+  NumberStepperButtonProps,
+} from './number-input';
+
+export { SearchBar } from './search-bar';
+export type { SearchBarProps } from './search-bar';

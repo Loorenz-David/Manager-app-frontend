@@ -6,6 +6,7 @@ type DayCalendarProps = {
   onSelect:
     | ((date: Date | undefined) => void)
     | ((range: DateRange | undefined) => void);
+  onDayClick?: (date: Date) => void;
   month?: Date;
   onMonthChange?: (month: Date) => void;
   disabled?: Matcher | Matcher[];
@@ -50,6 +51,7 @@ export function DayCalendar({
   mode,
   selected,
   onSelect,
+  onDayClick,
   month,
   onMonthChange,
   disabled,
@@ -69,6 +71,7 @@ export function DayCalendar({
         mode="single"
         selected={selected as Date | undefined}
         onSelect={onSelect as (date: Date | undefined) => void}
+        onDayClick={(date) => onDayClick?.(date)}
         {...sharedProps}
       />
     );
@@ -79,6 +82,7 @@ export function DayCalendar({
       mode="range"
       selected={selected as DateRange | undefined}
       onSelect={onSelect as (range: DateRange | undefined) => void}
+      onDayClick={(date) => onDayClick?.(date)}
       {...sharedProps}
     />
   );
