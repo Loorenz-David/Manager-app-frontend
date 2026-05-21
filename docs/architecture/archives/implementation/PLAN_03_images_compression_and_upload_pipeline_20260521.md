@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_03_images_compression_and_upload_pipeline_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T21:30:33Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: `PLAN_01_images_contracts_dtos_and_api_client_20260521`
@@ -306,6 +306,6 @@ Run `npm run typecheck`. Resolve any errors in the three files.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
+- Current state: `archived`
+- Next state: `—`
 - Transition owner: `David`

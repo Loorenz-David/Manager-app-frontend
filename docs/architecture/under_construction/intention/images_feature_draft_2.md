@@ -1230,6 +1230,8 @@ Scope:
 
 Purpose:
 Build the async image compression and upload orchestration pipeline.
+Implementation note:
+- Archived on `2026-05-21T21:30:33Z` after adding reusable compression and upload pipeline utilities in `apps/managers-app/ManagerBeyo-app-managers/src/features/images/lib/` and passing `npm run typecheck` in the managers app package.
 Scope:
 
 - raw captured Blob handling
