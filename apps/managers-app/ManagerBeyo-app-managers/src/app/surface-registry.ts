@@ -1,4 +1,5 @@
 import { calendarSurfaces } from '@/components/primitives/date/surfaces';
+import { imageSurfaces } from '@/features/images';
 import { itemSurfaces } from '@/features/items';
 import { phoneInputSurfaces } from '@/features/phone-input';
 import { testingFormsSurfaces } from '@/features/testing_forms';
@@ -11,6 +12,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...calendarSurfaces,
   ...testingFormsSurfaces,
   ...itemSurfaces,
+  ...imageSurfaces,
   ...phoneInputSurfaces,
   ...upholsterySurfaces,
 };

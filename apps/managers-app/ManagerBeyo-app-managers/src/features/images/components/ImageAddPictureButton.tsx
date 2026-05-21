@@ -1,6 +1,7 @@
 import { Camera } from 'lucide-react';
 
 import { useEntityImagesContext } from '../providers/EntityImagesProvider';
+import { preloadImageCameraSurface } from '../surfaces';
 
 type ImageAddPictureButtonProps = {
   testId?: string;
@@ -18,6 +19,15 @@ export function ImageAddPictureButton({
       data-testid={testId}
       aria-label="Add picture"
       onClick={openCamera}
+      onFocus={() => {
+        void preloadImageCameraSurface();
+      }}
+      onPointerEnter={() => {
+        void preloadImageCameraSurface();
+      }}
+      onTouchStart={() => {
+        void preloadImageCameraSurface();
+      }}
     >
       <Camera className="size-5 shrink-0" aria-hidden="true" />
       <span className="text-center text-xs font-medium leading-tight">Add picture</span>

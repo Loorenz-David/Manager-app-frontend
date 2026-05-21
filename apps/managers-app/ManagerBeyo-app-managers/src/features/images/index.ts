@@ -29,3 +29,4 @@ export * from './components/ImageUploadOverlay';
 export * from './components/ImagePreviewTile';
 export * from './components/ImageAddPictureButton';
 export * from './components/ImagePreviewGrid';
+export * from './surfaces';
