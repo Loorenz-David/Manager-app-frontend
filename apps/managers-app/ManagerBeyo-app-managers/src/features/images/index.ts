@@ -24,3 +24,8 @@ export * from './actions/use-delete-image';
 export * from './actions/use-create-image-annotation';
 export * from './store/images.store';
 export * from './controllers/use-entity-images.controller';
+export * from './providers/EntityImagesProvider';
+export * from './components/ImageUploadOverlay';
+export * from './components/ImagePreviewTile';
+export * from './components/ImageAddPictureButton';
+export * from './components/ImagePreviewGrid';
