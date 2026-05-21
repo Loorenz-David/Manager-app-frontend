@@ -28,7 +28,7 @@ const switchTrackVariants = cva(
 
 const switchThumbVariants = cva(
   [
-    'absolute top-0.5 left-0.5 rounded-full bg-input shadow-sm transition-transform duration-200',
+    'absolute top-0.5 left-0.5 rounded-full bg-card shadow-sm transition-transform duration-200',
   ].join(' '),
   {
     variants: {

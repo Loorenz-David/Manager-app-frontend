@@ -33,16 +33,6 @@ test.describe('Testing forms surface', () => {
   });
 
   test('renders all field groups and key selectors', async ({ page }) => {
-    await expect(page.getByTestId('customer-field-group')).toBeVisible();
-    await expect(page.getByTestId('customer-display-name-input')).toBeVisible();
-    await expect(page.getByTestId('customer-type-input')).toBeVisible();
-    await expect(page.getByTestId('customer-email-input')).toBeVisible();
-    await expect(page.getByTestId('customer-phone-input')).toBeVisible();
-    await expect(page.getByTestId('customer-address-street-input')).toBeVisible();
-    await expect(page.getByTestId('customer-address-city-input')).toBeVisible();
-    await expect(page.getByTestId('customer-address-postal-code-input')).toBeVisible();
-    await expect(page.getByTestId('customer-address-country-input')).toBeVisible();
-
     await expect(page.getByTestId('item-details-field-group')).toBeVisible();
     await expect(page.getByTestId('item-designer-input')).toBeVisible();
     await expect(page.getByTestId('item-article-number-input')).toBeVisible();
@@ -53,14 +43,34 @@ test.describe('Testing forms surface', () => {
     await expect(page.getByTestId('item-category-selection-field')).toBeVisible();
     await expect(page.getByTestId('item-issues-field')).toBeVisible();
 
+    await page.getByTestId('staged-form-step-customer-indicator').click();
+    await expect(page.getByTestId('customer-field-group')).toBeVisible();
+    await expect(page.getByTestId('customer-display-name-input')).toBeVisible();
+    await expect(page.getByTestId('customer-type-input')).toBeVisible();
+    await expect(page.getByTestId('customer-email-input')).toBeVisible();
+    await expect(page.getByTestId('customer-phone-input')).toBeVisible();
+    await expect(page.getByTestId('customer-address-street-input')).toBeVisible();
+    await expect(page.getByTestId('customer-address-city-input')).toBeVisible();
+    await expect(page.getByTestId('customer-address-postal-code-input')).toBeVisible();
+    await expect(page.getByTestId('customer-address-country-input')).toBeVisible();
+
+    await page.getByTestId('staged-form-step-task-indicator').click();
     await expect(page.getByTestId('task-fulfillment-method-field')).toBeVisible();
     await expect(page.getByTestId('task-return-source-field')).toBeVisible();
     await expect(page.getByTestId('task-ready-by-date-field')).toBeVisible();
     await expect(page.getByTestId('task-delivery-date-field')).toBeVisible();
-    await expect(page.getByTestId('testing-forms-submit-button')).toBeVisible();
+    await expect(page.getByTestId('staged-form-advance-button')).toBeVisible();
   });
 
   test('accepts direct customer and item input values', async ({ page }) => {
+    await page.getByTestId('item-designer-input').fill('Svenskt Tenn');
+    await page.getByTestId('item-article-number-input').fill('ART-100');
+    await page.getByTestId('item-sku-input').fill('SKU-100');
+    await page.getByTestId('item-quantity-input').fill('2');
+    await page.getByTestId('item-currency-input').selectOption('swedish_krona');
+    await page.getByTestId('item-position-input').fill('Front showroom');
+
+    await page.getByTestId('staged-form-step-customer-indicator').click();
     await page.getByTestId('customer-display-name-input').fill('Jane Example');
     await page.getByTestId('customer-type-input').selectOption('person');
     await page.getByTestId('customer-email-input').fill('jane@example.com');
@@ -70,13 +80,15 @@ test.describe('Testing forms surface', () => {
     await page.getByTestId('customer-address-postal-code-input').fill('11122');
     await page.getByTestId('customer-address-country-input').fill('Sweden');
 
-    await page.getByTestId('item-designer-input').fill('Svenskt Tenn');
-    await page.getByTestId('item-article-number-input').fill('ART-100');
-    await page.getByTestId('item-sku-input').fill('SKU-100');
-    await page.getByTestId('item-quantity-input').fill('2');
-    await page.getByTestId('item-currency-input').selectOption('swedish_krona');
-    await page.getByTestId('item-position-input').fill('Front showroom');
+    await page.getByTestId('staged-form-step-item-indicator').click();
+    await expect(page.getByTestId('item-designer-input')).toHaveValue('Svenskt Tenn');
+    await expect(page.getByTestId('item-article-number-input')).toHaveValue('ART-100');
+    await expect(page.getByTestId('item-sku-input')).toHaveValue('SKU-100');
+    await expect(page.getByTestId('item-quantity-input')).toHaveValue('2');
+    await expect(page.getByTestId('item-currency-input')).toHaveValue('swedish_krona');
+    await expect(page.getByTestId('item-position-input')).toHaveValue('Front showroom');
 
+    await page.getByTestId('staged-form-step-customer-indicator').click();
     await expect(page.getByTestId('customer-display-name-input')).toHaveValue('Jane Example');
     await expect(page.getByTestId('customer-type-input')).toHaveValue('person');
     await expect(page.getByTestId('customer-email-input')).toHaveValue('jane@example.com');
@@ -85,16 +97,11 @@ test.describe('Testing forms surface', () => {
     await expect(page.getByTestId('customer-address-city-input')).toHaveValue('Stockholm');
     await expect(page.getByTestId('customer-address-postal-code-input')).toHaveValue('11122');
     await expect(page.getByTestId('customer-address-country-input')).toHaveValue('Sweden');
-
-    await expect(page.getByTestId('item-designer-input')).toHaveValue('Svenskt Tenn');
-    await expect(page.getByTestId('item-article-number-input')).toHaveValue('ART-100');
-    await expect(page.getByTestId('item-sku-input')).toHaveValue('SKU-100');
-    await expect(page.getByTestId('item-quantity-input')).toHaveValue('2');
-    await expect(page.getByTestId('item-currency-input')).toHaveValue('swedish_krona');
-    await expect(page.getByTestId('item-position-input')).toHaveValue('Front showroom');
   });
 
   test('supports task box pickers and calendar flows', async ({ page }) => {
+    await page.getByTestId('staged-form-step-task-indicator').click();
+
     await page.getByTestId('task-fulfillment-method-delivery-option').click();
     await expect(page.getByTestId('task-fulfillment-method-delivery-option')).toHaveAttribute(
       'aria-pressed',

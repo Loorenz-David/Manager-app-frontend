@@ -7,7 +7,7 @@ import { DISABLED_BASE, FOCUS_WITHIN_RING, INVALID_RING } from '../shared';
 
 const textareaWrapperVariants = cva(
   [
-    'relative flex rounded-lg border bg-input',
+    'relative flex rounded-lg border bg-transparent',
     'transition-colors duration-150',
   ].join(' '),
   {
@@ -25,7 +25,7 @@ const textareaWrapperVariants = cva(
 
 const textareaFieldClasses = [
   'w-full flex-1 bg-transparent px-3 py-3 text-base text-foreground',
-  'placeholder:text-muted-foreground appearance-none outline-none',
+  'placeholder:text-border appearance-none outline-none',
   'disabled:cursor-not-allowed',
 ].join(' ');
 

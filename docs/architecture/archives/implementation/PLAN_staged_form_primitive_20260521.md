@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_staged_form_primitive_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T07:50:41Z`
 - Related issue/ticket: `—`
 - Intention plan: `docs/architecture/under_construction/intention/INTENTION_staged_form_system_20260521.md`
 

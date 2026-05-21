@@ -16,7 +16,7 @@ export function CustomerPhoneField() {
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor="customer-primary-phone"
-          className="text-sm font-medium text-foreground"
+          className="text-sm font-medium text-muted-foreground"
         >
           Phone <span className="font-normal text-muted-foreground">(optional)</span>
         </label>

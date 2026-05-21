@@ -15,7 +15,7 @@ export function ItemQuantityField() {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-quantity" className="text-sm font-medium text-foreground">
+        <label htmlFor="item-quantity" className="text-sm font-medium text-muted-foreground">
           Quantity <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
         <FieldErrorPill data-testid="item-quantity-error" message={error} />

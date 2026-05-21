@@ -16,7 +16,7 @@ type DateFieldTriggerProps = {
 
 const triggerVariants = cva(
   [
-    'flex h-12 w-full items-center justify-between rounded-lg border bg-input px-3',
+    'flex h-12 w-full items-center justify-between rounded-lg border bg-transparent px-3',
     'text-sm transition-colors duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
@@ -59,14 +59,14 @@ export function DateFieldTrigger({
       <span
         className={cn(
           'flex-1 text-left',
-          value ? 'text-foreground' : 'text-muted-foreground',
+          value ? 'text-foreground' : 'text-border',
         )}
       >
         {value ?? placeholder}
       </span>
       <CalendarIcon
         aria-hidden="true"
-        className="h-4 w-4 shrink-0 text-muted-foreground"
+        className="h-4 w-4 shrink-0 text-icon"
       />
     </button>
   );

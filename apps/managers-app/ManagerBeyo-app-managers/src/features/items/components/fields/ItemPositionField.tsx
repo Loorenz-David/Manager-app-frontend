@@ -14,7 +14,7 @@ export function ItemPositionField() {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-position" className="text-sm font-medium text-foreground">
+        <label htmlFor="item-position" className="text-sm font-medium text-muted-foreground">
           Position <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
         <FieldErrorPill data-testid="item-position-error" message={error} />

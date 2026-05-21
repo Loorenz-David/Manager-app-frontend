@@ -43,7 +43,7 @@ export function TaskReturnSourceField() {
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="task-return-source-field">
-      <label className="text-sm font-medium text-foreground">Return source</label>
+      <label className="text-sm font-medium text-muted-foreground">Return source</label>
       <BoxPicker
         mode="single"
         value={field.value ?? null}

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Intention ID: `INTENTION_staged_form_system_20260521`
-- Status: `active`
+- Status: `achieved`
 - Owner: `David`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T07:50:41Z`
 
 ## Goal
 
@@ -56,11 +56,12 @@ Beyond task creation, the same system will serve onboarding flows, setup wizards
 
 | Plan ID | Path | Status | Covers |
 |---------|------|--------|--------|
-| `PLAN_staged_form_primitive_20260521` | `docs/architecture/under_construction/implementation/PLAN_staged_form_primitive_20260521.md` | `under_construction` | Primitive system + useStagedForm hook + TestingFormsContent integration |
+| `PLAN_staged_form_primitive_20260521` | `docs/architecture/archives/implementation/PLAN_staged_form_primitive_20260521.md` | `archived` | Primitive system + useStagedForm hook + TestingFormsContent integration |
 
 ## Progress notes
 
 - `2026-05-21`: Intention plan created. Implementation plan authored in same session after architectural alignment (orchestrator hook model, numbered dots + line timeline, primitive-provided navigation bar, directional horizontal slide animation).
+- `2026-05-21`: Implementation completed and validated. The staged-form primitive, `useStagedForm()` hook, `TestingFormsContent` integration, and staged-flow Playwright coverage all passed their verification gates. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_staged_form_primitive_20260521.md`.
 
 ## Open questions
 
@@ -69,6 +70,6 @@ Beyond task creation, the same system will serve onboarding flows, setup wizards
 
 ## Lifecycle transition
 
-- Current status: `active`
-- Next status: `achieved`
+- Current status: `achieved`
+- Next status: `—`
 - Transition trigger: all 8 success criteria met and verified

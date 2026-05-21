@@ -60,7 +60,7 @@ export function ItemIssuesField() {
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="item-issues-field">
-      <label className="text-sm font-medium text-foreground">Issues</label>
+      <label className="text-sm font-medium text-muted-foreground">Issues</label>
       <BoxPicker
         mode="multiple"
         value={selectedIssueIds}

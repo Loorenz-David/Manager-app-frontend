@@ -21,7 +21,7 @@ export function CustomerTypeField() {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor="customer-type" className="text-sm font-medium text-foreground">
+        <label htmlFor="customer-type" className="text-sm font-medium text-muted-foreground">
           Type
         </label>
         <FieldErrorPill data-testid="customer-type-error" message={error} />
@@ -31,7 +31,7 @@ export function CustomerTypeField() {
         id="customer-type"
         aria-invalid={Boolean(error)}
         className={cn(
-          'h-12 w-full rounded-lg border bg-input px-3 text-base text-foreground',
+          'h-12 w-full rounded-lg border bg-transparent px-3 text-base text-foreground',
           'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
           error

@@ -19,7 +19,7 @@ export function CustomerAddressFieldGroup() {
 
   return (
     <div className="flex flex-col gap-3" data-testid="customer-address-field-group">
-      <p className="text-sm font-medium text-foreground">
+      <p className="text-sm font-medium text-muted-foreground">
         Address <span className="font-normal text-muted-foreground">(optional)</span>
       </p>
       <TextInput

@@ -25,3 +25,11 @@ export {
   parseISOToDate,
   serializeDateToISO,
 } from './date';
+
+export { StagedForm, StagedFormStep } from './staged-form';
+export type {
+  StagedFormProps,
+  StepConfig,
+  StepStatus,
+  StepStatusMap,
+} from './staged-form';

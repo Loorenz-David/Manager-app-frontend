@@ -72,7 +72,7 @@ export function BottomTabBar(): React.JSX.Element {
                 'relative flex flex-1 flex-col items-center justify-center gap-0.5 text-xs transition-colors',
                 isActive
                   ? 'text-primary'
-                  : 'text-muted-foreground',
+                  : 'text-icon',
               ].join(' ')}
               data-testid={`tab-${tab.label.toLowerCase()}`}
               key={tab.path}

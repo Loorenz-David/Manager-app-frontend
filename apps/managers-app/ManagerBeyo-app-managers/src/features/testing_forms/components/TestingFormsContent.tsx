@@ -1,7 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type FieldPath } from 'react-hook-form';
 import { z } from 'zod';
 
+import { StagedForm, StagedFormStep } from '@/components/primitives';
 import { CustomerFieldGroup, CustomerFieldsSchema } from '@/features/customers';
 import {
   ItemCategorySelectionField,
@@ -16,6 +17,7 @@ import {
   TaskReadyByDateField,
   TaskReturnSourceField,
 } from '@/features/tasks';
+import { useStagedForm } from '@/hooks/use-staged-form';
 import { DateOnlySchema } from '@/types/common';
 
 const TASK_FULFILLMENT_METHOD = ['pickup_at_store', 'delivery'] as const;
@@ -73,64 +75,106 @@ export function TestingFormsContent(): React.JSX.Element {
     },
   });
 
-  const onSubmit = form.handleSubmit((values) => {
-    console.log('testing_forms submit', values);
+  const staged = useStagedForm({
+    steps: [
+      { id: 'item', title: 'Item' },
+      { id: 'customer', title: 'Customer' },
+      { id: 'task', title: 'Task' },
+    ],
+    mode: 'free',
+    onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
+      const stepFieldsMap: Record<string, FieldPath<TestingFormsValues>[]> = {
+        item: ['item', 'item_issues'],
+        customer: ['customer'],
+        task: ['fulfillment_method', 'return_source'],
+      };
+
+      // On the last step, validate all steps so skipped ones show error state.
+      if (currentStepId === 'task') {
+        const allValid = await form.trigger();
+        if (!allValid) {
+          const { errors } = form.formState;
+          if (errors.item ?? errors.item_issues) setStatus('item', 'error');
+          if (errors.customer) setStatus('customer', 'error');
+        }
+        return allValid;
+      }
+
+      return form.trigger(stepFieldsMap[currentStepId] ?? []);
+    },
+    onSubmit: () =>
+      form.handleSubmit((values) => {
+        console.log('testing_forms submit', values);
+      })(),
   });
 
   return (
     <FormProvider {...form}>
       <form
-        className="flex flex-col gap-8 p-6"
+        className="flex h-full flex-col"
         data-testid="testing-forms-form"
         noValidate
-        onSubmit={onSubmit}
+        onSubmit={(event) => event.preventDefault()}
       >
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Customer</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Validate the composed customer field group and nested address inputs.
-            </p>
-          </div>
-          <CustomerFieldGroup />
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Item</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Validate the item details field composition layer and selectors.
-            </p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <ItemDetailsFieldGroup />
-            <ItemCategorySelectionField />
-            <ItemIssuesField />
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Task fields</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Validate the box-picker task selectors alongside the date sheet flows.
-            </p>
-          </div>
-          <div className="flex flex-col gap-4">
-            <TaskFulfillmentMethodField />
-            <TaskReturnSourceField />
-            <TaskReadyByDateField />
-            <TaskDeliveryDateField />
-          </div>
-        </section>
-
-        <button
-          className="rounded-xl bg-primary px-5 py-4 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
-          data-testid="testing-forms-submit-button"
-          type="submit"
+        <StagedForm
+          activeStepId={staged.activeStepId}
+          data-testid="testing-forms-staged-form"
+          direction={staged.direction}
+          isAdvancing={staged.isAdvancing}
+          isFirstStep={staged.isFirstStep}
+          isLastStep={staged.isLastStep}
+          navigationMode={staged.navigationMode}
+          onAdvance={staged.advance}
+          onBack={staged.back}
+          onNavigate={staged.navigateTo}
+          stepStatusMap={staged.stepStatusMap}
+          steps={staged.steps}
         >
-          Submit test form
-        </button>
+          <StagedFormStep id="item">
+            <section className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Item</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Validate the item details field composition layer and selectors.
+                </p>
+              </div>
+              <div className="flex flex-col gap-4">
+                <ItemDetailsFieldGroup />
+                <ItemCategorySelectionField />
+                <ItemIssuesField />
+              </div>
+            </section>
+          </StagedFormStep>
+
+          <StagedFormStep id="customer">
+            <section className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Customer</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Validate the composed customer field group and nested address inputs.
+                </p>
+              </div>
+              <CustomerFieldGroup />
+            </section>
+          </StagedFormStep>
+
+          <StagedFormStep id="task">
+            <section className="flex flex-col gap-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Task fields</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Validate the box-picker task selectors alongside the date sheet flows.
+                </p>
+              </div>
+              <div className="flex flex-col gap-4">
+                <TaskFulfillmentMethodField />
+                <TaskReturnSourceField />
+                <TaskReadyByDateField />
+                <TaskDeliveryDateField />
+              </div>
+            </section>
+          </StagedFormStep>
+        </StagedForm>
       </form>
     </FormProvider>
   );

@@ -37,7 +37,7 @@ export function TaskReadyByDateField() {
     <div className="flex flex-col gap-1.5" data-testid="task-ready-by-date-field">
       <div className="flex items-center justify-between gap-3">
         <label
-          className="text-sm font-medium text-foreground"
+          className="text-sm font-medium text-muted-foreground"
           htmlFor="task-ready-by-date"
         >
           Due date

@@ -11,14 +11,14 @@ export const boxOptionVariants = cva(
     variants: {
       visualVariant: {
         default:
-          'flex-col items-center justify-center gap-2 rounded-xl bg-background p-3 text-center',
+          'flex-col items-center justify-center gap-2 rounded-xl bg-card p-3 text-center',
         horizontalDescription:
-          'flex-row items-center gap-3 rounded-xl bg-background px-4 py-3 text-left',
+          'flex-row items-center gap-3 rounded-xl bg-card px-4 py-3 text-left',
         pill: 'flex-row items-center justify-between gap-2 rounded-full px-4 py-2',
       },
       selected: {
-        true: 'border-neutral-900 bg-neutral-900 text-white',
-        false: 'border-border bg-background text-foreground',
+        true: 'border-primary bg-primary text-card',
+        false: 'border-border bg-card text-foreground',
       },
     },
     compoundVariants: [

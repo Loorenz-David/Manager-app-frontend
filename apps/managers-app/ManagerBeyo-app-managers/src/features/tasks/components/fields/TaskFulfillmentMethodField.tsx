@@ -30,7 +30,7 @@ export function TaskFulfillmentMethodField() {
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="task-fulfillment-method-field">
-      <label className="text-sm font-medium text-foreground">Fulfillment method</label>
+      <label className="text-sm font-medium text-muted-foreground">Fulfillment method</label>
       <BoxPicker
         mode="single"
         value={field.value ?? null}

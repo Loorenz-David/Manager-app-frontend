@@ -19,7 +19,7 @@ type DateRangeFieldTriggerProps = {
 
 const triggerVariants = cva(
   [
-    'flex h-12 w-full items-center rounded-lg border bg-input px-3',
+    'flex h-12 w-full items-center rounded-lg border bg-transparent px-3',
     'text-sm transition-colors duration-150',
     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
@@ -77,7 +77,7 @@ export function DateRangeFieldTrigger({
           <span
             className={cn(
               'block truncate text-sm font-medium',
-              fromValue ? 'text-foreground' : 'text-muted-foreground',
+              fromValue ? 'text-foreground' : 'text-border',
             )}
           >
             {fromValue ?? fromPlaceholder}
@@ -90,7 +90,7 @@ export function DateRangeFieldTrigger({
           <span
             className={cn(
               'block truncate text-sm font-medium',
-              toValue ? 'text-foreground' : 'text-muted-foreground',
+              toValue ? 'text-foreground' : 'text-border',
             )}
           >
             {toValue ?? toPlaceholder}
@@ -99,7 +99,7 @@ export function DateRangeFieldTrigger({
       </span>
       <CalendarIcon
         aria-hidden="true"
-        className="ml-3 h-4 w-4 shrink-0 text-muted-foreground"
+        className="ml-3 h-4 w-4 shrink-0 text-icon"
       />
     </button>
   );

@@ -13,7 +13,7 @@ function EmailField() {
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-foreground" htmlFor="sign-in-email">
+      <label className="block text-sm font-medium text-muted-foreground" htmlFor="sign-in-email">
         Email
       </label>
       <TextInput
@@ -37,7 +37,7 @@ function PasswordField() {
 
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-foreground" htmlFor="sign-in-password">
+      <label className="block text-sm font-medium text-muted-foreground" htmlFor="sign-in-password">
         Password
       </label>
       <TextInput

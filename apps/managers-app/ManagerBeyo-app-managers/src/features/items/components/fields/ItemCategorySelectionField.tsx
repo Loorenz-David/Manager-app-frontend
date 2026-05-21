@@ -80,7 +80,7 @@ export function ItemCategorySelectionField() {
 
   return (
     <div className="flex flex-col gap-3" data-testid="item-category-selection-field">
-      <label className="text-sm font-medium text-foreground">Category</label>
+      <label className="text-sm font-medium text-muted-foreground">Category</label>
       <BoxPicker
         mode="single"
         value={majorField.value ?? null}
@@ -97,7 +97,7 @@ export function ItemCategorySelectionField() {
           <button
             type="button"
             data-testid="item-category-selected-trigger"
-            className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-background px-4 text-sm"
+            className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-sm"
             onClick={() =>
               openCategoryPicker(
                 majorField.value ?? selectedCategory.major_category,

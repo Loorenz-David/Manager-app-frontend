@@ -16,7 +16,7 @@ export function ItemArticleNumberField() {
       <div className="flex items-center justify-between gap-3">
         <label
           htmlFor="item-article-number"
-          className="text-sm font-medium text-foreground"
+          className="text-sm font-medium text-muted-foreground"
         >
           Article number <span className="font-normal text-muted-foreground">(optional)</span>
         </label>

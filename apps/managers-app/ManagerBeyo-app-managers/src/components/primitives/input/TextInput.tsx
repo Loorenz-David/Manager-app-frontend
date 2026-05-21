@@ -7,7 +7,7 @@ import { DISABLED_BASE, FOCUS_WITHIN_RING, INVALID_RING } from '../shared';
 
 const inputWrapperVariants = cva(
   [
-    'relative flex items-center rounded-lg border bg-input',
+    'relative flex items-center rounded-lg border bg-transparent',
     'transition-colors duration-150',
   ].join(' '),
   {
@@ -31,7 +31,7 @@ const inputWrapperVariants = cva(
 
 const inputFieldClasses = [
   'h-full min-w-0 flex-1 bg-transparent px-3 text-base text-foreground',
-  'placeholder:text-muted-foreground appearance-none outline-none',
+  'placeholder:text-border appearance-none outline-none',
   'disabled:cursor-not-allowed',
 ].join(' ');
 
@@ -67,7 +67,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       )}
     >
       {leftIcon ? (
-        <span className="pointer-events-none shrink-0 pl-3 text-muted-foreground">
+        <span className="pointer-events-none shrink-0 pl-3 text-icon">
           {leftIcon}
         </span>
       ) : null}
@@ -78,7 +78,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
         {...props}
       />
       {rightIcon ? (
-        <span className="pointer-events-none shrink-0 pr-3 text-muted-foreground">
+        <span className="pointer-events-none shrink-0 pr-3 text-icon">
           {rightIcon}
         </span>
       ) : null}
