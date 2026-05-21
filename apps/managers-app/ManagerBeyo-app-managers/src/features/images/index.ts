@@ -22,3 +22,5 @@ export * from './actions/use-reorder-images';
 export * from './actions/use-unlink-image';
 export * from './actions/use-delete-image';
 export * from './actions/use-create-image-annotation';
+export * from './store/images.store';
+export * from './controllers/use-entity-images.controller';
