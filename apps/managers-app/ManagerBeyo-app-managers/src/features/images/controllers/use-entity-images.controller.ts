@@ -16,6 +16,7 @@ import { generateClientId } from '@/lib/client-id';
 export const IMAGE_CAMERA_SURFACE_ID = 'image-camera';
 export const IMAGE_VIEWER_SURFACE_ID = 'image-viewer';
 export const IMAGE_METADATA_SURFACE_ID = 'image-metadata';
+export const IMAGE_EDITOR_SURFACE_ID = 'image-editor';
 
 export type ImageViewerMode = 'preview-only' | 'preview-edit';
 
@@ -47,6 +48,12 @@ export type ImageMetadataSurfaceProps = {
   entityClientId: string;
   mode: ImageViewerMode;
   onDelete?: (imageClientId: string) => void;
+};
+
+export type ImageEditorSurfaceProps = {
+  image: ImageViewModel;
+  entityType: ImageLinkEntityType;
+  entityClientId: string;
 };
 
 function toConfirmedOptimisticViewModel(

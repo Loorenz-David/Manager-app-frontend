@@ -7,13 +7,12 @@ import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import {
+  IMAGE_EDITOR_SURFACE_ID,
   IMAGE_METADATA_SURFACE_ID,
   type ImageViewerSurfaceProps,
 } from '../controllers/use-entity-images.controller';
 import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
 import type { ImageViewModel } from '../types';
-
-const IMAGE_EDITOR_SURFACE_ID = 'image-editor';
 
 function clampIndex(index: number, imageCount: number): number {
   if (imageCount <= 0) {

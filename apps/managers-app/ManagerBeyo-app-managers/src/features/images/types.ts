@@ -225,6 +225,75 @@ export type ImageAnnotationViewModel = {
   createdAt: string;
 };
 
+export type DrawAnnotationData = {
+  tool: 'draw';
+  points: number[];
+  color: string;
+  strokeWidth: number;
+};
+
+export type ArrowAnnotationData = {
+  tool: 'arrow';
+  fromX: number;
+  fromY: number;
+  toX: number;
+  toY: number;
+  color: string;
+  strokeWidth: number;
+};
+
+export type CircleAnnotationData = {
+  tool: 'circle';
+  centerX: number;
+  centerY: number;
+  radiusX: number;
+  radiusY: number;
+  color: string;
+  strokeWidth: number;
+};
+
+export type RectangleAnnotationData = {
+  tool: 'rectangle';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  strokeWidth: number;
+};
+
+export type TextAnnotationData = {
+  tool: 'text';
+  x: number;
+  y: number;
+  text: string;
+  fontSize: number;
+  color: string;
+};
+
+export type HighlightAnnotationData = {
+  tool: 'highlight';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  color: string;
+  opacity: number;
+};
+
+export type ImageAnnotationItemData =
+  | DrawAnnotationData
+  | ArrowAnnotationData
+  | CircleAnnotationData
+  | RectangleAnnotationData
+  | TextAnnotationData
+  | HighlightAnnotationData;
+
+export type ImageAnnotationSessionData = {
+  version: 1;
+  items: ImageAnnotationItemData[];
+};
+
 export type ImageViewModel = {
   clientId: string;
   linkClientId: string | null;
@@ -244,6 +313,131 @@ export type ImageViewModel = {
   uploadError: string | null;
   annotation: ImageAnnotationViewModel | null;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+function isFiniteNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((entry) => isFiniteNumber(entry));
+}
+
+function isImageAnnotationTypeValue(value: unknown): value is ImageAnnotationType {
+  return typeof value === 'string' && IMAGE_ANNOTATION_TYPE.includes(value as ImageAnnotationType);
+}
+
+export function isImageAnnotationItemData(value: unknown): value is ImageAnnotationItemData {
+  if (!isRecord(value) || !isImageAnnotationTypeValue(value.tool)) {
+    return false;
+  }
+
+  switch (value.tool) {
+    case 'draw':
+      return (
+        isFiniteNumberArray(value.points) &&
+        typeof value.color === 'string' &&
+        isFiniteNumber(value.strokeWidth)
+      );
+    case 'arrow':
+      return (
+        isFiniteNumber(value.fromX) &&
+        isFiniteNumber(value.fromY) &&
+        isFiniteNumber(value.toX) &&
+        isFiniteNumber(value.toY) &&
+        typeof value.color === 'string' &&
+        isFiniteNumber(value.strokeWidth)
+      );
+    case 'circle':
+      return (
+        isFiniteNumber(value.centerX) &&
+        isFiniteNumber(value.centerY) &&
+        isFiniteNumber(value.radiusX) &&
+        isFiniteNumber(value.radiusY) &&
+        typeof value.color === 'string' &&
+        isFiniteNumber(value.strokeWidth)
+      );
+    case 'rectangle':
+      return (
+        isFiniteNumber(value.x) &&
+        isFiniteNumber(value.y) &&
+        isFiniteNumber(value.width) &&
+        isFiniteNumber(value.height) &&
+        typeof value.color === 'string' &&
+        isFiniteNumber(value.strokeWidth)
+      );
+    case 'text':
+      return (
+        isFiniteNumber(value.x) &&
+        isFiniteNumber(value.y) &&
+        typeof value.text === 'string' &&
+        isFiniteNumber(value.fontSize) &&
+        typeof value.color === 'string'
+      );
+    case 'measurement':
+      return false;
+    case 'highlight':
+      return (
+        isFiniteNumber(value.x) &&
+        isFiniteNumber(value.y) &&
+        isFiniteNumber(value.width) &&
+        isFiniteNumber(value.height) &&
+        typeof value.color === 'string' &&
+        isFiniteNumber(value.opacity)
+      );
+  }
+}
+
+function isImageAnnotationSessionData(value: unknown): value is ImageAnnotationSessionData {
+  return (
+    isRecord(value) &&
+    value.version === 1 &&
+    Array.isArray(value.items) &&
+    value.items.every((item) => isImageAnnotationItemData(item))
+  );
+}
+
+export function readImageAnnotationItems(
+  data: Record<string, unknown> | null | undefined,
+): ImageAnnotationItemData[] {
+  if (!data) {
+    return [];
+  }
+
+  if (isImageAnnotationSessionData(data)) {
+    return data.items;
+  }
+
+  if (isImageAnnotationItemData(data)) {
+    return [data];
+  }
+
+  return [];
+}
+
+export function buildImageAnnotationPayload(items: ImageAnnotationItemData[]): {
+  annotationType: ImageAnnotationType;
+  data: ImageAnnotationSessionData;
+} | null {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const annotationType = items.every((item) => item.tool === items[0]?.tool)
+    ? items[0]!.tool
+    : 'draw';
+
+  return {
+    annotationType,
+    data: {
+      version: 1,
+      items,
+    },
+  };
+}
 
 export function toImageAnnotationViewModel(
   annotation: ImageAnnotation,

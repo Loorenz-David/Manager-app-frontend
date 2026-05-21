@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_10_images_annotation_editor_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T22:12:32Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: `PLAN_01`, `PLAN_02`, `PLAN_04`
@@ -570,12 +570,20 @@ Run `npm run typecheck`. Resolve any errors.
 - Unit tests (PLAN_12): `ImageAnnotationToolbar` — each tool button changes active state.
 - Playwright (PLAN_12): editor page opens from viewer edit button, save button calls API.
 
+## Implementation summary
+
+- Added a new `image-editor` slide surface and full-screen editor page opened from the fullscreen viewer.
+- Implemented a Konva-backed annotation canvas with draw, arrow, circle, rectangle, text, and highlight tools plus native text entry.
+- Added normalized annotation item/session types and payload helpers so mixed-tool sessions can be persisted through the existing `createImageAnnotation` API.
+- Confirmed optimistic or incomplete uploads are blocked with an unavailable state message.
+- Validation completed: `npm run typecheck` passed with zero errors on `2026-05-21`.
+
 ## Review log
 
 - `2026-05-21` Claude Sonnet 4.6: Plan authored.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `David`
+- Current state: `archived`
+- Next state: —
+- Transition owner: `codex`
