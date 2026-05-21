@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_date_field_calendar_system_20260520`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Codex`
 - Created at (UTC): `2026-05-20T00:00:00Z`
-- Last updated at (UTC): `2026-05-20T00:00:00Z`
+- Last updated at (UTC): `2026-05-20T18:07:33Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/primitives.md` (date section)
 
@@ -921,10 +921,10 @@ The architecture is built to support these future enhancements without breaking 
 
 ## Review log
 
-_(empty — awaiting Codex implementation)_
+Updated 2026-05-20: Implemented the shared date primitive system, calendar sheet pages, task date fields, lazy surface registrations, and stable `data-testid` attributes for triggers, sheets, tabs, and task field wrappers.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: David
+- Current state: `archived`
+- Next state: `—`
+- Transition owner: `Codex`

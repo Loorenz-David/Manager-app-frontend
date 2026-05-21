@@ -138,7 +138,13 @@ type TokenClaims = {
   workspace_id:        string;
   role_name:           string;
   backend_permissions: string[];
-  ui:                  string[];
+  ui: {
+    apps:          string[];
+    pages:         string[];
+    buttons:       string[];
+    actions:       string[];
+    query_filters: string[];
+  };
 };
 
 export function decodeTokenClaims(): TokenClaims | null {

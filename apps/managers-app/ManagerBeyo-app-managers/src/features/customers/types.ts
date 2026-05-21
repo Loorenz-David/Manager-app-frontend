@@ -112,3 +112,20 @@ export function toOptimisticCustomer(input: CreateCustomerInput): Customer {
     updated_by_id: null,
   });
 }
+
+// ─── Field composition schema (for form composition in other features) ────────
+
+export const CustomerFieldsSchema = z.object({
+  display_name: z.string().min(1, 'Name is required.').max(255),
+  customer_type: z.enum(CUSTOMER_TYPE, {
+    message: 'Select a customer type.',
+  }),
+  primary_email: z
+    .string()
+    .email('Enter a valid email.')
+    .optional()
+    .or(z.literal('')),
+  primary_phone_number: z.string().optional(),
+  address: AddressSchema,
+});
+export type CustomerFields = z.infer<typeof CustomerFieldsSchema>;

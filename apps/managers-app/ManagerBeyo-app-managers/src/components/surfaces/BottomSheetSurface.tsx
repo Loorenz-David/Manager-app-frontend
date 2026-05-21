@@ -69,13 +69,17 @@ export function BottomSheetSurface({
             type="button"
           />
           <Drawer.Content
-            aria-labelledby="surface-sheet-title"
             className={cn(
               'fixed inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl',
               'flex flex-col bg-background shadow-xl focus:outline-none',
             )}
             style={{ zIndex: zIndex + 1 }}
           >
+            <Drawer.Title className="sr-only">{title || 'Sheet'}</Drawer.Title>
+            <Drawer.Description className="sr-only">
+              {title ? `${title} sheet content` : 'Sheet content'}
+            </Drawer.Description>
+
             <div className={cn('relative flex-shrink-0', title || actions ? 'border-b' : '')}>
               <Drawer.Handle className="absolute inset-0 z-0 !m-0 !h-full !w-full !rounded-none !bg-transparent !opacity-100" />
 
@@ -88,12 +92,9 @@ export function BottomSheetSurface({
 
               {title || actions ? (
                 <header className="relative z-10 flex items-center justify-between px-6 py-3">
-                  <h2
-                    className="pointer-events-none truncate text-base font-semibold"
-                    id="surface-sheet-title"
-                  >
+                  <div className="pointer-events-none truncate text-base font-semibold">
                     {title}
-                  </h2>
+                  </div>
                   {actions ? (
                     <div className="pointer-events-auto relative z-20 flex items-center gap-2">
                       {actions}

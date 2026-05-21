@@ -18,6 +18,7 @@ function EmailField() {
       </label>
       <TextInput
         autoComplete="email"
+        data-testid="auth-email-input"
         id="sign-in-email"
         invalid={Boolean(errors.email)}
         type="email"
@@ -41,6 +42,7 @@ function PasswordField() {
       </label>
       <TextInput
         autoComplete="current-password"
+        data-testid="auth-password-input"
         id="sign-in-password"
         invalid={Boolean(errors.password)}
         type="password"
@@ -87,13 +89,17 @@ export function SignInForm({ onSuccess }: SignInFormProps): React.JSX.Element {
           <PasswordField />
 
           {errors.root ? (
-            <div className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3">
+            <div
+              className="rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3"
+              data-testid="auth-error-root"
+            >
               <p className="text-sm text-destructive">{errors.root.message}</p>
             </div>
           ) : null}
 
           <button
             className="w-full rounded-lg bg-primary px-4 py-3 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
+            data-testid="auth-sign-in-button"
             type="submit"
           >
             {isPending ? 'Signing in…' : 'Sign in'}

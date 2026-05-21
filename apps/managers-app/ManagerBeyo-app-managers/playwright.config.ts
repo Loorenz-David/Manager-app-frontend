@@ -1,4 +1,30 @@
 import { defineConfig, devices } from '@playwright/test'
+import { readFileSync } from 'fs'
+import { resolve } from 'path'
+
+function loadEnvFile(filename: string) {
+  try {
+    const lines = readFileSync(resolve(process.cwd(), filename), 'utf-8').split('\n')
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed || trimmed.startsWith('#')) continue
+      const eq = trimmed.indexOf('=')
+      if (eq === -1) continue
+      const key = trimmed.slice(0, eq).trim()
+      const raw = trimmed.slice(eq + 1).trim()
+      const value = raw.replace(/^["']|["']$/g, '')
+      if (key && !(key in process.env)) process.env[key] = value
+    }
+  } catch {
+    // File absent — continue to next env source.
+  }
+}
+
+// Explicitly parse Playwright env files before any test module is evaluated.
+// Uses process.cwd() (the directory npm was invoked from) — __dirname is
+// unavailable in ESM packages ("type": "module").
+loadEnvFile('.env.test')
+loadEnvFile('.env')
 
 export default defineConfig({
   testDir: './tests/playwright',
@@ -9,10 +35,11 @@ export default defineConfig({
 
   reporter: [
     ['html'],
+    ['line'],
   ],
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',
 
     trace: 'on-first-retry',
 
@@ -23,18 +50,18 @@ export default defineConfig({
 
   projects: [
     {
-      name: 'mobile-chrome',
+      name: 'mobile',
 
       use: {
-        ...devices['Pixel 7'],
+        ...devices['iPhone 14 Pro'],
       },
     },
 
     {
-      name: 'desktop-chrome',
+      name: 'desktop',
 
       use: {
-        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
       },
     },
   ],

@@ -153,3 +153,81 @@ export function toOptimisticItem(input: CreateItemInput): Item {
     updated_by_id: null,
   });
 }
+
+// ─── Item issue ───────────────────────────────────────────────────────────────
+
+export const ITEM_ISSUE_STATE = [
+  'pending',
+  'fixing',
+  'blocked',
+  'deferred',
+  'skipped',
+  'resolved',
+] as const;
+export type ItemIssueState = (typeof ITEM_ISSUE_STATE)[number];
+
+export const ItemIssueSchema = z.object({
+  client_id: z.string(),
+  item_id: z.string().transform((v) => v as ItemId),
+  issue_type_id: z.string(),
+  issue_severity_id: z.string(),
+  state: z.enum(ITEM_ISSUE_STATE),
+  base_time_seconds: z.number().int(),
+  time_multiplier: z.number().nullable(),
+  issue_name_snapshot: z.string().nullable(),
+  severity_name_snapshot: z.string().nullable(),
+  created_by_id: z.string().nullable(),
+  created_at: z.string().datetime({ offset: true }).nullable(),
+  started_at: z.string().datetime({ offset: true }).nullable(),
+  resolved_at: z.string().datetime({ offset: true }).nullable(),
+  updated_at: z.string().datetime({ offset: true }).nullable(),
+});
+
+export type ItemIssue = z.infer<typeof ItemIssueSchema>;
+
+// ─── Item upholstery ──────────────────────────────────────────────────────────
+
+export const ITEM_UPHOLSTERY_SOURCE = ['internal', 'customer'] as const;
+export type ItemUpholsterySource = (typeof ITEM_UPHOLSTERY_SOURCE)[number];
+
+export const ItemUpholsterySchema = z.object({
+  client_id: z.string(),
+  item_id: z.string().transform((v) => v as ItemId),
+  upholstery_id: z.string(),
+  name: z.string().nullable(),
+  code: z.string().nullable(),
+  amount_meters: z.number().nullable(),
+  source: z.enum(ITEM_UPHOLSTERY_SOURCE),
+  time_to_fix_in_seconds: z.number().int().nullable(),
+  active_requirement_id: z.string().nullable(),
+});
+
+export type ItemUpholstery = z.infer<typeof ItemUpholsterySchema>;
+
+// ─── Field composition schema (for form composition in other features) ────────
+
+export const ItemDetailsFieldsSchema = z.object({
+  designer: z.string().max(255).optional(),
+  article_number: z.string().max(128).optional(),
+  sku: z.string().max(128).optional(),
+  quantity: z.number({ message: 'Enter a number.' }).int().nonnegative().optional(),
+  item_position: z.string().max(255).optional(),
+  item_currency: z
+    .enum(ITEM_CURRENCY, { message: 'Select a currency.' })
+    .optional(),
+  item_category_id: z.string().optional(),
+  major_category: z.string().optional(),
+});
+export type ItemDetailsFields = z.infer<typeof ItemDetailsFieldsSchema>;
+
+export const ItemIssuesFieldSchema = z.object({
+  issue_id: z.string().min(1),
+  issue_severity_id: z.string().min(1),
+});
+
+export const ItemIssuesFieldsSchema = z.object({
+  item_issues: z.array(ItemIssuesFieldSchema).default([]),
+});
+
+export type ItemIssueFieldEntry = z.infer<typeof ItemIssuesFieldSchema>;
+export type ItemIssuesFields = z.infer<typeof ItemIssuesFieldsSchema>;

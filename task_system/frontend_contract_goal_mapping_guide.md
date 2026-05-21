@@ -54,30 +54,27 @@ Every contract in `../architecture/` uses `Invoice`, `InvoiceDetailPage`, `invoi
 
 **Before writing any implementation plan or any code:**
 
-1. Identify which planning table(s) cover the entities you are building.
-2. Read those tables to establish:
+1. Identify which feature(s) cover the entities you are building.
+2. Read `src/features/<domain>/types.ts` to establish:
    - Actual entity names (`Task`, `WorkingSection`, `Item` — not `Invoice`)
    - Actual field names and types (`assigned_at`, `step_state` — not `due_date`, `amount_cents`)
    - Actual Zod schema shapes and constraints
    - Actual relationships, foreign keys, and status enums
 3. Use only those names in your plan and code. Never copy entity names or field names from contract examples.
 
-Planning tables live at:
-`docs/architecture/under_construction/intention/planning_tables/`
+Domain schemas live at:
 
-| Domain | Table path |
+| Domain | Types file |
 |---|---|
-| Tasks | `planning_tables/task/` |
-| Items | `planning_tables/item/` |
-| Customers | `planning_tables/customer/` |
-| Upholstery | `planning_tables/upholstery/` |
-| Users | `planning_tables/user/` |
-| Working sections | `planning_tables/working_sections/working_section/` |
-| Analytics | `planning_tables/working_sections/analytics/` |
-| Base / shared | `planning_tables/base/` |
-| Isolated tables | `planning_tables/isolated_tables/` |
+| Tasks | `src/features/tasks/types.ts` |
+| Items | `src/features/items/types.ts` |
+| Customers | `src/features/customers/types.ts` |
+| Upholstery | `src/features/upholstery/types.ts` |
+| Users | `src/features/users/types.ts` |
+| Working sections | `src/features/working-sections/types.ts` |
+| Base / shared | `src/types/common.ts` |
 
-If no planning table exists for the domain you are implementing, stop and ask the user before proceeding. Do not invent field names from the contract examples.
+If `types.ts` does not exist for the domain you are implementing, stop and ask the user before proceeding. Do not invent field names from the contract examples.
 
 ---
 
@@ -107,6 +104,9 @@ Add:
 - `../architecture/14_styling.md`
 - `../architecture/23_providers.md`
 - `../architecture/24_dto.md`
+- `../architecture/17_testing.md`
+- `../architecture/34_runtime_validation.md`
+- `../architecture/34_runtime_validation_local.md`
 
 ### Auth + permissions
 
@@ -181,8 +181,8 @@ Add:
 
 ## Output format (required before coding)
 
-Domain tables consulted:
-- `planning_tables/<domain>/<file>.md`: `<what was established — entity names, field names, schema shapes>`
+Domain schemas consulted:
+- `src/features/<domain>/types.ts`: `<what was established — entity names, field names, schema shapes>`
 
 Selected contracts:
 - `<file>`: `<reason>`
@@ -258,6 +258,7 @@ When running document-only, agents must apply the protocol above manually.
 | `04_api_client.md` | `04_api_client_local.md` | Backend error shape (flat string, no `field_errors`), refresh response envelope (`body.data.access_token`), `decodeTokenClaims()` export |
 | `12_auth.md` | `12_auth_local.md` | `AuthUser` type, sign-in body (`app_scope: 'admin'`), sign-out endpoint (`/logout`), `AuthProvider` boot uses JWT claims for workspace/role/permissions, no OAuth |
 | `28_surfaces.md` | `28_surfaces_local.md` | Active surface types (`slide`, `sheet`, `modal`); `drawer` excluded |
+| `34_runtime_validation.md` | `34_runtime_validation_local.md` | Bootstrap status, fixture/helper paths, npm scripts, project names, spec location convention, credential env vars, mocking pattern |
 
 ---
 
@@ -267,11 +268,18 @@ The build order is defined fully in `16_feature_workflow.md`. This is the summar
 
 ```
 Types → Query Keys → API Functions + Query Hooks → Actions → Controllers
-  → Flows (if needed) → Providers → Components → Forms → Pages
-  → Dynamic loading → Routes → Public API (index.ts) → Tests
+  → Flows (if needed) → Providers
+  → Components (add data-testid to all feature-critical elements here — see 34_runtime_validation_local.md)
+  → Forms → Pages → Dynamic loading → Routes → Public API (index.ts)
+  → Vitest unit + component tests
+  → Playwright spec  tests/playwright/features/<feature>/<flow>.spec.ts  (import from fixtures/app-fixture; call auth.signIn() for authenticated tests)
+  → Runtime validation pass on mobile project first, then desktop
+  → COMPLETE
 ```
 
 Never build components before the controller is complete. Never build the controller before actions and query hooks exist. The logic layer is built bottom-up; the UI layer is assembled top-down on top of it.
+
+**Playwright is not optional.** An implementation is not complete until `npm run test:e2e:mobile` and `npm run test:e2e:desktop` pass. See `34_runtime_validation_local.md` for the bootstrapped fixture paths, credential env vars, and the element-naming convention.
 
 ---
 

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_customer_item_features_field_composition_20260520`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Codex`
 - Created at (UTC): `2026-05-20T00:00:00Z`
-- Last updated at (UTC): `2026-05-20T12:00:00Z`
+- Last updated at (UTC): `2026-05-20T16:55:00Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/primitives.md` (field system section)
 
@@ -166,6 +166,7 @@ export function CustomerEmailField() {
 - No `register` or `errors` props on the component type
 - Error display uses `role="alert"` for screen reader accessibility
 - The `<label>` uses a stable `htmlFor` matching the input's `id`
+- Add stable `data-testid` attributes to inputs/selects and error elements when the field is expected to participate in E2E automation
 - Imports only from `@/components/primitives` and `react-hook-form`
 
 ### Layer responsibility table
@@ -851,9 +852,10 @@ src/
 ## Review log
 
 Updated 2026-05-20: Revised from original full-vertical plan. Types and API keys are already implemented. Plan now scoped to field components only. Field names updated to match actual `types.ts`: `display_name`, `customer_type`, `primary_phone_number`, `address` (structured) for customers; `item_position` (not `position`), no secondary contact fields. Folder paths updated to `customers/` and `items/` (plural). Pricing/dimension item fields deferred.
+Updated 2026-05-20: Post-implementation follow-up added stable `data-testid` attributes across the new customer/item field inputs, error messages, and field groups for selector consistency.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: David
+- Current state: `archived`
+- Next state: `—`
+- Transition owner: `Codex`
