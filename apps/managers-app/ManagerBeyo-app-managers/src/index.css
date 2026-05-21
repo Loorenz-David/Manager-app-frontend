@@ -57,3 +57,23 @@ body {
 .animate-camera-flash {
   animation: camera-flash 300ms ease-out forwards;
 }
+
+@keyframes image-edit-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(-1.5deg);
+  }
+
+  75% {
+    transform: rotate(1.5deg);
+  }
+}
+
+.animate-image-edit-shake {
+  animation: image-edit-shake 180ms ease-in-out infinite;
+  transform-origin: center;
+}

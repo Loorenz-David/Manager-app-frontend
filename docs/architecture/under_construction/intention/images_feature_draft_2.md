@@ -1575,11 +1575,13 @@ Implement in this order:
 |---------|------|--------|--------|
 | `PLAN_07_images_fullscreen_carousel_viewer_20260521` | `docs/architecture/archives/implementation/PLAN_07_images_fullscreen_carousel_viewer_20260521.md` | `archived` | Fullscreen image viewer, Embla carousel, dot indicators, and viewer surface registration |
 | `PLAN_08_images_metadata_actions_sheet_20260521` | `docs/architecture/archives/implementation/PLAN_08_images_metadata_actions_sheet_20260521.md` | `archived` | Metadata/actions sheet UI, delete action flow, and sheet surface registration |
+| `PLAN_09_images_reorder_and_delete_mode_20260521` | `docs/architecture/archives/implementation/PLAN_09_images_reorder_and_delete_mode_20260521.md` | `archived` | Long-press image edit mode, shake animation, tile deletion controls, and drag-sort reordering |
 
 # Progress notes
 
 - `2026-05-21`: `PLAN_07_images_fullscreen_carousel_viewer_20260521` completed, summarized, and archived. The images feature now has the fullscreen carousel viewer, indicator dots, metadata trigger, edit trigger, and local deletion handling. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_PLAN_07_images_fullscreen_carousel_viewer_20260521.md`.
 - `2026-05-21`: `PLAN_08_images_metadata_actions_sheet_20260521` completed, summarized, and archived. The images feature now has the metadata/actions sheet with file details, upload-state labeling, and mode-gated delete behavior. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_PLAN_08_images_metadata_actions_sheet_20260521.md`.
+- `2026-05-21`: `PLAN_09_images_reorder_and_delete_mode_20260521` completed, summarized, and archived. The images feature now has long-press edit mode in the preview grid, shake animation, per-tile delete controls, outside-tap exit, and sortable confirmed images wired to the reorder controller. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_PLAN_09_images_reorder_and_delete_mode_20260521.md`.
 
 # Important Planning Rule
 

@@ -10,6 +10,8 @@ const LONG_PRESS_MS = 500;
 type ImagePreviewTileProps = {
   image: ImageViewModel;
   isEditMode?: boolean;
+  onTap?: (imageClientId: string) => void;
+  onDeletePress?: (imageClientId: string) => void;
   onLongPress?: (imageClientId: string) => void;
   testId?: string;
 };
@@ -17,13 +19,18 @@ type ImagePreviewTileProps = {
 export function ImagePreviewTile({
   image,
   isEditMode = false,
+  onTap,
+  onDeletePress,
   onLongPress,
   testId,
 }: ImagePreviewTileProps): React.JSX.Element {
   const { openViewer, deleteImage } = useEntityImagesContext();
   const longPressTimerRef = useRef<number | null>(null);
+  const didTriggerLongPressRef = useRef(false);
   const displayUrl = image.localObjectUrl ?? image.imageUrl;
   const isConfirmed = image.uploadState === 'completed';
+  const handleTap = onTap ?? openViewer;
+  const handleDeletePress = onDeletePress ?? deleteImage;
 
   function clearLongPressTimer(): void {
     if (longPressTimerRef.current !== null) {
@@ -38,10 +45,21 @@ export function ImagePreviewTile({
     }
 
     clearLongPressTimer();
+    didTriggerLongPressRef.current = false;
     longPressTimerRef.current = window.setTimeout(() => {
+      didTriggerLongPressRef.current = true;
       onLongPress(image.clientId);
       longPressTimerRef.current = null;
     }, LONG_PRESS_MS);
+  }
+
+  function handleClick(): void {
+    if (didTriggerLongPressRef.current) {
+      didTriggerLongPressRef.current = false;
+      return;
+    }
+
+    handleTap(image.clientId);
   }
 
   useEffect(() => clearLongPressTimer, []);
@@ -50,21 +68,23 @@ export function ImagePreviewTile({
     <div
       className={[
         'relative aspect-square overflow-hidden rounded-xl bg-muted',
-        isEditMode ? 'ring-2 ring-destructive/30' : '',
+        isEditMode ? 'animate-image-edit-shake ring-2 ring-destructive/30' : '',
       ].join(' ')}
       data-testid={testId ?? `image-preview-tile-${image.clientId}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={clearLongPressTimer}
+      onPointerLeave={clearLongPressTimer}
+      onPointerCancel={clearLongPressTimer}
     >
       <button
         type="button"
         className="size-full"
         data-testid={`image-preview-tile-button-${image.clientId}`}
-        aria-label={isConfirmed ? 'View image' : 'Image upload in progress'}
-        disabled={!isConfirmed}
-        onClick={() => openViewer(image.clientId)}
-        onPointerDown={handlePointerDown}
-        onPointerUp={clearLongPressTimer}
-        onPointerLeave={clearLongPressTimer}
-        onPointerCancel={clearLongPressTimer}
+        aria-label={
+          isEditMode ? 'Image edit mode active' : isConfirmed ? 'View image' : 'Image upload in progress'
+        }
+        disabled={isEditMode || !isConfirmed}
+        onClick={handleClick}
       >
         <img src={displayUrl} alt="" className="size-full object-cover" loading="lazy" />
       </button>
@@ -77,7 +97,10 @@ export function ImagePreviewTile({
           className="absolute right-1.5 top-1.5 inline-flex size-6 items-center justify-center rounded-full bg-destructive text-white shadow-sm"
           data-testid={`image-delete-button-${image.clientId}`}
           aria-label="Delete image"
-          onClick={() => deleteImage(image.clientId)}
+          onClick={(event) => {
+            event.stopPropagation();
+            handleDeletePress(image.clientId);
+          }}
         >
           <X className="size-3.5" aria-hidden="true" />
         </button>

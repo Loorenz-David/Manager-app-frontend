@@ -29,5 +29,6 @@ export * from './components/ImageUploadOverlay';
 export * from './components/ImagePreviewTile';
 export * from './components/ImageAddPictureButton';
 export * from './components/ImagePreviewGrid';
+export * from './components/ImageSortableGrid';
 export * from './components/ImageCarouselIndicators';
 export * from './surfaces';

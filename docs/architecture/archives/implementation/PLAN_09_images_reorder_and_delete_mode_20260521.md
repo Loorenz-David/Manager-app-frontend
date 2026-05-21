@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_09_images_reorder_and_delete_mode_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T22:04:43Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: `PLAN_01`, `PLAN_04`, `PLAN_05`
