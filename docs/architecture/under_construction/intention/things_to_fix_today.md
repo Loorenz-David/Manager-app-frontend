@@ -47,6 +47,22 @@ we will create one more primitive, this will be a number input, which behaves li
 
 ---
 
+✅
 we will edit the current delivery date range page that is display on TaskDeliveryDateField ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/fields/TaskDeliveryDateField.tsx ).
 
 it currently renders the "from" and "to" selectors in a style that is not align with the current application. can we move this "from" and "two" to use one more primitive that we will create. this primitive will be a box - slide picker, the idea is the the container loads with the passed options for example "from" and "to". the selectoin is display with the selection bg color, for the example the current selection is at "from", then the user taps "to", the box slides smoothly with aceleration and deaceleartion to the "to" side. the selection boxe lives at a container that wraps the presented values on a lighter border bg color ( we use the current ones define in index.css ). the box selection only allows for one selection and the options passed are undefined number.
+
+---
+
+✅
+we are missing to add the HRF field component for task additional_details, this field is should use the TextArea primitive /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/components/primitives/textarea/TextArea.tsx .
+
+---
+
+implement image feature
+
+---
+
+implement working section selection:
+
+this selector allows to select a working section and a worker with in that working section, creating a link task step to the task.
