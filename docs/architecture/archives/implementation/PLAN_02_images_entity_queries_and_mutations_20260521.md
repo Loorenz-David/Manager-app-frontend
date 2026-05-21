@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_02_images_entity_queries_and_mutations_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T21:26:03Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: `PLAN_01_images_contracts_dtos_and_api_client_20260521`
@@ -427,9 +427,10 @@ Run `npm run typecheck`. Resolve any TypeScript errors in the files created in t
 ## Review log
 
 - `2026-05-21` Claude Sonnet 4.6: Plan authored.
+- `2026-05-21` Codex: Implemented query hooks and image action hooks, validated with `npm run typecheck`, and archived the plan.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `David`
+- Current state: `archived`
+- Next state: `—`
+- Transition owner: `Codex`
