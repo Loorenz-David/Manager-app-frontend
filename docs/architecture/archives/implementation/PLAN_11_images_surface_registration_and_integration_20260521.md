@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_11_images_surface_registration_and_integration_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T22:15:09Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: All previous plans (PLAN_01 through PLAN_10)
@@ -219,6 +219,6 @@ Run `npm run typecheck`. Resolve any errors.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
+- Current state: `archived`
+- Next state: —
 - Transition owner: `David`

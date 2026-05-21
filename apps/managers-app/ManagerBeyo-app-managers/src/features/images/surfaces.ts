@@ -45,6 +45,15 @@ export function preloadImageCameraSurface(): Promise<unknown> {
   return Promise.allSettled([loadImageCameraPage(), prewarmCameraStream()]);
 }
 
+export function preloadImageViewerSurface(): Promise<unknown> {
+  if (preloadedImageSurfaces.has(IMAGE_VIEWER_SURFACE_ID)) {
+    return Promise.resolve();
+  }
+
+  preloadedImageSurfaces.add(IMAGE_VIEWER_SURFACE_ID);
+  return loadImageFullscreenViewerPage();
+}
+
 export const imageSurfaces: SurfaceRegistrations = {
   [IMAGE_CAMERA_SURFACE_ID]: {
     surface: 'slide',
