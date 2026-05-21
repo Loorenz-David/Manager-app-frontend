@@ -1569,6 +1569,18 @@ Implement in this order:
 11. `PLAN_11_images_surface_registration_and_integration`
 12. `PLAN_12_images_final_integration_validation_and_tests`
 
+# Linked implementation plans
+
+| Plan ID | Path | Status | Covers |
+|---------|------|--------|--------|
+| `PLAN_07_images_fullscreen_carousel_viewer_20260521` | `docs/architecture/archives/implementation/PLAN_07_images_fullscreen_carousel_viewer_20260521.md` | `archived` | Fullscreen image viewer, Embla carousel, dot indicators, and viewer surface registration |
+| `PLAN_08_images_metadata_actions_sheet_20260521` | `docs/architecture/archives/implementation/PLAN_08_images_metadata_actions_sheet_20260521.md` | `archived` | Metadata/actions sheet UI, delete action flow, and sheet surface registration |
+
+# Progress notes
+
+- `2026-05-21`: `PLAN_07_images_fullscreen_carousel_viewer_20260521` completed, summarized, and archived. The images feature now has the fullscreen carousel viewer, indicator dots, metadata trigger, edit trigger, and local deletion handling. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_PLAN_07_images_fullscreen_carousel_viewer_20260521.md`.
+- `2026-05-21`: `PLAN_08_images_metadata_actions_sheet_20260521` completed, summarized, and archived. The images feature now has the metadata/actions sheet with file details, upload-state labeling, and mode-gated delete behavior. Linked summary: `docs/architecture/implemented_summaries/SUMMARY_PLAN_08_images_metadata_actions_sheet_20260521.md`.
+
 # Important Planning Rule
 
 Each plan should produce a standalone implementation document with:
