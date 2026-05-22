@@ -59,21 +59,6 @@ export function ImagePreviewGrid({
 
   return (
     <div ref={containerRef} className="space-y-2" data-testid={`${testId}-container`}>
-      {isEditMode ? (
-        <div className="flex justify-end">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-white"
-            data-testid={`${testId}-done-button`}
-            aria-label="Done editing images"
-            onClick={() => setIsEditMode(false)}
-          >
-            <Check className="size-4" aria-hidden="true" />
-            Done
-          </button>
-        </div>
-      ) : null}
-
       <div className="grid grid-cols-3 gap-2" data-testid={testId}>
         <ImageSortableGrid
           images={visibleImages}
@@ -91,6 +76,21 @@ export function ImagePreviewGrid({
         />
         {showAddPictureButton ? <ImageAddPictureButton /> : null}
       </div>
+
+      {isEditMode ? (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-white"
+            data-testid={`${testId}-done-button`}
+            aria-label="Done editing images"
+            onClick={() => setIsEditMode(false)}
+          >
+            <Check className="size-4" aria-hidden="true" />
+            Done
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

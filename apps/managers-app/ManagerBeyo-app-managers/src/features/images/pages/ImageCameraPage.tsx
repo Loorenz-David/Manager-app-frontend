@@ -2,28 +2,30 @@ import { Camera, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useCameraStream } from '../hooks/use-camera-stream';
-import type { ImageLinkEntityType } from '../types';
+import type { ImageCameraSurfaceProps } from '../controllers/use-entity-images.controller';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
-type ImageCameraPageProps = {
-  entityType: ImageLinkEntityType;
-  entityClientId: string;
-  onCapture: (rawBlob: Blob) => void;
-  latestImageUrl?: string | null;
-};
-
 export function ImageCameraPage(): React.JSX.Element {
-  const { onCapture, latestImageUrl } = useSurfaceProps<ImageCameraPageProps>();
+  const { onCapture, latestImageUrl, onViewLatest } = useSurfaceProps<ImageCameraSurfaceProps>();
   const header = useSurfaceHeader();
   const { videoRef, isReady, hasError, startStream, captureFrame } = useCameraStream();
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [localLatestUrl, setLocalLatestUrl] = useState<string | null>(null);
+  const localLatestUrlRef = useRef<string | null>(null);
   const flashTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (localLatestUrlRef.current) URL.revokeObjectURL(localLatestUrlRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     header?.setTitle('');
+    header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -65,6 +67,11 @@ export function ImageCameraPage(): React.JSX.Element {
       triggerFlash();
       navigator.vibrate?.(10);
       onCapture(blob);
+
+      const thumbUrl = URL.createObjectURL(blob);
+      if (localLatestUrlRef.current) URL.revokeObjectURL(localLatestUrlRef.current);
+      localLatestUrlRef.current = thumbUrl;
+      setLocalLatestUrl(thumbUrl);
     } finally {
       setIsCapturing(false);
     }
@@ -95,26 +102,25 @@ export function ImageCameraPage(): React.JSX.Element {
 
   return (
     <div className="relative flex min-h-full flex-col bg-black" data-testid="image-camera-page">
-      <div className="relative flex-1 overflow-hidden">
-        <video
-          ref={videoRef}
-          autoPlay
-          className="h-full w-full object-cover"
-          data-testid="camera-video-preview"
-          muted
-          playsInline
-        />
-
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center p-4">
-          <div className="aspect-square w-full max-w-full rounded-[28px] border border-white/30 shadow-[0_0_0_9999px_rgba(0,0,0,0.22)]" />
-        </div>
-
-        {isFlashing ? (
-          <div
-            className="pointer-events-none absolute inset-0 animate-camera-flash bg-white"
-            data-testid="camera-flash-overlay"
+      <div className="flex flex-1 items-center justify-center overflow-hidden">
+        {/* Square viewport — exactly matches captureFrame's center crop of the raw stream */}
+        <div className="relative aspect-square w-full overflow-hidden">
+          <video
+            ref={videoRef}
+            autoPlay
+            className="h-full w-full object-cover"
+            data-testid="camera-video-preview"
+            muted
+            playsInline
           />
-        ) : null}
+
+          {isFlashing ? (
+            <div
+              className="pointer-events-none absolute inset-0 animate-camera-flash bg-white"
+              data-testid="camera-flash-overlay"
+            />
+          ) : null}
+        </div>
       </div>
 
       <div
@@ -126,10 +132,11 @@ export function ImageCameraPage(): React.JSX.Element {
           aria-label="Latest image"
           className="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-white/30 bg-white/10 disabled:opacity-60"
           data-testid="camera-latest-thumbnail"
-          disabled={!latestImageUrl}
+          disabled={!localLatestUrl && !latestImageUrl}
+          onClick={onViewLatest}
         >
-          {latestImageUrl ? (
-            <img alt="Latest capture" className="size-full object-cover" src={latestImageUrl} />
+          {(localLatestUrl ?? latestImageUrl) ? (
+            <img alt="Latest capture" className="size-full object-cover" src={localLatestUrl ?? latestImageUrl ?? undefined} />
           ) : (
             <Camera aria-hidden="true" className="size-5 text-white/70" />
           )}

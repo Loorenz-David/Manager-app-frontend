@@ -66,3 +66,21 @@ implement image feature
 implement working section selection:
 
 this selector allows to select a working section and a worker with in that working section, creating a link task step to the task.
+
+---
+
+make item identity field to be a select box where the user can choose to place article number and sku. this will use the slide select box, it defaults to article number, the input shown bellow records the input to article number, the user can change to sku which slides the input to the right, the sku input slides in from the right, that input records the input value to the sku. if the user taps article number the sku input slides right, the article number input slides from the left. this component should have memory ( local storage ), of the selection. edit forms will inject the incoming sku and article number. this two inputs will share a primitive input which has the primitive input and on the right a interactive button ( this will later trigger a scanner allowing the user to scan barcodes or qr codes ), for now it is just a scanner icon, when tap it logs "scann will open "
+
+---
+
+build stores need it for fields to featch the values they can present as options. this will make a field completely independent and usable by any form.
+
+this are the fields i must research and develop:
+
+Item category:
+
+Item issues:
+
+Working sections:
+
+item Upholstery :

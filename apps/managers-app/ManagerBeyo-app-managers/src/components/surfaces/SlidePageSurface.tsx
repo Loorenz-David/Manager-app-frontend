@@ -18,10 +18,11 @@ export function SlidePageSurface({
 }: Props): React.JSX.Element {
   const [title, setTitle] = useState("");
   const [actions, setActions] = useState<ReactNode>(null);
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   return (
     <SurfaceHeaderContext.Provider
-      value={{ setTitle, setActions, requestClose: onClose }}
+      value={{ setTitle, setActions, requestClose: onClose, setHeaderHidden }}
     >
       <m.div
         animate={{ x: 0 }}
@@ -31,25 +32,27 @@ export function SlidePageSurface({
         style={{ zIndex }}
         transition={transitions.slide}
       >
-        <header className="flex min-h-[56px] flex-shrink-0 items-center gap-3  px-4 py-3">
-          <button
-            aria-label="Go back"
-            className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
-            onClick={onClose}
-            type="button"
-          >
-            ‹
-          </button>
-          <h1
-            className="flex-1 truncate text-base font-semibold"
-            id="surface-slide-title"
-          >
-            {title}
-          </h1>
-          {actions ? (
-            <div className="flex items-center gap-1">{actions}</div>
-          ) : null}
-        </header>
+        {!headerHidden ? (
+          <header className="flex min-h-14 shrink-0 items-center gap-3 px-4 py-3">
+            <button
+              aria-label="Go back"
+              className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
+              onClick={onClose}
+              type="button"
+            >
+              ‹
+            </button>
+            <h1
+              className="flex-1 truncate text-base font-semibold"
+              id="surface-slide-title"
+            >
+              {title}
+            </h1>
+            {actions ? (
+              <div className="flex items-center gap-1">{actions}</div>
+            ) : null}
+          </header>
+        ) : null}
 
         <div className="flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           {children}

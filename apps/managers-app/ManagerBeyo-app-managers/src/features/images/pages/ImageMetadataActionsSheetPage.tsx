@@ -1,8 +1,9 @@
-import { useCallback } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useCallback, useState } from 'react';
+import { Download, Trash2 } from 'lucide-react';
 
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { fetchImageDownloadUrl } from '../api/fetch-image-download-url';
 import type { ImageMetadataSurfaceProps } from '../controllers/use-entity-images.controller';
 import type { ImageUploadState } from '../types';
 
@@ -63,6 +64,25 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
     image?.widthPx != null && image.heightPx != null
       ? `${image.widthPx}×${image.heightPx} px`
       : null;
+
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = useCallback(async () => {
+    if (!image) return;
+    setIsDownloading(true);
+    try {
+      const { downloadUrl } = await fetchImageDownloadUrl(image.clientId);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `image_${image.clientId}`;
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      setIsDownloading(false);
+    }
+  }, [image]);
 
   const handleDelete = useCallback(() => {
     if (!image) {
@@ -135,8 +155,20 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
         ) : null}
       </div>
 
-      {mode === 'preview-edit' && image && onDelete ? (
-        <div className="px-4 py-2" data-testid="metadata-sheet-actions">
+      <div className="px-4 py-2" data-testid="metadata-sheet-actions">
+        <button
+          aria-label="Download image"
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-foreground transition-colors duration-150 hover:bg-muted disabled:opacity-50"
+          data-testid="metadata-sheet-download-button"
+          disabled={isDownloading || !image}
+          type="button"
+          onClick={() => void handleDownload()}
+        >
+          <Download className="size-4 shrink-0" aria-hidden="true" />
+          <span className="text-sm font-medium">{isDownloading ? 'Downloading…' : 'Download image'}</span>
+        </button>
+
+        {mode === 'preview-edit' && image && onDelete ? (
           <button
             aria-label="Delete image"
             className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-destructive transition-colors duration-150 hover:bg-destructive/10"
@@ -147,8 +179,8 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
             <Trash2 className="size-4 shrink-0" aria-hidden="true" />
             <span className="text-sm font-medium">Delete image</span>
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }

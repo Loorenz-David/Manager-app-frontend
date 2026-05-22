@@ -75,6 +75,7 @@ export function ImagePreviewTile({
       onPointerUp={clearLongPressTimer}
       onPointerLeave={clearLongPressTimer}
       onPointerCancel={clearLongPressTimer}
+      onContextMenu={(e) => { e.preventDefault(); }}
     >
       <button
         type="button"
@@ -86,7 +87,7 @@ export function ImagePreviewTile({
         disabled={isEditMode || !isConfirmed}
         onClick={handleClick}
       >
-        <img src={displayUrl} alt="" className="size-full object-cover" loading="lazy" />
+        <img src={displayUrl} alt="" className="size-full object-cover" loading="lazy" draggable={false} />
       </button>
 
       <ImageUploadOverlay uploadState={image.uploadState} />

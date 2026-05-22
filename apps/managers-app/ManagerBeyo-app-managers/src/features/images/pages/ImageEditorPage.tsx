@@ -103,6 +103,7 @@ export function ImageEditorPage(): React.JSX.Element {
   useEffect(() => {
     header?.setTitle('');
     header?.setActions(null);
+    header?.setHeaderHidden(true);
   }, [header]);
 
   const updateCanvasBox = useCallback(() => {

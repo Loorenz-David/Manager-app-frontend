@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { Ellipsis, Pencil, X } from 'lucide-react';
 
@@ -40,6 +40,10 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   );
   const [images, setImages] = useState<ImageViewModel[]>(safeInitialImages);
   const [activeIndex, setActiveIndex] = useState(fallbackInitialIndex);
+  // Always-current read of activeIndex without triggering effect deps
+  const activeIndexRef = useRef(activeIndex);
+  activeIndexRef.current = activeIndex;
+
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     loop: false,
@@ -49,6 +53,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   useEffect(() => {
     header?.setTitle('');
     header?.setActions(null);
+    header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -56,10 +61,9 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     setImages(safeInitialImages);
   }, [safeInitialImages]);
 
-  useEffect(() => {
-    setActiveIndex((currentIndex) => clampIndex(currentIndex, images.length));
-  }, [images.length]);
-
+  // Embla → state: update activeIndex when the user swipes.
+  // This is the ONLY direction for normal scrolling — we never feed activeIndex
+  // back into Embla after a swipe (that caused the pop/flicker).
   useEffect(() => {
     if (!emblaApi) {
       return;
@@ -77,15 +81,24 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     };
   }, [emblaApi]);
 
+  // Handle image deletion: tell Embla about the new slide count and
+  // jump to the nearest valid index. Does NOT fire on user swipes.
   useEffect(() => {
-    if (!emblaApi) {
+    if (!emblaApi || images.length === 0) {
       return;
     }
 
-    const nextIndex = clampIndex(activeIndex, images.length);
-    emblaApi.reInit({ align: 'start', loop: false, startIndex: nextIndex });
-    emblaApi.scrollTo(nextIndex, true);
-  }, [activeIndex, emblaApi, images.length]);
+    emblaApi.reInit();
+
+    const clampedIndex = clampIndex(activeIndexRef.current, images.length);
+    if (clampedIndex !== emblaApi.selectedScrollSnap()) {
+      emblaApi.scrollTo(clampedIndex, true);
+    }
+    setActiveIndex(clampedIndex);
+  // images.length change = deletion. Deliberately excludes activeIndex
+  // to avoid re-running on every swipe.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [emblaApi, images.length]);
 
   useEffect(() => {
     if (images.length > 0) {

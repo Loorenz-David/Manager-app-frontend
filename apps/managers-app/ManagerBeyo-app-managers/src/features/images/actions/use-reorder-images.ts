@@ -34,11 +34,13 @@ export function useReorderImages() {
           input.ordered_image_client_ids.map((imageClientId, index) => [imageClientId, index]),
         );
 
-        return [...old].sort((left, right) => {
-          const leftOrder = orderMap.get(left.image.client_id) ?? Number.MAX_SAFE_INTEGER;
-          const rightOrder = orderMap.get(right.image.client_id) ?? Number.MAX_SAFE_INTEGER;
-          return leftOrder - rightOrder;
-        });
+        return [...old]
+          .sort((left, right) => {
+            const leftOrder = orderMap.get(left.image.client_id) ?? Number.MAX_SAFE_INTEGER;
+            const rightOrder = orderMap.get(right.image.client_id) ?? Number.MAX_SAFE_INTEGER;
+            return leftOrder - rightOrder;
+          })
+          .map((item, index) => ({ ...item, display_order: index }));
       });
 
       return { listKey, previousList };

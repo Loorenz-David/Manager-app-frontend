@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { useEntityImagesQuery } from '../api/use-entity-images';
@@ -12,11 +12,19 @@ import type { Image, ImageLinkEntityType, ImageUploadState, ImageViewModel } fro
 import { toImageViewModel } from '../types';
 import { useSurface } from '@/hooks/use-surface';
 import { generateClientId } from '@/lib/client-id';
+import {
+  IMAGE_CAMERA_SURFACE_ID,
+  IMAGE_EDITOR_SURFACE_ID,
+  IMAGE_METADATA_SURFACE_ID,
+  IMAGE_VIEWER_SURFACE_ID,
+} from '../surfaces';
 
-export const IMAGE_CAMERA_SURFACE_ID = 'image-camera';
-export const IMAGE_VIEWER_SURFACE_ID = 'image-viewer';
-export const IMAGE_METADATA_SURFACE_ID = 'image-metadata';
-export const IMAGE_EDITOR_SURFACE_ID = 'image-editor';
+export {
+  IMAGE_CAMERA_SURFACE_ID,
+  IMAGE_EDITOR_SURFACE_ID,
+  IMAGE_METADATA_SURFACE_ID,
+  IMAGE_VIEWER_SURFACE_ID,
+};
 
 export type ImageViewerMode = 'preview-only' | 'preview-edit';
 
@@ -31,6 +39,7 @@ export type ImageCameraSurfaceProps = {
   entityClientId: string;
   latestImageUrl?: string;
   onCapture: (rawBlob: Blob) => void;
+  onViewLatest?: () => void;
 };
 
 export type ImageViewerSurfaceProps = {
@@ -118,6 +127,7 @@ export function useEntityImagesController(
   const insertOptimisticImage = useImagesStore((state) => state.insertOptimisticImage);
   const patchOptimisticImage = useImagesStore((state) => state.patchOptimisticImage);
   const removeOptimisticImage = useImagesStore((state) => state.removeOptimisticImage);
+  const clearOptimisticImages = useImagesStore((state) => state.clearOptimisticImages);
 
   const unlinkAction = useUnlinkImage();
   const deleteAction = useDeleteImage();
@@ -137,6 +147,12 @@ export function useEntityImagesController(
 
     return [...confirmed, ...pendingOptimistic];
   }, [confirmedImages, optimisticImages]);
+
+  useEffect(() => {
+    return () => {
+      clearOptimisticImages(entityKey);
+    };
+  }, [clearOptimisticImages, entityKey]);
 
   useEffect(() => {
     const confirmedIds = new Set(serverImages.map((image) => image.image.client_id));
@@ -305,17 +321,6 @@ export function useEntityImagesController(
     [entityClientId, entityType, reorderAction],
   );
 
-  const openCamera = useCallback(() => {
-    const latestImageUrl = images.at(-1)?.imageUrl;
-
-    surface.open(IMAGE_CAMERA_SURFACE_ID, {
-      entityType,
-      entityClientId,
-      latestImageUrl,
-      onCapture: uploadImage,
-    } satisfies ImageCameraSurfaceProps);
-  }, [entityClientId, entityType, images, surface, uploadImage]);
-
   const openViewer = useCallback(
     (initialImageClientId: string) => {
       surface.open(IMAGE_VIEWER_SURFACE_ID, {
@@ -329,6 +334,26 @@ export function useEntityImagesController(
     },
     [deleteImage, entityClientId, entityType, images, surface, viewerMode],
   );
+
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+
+  const openViewerRef = useRef(openViewer);
+  openViewerRef.current = openViewer;
+
+  const openCamera = useCallback(() => {
+    surface.open(IMAGE_CAMERA_SURFACE_ID, {
+      entityType,
+      entityClientId,
+      latestImageUrl: imagesRef.current.at(-1)?.imageUrl,
+      onCapture: uploadImage,
+      onViewLatest: () => {
+        const latest = imagesRef.current.at(-1);
+        if (!latest) return;
+        openViewerRef.current(latest.clientId);
+      },
+    } satisfies ImageCameraSurfaceProps);
+  }, [entityClientId, entityType, surface, uploadImage]);
 
   const openMetadataSheet = useCallback(
     (imageClientId: string) => {

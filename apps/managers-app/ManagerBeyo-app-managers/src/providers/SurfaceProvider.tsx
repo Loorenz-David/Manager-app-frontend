@@ -50,6 +50,7 @@ export type SurfaceHeaderValue = {
   setTitle: (title: string) => void;
   setActions: (actions: ReactNode) => void;
   requestClose: () => void;
+  setHeaderHidden: (hidden: boolean) => void;
 };
 
 export const SurfaceHeaderContext = createContext<SurfaceHeaderValue | null>(null);

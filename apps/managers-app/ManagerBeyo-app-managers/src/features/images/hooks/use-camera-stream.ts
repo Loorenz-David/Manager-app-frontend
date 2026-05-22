@@ -77,7 +77,10 @@ export function useCameraStream(): UseCameraStreamResult {
       }
 
       video.srcObject = stream;
-      await video.play();
+      // play() rejects on iOS Safari when called from useEffect (outside a user-gesture
+      // stack) even with muted + playsInline. autoPlay handles actual playback when
+      // srcObject is set — swallow the rejection so hasError is not set incorrectly.
+      await video.play().catch(() => {});
       setIsReady(true);
     } catch (error) {
       setHasError(true);

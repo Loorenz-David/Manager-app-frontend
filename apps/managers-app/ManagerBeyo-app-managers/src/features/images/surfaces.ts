@@ -1,13 +1,12 @@
 import { lazy } from 'react';
 
 import { prewarmCameraStream } from './hooks/use-camera-stream';
-import {
-  IMAGE_CAMERA_SURFACE_ID,
-  IMAGE_EDITOR_SURFACE_ID,
-  IMAGE_METADATA_SURFACE_ID,
-  IMAGE_VIEWER_SURFACE_ID,
-} from './controllers/use-entity-images.controller';
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
+
+export const IMAGE_CAMERA_SURFACE_ID = 'image-camera';
+export const IMAGE_VIEWER_SURFACE_ID = 'image-viewer';
+export const IMAGE_METADATA_SURFACE_ID = 'image-metadata';
+export const IMAGE_EDITOR_SURFACE_ID = 'image-editor';
 
 const preloadedImageSurfaces = new Set<string>();
 

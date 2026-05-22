@@ -5,6 +5,10 @@ import { z } from 'zod';
 import { StagedForm, StagedFormStep } from '@/components/primitives';
 import { CustomerFieldGroup, CustomerFieldsSchema } from '@/features/customers';
 import {
+  EntityImagesProvider,
+  ImagePreviewGrid,
+} from '@/features/images';
+import {
   ItemCategorySelectionField,
   ItemDetailsFieldGroup,
   ItemDetailsFieldsSchema,
@@ -171,6 +175,14 @@ export function TestingFormsContent(): React.JSX.Element {
                   )}
                 />
                 <ItemIssuesField />
+                <section className="rounded-2xl border border-border p-4" data-testid="testing-images-harness-section">
+                  <EntityImagesProvider
+                    entityType="item"
+                    entityClientId="testing-item-images"
+                  >
+                    <ImagePreviewGrid maxImages={6} testId="testing-images-grid" />
+                  </EntityImagesProvider>
+                </section>
               </div>
             </section>
           </StagedFormStep>

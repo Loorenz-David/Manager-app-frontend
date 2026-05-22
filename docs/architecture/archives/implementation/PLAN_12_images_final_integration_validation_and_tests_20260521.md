@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_12_images_final_integration_validation_and_tests_20260521`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-21T00:00:00Z`
-- Last updated at (UTC): `2026-05-21T00:00:00Z`
+- Last updated at (UTC): `2026-05-21T22:28:38Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/images_feature_draft_2.md`
 - Depends on: All plans PLAN_01 through PLAN_11
