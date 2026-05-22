@@ -168,7 +168,6 @@ export function ImageSortableGrid({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
-      dropAnimation={null}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >

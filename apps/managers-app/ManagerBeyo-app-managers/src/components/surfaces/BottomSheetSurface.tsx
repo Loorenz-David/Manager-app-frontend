@@ -21,6 +21,7 @@ export function BottomSheetSurface({
   const [isOpen, setIsOpen] = useState(true);
   const [title, setTitle] = useState('');
   const [actions, setActions] = useState<ReactNode>(null);
+  const [headerHidden, setHeaderHidden] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
 
   function handleClose(): void {
@@ -37,7 +38,7 @@ export function BottomSheetSurface({
 
   return (
     <SurfaceHeaderContext.Provider
-      value={{ setTitle, setActions, requestClose: handleClose }}
+      value={{ setTitle, setActions, requestClose: handleClose, setHeaderHidden }}
     >
       <Drawer.Root
         direction="bottom"
@@ -90,7 +91,7 @@ export function BottomSheetSurface({
                 />
               </div>
 
-              {title || actions ? (
+              {!headerHidden && (title || actions) ? (
                 <header className="relative z-10 flex items-center justify-between px-6 py-3">
                   <div className="pointer-events-none truncate text-base font-semibold">
                     {title}

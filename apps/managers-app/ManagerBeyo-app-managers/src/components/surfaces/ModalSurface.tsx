@@ -30,6 +30,7 @@ export function ModalSurface({
 }: Props): React.JSX.Element {
   const [title, setTitle] = useState('');
   const [actions, setActions] = useState<ReactNode>(null);
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -43,7 +44,7 @@ export function ModalSurface({
   }, [onClose]);
 
   return (
-    <SurfaceHeaderContext.Provider value={{ setTitle, setActions, requestClose: onClose }}>
+    <SurfaceHeaderContext.Provider value={{ setTitle, setActions, requestClose: onClose, setHeaderHidden }}>
       <div className="fixed inset-0" style={{ zIndex }}>
         <m.button
           animate="visible"
@@ -71,22 +72,24 @@ export function ModalSurface({
             transition={transitions.surface}
             variants={panelVariants}
           >
-            <header className="flex min-h-14 items-center justify-between border-b px-5 py-4">
-              <h2 className="truncate text-base font-semibold" id="surface-modal-title">
-                {title}
-              </h2>
-              <div className="flex items-center gap-2">
-                {actions}
-                <button
-                  aria-label="Close modal"
-                  className="rounded-full p-2 hover:bg-muted"
-                  onClick={onClose}
-                  type="button"
-                >
-                  ✕
-                </button>
-              </div>
-            </header>
+            {!headerHidden ? (
+              <header className="flex min-h-14 items-center justify-between border-b px-5 py-4">
+                <h2 className="truncate text-base font-semibold" id="surface-modal-title">
+                  {title}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {actions}
+                  <button
+                    aria-label="Close modal"
+                    className="rounded-full p-2 hover:bg-muted"
+                    onClick={onClose}
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </header>
+            ) : null}
             <div className="max-h-[80dvh] overflow-y-auto p-5 [scrollbar-gutter:stable]">
               {children}
             </div>

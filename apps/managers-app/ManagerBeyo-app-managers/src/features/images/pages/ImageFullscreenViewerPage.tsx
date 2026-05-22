@@ -12,6 +12,7 @@ import {
   type ImageViewerSurfaceProps,
 } from '../controllers/use-entity-images.controller';
 import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
+import { ZoomableImage } from '../components/ZoomableImage';
 import type { ImageViewModel } from '../types';
 
 function clampIndex(index: number, imageCount: number): number {
@@ -43,11 +44,13 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   // Always-current read of activeIndex without triggering effect deps
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
+  const isAnySlideZoomedRef = useRef(false);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
     loop: false,
     startIndex: fallbackInitialIndex,
+    watchDrag: () => !isAnySlideZoomedRef.current,
   });
 
   useEffect(() => {
@@ -176,12 +179,11 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
                 className="flex min-w-0 flex-[0_0_100%] items-center justify-center"
                 data-testid={`viewer-slide-${image.clientId}`}
               >
-                <img
-                  alt=""
-                  className="h-full w-full select-none object-contain"
-                  draggable={false}
-                  loading="lazy"
+                <ZoomableImage
                   src={displayUrl}
+                  onZoomChange={(isZoomed) => {
+                    isAnySlideZoomedRef.current = isZoomed;
+                  }}
                 />
               </div>
             );

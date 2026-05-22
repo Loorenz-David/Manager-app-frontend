@@ -65,11 +65,35 @@ implement image feature
 
 implement working section selection:
 
-this selector allows to select a working section and a worker with in that working section, creating a link task step to the task.
+this selector allows to select a working section and a worker with in that working section. we use the primitive box selection, the style of the boxes is full row expansion column arrangement.
+
+tapping on a working section box selects it and opens the bottom sheet surface displaying the workers available in that section, the user can select a worker from that list, selecting closes the bottom sheet, now the working section box is selected and renders the name of the worker selected
+
+the user can select multiple working sections.
+
+there will be a default behaviour, when the working section only has a single worker it auto selects the worker for that working section, skipping the bottom sheet surface.
+
+this working sections and users belonging to a working section will be fetch and stored in a store, but for now we can implement a list of objects for testing the behaviour.
+
+the working sections object for selection :
+{ client_id, name, image, dependencies:[{client_id, name}], item_categories:[{client_id, name}], supported_issue_types:[{client_id, name}], memebers:[
+{client_id, username, user_id, assigned_at, working_section_id, profile_picture ( url string ) }
+]}
+
+the working section box should render the image ( will be icon url ) on the left side, then on the right is the name of the working section, bellow that name is a compact pill of the memebers selected, small avatar picture on the left, name on the right.
+
+tapping the box opens the worker selection.
+
+the working section box has an "x" to deselect the working section ( like the issue boxes do ).
+
+the field will return and object with { "working_section_id": "wse_01...",
+"worker_id": "usr_01..."
+}
+when injecting selections it will accept the same object
 
 ---
 
-make item identity field to be a select box where the user can choose to place article number and sku. this will use the slide select box, it defaults to article number, the input shown bellow records the input to article number, the user can change to sku which slides the input to the right, the sku input slides in from the right, that input records the input value to the sku. if the user taps article number the sku input slides right, the article number input slides from the left. this component should have memory ( local storage ), of the selection. edit forms will inject the incoming sku and article number. this two inputs will share a primitive input which has the primitive input and on the right a interactive button ( this will later trigger a scanner allowing the user to scan barcodes or qr codes ), for now it is just a scanner icon, when tap it logs "scann will open "
+make item identity field to be a select box where the user can choose to place article number and sku. this will use the slide select box, it defaults to article number, the input shown bellow records the input to article number, the user can change to sku which slides the input to the right, the sku input slides in from the right, that input records the input value to the sku. if the user taps article number the sku input slides right, the article number input slides from the left. this component should have memory ( local storage ), of the selection. edit forms will inject the incoming sku and article number. this two inputs will share a primitive input which has the primitive input and on the right a interactive button ( this will later trigger a scanner allowing the user to scan barcodes or qr codes ), for now it is just a scanner icon, when tap it logs "scann will open"
 
 ---
 
@@ -84,3 +108,64 @@ Item issues:
 Working sections:
 
 item Upholstery :
+
+---
+
+✅
+the current app blocks zoom in ( greate ), but on the full page image preview we should allow for users to zoom in with the finger gesture of zoom in in ( two fingers ), and allow the gesture to examin the picture zoomed in ( this should not conflict with the current slide image carousel ), i thinkg modern image previews solve this by blocking the slide carousel when the image is zoomed in, the user must zoom out to let allow the slide carousel. zooming out and in have a max limits which bounces the user back to the clamp
+
+---
+
+the current call to Request URL
+http://192.168.1.246:8000/api/v1/images?entity_type=item&entity_client_id=testing-item-images
+Request Method
+GET
+Status Code
+brings the annotaions for the images:"link_client_id": "iml_01KS7B6Y8RH2JA0RAB6M2DTXVG",
+"image": {
+"client_id": "img_01KS7B6Y8K888FHNK1QCMQ4T83",
+"image_url": "https://s3.eu-north-1.amazonaws.com/test-bootstrap-local/images/ws_workspace_test/item/testing-item-images/3c1295b5-bd2e-4546-aa5f-279348235091.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAUPMYNLNDRW5PUNWB%2F20260522%2Feu-north-1%2Fs3%2Faws4_request&X-Amz-Date=20260522T110317Z&X-Amz-Expires=86400&X-Amz-SignedHeaders=host&X-Amz-Signature=dda7357b0774d4e5983013f96f2f3e54fafaa3883eeac526508709242f87191c",
+"storage_provider": "s3",
+"source_type": "uploaded",
+"source_reference": "s3_image_url",
+"width_px": null,
+"height_px": null,
+"file_size_bytes": 40636,
+"created_at": "2026-05-22T08:00:45.331129+00:00",
+"last_event": {
+"client_id": "iev_01KS7B6Y8P1X0P8DAZEAMYRKM7",
+"event_type": "upload_item_image",
+"state": "requested",
+"created_at": "2026-05-22T08:00:45.334872+00:00",
+"last_error": null
+},
+"events": [],
+"image_annotation": {
+"client_id": "ian_01KS7JQMVRQ92BRAAM7JB8GKR8",
+"annotation_type": "draw",
+"data": {
+"tool": "draw",
+"color": "#ff5a36",
+"points": [
+0.5702924679487179,
+0.41991185897435895,
+0.555
+etc...
+the image preview in the small preview contaniner should display the annotations.
+
+the same goes for the full image preview page, the images being display should display their annotations .
+
+---
+
+the image preview page which holds the metadata and the delete or download action will now have a button which let's the user to hide annotation. this hidde annotation works only on the current render page, meaning the preview continues to display the annotations, and if the user hiddes them then closes the full page preview they should show again, the hidde annotation is also private for each image in the image carousel.
+
+---
+
+we will now edit the current image editor, the done button whould be placed down right. the close button should be placed down left. tapping the done button should also close the image editor, and the anotations made should be seen at the full page image preview optimistically. closing the image editor when there is edits with out save should trigger a confirmation page which will be display through the bottom sheet surface, this page will display the message letting know the user that there is changes that have not been saved, the then the user can tap close anyway, or save. tapping save triggers the same action as the done button, tapping the close anyway closes the image editor with out saving the changes.
+The current tools box that the user can use to draw the in the image should be display thorugh the bottom sheet drawer, selecting a tool closes the bottom sheet. the field to trigger this tool box lives at the bottom centered ( between the close and done button ). it should render the current tool the user has selected with the name of the tool and a button with icon (go back ), when the go back gets tapped it removes the latest trace the user did.
+
+---
+
+currently the user can make shapes, draw it's own, make a text, but once done it cannot move that shape, nor remove it. on shapes we should add the ability of taping in the annotation displays the bottom sheet surface with the option of deleting that annotiation. on text the bottom sheet gives more options appart from removing the text, the user can tap edit text ( this closes the bottom sheet and allows the text to be edited ), or user can tap change position ( closing the bottom sheet and displaying a dasshed box, the user then can drag the text and move it from position ), for the action move text the user must tap the done button ( which now renders in green bg, on tap it will not close the image editor but it will trigger the call to save the changes to the backend, then the move text action gets disable, the user is back to where it left it ), removing a shape or text makes the call to the backend directly.
+
+---

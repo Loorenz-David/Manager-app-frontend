@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_images_viewer_pinch_zoom_20260522`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Codex`
 - Created at (UTC): `2026-05-22T00:00:00Z`
-- Last updated at (UTC): `2026-05-22T00:00:00Z`
+- Last updated at (UTC): `2026-05-22T11:49:49Z`
 - Related issue/ticket: —
 - Intention plan: —
 - Depends on: `PLAN_07_images_fullscreen_carousel_viewer_20260521` (archived)
@@ -438,6 +438,6 @@ Resolve any errors before marking done.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
+- Current state: `archived`
+- Next state: `—`
 - Transition owner: `Codex`
