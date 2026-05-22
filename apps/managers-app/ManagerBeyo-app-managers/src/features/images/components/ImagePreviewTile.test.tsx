@@ -60,6 +60,34 @@ describe('ImagePreviewTile', () => {
     expect(onTap).toHaveBeenCalledWith('img_1');
   });
 
+  it('renders an annotation overlay when the image has saved annotations', () => {
+    render(
+      <ImagePreviewTile
+        image={buildImageViewModel({
+          annotations: [
+            {
+              clientId: 'ann_1',
+              annotationType: 'rectangle',
+              accuracy: null,
+              createdAt: '2026-05-21T12:00:00.000Z',
+              data: {
+                tool: 'rectangle',
+                x: 0.1,
+                y: 0.1,
+                width: 0.3,
+                height: 0.2,
+                color: '#ff0000',
+                strokeWidth: 4,
+              },
+            },
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByTestId('image-annotation-overlay-img_1')).toBeVisible();
+  });
+
   it('suppresses the tap callback after a long press', () => {
     const onTap = vi.fn();
     const onLongPress = vi.fn();

@@ -2,10 +2,13 @@ import { create } from 'zustand';
 
 import type { ImageViewModel } from '../types';
 
+export const EMPTY_OPTIMISTIC_IMAGES: ImageViewModel[] = [];
+
 export type OptimisticImagePatch = Partial<
   Pick<
     ImageViewModel,
     | 'annotation'
+    | 'annotations'
     | 'clientId'
     | 'createdAt'
     | 'displayOrder'

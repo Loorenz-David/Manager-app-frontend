@@ -8,12 +8,12 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
-import type { ImageAnnotationType } from '../types';
+import type { ImageAnnotationTool } from '../types';
 
-const TOOLS: Array<{
+export const TOOLS: Array<{
   icon: React.ComponentType<{ className?: string }>;
   label: string;
-  type: Exclude<ImageAnnotationType, 'measurement'>;
+  type: ImageAnnotationTool;
 }> = [
   { type: 'draw', label: 'Draw', icon: PenLine },
   { type: 'arrow', label: 'Arrow', icon: ArrowUpRight },
@@ -24,8 +24,8 @@ const TOOLS: Array<{
 ];
 
 type ImageAnnotationToolbarProps = {
-  activeTool: Exclude<ImageAnnotationType, 'measurement'>;
-  onToolChange: (tool: Exclude<ImageAnnotationType, 'measurement'>) => void;
+  activeTool: ImageAnnotationTool;
+  onToolChange: (tool: ImageAnnotationTool) => void;
   testId?: string;
 };
 

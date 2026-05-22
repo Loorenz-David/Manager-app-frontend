@@ -2,11 +2,32 @@ import { lazy } from 'react';
 
 import { prewarmCameraStream } from './hooks/use-camera-stream';
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
+import type { AnnotatedCanvasItem, ImageAnnotationTool } from './types';
 
 export const IMAGE_CAMERA_SURFACE_ID = 'image-camera';
 export const IMAGE_VIEWER_SURFACE_ID = 'image-viewer';
 export const IMAGE_METADATA_SURFACE_ID = 'image-metadata';
 export const IMAGE_EDITOR_SURFACE_ID = 'image-editor';
+export const IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID = 'image-annotation-tool-picker';
+export const IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID = 'image-editor-discard-changes';
+export const IMAGE_ANNOTATION_ACTIONS_SURFACE_ID = 'image-annotation-actions';
+
+export type ImageAnnotationToolPickerSurfaceProps = {
+  activeTool: ImageAnnotationTool;
+  onSelect: (tool: ImageAnnotationTool) => void;
+};
+
+export type ImageEditorDiscardChangesSurfaceProps = {
+  onDiscardAndClose: () => void;
+  onSaveAndClose: () => void;
+};
+
+export type ImageAnnotationActionsSurfaceProps = {
+  item: AnnotatedCanvasItem;
+  onDelete: () => void;
+  onEditText?: () => void;
+  onMoveText?: () => void;
+};
 
 const preloadedImageSurfaces = new Set<string>();
 
@@ -31,6 +52,24 @@ function loadImageMetadataActionsSheetPage() {
 function loadImageEditorPage() {
   return import('@/features/images/pages/ImageEditorPage').then((module) => ({
     default: module.ImageEditorPage,
+  }));
+}
+
+function loadImageAnnotationToolPickerSheetPage() {
+  return import('@/features/images/pages/ImageAnnotationToolPickerSheetPage').then((module) => ({
+    default: module.ImageAnnotationToolPickerSheetPage,
+  }));
+}
+
+function loadImageEditorDiscardChangesSheetPage() {
+  return import('@/features/images/pages/ImageEditorDiscardChangesSheetPage').then((module) => ({
+    default: module.ImageEditorDiscardChangesSheetPage,
+  }));
+}
+
+function loadImageAnnotationActionsSheetPage() {
+  return import('@/features/images/pages/ImageAnnotationActionsSheetPage').then((module) => ({
+    default: module.ImageAnnotationActionsSheetPage,
   }));
 }
 
@@ -69,5 +108,17 @@ export const imageSurfaces: SurfaceRegistrations = {
   [IMAGE_EDITOR_SURFACE_ID]: {
     surface: 'slide',
     component: lazy(loadImageEditorPage),
+  },
+  [IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID]: {
+    surface: 'sheet',
+    component: lazy(loadImageAnnotationToolPickerSheetPage),
+  },
+  [IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID]: {
+    surface: 'sheet',
+    component: lazy(loadImageEditorDiscardChangesSheetPage),
+  },
+  [IMAGE_ANNOTATION_ACTIONS_SURFACE_ID]: {
+    surface: 'sheet',
+    component: lazy(loadImageAnnotationActionsSheetPage),
   },
 };

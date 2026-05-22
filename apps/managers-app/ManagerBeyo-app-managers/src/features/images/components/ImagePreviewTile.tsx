@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 
 import { useEntityImagesContext } from '../providers/EntityImagesProvider';
 import type { ImageViewModel } from '../types';
+import { ImageAnnotationSvgLayer } from './ImageAnnotationSvgLayer';
 import { ImageUploadOverlay } from './ImageUploadOverlay';
 
 const LONG_PRESS_MS = 500;
@@ -89,6 +90,14 @@ export function ImagePreviewTile({
       >
         <img src={displayUrl} alt="" className="size-full object-cover" loading="lazy" draggable={false} />
       </button>
+
+      <ImageAnnotationSvgLayer
+        annotations={image.annotations}
+        coverMode
+        heightPx={image.heightPx}
+        testId={`image-annotation-overlay-${image.clientId}`}
+        widthPx={image.widthPx}
+      />
 
       <ImageUploadOverlay uploadState={image.uploadState} />
 

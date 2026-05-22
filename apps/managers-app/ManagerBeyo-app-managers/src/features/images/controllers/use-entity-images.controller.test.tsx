@@ -102,6 +102,7 @@ describe('useEntityImagesController', () => {
             pendingUploadClientId: null,
             uploadError: null,
             annotation: null,
+            annotations: [],
           },
           {
             clientId: 'img_pending',
@@ -121,6 +122,7 @@ describe('useEntityImagesController', () => {
             pendingUploadClientId: null,
             uploadError: null,
             annotation: null,
+            annotations: [],
           },
         ],
       },

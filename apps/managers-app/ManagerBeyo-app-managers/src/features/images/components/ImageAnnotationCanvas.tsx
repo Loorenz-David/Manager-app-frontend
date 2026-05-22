@@ -1,12 +1,14 @@
-import { useRef, useState } from 'react';
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import { Arrow, Ellipse, Layer, Line, Rect, Stage, Text as KonvaText } from 'react-konva';
 import type { KonvaEventObject } from 'konva/lib/Node';
 
 import type {
+  AnnotatedCanvasItem,
   ArrowAnnotationData,
   CircleAnnotationData,
   DrawAnnotationData,
   HighlightAnnotationData,
+  ImageAnnotationTool,
   ImageAnnotationItemData,
   RectangleAnnotationData,
 } from '../types';
@@ -23,10 +25,16 @@ type Point = {
 type ImageAnnotationCanvasProps = {
   width: number;
   height: number;
-  activeTool: 'draw' | 'arrow' | 'circle' | 'rectangle' | 'text' | 'highlight';
-  annotations: ImageAnnotationItemData[];
+  activeTool: ImageAnnotationTool;
+  annotations: AnnotatedCanvasItem[];
   onAnnotationComplete: (item: ImageAnnotationItemData) => void;
+  onAnnotationTap?: (item: AnnotatedCanvasItem) => void;
   onTextPlacementRequest: (point: Point) => void;
+};
+
+export type ImageAnnotationCanvasHandle = {
+  reset: () => void;
+  setInteractionEnabled: (enabled: boolean) => void;
 };
 
 function denormalizeX(value: number, width: number): number {
@@ -49,12 +57,28 @@ function renderAnnotation(
   width: number,
   height: number,
   key: string,
+  onTap?: () => void,
 ): React.JSX.Element | null {
+  const tapProps = onTap
+    ? {
+        onMouseDown: (event: KonvaEventObject<MouseEvent>) => {
+          event.cancelBubble = true;
+        },
+        onTouchStart: (event: KonvaEventObject<TouchEvent>) => {
+          event.cancelBubble = true;
+        },
+        onClick: onTap,
+        onTap,
+      }
+    : {};
+
   switch (annotation.tool) {
     case 'draw':
       return (
         <Line
           key={key}
+          {...tapProps}
+          hitStrokeWidth={onTap ? 20 : undefined}
           lineCap="round"
           lineJoin="round"
           points={annotation.points.map((value, index) =>
@@ -69,7 +93,9 @@ function renderAnnotation(
       return (
         <Arrow
           key={key}
+          {...tapProps}
           fill={annotation.color}
+          hitStrokeWidth={onTap ? 20 : undefined}
           points={[
             denormalizeX(annotation.fromX, width),
             denormalizeY(annotation.fromY, height),
@@ -86,6 +112,7 @@ function renderAnnotation(
       return (
         <Ellipse
           key={key}
+          {...tapProps}
           radiusX={denormalizeX(annotation.radiusX, width)}
           radiusY={denormalizeY(annotation.radiusY, height)}
           stroke={annotation.color}
@@ -98,6 +125,7 @@ function renderAnnotation(
       return (
         <Rect
           key={key}
+          {...tapProps}
           height={denormalizeY(annotation.height, height)}
           stroke={annotation.color}
           strokeWidth={annotation.strokeWidth}
@@ -110,6 +138,7 @@ function renderAnnotation(
       return (
         <KonvaText
           key={key}
+          {...tapProps}
           fill={annotation.color}
           fontSize={annotation.fontSize * height}
           text={annotation.text}
@@ -121,6 +150,7 @@ function renderAnnotation(
       return (
         <Rect
           key={key}
+          {...tapProps}
           fill={annotation.color}
           height={denormalizeY(annotation.height, height)}
           opacity={annotation.opacity}
@@ -132,15 +162,17 @@ function renderAnnotation(
   }
 }
 
-export function ImageAnnotationCanvas({
+export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, ImageAnnotationCanvasProps>(function ImageAnnotationCanvas({
   width,
   height,
   activeTool,
   annotations,
   onAnnotationComplete,
+  onAnnotationTap,
   onTextPlacementRequest,
-}: ImageAnnotationCanvasProps): React.JSX.Element {
+}: ImageAnnotationCanvasProps, ref): React.JSX.Element {
   const isDrawingRef = useRef(false);
+  const isInteractionEnabledRef = useRef(true);
   const [draftPoints, setDraftPoints] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
@@ -156,7 +188,26 @@ export function ImageAnnotationCanvas({
     setCurrentPoint(null);
   }
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      reset: resetDraft,
+      setInteractionEnabled: (enabled: boolean) => {
+        isInteractionEnabledRef.current = enabled;
+
+        if (!enabled) {
+          resetDraft();
+        }
+      },
+    }),
+    [],
+  );
+
   function handlePointerStart(event: KonvaEventObject<MouseEvent | TouchEvent>): void {
+    if (!isInteractionEnabledRef.current) {
+      return;
+    }
+
     const point = getPointerPosition(event);
 
     if (!point) {
@@ -180,6 +231,10 @@ export function ImageAnnotationCanvas({
   }
 
   function handlePointerMove(event: KonvaEventObject<MouseEvent | TouchEvent>): void {
+    if (!isInteractionEnabledRef.current) {
+      return;
+    }
+
     if (!isDrawingRef.current) {
       return;
     }
@@ -199,6 +254,10 @@ export function ImageAnnotationCanvas({
   }
 
   function handlePointerEnd(): void {
+    if (!isInteractionEnabledRef.current) {
+      return;
+    }
+
     if (!isDrawingRef.current) {
       return;
     }
@@ -353,7 +412,13 @@ export function ImageAnnotationCanvas({
     >
       <Layer>
         {annotations.map((annotation, index) =>
-          renderAnnotation(annotation, width, height, `annotation-${index}`),
+          renderAnnotation(
+            annotation.data,
+            width,
+            height,
+            `annotation-${index}`,
+            onAnnotationTap ? () => onAnnotationTap(annotation) : undefined,
+          ),
         )}
 
         {draftPoints.length >= 4 ? (
@@ -371,4 +436,4 @@ export function ImageAnnotationCanvas({
       </Layer>
     </Stage>
   );
-}
+});

@@ -40,6 +40,7 @@ export const IMAGE_ANNOTATION_TYPE = [
   'highlight',
 ] as const;
 export type ImageAnnotationType = (typeof IMAGE_ANNOTATION_TYPE)[number];
+export type ImageAnnotationTool = Exclude<ImageAnnotationType, 'measurement'>;
 
 export const IMAGE_LINK_ENTITY_TYPE = ['item', 'case', 'case_conversation_message'] as const;
 export type ImageLinkEntityType = (typeof IMAGE_LINK_ENTITY_TYPE)[number];
@@ -76,6 +77,7 @@ export const ImageSchema = z.object({
   last_event: ImageEventSchema.nullable().optional(),
   events: z.array(ImageEventSchema),
   image_annotation: ImageAnnotationSchema.nullable().optional(),
+  image_annotations: z.array(ImageAnnotationSchema).optional(),
 });
 export type Image = z.infer<typeof ImageSchema>;
 
@@ -187,11 +189,47 @@ export const DeleteImageResponseSchema = ApiEnvelopeSchema(
 export type DeleteImageResponse = z.infer<typeof DeleteImageResponseSchema>;
 
 export const CreateImageAnnotationResponseSchema = ApiEnvelopeSchema(
-  z.object({ client_id: z.string() }),
+  z.object({
+    client_id: z.string().optional(),
+    created_annotation_client_ids: z.array(z.string()).optional(),
+  }),
 ).extend({
   ok: z.literal(true),
 });
 export type CreateImageAnnotationResponse = z.infer<typeof CreateImageAnnotationResponseSchema>;
+
+export const DeleteImageAnnotationResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    client_id: z.string(),
+    deleted: z.boolean(),
+  }),
+).extend({
+  ok: z.literal(true),
+});
+export type DeleteImageAnnotationResponse = z.infer<typeof DeleteImageAnnotationResponseSchema>;
+
+export type DeleteImageAnnotationInput = {
+  image_client_id: string;
+  annotation_client_id: string;
+};
+
+export const UpdateImageAnnotationInputSchema = z.object({
+  image_client_id: z.string(),
+  annotation_client_id: z.string(),
+  data: z.record(z.string(), z.unknown()),
+  accuracy: z.number().int().optional(),
+});
+export type UpdateImageAnnotationInput = z.infer<typeof UpdateImageAnnotationInputSchema>;
+
+export const UpdateImageAnnotationResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    client_id: z.string(),
+    updated: z.boolean(),
+  }),
+).extend({
+  ok: z.literal(true),
+});
+export type UpdateImageAnnotationResponse = z.infer<typeof UpdateImageAnnotationResponseSchema>;
 
 export const ImageDownloadUrlResponseSchema = ApiEnvelopeSchema(
   z.object({
@@ -289,6 +327,12 @@ export type ImageAnnotationItemData =
   | TextAnnotationData
   | HighlightAnnotationData;
 
+export type AnnotatedCanvasItem = {
+  data: ImageAnnotationItemData;
+  annotationClientId: string | null;
+  source: 'persisted' | 'session';
+};
+
 export type ImageAnnotationSessionData = {
   version: 1;
   items: ImageAnnotationItemData[];
@@ -312,6 +356,7 @@ export type ImageViewModel = {
   pendingUploadClientId: string | null;
   uploadError: string | null;
   annotation: ImageAnnotationViewModel | null;
+  annotations: ImageAnnotationViewModel[];
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -418,6 +463,24 @@ export function readImageAnnotationItems(
   return [];
 }
 
+export function readImageAnnotationSingleItem(
+  annotation: ImageAnnotationViewModel,
+): ImageAnnotationItemData | null {
+  if (!annotation.data) {
+    return null;
+  }
+
+  if (isImageAnnotationItemData(annotation.data)) {
+    return annotation.data;
+  }
+
+  if (isImageAnnotationSessionData(annotation.data)) {
+    return annotation.data.items[0] ?? null;
+  }
+
+  return null;
+}
+
 export function buildImageAnnotationPayload(items: ImageAnnotationItemData[]): {
   annotationType: ImageAnnotationType;
   data: ImageAnnotationSessionData;
@@ -472,5 +535,6 @@ export function toImageViewModel(entityImage: EntityImage): ImageViewModel {
     annotation: entityImage.image.image_annotation
       ? toImageAnnotationViewModel(entityImage.image.image_annotation)
       : null,
+    annotations: (entityImage.image.image_annotations ?? []).map(toImageAnnotationViewModel),
   };
 }

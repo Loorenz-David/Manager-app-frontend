@@ -25,6 +25,10 @@ import {
   TaskReadyByDateField,
   TaskReturnSourceField,
 } from '@/features/tasks';
+import {
+  WorkingSectionPickerField,
+  WorkingSectionPickerFieldsSchema,
+} from '@/features/working-sections';
 import { useStagedForm } from '@/hooks/use-staged-form';
 import { DateOnlySchema } from '@/types/common';
 
@@ -46,6 +50,7 @@ const TestingFormsSchema = z.object({
   fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
   return_source: z.enum(TASK_RETURN_SOURCE).optional(),
   additional_details: TaskAdditionalDetailsFieldsSchema.shape.additional_details,
+  working_section_assignments: WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
 });
 
 type TestingFormsValues = z.input<typeof TestingFormsSchema>;
@@ -86,6 +91,7 @@ export function TestingFormsContent(): React.JSX.Element {
       fulfillment_method: undefined,
       return_source: undefined,
       additional_details: '',
+      working_section_assignments: [],
     },
   });
 
@@ -100,7 +106,7 @@ export function TestingFormsContent(): React.JSX.Element {
       const stepFieldsMap: Record<string, FieldPath<TestingFormsValues>[]> = {
         item: ['item', 'item_upholstery', 'item_issues'],
         customer: ['customer'],
-        task: ['fulfillment_method', 'return_source', 'additional_details'],
+        task: ['fulfillment_method', 'return_source', 'additional_details', 'working_section_assignments'],
       };
 
       // On the last step, validate all steps so skipped ones show error state.
@@ -213,6 +219,7 @@ export function TestingFormsContent(): React.JSX.Element {
                 <TaskAdditionalDetailsField />
                 <TaskReadyByDateField />
                 <TaskDeliveryDateField />
+                <WorkingSectionPickerField />
               </div>
             </section>
           </StagedFormStep>

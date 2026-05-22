@@ -6,12 +6,15 @@ import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { useImageQuery } from '../api/use-image';
 import {
   IMAGE_EDITOR_SURFACE_ID,
   IMAGE_METADATA_SURFACE_ID,
+  type ImageMetadataSurfaceProps,
   type ImageViewerSurfaceProps,
 } from '../controllers/use-entity-images.controller';
 import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
+import { ImageAnnotationSvgLayer } from '../components/ImageAnnotationSvgLayer';
 import { ZoomableImage } from '../components/ZoomableImage';
 import type { ImageViewModel } from '../types';
 
@@ -45,6 +48,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
   const isAnySlideZoomedRef = useRef(false);
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(new Set());
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: 'start',
@@ -112,9 +116,80 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   }, [images.length]);
 
   const currentImage = images[activeIndex];
+  const currentImageClientId = currentImage?.clientId;
+  const { data: freshImage } = useImageQuery(currentImage?.clientId);
+
+  useEffect(() => {
+    if (!freshImage || !currentImageClientId) {
+      return;
+    }
+
+    const nextAnnotation = freshImage.image_annotation
+      ? {
+          clientId: freshImage.image_annotation.client_id,
+          annotationType: freshImage.image_annotation.annotation_type,
+          data: freshImage.image_annotation.data ?? null,
+          accuracy: freshImage.image_annotation.accuracy ?? null,
+          createdAt: freshImage.image_annotation.created_at,
+        }
+      : null;
+    const nextAnnotations = (freshImage.image_annotations ?? []).map((annotation) => ({
+      clientId: annotation.client_id,
+      annotationType: annotation.annotation_type,
+      data: annotation.data ?? null,
+      accuracy: annotation.accuracy ?? null,
+      createdAt: annotation.created_at,
+    }));
+    const nextAnnotationSignature = JSON.stringify({
+      annotation: nextAnnotation,
+      annotations: nextAnnotations,
+    });
+
+    setImages((currentImages) => {
+      let changed = false;
+
+      const nextImages = currentImages.map((image) => {
+        if (image.clientId !== currentImageClientId) {
+          return image;
+        }
+
+        const currentAnnotationSignature = JSON.stringify({
+          annotation: image.annotation,
+          annotations: image.annotations,
+        });
+
+        if (currentAnnotationSignature === nextAnnotationSignature) {
+          return image;
+        }
+
+        changed = true;
+        return {
+          ...image,
+          annotation: nextAnnotation,
+          annotations: nextAnnotations,
+        };
+      });
+
+      return changed ? nextImages : currentImages;
+    });
+  }, [currentImageClientId, freshImage]);
 
   const handleClose = useCallback(() => {
     useSurfaceStore.getState().closeTop();
+  }, []);
+
+  const handleToggleAnnotation = useCallback((imageClientId: string) => {
+    setHiddenAnnotationIds((previous) => {
+      const next = new Set(previous);
+
+      if (next.has(imageClientId)) {
+        next.delete(imageClientId);
+      } else {
+        next.add(imageClientId);
+      }
+
+      return next;
+    });
   }, []);
 
   const handleDelete = useCallback(
@@ -136,8 +211,19 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
       entityClientId,
       mode,
       onDelete: mode === 'preview-edit' ? handleDelete : undefined,
-    });
-  }, [currentImage, entityClientId, entityType, handleDelete, mode, surface]);
+      annotationsVisible: !hiddenAnnotationIds.has(currentImage.clientId),
+      onToggleAnnotations: () => handleToggleAnnotation(currentImage.clientId),
+    } satisfies ImageMetadataSurfaceProps);
+  }, [
+    currentImage,
+    entityClientId,
+    entityType,
+    handleDelete,
+    handleToggleAnnotation,
+    hiddenAnnotationIds,
+    mode,
+    surface,
+  ]);
 
   const handleEditPress = useCallback(() => {
     if (!currentImage || !entityType || !entityClientId) {
@@ -180,6 +266,17 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
                 data-testid={`viewer-slide-${image.clientId}`}
               >
                 <ZoomableImage
+                  annotationOverlay={
+                    hiddenAnnotationIds.has(image.clientId) ? null : (
+                      <ImageAnnotationSvgLayer
+                        annotations={image.annotations}
+                        heightPx={image.heightPx}
+                        markerId={`img-ann-arrow-${image.clientId}`}
+                        testId={`viewer-annotation-overlay-${image.clientId}`}
+                        widthPx={image.widthPx}
+                      />
+                    )
+                  }
                   src={displayUrl}
                   onZoomChange={(isZoomed) => {
                     isAnySlideZoomedRef.current = isZoomed;

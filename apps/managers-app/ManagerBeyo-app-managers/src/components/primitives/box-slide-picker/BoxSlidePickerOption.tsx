@@ -8,13 +8,13 @@ import type { BoxSlidePickerOptionButtonProps } from './types';
 export const BoxSlidePickerOption = forwardRef<
   HTMLButtonElement,
   BoxSlidePickerOptionButtonProps
->(({ label, selected, disabled = false, testId, ariaLabel, onPress }, ref) => (
+>(({ label, selected, size, disabled = false, testId, ariaLabel, onPress }, ref) => (
   <button
     ref={ref}
     aria-checked={selected}
     aria-label={ariaLabel}
     aria-selected={selected}
-    className={cn(boxSlidePickerOptionVariants({ selected }))}
+    className={cn(boxSlidePickerOptionVariants({ selected, size }))}
     data-testid={testId}
     disabled={disabled}
     role="radio"

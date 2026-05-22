@@ -87,7 +87,7 @@ tapping the box opens the worker selection.
 the working section box has an "x" to deselect the working section ( like the issue boxes do ).
 
 the field will return and object with { "working_section_id": "wse_01...",
-"worker_id": "usr_01..."
+"assigned_worker_id": "usr_01..."
 }
 when injecting selections it will accept the same object
 
@@ -98,6 +98,34 @@ make item identity field to be a select box where the user can choose to place a
 ---
 
 build stores need it for fields to featch the values they can present as options. this will make a field completely independent and usable by any form.
+
+this fields will have their own flows, with their own api actions. this makes the field a complete independent component, which manages it's own fetching, caching, and render value ( as values will be injected through clien_id, it will have to make an independent call to get the selected value if not in store to display the correct information ).
+
+this independent fields are:
+
+- Item category
+- Item issues
+- working sections
+- Item upholstery
+
+we will start with the Item upholstery field.
+beacuse this field will be used also on edit the form can inject an upholstery id which should bring the object to fill up the trigger layout, upholstery name, code, image.
+
+opening the upholstery field currently loads upholstery selection page, which has a searchbar and a list of upholsteries. the list of upholsteries should be obtain from a flow specialize to get the ones on the upholstery selection store ( we will create this store for this field ) if none then it will generate call the endpoint to fetch them.
+
+the searchbar will use the same fetch the flow uses on initial load if missing on store. the user can input text on the searchbar, this is send as param "q" the inputed text as the value. the return objects render in the list of upholsteries.
+
+and empty input in the searchbar defaults to the initial flow load.
+
+for working sections.
+it follows the same pattern. it has a flow specialized in getting the working sections from a working section selection store, if empty then it fetches. the form injection will be a bit different in here as we will pass a list of objects with
+{ working_section_id: ..., assigned_worker_id: ... } ( same object as it spills ), but it will not make a call to fetch those sections as the initial flow should already have loaded the working sections to match the selection.
+
+for Item category.
+it follows the same patter. it has a flow specialized in getting the item categories from a item categories selection store, if empty then it fetches. the store should have a map for the item_major_category, so that the look up is fast. the form injection will be a bit different in here also and here we will pass the the value item_category_id, same key value we extract from the field. on injection it should select the major category and fill the field where the item category renders.
+
+for the Item issues.
+it follows the same patter. it has a flow specialized in getting the item issues from a item issues selection store, if empty then it fetches. beacuse issues are different based on the item category, this field should not allow for selecting item issues if item category has not been set, when changing the item category, the issues can map to the item issues for that category ( because they can share same naming, differ in time it takes to fix ).
 
 this are the fields i must research and develop:
 
@@ -116,6 +144,7 @@ the current app blocks zoom in ( greate ), but on the full page image preview we
 
 ---
 
+✅
 the current call to Request URL
 http://192.168.1.246:8000/api/v1/images?entity_type=item&entity_client_id=testing-item-images
 Request Method
@@ -161,11 +190,13 @@ the image preview page which holds the metadata and the delete or download actio
 
 ---
 
+✅
 we will now edit the current image editor, the done button whould be placed down right. the close button should be placed down left. tapping the done button should also close the image editor, and the anotations made should be seen at the full page image preview optimistically. closing the image editor when there is edits with out save should trigger a confirmation page which will be display through the bottom sheet surface, this page will display the message letting know the user that there is changes that have not been saved, the then the user can tap close anyway, or save. tapping save triggers the same action as the done button, tapping the close anyway closes the image editor with out saving the changes.
 The current tools box that the user can use to draw the in the image should be display thorugh the bottom sheet drawer, selecting a tool closes the bottom sheet. the field to trigger this tool box lives at the bottom centered ( between the close and done button ). it should render the current tool the user has selected with the name of the tool and a button with icon (go back ), when the go back gets tapped it removes the latest trace the user did.
 
 ---
 
+✅
 currently the user can make shapes, draw it's own, make a text, but once done it cannot move that shape, nor remove it. on shapes we should add the ability of taping in the annotation displays the bottom sheet surface with the option of deleting that annotiation. on text the bottom sheet gives more options appart from removing the text, the user can tap edit text ( this closes the bottom sheet and allows the text to be edited ), or user can tap change position ( closing the bottom sheet and displaying a dasshed box, the user then can drag the text and move it from position ), for the action move text the user must tap the done button ( which now renders in green bg, on tap it will not close the image editor but it will trigger the call to save the changes to the backend, then the move text action gets disable, the user is back to where it left it ), removing a shape or text makes the call to the backend directly.
 
 ---

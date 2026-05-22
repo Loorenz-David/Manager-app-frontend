@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEntityImagesQuery } from '../api/use-entity-images';
 import { imageKeys } from '../api/image-keys';
 import { runImageUploadPipeline } from '../lib/image-upload-pipeline';
-import { buildEntityKey, useImagesStore } from '../store/images.store';
+import { buildEntityKey, EMPTY_OPTIMISTIC_IMAGES, useImagesStore } from '../store/images.store';
 import { useDeleteImage } from '../actions/use-delete-image';
 import { useReorderImages } from '../actions/use-reorder-images';
 import { useUnlinkImage } from '../actions/use-unlink-image';
@@ -57,6 +57,8 @@ export type ImageMetadataSurfaceProps = {
   entityClientId: string;
   mode: ImageViewerMode;
   onDelete?: (imageClientId: string) => void;
+  annotationsVisible?: boolean;
+  onToggleAnnotations?: () => void;
 };
 
 export type ImageEditorSurfaceProps = {
@@ -97,6 +99,13 @@ function toConfirmedOptimisticViewModel(
           createdAt: image.image_annotation.created_at,
         }
       : null,
+    annotations: (image.image_annotations ?? []).map((annotation) => ({
+      clientId: annotation.client_id,
+      annotationType: annotation.annotation_type,
+      data: annotation.data ?? null,
+      accuracy: annotation.accuracy ?? null,
+      createdAt: annotation.created_at,
+    })),
   };
 }
 
@@ -123,7 +132,9 @@ export function useEntityImagesController(
     entity_client_id: entityClientId,
   });
 
-  const optimisticImages = useImagesStore((state) => state.optimisticImages[entityKey] ?? []);
+  const optimisticImages = useImagesStore(
+    (state) => state.optimisticImages[entityKey] ?? EMPTY_OPTIMISTIC_IMAGES,
+  );
   const insertOptimisticImage = useImagesStore((state) => state.insertOptimisticImage);
   const patchOptimisticImage = useImagesStore((state) => state.patchOptimisticImage);
   const removeOptimisticImage = useImagesStore((state) => state.removeOptimisticImage);
@@ -191,6 +202,7 @@ export function useEntityImagesController(
         pendingUploadClientId: null,
         uploadError: null,
         annotation: null,
+        annotations: [],
       });
 
       void runImageUploadPipeline({

@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 
+export type BoxSlidePickerSize = 'sm' | 'md';
+
 export type BoxSlidePickerOption<T extends string> = {
   value: T;
   label: ReactNode;
@@ -13,6 +15,7 @@ export type BoxSlidePickerOption<T extends string> = {
 export type BoxSlidePickerProps<T extends string> = {
   value: T | null | undefined;
   options: readonly BoxSlidePickerOption<T>[];
+  size?: BoxSlidePickerSize;
   disabled?: boolean;
   className?: string;
   dataTestId?: string;
@@ -22,6 +25,7 @@ export type BoxSlidePickerProps<T extends string> = {
 export type BoxSlidePickerOptionButtonProps = {
   label: ReactNode;
   selected: boolean;
+  size: BoxSlidePickerSize;
   disabled?: boolean;
   testId?: string;
   ariaLabel?: string;

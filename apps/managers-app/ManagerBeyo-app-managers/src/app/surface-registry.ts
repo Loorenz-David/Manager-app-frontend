@@ -5,6 +5,7 @@ import { phoneInputSurfaces } from '@/features/phone-input';
 import { testingFormsSurfaces } from '@/features/testing_forms';
 import { testSurfaces } from '@/features/test_feature';
 import { upholsterySurfaces } from '@/features/upholstery';
+import { workingSectionSurfaces } from '@/features/working-sections';
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
 
 export const surfaceRegistry: SurfaceRegistrations = {
@@ -15,6 +16,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...imageSurfaces,
   ...phoneInputSurfaces,
   ...upholsterySurfaces,
+  ...workingSectionSurfaces,
 };
 
 export type SurfaceId = keyof typeof surfaceRegistry;

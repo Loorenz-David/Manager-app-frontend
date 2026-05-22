@@ -25,6 +25,7 @@ const INDICATOR_SPRING = {
 export function BoxSlidePicker<T extends string>({
   value,
   options,
+  size = 'md',
   disabled = false,
   className,
   dataTestId,
@@ -67,7 +68,7 @@ export function BoxSlidePicker<T extends string>({
 
   return (
     <div
-      className={cn(boxSlidePickerContainerVariants(), className)}
+      className={cn(boxSlidePickerContainerVariants({ size }), className)}
       data-testid={dataTestId}
       role="radiogroup"
     >
@@ -78,7 +79,7 @@ export function BoxSlidePicker<T extends string>({
               x: indicatorFrame.x,
               width: indicatorFrame.width,
             }}
-            className={cn(boxSlidePickerIndicatorVariants())}
+            className={cn(boxSlidePickerIndicatorVariants({ size }))}
             initial={false}
             transition={INDICATOR_SPRING}
           />
@@ -102,6 +103,7 @@ export function BoxSlidePicker<T extends string>({
                 </span>
               }
               selected={selected}
+              size={size}
               testId={option.testId}
               onPress={() => {
                 if (disabled || option.disabled || selected) {

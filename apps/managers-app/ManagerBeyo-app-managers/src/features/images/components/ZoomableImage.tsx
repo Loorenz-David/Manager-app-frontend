@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -29,10 +30,15 @@ type PanPosition = {
 
 type ZoomableImageProps = {
   src: string;
+  annotationOverlay?: ReactNode;
   onZoomChange?: (isZoomed: boolean) => void;
 };
 
-export function ZoomableImage({ src, onZoomChange }: ZoomableImageProps): React.JSX.Element {
+export function ZoomableImage({
+  src,
+  annotationOverlay,
+  onZoomChange,
+}: ZoomableImageProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const transformElRef = useRef<HTMLDivElement | null>(null);
   const scaleRef = useRef(MIN_SCALE);
@@ -256,7 +262,7 @@ export function ZoomableImage({ src, onZoomChange }: ZoomableImageProps): React.
     >
       <div
         ref={transformElRef}
-        className="size-full"
+        className="relative size-full"
         style={{ transformOrigin: 'center center', willChange: 'transform' }}
       >
         <img
@@ -266,6 +272,7 @@ export function ZoomableImage({ src, onZoomChange }: ZoomableImageProps): React.
           loading="lazy"
           src={src}
         />
+        {annotationOverlay}
       </div>
     </div>
   );

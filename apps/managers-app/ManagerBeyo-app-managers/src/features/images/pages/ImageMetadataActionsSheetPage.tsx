@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Download, Trash2 } from 'lucide-react';
+import { Download, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
@@ -54,7 +54,13 @@ function formatDate(createdAt: string | null): string | null {
 }
 
 export function ImageMetadataActionsSheetPage(): React.JSX.Element {
-  const { image, mode = 'preview-only', onDelete } = useSurfaceProps<ImageMetadataSurfaceProps>();
+  const {
+    image,
+    mode = 'preview-only',
+    onDelete,
+    annotationsVisible,
+    onToggleAnnotations,
+  } = useSurfaceProps<ImageMetadataSurfaceProps>();
 
   const displayUrl = image?.localObjectUrl ?? image?.imageUrl ?? null;
   const uploadStateLabel = image ? UPLOAD_STATE_LABELS[image.uploadState] : null;
@@ -66,6 +72,7 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
       : null;
 
   const [isDownloading, setIsDownloading] = useState(false);
+  const [localAnnotationsVisible, setLocalAnnotationsVisible] = useState(annotationsVisible ?? true);
 
   const handleDownload = useCallback(async () => {
     if (!image) return;
@@ -92,6 +99,11 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
     onDelete?.(image.clientId);
     useSurfaceStore.getState().closeTop();
   }, [image, onDelete]);
+
+  const handleToggleAnnotations = useCallback(() => {
+    setLocalAnnotationsVisible((previous) => !previous);
+    onToggleAnnotations?.();
+  }, [onToggleAnnotations]);
 
   return (
     <div className="flex flex-col" data-testid="image-metadata-sheet">
@@ -167,6 +179,25 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
           <Download className="size-4 shrink-0" aria-hidden="true" />
           <span className="text-sm font-medium">{isDownloading ? 'Downloading…' : 'Download image'}</span>
         </button>
+
+        {(image?.annotations?.length ?? 0) > 0 ? (
+          <button
+            aria-label={localAnnotationsVisible ? 'Hide annotations' : 'Show annotations'}
+            className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-foreground transition-colors duration-150 hover:bg-muted"
+            data-testid="metadata-sheet-toggle-annotations-button"
+            type="button"
+            onClick={handleToggleAnnotations}
+          >
+            {localAnnotationsVisible ? (
+              <EyeOff className="size-4 shrink-0" aria-hidden="true" />
+            ) : (
+              <Eye className="size-4 shrink-0" aria-hidden="true" />
+            )}
+            <span className="text-sm font-medium">
+              {localAnnotationsVisible ? 'Hide annotations' : 'Show annotations'}
+            </span>
+          </button>
+        ) : null}
 
         {mode === 'preview-edit' && image && onDelete ? (
           <button

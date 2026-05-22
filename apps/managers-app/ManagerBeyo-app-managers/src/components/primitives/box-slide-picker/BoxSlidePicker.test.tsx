@@ -63,4 +63,27 @@ describe('BoxSlidePicker', () => {
     await user.click(screen.getByTestId('to-option'));
     expect(handleValueChange).not.toHaveBeenCalled();
   });
+
+  it('supports a compact small size for xs label treatments', () => {
+    render(
+      <BoxSlidePicker
+        dataTestId="slide-picker"
+        options={[
+          { value: 'from', label: 'From', testId: 'from-option' },
+          { value: 'to', label: 'To', testId: 'to-option' },
+        ]}
+        size="sm"
+        value="from"
+        onValueChange={() => {}}
+      />,
+    );
+
+    expect(screen.getByTestId('slide-picker')).toHaveClass('rounded-xl', 'p-0.5');
+    expect(screen.getByTestId('from-option')).toHaveClass(
+      'min-h-8',
+      'text-xs',
+      'px-2.5',
+      'py-1',
+    );
+  });
 });

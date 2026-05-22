@@ -41,6 +41,7 @@ export function buildImage(overrides: Partial<Image> = {}): Image {
     last_event: null,
     events: [],
     image_annotation: null,
+    image_annotations: [],
     ...overrides,
   };
 }
@@ -75,6 +76,7 @@ export function buildImageViewModel(overrides: Partial<ImageViewModel> = {}): Im
     pendingUploadClientId: null,
     uploadError: null,
     annotation: null,
+    annotations: [],
     ...overrides,
   };
 }
