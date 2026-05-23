@@ -13,6 +13,7 @@ type EntityImagesProviderProps = {
   entityType: ImageLinkEntityType;
   entityClientId: string;
   viewerMode?: ImageViewerMode;
+  onImagesChanged?: () => void;
   children: ReactNode;
 };
 
@@ -30,12 +31,14 @@ export function EntityImagesProvider({
   entityType,
   entityClientId,
   viewerMode,
+  onImagesChanged,
   children,
 }: EntityImagesProviderProps): React.JSX.Element {
   const controller = useEntityImagesController({
     entityType,
     entityClientId,
     viewerMode,
+    onImagesChanged,
   });
 
   return <EntityImagesContext.Provider value={controller}>{children}</EntityImagesContext.Provider>;

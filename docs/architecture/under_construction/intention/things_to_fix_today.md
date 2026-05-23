@@ -346,7 +346,6 @@ bellow that header is the body of the page, the body of the page will be wrap wi
 the body renders:
 
 same row: item category, at the right item position ( if position )
-same row: uphosltery amount in meters, besides that value the upholstery requirement state.
 
 bellow that we will render some containers which might be missing based on conditions, this containers are all together ( no y gap )
 
@@ -358,9 +357,28 @@ bellow that container another container ( same styled container ). this will ren
 
 bellow that container is another container ( same style container ), it renders the scheduled delivery ( in week, so we will need a parser that takes the date range amd gives the week the range is in, if above a single week then week range ). this week number renders in a pill ( same pill style as the issues ) with label # week ( range week = # week - # week). besides that week pill is the item quantity in the same pill as the item issues with label # quantity . tapping the week pill opens the field for changing the schedulet from / to date, taping the quantity open the bottom sheet with quantity field to be changed.
 
-bellow thos containers is the image preview container, this image preview container is the same as the one used in the forms.
+bellow that container is the image preview container, this image preview container is the same as the one used in the forms.
 
-bellow that image preview is the task flow history timeline. i want a modern styled timeline ( vertically organized ), single line on the left, each event a dot on top of the line, the dot will have different colors based on the record ( i will define the color rules later ), the dot will have a fade radius around it. besides the dot is the title of the event ( i will highlight test base on rules later ). bellow that is the time it happen, if same date as current user then only time hh:mm, if different date then short date formated with time ( js provides a way to render the date with style = Thu 12 ). tapping record opens the bottom sheet surface we will render details of that record in the bottom sheet. the record timeline loads the last three records, if the user wants to see more it can tap a more button to load the records. we load per 10 records. this should make the page higher as it expands so the user can scroll the page down to see more records. the container holding the item flow becomes sticky header when it reaches the top of the page.
+bellow that container is the item upholstery preview, this renders the upholstery field. tapping that allows to change the upholstery. the field will now accept to pass a state ( the item upholstery requirement state ), this state renders besides the name of the upholstery in a pill ( we will should stablish the colors for each state ). not passing this state it doesn't render the pill at all.
+
+bellow that is the upholstery amount in meters in a pill, tapping that pill open the bottom sheet surface with the field for changing the upholstery amount.
+
+bellow that is the task flow history timeline. i want a modern styled timeline ( vertically organized ), single line on the left, each event a dot on top of the line, the dot will have different colors based on the record ( i will define the color rules later ), the dot will have a fade radius around it. besides the dot is the title of the event ( i will highlight test base on rules later ). bellow that is the time it happen, if same date as current user then only time hh:mm, if different date then short date formated with time ( js provides a way to render the date with style = Thu 12 ). tapping record opens the bottom sheet surface we will render details of that record in the bottom sheet. the record timeline loads the last three records, if the user wants to see more it can tap a more button to load the records. we load per 10 records. this should make the page higher as it expands so the user can scroll the page down to see more records. the container holding the item flow becomes sticky header when it reaches the top of the page.
 
 at the bottom of the page ( fixed or absolutely ) is the quich actions, it will render two buttons, left button reads edit , on the right button is the close button, this closed the current slide page.
 the edit button will open the task creation form ( base on the task_type ), but in edit mode, meaning the form should be fully filled with the task, and item values. the difference in this edit move is that at the bottom in the action footer define by the staged form, in the center we will have the button save chagnes, instead of the next back buttons.
+
+the three dot menu at the header will trigger a bottom sheet surface, we will place actions in here. for now we will place the delete task button. this delete button will be a primitive. deleting the task closes the current task detail page.
+
+the delete button is more of a confirmation button primitive. when tap it changes text to confirm _ the action, it has a timmer to change back to the tap to confirm _ action . while the timer runs the button gets filled with a color from right to left smoothly, this changes the color of the text as the fill color passed behind the text. we will use this confirm primitve button for mutliple porpouses, so the first label, the confirm label, the colors need to be customizable by the parent.
+
+for looking at the target endpoints, the payloads, params and return shapes you can check the document: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_tasks_items_upholstery_images_contracts_20260523.md
+
+the pills that / fields that have direct interaction with an edit field, like: scheduled date ( from / to ), item quantity will use the correct update enpoints sending only those values which have been edited ( we have edit item, and edit task endpoints ). this bottom sheets holding the fields for direct update will render a bottom action row with two buttons, save and cancel. closing the bottom sheet reverts the modified value. saving and cancel closes the bottom sheet. cancel also reverts the modified values.
+
+at the edit page for the task the user can technically edit any aspect of the task and item, but the save calls should target the correct endpoints, as saving task takes different values and updates only the task, updating an item only updates the item, but visually the save button is one ( this is resolved internally when sending the saved modifications ). when closing the edit page and having done changes with out saving the will be a bottom sheet that appears givin the user the warning of unsaved changes, the user can close with out saving , or close with saving.
+
+at the three dot menu page actions we will have one more action which is the posibility of changing the state of a task to resolved.
+
+I want you to create a plan using the template: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md.
+I want and extremely clean implementation, with strong SRP and strong separation of responsibility. access to the architectural contracts through /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/task_system/frontend_contract_goal_mapping_guide.md .

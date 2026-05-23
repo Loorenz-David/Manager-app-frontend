@@ -7,6 +7,8 @@ import {
 } from '@/features/upholstery';
 import { useSurface } from '@/hooks/use-surface';
 import { cn } from '@/lib/utils';
+import { StatePill, type StatePillVariant } from '@/components/primitives';
+import type { ItemUpholsteryRequirementState } from '@/features/items/types';
 
 const itemUpholsteryFieldVariants = cva(
   'flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
@@ -18,8 +20,19 @@ type ItemUpholsteryFieldProps = {
   placeholder?: string;
   title?: string;
   description?: string;
+  requirementState?: ItemUpholsteryRequirementState | null;
   disabled?: boolean;
   testId?: string;
+};
+
+const REQUIREMENT_VARIANT: Record<ItemUpholsteryRequirementState, StatePillVariant> = {
+  missing_quantity: 'warning',
+  available: 'success',
+  needs_ordering: 'warning',
+  ordered: 'active',
+  in_use: 'active',
+  completed: 'success',
+  failed: 'danger',
 };
 
 export function ItemUpholsteryField({
@@ -28,6 +41,7 @@ export function ItemUpholsteryField({
   placeholder = 'Select upholstery',
   title,
   description,
+  requirementState = null,
   disabled = false,
   testId,
 }: ItemUpholsteryFieldProps): React.JSX.Element {
@@ -73,8 +87,16 @@ export function ItemUpholsteryField({
         {hasSelection ? (
           selectedUpholstery ? (
             <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-medium text-foreground">
-                {selectedUpholstery.name}
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-sm font-medium text-foreground">
+                  {selectedUpholstery.name}
+                </span>
+                {requirementState ? (
+                  <StatePill
+                    label={requirementState.replaceAll('_', ' ')}
+                    variant={REQUIREMENT_VARIANT[requirementState]}
+                  />
+                ) : null}
               </span>
               {selectedUpholstery.code !== null ? (
                 <span className="truncate text-xs text-muted-foreground">

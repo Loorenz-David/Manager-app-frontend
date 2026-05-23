@@ -75,6 +75,7 @@ export function ItemIdentityField(): React.JSX.Element {
       <BoxSlidePicker
         className="w-auto self-start"
         dataTestId="item-identity-tab-picker"
+        distribution="content"
         options={TAB_OPTIONS}
         size="sm"
         value={activeTab}

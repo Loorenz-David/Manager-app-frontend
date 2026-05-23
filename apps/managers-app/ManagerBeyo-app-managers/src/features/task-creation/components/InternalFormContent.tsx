@@ -13,7 +13,11 @@ import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
 } from '@/features/items';
-import { TaskAdditionalDetailsField, TaskReadyByDateField } from '@/features/tasks';
+import {
+  TaskAdditionalDetailsField,
+  TaskReadyByDateField,
+  useCreateTask,
+} from '@/features/tasks';
 import {
   NeedsCleaningPickerField,
   OilingTreatmentPickerField,
@@ -21,7 +25,8 @@ import {
 } from '@/features/working-sections';
 import { useStagedForm } from '@/hooks/use-staged-form';
 
-import { FormFieldContainer } from './FormFieldContainer';
+import { ContentCard } from '@/components/primitives';
+import { normalizeInternalFormPayload } from '../lib/normalize-task-form-payload';
 import { useTaskCreationFormContext } from '../providers/TaskCreationFormProvider';
 import { InternalFormSchema, type InternalFormValues } from '../types';
 
@@ -62,7 +67,9 @@ function UpholsteryField({
 }
 
 export function InternalFormContent(): React.JSX.Element {
-  const { itemClientId } = useTaskCreationFormContext();
+  const { taskClientId, itemClientId, customerClientId, regenerateIds } =
+    useTaskCreationFormContext();
+  const createTask = useCreateTask();
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
     defaultValues: {
@@ -124,8 +131,38 @@ export function InternalFormContent(): React.JSX.Element {
       return form.trigger(INTERNAL_STEP_FIELDS_MAP[currentStepId] ?? []);
     },
     onSubmit: () =>
-      form.handleSubmit((values) => {
-        console.log('internal_form submit', values);
+      form.handleSubmit(async (values) => {
+        const payload = normalizeInternalFormPayload(values, {
+          taskClientId,
+          itemClientId,
+          customerClientId,
+        });
+
+        await createTask.mutateAsync(payload);
+        form.reset({
+          item: {
+            designer: '',
+            article_number: '',
+            sku: '',
+            quantity: 1,
+            item_position: '',
+            item_currency: undefined,
+            item_category_id: undefined,
+            major_category: undefined,
+          },
+          item_upholstery: {
+            upholstery_client_id: null,
+            upholstery_amount_meters: null,
+          },
+          item_issues: [],
+          needs_cleaning_assignment: null,
+          oiling_treatment_assignment: null,
+          working_section_assignments: [],
+          ready_by_at: null,
+          additional_details: '',
+        });
+        regenerateIds();
+        staged.navigateTo('item');
       })(),
   });
 
@@ -153,60 +190,60 @@ export function InternalFormContent(): React.JSX.Element {
         >
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer>
+              <ContentCard>
                 <ItemIdentityField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <ItemCategorySelectionField />
-              </FormFieldContainer>
+              </ContentCard>
               {majorCategory === 'seat' ? (
-                <FormFieldContainer>
+                <ContentCard>
                   <ItemQuantityField />
                   <ItemPositionField />
-                </FormFieldContainer>
+                </ContentCard>
               ) : null}
               {majorCategory === 'wood' ? (
-                <FormFieldContainer>
+                <ContentCard>
                   <ItemIssuesField />
-                </FormFieldContainer>
+                </ContentCard>
               ) : null}
               {majorCategory === 'wood' ? (
-                <FormFieldContainer>
+                <ContentCard>
                   <NeedsCleaningPickerField />
                   <OilingTreatmentPickerField />
-                </FormFieldContainer>
+                </ContentCard>
               ) : null}
               {majorCategory === 'seat' ? (
-                <FormFieldContainer>
+                <ContentCard>
                   <UpholsteryField control={form.control} />
                   <ItemUpholsteryAmountField />
-                </FormFieldContainer>
+                </ContentCard>
               ) : null}
-              <FormFieldContainer>
+              <ContentCard>
                 <ItemDesignerField />
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
 
           <StagedFormStep id="assignment" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer>
+              <ContentCard>
                 <WorkingSectionPickerField majorCategory={majorCategory} />
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
 
           <StagedFormStep id="task" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer data-testid="internal-form-images-section">
+              <ContentCard data-testid="internal-form-images-section">
                 <EntityImagesProvider entityClientId={itemClientId} entityType="item">
                   <ImagePreviewGrid maxImages={6} testId="internal-form-images-grid" />
                 </EntityImagesProvider>
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <TaskReadyByDateField />
                 <TaskAdditionalDetailsField />
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
         </StagedForm>

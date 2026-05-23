@@ -14,7 +14,7 @@ export const CLIENT_ID_PREFIXES = {
   ContentMentionLink: 'cml',
   Customer: 'cus',
   ExecutionPayload: 'epl',
-  ExecutionTask: 'task',
+  ExecutionTask: 'tsk',
   HistoryRecord: 'hrec',
   HistoryRecordLink: 'hrlk',
   Image: 'img',

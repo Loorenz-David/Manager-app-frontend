@@ -3,6 +3,10 @@ export { PreOrderFormContent } from './components/PreOrderFormContent';
 export { ReturnFormContent } from './components/ReturnFormContent';
 export { TaskCreationFab } from './components/TaskCreationFab';
 export {
+  normalizeInternalFormPayload,
+  normalizeReturnFormPayload,
+} from './lib/normalize-task-form-payload';
+export {
   TaskCreationFormProvider,
   useTaskCreationFormContext,
 } from './providers/TaskCreationFormProvider';

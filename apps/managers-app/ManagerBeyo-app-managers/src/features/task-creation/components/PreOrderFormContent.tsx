@@ -25,11 +25,15 @@ import {
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
   TaskReturnSourceField,
+  useCreateTask,
 } from '@/features/tasks';
 import { useStagedForm } from '@/hooks/use-staged-form';
+import { useSurface } from '@/hooks/use-surface';
 
-import { FormFieldContainer } from './FormFieldContainer';
+import { ContentCard } from '@/components/primitives';
+import { normalizeReturnFormPayload } from '../lib/normalize-task-form-payload';
 import { useTaskCreationFormContext } from '../providers/TaskCreationFormProvider';
+import { TASK_CREATION_PRE_ORDER_SURFACE_ID } from '../surfaces';
 import { PreOrderFormSchema, type PreOrderFormValues } from '../types';
 
 const PRE_ORDER_STEP_FIELDS_MAP: Record<string, FieldPath<PreOrderFormValues>[]> = {
@@ -63,7 +67,9 @@ function UpholsteryField({
 }
 
 export function PreOrderFormContent(): React.JSX.Element {
-  const { itemClientId } = useTaskCreationFormContext();
+  const { taskClientId, itemClientId, customerClientId } = useTaskCreationFormContext();
+  const createTask = useCreateTask();
+  const surface = useSurface();
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
     defaultValues: {
@@ -132,8 +138,15 @@ export function PreOrderFormContent(): React.JSX.Element {
       return form.trigger(PRE_ORDER_STEP_FIELDS_MAP[currentStepId] ?? []);
     },
     onSubmit: () =>
-      form.handleSubmit((values) => {
-        console.log('pre_order_form submit', values);
+      form.handleSubmit(async (values) => {
+        const payload = normalizeReturnFormPayload(
+          values,
+          { taskClientId, itemClientId, customerClientId },
+          'pre_order',
+        );
+
+        await createTask.mutateAsync(payload);
+        surface.close(TASK_CREATION_PRE_ORDER_SURFACE_ID);
       })(),
   });
 
@@ -161,58 +174,58 @@ export function PreOrderFormContent(): React.JSX.Element {
         >
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer>
+              <ContentCard>
                 <ItemDesignerField />
                 <ItemIdentityField />
                 <ItemQuantityField />
                 <ItemPositionField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <ItemCategorySelectionField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <ItemIssuesField />
-              </FormFieldContainer>
+              </ContentCard>
               {majorCategory === 'seat' ? (
-                <FormFieldContainer>
+                <ContentCard>
                   <UpholsteryField control={form.control} />
                   <ItemUpholsteryAmountField />
-                </FormFieldContainer>
+                </ContentCard>
               ) : null}
-              <FormFieldContainer data-testid="pre-order-form-images-section">
+              <ContentCard data-testid="pre-order-form-images-section">
                 <EntityImagesProvider entityClientId={itemClientId} entityType="item">
                   <ImagePreviewGrid maxImages={6} testId="pre-order-form-images-grid" />
                 </EntityImagesProvider>
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
 
           <StagedFormStep id="customer" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer>
+              <ContentCard>
                 <CustomerDisplayNameField />
                 <CustomerEmailField />
                 <CustomerPhoneField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <CustomerAddressFieldGroup />
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
 
           <StagedFormStep id="task" className="px-0">
             <div className="flex flex-col gap-4">
-              <FormFieldContainer>
+              <ContentCard>
                 <TaskReturnSourceField />
                 <TaskFulfillmentMethodField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <TaskDeliveryDateField />
                 <TaskReadyByDateField />
-              </FormFieldContainer>
-              <FormFieldContainer>
+              </ContentCard>
+              <ContentCard>
                 <TaskAdditionalDetailsField />
-              </FormFieldContainer>
+              </ContentCard>
             </div>
           </StagedFormStep>
         </StagedForm>

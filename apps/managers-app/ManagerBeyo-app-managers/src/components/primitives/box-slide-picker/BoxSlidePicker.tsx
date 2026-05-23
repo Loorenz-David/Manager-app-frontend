@@ -26,6 +26,7 @@ export function BoxSlidePicker<T extends string>({
   value,
   options,
   size = 'md',
+  distribution = 'fill',
   disabled = false,
   className,
   dataTestId,
@@ -95,10 +96,11 @@ export function BoxSlidePicker<T extends string>({
               }}
               ariaLabel={option.ariaLabel}
               disabled={disabled || option.disabled}
+              distribution={distribution}
               label={
-                <span className="flex min-w-0 items-center justify-center gap-2">
+                <span className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap">
                   {option.icon}
-                  <span className="min-w-0">{option.label}</span>
+                  <span className="min-w-0 whitespace-nowrap">{option.label}</span>
                   {option.badge}
                 </span>
               }

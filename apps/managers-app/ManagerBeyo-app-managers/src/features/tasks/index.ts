@@ -4,7 +4,19 @@ export { TaskFulfillmentMethodField } from './components/fields/TaskFulfillmentM
 export { TaskReadyByDateField } from './components/fields/TaskReadyByDateField';
 export { TaskReturnSourceField } from './components/fields/TaskReturnSourceField';
 export { TasksView } from './components/TasksView';
+export {
+  TaskCustomerSection,
+  TaskDetailBottomActions,
+  TaskDetailHeader,
+  TaskFlowTimeline,
+  TaskImagesSection,
+  TaskIssuesSection,
+  TaskScheduledDeliverySection,
+  TaskUpholsterySection,
+} from './components/detail';
+export { useCreateTask } from './actions/use-create-task';
 export { TasksViewProvider } from './providers/TasksViewProvider';
+export { TaskDetailProvider, useTaskDetailContext } from './providers/TaskDetailProvider';
 export { taskSurfaces } from './surfaces';
 export { useItemsStore } from './store/items.store';
 export { useTaskListImagesStore } from './store/task-list-images.store';
@@ -30,9 +42,12 @@ export type {
   TaskAdditionalDetailsFields,
   TaskCardViewModel,
   Task,
+  TaskDetailRaw,
   TaskFulfillmentMethod,
+  TaskFlowRecord,
   TaskItemLocation,
   TaskListItemRaw,
+  TaskNote,
   TaskPriority,
   TaskReturnMethod,
   TaskReturnSource,
@@ -42,4 +57,12 @@ export type {
   TaskViewModel,
   UpdateTaskInput,
 } from './types';
-export type { TaskActionsSurfaceProps, TaskDetailSurfaceProps } from './surfaces';
+export type {
+  ItemQuantitySurfaceProps,
+  ItemUpholsteryAmountSurfaceProps,
+  TaskActionsSurfaceProps,
+  TaskDetailSurfaceProps,
+  TaskEditSurfaceProps,
+  TaskFlowRecordDetailSurfaceProps,
+  TaskScheduledDateSurfaceProps,
+} from './surfaces';

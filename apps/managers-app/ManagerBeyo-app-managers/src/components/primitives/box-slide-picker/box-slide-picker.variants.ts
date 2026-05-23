@@ -1,4 +1,6 @@
-import { cva } from 'class-variance-authority';
+import { cva, cx } from 'class-variance-authority';
+
+import type { BoxSlidePickerDistribution } from './types';
 
 export const boxSlidePickerContainerVariants = cva(
   ['relative bg-muted/70 shadow-[inset_0_1px_0_color-mix(in_oklab,var(--color-card)_55%,transparent)]'].join(
@@ -37,7 +39,7 @@ export const boxSlidePickerIndicatorVariants = cva(
 
 export const boxSlidePickerOptionVariants = cva(
   [
-    'relative z-10 flex min-w-0 flex-1 items-center justify-center text-center',
+    'relative z-10 flex min-w-0 items-center justify-center text-center',
     'transition-colors duration-150 outline-none',
     'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background',
     'disabled:pointer-events-none disabled:opacity-45',
@@ -59,3 +61,9 @@ export const boxSlidePickerOptionVariants = cva(
     },
   },
 );
+
+export function boxSlidePickerOptionDistributionClass(
+  distribution: BoxSlidePickerDistribution,
+): string {
+  return cx(distribution === 'fill' ? 'flex-1' : 'shrink-0 flex-none');
+}

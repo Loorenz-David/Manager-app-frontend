@@ -5,10 +5,10 @@ import { useController, useFormContext } from 'react-hook-form';
 import { BoxPicker } from '@/components/primitives';
 import type { BoxPickerOptionType } from '@/components/primitives';
 import { useItemIssuesPickerFlow } from '@/features/items/flows/use-item-issues-picker.flow';
-import { TEST_ISSUE_SEVERITIES } from '@/features/items/item-test-data';
-import { preloadItemIssueSeverityPickerSurface } from '@/features/items/surfaces';
+// import { TEST_ISSUE_SEVERITIES } from '@/features/items/item-test-data'; // severity selection disabled
+// import { preloadItemIssueSeverityPickerSurface } from '@/features/items/surfaces'; // severity selection disabled
 import type { ItemIssueFieldEntry } from '@/features/items/types';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+// import { useSurfaceStore } from '@/providers/SurfaceProvider'; // severity selection disabled
 
 export function ItemIssuesField() {
   const { control, watch } = useFormContext();
@@ -24,46 +24,50 @@ export function ItemIssuesField() {
   const selectedIssueIds = currentPairs.map((p) => p.issue_id);
   const previousCategoryRef = useRef<string | undefined>(itemCategoryId);
 
-  useEffect(() => {
-    void preloadItemIssueSeverityPickerSurface();
-  }, []);
+  // severity selection disabled — re-enable when intensity picker is restored
+  // useEffect(() => {
+  //   void preloadItemIssueSeverityPickerSurface();
+  // }, []);
 
   useEffect(() => {
-    if (previousCategoryRef.current !== itemCategoryId) {
-      previousCategoryRef.current = itemCategoryId;
+    if (previousCategoryRef.current === itemCategoryId) return;
+    const prev = previousCategoryRef.current;
+    previousCategoryRef.current = itemCategoryId;
+    // Only clear issues when the user changes from a real category, not on initial load (undefined → value)
+    if (prev !== undefined) {
       field.onChange([]);
     }
   }, [field, itemCategoryId]);
 
   const options: BoxPickerOptionType[] = flow.options.map((issue) => {
-    const pair = currentPairs.find((p) => p.issue_id === issue.issue_type_id);
-    const severityName = pair
-      ? (TEST_ISSUE_SEVERITIES.find((s) => s.client_id === pair.issue_severity_id)?.name ?? '')
-      : '';
+    // severity label disabled — re-enable when intensity picker is restored
+    // const pair = currentPairs.find((p) => p.issue_id === issue.issue_type_id);
+    // const severityName = pair
+    //   ? (TEST_ISSUE_SEVERITIES.find((s) => s.client_id === pair.issue_severity_id)?.name ?? '')
+    //   : '';
     return {
       value: issue.issue_type_id,
-      label: severityName ? `${issue.issue_type_name} · ${severityName}` : issue.issue_type_name,
+      label: issue.issue_type_name,
+      // label: severityName ? `${issue.issue_type_name} · ${severityName}` : issue.issue_type_name,
       testId: `item-issue-${issue.issue_type_id}-option`,
     };
   });
 
-  function handleIssuePress(issueId: string) {
-    const issue = flow.options.find((entry) => entry.issue_type_id === issueId);
-    if (!issue) return;
-    // onSelect captures currentPairs at call time. If field value changes while the sheet
-    // is open (fast double-tap), the committed value is built from the snapshot taken here.
-    // Low risk: the sheet modal prevents further interaction until closed.
-    useSurfaceStore.getState().open('item-issue-severity-picker', {
-      issueId: issue.issue_type_id,
-      issueName: issue.issue_type_name,
-      currentSeverityId:
-        currentPairs.find((p) => p.issue_id === issueId)?.issue_severity_id ?? null,
-      onSelect: (id: string, severityId: string) => {
-        const next = currentPairs.filter((p) => p.issue_id !== id);
-        field.onChange([...next, { issue_id: id, issue_severity_id: severityId }]);
-      },
-    });
-  }
+  // severity selection disabled — re-enable when intensity picker is restored
+  // function handleIssuePress(issueId: string) {
+  //   const issue = flow.options.find((entry) => entry.issue_type_id === issueId);
+  //   if (!issue) return;
+  //   useSurfaceStore.getState().open('item-issue-severity-picker', {
+  //     issueId: issue.issue_type_id,
+  //     issueName: issue.issue_type_name,
+  //     currentSeverityId:
+  //       currentPairs.find((p) => p.issue_id === issueId)?.issue_severity_id ?? null,
+  //     onSelect: (id: string, severityId: string) => {
+  //       const next = currentPairs.filter((p) => p.issue_id !== id);
+  //       field.onChange([...next, { issue_id: id, issue_severity_id: severityId }]);
+  //     },
+  //   });
+  // }
 
   function removeIssue(issueId: string) {
     field.onChange(currentPairs.filter((p) => p.issue_id !== issueId));
@@ -89,8 +93,9 @@ export function ItemIssuesField() {
           onValueChange={(ids) => {
             const added = ids.find((id) => !selectedIssueIds.includes(id));
             const removed = selectedIssueIds.find((id) => !ids.includes(id));
-            if (added) handleIssuePress(added);
-            if (removed) handleIssuePress(removed);
+            // severity selection disabled — re-enable handleIssuePress when intensity picker is restored
+            if (added) field.onChange([...currentPairs, { issue_id: added, issue_severity_id: '' }]);
+            if (removed) removeIssue(removed);
           }}
           layout="grid"
           columns={2}

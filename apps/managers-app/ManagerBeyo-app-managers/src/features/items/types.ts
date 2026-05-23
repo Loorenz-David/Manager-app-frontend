@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 import { ClientIdSchema } from '@/lib/client-id';
-import type { ItemId } from '@/types/common';
+import type { ItemId, UpholsteryRequirementId } from '@/types/common';
 
 export const ITEM_STATE = ['pending', 'stalled', 'fixing', 'ready'] as const;
 export const ITEM_CURRENCY = ['swedish_krona', 'danish_krona', 'euro'] as const;
@@ -170,7 +170,7 @@ export const ItemIssueSchema = z.object({
   client_id: z.string(),
   item_id: z.string().transform((v) => v as ItemId),
   issue_type_id: z.string(),
-  issue_severity_id: z.string(),
+  issue_severity_id: z.string().nullable(),
   state: z.enum(ITEM_ISSUE_STATE),
   base_time_seconds: z.number().int(),
   time_multiplier: z.number().nullable(),
@@ -203,6 +203,34 @@ export const ItemUpholsterySchema = z.object({
 });
 
 export type ItemUpholstery = z.infer<typeof ItemUpholsterySchema>;
+
+export const ITEM_UPHOLSTERY_REQUIREMENT_SOURCE = ['inventory', 'customer_order'] as const;
+export const ITEM_UPHOLSTERY_REQUIREMENT_STATE = [
+  'missing_quantity',
+  'available',
+  'needs_ordering',
+  'ordered',
+  'in_use',
+  'completed',
+  'failed',
+] as const;
+export type ItemUpholsteryRequirementSource =
+  (typeof ITEM_UPHOLSTERY_REQUIREMENT_SOURCE)[number];
+export type ItemUpholsteryRequirementState =
+  (typeof ITEM_UPHOLSTERY_REQUIREMENT_STATE)[number];
+
+export const ItemUpholsteryRequirementSchema = z.object({
+  client_id: z.string().transform((value) => value as UpholsteryRequirementId),
+  item_upholstery_id: z.string(),
+  upholstery_inventory_id: z.string().nullable(),
+  amount_meters: z.number().nullable(),
+  value_minor: z.number().int().nullable(),
+  currency: z.enum(ITEM_CURRENCY).nullable(),
+  source: z.enum(ITEM_UPHOLSTERY_REQUIREMENT_SOURCE),
+  state: z.enum(ITEM_UPHOLSTERY_REQUIREMENT_STATE),
+});
+
+export type ItemUpholsteryRequirement = z.infer<typeof ItemUpholsteryRequirementSchema>;
 
 // ─── Field composition schema (for form composition in other features) ────────
 

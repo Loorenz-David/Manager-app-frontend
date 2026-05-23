@@ -9,6 +9,10 @@ export { ItemPositionField } from './components/fields/ItemPositionField';
 export { ItemQuantityField } from './components/fields/ItemQuantityField';
 export { ItemUpholsteryAmountField } from './components/fields/ItemUpholsteryAmountField';
 export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
+export { useCreateItemIssue } from './actions/use-create-item-issue';
+export { useDeleteItemIssue } from './actions/use-delete-item-issue';
+export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity';
+export { useUpdateItem } from './actions/use-update-item';
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
 export { useItemIssuesPickerFlow } from './flows/use-item-issues-picker.flow';
 export { itemSurfaces } from './surfaces';
@@ -27,6 +31,8 @@ export type {
   ItemCurrency,
   ItemDetailsFields,
   ItemIssueFieldEntry,
+  ItemUpholsteryRequirement,
+  ItemUpholsteryRequirementState,
   ItemIssuesFields,
   ItemUpholsteryFields,
   ItemViewModel,

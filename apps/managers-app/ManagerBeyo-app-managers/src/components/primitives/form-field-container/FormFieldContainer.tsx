@@ -1,12 +1,12 @@
-type FormFieldContainerProps = {
+export type ContentCardProps = {
   children: React.ReactNode;
   'data-testid'?: string;
 };
 
-export function FormFieldContainer({
+export function ContentCard({
   children,
   'data-testid': testId,
-}: FormFieldContainerProps): React.JSX.Element {
+}: ContentCardProps): React.JSX.Element {
   return (
     <div
       className="flex w-full flex-col gap-3 rounded-xl bg-[var(--color-card)] px-4 py-4 shadow-sm"

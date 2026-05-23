@@ -1,23 +1,82 @@
 import { useEffect } from 'react';
 
+import { ContentCard, DashedInfoGroup } from '@/components/primitives';
+import {
+  TaskBodyCategoryRow,
+  TaskCustomerSection,
+  TaskDetailBottomActions,
+  TaskDetailHeader,
+  TaskFlowTimeline,
+  TaskImagesSection,
+  TaskIssuesSection,
+  TaskScheduledDeliverySection,
+  TaskUpholsterySection,
+} from '@/features/tasks/components/detail';
+import { TaskDetailProvider, useTaskDetailContext } from '@/features/tasks/providers/TaskDetailProvider';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import type { TaskDetailSurfaceProps } from '@/features/tasks/surfaces';
 
-export function TaskDetailSlidePage(): React.JSX.Element {
+function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { taskId } = useSurfaceProps<TaskDetailSurfaceProps>();
+  const controller = useTaskDetailContext();
 
   useEffect(() => {
-    header?.setTitle('Task');
-    header?.setActions(null);
+    header?.setHeaderHidden(true);
   }, [header]);
 
+  if (controller.isPending) {
+    return <div className="p-6 text-sm text-muted-foreground">Loading task…</div>;
+  }
+
+  if (controller.isError || !controller.taskDetail) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
+        <p className="text-sm text-muted-foreground">Task details could not be loaded.</p>
+        <button
+          type="button"
+          className="rounded-full border border-border px-4 py-2 text-sm font-medium"
+          onClick={() => {
+            void controller.refetch();
+          }}
+        >
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-muted-foreground">
-      <p className="text-base font-medium">Task details</p>
-      <p className="text-sm">Coming soon</p>
-      <p className="text-xs text-border">{taskId}</p>
+    <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+5rem)] pt-2">
+      <TaskDetailHeader />
+      <ContentCard>
+        <TaskBodyCategoryRow />
+        <DashedInfoGroup>
+          <TaskCustomerSection />
+          <TaskIssuesSection />
+          <TaskScheduledDeliverySection />
+        </DashedInfoGroup>
+        <TaskImagesSection />
+        {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() === 'seat' && (
+          <TaskUpholsterySection />
+        )}
+        <TaskFlowTimeline />
+      </ContentCard>
+      <TaskDetailBottomActions />
     </div>
+  );
+}
+
+export function TaskDetailSlidePage(): React.JSX.Element {
+  const { taskId } = useSurfaceProps<TaskDetailSurfaceProps>();
+
+  if (!taskId) {
+    return <div className="p-6 text-sm text-muted-foreground">Task id is missing.</div>;
+  }
+
+  return (
+    <TaskDetailProvider taskId={taskId}>
+      <TaskDetailSlidePageContent />
+    </TaskDetailProvider>
   );
 }

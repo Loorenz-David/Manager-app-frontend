@@ -32,6 +32,7 @@ export type UseEntityImagesControllerInput = {
   entityType: ImageLinkEntityType;
   entityClientId: string;
   viewerMode?: ImageViewerMode;
+  onImagesChanged?: () => void;
 };
 
 export type ImageCameraSurfaceProps = {
@@ -123,7 +124,7 @@ function isUploadingState(state: ImageUploadState): boolean {
 export function useEntityImagesController(
   input: UseEntityImagesControllerInput,
 ) {
-  const { entityType, entityClientId, viewerMode = 'preview-edit' } = input;
+  const { entityType, entityClientId, viewerMode = 'preview-edit', onImagesChanged } = input;
   const entityKey = buildEntityKey(entityType, entityClientId);
   const queryClient = useQueryClient();
   const surface = useSurface();
@@ -250,6 +251,7 @@ export function useEntityImagesController(
               entity_client_id: entityClientId,
             }),
           });
+          onImagesChanged?.();
         })
         .catch((error: unknown) => {
           const currentImage = useImagesStore
@@ -274,6 +276,7 @@ export function useEntityImagesController(
       entityType,
       images,
       insertOptimisticImage,
+      onImagesChanged,
       patchOptimisticImage,
       queryClient,
       removeOptimisticImage,
@@ -311,12 +314,13 @@ export function useEntityImagesController(
         image_client_id: imageClientId,
         entity_type: entityType,
         entity_client_id: entityClientId,
-      });
+      }).then(() => onImagesChanged?.());
     },
     [
       entityClientId,
       entityKey,
       entityType,
+      onImagesChanged,
       patchOptimisticImage,
       removeOptimisticImage,
       unlinkAction,

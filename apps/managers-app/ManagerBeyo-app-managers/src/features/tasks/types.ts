@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 import { ClientIdSchema } from '@/lib/client-id';
 import type { ImageViewModel } from '@/features/images/types';
-import type { Item } from '@/features/items/types';
+import { ItemIssueSchema, ItemUpholsteryRequirementSchema, ItemUpholsterySchema, type Item } from '@/features/items/types';
 import type { CustomerId, TaskId, UserId } from '@/types/common';
 import { AddressSchema, DateOnlySchema } from '@/types/common';
 
@@ -74,6 +74,124 @@ export const TaskSchema = z.object({
 });
 
 export type Task = z.infer<typeof TaskSchema>;
+
+export const TaskNoteSchema = z.object({
+  client_id: z.string(),
+  task_id: z.string().transform((value) => value as TaskId),
+  note_type: z.enum(TASK_NOTE_TYPE),
+  content: z.record(z.string(), z.unknown()),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }).nullable(),
+  is_deleted: z.boolean(),
+  deleted_at: z.string().datetime({ offset: true }).nullable(),
+});
+export type TaskNote = z.infer<typeof TaskNoteSchema>;
+
+export const TaskFlowRecordActorSchema = z.object({
+  client_id: z.string(),
+  username: z.string().nullable(),
+  profile_picture: z.string().nullable(),
+});
+export type TaskFlowRecordActor = z.infer<typeof TaskFlowRecordActorSchema>;
+
+export const TaskFlowRecordSchema = z.object({
+  type: z.string(),
+  entity_type: z.string(),
+  entity_client_id: z.string(),
+  description: z.string().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  created_by: TaskFlowRecordActorSchema.nullable(),
+});
+export type TaskFlowRecord = z.infer<typeof TaskFlowRecordSchema>;
+
+export const ImageLightSchema = z.object({
+  client_id: z.string(),
+  image_url: z.string(),
+  width_px: z.number().int().nullable().optional(),
+  height_px: z.number().int().nullable().optional(),
+  file_size_bytes: z.number().nullable().optional(),
+});
+export type ImageLight = z.infer<typeof ImageLightSchema>;
+
+export const TaskDetailRawSchema = z.object({
+  task: z.object({
+    client_id: z.string(),
+    task_scalar_id: z.number().int(),
+    task_type: z.enum(TASK_TYPE),
+    priority: z.enum(TASK_PRIORITY),
+    state: z.enum(TASK_STATE),
+    title: z.string().nullable(),
+    summary: z.string().nullable(),
+    return_source: z.enum(TASK_RETURN_SOURCE).nullable(),
+    item_location: z.enum(TASK_ITEM_LOCATION).nullable(),
+    return_method: z.enum(TASK_RETURN_METHOD).nullable(),
+    fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).nullable(),
+    additional_details: z.record(z.string(), z.unknown()).nullable(),
+    ready_by_at: z.string().nullable(),
+    scheduled_start_at: z.string().nullable(),
+    scheduled_end_at: z.string().nullable(),
+    customer_id: z.string().nullable(),
+    primary_phone_number: z.string().nullable(),
+    secondary_phone_number: z.string().nullable(),
+    primary_email: z.string().nullable(),
+    secondary_email: z.string().nullable(),
+    address: AddressSchema,
+    created_at: z.string().datetime({ offset: true }),
+    updated_at: z.string().datetime({ offset: true }).nullable(),
+    closed_at: z.string().datetime({ offset: true }).nullable(),
+    is_deleted: z.boolean(),
+    deleted_at: z.string().datetime({ offset: true }).nullable(),
+  }),
+  item: z
+    .object({
+      client_id: z.string(),
+      article_number: z.string().nullable(),
+      sku: z.string().nullable(),
+      state: z.string(),
+      item_category_id: z.string().nullable(),
+      quantity: z.number().int(),
+      designer: z.string().nullable(),
+      height_in_cm: z.number().int().nullable(),
+      width_in_cm: z.number().int().nullable(),
+      depth_in_cm: z.number().int().nullable(),
+      item_value_minor: z.number().int().nullable(),
+      item_cost_minor: z.number().int().nullable(),
+      item_currency: z.string().nullable(),
+      item_position: z.string().nullable(),
+      external_id: z.string().nullable(),
+      external_url: z.string().nullable(),
+      external_source: z.string().nullable(),
+      external_order_id: z.string().nullable(),
+      item_category_snapshot: z.string().nullable(),
+      item_major_category_snapshot: z.string().nullable(),
+    })
+    .nullable(),
+  item_images: z.array(ImageLightSchema),
+  item_issues: z.array(ItemIssueSchema),
+  item_upholstery: z.array(ItemUpholsterySchema),
+  requirements: z.array(ItemUpholsteryRequirementSchema),
+  task_steps: z.array(
+    z.object({
+      client_id: z.string(),
+      task_id: z.string(),
+      state: z.string(),
+      readiness_status: z.string(),
+      sequence_order: z.number().int().nullable(),
+      working_section_id: z.string().nullable(),
+      assigned_worker_id: z.string().nullable(),
+      total_dependencies: z.number().int(),
+      completed_dependencies: z.number().int(),
+      working_section_name_snapshot: z.string().nullable(),
+      assigned_worker_display_name_snapshot: z.string().nullable(),
+      created_at: z.string().datetime({ offset: true }),
+      closed_at: z.string().datetime({ offset: true }).nullable(),
+      latest_state_records: z.record(z.string(), z.unknown()).nullable().optional(),
+    }),
+  ),
+  task_notes: z.array(TaskNoteSchema),
+  unread_message_count: z.number().int(),
+});
+export type TaskDetailRaw = z.infer<typeof TaskDetailRawSchema>;
 
 export const CreateTaskInputSchema = z.object({
   client_id: ClientIdSchema,
@@ -147,15 +265,6 @@ export const AddItemToTaskInputSchema = z.object({
   item_id: z.string().min(1),
 });
 export type AddItemToTaskInput = z.infer<typeof AddItemToTaskInputSchema>;
-
-export const ImageLightSchema = z.object({
-  client_id: z.string(),
-  image_url: z.string(),
-  width_px: z.number().int().nullable().optional(),
-  height_px: z.number().int().nullable().optional(),
-  file_size_bytes: z.number().nullable().optional(),
-});
-export type ImageLight = z.infer<typeof ImageLightSchema>;
 
 export const TaskListItemRawSchema = z.object({
   task: z.object({

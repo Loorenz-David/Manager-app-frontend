@@ -6,12 +6,18 @@ type ItemRecord = NonNullable<TaskListItemRaw['primary_item']>;
 
 type ItemsStoreState = {
   itemsById: Record<string, ItemRecord>;
+  setOne: (item: ItemRecord) => void;
   setMany: (items: ItemRecord[]) => void;
   patch: (itemId: string, patch: Partial<ItemRecord>) => void;
+  remove: (itemId: string) => void;
 };
 
 export const useItemsStore = create<ItemsStoreState>((set) => ({
   itemsById: {},
+  setOne: (item) =>
+    set((state) => ({
+      itemsById: { ...state.itemsById, [item.client_id]: item },
+    })),
   setMany: (items) =>
     set((state) => {
       const next = { ...state.itemsById };
@@ -32,5 +38,10 @@ export const useItemsStore = create<ItemsStoreState>((set) => ({
           [itemId]: { ...existing, ...patch },
         },
       };
+    }),
+  remove: (itemId) =>
+    set((state) => {
+      const { [itemId]: _removed, ...rest } = state.itemsById;
+      return { itemsById: rest };
     }),
 }));

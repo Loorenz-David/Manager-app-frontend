@@ -10,6 +10,11 @@
   --color-border: #d0d3d9;
   --color-icon: #8e8e8e;
   --color-destructive: #c0392b;
+  --color-info-pill: #e8e8e8;
+  --color-info-pill-border: #d8d8d8;
+}
+.test-colors {
+  background: #d0d3d9;
 }
 
 :root {

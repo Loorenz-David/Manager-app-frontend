@@ -6,6 +6,7 @@ type TaskListImagesStoreState = {
   imagesByItemId: Record<string, ImageViewModel[]>;
   setForItem: (itemId: string, images: ImageViewModel[]) => void;
   patchImage: (itemId: string, imageClientId: string, patch: Partial<ImageViewModel>) => void;
+  removeForItem: (itemId: string) => void;
 };
 
 export const useTaskListImagesStore = create<TaskListImagesStoreState>((set) => ({
@@ -28,5 +29,10 @@ export const useTaskListImagesStore = create<TaskListImagesStoreState>((set) => 
           ),
         },
       };
+    }),
+  removeForItem: (itemId) =>
+    set((state) => {
+      const { [itemId]: _removed, ...rest } = state.imagesByItemId;
+      return { imagesByItemId: rest };
     }),
 }));
