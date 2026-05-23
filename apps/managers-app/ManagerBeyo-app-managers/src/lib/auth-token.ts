@@ -50,7 +50,8 @@ export function refreshAccessToken(): Promise<boolean> {
 
 async function _executeRefresh(): Promise<boolean> {
   try {
-    const response = await fetch(`${env.VITE_API_URL}/api/v1/auth/refresh`, {
+    const base = env.VITE_API_URL || window.location.origin;
+    const response = await fetch(`${base}/api/v1/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
     });

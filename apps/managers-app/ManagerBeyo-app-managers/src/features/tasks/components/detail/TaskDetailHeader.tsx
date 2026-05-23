@@ -2,7 +2,6 @@ import { m } from 'framer-motion';
 import { Calendar } from 'lucide-react';
 
 import { StatePill } from '@/components/primitives';
-import { cn } from '@/lib/utils';
 import { useTaskDetailContext } from '../../providers/TaskDetailProvider';
 import {
   RETURN_SOURCE_LABEL,
@@ -19,22 +18,23 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
     return null;
   }
 
+  const label = `${days} ${Math.abs(days) === 1 ? 'day' : 'days'}`;
   const baseClass =
-    'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium';
+    'inline-flex shrink-0 items-center rounded-md bg-[color-mix(in_srgb,var(--color-primary)_90%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--color-card)]';
 
   if (days <= 3) {
     return (
       <m.span
         animate={{ backgroundColor: ['hsl(var(--destructive))', 'transparent'] }}
-        className={cn(baseClass, 'text-destructive')}
+        className={baseClass}
         transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse' }}
       >
-        {days}d
+        {label}
       </m.span>
     );
   }
 
-  return <span className={cn(baseClass, 'bg-amber-500/15 text-amber-600')}>{days}d</span>;
+  return <span className={baseClass}>{label}</span>;
 }
 
 export function TaskDetailHeader(): React.JSX.Element | null {

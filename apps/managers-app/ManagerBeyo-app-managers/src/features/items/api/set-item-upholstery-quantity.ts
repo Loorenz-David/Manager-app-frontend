@@ -16,7 +16,7 @@ const SetItemUpholsteryQuantityResponseSchema = ApiEnvelopeSchema(z.object({})).
 export async function setItemUpholsteryQuantity(input: SetItemUpholsteryQuantityInput) {
   const { itemUpholsteryId, ...body } = SetItemUpholsteryQuantityInputSchema.parse(input);
   return apiClient.post(
-    `/api/v1/item-upholsteries/${itemUpholsteryId}/set-quantity`,
+    `/api/v1/item-upholsteries/${itemUpholsteryId}/update-quantity`,
     SetItemUpholsteryQuantityResponseSchema,
     body,
   );

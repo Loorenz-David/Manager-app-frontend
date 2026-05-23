@@ -1,13 +1,18 @@
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-export type StatePillVariant = 'neutral' | 'active' | 'warning' | 'success' | 'danger';
+export type StatePillVariant =
+  | "neutral"
+  | "active"
+  | "warning"
+  | "success"
+  | "danger";
 
 const VARIANT_CLASS: Record<StatePillVariant, string> = {
-  neutral: 'bg-muted text-muted-foreground',
-  active: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-  warning: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-  success: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400',
-  danger: 'bg-red-500/15 text-red-600 dark:text-red-400',
+  neutral: "bg-muted text-muted-foreground",
+  active: "border border-[#b8d9ff] bg-[#eaf4ff] text-[#1f5ea8]",
+  warning: "border border-[#f0c36a] bg-[#fff4d6] text-[#8a5a00]",
+  success: "border border-[#9ed9b5] bg-[#eaf8ef] text-[#1e7a46]",
+  danger: "border border-[#ecb0aa] bg-[#fdecea] text-[#b9382a]",
 };
 
 export type StatePillProps = {
@@ -16,11 +21,15 @@ export type StatePillProps = {
   className?: string;
 };
 
-export function StatePill({ label, variant, className }: StatePillProps): React.JSX.Element {
+export function StatePill({
+  label,
+  variant,
+  className,
+}: StatePillProps): React.JSX.Element {
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium',
+        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium",
         VARIANT_CLASS[variant],
         className,
       )}

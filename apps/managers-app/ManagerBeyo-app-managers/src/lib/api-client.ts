@@ -47,7 +47,8 @@ function buildUrl(
   path: string,
   params?: Record<string, string | number | boolean | undefined>,
 ): string {
-  const url = new URL(path, env.VITE_API_URL);
+  const base = env.VITE_API_URL || window.location.origin;
+  const url = new URL(path, base);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined) {
