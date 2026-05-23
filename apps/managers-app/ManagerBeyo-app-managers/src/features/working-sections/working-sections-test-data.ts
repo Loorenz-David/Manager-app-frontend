@@ -5,6 +5,11 @@ export const TEST_WORKING_SECTIONS: WorkingSectionOption[] = [
     client_id: 'ws_upholstery',
     name: 'Upholstery',
     image: 'https://placehold.co/32x32/6366f1/ffffff?text=U',
+    dependencies: [],
+    item_categories: [
+      { client_id: 'itc_seat_1', name: 'Cushion', major_category: 'seat' },
+    ],
+    supported_issue_types: [{ client_id: 'ist_scratch', name: 'Scratch' }],
     members: [
       {
         client_id: 'usr_alice',
@@ -22,6 +27,11 @@ export const TEST_WORKING_SECTIONS: WorkingSectionOption[] = [
     client_id: 'ws_carpentry',
     name: 'Carpentry',
     image: 'https://placehold.co/32x32/f59e0b/ffffff?text=C',
+    dependencies: [],
+    item_categories: [
+      { client_id: 'itc_wood_1', name: 'Chair', major_category: 'wood' },
+    ],
+    supported_issue_types: [],
     members: [
       {
         client_id: 'usr_carol',
@@ -34,6 +44,12 @@ export const TEST_WORKING_SECTIONS: WorkingSectionOption[] = [
     client_id: 'ws_finishing',
     name: 'Finishing',
     image: 'https://placehold.co/32x32/10b981/ffffff?text=F',
+    dependencies: [{ client_id: 'ws_carpentry', name: 'Carpentry' }],
+    item_categories: [
+      { client_id: 'itc_wood_2', name: 'Table', major_category: 'wood' },
+      { client_id: 'itc_seat_2', name: 'Armchair', major_category: 'seat' },
+    ],
+    supported_issue_types: [{ client_id: 'ist_finish', name: 'Finish damage' }],
     members: [
       {
         client_id: 'usr_dan',

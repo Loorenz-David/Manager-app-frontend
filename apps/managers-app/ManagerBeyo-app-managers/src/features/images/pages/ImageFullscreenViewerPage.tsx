@@ -16,7 +16,7 @@ import {
 import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
 import { ImageAnnotationSvgLayer } from '../components/ImageAnnotationSvgLayer';
 import { ZoomableImage } from '../components/ZoomableImage';
-import type { ImageViewModel } from '../types';
+import { toImageAnnotationViewModel, type ImageViewModel } from '../types';
 
 function clampIndex(index: number, imageCount: number): number {
   if (imageCount <= 0) {
@@ -36,6 +36,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     entityClientId,
     mode = 'preview-only',
     onDelete,
+    enableOnDemandImageLoad = false,
   } = useSurfaceProps<ImageViewerSurfaceProps>();
   const safeInitialImages = useMemo(() => initialImages.filter((image) => !image.isDeleted), [initialImages]);
   const fallbackInitialIndex = Math.max(
@@ -117,7 +118,9 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
 
   const currentImage = images[activeIndex];
   const currentImageClientId = currentImage?.clientId;
-  const { data: freshImage } = useImageQuery(currentImage?.clientId);
+  const shouldLoadCurrentImage = enableOnDemandImageLoad && currentImage?.isFullyLoaded === false;
+  const currentImageQueryId = shouldLoadCurrentImage ? currentImageClientId : currentImage?.clientId;
+  const { data: freshImage } = useImageQuery(currentImageQueryId);
 
   useEffect(() => {
     if (!freshImage || !currentImageClientId) {
@@ -125,21 +128,9 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     }
 
     const nextAnnotation = freshImage.image_annotation
-      ? {
-          clientId: freshImage.image_annotation.client_id,
-          annotationType: freshImage.image_annotation.annotation_type,
-          data: freshImage.image_annotation.data ?? null,
-          accuracy: freshImage.image_annotation.accuracy ?? null,
-          createdAt: freshImage.image_annotation.created_at,
-        }
+      ? toImageAnnotationViewModel(freshImage.image_annotation)
       : null;
-    const nextAnnotations = (freshImage.image_annotations ?? []).map((annotation) => ({
-      clientId: annotation.client_id,
-      annotationType: annotation.annotation_type,
-      data: annotation.data ?? null,
-      accuracy: annotation.accuracy ?? null,
-      createdAt: annotation.created_at,
-    }));
+    const nextAnnotations = (freshImage.image_annotations ?? []).map(toImageAnnotationViewModel);
     const nextAnnotationSignature = JSON.stringify({
       annotation: nextAnnotation,
       annotations: nextAnnotations,
@@ -165,6 +156,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
         changed = true;
         return {
           ...image,
+          isFullyLoaded: true,
           annotation: nextAnnotation,
           annotations: nextAnnotations,
         };

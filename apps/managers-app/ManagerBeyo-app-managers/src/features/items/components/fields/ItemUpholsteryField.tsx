@@ -1,7 +1,10 @@
 import { cva } from 'class-variance-authority';
 import { ChevronRight } from 'lucide-react';
 
-import { TEST_UPHOLSTERIES } from '@/features/upholstery';
+import {
+  useUpholsteryPickerOptionQuery,
+  useUpholsterySelectionStore,
+} from '@/features/upholstery';
 import { useSurface } from '@/hooks/use-surface';
 import { cn } from '@/lib/utils';
 
@@ -29,8 +32,16 @@ export function ItemUpholsteryField({
   testId,
 }: ItemUpholsteryFieldProps): React.JSX.Element {
   const surface = useSurface();
-  const selectedUpholstery = TEST_UPHOLSTERIES.find((entry) => entry.client_id === value);
+  const storeOptions = useUpholsterySelectionStore((state) => state.options);
+  const storeMatch = value
+    ? storeOptions.find((entry) => entry.client_id === value) ?? null
+    : null;
+  const { data: fetchedOption, isPending } = useUpholsteryPickerOptionQuery(
+    storeMatch === null ? value : null,
+  );
+  const selectedUpholstery = storeMatch ?? fetchedOption ?? null;
   const hasSelection = value !== null && value !== undefined;
+  const isLoadingSelection = hasSelection && selectedUpholstery === null && isPending;
 
   function handlePress(): void {
     surface.open('upholstery-picker', {
@@ -49,12 +60,14 @@ export function ItemUpholsteryField({
       disabled={disabled}
       onClick={handlePress}
     >
-      {selectedUpholstery ? (
+      {selectedUpholstery?.image_url ? (
         <img
-          src={selectedUpholstery.image}
+          src={selectedUpholstery.image_url}
           alt={selectedUpholstery.name}
           className="size-10 shrink-0 rounded-full object-cover"
         />
+      ) : selectedUpholstery ? (
+        <div aria-hidden="true" className="size-10 shrink-0 rounded-full bg-muted" />
       ) : null}
       <span className="min-w-0 flex-1">
         {hasSelection ? (
@@ -69,6 +82,8 @@ export function ItemUpholsteryField({
                 </span>
               ) : null}
             </span>
+          ) : isLoadingSelection ? (
+            <span className="truncate text-sm text-muted-foreground">Loading upholstery…</span>
           ) : (
             <span className="truncate text-sm text-foreground">{value}</span>
           )

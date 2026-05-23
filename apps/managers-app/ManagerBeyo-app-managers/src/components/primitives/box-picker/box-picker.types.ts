@@ -12,6 +12,7 @@ export type BoxPickerOption<Value extends string = string> = {
 export type BoxPickerSelectionMode = 'single' | 'multiple';
 export type BoxPickerLayout = 'grid' | 'stack';
 export type BoxPickerVisualVariant = 'default' | 'horizontalDescription' | 'pill';
+export type BoxPickerSize = 'sm' | 'xs';
 
 type BoxPickerSingleProps<Value extends string> = {
   mode: 'single';
@@ -32,6 +33,7 @@ export type BoxPickerProps<Value extends string = string> = (
   options: BoxPickerOption<Value>[];
   layout?: BoxPickerLayout;
   visualVariant?: BoxPickerVisualVariant;
+  size?: BoxPickerSize;
   columns?: 2 | 3 | 4;
   showIcon?: boolean;
   showLabel?: boolean;

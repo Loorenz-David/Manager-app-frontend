@@ -1,6 +1,6 @@
 import { cva } from 'class-variance-authority';
 
-import { formatPickerMeters, type UpholsteryPickerRecord } from '@/features/upholstery/types';
+import { formatMeters, type UpholsteryPickerRecord } from '@/features/upholstery/types';
 import { cn } from '@/lib/utils';
 
 const upholsteryCardVariants = cva(
@@ -31,6 +31,15 @@ export function UpholsteryCard({
   onSelect,
   testId,
 }: UpholsteryCardProps): React.JSX.Element {
+  const conditionColors = {
+    available: 'bg-emerald-500',
+    low_stock: 'bg-amber-500',
+    out_of_stock: 'bg-rose-500',
+  } as const;
+  const conditionColor = record.inventory_condition
+    ? conditionColors[record.inventory_condition]
+    : null;
+
   return (
     <button
       type="button"
@@ -38,11 +47,15 @@ export function UpholsteryCard({
       className={upholsteryCardVariants({ selected: isSelected })}
       onClick={() => onSelect(record.client_id)}
     >
-      <img
-        src={record.image}
-        alt={record.name}
-        className="size-10 shrink-0 rounded-full object-cover"
-      />
+      {record.image_url ? (
+        <img
+          src={record.image_url}
+          alt={record.name}
+          className="size-10 shrink-0 rounded-full object-cover"
+        />
+      ) : (
+        <div aria-hidden="true" className="size-10 shrink-0 rounded-full bg-muted" />
+      )}
       <div className="min-w-0 flex-1">
         <p
           className={cn(
@@ -65,11 +78,17 @@ export function UpholsteryCard({
       </div>
       <span
         className={cn(
-          'shrink-0 text-sm font-medium tabular-nums',
+          'flex shrink-0 items-center gap-2 text-sm font-medium tabular-nums',
           isSelected ? 'text-card/80' : 'text-muted-foreground',
         )}
       >
-        {formatPickerMeters(record.current_available_amount_meters)}
+        {conditionColor ? (
+          <span
+            aria-hidden="true"
+            className={cn('size-2 rounded-full', conditionColor)}
+          />
+        ) : null}
+        {formatMeters(record.current_stored_amount_meters) ?? '—'}
       </span>
     </button>
   );

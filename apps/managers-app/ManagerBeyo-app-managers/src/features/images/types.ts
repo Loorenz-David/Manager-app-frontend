@@ -357,6 +357,7 @@ export type ImageViewModel = {
   uploadError: string | null;
   annotation: ImageAnnotationViewModel | null;
   annotations: ImageAnnotationViewModel[];
+  isFullyLoaded?: boolean;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -536,5 +537,6 @@ export function toImageViewModel(entityImage: EntityImage): ImageViewModel {
       ? toImageAnnotationViewModel(entityImage.image.image_annotation)
       : null,
     annotations: (entityImage.image.image_annotations ?? []).map(toImageAnnotationViewModel),
+    isFullyLoaded: true,
   };
 }

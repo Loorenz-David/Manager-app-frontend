@@ -49,6 +49,7 @@ export type ImageViewerSurfaceProps = {
   entityClientId: string;
   mode: ImageViewerMode;
   onDelete?: (imageClientId: string) => void;
+  enableOnDemandImageLoad?: boolean;
 };
 
 export type ImageMetadataSurfaceProps = {

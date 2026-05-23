@@ -86,6 +86,22 @@ export type ListUpholsteryInventoriesParams = {
   offset?: number;
 };
 
+export const UpholsteryPickerOptionSchema = z.object({
+  client_id: z.string(),
+  name: z.string(),
+  code: z.string().nullable(),
+  image_url: z.string().nullable(),
+  current_stored_amount_meters: z.string().nullable(),
+  inventory_condition: z.enum(UPHOLSTERY_INVENTORY_CONDITION).nullable(),
+});
+export type UpholsteryPickerOption = z.infer<typeof UpholsteryPickerOptionSchema>;
+
+export type ListUpholsteryPickerParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
+};
+
 export type UpholsteryInventoryViewModel = UpholsteryInventory & {
   stored_meters_display: string | null;
   in_use_meters_display: string | null;
@@ -95,29 +111,17 @@ export type UpholsteryInventoryViewModel = UpholsteryInventory & {
   condition_label: string;
 };
 
-// ─── Picker record (mock shape — future: hydrated from API) ───────────────────
-
-export type UpholsteryPickerRecord = {
-  client_id: string;
-  name: string;
-  code: string | null;
-  image: string;
-  current_available_amount_meters: number;
-};
+export type UpholsteryPickerRecord = UpholsteryPickerOption;
 
 const metersFormatter = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 2,
 });
 
-function formatMeters(value: string | null): string | null {
+export function formatMeters(value: string | null): string | null {
   if (!value) return null;
   const num = Number.parseFloat(value);
   return Number.isNaN(num) ? null : `${metersFormatter.format(num)} m`;
-}
-
-export function formatPickerMeters(value: number): string {
-  return `${metersFormatter.format(value)} m`;
 }
 
 export function toUpholsteryInventoryViewModel(

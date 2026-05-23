@@ -5,12 +5,14 @@ import { cn } from '@/lib/utils';
 import { boxOptionVariants } from './box-picker.variants';
 import type {
   BoxPickerOption as BoxPickerOptionType,
+  BoxPickerSize,
   BoxPickerVisualVariant,
 } from './box-picker.types';
 
 type BoxPickerOptionProps<Value extends string> = {
   option: BoxPickerOptionType<Value>;
   isSelected: boolean;
+  size?: BoxPickerSize;
   visualVariant?: BoxPickerVisualVariant;
   showIcon?: boolean;
   showLabel?: boolean;
@@ -27,6 +29,7 @@ type BoxPickerOptionProps<Value extends string> = {
 export function BoxPickerOption<Value extends string>({
   option,
   isSelected,
+  size = 'sm',
   visualVariant = 'default',
   showIcon = true,
   showLabel = true,
@@ -59,6 +62,7 @@ export function BoxPickerOption<Value extends string>({
       onKeyDown={handleKeyDown}
       className={cn(
         boxOptionVariants({ visualVariant, selected: isSelected }),
+        size === 'xs' && visualVariant === 'pill' && 'min-h-0 px-3 py-1',
         optionClassName,
         isSelected && selectedOptionClassName,
         !isSelected && unselectedOptionClassName,
@@ -76,7 +80,9 @@ export function BoxPickerOption<Value extends string>({
         {showIcon && Icon ? <Icon className="size-5 shrink-0" /> : null}
         <span className="flex min-w-0 flex-col gap-0.5">
           {showLabel ? (
-            <span className="truncate text-sm font-medium">{option.label}</span>
+            <span className={cn('truncate font-medium', size === 'xs' ? 'text-xs' : 'text-sm')}>
+              {option.label}
+            </span>
           ) : null}
           {showDescription && option.description && visualVariant === 'horizontalDescription' ? (
             <span className="text-xs opacity-70">{option.description}</span>

@@ -8,8 +8,9 @@ const TEST_RECORD = {
   client_id: 'uph_linen_natural',
   name: 'Natural Linen',
   code: 'LN-001',
-  image: 'https://example.com/upholstery.jpg',
-  current_available_amount_meters: 1.05,
+  image_url: 'https://example.com/upholstery.jpg',
+  current_stored_amount_meters: '1.05',
+  inventory_condition: 'available' as const,
 };
 
 describe('UpholsteryCard', () => {

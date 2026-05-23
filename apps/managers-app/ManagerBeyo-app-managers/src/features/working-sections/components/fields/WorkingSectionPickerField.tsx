@@ -1,11 +1,11 @@
 import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { FieldErrorPill } from '@/components/primitives';
+import { useWorkingSectionPickerFlow } from '@/features/working-sections/flows/use-working-section-picker.flow';
 import { cn } from '@/lib/utils';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
-import { TEST_WORKING_SECTIONS } from '../../working-sections-test-data';
 import {
   WORKING_SECTION_WORKER_PICKER_SURFACE_ID,
   preloadWorkingSectionWorkerPickerSurface,
@@ -50,25 +50,35 @@ function WorkingSectionBox({
         }
       }}
     >
-      <img
-        alt=""
-        aria-hidden="true"
-        className="size-8 shrink-0 rounded-lg object-cover"
-        src={section.image}
-      />
+      {section.image ? (
+        <img
+          alt=""
+          aria-hidden="true"
+          className="size-8 shrink-0 rounded-lg object-cover"
+          src={section.image}
+        />
+      ) : (
+        <div aria-hidden="true" className="size-8 shrink-0 rounded-lg bg-muted" />
+      )}
 
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="truncate text-sm font-medium">{section.name}</span>
         {selectedMember ? (
           <span className="flex items-center gap-1">
-            <img
-              alt=""
-              aria-hidden="true"
-              className="size-4 shrink-0 rounded-full object-cover"
-              src={selectedMember.profile_picture}
-            />
+            {selectedMember.profile_picture ? (
+              <img
+                alt=""
+                aria-hidden="true"
+                className="size-4 shrink-0 rounded-full object-cover"
+                src={selectedMember.profile_picture}
+              />
+            ) : (
+              <div aria-hidden="true" className="size-4 shrink-0 rounded-full bg-muted" />
+            )}
             <span className="truncate text-xs opacity-80">{selectedMember.username}</span>
           </span>
+        ) : isSelected ? (
+          <span className="truncate text-xs opacity-80">No worker selected</span>
         ) : null}
       </span>
 
@@ -90,13 +100,31 @@ function WorkingSectionBox({
   );
 }
 
-export function WorkingSectionPickerField(): React.JSX.Element {
+type WorkingSectionPickerFieldProps = {
+  majorCategory?: string;
+};
+
+export function WorkingSectionPickerField({
+  majorCategory,
+}: WorkingSectionPickerFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
+  const flow = useWorkingSectionPickerFlow();
   const { field, fieldState } = useController({
     name: 'working_section_assignments',
     control,
     defaultValue: [],
   });
+  const displayedOptions = useMemo(
+    () =>
+      majorCategory === undefined
+        ? flow.options
+        : flow.options.filter((section) =>
+            section.item_categories.some(
+              (itemCategory) => itemCategory.major_category === majorCategory,
+            ),
+          ),
+    [flow.options, majorCategory],
+  );
 
   const currentAssignments: WorkingSectionAssignment[] = field.value ?? [];
   const selectedSectionIds = currentAssignments.map((assignment) => assignment.working_section_id);
@@ -106,7 +134,7 @@ export function WorkingSectionPickerField(): React.JSX.Element {
   }, []);
 
   function handleSectionPress(sectionId: string) {
-    const section = TEST_WORKING_SECTIONS.find((entry) => entry.client_id === sectionId);
+    const section = flow.options.find((entry) => entry.client_id === sectionId);
     if (!section) {
       return;
     }
@@ -114,6 +142,12 @@ export function WorkingSectionPickerField(): React.JSX.Element {
     const currentAssignment = currentAssignments.find(
       (assignment) => assignment.working_section_id === sectionId,
     );
+
+    if (section.members.length === 0) {
+      const next = currentAssignments.filter((assignment) => assignment.working_section_id !== sectionId);
+      field.onChange([...next, { working_section_id: sectionId, assigned_worker_id: null }]);
+      return;
+    }
 
     if (section.members.length === 1) {
       const member = section.members[0];
@@ -152,7 +186,12 @@ export function WorkingSectionPickerField(): React.JSX.Element {
       <span className="text-sm font-medium text-muted-foreground">Working sections</span>
 
       <div className="flex flex-col gap-2" data-testid="working-section-picker-list">
-        {TEST_WORKING_SECTIONS.map((section) => {
+        {flow.isLoading && displayedOptions.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+            Loading working sections…
+          </p>
+        ) : null}
+        {displayedOptions.map((section) => {
           const isSelected = selectedSectionIds.includes(section.client_id);
           const assignment = currentAssignments.find(
             (entry) => entry.working_section_id === section.client_id,

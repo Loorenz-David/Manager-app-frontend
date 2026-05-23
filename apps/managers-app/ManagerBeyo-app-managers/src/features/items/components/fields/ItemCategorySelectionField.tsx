@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { BoxPicker } from '@/components/primitives';
-import { TEST_ITEM_CATEGORIES } from '@/features/items/item-test-data';
+import { useItemCategoryPickerFlow } from '@/features/items/flows/use-item-category-picker.flow';
 import { preloadItemCategoryPickerSurface } from '@/features/items/surfaces';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
@@ -24,6 +24,7 @@ const MAJOR_CATEGORY_OPTIONS = [
 
 export function ItemCategorySelectionField() {
   const { control } = useFormContext();
+  const flow = useItemCategoryPickerFlow();
   const { field: majorField, fieldState: majorFieldState } = useController({
     name: 'item.major_category',
     control,
@@ -35,9 +36,11 @@ export function ItemCategorySelectionField() {
 
   useEffect(() => {
     void preloadItemCategoryPickerSurface();
+  }, []);
 
+  useEffect(() => {
     if (categoryField.value && !majorField.value) {
-      const foundCategory = TEST_ITEM_CATEGORIES.find(
+      const foundCategory = flow.options.find(
         (category) => category.client_id === categoryField.value,
       );
 
@@ -45,8 +48,7 @@ export function ItemCategorySelectionField() {
         majorField.onChange(foundCategory.major_category);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [categoryField.value, flow.options, majorField, majorField.value]);
 
   function openCategoryPicker(
     majorCategory: string,
@@ -54,6 +56,7 @@ export function ItemCategorySelectionField() {
   ) {
     useSurfaceStore.getState().open('item-category-picker', {
       majorCategory,
+      categories: flow.byMajorCategory[majorCategory] ?? [],
       currentCategoryId: currentId ?? null,
       onSelect: (id: string) => categoryField.onChange(id),
     });
@@ -62,7 +65,7 @@ export function ItemCategorySelectionField() {
   function handleMajorCategoryChange(newMajor: string) {
     majorField.onChange(newMajor);
 
-    const currentCategory = TEST_ITEM_CATEGORIES.find(
+    const currentCategory = flow.options.find(
       (category) => category.client_id === categoryField.value,
     );
     const shouldClear = !currentCategory || currentCategory.major_category !== newMajor;
@@ -71,12 +74,17 @@ export function ItemCategorySelectionField() {
       categoryField.onChange(null);
     }
 
-    openCategoryPicker(newMajor, shouldClear ? null : categoryField.value);
+    const categories = flow.byMajorCategory[newMajor] ?? [];
+    if (!flow.isLoading && categories.length > 0) {
+      openCategoryPicker(newMajor, shouldClear ? null : categoryField.value);
+    }
   }
 
-  const selectedCategory = TEST_ITEM_CATEGORIES.find(
+  const selectedCategory = flow.options.find(
     (category) => category.client_id === categoryField.value,
   );
+  const canOpenCategoryPicker =
+    Boolean(majorField.value) && !flow.isLoading && (flow.byMajorCategory[majorField.value] ?? []).length > 0;
 
   return (
     <div className="flex flex-col gap-3" data-testid="item-category-selection-field">
@@ -106,6 +114,19 @@ export function ItemCategorySelectionField() {
             }
           >
             <span>{selectedCategory.name}</span>
+            <ChevronRight className="size-4 text-muted-foreground" />
+          </button>
+        ) : majorField.value ? (
+          <button
+            type="button"
+            data-testid="item-category-picker-trigger"
+            className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-sm disabled:opacity-60"
+            disabled={!canOpenCategoryPicker}
+            onClick={() => openCategoryPicker(majorField.value, categoryField.value)}
+          >
+            <span>
+              {flow.isLoading ? 'Loading categories…' : 'Select category'}
+            </span>
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>
         ) : (

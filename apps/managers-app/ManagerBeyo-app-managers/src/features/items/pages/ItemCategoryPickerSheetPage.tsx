@@ -1,26 +1,26 @@
 import { BoxPicker } from '@/components/primitives';
-import { TEST_ITEM_CATEGORIES } from '@/features/items/item-test-data';
+import type { ItemCategoryPickerOption } from '@/features/items/types';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type ItemCategoryPickerProps = {
   majorCategory: string;
+  categories: ItemCategoryPickerOption[];
   currentCategoryId: string | null | undefined;
   onSelect: (categoryId: string) => void;
 };
 
 export function ItemCategoryPickerSheetPage() {
-  const { majorCategory, currentCategoryId, onSelect } =
+  const { majorCategory, categories, currentCategoryId, onSelect } =
     useSurfaceProps<ItemCategoryPickerProps>();
 
-  const options = TEST_ITEM_CATEGORIES.filter(
-    (category) => category.major_category === majorCategory,
-  ).map((category) => ({
-    value: category.client_id,
-    label: category.name,
-    icon: category.icon,
-    testId: `item-category-${category.client_id}-option`,
-  }));
+  const options = (categories ?? [])
+    .filter((category) => category.major_category === majorCategory)
+    .map((category) => ({
+      value: category.client_id,
+      label: category.name,
+      testId: `item-category-${category.client_id}-option`,
+    }));
 
   function handleSelect(categoryId: string) {
     onSelect?.(categoryId);

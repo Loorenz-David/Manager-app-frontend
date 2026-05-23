@@ -12,6 +12,7 @@ export type {
   BoxPickerLayout,
   BoxPickerOptionType,
   BoxPickerProps,
+  BoxPickerSize,
   BoxPickerSelectionMode,
   BoxPickerVisualVariant,
 } from './box-picker';
@@ -55,3 +56,7 @@ export type {
 
 export { SearchBar } from './search-bar';
 export type { SearchBarProps } from './search-bar';
+export { HorizontalScrollArea } from './horizontal-scroll-area';
+export type { HorizontalScrollAreaProps } from './horizontal-scroll-area';
+export { StatePill } from './state-pill';
+export type { StatePillProps, StatePillVariant } from './state-pill';

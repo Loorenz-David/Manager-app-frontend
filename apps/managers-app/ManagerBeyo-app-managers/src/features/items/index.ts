@@ -7,21 +7,31 @@ export { ItemIdentityField } from './components/fields/ItemIdentityField';
 export { ItemIssuesField } from './components/fields/ItemIssuesField';
 export { ItemPositionField } from './components/fields/ItemPositionField';
 export { ItemQuantityField } from './components/fields/ItemQuantityField';
+export { ItemUpholsteryAmountField } from './components/fields/ItemUpholsteryAmountField';
 export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
+export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
+export { useItemIssuesPickerFlow } from './flows/use-item-issues-picker.flow';
 export { itemSurfaces } from './surfaces';
+export { useIssueCategoryConfigSelectionStore } from './store/issue-category-config-selection.store';
+export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 
 export { ItemDetailsFieldsSchema } from './types';
+export { IssueCategoryConfigSchema, ItemCategoryPickerOptionSchema } from './types';
 export { ItemIssuesFieldSchema, ItemIssuesFieldsSchema } from './types';
 export { ItemUpholsteryFieldsSchema } from './types';
 export type {
   CreateItemInput,
+  IssueCategoryConfig,
   Item,
+  ItemCategoryPickerOption,
   ItemCurrency,
   ItemDetailsFields,
   ItemIssueFieldEntry,
   ItemIssuesFields,
   ItemUpholsteryFields,
   ItemViewModel,
+  ListIssueCategoryConfigsParams,
+  ListItemCategoriesPickerParams,
   ListItemsParams,
   UpdateItemInput,
 } from './types';

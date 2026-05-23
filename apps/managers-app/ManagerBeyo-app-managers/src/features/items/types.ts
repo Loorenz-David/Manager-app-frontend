@@ -234,6 +234,41 @@ export type ItemIssuesFields = z.infer<typeof ItemIssuesFieldsSchema>;
 
 export const ItemUpholsteryFieldsSchema = z.object({
   upholstery_client_id: z.string().nullable().optional(),
+  upholstery_amount_meters: z
+    .number({ message: 'Enter a number.' })
+    .positive({ message: 'Enter a positive amount.' })
+    .nullable()
+    .optional(),
 });
 
 export type ItemUpholsteryFields = z.infer<typeof ItemUpholsteryFieldsSchema>;
+
+export const ItemCategoryPickerOptionSchema = z.object({
+  client_id: z.string(),
+  name: z.string(),
+  major_category: z.string(),
+  image_url: z.string().nullable(),
+});
+export type ItemCategoryPickerOption = z.infer<typeof ItemCategoryPickerOptionSchema>;
+
+export type ListItemCategoriesPickerParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
+};
+
+export const IssueCategoryConfigSchema = z.object({
+  client_id: z.string(),
+  item_category_id: z.string(),
+  issue_type_id: z.string(),
+  base_time_seconds: z.number().int(),
+  issue_type_name: z.string(),
+});
+export type IssueCategoryConfig = z.infer<typeof IssueCategoryConfigSchema>;
+
+export type ListIssueCategoryConfigsParams = {
+  item_category_id?: string;
+  q?: string;
+  limit?: number;
+  offset?: number;
+};

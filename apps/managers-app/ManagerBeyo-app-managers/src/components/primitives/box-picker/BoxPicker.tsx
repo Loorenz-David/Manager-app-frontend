@@ -30,6 +30,7 @@ export function BoxPicker<Value extends string = string>({
   options,
   layout = 'grid',
   visualVariant = 'default',
+  size = 'sm',
   columns = 2,
   showIcon = true,
   showLabel = true,
@@ -72,6 +73,7 @@ export function BoxPicker<Value extends string = string>({
           key={option.value}
           option={option}
           isSelected={isOptionSelected(mode, value, option.value)}
+          size={size}
           visualVariant={visualVariant}
           showIcon={showIcon}
           showLabel={showLabel}

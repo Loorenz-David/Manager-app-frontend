@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 
-import { OpenTestingFormsButton } from '@/features/testing_forms';
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
+import { TaskCreationFab } from '@/features/task-creation';
 
 const TasksRouteEntry = lazy(() =>
   import('@/features/tasks/route-entry').then((module) => ({
@@ -11,13 +11,13 @@ const TasksRouteEntry = lazy(() =>
 
 export function TasksPage(): React.JSX.Element {
   return (
-    <div className="flex flex-col">
-      <div className="border-b px-6 py-4">
-        <OpenTestingFormsButton />
+    <>
+      <div className="flex min-h-0 flex-1 flex-col">
+        <Suspense fallback={<PageSkeleton />}>
+          <TasksRouteEntry />
+        </Suspense>
       </div>
-      <Suspense fallback={<PageSkeleton />}>
-        <TasksRouteEntry />
-      </Suspense>
-    </div>
+      <TaskCreationFab />
+    </>
   );
 }

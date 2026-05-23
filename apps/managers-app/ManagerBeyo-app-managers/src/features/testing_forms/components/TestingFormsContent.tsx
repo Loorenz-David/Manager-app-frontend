@@ -14,6 +14,7 @@ import {
   ItemDetailsFieldsSchema,
   ItemIssuesField,
   ItemIssuesFieldsSchema,
+  ItemUpholsteryAmountField,
   ItemUpholsteryField,
   ItemUpholsteryFieldsSchema,
 } from '@/features/items';
@@ -26,6 +27,8 @@ import {
   TaskReturnSourceField,
 } from '@/features/tasks';
 import {
+  NeedsCleaningPickerField,
+  OilingTreatmentPickerField,
   WorkingSectionPickerField,
   WorkingSectionPickerFieldsSchema,
 } from '@/features/working-sections';
@@ -51,6 +54,8 @@ const TestingFormsSchema = z.object({
   return_source: z.enum(TASK_RETURN_SOURCE).optional(),
   additional_details: TaskAdditionalDetailsFieldsSchema.shape.additional_details,
   working_section_assignments: WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
+  needs_cleaning_assignment: WorkingSectionPickerFieldsSchema.shape.needs_cleaning_assignment,
+  oiling_treatment_assignment: WorkingSectionPickerFieldsSchema.shape.oiling_treatment_assignment,
 });
 
 type TestingFormsValues = z.input<typeof TestingFormsSchema>;
@@ -83,6 +88,7 @@ export function TestingFormsContent(): React.JSX.Element {
       },
       item_upholstery: {
         upholstery_client_id: null,
+        upholstery_amount_meters: null,
       },
       item_issues: [],
       ready_by_at: null,
@@ -92,6 +98,8 @@ export function TestingFormsContent(): React.JSX.Element {
       return_source: undefined,
       additional_details: '',
       working_section_assignments: [],
+      needs_cleaning_assignment: null,
+      oiling_treatment_assignment: null,
     },
   });
 
@@ -104,9 +112,20 @@ export function TestingFormsContent(): React.JSX.Element {
     mode: 'free',
     onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
       const stepFieldsMap: Record<string, FieldPath<TestingFormsValues>[]> = {
-        item: ['item', 'item_upholstery', 'item_issues'],
+        item: [
+          'item',
+          'item_upholstery',
+          'item_issues',
+          'needs_cleaning_assignment',
+          'oiling_treatment_assignment',
+        ],
         customer: ['customer'],
-        task: ['fulfillment_method', 'return_source', 'additional_details', 'working_section_assignments'],
+        task: [
+          'fulfillment_method',
+          'return_source',
+          'additional_details',
+          'working_section_assignments',
+        ],
       };
 
       // On the last step, validate all steps so skipped ones show error state.
@@ -180,7 +199,10 @@ export function TestingFormsContent(): React.JSX.Element {
                     </div>
                   )}
                 />
+                <ItemUpholsteryAmountField />
                 <ItemIssuesField />
+                <NeedsCleaningPickerField />
+                <OilingTreatmentPickerField />
                 <section className="rounded-2xl border border-border p-4" data-testid="testing-images-harness-section">
                   <EntityImagesProvider
                     entityType="item"

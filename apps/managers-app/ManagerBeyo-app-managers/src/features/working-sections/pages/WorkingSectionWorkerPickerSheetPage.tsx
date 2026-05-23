@@ -32,12 +32,16 @@ export function WorkingSectionWorkerPickerSheetPage(): React.JSX.Element {
             type="button"
             onClick={() => handleSelect(member.client_id)}
           >
-            <img
-              alt=""
-              aria-hidden="true"
-              className="size-8 shrink-0 rounded-full object-cover"
-              src={member.profile_picture}
-            />
+            {member.profile_picture ? (
+              <img
+                alt=""
+                aria-hidden="true"
+                className="size-8 shrink-0 rounded-full object-cover"
+                src={member.profile_picture}
+              />
+            ) : (
+              <div aria-hidden="true" className="size-8 shrink-0 rounded-full bg-muted" />
+            )}
             <span className="truncate text-sm font-medium">{member.username}</span>
           </button>
         ))}

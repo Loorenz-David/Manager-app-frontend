@@ -1,10 +1,17 @@
 import type { UpholsteryId, UpholsteryInventoryId } from '@/types/common';
-import type { ListUpholsteriesParams, ListUpholsteryInventoriesParams } from '@/features/upholstery/types';
+import type {
+  ListUpholsteriesParams,
+  ListUpholsteryInventoriesParams,
+  ListUpholsteryPickerParams,
+} from '@/features/upholstery/types';
 
 export const upholsteryKeys = {
   all: ['upholsteries'] as const,
   lists: () => [...upholsteryKeys.all, 'list'] as const,
   list: (params: ListUpholsteriesParams = {}) => [...upholsteryKeys.lists(), params] as const,
+  pickerLists: () => [...upholsteryKeys.all, 'picker', 'list'] as const,
+  pickerList: (params: ListUpholsteryPickerParams = {}) =>
+    [...upholsteryKeys.pickerLists(), params] as const,
   details: () => [...upholsteryKeys.all, 'detail'] as const,
   detail: (id: UpholsteryId) => [...upholsteryKeys.details(), id] as const,
 };
