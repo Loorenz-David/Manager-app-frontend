@@ -250,7 +250,8 @@ export type ItemDetailsFields = z.infer<typeof ItemDetailsFieldsSchema>;
 
 export const ItemIssuesFieldSchema = z.object({
   issue_id: z.string().min(1),
-  issue_severity_id: z.string().min(1),
+  // Severity selection is currently disabled in task creation, so allow empty.
+  issue_severity_id: z.string().optional().or(z.literal('')),
 });
 
 export const ItemIssuesFieldsSchema = z.object({

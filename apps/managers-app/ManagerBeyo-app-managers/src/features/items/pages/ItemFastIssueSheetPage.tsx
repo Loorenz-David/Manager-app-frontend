@@ -101,7 +101,7 @@ export function ItemFastIssueSheetPage(): React.JSX.Element {
       await createItemIssue.mutateAsync({
         itemId,
         issue_type_id: issue.issue_id,
-        issue_severity_id: issue.issue_severity_id,
+        issue_severity_id: issue.issue_severity_id || undefined,
         base_time_seconds: issueConfig?.base_time_seconds,
         time_multiplier: severity?.time_multiplier,
         issue_name_snapshot: issueConfig?.issue_type_name,

@@ -6,7 +6,7 @@ import { ApiEnvelopeSchema } from '@/types/api';
 const CreateItemIssueInputSchema = z.object({
   itemId: z.string(),
   issue_type_id: z.string(),
-  issue_severity_id: z.string(),
+  issue_severity_id: z.string().optional(),
   base_time_seconds: z.number().int().optional(),
   time_multiplier: z.number().optional(),
   issue_name_snapshot: z.string().optional(),
