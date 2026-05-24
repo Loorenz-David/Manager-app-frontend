@@ -18,6 +18,7 @@ import {
   CustomerDisplayNameField,
   CustomerEmailField,
   CustomerPhoneField,
+  CustomerTypeField,
 } from "@/features/customers";
 import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
 import {
@@ -238,6 +239,7 @@ export function PreOrderFormContent(): React.JSX.Element {
             <div className="flex flex-col gap-4">
               <ContentCard>
                 <CustomerDisplayNameField />
+                <CustomerTypeField />
                 <CustomerEmailField />
                 <CustomerPhoneField />
               </ContentCard>
