@@ -11,7 +11,7 @@ type Module<T> = { default: T };
  * factory here returns a synchronous thenable when the module is in memory,
  * which React's lazy initializer reads synchronously, skipping the suspend.
  */
-export function lazyWithPreload<T extends ComponentType<never>>(
+export function lazyWithPreload<T extends ComponentType<any>>(
   factory: () => Promise<Module<T>>,
 ): { Component: ReturnType<typeof lazy<T>>; preload: () => Promise<void> } {
   let module: Module<T> | undefined;
