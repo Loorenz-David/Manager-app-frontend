@@ -172,7 +172,7 @@ export const ItemIssueSchema = z.object({
   issue_type_id: z.string(),
   issue_severity_id: z.string().nullable(),
   state: z.enum(ITEM_ISSUE_STATE),
-  base_time_seconds: z.number().int(),
+  base_time_seconds: z.number().int().nullable(),
   time_multiplier: z.number().nullable(),
   issue_name_snapshot: z.string().nullable(),
   severity_name_snapshot: z.string().nullable(),
