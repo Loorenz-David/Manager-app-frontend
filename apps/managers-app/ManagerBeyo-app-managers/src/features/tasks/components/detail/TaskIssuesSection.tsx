@@ -7,7 +7,7 @@ const issuePillClass =
   'inline-flex items-center rounded-full border border-[var(--color-info-pill-border)] bg-[var(--color-info-pill)] px-3 py-1.5 text-sm font-medium text-foreground';
 
 export function TaskIssuesSection(): React.JSX.Element | null {
-  const { openIssueSheet, taskDetail } = useTaskDetailContext();
+  const { openIssueSheet, taskDetail, issueNameByTypeId } = useTaskDetailContext();
 
   if (!taskDetail) {
     return null;
@@ -22,7 +22,7 @@ export function TaskIssuesSection(): React.JSX.Element | null {
       <div className="flex flex-wrap gap-2">
         {issues.map((issue) => (
           <span key={issue.client_id} className={issuePillClass}>
-            {issue.issue_name_snapshot ?? '—'}
+            {issue.issue_name_snapshot ?? issueNameByTypeId.get(issue.issue_type_id) ?? '—'}
           </span>
         ))}
 

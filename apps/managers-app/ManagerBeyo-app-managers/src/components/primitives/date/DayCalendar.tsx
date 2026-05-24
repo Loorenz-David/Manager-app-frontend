@@ -35,7 +35,8 @@ const DAY_CALENDAR_CLASS_NAMES = {
     'h-10 w-10 rounded-full text-sm font-medium text-foreground transition-colors hover:bg-muted active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary',
   selected:
     '[&>button]:bg-foreground [&>button]:text-background [&>button]:hover:bg-foreground',
-  today: 'font-bold text-primary',
+  today:
+    '[&>button]:font-semibold [&>button]:ring-1 [&>button]:ring-primary/40 [&>button:not([aria-selected=true])]:bg-primary/10 [&>button:not([aria-selected=true])]:text-primary',
   outside: 'text-muted-foreground opacity-40',
   disabled: 'pointer-events-none text-muted-foreground opacity-30',
   range_start:

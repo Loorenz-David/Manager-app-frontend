@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 
 import { useDeleteItemIssue } from '@/features/items/actions/use-delete-item-issue';
+import { useIssueCategoryConfigsQuery } from '@/features/items/api/use-issue-category-configs';
 import { useSetUpholsteryQuantity } from '@/features/items/actions/use-set-upholstery-quantity';
 import { useUpdateItem } from '@/features/items/actions/use-update-item';
 import { useDeleteTask } from '@/features/tasks/actions/use-delete-task';
@@ -17,7 +18,13 @@ export function useTaskDetailController(taskId: string) {
   const flowRecordsQuery = useTaskFlowRecordsQuery(taskId);
 
   const itemId = taskQuery.data?.item?.client_id ?? null;
+  const itemCategoryId = taskQuery.data?.item?.item_category_id ?? undefined;
   const flow = useTaskDetailFlow(taskId, itemId);
+
+  const issueCategoryConfigsQuery = useIssueCategoryConfigsQuery(
+    { item_category_id: itemCategoryId },
+    { enabled: !!itemCategoryId },
+  );
 
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();
@@ -25,6 +32,11 @@ export function useTaskDetailController(taskId: string) {
   const updateItem = useUpdateItem(taskId);
   const deleteItemIssue = useDeleteItemIssue(taskId);
   const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId);
+
+  const issueNameByTypeId = useMemo(() => {
+    const configs = issueCategoryConfigsQuery.data?.issueConfigs ?? [];
+    return new Map(configs.map((c) => [c.issue_type_id, c.issue_type_name]));
+  }, [issueCategoryConfigsQuery.data]);
 
   const requirementsById = useMemo(() => {
     const entries = taskQuery.data?.requirements ?? [];
@@ -45,6 +57,7 @@ export function useTaskDetailController(taskId: string) {
   return {
     taskId,
     taskDetail: taskQuery.data ?? null,
+    issueNameByTypeId,
     flowRecords: flowRecordsQuery.data?.flow_records ?? [],
     title: taskQuery.data ? getTaskTitle(taskQuery.data.task) : 'Task',
     isPending: taskQuery.isPending,
