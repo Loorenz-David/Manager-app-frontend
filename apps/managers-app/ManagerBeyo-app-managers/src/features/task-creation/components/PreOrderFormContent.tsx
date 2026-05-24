@@ -8,7 +8,7 @@ import {
   type FieldPath,
 } from 'react-hook-form';
 
-import { StagedForm, StagedFormStep } from '@/components/primitives';
+import { ContentCard, StagedForm, StagedFormStep } from '@/components/primitives';
 import {
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
@@ -32,6 +32,7 @@ import {
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
 } from '@/features/items';
+import { preloadPhoneCountryPickerSurface } from '@/features/phone-input';
 import {
   TaskAdditionalDetailsField,
   TaskDeliveryDateField,
@@ -40,25 +41,20 @@ import {
   TaskReturnSourceField,
   useCreateTask,
 } from '@/features/tasks';
-import { preloadPhoneCountryPickerSurface } from '@/features/phone-input';
-import { useStagedForm } from '@/hooks/use-staged-form';
 import { usePreloadSurface } from '@/hooks/use-preload-surface';
+import { useStagedForm } from '@/hooks/use-staged-form';
 import { useSurface } from '@/hooks/use-surface';
 import type { StepStatus } from '@/types/staged-form';
 
-import { ContentCard } from '@/components/primitives';
 import { normalizeReturnFormPayload } from '../lib/normalize-task-form-payload';
 import { useTaskCreationFormContext } from '../providers/TaskCreationFormProvider';
 import { TASK_CREATION_PRE_ORDER_SURFACE_ID } from '../surfaces';
 import { PreOrderFormSchema, type PreOrderFormValues } from '../types';
 
-const PRE_ORDER_STEP_FIELDS_MAP: Record<
-  string,
-  FieldPath<PreOrderFormValues>[]
-> = {
-  item: ["item", "item_upholstery", "item_issues"],
-  customer: ["customer"],
-  task: ["return_source", "fulfillment_method", "additional_details"],
+const PRE_ORDER_STEP_FIELDS_MAP: Record<string, FieldPath<PreOrderFormValues>[]> = {
+  item: ['item', 'item_upholstery', 'item_issues'],
+  customer: ['customer'],
+  task: ['return_source', 'fulfillment_method', 'additional_details'],
 };
 
 function UpholsteryField({
@@ -72,9 +68,7 @@ function UpholsteryField({
       control={control}
       render={({ field }) => (
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground">
-            Upholstery
-          </span>
+          <span className="text-sm font-medium text-muted-foreground">Upholstery</span>
           <ItemUpholsteryField
             value={field.value}
             onChange={field.onChange}
@@ -93,19 +87,18 @@ export function PreOrderFormContent(): React.JSX.Element {
   usePreloadSurface(preloadItemCategoryPickerSurface);
   usePreloadSurface(preloadPhoneCountryPickerSurface);
 
-  const { taskClientId, itemClientId, customerClientId } =
-    useTaskCreationFormContext();
+  const { taskClientId, itemClientId, customerClientId } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const surface = useSurface();
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
     defaultValues: {
       item: {
-        designer: "",
-        article_number: "",
-        sku: "",
+        designer: '',
+        article_number: '',
+        sku: '',
         quantity: 1,
-        item_position: "",
+        item_position: '',
         item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,
@@ -116,15 +109,15 @@ export function PreOrderFormContent(): React.JSX.Element {
       },
       item_issues: [],
       customer: {
-        display_name: "",
+        display_name: '',
         customer_type: undefined,
-        primary_email: "",
-        primary_phone_number: "",
+        primary_email: '',
+        primary_phone_number: '',
         address: {
-          street: "",
-          city: "",
-          postal_code: "",
-          country: "",
+          street: '',
+          city: '',
+          postal_code: '',
+          country: '',
         },
       },
       return_source: undefined,
@@ -132,19 +125,19 @@ export function PreOrderFormContent(): React.JSX.Element {
       scheduled_start_at: null,
       scheduled_end_at: null,
       ready_by_at: null,
-      additional_details: "",
+      additional_details: '',
     },
   });
   const majorCategory = useWatch({
     control: form.control,
-    name: "item.major_category",
+    name: 'item.major_category',
   });
 
   const staged = useStagedForm({
     steps: [
-      { id: "item", title: "Item" },
-      { id: "customer", title: "Customer" },
-      { id: "task", title: "Task" },
+      { id: 'item', title: 'Item' },
+      { id: 'customer', title: 'Customer' },
+      { id: 'task', title: 'Task' },
     ],
     mode: 'free',
     onBeforeAdvance: async (
@@ -176,7 +169,7 @@ export function PreOrderFormContent(): React.JSX.Element {
         const payload = normalizeReturnFormPayload(
           values,
           { taskClientId, itemClientId, customerClientId },
-          "pre_order",
+          'pre_order',
         );
 
         await createTask.mutateAsync(payload);
@@ -220,21 +213,15 @@ export function PreOrderFormContent(): React.JSX.Element {
               <ContentCard>
                 <ItemIssuesField />
               </ContentCard>
-              {majorCategory === "seat" ? (
+              {majorCategory === 'seat' ? (
                 <ContentCard>
                   <UpholsteryField control={form.control} />
                   <ItemUpholsteryAmountField />
                 </ContentCard>
               ) : null}
               <ContentCard data-testid="pre-order-form-images-section">
-                <EntityImagesProvider
-                  entityClientId={itemClientId}
-                  entityType="item"
-                >
-                  <ImagePreviewGrid
-                    maxImages={6}
-                    testId="pre-order-form-images-grid"
-                  />
+                <EntityImagesProvider entityClientId={itemClientId} entityType="item">
+                  <ImagePreviewGrid maxImages={6} testId="pre-order-form-images-grid" />
                 </EntityImagesProvider>
               </ContentCard>
             </div>
