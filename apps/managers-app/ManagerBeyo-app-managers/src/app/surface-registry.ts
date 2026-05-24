@@ -2,6 +2,7 @@ import { calendarSurfaces } from '@/components/primitives/date/surfaces';
 import { imageSurfaces } from '@/features/images';
 import { itemSurfaces } from '@/features/items';
 import { phoneInputSurfaces } from '@/features/phone-input';
+import { pwaSurfaces } from '@/features/pwa/surfaces';
 import { taskSurfaces } from '@/features/tasks';
 import { taskCreationSurfaces } from '@/features/task-creation';
 import { testingFormsSurfaces } from '@/features/testing_forms';
@@ -19,6 +20,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...itemSurfaces,
   ...imageSurfaces,
   ...phoneInputSurfaces,
+  ...pwaSurfaces,
   ...upholsterySurfaces,
   ...workingSectionSurfaces,
 };
