@@ -1,4 +1,4 @@
-import { zodResolver } from "@hookform/resolvers/zod";
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Controller,
   FormProvider,
@@ -6,21 +6,21 @@ import {
   useWatch,
   type Control,
   type FieldPath,
-} from "react-hook-form";
+} from 'react-hook-form';
 
-import { StagedForm, StagedFormStep } from "@/components/primitives";
+import { StagedForm, StagedFormStep } from '@/components/primitives';
 import {
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
-} from "@/components/primitives/date";
+} from '@/components/primitives/date';
 import {
   CustomerAddressFieldGroup,
   CustomerDisplayNameField,
   CustomerEmailField,
   CustomerPhoneField,
   CustomerTypeField,
-} from "@/features/customers";
-import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
+} from '@/features/customers';
+import { EntityImagesProvider, ImagePreviewGrid } from '@/features/images';
 import {
   ItemCategorySelectionField,
   ItemDesignerField,
@@ -31,7 +31,7 @@ import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
-} from "@/features/items";
+} from '@/features/items';
 import {
   TaskAdditionalDetailsField,
   TaskDeliveryDateField,
@@ -39,17 +39,18 @@ import {
   TaskReadyByDateField,
   TaskReturnSourceField,
   useCreateTask,
-} from "@/features/tasks";
-import { preloadPhoneCountryPickerSurface } from "@/features/phone-input";
-import { useStagedForm } from "@/hooks/use-staged-form";
-import { usePreloadSurface } from "@/hooks/use-preload-surface";
-import { useSurface } from "@/hooks/use-surface";
+} from '@/features/tasks';
+import { preloadPhoneCountryPickerSurface } from '@/features/phone-input';
+import { useStagedForm } from '@/hooks/use-staged-form';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
+import { useSurface } from '@/hooks/use-surface';
+import type { StepStatus } from '@/types/staged-form';
 
-import { ContentCard } from "@/components/primitives";
-import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
-import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
-import { TASK_CREATION_PRE_ORDER_SURFACE_ID } from "../surfaces";
-import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
+import { ContentCard } from '@/components/primitives';
+import { normalizeReturnFormPayload } from '../lib/normalize-task-form-payload';
+import { useTaskCreationFormContext } from '../providers/TaskCreationFormProvider';
+import { TASK_CREATION_PRE_ORDER_SURFACE_ID } from '../surfaces';
+import { PreOrderFormSchema, type PreOrderFormValues } from '../types';
 
 const PRE_ORDER_STEP_FIELDS_MAP: Record<
   string,
@@ -145,19 +146,23 @@ export function PreOrderFormContent(): React.JSX.Element {
       { id: "customer", title: "Customer" },
       { id: "task", title: "Task" },
     ],
-    mode: "free",
-    onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
-      if (currentStepId === "task") {
+    mode: 'free',
+    onBeforeAdvance: async (
+      currentStepId: string,
+      _nextStepId: string | null,
+      setStatus: (stepId: string, status: StepStatus) => void,
+    ) => {
+      if (currentStepId === 'task') {
         const allValid = await form.trigger();
 
         if (!allValid) {
           const { errors } = form.formState;
 
           if (errors.item ?? errors.item_issues ?? errors.item_upholstery) {
-            setStatus("item", "error");
+            setStatus('item', 'error');
           }
           if (errors.customer) {
-            setStatus("customer", "error");
+            setStatus('customer', 'error');
           }
         }
 
