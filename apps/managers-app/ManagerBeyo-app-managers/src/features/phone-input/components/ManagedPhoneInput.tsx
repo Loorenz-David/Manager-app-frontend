@@ -8,6 +8,7 @@ import {
   writeLastPhoneCountryIso2,
 } from '@/lib/phone/storage';
 import { preloadPhoneCountryPickerSurface } from '@/features/phone-input/preload';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import type { CountryIso2, ManagedPhoneInputChangeMeta } from '@/types/phone';
 
@@ -61,9 +62,7 @@ export function ManagedPhoneInput({
   const [displayValue, setDisplayValue] = useState(initialState.displayValue);
   const lastEmittedValueRef = useRef<string>(INTERNAL_VALUE_UNSET);
 
-  useEffect(() => {
-    void preloadPhoneCountryPickerSurface();
-  }, []);
+  usePreloadSurface(preloadPhoneCountryPickerSurface);
 
   useEffect(() => {
     if ((value ?? '') === lastEmittedValueRef.current && countryIso2 === undefined) {

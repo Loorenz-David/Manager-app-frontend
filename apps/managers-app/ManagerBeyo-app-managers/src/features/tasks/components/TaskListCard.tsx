@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Calendar, RotateCcw, ShoppingBag, Wrench } from 'lucide-react';
+import { Calendar, Image, RotateCcw, ShoppingBag, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 import { StatePill } from '@/components/primitives';
@@ -117,7 +117,11 @@ export const TaskListCard = memo(function TaskListCard({
             loading="lazy"
             src={imageUrl}
           />
-        ) : null}
+        ) : (
+          <span className="flex size-full items-center justify-center">
+            <Image aria-hidden="true" className="size-6 text-muted-foreground/60" />
+          </span>
+        )}
 
         {quantityPillLabel ? (
           <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">

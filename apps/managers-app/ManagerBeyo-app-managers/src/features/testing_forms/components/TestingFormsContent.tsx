@@ -3,6 +3,10 @@ import { Controller, FormProvider, useForm, type FieldPath } from 'react-hook-fo
 import { z } from 'zod';
 
 import { StagedForm, StagedFormStep } from '@/components/primitives';
+import {
+  preloadCalendarRangePickerSurface,
+  preloadCalendarSinglePickerSurface,
+} from '@/components/primitives/date';
 import { CustomerFieldGroup, CustomerFieldsSchema } from '@/features/customers';
 import {
   EntityImagesProvider,
@@ -32,6 +36,7 @@ import {
   WorkingSectionPickerField,
   WorkingSectionPickerFieldsSchema,
 } from '@/features/working-sections';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import { useStagedForm } from '@/hooks/use-staged-form';
 import { DateOnlySchema } from '@/types/common';
 
@@ -61,6 +66,9 @@ const TestingFormsSchema = z.object({
 type TestingFormsValues = z.input<typeof TestingFormsSchema>;
 
 export function TestingFormsContent(): React.JSX.Element {
+  usePreloadSurface(preloadCalendarSinglePickerSurface);
+  usePreloadSurface(preloadCalendarRangePickerSurface);
+
   const form = useForm<TestingFormsValues>({
     resolver: zodResolver(TestingFormsSchema),
     defaultValues: {

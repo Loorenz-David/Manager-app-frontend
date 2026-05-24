@@ -1,10 +1,15 @@
 import { useEffect, useRef } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 
+import {
+  preloadCalendarRangePickerSurface,
+  preloadCalendarSinglePickerSurface,
+} from '@/components/primitives/date';
 import { useUpdateTask } from '@/features/tasks/actions/use-update-task';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
 import { TaskDeliveryDateField, TaskReadyByDateField } from '@/features/tasks';
 import type { TaskScheduledDateSurfaceProps } from '@/features/tasks/surfaces';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
@@ -16,6 +21,9 @@ type ScheduleForm = {
 };
 
 export function TaskScheduledDateSheetPage(): React.JSX.Element {
+  usePreloadSurface(preloadCalendarSinglePickerSurface);
+  usePreloadSurface(preloadCalendarRangePickerSurface);
+
   const header = useSurfaceHeader();
   const surface = useSurface();
   const { taskId } = useSurfaceProps<TaskScheduledDateSurfaceProps>();

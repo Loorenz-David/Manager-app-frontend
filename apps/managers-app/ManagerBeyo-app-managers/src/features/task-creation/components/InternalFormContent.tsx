@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, FormProvider, useForm, useWatch, type Control, type FieldPath } from 'react-hook-form';
 
 import { StagedForm, StagedFormStep } from '@/components/primitives';
+import { preloadCalendarSinglePickerSurface } from '@/components/primitives/date';
 import { EntityImagesProvider, ImagePreviewGrid } from '@/features/images';
 import {
   ItemCategorySelectionField,
@@ -12,6 +13,7 @@ import {
   ItemQuantityField,
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
+  preloadItemCategoryPickerSurface,
 } from '@/features/items';
 import {
   TaskAdditionalDetailsField,
@@ -22,8 +24,10 @@ import {
   NeedsCleaningPickerField,
   OilingTreatmentPickerField,
   WorkingSectionPickerField,
+  preloadWorkingSectionWorkerPickerSurface,
 } from '@/features/working-sections';
 import { useStagedForm } from '@/hooks/use-staged-form';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
 import { ContentCard } from '@/components/primitives';
 import { normalizeInternalFormPayload } from '../lib/normalize-task-form-payload';
@@ -67,6 +71,10 @@ function UpholsteryField({
 }
 
 export function InternalFormContent(): React.JSX.Element {
+  usePreloadSurface(preloadCalendarSinglePickerSurface);
+  usePreloadSurface(preloadItemCategoryPickerSurface);
+  usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
+
   const { taskClientId, itemClientId, customerClientId, regenerateIds } =
     useTaskCreationFormContext();
   const createTask = useCreateTask();

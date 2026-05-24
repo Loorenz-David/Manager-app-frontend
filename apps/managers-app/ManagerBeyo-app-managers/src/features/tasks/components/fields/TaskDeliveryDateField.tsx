@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { FieldErrorPill } from '@/components/primitives';
@@ -8,6 +7,7 @@ import {
   preloadCalendarRangePickerSurface,
 } from '@/components/primitives/date';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
 /**
  * Binds to flat `scheduled_start_at` and `scheduled_end_at` paths from
@@ -25,9 +25,7 @@ export function TaskDeliveryDateField() {
   });
   const invalid = Boolean(startState.error) || Boolean(endState.error);
 
-  useEffect(() => {
-    void preloadCalendarRangePickerSurface();
-  }, []);
+  usePreloadSurface(preloadCalendarRangePickerSurface);
 
   function handlePress(initialTarget: 'from' | 'to') {
     useSurfaceStore.getState().open('calendar-range-picker', {

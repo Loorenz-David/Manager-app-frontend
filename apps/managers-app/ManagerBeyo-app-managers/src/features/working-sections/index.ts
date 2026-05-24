@@ -4,7 +4,7 @@ export { WorkingSectionPickerField } from './components/fields/WorkingSectionPic
 export { useNeedsCleaningPickerFlow } from './flows/use-needs-cleaning-picker.flow';
 export { useOilingTreatmentPickerFlow } from './flows/use-oiling-treatment-picker.flow';
 export { useWorkingSectionPickerFlow } from './flows/use-working-section-picker.flow';
-export { workingSectionSurfaces } from './surfaces';
+export { workingSectionSurfaces, preloadWorkingSectionWorkerPickerSurface } from './surfaces';
 export { useWorkingSectionSelectionStore } from './store/working-section-selection.store';
 export { WorkingSectionPickerFieldsSchema } from './types';
 export type {

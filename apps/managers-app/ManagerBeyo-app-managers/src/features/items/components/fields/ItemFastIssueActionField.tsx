@@ -1,13 +1,11 @@
 import { Plus } from 'lucide-react';
-import { useEffect } from 'react';
 
 import { preloadItemFastIssueSurface } from '@/features/items/surfaces';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
 export function ItemFastIssueActionField() {
-  useEffect(() => {
-    void preloadItemFastIssueSurface();
-  }, []);
+  usePreloadSurface(preloadItemFastIssueSurface);
 
   function handlePress() {
     useSurfaceStore.getState().open('item-fast-issue-page', {});

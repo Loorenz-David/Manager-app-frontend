@@ -1,8 +1,5 @@
-import { lazy } from 'react';
-
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
-
-const preloadedCalendarSurfaces = new Set<string>();
+import { lazyWithPreload } from '@/utils/lazy-with-preload';
 
 function loadCalendarSinglePickerPage() {
   return import('@/pages/calendar/CalendarSinglePickerPage').then((module) => ({
@@ -16,23 +13,11 @@ function loadCalendarRangePickerPage() {
   }));
 }
 
-export function preloadCalendarSinglePickerSurface(): Promise<unknown> {
-  if (preloadedCalendarSurfaces.has('calendar-single-picker')) {
-    return Promise.resolve();
-  }
+const calendarSinglePicker = lazyWithPreload(loadCalendarSinglePickerPage);
+const calendarRangePicker = lazyWithPreload(loadCalendarRangePickerPage);
 
-  preloadedCalendarSurfaces.add('calendar-single-picker');
-  return loadCalendarSinglePickerPage();
-}
-
-export function preloadCalendarRangePickerSurface(): Promise<unknown> {
-  if (preloadedCalendarSurfaces.has('calendar-range-picker')) {
-    return Promise.resolve();
-  }
-
-  preloadedCalendarSurfaces.add('calendar-range-picker');
-  return loadCalendarRangePickerPage();
-}
+export const preloadCalendarSinglePickerSurface = calendarSinglePicker.preload;
+export const preloadCalendarRangePickerSurface = calendarRangePicker.preload;
 
 export function preloadCalendarSurfaces(): Promise<unknown[]> {
   return Promise.all([
@@ -44,10 +29,10 @@ export function preloadCalendarSurfaces(): Promise<unknown[]> {
 export const calendarSurfaces: SurfaceRegistrations = {
   'calendar-single-picker': {
     surface: 'sheet',
-    component: lazy(loadCalendarSinglePickerPage),
+    component: calendarSinglePicker.Component,
   },
   'calendar-range-picker': {
     surface: 'sheet',
-    component: lazy(loadCalendarRangePickerPage),
+    component: calendarRangePicker.Component,
   },
 };

@@ -1,5 +1,4 @@
 import { Droplets, X } from 'lucide-react';
-import { useEffect } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { FieldErrorPill } from '@/components/primitives';
@@ -7,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 import { useOilingTreatmentPickerFlow } from '../../flows/use-oiling-treatment-picker.flow';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import {
   WORKING_SECTION_WORKER_PICKER_SURFACE_ID,
   preloadWorkingSectionWorkerPickerSurface,
@@ -28,9 +28,7 @@ export function OilingTreatmentPickerField(): React.JSX.Element {
     defaultValue: null,
   });
 
-  useEffect(() => {
-    void preloadWorkingSectionWorkerPickerSurface();
-  }, []);
+  usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
 
   const selectedCandidate =
     field.value === null || field.value === undefined

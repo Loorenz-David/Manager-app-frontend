@@ -5,6 +5,7 @@ import { useController, useFormContext } from 'react-hook-form';
 import { BoxPicker } from '@/components/primitives';
 import { useItemCategoryPickerFlow } from '@/features/items/flows/use-item-category-picker.flow';
 import { preloadItemCategoryPickerSurface } from '@/features/items/surfaces';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 const MAJOR_CATEGORY_OPTIONS = [
@@ -34,9 +35,7 @@ export function ItemCategorySelectionField() {
     control,
   });
 
-  useEffect(() => {
-    void preloadItemCategoryPickerSurface();
-  }, []);
+  usePreloadSurface(preloadItemCategoryPickerSurface);
 
   useEffect(() => {
     if (categoryField.value && !majorField.value) {

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { FieldErrorPill } from '@/components/primitives';
@@ -8,6 +7,7 @@ import {
   preloadCalendarSinglePickerSurface,
 } from '@/components/primitives/date';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
 /**
  * Binds to the flat `ready_by_at` path from `CreateTaskInputSchema`.
@@ -21,9 +21,7 @@ export function TaskReadyByDateField() {
   });
   const invalid = Boolean(fieldState.error);
 
-  useEffect(() => {
-    void preloadCalendarSinglePickerSurface();
-  }, []);
+  usePreloadSurface(preloadCalendarSinglePickerSurface);
 
   function handlePress() {
     useSurfaceStore.getState().open('calendar-single-picker', {

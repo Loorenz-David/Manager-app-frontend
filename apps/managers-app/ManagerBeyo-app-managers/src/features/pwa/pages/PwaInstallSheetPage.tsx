@@ -39,6 +39,7 @@ export function PwaInstallSheetPage(): React.JSX.Element {
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-card transition disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="pwa-install-confirm-button"
           disabled={isInstalling}
           type="button"
           onClick={() => {

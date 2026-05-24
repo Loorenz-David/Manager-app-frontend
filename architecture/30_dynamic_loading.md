@@ -135,31 +135,46 @@ Feature chunk rule:
 
 Surfaces are dynamic boundaries. Drawer and modal content is registered with a lazy component so expensive forms, validators, file upload widgets, rich editors, and previews are loaded only when the surface opens.
 
+**Always use `lazyWithPreload` instead of bare `React.lazy()` for surface registrations.** Bare `lazy()` always suspends on first render even when the module is already in memory, because native Promise `.then()` callbacks are always async (microtask queue). React's lazy initializer calls the factory, attaches `.then()`, then synchronously checks `_status` — which is still `-1` — and throws to Suspense. The skeleton appears for one render cycle regardless of preloading.
+
+`lazyWithPreload` solves this by returning a **synchronous thenable** when the module is already loaded. React reads the resolve callback synchronously, `_status` is already `1` when checked, and the component renders without suspending.
+
 ```ts
 // features/invoices/surfaces.ts
-import { lazy } from 'react';
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
+import { lazyWithPreload } from '@/utils/lazy-with-preload';
+
+function loadInvoiceCreatePage() {
+  return import('./pages/InvoiceCreatePage').then((m) => ({
+    default: m.InvoiceCreatePage,
+  }));
+}
+
+function loadInvoiceDeleteConfirmPage() {
+  return import('./pages/InvoiceDeleteConfirmPage').then((m) => ({
+    default: m.InvoiceDeleteConfirmPage,
+  }));
+}
+
+const invoiceCreate = lazyWithPreload(loadInvoiceCreatePage);
+const invoiceDeleteConfirm = lazyWithPreload(loadInvoiceDeleteConfirmPage);
+
+export const preloadInvoiceCreateSurface = invoiceCreate.preload;
 
 export const invoiceSurfaces = {
   'invoice-create': {
     surface: 'drawer',
     path:    () => '/invoices/new',
-    component: lazy(() =>
-      import('./pages/InvoiceCreatePage').then((m) => ({
-        default: m.InvoiceCreatePage,
-      })),
-    ),
+    component: invoiceCreate.Component,
   },
   'invoice-delete-confirm': {
     surface: 'modal',
-    component: lazy(() =>
-      import('./pages/InvoiceDeleteConfirmPage').then((m) => ({
-        default: m.InvoiceDeleteConfirmPage,
-      })),
-    ),
+    component: invoiceDeleteConfirm.Component,
   },
 } satisfies SurfaceRegistrations;
 ```
+
+The preload export comes from `lazyWithPreload(...).preload`. The Component and preload share the same in-memory module store — once preload resolves, the Component renders without ever hitting the Suspense fallback.
 
 Every URI-enabled surface must have a matching route registration for the same path. Lazy loading does not replace routing: the surface registry decides presentation, while the router decides whether the URL can be restored after refresh, direct entry, browser back/forward, or a shared link.
 
@@ -235,20 +250,17 @@ Do not dynamically import libraries used on every route, such as React, React Ro
 
 Preloading is allowed when the user shows clear intent. It is not a license to load every feature after boot.
 
-Use preload functions owned by the feature:
+Preload functions are produced by `lazyWithPreload` and live in the feature's `surfaces.ts`. Export them from the feature public API when another feature or shell component needs them:
 
 ```ts
-// features/invoices/preload.ts
-export function preloadInvoiceCreateSurface() {
-  return import('./pages/InvoiceCreatePage');
-}
+// features/invoices/surfaces.ts  (excerpt)
+const invoiceCreate = lazyWithPreload(loadInvoiceCreatePage);
+export const preloadInvoiceCreateSurface = invoiceCreate.preload;
 ```
-
-Export preload functions from the feature public API only when another feature or shell component needs them:
 
 ```ts
 // features/invoices/index.ts
-export { preloadInvoiceCreateSurface } from './preload';
+export { preloadInvoiceCreateSurface } from './surfaces';
 ```
 
 Use them on strong intent:
@@ -268,6 +280,7 @@ Good preload triggers:
 - pointer enter or focus on a primary action
 - opening a menu that contains a lazy action
 - navigating to the step before a heavy step
+- component mount when the user is highly likely to need the surface (e.g. a form field that always opens a picker)
 - idle time after the current route is stable and interactive
 
 Bad preload triggers:

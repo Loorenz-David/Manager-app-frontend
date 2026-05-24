@@ -15,7 +15,7 @@ export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity'
 export { useUpdateItem } from './actions/use-update-item';
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
 export { useItemIssuesPickerFlow } from './flows/use-item-issues-picker.flow';
-export { itemSurfaces } from './surfaces';
+export { itemSurfaces, preloadItemCategoryPickerSurface, preloadItemFastIssueSurface } from './surfaces';
 export { useIssueCategoryConfigSelectionStore } from './store/issue-category-config-selection.store';
 export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 

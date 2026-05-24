@@ -159,7 +159,7 @@ Add:
 - "skeleton", "loading state", "shimmer", "suspense fallback" → `32`, `10`
 - "responsive", "mobile", "breakpoint", "useBreakpoint", "isMobile" → `27`
 - "scroll", "overflow", "scrollbar", "ScrollArea" → `29`
-- "lazy load", "code split", "bundle", "dynamic import", "lazyRoute" → `30`, `18`
+- "lazy load", "code split", "bundle", "dynamic import", "lazyRoute", "lazyWithPreload", "usePreloadSurface", "preload surface", "surface preload", "skeleton flash" → `30`, `18`
 - "file upload", "attachment", "multipart", "XHR progress" → `22`
 - "notification", "toast", "notify", "useNotify" → `20`
 - "profile", "avatar", "current user", "useCurrentUser" → `25`
@@ -258,6 +258,7 @@ When running document-only, agents must apply the protocol above manually.
 | `04_api_client.md` | `04_api_client_local.md` | Backend error shape (flat string, no `field_errors`), refresh response envelope (`body.data.access_token`), `decodeTokenClaims()` export |
 | `12_auth.md` | `12_auth_local.md` | `AuthUser` type, sign-in body (`app_scope: 'admin'`), sign-out endpoint (`/logout`), `AuthProvider` boot uses JWT claims for workspace/role/permissions, no OAuth |
 | `28_surfaces.md` | `28_surfaces_local.md` | Active surface types (`slide`, `sheet`, `modal`); `drawer` excluded |
+| `30_dynamic_loading.md` | `30_dynamic_loading_local.md` | `lazyWithPreload` utility path (`@/utils/lazy-with-preload`), `usePreloadSurface` hook, StagedForm hoisting rule |
 | `34_runtime_validation.md` | `34_runtime_validation_local.md` | Bootstrap status, fixture/helper paths, npm scripts, project names, spec location convention, credential env vars, mocking pattern |
 
 ---

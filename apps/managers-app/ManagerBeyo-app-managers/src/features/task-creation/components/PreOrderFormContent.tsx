@@ -10,6 +10,10 @@ import {
 
 import { StagedForm, StagedFormStep } from "@/components/primitives";
 import {
+  preloadCalendarRangePickerSurface,
+  preloadCalendarSinglePickerSurface,
+} from "@/components/primitives/date";
+import {
   CustomerAddressFieldGroup,
   CustomerDisplayNameField,
   CustomerEmailField,
@@ -25,6 +29,7 @@ import {
   ItemQuantityField,
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
+  preloadItemCategoryPickerSurface,
 } from "@/features/items";
 import {
   TaskAdditionalDetailsField,
@@ -34,7 +39,9 @@ import {
   TaskReturnSourceField,
   useCreateTask,
 } from "@/features/tasks";
+import { preloadPhoneCountryPickerSurface } from "@/features/phone-input";
 import { useStagedForm } from "@/hooks/use-staged-form";
+import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { useSurface } from "@/hooks/use-surface";
 
 import { ContentCard } from "@/components/primitives";
@@ -79,6 +86,11 @@ function UpholsteryField({
 }
 
 export function PreOrderFormContent(): React.JSX.Element {
+  usePreloadSurface(preloadCalendarRangePickerSurface);
+  usePreloadSurface(preloadCalendarSinglePickerSurface);
+  usePreloadSurface(preloadItemCategoryPickerSurface);
+  usePreloadSurface(preloadPhoneCountryPickerSurface);
+
   const { taskClientId, itemClientId, customerClientId } =
     useTaskCreationFormContext();
   const createTask = useCreateTask();

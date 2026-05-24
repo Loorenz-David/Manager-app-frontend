@@ -1,8 +1,5 @@
-import { lazy } from 'react';
-
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
-
-const preloadedItemSurfaces = new Set<string>();
+import { lazyWithPreload } from '@/utils/lazy-with-preload';
 
 function loadItemCategoryPickerSheetPage() {
   return import('@/features/items/pages/ItemCategoryPickerSheetPage').then((module) => ({
@@ -22,44 +19,25 @@ function loadItemFastIssueSheetPage() {
   }));
 }
 
-export function preloadItemCategoryPickerSurface(): Promise<unknown> {
-  if (preloadedItemSurfaces.has('item-category-picker')) {
-    return Promise.resolve();
-  }
+const itemCategoryPicker = lazyWithPreload(loadItemCategoryPickerSheetPage);
+const itemIssueSeverityPicker = lazyWithPreload(loadItemIssueSeverityPickerSheetPage);
+const itemFastIssuePage = lazyWithPreload(loadItemFastIssueSheetPage);
 
-  preloadedItemSurfaces.add('item-category-picker');
-  return loadItemCategoryPickerSheetPage();
-}
-
-export function preloadItemIssueSeverityPickerSurface(): Promise<unknown> {
-  if (preloadedItemSurfaces.has('item-issue-severity-picker')) {
-    return Promise.resolve();
-  }
-
-  preloadedItemSurfaces.add('item-issue-severity-picker');
-  return loadItemIssueSeverityPickerSheetPage();
-}
-
-export function preloadItemFastIssueSurface(): Promise<unknown> {
-  if (preloadedItemSurfaces.has('item-fast-issue-page')) {
-    return Promise.resolve();
-  }
-
-  preloadedItemSurfaces.add('item-fast-issue-page');
-  return loadItemFastIssueSheetPage();
-}
+export const preloadItemCategoryPickerSurface = itemCategoryPicker.preload;
+export const preloadItemIssueSeverityPickerSurface = itemIssueSeverityPicker.preload;
+export const preloadItemFastIssueSurface = itemFastIssuePage.preload;
 
 export const itemSurfaces: SurfaceRegistrations = {
   'item-category-picker': {
     surface: 'sheet',
-    component: lazy(loadItemCategoryPickerSheetPage),
+    component: itemCategoryPicker.Component,
   },
   'item-issue-severity-picker': {
     surface: 'sheet',
-    component: lazy(loadItemIssueSeverityPickerSheetPage),
+    component: itemIssueSeverityPicker.Component,
   },
   'item-fast-issue-page': {
     surface: 'sheet',
-    component: lazy(loadItemFastIssueSheetPage),
+    component: itemFastIssuePage.Component,
   },
 };
