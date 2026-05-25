@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 
 import { formatDateTime, getFlowActorLabel } from "../../lib/task-detail";
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
+import { SectionLabel } from "@/components/primitives/shared/SectionLabel";
 
 export function TaskFlowTimeline(): React.JSX.Element {
   const { flowRecords, isFlowPending, openFlowRecord } = useTaskDetailContext();
@@ -16,9 +17,9 @@ export function TaskFlowTimeline(): React.JSX.Element {
       className="flex flex-col gap-3 mt-7"
       data-testid="task-detail-flow-section"
     >
-      <h3 className="text-xs  uppercase tracking-wide text-[color:var(--color-icon)]">
+      <SectionLabel as="h3" tone="muted">
         Flow timeline
-      </h3>
+      </SectionLabel>
 
       {isFlowPending ? (
         <p className="text-sm text-[color:var(--color-muted-foreground)]">

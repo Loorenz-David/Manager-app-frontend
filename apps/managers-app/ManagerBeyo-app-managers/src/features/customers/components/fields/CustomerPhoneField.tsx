@@ -1,6 +1,6 @@
 import { useController, useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow } from '@/components/primitives';
 import { ManagedPhoneInput } from '@/features/phone-input';
 
 export function CustomerPhoneField() {
@@ -18,15 +18,9 @@ export function CustomerPhoneField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label
-          htmlFor="customer-primary-phone"
-          className="text-sm font-medium text-muted-foreground"
-        >
-          Phone <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="customer-primary-phone" label="Phone" optional>
         <FieldErrorPill data-testid="customer-phone-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <ManagedPhoneInput
         autoComplete="tel-national"
         id="customer-primary-phone"

@@ -1,30 +1,36 @@
-import { useRef, useState, type ReactNode } from 'react';
-import { m } from 'framer-motion';
-import { Drawer } from 'vaul';
-import { transitions } from '@/lib/animation';
-import { cn } from '@/lib/utils';
-import { SurfaceHeaderContext } from '@/providers/SurfaceProvider';
+import { useRef, useState, type ReactNode } from "react";
+import { m } from "framer-motion";
+import { Drawer } from "vaul";
+import { transitions } from "@/lib/animation";
+import { cn } from "@/lib/utils";
+import { SurfaceHeaderContext } from "@/providers/SurfaceProvider";
 
 type Props = {
   onClose: () => void;
+  onStartClose?: () => void;
   zIndex: number;
   isTopmost: boolean;
+  showBackdrop?: boolean;
   children: ReactNode;
 };
 
 export function BottomSheetSurface({
   onClose,
+  onStartClose,
   zIndex,
   isTopmost,
+  showBackdrop = true,
   children,
 }: Props): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(true);
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState("");
   const [actions, setActions] = useState<ReactNode>(null);
   const [headerHidden, setHeaderHidden] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
 
   function handleClose(): void {
+    onStartClose?.();
+
     if (closeTimeoutRef.current !== null) {
       window.clearTimeout(closeTimeoutRef.current);
     }
@@ -38,7 +44,13 @@ export function BottomSheetSurface({
 
   return (
     <SurfaceHeaderContext.Provider
-      value={{ setTitle, setActions, requestClose: handleClose, setHeaderHidden }}
+      value={{
+        setTitle,
+        setActions,
+        requestClose: handleClose,
+        setHeaderHidden,
+        setCloseInterceptor: () => {},
+      }}
     >
       <Drawer.Root
         direction="bottom"
@@ -52,33 +64,46 @@ export function BottomSheetSurface({
         open={isOpen}
       >
         <Drawer.Portal>
-          <m.button
-            animate={
-              isOpen && isTopmost
-                ? { opacity: 1 }
-                : { opacity: 0 }
-            }
-            aria-label="Close sheet"
-            className={cn(
-              'fixed inset-0 bg-black/30 backdrop-blur-[2px]',
-              isOpen && isTopmost ? 'pointer-events-auto' : 'pointer-events-none',
-            )}
-            initial={{ opacity: 0 }}
-            onClick={handleClose}
-            style={{ zIndex }}
-            transition={transitions.surface}
-            type="button"
-          />
+          {showBackdrop ? (
+            <m.button
+              animate={isOpen && isTopmost ? { opacity: 1 } : { opacity: 0 }}
+              aria-label="Close sheet"
+              className={cn(
+                "fixed inset-0 bg-black/30 backdrop-blur-[2px]",
+                isOpen && isTopmost
+                  ? "pointer-events-auto"
+                  : "pointer-events-none",
+              )}
+              initial={{ opacity: 0 }}
+              onClick={handleClose}
+              style={{ zIndex }}
+              transition={transitions.surface}
+              type="button"
+            />
+          ) : (
+            <button
+              aria-label="Close sheet"
+              className={cn(
+                "fixed inset-0 bg-transparent",
+                isOpen && isTopmost
+                  ? "pointer-events-auto"
+                  : "pointer-events-none",
+              )}
+              onClick={handleClose}
+              style={{ zIndex }}
+              type="button"
+            />
+          )}
           <Drawer.Content
             className={cn(
-              'fixed inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl',
-              'flex flex-col bg-background shadow-xl focus:outline-none',
+              "fixed inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl",
+              "flex flex-col bg-background shadow-xl focus:outline-none",
             )}
             style={{ zIndex: zIndex + 1 }}
           >
-            <Drawer.Title className="sr-only">{title || 'Sheet'}</Drawer.Title>
+            <Drawer.Title className="sr-only">{title || "Sheet"}</Drawer.Title>
             <Drawer.Description className="sr-only">
-              {title ? `${title} sheet content` : 'Sheet content'}
+              {title ? `${title} sheet content` : "Sheet content"}
             </Drawer.Description>
 
             <div className="relative flex-shrink-0">

@@ -29,7 +29,7 @@ import {
 import { useStagedForm } from '@/hooks/use-staged-form';
 import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
-import { ContentCard } from '@/components/primitives';
+import { ContentCard, FieldLabelRow } from '@/components/primitives';
 import { normalizeInternalFormPayload } from '../lib/normalize-task-form-payload';
 import { useTaskCreationFormContext } from '../providers/TaskCreationFormProvider';
 import { InternalFormSchema, type InternalFormValues } from '../types';
@@ -57,7 +57,7 @@ function UpholsteryField({
       control={control}
       render={({ field }) => (
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground">Upholstery</span>
+          <FieldLabelRow label="Upholstery" />
           <ItemUpholsteryField
             value={field.value}
             onChange={field.onChange}

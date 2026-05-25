@@ -19,10 +19,32 @@ export function SlidePageSurface({
   const [title, setTitle] = useState("");
   const [actions, setActions] = useState<ReactNode>(null);
   const [headerHidden, setHeaderHidden] = useState(false);
+  const [closeInterceptor, setCloseInterceptorState] = useState<
+    (() => void) | null
+  >(null);
+
+  const setCloseInterceptor = (fn: (() => void) | null) => {
+    setCloseInterceptorState(() => fn);
+  };
+
+  const handleClose = () => {
+    if (closeInterceptor) {
+      closeInterceptor();
+      return;
+    }
+
+    onClose();
+  };
 
   return (
     <SurfaceHeaderContext.Provider
-      value={{ setTitle, setActions, requestClose: onClose, setHeaderHidden }}
+      value={{
+        setTitle,
+        setActions,
+        requestClose: onClose,
+        setHeaderHidden,
+        setCloseInterceptor,
+      }}
     >
       <m.div
         animate={{ x: 0 }}
@@ -37,7 +59,7 @@ export function SlidePageSurface({
             <button
               aria-label="Go back"
               className="flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted"
-              onClick={onClose}
+              onClick={handleClose}
               type="button"
             >
               ‹

@@ -7,6 +7,7 @@ import {
   TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
   TASK_SCHEDULED_DATE_SHEET_SURFACE_ID,
+  TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
 } from '../surfaces';
 
 export function useTaskDetailFlow(taskId: string, itemId: string | null) {
@@ -16,6 +17,7 @@ export function useTaskDetailFlow(taskId: string, itemId: string | null) {
     openMenu: () => surface.open(TASK_ACTIONS_SHEET_SURFACE_ID, { taskId }),
     openScheduleSheet: () => surface.open(TASK_SCHEDULED_DATE_SHEET_SURFACE_ID, { taskId }),
     openEditTask: () => surface.open(TASK_EDIT_SLIDE_SURFACE_ID, { taskId }),
+    openWorkingSectionsSlide: () => surface.open(TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID, { taskId }),
     openQuantitySheet: () => {
       if (!itemId) {
         return;

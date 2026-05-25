@@ -1,6 +1,6 @@
 import { useController, useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill, NumberInput } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow, NumberInput } from '@/components/primitives';
 
 function roundToFourDecimals(value: number): number {
   return Math.round(value * 10_000) / 10_000;
@@ -27,15 +27,9 @@ export function ItemUpholsteryAmountField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label
-          htmlFor="item-upholstery-amount"
-          className="text-sm font-medium text-muted-foreground"
-        >
-          Amount <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="item-upholstery-amount" label="Amount" optional>
         <FieldErrorPill data-testid="item-upholstery-amount-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <NumberInput
         id="item-upholstery-amount"
         inputTestId="item-upholstery-amount-input"

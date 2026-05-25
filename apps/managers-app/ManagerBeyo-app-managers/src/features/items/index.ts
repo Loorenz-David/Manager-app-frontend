@@ -12,6 +12,7 @@ export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
 export { useCreateItemIssue } from './actions/use-create-item-issue';
 export { useDeleteItemIssue } from './actions/use-delete-item-issue';
 export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity';
+export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
 export { useUpdateItem } from './actions/use-update-item';
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
 export { useItemIssuesPickerFlow } from './flows/use-item-issues-picker.flow';

@@ -8,6 +8,10 @@
   --color-muted-foreground: #6e7785;
   --color-primary: #303030;
   --color-border: #d0d3d9;
+  --color-light-container: #fafafa;
+  --color-soft-container: #f8f9fa;
+  --color-light-border: #f5f5f5;
+  --color-between-border: #dedede;
   --color-icon: #8e8e8e;
   --color-destructive: #c0392b;
   --color-info-pill: #e8e8e8;
@@ -46,7 +50,7 @@ body {
   margin: 0;
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: "SF Pro Display", "Segoe UI", sans-serif;
+  font-family: Inter, system-ui, sans-serif;
 }
 
 @keyframes camera-flash {

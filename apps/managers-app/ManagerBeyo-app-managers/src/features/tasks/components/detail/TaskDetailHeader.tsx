@@ -1,8 +1,8 @@
-import { m } from 'framer-motion';
-import { Calendar } from 'lucide-react';
+import { m } from "framer-motion";
+import { Calendar } from "lucide-react";
 
-import { StatePill } from '@/components/primitives';
-import { useTaskDetailContext } from '../../providers/TaskDetailProvider';
+import { StatePill } from "@/components/primitives";
+import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
 import {
   RETURN_SOURCE_LABEL,
   TASK_STATE_VARIANT,
@@ -11,30 +11,39 @@ import {
   daysUntil,
   formatDateDDMMYY,
   humanizeSnakeCase,
-} from '../../lib/task-detail';
+} from "../../lib/task-detail";
 
 function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
   if (Math.abs(days) > 99) {
     return null;
   }
 
-  const label = `${days} ${Math.abs(days) === 1 ? 'day' : 'days'}`;
-  const baseClass =
-    'inline-flex shrink-0 items-center rounded-md bg-[color-mix(in_srgb,var(--color-primary)_90%,transparent)] px-2 py-0.5 text-xs font-medium text-[var(--color-card)]';
+  const label =
+    days < 0
+      ? "Overdue"
+      : days === 0
+        ? "Today"
+        : `${days} ${days === 1 ? "day" : "days"}`;
+  const className =
+    "inline-flex shrink-0 items-center rounded-md bg-[var(--color-muted-foreground)] px-2 py-1 text-xs font-medium leading-none text-[var(--color-card)]";
 
-  if (days <= 3) {
+  if (days < 0) {
+    return <span className={className}>{label}</span>;
+  }
+
+  if (days < 3) {
     return (
       <m.span
-        animate={{ backgroundColor: ['hsl(var(--destructive))', 'transparent'] }}
-        className={baseClass}
-        transition={{ duration: 1, repeat: Infinity, repeatType: 'reverse' }}
+        animate={{ scale: [1, 1.06, 1] }}
+        className="inline-flex shrink-0 origin-center transform-gpu will-change-transform"
+        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
       >
-        {label}
+        <span className={className}>{label}</span>
       </m.span>
     );
   }
 
-  return <span className={baseClass}>{label}</span>;
+  return <span className={className}>{label}</span>;
 }
 
 export function TaskDetailHeader(): React.JSX.Element | null {
@@ -46,18 +55,23 @@ export function TaskDetailHeader(): React.JSX.Element | null {
 
   const { task, item } = taskDetail;
   const articleLabel = item
-    ? (item.article_number ?? item.sku ?? 'Article number missing')
-    : 'No item linked';
+    ? item.article_number
+      ? `#${item.article_number}`
+      : (item.sku ?? "Article number missing")
+    : "No item linked";
+
   const TypeIcon = TASK_TYPE_ICON[task.task_type];
   const typeLabel = TASK_TYPE_LABEL[task.task_type];
-  const returnSourceLabel = task.return_source ? RETURN_SOURCE_LABEL[task.return_source] : null;
+  const returnSourceLabel = task.return_source
+    ? RETURN_SOURCE_LABEL[task.return_source]
+    : null;
   const readyByLabel = formatDateDDMMYY(task.ready_by_at ?? null);
   const days = daysUntil(task.ready_by_at ?? null);
 
   return (
     <div className="flex flex-col gap-2 px-4 py-3">
       <div className="flex items-center gap-2">
-        <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+        <span className="min-w-0 flex-1 truncate text-md font-semibold text-foreground">
           {articleLabel}
         </span>
         <StatePill
@@ -82,7 +96,7 @@ export function TaskDetailHeader(): React.JSX.Element | null {
         <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
         <span className="min-w-0 flex-1 truncate">
           {typeLabel}
-          {returnSourceLabel ? ` • ${returnSourceLabel}` : ''}
+          {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
         </span>
       </div>
 

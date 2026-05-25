@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
-import { m } from 'framer-motion';
+import { useEffect, useRef, useState } from "react";
+import { m } from "framer-motion";
 
-import { useTasksViewContext } from '../providers/TasksViewProvider';
-import { TaskListCard } from './TaskListCard';
-import { TasksHeader } from './TasksHeader';
+import { useTasksViewContext } from "../providers/TasksViewProvider";
+import { TaskListCard } from "./TaskListCard";
+import { TasksHeader } from "./TasksHeader";
 
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
@@ -31,8 +31,8 @@ export function TasksView(): React.JSX.Element {
       });
     };
 
-    element.addEventListener('scroll', onScroll, { passive: true });
-    return () => element.removeEventListener('scroll', onScroll);
+    element.addEventListener("scroll", onScroll, { passive: true });
+    return () => element.removeEventListener("scroll", onScroll);
   }, []);
 
   return (
@@ -60,7 +60,7 @@ export function TasksView(): React.JSX.Element {
           animate={{ opacity: isScrolled ? 1 : 0 }}
           className="pointer-events-none sticky top-0 z-20 -mb-10 h-10 bg-linear-to-b from-background to-transparent mask-[linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]"
           initial={false}
-          transition={{ duration: 0.15, ease: 'easeOut' }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
         />
 
         <div
@@ -80,7 +80,10 @@ export function TasksView(): React.JSX.Element {
           {controller.isLoading && controller.cards.length === 0 ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className="mx-4 h-64 animate-pulse rounded-xl bg-muted" />
+                <div
+                  key={index}
+                  className="mx-4 h-30 animate-pulse rounded-xl bg-muted"
+                />
               ))}
             </div>
           ) : null}
@@ -95,12 +98,15 @@ export function TasksView(): React.JSX.Element {
               type="button"
               onClick={controller.loadMore}
             >
-              {controller.isFetchingMore ? 'Loading...' : 'Load more'}
+              {controller.isFetchingMore ? "Loading..." : "Load more"}
             </button>
           </div>
         ) : controller.cards.length > 0 ? (
           <div className="flex justify-center pb-6">
-            <span className="text-xs text-muted-foreground" data-testid="tasks-end-of-list">
+            <span
+              className="text-xs text-muted-foreground"
+              data-testid="tasks-end-of-list"
+            >
               End of list
             </span>
           </div>

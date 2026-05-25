@@ -11,6 +11,7 @@ import {
   TaskIssuesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
+  TaskWorkingSectionsField,
 } from '@/features/tasks/components/detail';
 import { TaskDetailProvider, useTaskDetailContext } from '@/features/tasks/providers/TaskDetailProvider';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
@@ -47,12 +48,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+5rem)] pt-2">
+    <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
       <TaskDetailHeader />
       <ContentCard>
         <TaskBodyCategoryRow />
         <DashedInfoGroup>
           <TaskCustomerSection />
+          <TaskWorkingSectionsField />
           <TaskIssuesSection />
           <TaskScheduledDeliverySection />
         </DashedInfoGroup>

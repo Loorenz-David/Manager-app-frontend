@@ -44,7 +44,15 @@ export function ModalSurface({
   }, [onClose]);
 
   return (
-    <SurfaceHeaderContext.Provider value={{ setTitle, setActions, requestClose: onClose, setHeaderHidden }}>
+    <SurfaceHeaderContext.Provider
+      value={{
+        setTitle,
+        setActions,
+        requestClose: onClose,
+        setHeaderHidden,
+        setCloseInterceptor: () => {},
+      }}
+    >
       <div className="fixed inset-0" style={{ zIndex }}>
         <m.button
           animate="visible"

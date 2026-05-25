@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill, TextInput } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow, TextInput } from '@/components/primitives';
 
 export function ItemPositionField() {
   const {
@@ -13,12 +13,9 @@ export function ItemPositionField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-position" className="text-sm font-medium text-muted-foreground">
-          Position <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="item-position" label="Position">
         <FieldErrorPill data-testid="item-position-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <TextInput
         data-testid="item-position-input"
         id="item-position"

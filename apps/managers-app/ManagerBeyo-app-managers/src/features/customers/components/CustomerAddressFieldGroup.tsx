@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 
-import { TextInput } from '@/components/primitives';
+import { FieldLabelRow, TextInput } from '@/components/primitives';
 
 /**
  * Parent forms must initialize `customer.address` as an object with empty
@@ -19,9 +19,7 @@ export function CustomerAddressFieldGroup() {
 
   return (
     <div className="flex flex-col gap-3" data-testid="customer-address-field-group">
-      <p className="text-sm font-medium text-muted-foreground">
-        Address <span className="font-normal text-muted-foreground">(optional)</span>
-      </p>
+      <FieldLabelRow label="Address" optional />
       <TextInput
         data-testid="customer-address-street-input"
         id="customer-address-street"

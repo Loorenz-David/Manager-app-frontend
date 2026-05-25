@@ -1,24 +1,28 @@
 import {
   Suspense,
   createContext,
+  useEffect,
+  useState,
   type ComponentType,
   type LazyExoticComponent,
   type ReactNode,
-} from 'react';
-import { AnimatePresence } from 'framer-motion';
-import { createPortal } from 'react-dom';
-import { useEffect } from 'react';
-import { useNavigate, type NavigateFunction } from 'react-router-dom';
-import { create } from 'zustand';
-import { surfaceRegistry } from '@/app/surface-registry';
-import { BottomSheetSurface } from '@/components/surfaces/BottomSheetSurface';
-import { ModalSurface } from '@/components/surfaces/ModalSurface';
-import { SlidePageSurface } from '@/components/surfaces/SlidePageSurface';
-import { SurfaceSkeleton } from '@/components/ui/SurfaceSkeleton';
+} from "react";
+import { AnimatePresence, m } from "framer-motion";
+import { createPortal } from "react-dom";
+import { useNavigate, type NavigateFunction } from "react-router-dom";
+import { create } from "zustand";
+import { surfaceRegistry } from "@/app/surface-registry";
+import { BottomSheetSurface } from "@/components/surfaces/BottomSheetSurface";
+import { ModalSurface } from "@/components/surfaces/ModalSurface";
+import { SlidePageSurface } from "@/components/surfaces/SlidePageSurface";
+import { SurfaceSkeleton } from "@/components/ui/SurfaceSkeleton";
+import { transitions } from "@/lib/animation";
 
-export type SurfaceType = 'page' | 'slide' | 'sheet' | 'modal';
+export type SurfaceType = "page" | "slide" | "sheet" | "modal";
 
-type SurfaceComponent = LazyExoticComponent<ComponentType<Record<string, never>>>;
+type SurfaceComponent = LazyExoticComponent<
+  ComponentType<Record<string, never>>
+>;
 
 export type SurfaceRegistration = {
   surface: SurfaceType;
@@ -51,9 +55,12 @@ export type SurfaceHeaderValue = {
   setActions: (actions: ReactNode) => void;
   requestClose: () => void;
   setHeaderHidden: (hidden: boolean) => void;
+  setCloseInterceptor: (fn: (() => void) | null) => void;
 };
 
-export const SurfaceHeaderContext = createContext<SurfaceHeaderValue | null>(null);
+export const SurfaceHeaderContext = createContext<SurfaceHeaderValue | null>(
+  null,
+);
 
 export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   registry: {},
@@ -118,8 +125,10 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
 
 type SurfaceShellProps = {
   onClose: () => void;
+  onStartClose?: () => void;
   zIndex: number;
   isTopmost: boolean;
+  showBackdrop?: boolean;
   children: ReactNode;
 };
 
@@ -133,20 +142,70 @@ const SURFACE_SHELLS: Record<SurfaceType, ComponentType<SurfaceShellProps>> = {
 function SurfaceRenderer(): React.JSX.Element {
   const stack = useSurfaceStore((state) => state.stack);
   const close = useSurfaceStore((state) => state.close);
-  const stateOverlays = stack.filter((surface) => surface.surface !== 'page' && !surface.path);
+  const [closingSurfaceIds, setClosingSurfaceIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const stateOverlays = stack.filter(
+    (surface) => surface.surface !== "page" && !surface.path,
+  );
+  const interactiveOverlays = stateOverlays.filter(
+    (surface) => !closingSurfaceIds.has(surface.id),
+  );
+  const topOverlay = interactiveOverlays.at(-1);
+  const isSheetTopmost = topOverlay?.surface === "sheet";
+  const topOverlayIndex = stateOverlays.findIndex(
+    (surface) => surface.id === topOverlay?.id,
+  );
+  const topOverlayZIndex = 50 + topOverlayIndex * 10;
+
+  useEffect(() => {
+    const activeIds = new Set(stack.map((surface) => surface.id));
+    setClosingSurfaceIds((current) => {
+      const next = new Set(
+        [...current].filter((surfaceId) => activeIds.has(surfaceId)),
+      );
+      // next ⊆ current — equal size means identical sets; preserve reference to skip re-render
+      if (next.size === current.size) return current;
+      return next;
+    });
+  }, [stack]);
 
   return createPortal(
     <AnimatePresence>
+      {isSheetTopmost && topOverlay ? (
+        <m.div
+          key="surface-shared-sheet-backdrop"
+          animate={{ opacity: 1 }}
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 bg-black/30 backdrop-blur-[2px]"
+          exit={{ opacity: 0 }}
+          initial={{ opacity: 0 }}
+          style={{ zIndex: topOverlayZIndex - 1 }}
+          transition={transitions.surface}
+        />
+      ) : null}
       {stateOverlays.map((entry, index) => {
         const Shell = SURFACE_SHELLS[entry.surface];
         const Component = entry.component;
-        const isTopmost = index === stateOverlays.length - 1;
+        const isTopmost = entry.id === topOverlay?.id;
 
         return (
           <Shell
             key={entry.id}
             isTopmost={isTopmost}
             onClose={() => close(entry.id)}
+            onStartClose={() => {
+              setClosingSurfaceIds((current) => {
+                if (current.has(entry.id)) {
+                  return current;
+                }
+
+                const next = new Set(current);
+                next.add(entry.id);
+                return next;
+              });
+            }}
+            showBackdrop={entry.surface === "sheet" ? false : undefined}
             zIndex={50 + index * 10}
           >
             <SurfacePropsContext.Provider value={entry.props}>
@@ -166,7 +225,9 @@ type SurfaceProviderProps = {
   children: ReactNode;
 };
 
-export function SurfaceProvider({ children }: SurfaceProviderProps): React.JSX.Element {
+export function SurfaceProvider({
+  children,
+}: SurfaceProviderProps): React.JSX.Element {
   const navigate = useNavigate();
   const init = useSurfaceStore((state) => state.init);
 

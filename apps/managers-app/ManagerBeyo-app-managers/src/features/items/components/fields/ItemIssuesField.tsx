@@ -1,21 +1,21 @@
-import { X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
-import { useController, useFormContext } from 'react-hook-form';
+import { X } from "lucide-react";
+import { useEffect, useRef } from "react";
+import { useController, useFormContext } from "react-hook-form";
 
-import { BoxPicker } from '@/components/primitives';
-import type { BoxPickerOptionType } from '@/components/primitives';
-import { useItemIssuesPickerFlow } from '@/features/items/flows/use-item-issues-picker.flow';
+import { BoxPicker, FieldLabelRow } from "@/components/primitives";
+import type { BoxPickerOptionType } from "@/components/primitives";
+import { useItemIssuesPickerFlow } from "@/features/items/flows/use-item-issues-picker.flow";
 // import { TEST_ISSUE_SEVERITIES } from '@/features/items/item-test-data'; // severity selection disabled
 // import { preloadItemIssueSeverityPickerSurface } from '@/features/items/surfaces'; // severity selection disabled
-import type { ItemIssueFieldEntry } from '@/features/items/types';
+import type { ItemIssueFieldEntry } from "@/features/items/types";
 // import { useSurfaceStore } from '@/providers/SurfaceProvider'; // severity selection disabled
 
 export function ItemIssuesField() {
   const { control, watch } = useFormContext();
-  const itemCategoryId = watch('item.item_category_id') as string | undefined;
+  const itemCategoryId = watch("item.item_category_id") as string | undefined;
   const flow = useItemIssuesPickerFlow(itemCategoryId ?? null);
   const { field, fieldState } = useController({
-    name: 'item_issues',
+    name: "item_issues",
     control,
     defaultValue: [],
   });
@@ -23,6 +23,11 @@ export function ItemIssuesField() {
   const currentPairs: ItemIssueFieldEntry[] = field.value ?? [];
   const selectedIssueIds = currentPairs.map((p) => p.issue_id);
   const previousCategoryRef = useRef<string | undefined>(itemCategoryId);
+  const allSelected =
+    flow.options.length > 0 &&
+    flow.options.every((issue) =>
+      selectedIssueIds.includes(issue.issue_type_id),
+    );
 
   // severity selection disabled — re-enable when intensity picker is restored
   // useEffect(() => {
@@ -73,9 +78,35 @@ export function ItemIssuesField() {
     field.onChange(currentPairs.filter((p) => p.issue_id !== issueId));
   }
 
+  function selectAllIssues() {
+    if (allSelected) {
+      field.onChange([]);
+      return;
+    }
+
+    field.onChange(
+      flow.options.map((issue) => ({
+        issue_id: issue.issue_type_id,
+        issue_severity_id: "",
+      })),
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1.5" data-testid="item-issues-field">
-      <label className="text-sm font-medium text-muted-foreground">Issues</label>
+      <FieldLabelRow label="Issues Found">
+        <button
+          type="button"
+          className="text-sm font-light text-[var(--color-muted))]"
+          data-testid="item-issues-select-all-button"
+          disabled={
+            flow.isDisabled || flow.isLoading || flow.options.length === 0
+          }
+          onClick={selectAllIssues}
+        >
+          {allSelected ? "Deselect all" : "Select all"}
+        </button>
+      </FieldLabelRow>
       {flow.isDisabled ? (
         <p
           className="text-sm text-muted-foreground"
@@ -94,7 +125,11 @@ export function ItemIssuesField() {
             const added = ids.find((id) => !selectedIssueIds.includes(id));
             const removed = selectedIssueIds.find((id) => !ids.includes(id));
             // severity selection disabled — re-enable handleIssuePress when intensity picker is restored
-            if (added) field.onChange([...currentPairs, { issue_id: added, issue_severity_id: '' }]);
+            if (added)
+              field.onChange([
+                ...currentPairs,
+                { issue_id: added, issue_severity_id: "" },
+              ]);
             if (removed) removeIssue(removed);
           }}
           layout="grid"

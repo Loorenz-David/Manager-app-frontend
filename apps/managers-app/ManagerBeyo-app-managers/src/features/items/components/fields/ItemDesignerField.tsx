@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill, TextInput } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow, TextInput } from '@/components/primitives';
 
 export function ItemDesignerField() {
   const {
@@ -13,12 +13,9 @@ export function ItemDesignerField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-designer" className="text-sm font-medium text-muted-foreground">
-          Designer <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="item-designer" label="Designer" optional>
         <FieldErrorPill data-testid="item-designer-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <TextInput
         data-testid="item-designer-input"
         id="item-designer"

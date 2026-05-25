@@ -1,6 +1,6 @@
 import { useController, useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill, NumberInput } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow, NumberInput } from '@/components/primitives';
 
 export function ItemQuantityField() {
   const {
@@ -17,12 +17,9 @@ export function ItemQuantityField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-quantity" className="text-sm font-medium text-muted-foreground">
-          Quantity <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="item-quantity" label="Quantity">
         <FieldErrorPill data-testid="item-quantity-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <NumberInput
         id="item-quantity"
         inputTestId="item-quantity-input"

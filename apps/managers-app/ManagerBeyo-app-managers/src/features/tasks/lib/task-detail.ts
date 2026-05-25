@@ -114,24 +114,43 @@ export const RETURN_SOURCE_LABEL: Record<TaskReturnSource, string> = {
   store_return: 'Store return',
 };
 
-export function formatDateDDMMYY(dateString: string | null): string | null {
+function parseTaskDate(value: string): Date | null {
+  const parsedDirect = new Date(value);
+  if (!Number.isNaN(parsedDirect.getTime())) {
+    return parsedDirect;
+  }
+
+  const parsedDateOnly = new Date(`${value}T00:00:00Z`);
+  return Number.isNaN(parsedDateOnly.getTime()) ? null : parsedDateOnly;
+}
+
+export function formatLocalDateISO(dateString: string | null): string | null {
   if (!dateString) {
     return null;
   }
 
-  const parsedDirect = new Date(dateString);
-  const date = Number.isNaN(parsedDirect.getTime())
-    ? new Date(`${dateString}T00:00:00Z`)
-    : parsedDirect;
-
-  if (Number.isNaN(date.getTime())) {
+  const date = parseTaskDate(dateString);
+  if (!date) {
     return null;
   }
 
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const yy = String(date.getUTCFullYear()).slice(-2);
-  return `${dd}-${mm}-${yy}`;
+  const yyyy = String(date.getFullYear());
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export function formatLocalDateYYMMDD(dateString: string | null): string | null {
+  const isoDate = formatLocalDateISO(dateString);
+  if (!isoDate) {
+    return null;
+  }
+
+  return isoDate.slice(2);
+}
+
+export function formatDateDDMMYY(dateString: string | null): string | null {
+  return formatLocalDateYYMMDD(dateString);
 }
 
 export function daysUntil(dateString: string | null): number | null {
@@ -139,18 +158,30 @@ export function daysUntil(dateString: string | null): number | null {
     return null;
   }
 
-  const parsedDirect = new Date(dateString);
-  const target = Number.isNaN(parsedDirect.getTime())
-    ? new Date(`${dateString}T00:00:00Z`)
-    : parsedDirect;
+  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
+  const target = dateOnlyMatch
+    ? new Date(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      )
+    : new Date(dateString);
 
   if (Number.isNaN(target.getTime())) {
     return null;
   }
 
   const now = new Date();
-  const todayUtcMs = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  return Math.ceil((target.getTime() - todayUtcMs) / (1000 * 60 * 60 * 24));
+  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetLocal = new Date(
+    target.getFullYear(),
+    target.getMonth(),
+    target.getDate(),
+  );
+
+  return Math.round(
+    (targetLocal.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24),
+  );
 }
 
 export function isoWeek(dateString: string | null): number | null {

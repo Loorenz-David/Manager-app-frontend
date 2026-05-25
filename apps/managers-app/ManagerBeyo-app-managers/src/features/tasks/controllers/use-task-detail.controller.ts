@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { useDeleteItemIssue } from '@/features/items/actions/use-delete-item-issue';
 import { useIssueCategoryConfigsQuery } from '@/features/items/api/use-issue-category-configs';
 import { useSetUpholsteryQuantity } from '@/features/items/actions/use-set-upholstery-quantity';
+import { useUpdateItemUpholstery } from '@/features/items/actions/use-update-item-upholstery';
 import { useUpdateItem } from '@/features/items/actions/use-update-item';
 import { useDeleteTask } from '@/features/tasks/actions/use-delete-task';
 import { useResolveTask } from '@/features/tasks/actions/use-resolve-task';
@@ -32,6 +33,7 @@ export function useTaskDetailController(taskId: string) {
   const updateItem = useUpdateItem(taskId);
   const deleteItemIssue = useDeleteItemIssue(taskId);
   const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId);
+  const updateItemUpholstery = useUpdateItemUpholstery(taskId);
 
   const issueNameByTypeId = useMemo(() => {
     const configs = issueCategoryConfigsQuery.data?.issueConfigs ?? [];
@@ -71,6 +73,7 @@ export function useTaskDetailController(taskId: string) {
     updateItem,
     deleteItemIssue,
     setUpholsteryQuantity,
+    updateItemUpholstery,
     ...flow,
   };
 }

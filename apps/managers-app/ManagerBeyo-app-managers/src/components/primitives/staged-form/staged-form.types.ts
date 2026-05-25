@@ -13,6 +13,8 @@ export type StagedFormProps = {
   isFirstStep: boolean;
   isLastStep: boolean;
   isAdvancing?: boolean;
+  showNavigation?: boolean;
+  footer?: ReactNode;
   navigationMode?: 'sequential' | 'free';
   stepStatusMap?: StepStatusMap;
   direction?: 1 | -1;

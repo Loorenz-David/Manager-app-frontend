@@ -8,7 +8,7 @@ import {
   type FieldPath,
 } from 'react-hook-form';
 
-import { ContentCard, StagedForm, StagedFormStep } from '@/components/primitives';
+import { ContentCard, FieldLabelRow, StagedForm, StagedFormStep } from '@/components/primitives';
 import {
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
@@ -68,7 +68,7 @@ function UpholsteryField({
       control={control}
       render={({ field }) => (
         <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-muted-foreground">Upholstery</span>
+          <FieldLabelRow label="Upholstery" />
           <ItemUpholsteryField
             value={field.value}
             onChange={field.onChange}

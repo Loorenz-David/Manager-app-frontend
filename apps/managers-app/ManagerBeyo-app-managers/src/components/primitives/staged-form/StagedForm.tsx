@@ -30,6 +30,8 @@ export function StagedForm({
   isFirstStep,
   isLastStep,
   isAdvancing = false,
+  showNavigation = true,
+  footer,
   navigationMode = "sequential",
   stepStatusMap = {},
   direction = 1,
@@ -145,9 +147,13 @@ export function StagedForm({
           </AnimatePresence>
         </div>
 
-        <div className="relative z-10 shrink-0">
-          <StagedFormNavigation />
-        </div>
+        {footer ? (
+          <div className="relative z-10 shrink-0">{footer}</div>
+        ) : showNavigation ? (
+          <div className="relative z-10 shrink-0">
+            <StagedFormNavigation />
+          </div>
+        ) : null}
       </div>
     </StagedFormContext.Provider>
   );

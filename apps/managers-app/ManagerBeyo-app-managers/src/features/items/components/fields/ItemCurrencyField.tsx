@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow } from '@/components/primitives';
 import { cn } from '@/lib/utils';
 
 const CURRENCY_LABELS: Record<string, string> = {
@@ -20,12 +20,9 @@ export function ItemCurrencyField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label htmlFor="item-currency" className="text-sm font-medium text-muted-foreground">
-          Currency <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="item-currency" label="Currency" optional>
         <FieldErrorPill data-testid="item-currency-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <select
         data-testid="item-currency-input"
         id="item-currency"

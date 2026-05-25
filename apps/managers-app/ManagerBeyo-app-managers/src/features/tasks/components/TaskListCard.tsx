@@ -6,23 +6,8 @@ import { StatePill } from '@/components/primitives';
 import type { StatePillVariant } from '@/components/primitives';
 import type { Item } from '@/features/items/types';
 
+import { formatLocalDateYYMMDD } from '../lib/task-detail';
 import type { TaskCardViewModel, TaskReturnSource, TaskState, TaskType } from '../types';
-
-function formatDateDDMMYY(dateString: string | null): string | null {
-  if (!dateString) {
-    return null;
-  }
-
-  const date = new Date(`${dateString}T00:00:00Z`);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const yy = String(date.getUTCFullYear()).slice(-2);
-  return `${dd}-${mm}-${yy}`;
-}
 
 const TYPE_ICON: Record<TaskType, LucideIcon> = {
   return: RotateCcw,
@@ -94,7 +79,7 @@ export const TaskListCard = memo(function TaskListCard({
     : 'No item linked';
   const imageUrl = firstImage ? (firstImage.localObjectUrl ?? firstImage.imageUrl) : null;
   const quantityPillLabel = getQuantityPillLabel(item);
-  const readyByLabel = formatDateDDMMYY(task.ready_by_at);
+  const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
 
   return (
     <div
@@ -185,6 +170,11 @@ export const TaskListCard = memo(function TaskListCard({
           <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
             <span>{readyByLabel}</span>
+            {task.is_overdue ? (
+              <span className="ml-1 inline-flex items-center rounded-md bg-[#8f3a33] px-2 py-0.5 text-[11px] font-medium text-white">
+                Overdue
+              </span>
+            ) : null}
           </div>
         ) : null}
       </div>

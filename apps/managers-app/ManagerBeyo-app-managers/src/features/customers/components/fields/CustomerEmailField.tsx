@@ -1,6 +1,6 @@
 import { useFormContext } from 'react-hook-form';
 
-import { FieldErrorPill, TextInput } from '@/components/primitives';
+import { FieldErrorPill, FieldLabelRow, TextInput } from '@/components/primitives';
 
 export function CustomerEmailField() {
   const {
@@ -13,15 +13,9 @@ export function CustomerEmailField() {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between gap-3">
-        <label
-          htmlFor="customer-primary-email"
-          className="text-sm font-medium text-muted-foreground"
-        >
-          Email <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
+      <FieldLabelRow htmlFor="customer-primary-email" label="Email">
         <FieldErrorPill data-testid="customer-email-error" message={error} />
-      </div>
+      </FieldLabelRow>
       <TextInput
         data-testid="customer-email-input"
         id="customer-primary-email"

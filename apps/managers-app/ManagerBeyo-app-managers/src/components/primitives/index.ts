@@ -6,7 +6,7 @@ export type { TextAreaProps } from './textarea';
 
 export { SwitchCheckbox } from './switch';
 export type { SwitchCheckboxProps } from './switch';
-export { FieldErrorPill } from './shared';
+export { EyebrowLabel, FieldErrorPill, InfoPill, SectionLabel } from './shared';
 export { BoxPicker, BoxPickerOption } from './box-picker';
 export type {
   BoxPickerLayout,
@@ -62,6 +62,7 @@ export { StatePill } from './state-pill';
 export type { StatePillProps, StatePillVariant } from './state-pill';
 export { ContentCard } from './form-field-container';
 export type { ContentCardProps } from './form-field-container';
+export { FieldLabelRow } from './form-field-container';
 export { DashedInfoSection } from './dashed-info-section';
 export type { DashedInfoSectionProps } from './dashed-info-section';
 export { DashedInfoGroup } from './dashed-info-group';

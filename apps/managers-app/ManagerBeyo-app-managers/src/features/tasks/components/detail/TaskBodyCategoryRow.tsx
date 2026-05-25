@@ -1,3 +1,4 @@
+import { SectionLabel } from '@/components/primitives';
 import { useItemCategoryPickerFlow } from '@/features/items';
 
 import { useTaskDetailContext } from '../../providers/TaskDetailProvider';
@@ -22,7 +23,7 @@ export function TaskBodyCategoryRow(): React.JSX.Element | null {
 
   return (
     <div className="flex items-center justify-between gap-2 px-1 py-0.5">
-      <span className="text-sm text-muted-foreground">{categoryLabel ?? '—'}</span>
+      <SectionLabel tone="muted">{categoryLabel ?? '—'}</SectionLabel>
       {item.item_position ? (
         <span className="text-sm text-muted-foreground">{item.item_position}</span>
       ) : null}

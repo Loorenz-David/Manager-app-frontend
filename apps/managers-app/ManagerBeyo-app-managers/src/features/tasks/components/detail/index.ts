@@ -6,4 +6,5 @@ export { TaskScheduledDeliverySection } from './TaskScheduledDeliverySection';
 export { TaskImagesSection } from './TaskImagesSection';
 export { TaskUpholsterySection } from './TaskUpholsterySection';
 export { TaskFlowTimeline } from './TaskFlowTimeline';
+export { TaskWorkingSectionsField } from './TaskWorkingSectionsField';
 export { TaskDetailBottomActions } from './TaskDetailBottomActions';

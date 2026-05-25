@@ -8,6 +8,7 @@ import {
 import { useUpdateTask } from '@/features/tasks/actions/use-update-task';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
 import { TaskDeliveryDateField, TaskReadyByDateField } from '@/features/tasks';
+import { formatLocalDateISO } from '@/features/tasks/lib/task-detail';
 import type { TaskScheduledDateSurfaceProps } from '@/features/tasks/surfaces';
 import { usePreloadSurface } from '@/hooks/use-preload-surface';
 import { useSurface } from '@/hooks/use-surface';
@@ -33,9 +34,9 @@ export function TaskScheduledDateSheetPage(): React.JSX.Element {
 
   const form = useForm<ScheduleForm>({
     defaultValues: {
-      ready_by_at: task?.ready_by_at ?? null,
-      scheduled_start_at: task?.scheduled_start_at ?? null,
-      scheduled_end_at: task?.scheduled_end_at ?? null,
+      ready_by_at: formatLocalDateISO(task?.ready_by_at ?? null),
+      scheduled_start_at: formatLocalDateISO(task?.scheduled_start_at ?? null),
+      scheduled_end_at: formatLocalDateISO(task?.scheduled_end_at ?? null),
     },
   });
 
@@ -50,9 +51,9 @@ export function TaskScheduledDateSheetPage(): React.JSX.Element {
     if (taskQuery.isPending || hasResetRef.current) return;
     hasResetRef.current = true;
     form.reset({
-      ready_by_at: task?.ready_by_at ?? null,
-      scheduled_start_at: task?.scheduled_start_at ?? null,
-      scheduled_end_at: task?.scheduled_end_at ?? null,
+      ready_by_at: formatLocalDateISO(task?.ready_by_at ?? null),
+      scheduled_start_at: formatLocalDateISO(task?.scheduled_start_at ?? null),
+      scheduled_end_at: formatLocalDateISO(task?.scheduled_end_at ?? null),
     });
   }, [form, task, taskQuery.isPending]);
 

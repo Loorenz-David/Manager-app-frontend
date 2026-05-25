@@ -1,47 +1,57 @@
-import { AnimatePresence, m } from 'framer-motion';
-import { ScanLine } from 'lucide-react';
-import { useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import { AnimatePresence, m } from "framer-motion";
+import { ScanLine } from "lucide-react";
+import { useState } from "react";
+import { useFormContext } from "react-hook-form";
 
-import { BoxSlidePicker, FieldErrorPill, TextInput } from '@/components/primitives';
-import type { BoxSlidePickerOptionType } from '@/components/primitives';
-import { transitions } from '@/lib/animation';
+import {
+  BoxSlidePicker,
+  FieldErrorPill,
+  TextInput,
+} from "@/components/primitives";
+import type { BoxSlidePickerOptionType } from "@/components/primitives";
+import { transitions } from "@/lib/animation";
 
-const STORAGE_KEY = 'item-identity-field-active-tab';
+const STORAGE_KEY = "item-identity-field-active-tab";
 
-const IDENTITY_TABS = ['article_number', 'sku'] as const;
+const IDENTITY_TABS = ["article_number", "sku"] as const;
 type IdentityTab = (typeof IDENTITY_TABS)[number];
 
 const TAB_OPTIONS: readonly BoxSlidePickerOptionType<IdentityTab>[] = [
   {
-    value: 'article_number',
-    label: 'Article number',
-    testId: 'item-identity-article-number-tab',
-    ariaLabel: 'Article number input',
+    value: "article_number",
+    label: "Article number",
+    testId: "item-identity-article-number-tab",
+    ariaLabel: "Article number input",
   },
   {
-    value: 'sku',
-    label: 'SKU',
-    testId: 'item-identity-sku-tab',
-    ariaLabel: 'SKU input',
+    value: "sku",
+    label: "SKU",
+    testId: "item-identity-sku-tab",
+    ariaLabel: "SKU input",
   },
 ] as const;
 
 const inputVariants = {
-  enter: (direction: 1 | -1) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
+  enter: (direction: 1 | -1) => ({
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 0,
+  }),
   center: { x: 0, opacity: 1 },
-  exit: (direction: 1 | -1) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0 }),
+  exit: (direction: 1 | -1) => ({
+    x: direction > 0 ? "-100%" : "100%",
+    opacity: 0,
+  }),
 } as const;
 
 function readStoredTab(): IdentityTab {
   try {
     const storedTab = localStorage.getItem(STORAGE_KEY);
-    if (storedTab === 'article_number' || storedTab === 'sku') {
+    if (storedTab === "article_number" || storedTab === "sku") {
       return storedTab;
     }
   } catch {}
 
-  return 'article_number';
+  return "article_number";
 }
 
 export function ItemIdentityField(): React.JSX.Element {
@@ -68,12 +78,13 @@ export function ItemIdentityField(): React.JSX.Element {
     } catch {}
   }
 
-  const activeError = activeTab === 'article_number' ? articleNumberError : skuError;
+  const activeError =
+    activeTab === "article_number" ? articleNumberError : skuError;
 
   return (
     <div className="flex flex-col gap-2" data-testid="item-identity-field">
       <BoxSlidePicker
-        className="w-auto self-start"
+        className="w-auto self-start bg-[var(--color-between-border)]/60"
         dataTestId="item-identity-tab-picker"
         distribution="content"
         options={TAB_OPTIONS}
@@ -92,7 +103,7 @@ export function ItemIdentityField(): React.JSX.Element {
             transition={transitions.slide}
             variants={inputVariants}
           >
-            {activeTab === 'article_number' ? (
+            {activeTab === "article_number" ? (
               <TextInput
                 autoCapitalize="characters"
                 data-testid="item-article-number-input"
@@ -106,14 +117,14 @@ export function ItemIdentityField(): React.JSX.Element {
                     data-testid="item-article-number-scan-button"
                     type="button"
                     onClick={() => {
-                      console.log('opening scanner...');
+                      console.log("opening scanner...");
                     }}
                   >
                     <ScanLine className="size-4" />
                   </button>
                 }
                 type="text"
-                {...register('item.article_number')}
+                {...register("item.article_number")}
               />
             ) : (
               <TextInput
@@ -129,21 +140,25 @@ export function ItemIdentityField(): React.JSX.Element {
                     data-testid="item-sku-scan-button"
                     type="button"
                     onClick={() => {
-                      console.log('opening scanner...');
+                      console.log("opening scanner...");
                     }}
                   >
                     <ScanLine className="size-4" />
                   </button>
                 }
                 type="text"
-                {...register('item.sku')}
+                {...register("item.sku")}
               />
             )}
           </m.div>
         </AnimatePresence>
       </div>
       <FieldErrorPill
-        data-testid={activeTab === 'article_number' ? 'item-article-number-error' : 'item-sku-error'}
+        data-testid={
+          activeTab === "article_number"
+            ? "item-article-number-error"
+            : "item-sku-error"
+        }
         message={activeError}
       />
     </div>

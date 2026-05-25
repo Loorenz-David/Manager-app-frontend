@@ -15,7 +15,7 @@ export function ImageAddPictureButton({
   return (
     <button
       type="button"
-      className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-muted/40 px-2 text-muted-foreground transition-colors duration-150 hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      className="flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border bg-[var(--color-soft-container)] px-2 text-muted-foreground transition-colors duration-150 hover:bg-[var(--color-light-container)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       data-testid={testId}
       aria-label="Add picture"
       onClick={openCamera}

@@ -1,15 +1,15 @@
 export type DashedInfoGroupProps = {
   children: React.ReactNode;
-  'data-testid'?: string;
+  "data-testid"?: string;
 };
 
 export function DashedInfoGroup({
   children,
-  'data-testid': testId,
+  "data-testid": testId,
 }: DashedInfoGroupProps): React.JSX.Element {
   return (
     <div
-      className="flex flex-col overflow-hidden rounded-xl border border-dashed border-(--color-border)/50 bg-background divide-y divide-dashed divide-(--color-border)/50"
+      className="flex flex-col overflow-hidden rounded-xl border border-dashed border-[var(--color-between-border)] bg-[var(--color-light-container)] divide-y divide-dashed divide-[var(--color-between-border)]"
       data-testid={testId}
     >
       {children}
