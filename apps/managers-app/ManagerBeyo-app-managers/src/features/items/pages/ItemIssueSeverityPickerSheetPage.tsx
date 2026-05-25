@@ -1,7 +1,7 @@
 import { BoxPicker } from '@/components/primitives';
 import { TEST_ISSUE_SEVERITIES } from '@/features/items/item-test-data';
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type ItemIssueSeverityPickerProps = {
   issueId: string;
@@ -13,6 +13,7 @@ type ItemIssueSeverityPickerProps = {
 export function ItemIssueSeverityPickerSheetPage() {
   const { issueId, issueName, currentSeverityId, onSelect } =
     useSurfaceProps<ItemIssueSeverityPickerProps>();
+  const header = useSurfaceHeader();
 
   const options = TEST_ISSUE_SEVERITIES.map((severity) => ({
     value: severity.client_id,
@@ -25,7 +26,7 @@ export function ItemIssueSeverityPickerSheetPage() {
       onSelect?.(issueId, severityId);
     }
 
-    useSurfaceStore.getState().closeTop();
+    header?.requestClose();
   }
 
   return (

@@ -46,13 +46,10 @@ export function ImagePreviewGrid({
         data-testid={`${testId}-skeleton`}
         aria-label="Loading images"
       >
-        {Array.from({ length: maxImages }).map((_, index) => (
-          <div
-            key={index}
-            className="aspect-square animate-pulse rounded-xl bg-muted"
-            data-testid={`image-preview-skeleton-tile-${index}`}
-          />
-        ))}
+        <div
+          className="aspect-square animate-pulse rounded-xl bg-muted"
+          data-testid="image-preview-skeleton-tile-0"
+        />
       </div>
     );
   }

@@ -1,11 +1,12 @@
 import { cn } from '@/lib/utils';
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import { TOOLS } from '../components/ImageAnnotationToolbar';
 import type { ImageAnnotationToolPickerSurfaceProps } from '../surfaces';
 
 export function ImageAnnotationToolPickerSheetPage(): React.JSX.Element {
   const { activeTool, onSelect } = useSurfaceProps<ImageAnnotationToolPickerSurfaceProps>();
+  const header = useSurfaceHeader();
 
   return (
     <div className="flex flex-col pb-2" data-testid="annotation-tool-picker-sheet">
@@ -26,7 +27,7 @@ export function ImageAnnotationToolPickerSheetPage(): React.JSX.Element {
             type="button"
             onClick={() => {
               onSelect?.(tool.type);
-              useSurfaceStore.getState().closeTop();
+              header?.requestClose();
             }}
           >
             <Icon className="size-5 shrink-0" />

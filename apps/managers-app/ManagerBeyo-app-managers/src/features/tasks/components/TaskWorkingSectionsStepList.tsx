@@ -1,6 +1,6 @@
-import { Image, X } from "lucide-react";
+import { X } from "lucide-react";
 
-import { ContentCard, StatePill } from "@/components/primitives";
+import { ContentCard, ImagePlaceholder, StatePill } from "@/components/primitives";
 import { useTaskWorkingSectionsContext } from "@/features/tasks/providers/TaskWorkingSectionsProvider";
 import { cn } from "@/lib/utils";
 
@@ -73,8 +73,8 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
                   />
                 </div>
               ) : (
-                <div className="flex w-20 shrink-0 items-center justify-center">
-                  <Image aria-hidden="true" className="size-5 opacity-50" />
+                <div className="w-20 shrink-0 overflow-hidden">
+                  <ImagePlaceholder className="bg-transparent" iconClassName="size-5 opacity-50" />
                 </div>
               )}
 

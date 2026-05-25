@@ -5,7 +5,6 @@ import { useCameraStream } from '../hooks/use-camera-stream';
 import type { ImageCameraSurfaceProps } from '../controllers/use-entity-images.controller';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 export function ImageCameraPage(): React.JSX.Element {
   const { onCapture, latestImageUrl, onViewLatest } = useSurfaceProps<ImageCameraSurfaceProps>();
@@ -78,8 +77,8 @@ export function ImageCameraPage(): React.JSX.Element {
   }, [captureFrame, isCapturing, onCapture, triggerFlash]);
 
   const handleClose = useCallback(() => {
-    useSurfaceStore.getState().closeTop();
-  }, []);
+    header?.requestClose();
+  }, [header]);
 
   if (hasError) {
     return (

@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { NumberInput } from '@/components/primitives';
 import { useSetUpholsteryQuantity } from '@/features/items/actions/use-set-upholstery-quantity';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
+import { ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID } from '@/features/tasks/surfaces';
 import type { ItemUpholsteryAmountSurfaceProps } from '@/features/tasks/surfaces';
-import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
+import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 function roundToFourDecimals(value: number): number {
   return Math.round(value * 10_000) / 10_000;
@@ -14,8 +15,7 @@ function roundToFourDecimals(value: number): number {
 
 export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const surface = useSurface();
-  const { taskId, itemUpholsteryId } = useSurfaceProps<ItemUpholsteryAmountSurfaceProps>();
+  const { taskId, itemUpholsteryId, prefill } = useSurfaceProps<ItemUpholsteryAmountSurfaceProps>();
   const taskQuery = useGetTaskQuery(taskId ?? '');
   const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId ?? '');
 
@@ -41,7 +41,9 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   );
 
   const resolvedAmount = upholstery?.activeRequirement?.amount_meters ?? upholstery?.amount_meters ?? null;
-  const [amountMeters, setAmountMeters] = useState<number | null>(resolvedAmount);
+  const [amountMeters, setAmountMeters] = useState<number | null>(
+    prefill?.amountMeters ?? resolvedAmount,
+  );
 
   useEffect(() => {
     header?.setTitle('Edit upholstery amount');
@@ -49,8 +51,9 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   }, [header]);
 
   useEffect(() => {
+    if (prefill) return;
     setAmountMeters(upholstery?.activeRequirement?.amount_meters ?? upholstery?.amount_meters ?? null);
-  }, [upholstery?.activeRequirement?.amount_meters, upholstery?.amount_meters]);
+  }, [prefill, upholstery?.activeRequirement?.amount_meters, upholstery?.amount_meters]);
 
   function applyMultiplier(factor: number): void {
     setAmountMeters((current) =>
@@ -96,13 +99,23 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
         disabled={setUpholsteryQuantity.isPending || !upholstery}
         onClick={() => {
           if (!upholstery) return;
+          header?.requestClose();
           setUpholsteryQuantity.mutate(
             {
               itemUpholsteryId: upholstery.client_id,
               amount_meters: amountMeters ?? 0,
             },
             {
-              onSuccess: () => surface.closeTop(),
+              onError: () => {
+                useSurfaceStore.getState().open(
+                  ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
+                  {
+                    taskId: taskId ?? '',
+                    itemUpholsteryId: upholstery.client_id,
+                    prefill: { amountMeters },
+                  },
+                );
+              },
             },
           );
         }}

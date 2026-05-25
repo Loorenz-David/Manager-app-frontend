@@ -3,19 +3,19 @@ import { useEffect, useState } from 'react';
 import { NumberInput } from '@/components/primitives';
 import { useUpdateItem } from '@/features/items/actions/use-update-item';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
+import { ITEM_QUANTITY_SHEET_SURFACE_ID } from '@/features/tasks/surfaces';
 import type { ItemQuantitySurfaceProps } from '@/features/tasks/surfaces';
-import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
+import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 export function ItemQuantitySheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const surface = useSurface();
-  const { taskId, itemId } = useSurfaceProps<ItemQuantitySurfaceProps>();
+  const { taskId, itemId, prefill } = useSurfaceProps<ItemQuantitySurfaceProps>();
   const taskQuery = useGetTaskQuery(taskId ?? '');
   const updateItem = useUpdateItem(taskId ?? '');
   const item = taskQuery.data?.item;
-  const [quantity, setQuantity] = useState(item?.quantity ?? 0);
+  const [quantity, setQuantity] = useState(prefill?.quantity ?? item?.quantity ?? 0);
 
   useEffect(() => {
     header?.setTitle('Edit quantity');
@@ -23,8 +23,9 @@ export function ItemQuantitySheetPage(): React.JSX.Element {
   }, [header]);
 
   useEffect(() => {
+    if (prefill) return;
     setQuantity(item?.quantity ?? 0);
-  }, [item?.quantity]);
+  }, [item?.quantity, prefill]);
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -43,13 +44,20 @@ export function ItemQuantitySheetPage(): React.JSX.Element {
         disabled={updateItem.isPending || !item || !itemId}
         onClick={() => {
           if (!item || !itemId) return;
+          header?.requestClose();
           updateItem.mutate(
             {
               id: itemId as never,
               quantity,
             },
             {
-              onSuccess: () => surface.closeTop(),
+              onError: () => {
+                useSurfaceStore.getState().open(ITEM_QUANTITY_SHEET_SURFACE_ID, {
+                  taskId: taskId ?? '',
+                  itemId,
+                  prefill: { quantity },
+                });
+              },
             },
           );
         }}

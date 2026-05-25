@@ -67,5 +67,7 @@ export { DashedInfoSection } from './dashed-info-section';
 export type { DashedInfoSectionProps } from './dashed-info-section';
 export { DashedInfoGroup } from './dashed-info-group';
 export type { DashedInfoGroupProps } from './dashed-info-group';
+export { ImagePlaceholder } from './image-placeholder';
+export type { ImagePlaceholderProps } from './image-placeholder';
 export { ConfirmActionButton } from './confirm-action-button';
 export type { ConfirmActionButtonProps } from './confirm-action-button';

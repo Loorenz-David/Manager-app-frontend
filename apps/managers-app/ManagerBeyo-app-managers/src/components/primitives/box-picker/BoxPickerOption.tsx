@@ -1,13 +1,13 @@
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-import { boxOptionVariants } from './box-picker.variants';
+import { boxOptionVariants } from "./box-picker.variants";
 import type {
   BoxPickerOption as BoxPickerOptionType,
   BoxPickerSize,
   BoxPickerVisualVariant,
-} from './box-picker.types';
+} from "./box-picker.types";
 
 type BoxPickerOptionProps<Value extends string> = {
   option: BoxPickerOptionType<Value>;
@@ -29,8 +29,8 @@ type BoxPickerOptionProps<Value extends string> = {
 export function BoxPickerOption<Value extends string>({
   option,
   isSelected,
-  size = 'sm',
-  visualVariant = 'default',
+  size = "sm",
+  visualVariant = "default",
   showIcon = true,
   showLabel = true,
   showDescription = true,
@@ -45,7 +45,7 @@ export function BoxPickerOption<Value extends string>({
   const Icon = option.icon;
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
-    if ((event.key === 'Enter' || event.key === ' ') && !option.disabled) {
+    if ((event.key === "Enter" || event.key === " ") && !option.disabled) {
       event.preventDefault();
       onPress(option.value);
     }
@@ -62,7 +62,7 @@ export function BoxPickerOption<Value extends string>({
       onKeyDown={handleKeyDown}
       className={cn(
         boxOptionVariants({ visualVariant, selected: isSelected }),
-        size === 'xs' && visualVariant === 'pill' && 'min-h-0 px-3 py-1',
+        size === "xs" && visualVariant === "pill" && "min-h-0 px-3 py-1",
         optionClassName,
         isSelected && selectedOptionClassName,
         !isSelected && unselectedOptionClassName,
@@ -71,20 +71,39 @@ export function BoxPickerOption<Value extends string>({
     >
       <span
         className={cn(
-          'flex min-w-0 flex-1 gap-2',
-          visualVariant === 'default'
-            ? 'flex-col items-center justify-center'
-            : 'flex-row items-center',
+          "flex min-w-0 flex-1 gap-2",
+          visualVariant === "default"
+            ? "flex-col items-center justify-center"
+            : "flex-row items-center",
         )}
       >
-        {showIcon && Icon ? <Icon className="size-5 shrink-0" /> : null}
+        {showIcon && option.image ? (
+          <img
+            src={option.image}
+            alt=""
+            aria-hidden="true"
+            className={cn(
+              "size-8 shrink-0 rounded object-contain",
+              option.imageClassName,
+            )}
+          />
+        ) : showIcon && Icon ? (
+          <Icon className="size-5 shrink-0" />
+        ) : null}
         <span className="flex min-w-0 flex-col gap-0.5">
           {showLabel ? (
-            <span className={cn('truncate font-medium', size === 'xs' ? 'text-xs' : 'text-sm')}>
+            <span
+              className={cn(
+                "truncate font-medium",
+                size === "xs" ? "text-xs" : "text-sm",
+              )}
+            >
               {option.label}
             </span>
           ) : null}
-          {showDescription && option.description && visualVariant === 'horizontalDescription' ? (
+          {showDescription &&
+          option.description &&
+          visualVariant === "horizontalDescription" ? (
             <span className="text-xs opacity-70">{option.description}</span>
           ) : null}
         </span>

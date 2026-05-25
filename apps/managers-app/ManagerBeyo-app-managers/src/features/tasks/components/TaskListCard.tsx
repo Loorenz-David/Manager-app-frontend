@@ -1,13 +1,18 @@
-import { memo } from 'react';
-import { Calendar, Image, RotateCcw, ShoppingBag, Wrench } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+import { memo } from "react";
+import { Calendar, RotateCcw, ShoppingBag, Wrench } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-import { StatePill } from '@/components/primitives';
-import type { StatePillVariant } from '@/components/primitives';
-import type { Item } from '@/features/items/types';
+import { ImagePlaceholder, StatePill } from "@/components/primitives";
+import type { StatePillVariant } from "@/components/primitives";
+import type { Item } from "@/features/items/types";
 
-import { formatLocalDateYYMMDD } from '../lib/task-detail';
-import type { TaskCardViewModel, TaskReturnSource, TaskState, TaskType } from '../types';
+import { formatLocalDateYYMMDD } from "../lib/task-detail";
+import type {
+  TaskCardViewModel,
+  TaskReturnSource,
+  TaskState,
+  TaskType,
+} from "../types";
 
 const TYPE_ICON: Record<TaskType, LucideIcon> = {
   return: RotateCcw,
@@ -16,33 +21,33 @@ const TYPE_ICON: Record<TaskType, LucideIcon> = {
 };
 
 const TYPE_LABEL: Record<TaskType, string> = {
-  return: 'Return',
-  pre_order: 'Pre-order',
-  internal: 'Internal',
+  return: "Return",
+  pre_order: "Pre-order",
+  internal: "Internal",
 };
 
 const RETURN_SOURCE_LABEL: Record<TaskReturnSource, string> = {
-  after_purchase: 'After purchase',
-  before_purchase: 'Before purchase',
-  store_return: 'Store return',
+  after_purchase: "After purchase",
+  before_purchase: "Before purchase",
+  store_return: "Store return",
 };
 
 const STATE_VARIANT: Record<TaskState, StatePillVariant> = {
-  pending: 'neutral',
-  assigned: 'active',
-  working: 'active',
-  stalled: 'warning',
-  ready: 'success',
-  resolved: 'success',
-  failed: 'danger',
-  cancelled: 'neutral',
+  pending: "neutral",
+  assigned: "active",
+  working: "active",
+  stalled: "warning",
+  ready: "success",
+  resolved: "success",
+  failed: "danger",
+  cancelled: "neutral",
 };
 
 function toTitleCaseLabel(value: string): string {
   return value
-    .split('_')
+    .split("_")
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
+    .join(" ");
 }
 
 function getQuantityPillLabel(item: Item | null): string | null {
@@ -50,7 +55,7 @@ function getQuantityPillLabel(item: Item | null): string | null {
     return null;
   }
 
-  if (item.item_major_category_snapshot?.toLowerCase() === 'seat') {
+  if (item.item_major_category_snapshot?.toLowerCase() === "seat") {
     return `#${item.quantity}`;
   }
 
@@ -73,11 +78,17 @@ export const TaskListCard = memo(function TaskListCard({
   const { taskId, task, item, firstImage } = card;
   const TypeIcon = TYPE_ICON[task.task_type];
   const typeLabel = TYPE_LABEL[task.task_type];
-  const returnSourceLabel = task.return_source ? RETURN_SOURCE_LABEL[task.return_source] : null;
+  const returnSourceLabel = task.return_source
+    ? RETURN_SOURCE_LABEL[task.return_source]
+    : null;
   const articleLabel = item
-    ? (item.article_number ?? item.sku ?? 'Article number missing')
-    : 'No item linked';
-  const imageUrl = firstImage ? (firstImage.localObjectUrl ?? firstImage.imageUrl) : null;
+    ? item.article_number
+      ? `#${item.article_number}`
+      : (item.sku ?? "Article number missing")
+    : "No item linked";
+  const imageUrl = firstImage
+    ? (firstImage.localObjectUrl ?? firstImage.imageUrl)
+    : null;
   const quantityPillLabel = getQuantityPillLabel(item);
   const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
 
@@ -103,9 +114,7 @@ export const TaskListCard = memo(function TaskListCard({
             src={imageUrl}
           />
         ) : (
-          <span className="flex size-full items-center justify-center">
-            <Image aria-hidden="true" className="size-6 text-muted-foreground/60" />
-          </span>
+          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
         )}
 
         {quantityPillLabel ? (
@@ -122,7 +131,7 @@ export const TaskListCard = memo(function TaskListCard({
         tabIndex={0}
         onClick={() => onTapCard(taskId)}
         onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
+          if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
             onTapCard(taskId);
           }
@@ -133,7 +142,10 @@ export const TaskListCard = memo(function TaskListCard({
             {articleLabel}
           </span>
 
-          <StatePill label={toTitleCaseLabel(task.state)} variant={STATE_VARIANT[task.state]} />
+          <StatePill
+            label={toTitleCaseLabel(task.state)}
+            variant={STATE_VARIANT[task.state]}
+          />
 
           <button
             aria-label="Task actions"
@@ -145,7 +157,7 @@ export const TaskListCard = memo(function TaskListCard({
               onTapActions(taskId);
             }}
             onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
+              if (event.key === "Enter" || event.key === " ") {
                 event.stopPropagation();
               }
             }}
@@ -162,7 +174,7 @@ export const TaskListCard = memo(function TaskListCard({
           <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
           <span className="min-w-0 flex-1 truncate">
             {typeLabel}
-            {returnSourceLabel ? ` • ${returnSourceLabel}` : ''}
+            {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
           </span>
         </div>
 

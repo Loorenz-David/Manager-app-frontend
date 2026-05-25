@@ -6,7 +6,7 @@ import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import { UpholsteryCard } from '@/features/upholstery/components/UpholsteryCard';
 import { UpholsterySearch } from '@/features/upholstery/components/UpholsterySearch';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+
 
 type UpholsteryPickerSlidePageProps = {
   currentClientId?: string | null;
@@ -47,7 +47,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
   function handleSelect(clientId: string): void {
     onSelect?.(clientId);
-    useSurfaceStore.getState().closeTop();
+    header?.requestClose();
   }
 
   return (

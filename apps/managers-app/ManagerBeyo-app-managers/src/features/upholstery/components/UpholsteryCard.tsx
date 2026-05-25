@@ -1,5 +1,6 @@
 import { cva } from 'class-variance-authority';
 
+import { ImagePlaceholder } from '@/components/primitives';
 import { formatMeters, type UpholsteryPickerRecord } from '@/features/upholstery/types';
 import { cn } from '@/lib/utils';
 
@@ -54,7 +55,9 @@ export function UpholsteryCard({
           className="size-10 shrink-0 rounded-full object-cover"
         />
       ) : (
-        <div aria-hidden="true" className="size-10 shrink-0 rounded-full bg-muted" />
+        <div className="size-10 shrink-0 overflow-hidden rounded-full">
+          <ImagePlaceholder />
+        </div>
       )}
       <div className="min-w-0 flex-1">
         <p

@@ -23,16 +23,27 @@ export type TaskActionsSurfaceProps = {
 
 export type TaskScheduledDateSurfaceProps = {
   taskId: string;
+  prefill?: {
+    ready_by_at: string | null;
+    scheduled_start_at: string | null;
+    scheduled_end_at: string | null;
+  };
 };
 
 export type ItemQuantitySurfaceProps = {
   taskId: string;
   itemId: string;
+  prefill?: {
+    quantity: number;
+  };
 };
 
 export type ItemUpholsteryAmountSurfaceProps = {
   taskId: string;
   itemUpholsteryId: string;
+  prefill?: {
+    amountMeters: number | null;
+  };
 };
 
 export type TaskFlowRecordDetailSurfaceProps = {

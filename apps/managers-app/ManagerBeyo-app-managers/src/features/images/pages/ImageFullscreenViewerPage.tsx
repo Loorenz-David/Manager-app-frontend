@@ -5,7 +5,7 @@ import { Ellipsis, Pencil, X } from 'lucide-react';
 import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { useSurfaceStore } from '@/providers/SurfaceProvider'; // kept for auto-close effect only
 import { useImageQuery } from '../api/use-image';
 import {
   IMAGE_EDITOR_SURFACE_ID,
@@ -167,8 +167,8 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   }, [currentImageClientId, freshImage]);
 
   const handleClose = useCallback(() => {
-    useSurfaceStore.getState().closeTop();
-  }, []);
+    header?.requestClose();
+  }, [header]);
 
   const handleToggleAnnotation = useCallback((imageClientId: string) => {
     setHiddenAnnotationIds((previous) => {

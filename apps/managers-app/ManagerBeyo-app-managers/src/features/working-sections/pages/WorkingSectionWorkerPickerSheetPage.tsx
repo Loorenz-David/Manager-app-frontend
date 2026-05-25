@@ -1,15 +1,16 @@
 import { cn } from '@/lib/utils';
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import type { WorkingSectionWorkerPickerSurfaceProps } from '../surfaces';
 
 export function WorkingSectionWorkerPickerSheetPage(): React.JSX.Element {
   const { sectionName, members, currentWorkerId, onSelect } =
     useSurfaceProps<WorkingSectionWorkerPickerSurfaceProps>();
+  const header = useSurfaceHeader();
 
   function handleSelect(workerId: string) {
     onSelect?.(workerId);
-    useSurfaceStore.getState().closeTop();
+    header?.requestClose();
   }
 
   return (

@@ -14,6 +14,7 @@ export const UpholsterySchema = z.object({
   id: z.string().transform((v) => v as UpholsteryId),
   name: z.string(),
   code: z.string().nullable(),
+  image_url: z.string().nullable(),
   created_at: z.string().datetime({ offset: true }),
   created_by_id: z.string().nullable(),
   updated_at: z.string().datetime({ offset: true }).nullable(),
@@ -114,7 +115,7 @@ export type UpholsteryInventoryViewModel = UpholsteryInventory & {
 export type UpholsteryPickerRecord = UpholsteryPickerOption;
 
 const metersFormatter = new Intl.NumberFormat(undefined, {
-  minimumFractionDigits: 1,
+  minimumFractionDigits: 0,
   maximumFractionDigits: 2,
 });
 

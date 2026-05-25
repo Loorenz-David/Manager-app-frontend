@@ -1,8 +1,8 @@
 import { useCallback, useState } from 'react';
 import { Download, Eye, EyeOff, Trash2 } from 'lucide-react';
 
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import { fetchImageDownloadUrl } from '../api/fetch-image-download-url';
 import type { ImageMetadataSurfaceProps } from '../controllers/use-entity-images.controller';
 import type { ImageUploadState } from '../types';
@@ -61,6 +61,7 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
     annotationsVisible,
     onToggleAnnotations,
   } = useSurfaceProps<ImageMetadataSurfaceProps>();
+  const header = useSurfaceHeader();
 
   const displayUrl = image?.localObjectUrl ?? image?.imageUrl ?? null;
   const uploadStateLabel = image ? UPLOAD_STATE_LABELS[image.uploadState] : null;
@@ -97,8 +98,8 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
     }
 
     onDelete?.(image.clientId);
-    useSurfaceStore.getState().closeTop();
-  }, [image, onDelete]);
+    header?.requestClose();
+  }, [image, onDelete, header]);
 
   const handleToggleAnnotations = useCallback(() => {
     setLocalAnnotationsVisible((previous) => !previous);

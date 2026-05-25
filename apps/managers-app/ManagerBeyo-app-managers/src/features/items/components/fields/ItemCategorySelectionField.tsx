@@ -1,25 +1,29 @@
-import { Armchair as ArmchairIcon, Box as BoxIcon, ChevronRight } from 'lucide-react';
-import { useEffect } from 'react';
-import { useController, useFormContext } from 'react-hook-form';
+import { ChevronRight } from "lucide-react";
+import { useEffect } from "react";
+import { useController, useFormContext } from "react-hook-form";
 
-import { BoxPicker } from '@/components/primitives';
-import { useItemCategoryPickerFlow } from '@/features/items/flows/use-item-category-picker.flow';
-import { preloadItemCategoryPickerSurface } from '@/features/items/surfaces';
-import { usePreloadSurface } from '@/hooks/use-preload-surface';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { BoxPicker, ImagePlaceholder } from "@/components/primitives";
+import { useItemCategoryPickerFlow } from "@/features/items/flows/use-item-category-picker.flow";
+import { preloadItemCategoryPickerSurface } from "@/features/items/surfaces";
+import { usePreloadSurface } from "@/hooks/use-preload-surface";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
 const MAJOR_CATEGORY_OPTIONS = [
   {
-    value: 'wood',
-    label: 'Wood',
-    icon: BoxIcon,
-    testId: 'item-major-category-wood-option',
+    value: "wood",
+    label: "Wood",
+    image:
+      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/wood_category.webp",
+    imageClassName: "size-[2.4rem]",
+    testId: "item-major-category-wood-option",
   },
   {
-    value: 'seat',
-    label: 'Seat',
-    icon: ArmchairIcon,
-    testId: 'item-major-category-seat-option',
+    value: "seat",
+    label: "Seat",
+    image:
+      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/seating_category.webp",
+    imageClassName: "size-[2.4rem]",
+    testId: "item-major-category-seat-option",
   },
 ] as const;
 
@@ -27,13 +31,14 @@ export function ItemCategorySelectionField() {
   const { control } = useFormContext();
   const flow = useItemCategoryPickerFlow();
   const { field: majorField, fieldState: majorFieldState } = useController({
-    name: 'item.major_category',
+    name: "item.major_category",
     control,
   });
-  const { field: categoryField, fieldState: categoryFieldState } = useController({
-    name: 'item.item_category_id',
-    control,
-  });
+  const { field: categoryField, fieldState: categoryFieldState } =
+    useController({
+      name: "item.item_category_id",
+      control,
+    });
 
   usePreloadSurface(preloadItemCategoryPickerSurface);
 
@@ -53,7 +58,7 @@ export function ItemCategorySelectionField() {
     majorCategory: string,
     currentId: string | null | undefined,
   ) {
-    useSurfaceStore.getState().open('item-category-picker', {
+    useSurfaceStore.getState().open("item-category-picker", {
       majorCategory,
       categories: flow.byMajorCategory[majorCategory] ?? [],
       currentCategoryId: currentId ?? null,
@@ -67,7 +72,8 @@ export function ItemCategorySelectionField() {
     const currentCategory = flow.options.find(
       (category) => category.client_id === categoryField.value,
     );
-    const shouldClear = !currentCategory || currentCategory.major_category !== newMajor;
+    const shouldClear =
+      !currentCategory || currentCategory.major_category !== newMajor;
 
     if (shouldClear) {
       categoryField.onChange(null);
@@ -83,11 +89,18 @@ export function ItemCategorySelectionField() {
     (category) => category.client_id === categoryField.value,
   );
   const canOpenCategoryPicker =
-    Boolean(majorField.value) && !flow.isLoading && (flow.byMajorCategory[majorField.value] ?? []).length > 0;
+    Boolean(majorField.value) &&
+    !flow.isLoading &&
+    (flow.byMajorCategory[majorField.value] ?? []).length > 0;
 
   return (
-    <div className="flex flex-col gap-3" data-testid="item-category-selection-field">
-      <label className="text-sm font-medium text-muted-foreground">Category</label>
+    <div
+      className="flex flex-col gap-3"
+      data-testid="item-category-selection-field"
+    >
+      <label className="text-sm font-medium text-muted-foreground">
+        Category
+      </label>
       <BoxPicker
         mode="single"
         value={majorField.value ?? null}
@@ -112,7 +125,24 @@ export function ItemCategorySelectionField() {
               )
             }
           >
-            <span>{selectedCategory.name}</span>
+            <span className="flex items-center gap-3">
+              <div className="size-7 shrink-0 overflow-hidden rounded-md">
+                {selectedCategory.image_url ? (
+                  <img
+                    src={selectedCategory.image_url}
+                    alt=""
+                    aria-hidden="true"
+                    className="size-full object-cover"
+                  />
+                ) : (
+                  <ImagePlaceholder
+                    className="bg-transparent"
+                    iconClassName="size-4"
+                  />
+                )}
+              </div>
+              {selectedCategory.name}
+            </span>
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>
         ) : majorField.value ? (
@@ -121,10 +151,12 @@ export function ItemCategorySelectionField() {
             data-testid="item-category-picker-trigger"
             className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-sm disabled:opacity-60"
             disabled={!canOpenCategoryPicker}
-            onClick={() => openCategoryPicker(majorField.value, categoryField.value)}
+            onClick={() =>
+              openCategoryPicker(majorField.value, categoryField.value)
+            }
           >
             <span>
-              {flow.isLoading ? 'Loading categories…' : 'Select category'}
+              {flow.isLoading ? "Loading categories…" : "Select category"}
             </span>
             <ChevronRight className="size-4 text-muted-foreground" />
           </button>

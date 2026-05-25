@@ -10,7 +10,6 @@ import {
 import { TEST_ISSUE_SEVERITIES } from '@/features/items/item-test-data';
 import type { ItemIssue, ItemIssueFieldEntry } from '@/features/items/types';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
-import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 
@@ -26,7 +25,6 @@ type IssueFormValues = {
 
 export function ItemFastIssueSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const surface = useSurface();
   const { taskId, itemId } = useSurfaceProps<ItemFastIssueSurfaceProps>();
 
   const taskQuery = useGetTaskQuery(taskId);
@@ -84,7 +82,7 @@ export function ItemFastIssueSheetPage(): React.JSX.Element {
     );
 
     if (issuesToRemove.length === 0 && issuesToAdd.length === 0) {
-      surface.closeTop();
+      header?.requestClose();
       return;
     }
 
@@ -109,7 +107,7 @@ export function ItemFastIssueSheetPage(): React.JSX.Element {
       });
     }
 
-    surface.closeTop();
+    header?.requestClose();
   }
 
   if (taskQuery.isPending) {

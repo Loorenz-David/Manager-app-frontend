@@ -2,18 +2,19 @@ import { Check } from 'lucide-react';
 
 import { PHONE_COUNTRIES } from '@/lib/phone/countries';
 import { cn } from '@/lib/utils';
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import type { CountryIso2 } from '@/types/phone';
 import type { PhoneCountryPickerSurfaceProps } from '@/components/primitives/phone-input';
 
 export function PhoneCountryPickerSheetPage(): React.JSX.Element {
   const { currentCountryIso2, onSelect } =
     useSurfaceProps<PhoneCountryPickerSurfaceProps>();
+  const header = useSurfaceHeader();
 
   function handleSelect(countryIso2: CountryIso2): void {
     onSelect?.(countryIso2);
-    useSurfaceStore.getState().closeTop();
+    header?.requestClose();
   }
 
   return (

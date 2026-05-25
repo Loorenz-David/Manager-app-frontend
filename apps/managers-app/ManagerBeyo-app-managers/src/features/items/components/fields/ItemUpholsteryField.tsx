@@ -1,6 +1,8 @@
 import { cva } from 'class-variance-authority';
 import { ChevronRight } from 'lucide-react';
 
+import { ImagePlaceholder } from '@/components/primitives';
+
 import {
   useUpholsteryPickerOptionQuery,
   useUpholsterySelectionStore,
@@ -81,7 +83,9 @@ export function ItemUpholsteryField({
           className="size-10 shrink-0 rounded-full object-cover"
         />
       ) : selectedUpholstery ? (
-        <div aria-hidden="true" className="size-10 shrink-0 rounded-full bg-muted" />
+        <div className="size-10 shrink-0 overflow-hidden rounded-full">
+          <ImagePlaceholder />
+        </div>
       ) : null}
       <span className="min-w-0 flex-1">
         {hasSelection ? (

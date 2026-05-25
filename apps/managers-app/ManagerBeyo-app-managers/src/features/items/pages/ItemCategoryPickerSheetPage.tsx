@@ -1,7 +1,7 @@
 import { BoxPicker } from '@/components/primitives';
 import type { ItemCategoryPickerOption } from '@/features/items/types';
+import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type ItemCategoryPickerProps = {
   majorCategory: string;
@@ -13,18 +13,20 @@ type ItemCategoryPickerProps = {
 export function ItemCategoryPickerSheetPage() {
   const { majorCategory, categories, currentCategoryId, onSelect } =
     useSurfaceProps<ItemCategoryPickerProps>();
+  const header = useSurfaceHeader();
 
   const options = (categories ?? [])
     .filter((category) => category.major_category === majorCategory)
     .map((category) => ({
       value: category.client_id,
       label: category.name,
+      image: category.image_url,
       testId: `item-category-${category.client_id}-option`,
     }));
 
   function handleSelect(categoryId: string) {
     onSelect?.(categoryId);
-    useSurfaceStore.getState().closeTop();
+    header?.requestClose();
   }
 
   return (

@@ -8,12 +8,13 @@ import {
 import { useUpdateTask } from '@/features/tasks/actions/use-update-task';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
 import { TaskDeliveryDateField, TaskReadyByDateField } from '@/features/tasks';
+import { TASK_SCHEDULED_DATE_SHEET_SURFACE_ID } from '@/features/tasks/surfaces';
 import { formatLocalDateISO } from '@/features/tasks/lib/task-detail';
 import type { TaskScheduledDateSurfaceProps } from '@/features/tasks/surfaces';
 import { usePreloadSurface } from '@/hooks/use-preload-surface';
-import { useSurface } from '@/hooks/use-surface';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
+import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type ScheduleForm = {
   ready_by_at: string | null;
@@ -26,17 +27,16 @@ export function TaskScheduledDateSheetPage(): React.JSX.Element {
   usePreloadSurface(preloadCalendarRangePickerSurface);
 
   const header = useSurfaceHeader();
-  const surface = useSurface();
-  const { taskId } = useSurfaceProps<TaskScheduledDateSurfaceProps>();
+  const { taskId, prefill } = useSurfaceProps<TaskScheduledDateSurfaceProps>();
   const taskQuery = useGetTaskQuery(taskId ?? '');
   const updateTask = useUpdateTask();
   const task = taskQuery.data?.task;
 
   const form = useForm<ScheduleForm>({
-    defaultValues: {
-      ready_by_at: formatLocalDateISO(task?.ready_by_at ?? null),
-      scheduled_start_at: formatLocalDateISO(task?.scheduled_start_at ?? null),
-      scheduled_end_at: formatLocalDateISO(task?.scheduled_end_at ?? null),
+    defaultValues: prefill ?? {
+      ready_by_at: null,
+      scheduled_start_at: null,
+      scheduled_end_at: null,
     },
   });
 
@@ -48,17 +48,18 @@ export function TaskScheduledDateSheetPage(): React.JSX.Element {
   }, [header]);
 
   useEffect(() => {
-    if (taskQuery.isPending || hasResetRef.current) return;
+    if (taskQuery.isPending || hasResetRef.current || prefill) return;
     hasResetRef.current = true;
     form.reset({
       ready_by_at: formatLocalDateISO(task?.ready_by_at ?? null),
       scheduled_start_at: formatLocalDateISO(task?.scheduled_start_at ?? null),
       scheduled_end_at: formatLocalDateISO(task?.scheduled_end_at ?? null),
     });
-  }, [form, task, taskQuery.isPending]);
+  }, [form, prefill, task, taskQuery.isPending]);
 
   function handleSave(values: ScheduleForm) {
     if (!task) return;
+    header?.requestClose();
     updateTask.mutate(
       {
         id: (taskId ?? '') as never,
@@ -81,7 +82,12 @@ export function TaskScheduledDateSheetPage(): React.JSX.Element {
         additional_details: task.additional_details ?? null,
       },
       {
-        onSuccess: () => surface.closeTop(),
+        onError: () => {
+          useSurfaceStore.getState().open(TASK_SCHEDULED_DATE_SHEET_SURFACE_ID, {
+            taskId: taskId ?? '',
+            prefill: values,
+          });
+        },
       },
     );
   }

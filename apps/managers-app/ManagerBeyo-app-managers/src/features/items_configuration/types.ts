@@ -4,6 +4,7 @@ export const ItemCategorySchema = z.object({
   id: z.string(),
   name: z.string(),
   major_category: z.string(),
+  image_url: z.string().nullable(),
   created_at: z.string().datetime({ offset: true }),
 });
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;

@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { m } from "framer-motion";
 
 import { durations, easings } from "@/lib/animation";
-import { useSurface } from "@/hooks/use-surface";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
 
 export function TaskDetailBottomActions(): React.JSX.Element {
   const { openEditTask, openWorkingSectionsSlide, taskDetail } =
     useTaskDetailContext();
-  const surface = useSurface();
+  const header = useSurfaceHeader();
   const [showAssignStagesCta, setShowAssignStagesCta] = useState(false);
 
   const shouldRenderAssignStages =
@@ -67,7 +67,7 @@ export function TaskDetailBottomActions(): React.JSX.Element {
         <button
           className="flex-1 rounded-xl bg-[var(--color-primary)] py-3.5 text-sm font-semibold text-white shadow-sm"
           type="button"
-          onClick={() => surface.closeTop()}
+          onClick={() => header?.requestClose()}
         >
           Close & Back
         </button>

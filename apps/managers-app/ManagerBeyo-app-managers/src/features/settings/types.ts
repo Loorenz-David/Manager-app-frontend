@@ -1,1 +1,4 @@
-export type SettingsState = Record<string, never>;
+export type SettingsState = {
+  signOut: () => void;
+  isSigningOut: boolean;
+};

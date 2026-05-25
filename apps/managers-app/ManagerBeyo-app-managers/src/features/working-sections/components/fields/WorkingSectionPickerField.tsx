@@ -1,8 +1,8 @@
-import { Image, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useMemo } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { FieldErrorPill } from "@/components/primitives";
+import { FieldErrorPill, ImagePlaceholder } from "@/components/primitives";
 import { useWorkingSectionPickerFlow } from "@/features/working-sections/flows/use-working-section-picker.flow";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { cn } from "@/lib/utils";
@@ -68,9 +68,9 @@ function WorkingSectionBox({
       ) : (
         <div
           aria-hidden="true"
-          className="flex w-16 self-stretch shrink-0 items-center justify-center"
+          className="w-16 self-stretch shrink-0 overflow-hidden"
         >
-          <Image className="size-5 opacity-50" />
+          <ImagePlaceholder className="bg-transparent" iconClassName="size-5 opacity-50" />
         </div>
       )}
 
