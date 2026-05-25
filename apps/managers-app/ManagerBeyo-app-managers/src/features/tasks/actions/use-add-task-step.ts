@@ -65,6 +65,7 @@ export function useAddTaskStep(taskId: string) {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId as never) });
+      void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
     },
   });
 }
