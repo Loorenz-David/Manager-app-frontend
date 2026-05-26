@@ -25,10 +25,25 @@ export { useEditCaseMessage } from './actions/use-edit-case-message';
 export { useUpdateCaseState } from './actions/use-update-case-state';
 export { useMarkCaseRead } from './actions/use-mark-case-read';
 export { useSendCaseMessage } from './actions/use-send-case-message';
+export {
+  fromBackendMessageContent,
+  toBackendMessageContent,
+  toBackendPlainText,
+} from './lib/message-content-adapter';
 export type {
   CaseConversationMessagesController,
   CaseMessageRenderItem,
 } from './controllers/use-case-conversation-messages.controller';
+export type {
+  CaseInlinePart,
+  CaseInlinePartMarks,
+  CaseLabelInlinePart,
+  CaseLinkInlinePart,
+  CaseMentionInlinePart,
+  CaseMentionReference,
+  CaseMessageContent,
+  CaseTextInlinePart,
+} from './message-content';
 export type {
   AddParticipantsInput,
   CaseConversationMessageRaw,

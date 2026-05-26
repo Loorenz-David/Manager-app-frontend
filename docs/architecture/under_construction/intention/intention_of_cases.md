@@ -637,6 +637,7 @@ The first version should prioritize a stable, well-architected foundation that c
 - `docs/architecture/archives/implementation/PLAN_20_basic_message_composer_and_send_flow_20260526.md` — archived, implemented the fixed plain-text composer, pessimistic send mutation flow, send-success read advancement, and mobile composer runtime coverage.
 - `docs/architecture/archives/implementation/PLAN_20_5_case_conversation_loading_fix_20260526.md` — archived, implemented reload-safe route identity, restored slide-surface rendering through route hydration, and made task-context failures non-blocking for conversation rendering.
 - `docs/architecture/archives/implementation/PLAN_21_message_edit_and_soft_delete_interactions_20260526.md` — archived, implemented own-message edit/delete actions, a message-actions sheet, composer edit mode, and runtime coverage for edited/deleted thread states.
+- `docs/architecture/archives/implementation/PLAN_22_rich_content_dto_and_renderer_foundation_20260526.md` — archived, implemented the app-owned rich-content DTO, backend adapter layer, bubble renderer foundation, and focused unit coverage.
 
 ## Progress notes
 
@@ -650,3 +651,4 @@ The first version should prioritize a stable, well-architected foundation that c
 - `2026-05-26T09:33:51Z` `codex`: Implemented the fixed plain-text composer, added the pessimistic send-message action plus send-success read advancement, passed `npm run typecheck` and the dedicated mobile composer Playwright spec, and archived PLAN 20.
 - `2026-05-26T12:20:13Z` `codex`: Implemented reload-safe case conversation routing without giving up the slide-surface shell, added route hydration for direct entry/refresh, made task lookup failures non-blocking, passed `npm run typecheck` plus focused desktop/mobile Playwright coverage, and archived PLAN 20.5.
 - `2026-05-26T12:39:43Z` `codex`: Implemented own-message edit/delete interactions, added the message-actions sheet plus composer edit mode, passed `npm run typecheck` and the case composer Playwright spec on both mobile and desktop, and archived PLAN 21.
+- `2026-05-26T12:56:00Z` `codex`: Implemented the app-owned rich-content DTO and backend adapter layer, updated message bubbles to render mentions/labels/links through the new renderer foundation, passed `npm run typecheck` plus focused adapter/bubble Vitest coverage, and archived PLAN 22.

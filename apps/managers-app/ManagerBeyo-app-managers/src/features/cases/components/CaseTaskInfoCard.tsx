@@ -1,13 +1,16 @@
-import { ChevronRight } from 'lucide-react';
+import { useCallback } from "react";
+import { ChevronRight } from "lucide-react";
 
-import { ImagePlaceholder, StatePill } from '@/components/primitives';
-import type { GetTaskResult } from '@/features/tasks/api/get-task';
+import { ImagePlaceholder, StatePill } from "@/components/primitives";
+import { useSurface } from "@/hooks/use-surface";
+import { IMAGE_VIEWER_SURFACE_ID } from "@/features/images/surfaces";
+import type { GetTaskResult } from "@/features/tasks/api/get-task";
 import {
   RETURN_SOURCE_LABEL,
   TASK_STATE_VARIANT,
   TASK_TYPE_LABEL,
   humanizeSnakeCase,
-} from '@/features/tasks/lib/task-detail';
+} from "@/features/tasks/lib/task-detail";
 
 type CaseTaskInfoCardProps = {
   taskDetail: GetTaskResult;
@@ -18,7 +21,7 @@ function getPrimaryReference(taskDetail: GetTaskResult): string {
   return (
     taskDetail.item?.article_number ??
     taskDetail.item?.sku ??
-    'Article number missing'
+    "Article number missing"
   );
 }
 
@@ -26,6 +29,7 @@ export function CaseTaskInfoCard({
   taskDetail,
   onOpenTask,
 }: CaseTaskInfoCardProps): React.JSX.Element {
+  const surface = useSurface();
   const firstImage = taskDetail.item_images[0] ?? null;
   const imageUrl = firstImage?.image_url ?? null;
   const primaryReference = getPrimaryReference(taskDetail);
@@ -33,19 +37,75 @@ export function CaseTaskInfoCard({
   const returnSourceLabel = taskDetail.task.return_source
     ? RETURN_SOURCE_LABEL[taskDetail.task.return_source]
     : null;
-  const stateLabel = humanizeSnakeCase(taskDetail.task.state) ?? 'Unknown';
+  const stateLabel = humanizeSnakeCase(taskDetail.task.state) ?? "Unknown";
+
+  const handleOpenImage = useCallback(() => {
+    if (!firstImage) {
+      return;
+    }
+
+    const entityClientId = taskDetail.item?.client_id ?? null;
+
+    surface.open(IMAGE_VIEWER_SURFACE_ID, {
+      images: [
+        {
+          clientId: firstImage.client_id,
+          linkClientId: null,
+          entityType: "item",
+          entityClientId,
+          imageUrl: firstImage.image_url,
+          localObjectUrl: null,
+          displayOrder: 0,
+          widthPx: firstImage.width_px ?? null,
+          heightPx: firstImage.height_px ?? null,
+          fileSizeBytes: firstImage.file_size_bytes ?? null,
+          createdAt: taskDetail.task.created_at,
+          uploadState: "completed",
+          isOptimistic: false,
+          isDeleted: false,
+          pendingUploadClientId: null,
+          uploadError: null,
+          annotation: null,
+          annotations: [],
+        },
+      ],
+      initialImageClientId: firstImage.client_id,
+      entityType: "item",
+      entityClientId,
+      mode: "preview-only",
+      enableOnDemandImageLoad: false,
+    });
+  }, [
+    firstImage,
+    surface,
+    taskDetail.task.created_at,
+    taskDetail.item?.client_id,
+  ]);
 
   return (
-    <button
+    <div
       aria-label="Open task detail"
-      className="flex w-full items-stretch gap-3 rounded-[1.5rem] border border-border bg-card p-3 text-left shadow-sm transition-colors duration-150 hover:bg-muted/40"
+      className="flex w-full items-stretch gap-3 rounded-3xl border border-border bg-card p-3 text-left shadow-sm transition-colors duration-150 hover:bg-muted/40"
       data-testid="case-task-info-card"
+      role="button"
+      tabIndex={0}
       onClick={onOpenTask}
-      type="button"
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenTask();
+        }
+      }}
     >
-      <div
+      <button
+        aria-label="Open task image preview"
         className="flex aspect-square w-24 shrink-0 overflow-hidden rounded-[1.25rem] bg-muted"
         data-testid="case-task-info-image"
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          handleOpenImage();
+        }}
       >
         {imageUrl ? (
           <img
@@ -58,7 +118,7 @@ export function CaseTaskInfoCard({
         ) : (
           <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
         )}
-      </div>
+      </button>
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
         <div className="flex items-start gap-3">
@@ -68,7 +128,7 @@ export function CaseTaskInfoCard({
             </p>
             <p className="mt-1 truncate text-sm text-muted-foreground">
               {taskTypeLabel}
-              {returnSourceLabel ? ` • ${returnSourceLabel}` : ''}
+              {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
             </p>
             {taskDetail.item?.article_number && taskDetail.item?.sku ? (
               <p className="mt-2 truncate text-xs text-muted-foreground">
@@ -90,6 +150,6 @@ export function CaseTaskInfoCard({
           <ChevronRight aria-hidden="true" className="size-4 shrink-0" />
         </div>
       </div>
-    </button>
+    </div>
   );
 }
