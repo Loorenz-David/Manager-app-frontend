@@ -6,8 +6,13 @@ import {
   useCaseConversationController,
   type CaseConversationController,
 } from '../controllers/use-case-conversation.controller';
+import {
+  useCaseConversationMessagesController,
+  type CaseConversationMessagesController,
+} from '../controllers/use-case-conversation-messages.controller';
 
 const CaseConversationContext = createContext<CaseConversationController | null>(null);
+const CaseConversationMessagesContext = createContext<CaseConversationMessagesController | null>(null);
 
 type CaseConversationProviderProps = {
   caseClientId: CaseId;
@@ -19,10 +24,16 @@ export function CaseConversationProvider({
   children,
 }: CaseConversationProviderProps): React.JSX.Element {
   const controller = useCaseConversationController(caseClientId);
+  const messagesController = useCaseConversationMessagesController({
+    caseClientId,
+    onListScrollTopChange: controller.setBodyScrollTop,
+  });
 
   return (
     <CaseConversationContext.Provider value={controller}>
-      {children}
+      <CaseConversationMessagesContext.Provider value={messagesController}>
+        {children}
+      </CaseConversationMessagesContext.Provider>
     </CaseConversationContext.Provider>
   );
 }
@@ -32,6 +43,18 @@ export function useCaseConversationContext(): CaseConversationController {
 
   if (context === null) {
     throw new Error('useCaseConversationContext must be used inside CaseConversationProvider');
+  }
+
+  return context;
+}
+
+export function useCaseConversationMessagesContext(): CaseConversationMessagesController {
+  const context = useContext(CaseConversationMessagesContext);
+
+  if (context === null) {
+    throw new Error(
+      'useCaseConversationMessagesContext must be used inside CaseConversationProvider',
+    );
   }
 
   return context;

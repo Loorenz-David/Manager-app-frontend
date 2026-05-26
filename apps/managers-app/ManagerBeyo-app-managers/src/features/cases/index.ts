@@ -3,7 +3,9 @@ export { CasesViewProvider } from './providers/CasesViewProvider';
 export {
   CaseConversationProvider,
   useCaseConversationContext,
+  useCaseConversationMessagesContext,
 } from './providers/CaseConversationProvider';
+export { useCaseConversationMessagesQuery } from './api/use-case-conversation-messages';
 export {
   caseSurfaces,
   CASE_CONVERSATION_SURFACE_ID,
@@ -16,6 +18,10 @@ export type {
 export { useGetCaseQuery } from './api/use-get-case';
 export { useCaseLinksQuery } from './api/use-case-links';
 export { useUpdateCaseState } from './actions/use-update-case-state';
+export type {
+  CaseConversationMessagesController,
+  CaseMessageRenderItem,
+} from './controllers/use-case-conversation-messages.controller';
 export type {
   AddParticipantsInput,
   CaseConversationMessageRaw,

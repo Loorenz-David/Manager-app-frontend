@@ -632,6 +632,7 @@ The first version should prioritize a stable, well-architected foundation that c
 - `docs/architecture/archives/implementation/PLAN_15_cases_conversation_shell_and_header_20260526.md` — archived, implemented the real conversation slide shell, custom header, and case-state transition flow.
 - `docs/architecture/archives/implementation/PLAN_16_case_task_info_bottom_sheet_20260526.md` — archived, implemented the task info bottom sheet and task-detail handoff from the case conversation.
 - `docs/architecture/archives/implementation/PLAN_17_case_context_banner_scroll_collapse_20260526.md` — archived, implemented the secondary case-context banner and scroll-driven collapse behavior beneath the fixed conversation header.
+- `docs/architecture/archives/implementation/PLAN_18_message_list_foundation_with_virtualization_20260526.md` — archived, implemented the virtualized conversation thread, older-page loading, date separators, and deleted-message rendering foundation.
 
 ## Progress notes
 
@@ -640,3 +641,4 @@ The first version should prioritize a stable, well-architected foundation that c
 - `2026-05-26T07:49:37Z` `codex`: Implemented the conversation shell, task-linked custom header, and case-state transition close flow, passed `npm run typecheck` and `npx playwright test tests/playwright/features/cases/cases-page.spec.ts --project=mobile`, and archived PLAN 15.
 - `2026-05-26T07:58:15Z` `codex`: Implemented the case task-info bottom sheet, wired the conversation info button to the existing task-detail slide, passed `npm run typecheck` and `npx playwright test tests/playwright/features/cases/cases-page.spec.ts --project=mobile`, and archived PLAN 16.
 - `2026-05-26T08:24:21Z` `codex`: Implemented the secondary context banner, added the reusable scroll-collapse controller API and feature-owned conversation scroll container, passed `npm run typecheck` and `npx playwright test tests/playwright/features/cases/cases-page.spec.ts --project=mobile`, and archived PLAN 17.
+- `2026-05-26T08:44:05Z` `codex`: Implemented the virtualized conversation message list with paginated case-detail loading, chronological render items, deleted placeholders, and prepend-safe older-page fetching, passed `npm run typecheck` plus the cases Playwright spec on both mobile and desktop, and archived PLAN 18.

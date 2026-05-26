@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/app-fixture';
 
 const DAY_MS = 86_400_000;
+const LONG_THREAD_NOTE = '\nInspection note captured.\nWarehouse follow-up logged.';
 
 function encodeBase64Url(value: string): string {
   return Buffer.from(value).toString('base64url');
@@ -159,6 +160,8 @@ function createCasesList(now: number) {
 }
 
 function createCaseDetail(caseClientId: string, state: 'open' | 'resolving' | 'resolved', typeLabel: string) {
+  const totalMessagesCount = 4;
+
   return {
     case: {
       client_id: caseClientId,
@@ -166,12 +169,12 @@ function createCaseDetail(caseClientId: string, state: 'open' | 'resolving' | 'r
       type_label: typeLabel,
       participants_count: 2,
       conversations_count: 1,
-      messages_count: 4,
+      messages_count: totalMessagesCount,
       created_at: '2026-05-26T07:00:00Z',
       created_by_id: 'usr_1',
       conversation_client_id: `ccv_${caseClientId}`,
-      conversation_messages_count: 4,
-      conversation_last_message_seq: 4,
+      conversation_messages_count: totalMessagesCount,
+      conversation_last_message_seq: totalMessagesCount,
       conversation_created_at: '2026-05-26T07:00:00Z',
       mentions: [],
     },
@@ -180,6 +183,83 @@ function createCaseDetail(caseClientId: string, state: 'open' | 'resolving' | 'r
       limit: 10,
       has_more: false,
       next_before_message_seq: null,
+    },
+  };
+}
+
+function createCaseMessage(params: {
+  caseId: string;
+  sequence: number;
+  createdAt: string;
+  createdById: string;
+  createdByName: string;
+  profilePicture?: string | null;
+  text: string;
+  deleted?: boolean;
+}) {
+  return {
+    case_id: params.caseId,
+    client_id: `ccm_${params.caseId}_${params.sequence}`,
+    message_seq: params.sequence,
+    created_at: params.createdAt,
+    created_by: {
+      client_id: params.createdById,
+      username: params.createdByName,
+      profile_picture: params.profilePicture ?? null,
+    },
+    content: params.deleted
+      ? null
+      : [
+          {
+            type: 'text',
+            text: params.text,
+            mention: null,
+            label_value: null,
+            link: null,
+          },
+        ],
+    plain_text: params.deleted ? '' : params.text,
+    has_been_edited: false,
+    has_been_deleted: Boolean(params.deleted),
+    updated_at: null,
+    images: [],
+    mentions: [],
+  };
+}
+
+function createPaginatedCaseDetail(
+  caseClientId: string,
+  state: 'open' | 'resolving' | 'resolved',
+  typeLabel: string,
+  messages: ReturnType<typeof createCaseMessage>[],
+  options: {
+    totalMessagesCount: number;
+    lastMessageSeq: number;
+    hasMore: boolean;
+    nextBeforeMessageSeq: number | null;
+  },
+) {
+  return {
+    case: {
+      client_id: caseClientId,
+      state,
+      type_label: typeLabel,
+      participants_count: 2,
+      conversations_count: 1,
+      messages_count: options.totalMessagesCount,
+      created_at: '2026-05-26T07:00:00Z',
+      created_by_id: 'usr_1',
+      conversation_client_id: `ccv_${caseClientId}`,
+      conversation_messages_count: options.totalMessagesCount,
+      conversation_last_message_seq: options.lastMessageSeq,
+      conversation_created_at: '2026-05-26T07:00:00Z',
+      mentions: [],
+    },
+    case_conversation_messages: messages,
+    messages_pagination: {
+      limit: 10,
+      has_more: options.hasMore,
+      next_before_message_seq: options.nextBeforeMessageSeq,
     },
   };
 }
@@ -269,14 +349,254 @@ async function installCasesMocks(
   page: Page,
   options?: {
     onStatePatch?: (payload: { caseId: string; body: unknown }) => void;
+    onCaseDetailRequest?: (payload: {
+      caseId: string;
+      beforeMessageSeq: number | null;
+      url: string;
+    }) => void;
+    olderPageResponseDelayMs?: number;
   },
 ) {
   const now = Date.now();
   const cases = createCasesList(now);
+  const caseNewOpenLatestMessages = [
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 6,
+      createdAt: '2026-05-25T12:00:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: `Customer called again about the damaged return.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 7,
+      createdAt: '2026-05-25T12:06:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: `I am checking the task notes and item photos now.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 8,
+      createdAt: '2026-05-25T12:12:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: `The outer box is torn and the chair leg has visible scratches.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 9,
+      createdAt: '2026-05-25T12:18:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: 'Temporary note',
+      deleted: true,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 10,
+      createdAt: '2026-05-25T12:24:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: `I uploaded close-up photos to the linked task a moment ago.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 11,
+      createdAt: '2026-05-26T11:00:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: `Thanks. We can already separate inspection from final resolution.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 12,
+      createdAt: '2026-05-26T11:07:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: `Perfect, I will keep the item in quarantine until the team confirms next steps.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 13,
+      createdAt: '2026-05-26T11:14:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: `Good. Keep the customer updated that we are processing the damage report today.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 14,
+      createdAt: '2026-05-26T11:19:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: `I also noted the serial sticker condition and added a second warehouse photo for traceability.${LONG_THREAD_NOTE}`,
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 15,
+      createdAt: '2026-05-26T11:26:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: `Perfect. That is enough context for the team to review the case without reopening the intake.${LONG_THREAD_NOTE}`,
+    }),
+  ];
+  const caseNewOpenOlderMessages = [
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 1,
+      createdAt: '2026-05-24T13:00:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: 'Opening a damage case for the return delivery.',
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 2,
+      createdAt: '2026-05-24T13:08:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: 'Received. Please collect the first photo set and task article details.',
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 3,
+      createdAt: '2026-05-24T13:14:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: 'The article is ART-DETAIL-001 and the packaging also looks compromised.',
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 4,
+      createdAt: '2026-05-24T13:21:00Z',
+      createdById: 'usr_manager',
+      createdByName: 'Manager',
+      text: 'Document the visible issues before the customer leaves the counter.',
+    }),
+    createCaseMessage({
+      caseId: 'case_new_open',
+      sequence: 5,
+      createdAt: '2026-05-24T13:27:00Z',
+      createdById: 'usr_2',
+      createdByName: 'Bob Stone',
+      profilePicture: 'https://example.com/bob.png',
+      text: 'Understood, I have started the intake checklist.',
+    }),
+  ];
   const caseDetails = {
-    case_new_open: createCaseDetail('case_new_open', 'open', 'Damage'),
-    case_active_open: createCaseDetail('case_active_open', 'open', 'Delivery delay'),
-    case_resolving: createCaseDetail('case_resolving', 'resolving', 'Upholstery fix'),
+    case_new_open: {
+      initial: createPaginatedCaseDetail(
+        'case_new_open',
+        'open',
+        'Damage',
+        caseNewOpenLatestMessages,
+        {
+          totalMessagesCount: 15,
+          lastMessageSeq: 15,
+          hasMore: true,
+          nextBeforeMessageSeq: 6,
+        },
+      ),
+      older_6: createPaginatedCaseDetail(
+        'case_new_open',
+        'open',
+        'Damage',
+        caseNewOpenOlderMessages,
+        {
+          totalMessagesCount: 15,
+          lastMessageSeq: 15,
+          hasMore: false,
+          nextBeforeMessageSeq: null,
+        },
+      ),
+    },
+    case_active_open: {
+      initial: createPaginatedCaseDetail(
+        'case_active_open',
+        'open',
+        'Delivery delay',
+        [
+          createCaseMessage({
+            caseId: 'case_active_open',
+            sequence: 1,
+            createdAt: '2026-05-26T09:00:00Z',
+            createdById: 'usr_2',
+            createdByName: 'Bob Stone',
+            text: 'Customer is asking about the delayed delivery window.',
+          }),
+          createCaseMessage({
+            caseId: 'case_active_open',
+            sequence: 2,
+            createdAt: '2026-05-26T09:07:00Z',
+            createdById: 'usr_manager',
+            createdByName: 'Manager',
+            text: 'Keep them informed until dispatch confirms the updated ETA.',
+          }),
+        ],
+        {
+          totalMessagesCount: 2,
+          lastMessageSeq: 2,
+          hasMore: false,
+          nextBeforeMessageSeq: null,
+        },
+      ),
+    },
+    case_resolving: {
+      initial: createPaginatedCaseDetail(
+        'case_resolving',
+        'resolving',
+        'Upholstery fix',
+        [
+          createCaseMessage({
+            caseId: 'case_resolving',
+            sequence: 1,
+            createdAt: '2026-05-23T10:00:00Z',
+            createdById: 'usr_3',
+            createdByName: 'Carla Reed',
+            text: 'The upholstery repair is in its final review stage.',
+          }),
+          createCaseMessage({
+            caseId: 'case_resolving',
+            sequence: 2,
+            createdAt: '2026-05-23T10:12:00Z',
+            createdById: 'usr_manager',
+            createdByName: 'Manager',
+            text: 'Once QA signs off, we can move this case to resolved.',
+          }),
+          createCaseMessage({
+            caseId: 'case_resolving',
+            sequence: 3,
+            createdAt: '2026-05-24T10:25:00Z',
+            createdById: 'usr_3',
+            createdByName: 'Carla Reed',
+            text: 'QA requested one more photo of the stitched seam.',
+          }),
+          createCaseMessage({
+            caseId: 'case_resolving',
+            sequence: 4,
+            createdAt: '2026-05-24T10:33:00Z',
+            createdById: 'usr_manager',
+            createdByName: 'Manager',
+            text: 'Send it and then we can close the loop.',
+          }),
+        ],
+        {
+          totalMessagesCount: 4,
+          lastMessageSeq: 4,
+          hasMore: false,
+          nextBeforeMessageSeq: null,
+        },
+      ),
+    },
   };
   const caseLinks = {
     case_new_open: [
@@ -347,7 +667,15 @@ async function installCasesMocks(
       'new_state' in body &&
       typeof body.new_state === 'string'
     ) {
-      caseDetails[caseId].case.state = body.new_state as 'open' | 'resolving' | 'resolved';
+      caseDetails[caseId].initial.case.state = body.new_state as 'open' | 'resolving' | 'resolved';
+
+      if ('older_6' in caseDetails[caseId]) {
+        caseDetails[caseId].older_6.case.state = body.new_state as
+          | 'open'
+          | 'resolving'
+          | 'resolved';
+      }
+
       const listItem = cases.find((item) => item.client_id === caseId);
       if (listItem) {
         listItem.state = body.new_state as 'open' | 'resolving' | 'resolved';
@@ -361,14 +689,32 @@ async function installCasesMocks(
         ok: true,
         warnings: [],
         data: {
-          case: caseDetails[caseId].case,
+          case: caseDetails[caseId].initial.case,
         },
       }),
     });
   });
 
   await page.route('**/api/v1/cases/*', async (route) => {
-    const caseId = new URL(route.request().url()).pathname.split('/').at(-1) as keyof typeof caseDetails;
+    const url = new URL(route.request().url());
+    const caseId = url.pathname.split('/').at(-1) as keyof typeof caseDetails;
+    const beforeMessageSeqParam = url.searchParams.get('before_message_seq');
+    const beforeMessageSeq = beforeMessageSeqParam ? Number(beforeMessageSeqParam) : null;
+
+    options?.onCaseDetailRequest?.({
+      caseId,
+      beforeMessageSeq,
+      url: route.request().url(),
+    });
+
+    if (beforeMessageSeq && options?.olderPageResponseDelayMs) {
+      await page.waitForTimeout(options.olderPageResponseDelayMs);
+    }
+
+    const detailPage =
+      beforeMessageSeq === 6 && 'older_6' in caseDetails[caseId]
+        ? caseDetails[caseId].older_6
+        : caseDetails[caseId].initial;
 
     await route.fulfill({
       status: 200,
@@ -376,7 +722,7 @@ async function installCasesMocks(
       body: JSON.stringify({
         ok: true,
         warnings: [],
-        data: caseDetails[caseId],
+        data: detailPage,
       }),
     });
   });
@@ -466,6 +812,8 @@ test.describe('cases page', () => {
 
     await expect(page.getByTestId('case-conversation-header')).toBeVisible();
     await expect(page.getByTestId('case-conversation-context-banner')).toBeVisible();
+    await expect(page.getByTestId('case-message-list')).toBeVisible();
+    await expect(page.getByTestId('case-message-row-ccm_case_new_open_13')).toBeVisible();
     await expect(page.getByTestId('case-conversation-context-banner')).toHaveAttribute(
       'data-collapsed',
       'false',
@@ -475,6 +823,82 @@ test.describe('cases page', () => {
     await expect(page.getByTestId('case-conversation-subtitle')).toHaveText('Return • After purchase');
     await expect(page.getByTestId('case-conversation-info-button')).toBeEnabled();
     await expect(page.getByTestId('case-conversation-state-button')).toHaveText('Process');
+  });
+
+  test('renders message separators, own and other bubbles, avatars, and deleted placeholders', async ({
+    page,
+  }) => {
+    await installMockAuth(page);
+    await installCasesMocks(page);
+
+    await page.goto('/cases');
+    await openCase(page, 'case_new_open');
+
+    await expect(page.getByTestId('case-message-date-separator-2026-05-26')).toBeVisible();
+    await page.getByTestId('case-conversation-scroll-container').evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect(page.getByTestId('case-message-date-separator-2026-05-25')).toBeVisible();
+    await expect(page.getByTestId('case-message-row-ccm_case_new_open_7')).toHaveAttribute(
+      'data-own-message',
+      'true',
+    );
+    await expect(page.getByTestId('case-message-row-ccm_case_new_open_8')).toHaveAttribute(
+      'data-own-message',
+      'false',
+    );
+    await expect(page.getByTestId('case-message-avatar-ccm_case_new_open_8')).toBeVisible();
+    await expect(
+      page.getByTestId('case-message-deleted-placeholder-ccm_case_new_open_9'),
+    ).toBeVisible();
+  });
+
+  test('scrolling to the top loads older messages and preserves the visible anchor', async ({
+    page,
+  }) => {
+    const detailRequests: Array<{ caseId: string; beforeMessageSeq: number | null; url: string }> = [];
+
+    await installMockAuth(page);
+    await installCasesMocks(page, {
+      onCaseDetailRequest: (payload) => {
+        detailRequests.push(payload);
+      },
+      olderPageResponseDelayMs: 250,
+    });
+
+    await page.goto('/cases');
+    await openCase(page, 'case_new_open');
+
+    const scrollContainer = page.getByTestId('case-conversation-scroll-container');
+    const anchor = page.getByTestId('case-message-row-ccm_case_new_open_8');
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 4;
+    });
+
+    await expect(anchor).toHaveCount(1);
+    const anchorBefore = await anchor.evaluate((element) => element.getBoundingClientRect().top);
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+
+    await expect(page.getByTestId('case-message-row-ccm_case_new_open_2')).toBeVisible({
+      timeout: 1500,
+    });
+
+    await expect(anchor).toHaveCount(1);
+    const anchorAfter = await anchor.evaluate((element) => element.getBoundingClientRect().top);
+
+    expect(detailRequests.some((request) => request.caseId === 'case_new_open')).toBe(true);
+    expect(
+      detailRequests.some(
+        (request) =>
+          request.caseId === 'case_new_open' && request.beforeMessageSeq === 6,
+      ),
+    ).toBe(true);
+
+    expect(Math.abs(anchorAfter - anchorBefore)).toBeLessThan(100);
   });
 
   test('context banner collapses on upward scroll and restores on downward scroll', async ({
@@ -489,18 +913,17 @@ test.describe('cases page', () => {
     const header = page.getByTestId('case-conversation-header');
     const banner = page.getByTestId('case-conversation-context-banner');
     const scrollContainer = page.getByTestId('case-conversation-scroll-container');
-
     await expect(banner).toHaveAttribute('data-collapsed', 'false');
 
     await scrollContainer.evaluate((element) => {
-      element.scrollTop = 80;
+      element.scrollTop = 0;
     });
 
     await expect(banner).toHaveAttribute('data-collapsed', 'true', { timeout: 1000 });
     await expect(header).toBeVisible();
 
     await scrollContainer.evaluate((element) => {
-      element.scrollTop = 0;
+      element.scrollTop = element.scrollHeight;
     });
 
     await expect(banner).toHaveAttribute('data-collapsed', 'false', { timeout: 1000 });
