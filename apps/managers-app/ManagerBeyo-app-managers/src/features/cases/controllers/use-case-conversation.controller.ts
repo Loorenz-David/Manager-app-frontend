@@ -6,6 +6,8 @@ import { useSurface } from '@/hooks/use-surface';
 import { selectUser, useAuthStore } from '@/store/auth.store';
 import type { CaseId, UserId } from '@/types/common';
 
+import { useMarkCaseRead } from '../actions/use-mark-case-read';
+import { useCaseParticipantsQuery } from '../api/use-case-participants';
 import { useUpdateCaseState } from '../actions/use-update-case-state';
 import { useCaseLinksQuery } from '../api/use-case-links';
 import { useGetCaseQuery } from '../api/use-get-case';
@@ -13,7 +15,7 @@ import {
   CASE_CONVERSATION_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from '../surfaces';
-import type { CaseDetailBase, CaseDetailRaw, CaseLink } from '../types';
+import type { CaseDetailBase, CaseDetailRaw, CaseLink, CaseParticipant } from '../types';
 
 type CaseState = CaseDetailBase['state'];
 
@@ -27,8 +29,10 @@ const SCROLL_DIRECTION_THRESHOLD = 6;
 
 export type CaseConversationController = {
   caseDetail: CaseDetailRaw | undefined;
+  currentParticipant: CaseParticipant | null;
   taskDetail: ReturnType<typeof useGetTaskQuery>['data'];
   currentUserId: UserId | null;
+  lastReadMessageSeq: number | null;
   taskClientId: string | null;
   primaryLabel: string;
   subtitle: string;
@@ -45,6 +49,7 @@ export type CaseConversationController = {
   closeConversation: () => void;
   openInfo: () => void;
   advanceState: () => Promise<void>;
+  requestMarkRead: (upToMessageSeq: number) => Promise<void>;
   refetch: () => Promise<void>;
 };
 
@@ -81,14 +86,25 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
   const [isContextBannerCollapsed, setIsContextBannerCollapsed] = useState(false);
   const lastBodyScrollTopRef = useRef(0);
+  const lastRequestedReadSeqRef = useRef(0);
+  const lastAcknowledgedReadSeqRef = useRef(0);
 
   const caseQuery = useGetCaseQuery(caseClientId, { messages_limit: 10 });
+  const participantsQuery = useCaseParticipantsQuery(caseClientId);
   const linksQuery = useCaseLinksQuery(caseClientId);
   const taskLink = useMemo(() => resolveTaskLink(linksQuery.data), [linksQuery.data]);
   const taskClientId = taskLink?.entity_client_id ?? null;
   const taskQuery = useGetTaskQuery(taskClientId);
 
+  const markCaseReadMutation = useMarkCaseRead();
   const stateMutation = useUpdateCaseState(caseClientId);
+  const currentParticipant =
+    participantsQuery.data?.find((participant) => participant.user_id === currentUserId) ?? null;
+  const lastReadMessageSeq = currentParticipant?.last_read_message_seq ?? null;
+
+  if ((lastReadMessageSeq ?? 0) > lastAcknowledgedReadSeqRef.current) {
+    lastAcknowledgedReadSeqRef.current = lastReadMessageSeq ?? 0;
+  }
 
   const transition = getStateTransition(caseQuery.data?.case.state);
   const closeConversation = () => surface.close(CASE_CONVERSATION_SURFACE_ID);
@@ -132,8 +148,10 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
 
   return {
     caseDetail: caseQuery.data,
+    currentParticipant,
     taskDetail: taskQuery.data,
     currentUserId,
+    lastReadMessageSeq,
     taskClientId,
     primaryLabel,
     subtitle,
@@ -146,6 +164,7 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
     isAdvancingState: stateMutation.isPending,
     isError:
       caseQuery.isError ||
+      participantsQuery.isError ||
       linksQuery.isError ||
       (Boolean(taskClientId) && taskQuery.isError),
     setBodyScrollTop,
@@ -169,9 +188,42 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
       await stateMutation.updateCaseStateAsync({ new_state: transition.nextState });
       closeConversation();
     },
+    requestMarkRead: async (upToMessageSeq: number) => {
+      if (!currentParticipant || upToMessageSeq <= 0) {
+        return;
+      }
+
+      const readSequenceFloor = Math.max(
+        lastRequestedReadSeqRef.current,
+        lastAcknowledgedReadSeqRef.current,
+        lastReadMessageSeq ?? 0,
+      );
+
+      if (upToMessageSeq <= readSequenceFloor) {
+        return;
+      }
+
+      lastRequestedReadSeqRef.current = upToMessageSeq;
+
+      try {
+        const acknowledgedReadSeq = await markCaseReadMutation.markCaseReadAsync({
+          caseClientId,
+          caseParticipantClientId: currentParticipant.client_id,
+          upToMessageSeq,
+        });
+
+        lastAcknowledgedReadSeqRef.current = Math.max(
+          lastAcknowledgedReadSeqRef.current,
+          acknowledgedReadSeq,
+        );
+      } catch {
+        lastRequestedReadSeqRef.current = lastAcknowledgedReadSeqRef.current;
+      }
+    },
     refetch: async () => {
       await Promise.allSettled([
         caseQuery.refetch(),
+        participantsQuery.refetch(),
         linksQuery.refetch(),
         taskClientId ? taskQuery.refetch() : Promise.resolve(null),
       ]);

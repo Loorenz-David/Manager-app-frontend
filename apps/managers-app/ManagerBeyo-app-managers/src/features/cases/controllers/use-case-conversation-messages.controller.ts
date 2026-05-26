@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { selectUser, useAuthStore } from '@/store/auth.store';
 import type { CaseId } from '@/types/common';
@@ -38,7 +38,9 @@ export type CaseConversationMessagesController = {
 
 type UseCaseConversationMessagesControllerArgs = {
   caseClientId: CaseId;
+  lastReadMessageSeq?: number | null;
   onListScrollTopChange?: (scrollTop: number) => void;
+  requestMarkRead?: (upToMessageSeq: number) => Promise<void>;
 };
 
 function getLocalDateKey(date: Date): string {
@@ -110,12 +112,17 @@ function toRenderItems(
   return items;
 }
 
+const LATEST_MESSAGE_VISIBLE_DISTANCE_THRESHOLD = 160;
+
 export function useCaseConversationMessagesController({
   caseClientId,
+  lastReadMessageSeq,
   onListScrollTopChange,
+  requestMarkRead,
 }: UseCaseConversationMessagesControllerArgs): CaseConversationMessagesController {
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
   const [scrollToBottomRequestVersion, setScrollToBottomRequestVersion] = useState(0);
+  const [distanceFromBottom, setDistanceFromBottom] = useState<number | null>(null);
   const query = useCaseConversationMessagesQuery(caseClientId, {
     messagesLimit: CASE_CONVERSATION_MESSAGES_PAGE_SIZE,
   });
@@ -126,6 +133,31 @@ export function useCaseConversationMessagesController({
   );
 
   const items = useMemo(() => toRenderItems(messages, currentUserId), [messages, currentUserId]);
+  const latestMessageItem = useMemo(() => {
+    for (let index = items.length - 1; index >= 0; index -= 1) {
+      const item = items[index];
+
+      if (item?.kind === 'message') {
+        return {
+          messageSeq: item.message.message_seq,
+        };
+      }
+    }
+
+    return null;
+  }, [items]);
+  const isLatestMessageVisible =
+    latestMessageItem !== null &&
+    distanceFromBottom !== null &&
+    distanceFromBottom <= LATEST_MESSAGE_VISIBLE_DISTANCE_THRESHOLD;
+
+  useEffect(() => {
+    if (!requestMarkRead || !isLatestMessageVisible || latestMessageItem === null) {
+      return;
+    }
+
+    void requestMarkRead(latestMessageItem.messageSeq);
+  }, [isLatestMessageVisible, lastReadMessageSeq, latestMessageItem, requestMarkRead]);
 
   return {
     items,
@@ -144,6 +176,7 @@ export function useCaseConversationMessagesController({
       setScrollToBottomRequestVersion((value) => value + 1);
     },
     handleListScroll: (scrollTop: number) => {
+      setDistanceFromBottom(scrollTop);
       onListScrollTopChange?.(scrollTop);
     },
     retry: async () => {

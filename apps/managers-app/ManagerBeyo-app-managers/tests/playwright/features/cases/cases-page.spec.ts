@@ -354,11 +354,22 @@ async function installCasesMocks(
       beforeMessageSeq: number | null;
       url: string;
     }) => void;
+    onMarkReadRequest?: (payload: {
+      body: {
+        case_participant_client_id: string;
+        up_to_message_seq: number;
+      };
+    }) => void;
     olderPageResponseDelayMs?: number;
   },
 ) {
   const now = Date.now();
   const cases = createCasesList(now);
+  const unreadCounts: Record<string, number> = {
+    case_new_open: 3,
+    case_active_open: 0,
+    case_resolving: 1,
+  };
   const caseNewOpenLatestMessages = [
     createCaseMessage({
       caseId: 'case_new_open',
@@ -635,6 +646,55 @@ async function installCasesMocks(
     task_2: createTaskDetail('task_2', 'ART-DETAIL-002', 'internal', 'store_return'),
     task_3: createTaskDetail('task_3', 'ART-DETAIL-003', 'pre_order', 'before_purchase'),
   };
+  const caseParticipants = {
+    case_new_open: [
+      {
+        client_id: 'cpt_case_new_open_manager',
+        user_id: 'usr_manager',
+        last_read_message_seq: 12,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+      {
+        client_id: 'cpt_case_new_open_bob',
+        user_id: 'usr_2',
+        last_read_message_seq: 15,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+    ],
+    case_active_open: [
+      {
+        client_id: 'cpt_case_active_open_manager',
+        user_id: 'usr_manager',
+        last_read_message_seq: 2,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+      {
+        client_id: 'cpt_case_active_open_bob',
+        user_id: 'usr_2',
+        last_read_message_seq: 2,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+    ],
+    case_resolving: [
+      {
+        client_id: 'cpt_case_resolving_manager',
+        user_id: 'usr_manager',
+        last_read_message_seq: 3,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+      {
+        client_id: 'cpt_case_resolving_carla',
+        user_id: 'usr_3',
+        last_read_message_seq: 4,
+        joined_at: '2026-05-26T07:00:00Z',
+      },
+    ],
+  };
+  const participantToCaseId = Object.fromEntries(
+    Object.entries(caseParticipants).flatMap(([caseId, participants]) =>
+      participants.map((participant) => [participant.client_id, caseId]),
+    ),
+  );
 
   await page.route('**/api/v1/cases/*/links', async (route) => {
     const caseId = new URL(route.request().url()).pathname.split('/').at(-2) as keyof typeof caseLinks;
@@ -695,6 +755,61 @@ async function installCasesMocks(
     });
   });
 
+  await page.route('**/api/v1/cases/*/participants', async (route) => {
+    const caseId = new URL(route.request().url()).pathname.split('/').at(-2) as keyof typeof caseParticipants;
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        warnings: [],
+        data: {
+          participants: caseParticipants[caseId] ?? [],
+        },
+      }),
+    });
+  });
+
+  await page.route('**/api/v1/cases/messages/mark-read', async (route) => {
+    const body = route.request().postDataJSON() as {
+      case_participant_client_id: string;
+      up_to_message_seq: number;
+    };
+    const caseId = participantToCaseId[body.case_participant_client_id] as keyof typeof caseDetails;
+    const participants = caseParticipants[caseId] ?? [];
+    const participant = participants.find(
+      (entry) => entry.client_id === body.case_participant_client_id,
+    );
+
+    options?.onMarkReadRequest?.({ body });
+
+    if (participant) {
+      participant.last_read_message_seq = Math.max(
+        participant.last_read_message_seq,
+        body.up_to_message_seq,
+      );
+
+      unreadCounts[caseId] = Math.max(
+        0,
+        (caseDetails[caseId].initial.case.conversation_last_message_seq ?? 0) -
+          participant.last_read_message_seq,
+      );
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: true,
+        warnings: [],
+        data: {
+          last_read_message_seq: participant?.last_read_message_seq ?? body.up_to_message_seq,
+        },
+      }),
+    });
+  });
+
   await page.route('**/api/v1/cases/*', async (route) => {
     const url = new URL(route.request().url());
     const caseId = url.pathname.split('/').at(-1) as keyof typeof caseDetails;
@@ -749,11 +864,7 @@ async function installCasesMocks(
         ok: true,
         warnings: [],
         data: {
-          case_unread_counts: {
-            case_new_open: 3,
-            case_active_open: 0,
-            case_resolving: 1,
-          },
+          case_unread_counts: unreadCounts,
         },
       }),
     });
@@ -939,6 +1050,52 @@ test.describe('cases page', () => {
 
     await page.getByTestId('case-conversation-back-button').click();
     await expect(page.getByTestId('case-conversation-slide')).not.toBeVisible();
+  });
+
+  test('opening a conversation marks the latest visible message as read and clears the cases unread badge without duplicate calls', async ({
+    page,
+  }) => {
+    const markReadRequests: Array<{
+      case_participant_client_id: string;
+      up_to_message_seq: number;
+    }> = [];
+
+    await installMockAuth(page);
+    await installCasesMocks(page, {
+      onMarkReadRequest: ({ body }) => {
+        markReadRequests.push(body);
+      },
+    });
+
+    await page.goto('/cases');
+    await expect(page.getByTestId('case-card-unread-case_new_open')).toHaveText('3');
+
+    await openCase(page, 'case_new_open');
+
+    await expect.poll(() => markReadRequests).toEqual([
+      {
+        case_participant_client_id: 'cpt_case_new_open_manager',
+        up_to_message_seq: 15,
+      },
+    ]);
+
+    const scrollContainer = page.getByTestId('case-conversation-scroll-container');
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+    await expect(page.getByTestId('case-message-row-ccm_case_new_open_6')).toBeVisible();
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = element.scrollHeight;
+    });
+
+    await page.waitForTimeout(250);
+    await expect(markReadRequests).toHaveLength(1);
+
+    await page.getByTestId('case-conversation-back-button').click();
+    await expect(page.getByTestId('case-conversation-slide')).not.toBeVisible();
+    await expect(page.getByTestId('case-card-unread-case_new_open')).toHaveCount(0);
   });
 
   test('info button opens the task info sheet and the task detail slide', async ({ page }) => {

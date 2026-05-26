@@ -26,7 +26,9 @@ export function CaseConversationProvider({
   const controller = useCaseConversationController(caseClientId);
   const messagesController = useCaseConversationMessagesController({
     caseClientId,
+    lastReadMessageSeq: controller.lastReadMessageSeq,
     onListScrollTopChange: controller.setBodyScrollTop,
+    requestMarkRead: controller.requestMarkRead,
   });
 
   return (

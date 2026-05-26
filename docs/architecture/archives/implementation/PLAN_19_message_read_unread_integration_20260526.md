@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_19_message_read_unread_integration_20260526`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-26T00:00:00Z`
-- Last updated at (UTC): `2026-05-26T00:00:00Z`
+- Last updated at (UTC): `2026-05-26T09:08:22Z`
 - Related issue/ticket: `-`
 - Intention plan: `docs/architecture/under_construction/intention/intention_of_cases.md`
 
@@ -126,9 +126,16 @@ Permitted relational reads:
    - Keep this logic tolerant of empty conversations.
 
 5. Send-flow integration
-   - PLAN_20 must call `requestMarkRead(createdMessage.message_seq)` after successful send.
-   - Document this dependency in both plans so the implementing agent does not forget the cross-step connection.
+   - `useCaseConversationController` now exposes `requestMarkRead(upToMessageSeq)` for this purpose.
+   - PLAN_20 must call `requestMarkRead(createdMessage.message_seq)` after successful send so locally authored messages also advance the backend read position.
+   - This dependency is mirrored in PLAN_20.
 
 6. Cases page invalidation
    - Ensure all read-position successes invalidate `caseKeys.unreadCounts()`.
    - If the cases page caches unread badges separately inside controller state, remove that duplication and rely on TanStack Query.
+
+## Lifecycle transition
+
+- Current state: `archived`
+- Next state: `none`
+- Transition owner: `codex`

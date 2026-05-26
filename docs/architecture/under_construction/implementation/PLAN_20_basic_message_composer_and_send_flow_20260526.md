@@ -127,7 +127,7 @@ Permitted relational reads:
    - On success:
      - clear draft
      - call message-controller `scrollToBottom()`
-     - trigger PLAN_19 `requestMarkRead(createdMessage.message_seq)` when that plan exists
+     - call PLAN_19's already-implemented `requestMarkRead(createdMessage.message_seq)` from `useCaseConversationController`
    - On failure:
      - preserve the draft text
      - expose retry by allowing `sendDraft` to be called again with unchanged draft
