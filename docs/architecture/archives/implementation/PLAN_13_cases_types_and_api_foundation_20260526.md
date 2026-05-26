@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_13_cases_types_and_api_foundation_20260526`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-26T00:00:00Z`
-- Last updated at (UTC): `2026-05-26T00:00:00Z`
+- Last updated at (UTC): `2026-05-26T07:19:39Z`
 - Related issue/ticket: `—`
 - Intention plan: `docs/architecture/under_construction/intention/intention_of_cases.md`
 
@@ -731,10 +731,10 @@ export {
 
 ## Review log
 
-_(none yet)_
+- `2026-05-26T07:19:39Z` `codex`: Replaced the stub cases type layer, added the planned cases API modules and cache keys, updated public exports, and passed `npm run typecheck`.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `david`
+- Current state: `archived`
+- Next state: `—`
+- Transition owner: `codex`

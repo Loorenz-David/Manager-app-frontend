@@ -17,6 +17,7 @@ export type ItemUpholsteryId = Branded<string, 'ItemUpholsteryId'>;
 export type CustomerId = Branded<string, 'CustomerId'>;
 export type CaseId = Branded<string, 'CaseId'>;
 export type CaseConversationId = Branded<string, 'CaseConversationId'>;
+export type CaseConversationMessageId = Branded<string, 'CaseConversationMessageId'>;
 export type CaseParticipantId = Branded<string, 'CaseParticipantId'>;
 export type CaseLinkId = Branded<string, 'CaseLinkId'>;
 export type WorkingSectionId = Branded<string, 'WorkingSectionId'>;

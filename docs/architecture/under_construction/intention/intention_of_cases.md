@@ -624,3 +624,11 @@ Avoid introducing:
 
 The first version should prioritize a stable, well-architected foundation that can grow into richer chat behavior.
 ```
+
+## Linked implementation plans
+
+- `docs/architecture/archives/implementation/PLAN_13_cases_types_and_api_foundation_20260526.md` — archived, implemented the cases typed foundation and API layer.
+
+## Progress notes
+
+- `2026-05-26T07:19:39Z` `codex`: Implemented the cases typed foundations, added the planned API modules and query keys, passed `npm run typecheck`, and archived the implementation plan.
