@@ -31,6 +31,7 @@ import {
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from "../surfaces";
+import { ENABLE_TYPING_STUB } from "../lib/typing-indicator-flags";
 import { getCaseTypeName } from "../types";
 import type {
   CaseConversationMessageRaw,
@@ -71,6 +72,7 @@ export type CaseConversationController = {
   stateActionLabel: string | null;
   nextState: CaseState | null;
   isContextBannerCollapsed: boolean;
+  typingIndicatorText: string | null;
   draftText: string;
   editingMessageId: CaseConversationMessageRaw["client_id"] | null;
   editingDraftText: string;
@@ -253,6 +255,10 @@ export function useCaseConversationController(
   }
 
   const transition = getStateTransition(caseQuery.data?.case.state);
+  const typingIndicatorText =
+    ENABLE_TYPING_STUB && caseQuery.data?.case
+      ? "Writing..."
+      : null;
   const closeConversation = () => {
     surface.close(CASE_CONVERSATION_SURFACE_ID);
 
@@ -650,6 +656,7 @@ export function useCaseConversationController(
     stateActionLabel: transition?.label ?? null,
     nextState: transition?.nextState ?? null,
     isContextBannerCollapsed,
+    typingIndicatorText,
     draftText,
     editingMessageId,
     editingDraftText,

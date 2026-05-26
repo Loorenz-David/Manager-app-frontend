@@ -7,6 +7,7 @@ type CasesSectionGroupProps = {
   group: CasesGroup;
   sectionTestId: string;
   unreadCounts: Record<string, number>;
+  typingByCaseId: Record<string, string>;
   onOpenCase: (caseClientId: CaseId) => void;
 };
 
@@ -14,6 +15,7 @@ export function CasesSectionGroup({
   group,
   sectionTestId,
   unreadCounts,
+  typingByCaseId,
   onOpenCase,
 }: CasesSectionGroupProps): React.JSX.Element {
   return (
@@ -34,6 +36,7 @@ export function CasesSectionGroup({
               key={card.client_id}
               card={card}
               unreadCount={unreadCounts[card.client_id] ?? 0}
+              typingText={typingByCaseId[card.client_id] ?? null}
               onOpen={onOpenCase}
             />
           ))}

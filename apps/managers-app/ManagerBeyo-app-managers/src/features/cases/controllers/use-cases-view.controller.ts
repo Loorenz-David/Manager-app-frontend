@@ -5,6 +5,7 @@ import type { CaseId } from "@/types/common";
 
 import { useListCasesQuery } from "../api/use-list-cases";
 import { useUnreadCountsQuery } from "../api/use-unread-counts";
+import { ENABLE_TYPING_STUB } from "../lib/typing-indicator-flags";
 import { CASE_CONVERSATION_SURFACE_ID } from "../surfaces";
 import {
   getCaseTypeName,
@@ -51,6 +52,7 @@ export type CasesViewController = {
   setSearchQuery: (value: string) => void;
   openCase: (caseClientId: CaseId) => void;
   unreadCounts: Record<string, number>;
+  typingByCaseId: Record<string, string>;
 };
 
 export function useCasesViewController(): CasesViewController {
@@ -106,6 +108,23 @@ export function useCasesViewController(): CasesViewController {
     surface.open(CASE_CONVERSATION_SURFACE_ID, { caseClientId });
   }
 
+  const typingByCaseId = useMemo<Record<string, string>>(() => {
+    if (!ENABLE_TYPING_STUB) {
+      return {};
+    }
+
+    // Temporary local stub until realtime presence/typing signals are connected.
+    const firstOpenCase = filteredCases.find((card) => card.state === "open");
+
+    if (!firstOpenCase) {
+      return {};
+    }
+
+    return {
+      [firstOpenCase.client_id]: "Writing",
+    };
+  }, [filteredCases]);
+
   return {
     newGroup: {
       label: "New",
@@ -127,5 +146,6 @@ export function useCasesViewController(): CasesViewController {
     setSearchQuery,
     openCase,
     unreadCounts: unreadCountsQuery.data ?? {},
+    typingByCaseId,
   };
 }

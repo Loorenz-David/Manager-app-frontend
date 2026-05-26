@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { m } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
 import type { CaseId } from "@/types/common";
@@ -74,12 +75,14 @@ function getItemLabel(card: CaseListCardViewModel): string | null {
 type CaseCardProps = {
   card: CaseListCardViewModel;
   unreadCount: number;
+  typingText: string | null;
   onOpen: (caseClientId: CaseId) => void;
 };
 
 export const CaseCard = memo(function CaseCard({
   card,
   unreadCount,
+  typingText,
   onOpen,
 }: CaseCardProps): React.JSX.Element {
   const itemLabel = getItemLabel(card);
@@ -123,8 +126,34 @@ export const CaseCard = memo(function CaseCard({
         </div>
 
         <div className="mt-1 min-w-0 text-sm text-muted-foreground">
-          <span className="truncate">{card.created_by.username}</span>
-          {itemLabel ? <span>{` • ${itemLabel}`}</span> : null}
+          {typingText ? (
+            <div
+              className="flex items-center gap-1.5 text-xs font-medium text-primary"
+              data-testid={`case-card-typing-${card.client_id}`}
+            >
+              <span>{typingText}</span>
+              <div className="flex items-end gap-1">
+                {[0, 1, 2].map((index) => (
+                  <m.span
+                    key={index}
+                    animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                    className="size-1.5 rounded-full bg-primary"
+                    transition={{
+                      delay: index * 0.12,
+                      duration: 0.75,
+                      ease: "easeInOut",
+                      repeat: Infinity,
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <span className="truncate">{card.created_by.username}</span>
+              {itemLabel ? <span>{` • ${itemLabel}`}</span> : null}
+            </>
+          )}
         </div>
       </div>
 

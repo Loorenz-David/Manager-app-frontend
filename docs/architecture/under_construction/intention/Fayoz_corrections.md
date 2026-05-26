@@ -1,3 +1,5 @@
+---
+
 0.25 = seat down
 0.50 = seat and backrest.
 this buttons interact with the value comming from item.quanity . so tapping 0.25 does: quantity \* 0.25 . same for 0.50. this button tapping is idepondent.
@@ -26,7 +28,22 @@ designer field ( ItemDesignerField ) is removed enterily, it will no longer be p
 
 ---
 
-working section attachement of user is removed.
+working section attachement of user is removed
+
+when selectiong a working section as assignment for a task, currently it dispalys a bottom sheet where the user can select between the workers belonging to the workign section. we will remove this interaction ( we can muted and place a comment ). so at the moment tapping a workign section on selection selectes or unselects the task directly, no user will be assigned to a working section, nor it will be send on request payload.
+the working section box will now interact directly from the tap, meaning the x icon for deselecting is no longer need it.
+
+the fields where this change will be taken place is:
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/components/fields/WorkingSectionPickerField.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/components/fields/OilingTreatmentPickerField.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/components/fields/NeedsCleaningPickerField.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TaskWorkingSectionsStepList.tsx
+
+---
 
 working sections has short cuts for selction at the bottom. max two names and convinations.
 

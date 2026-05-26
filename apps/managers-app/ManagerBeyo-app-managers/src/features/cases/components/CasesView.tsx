@@ -85,18 +85,21 @@ export function CasesView(): React.JSX.Element {
             group={controller.newGroup}
             sectionTestId="cases-section-new"
             unreadCounts={controller.unreadCounts}
+            typingByCaseId={controller.typingByCaseId}
             onOpenCase={controller.openCase}
           />
           <CasesSectionGroup
             group={controller.activeGroup}
             sectionTestId="cases-section-active"
             unreadCounts={controller.unreadCounts}
+            typingByCaseId={controller.typingByCaseId}
             onOpenCase={controller.openCase}
           />
           <CasesSectionGroup
             group={controller.resolvingGroup}
             sectionTestId="cases-section-resolving"
             unreadCounts={controller.unreadCounts}
+            typingByCaseId={controller.typingByCaseId}
             onOpenCase={controller.openCase}
           />
         </div>

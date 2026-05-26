@@ -1,6 +1,7 @@
 import TextareaAutosize from "react-textarea-autosize";
 import { Plus, SendHorizontal } from "lucide-react";
 import { useEffect, useState } from "react";
+import { m } from "framer-motion";
 
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 
@@ -38,6 +39,30 @@ export function CaseBasicComposer(): React.JSX.Element {
       />
 
       <div className="pointer-events-auto relative z-10 px-4 pb-[calc(var(--safe-bottom,0)+0.8rem)] pt-2">
+        {controller.typingIndicatorText ? (
+          <div
+            className="mb-2 flex items-center gap-1.5 pl-3 text-xs font-medium text-primary"
+            data-testid="case-conversation-typing-indicator"
+          >
+            <span>{controller.typingIndicatorText}</span>
+            <div className="flex items-end gap-1">
+              {[0, 1, 2].map((index) => (
+                <m.span
+                  key={index}
+                  animate={{ opacity: [0.35, 1, 0.35], y: [0, -2, 0] }}
+                  className="size-1.5 rounded-full bg-primary"
+                  transition={{
+                    delay: index * 0.12,
+                    duration: 0.75,
+                    ease: "easeInOut",
+                    repeat: Infinity,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        ) : null}
+
         {isEditing ? (
           <div
             className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5 text-sm text-foreground"
