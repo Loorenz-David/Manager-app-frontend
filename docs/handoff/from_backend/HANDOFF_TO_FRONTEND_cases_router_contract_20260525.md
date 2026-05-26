@@ -13,7 +13,7 @@
 - What backend implemented:
   - A full cases API surface under `/api/v1/cases` for case creation, listing, linking entities, participant management, conversations, messages, and unread tracking.
 - API or contract changes:
-  - `GET /api/v1/cases` now returns the enriched list-card payload (`created_by`, `entity_type`, `last_message_seq`, optional nested `task.item.item_image`).
+  - `GET /api/v1/cases` now returns the enriched list-card payload (`case_type`, `created_by`, `entity_type`, `last_message_seq`, optional nested `task.item.item_image`).
   - `GET /api/v1/cases/{case_client_id}` now supports `before_message_seq` and `messages_limit` and returns paginated `case_conversation_messages` with `created_by`, `images`, and `mentions`.
   - `GET /api/v1/cases/{case_client_id}` returns `case.mentions` as a de-duplicated mention list resolved from mention links.
 - Feature flags/toggles (if any):
@@ -275,7 +275,7 @@ Validation rules enforced by backend:
   - `offset` optional, default `0`
   - `limit` optional, default `50`
 - Search behavior for `q`:
-  - Matches `case.type_label`.
+  - Matches the case's stored type label value.
   - Matches `case conversation message.plain_text`.
   - For links where `entity_type = task`, also matches related task item `article_number` and `sku`.
 - Success response:
@@ -290,8 +290,11 @@ Validation rules enforced by backend:
         "client_id": "ca_...",
         "created_at": "2026-05-25T17:40:10.123456+00:00",
         "state": "open",
-        "case_type_id": "cat_...",
-        "type_label": "Customer return",
+        "case_type_id": "cty_...",
+        "case_type": {
+          "name": "Customer return",
+          "image": "https://cdn.example.com/case-types/customer-return.webp"
+        },
         "participant_count": 2,
         "messages_count": 4,
         "created_by": {

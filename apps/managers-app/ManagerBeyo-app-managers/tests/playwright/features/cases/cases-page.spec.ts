@@ -242,7 +242,7 @@ function createCaseMessage(params: {
             link: null,
           },
         ],
-    plain_text: params.deleted ? "" : params.plainText ?? params.text,
+    plain_text: params.deleted ? "" : (params.plainText ?? params.text),
     has_been_edited: false,
     has_been_deleted: Boolean(params.deleted),
     updated_at: null,
@@ -1221,7 +1221,9 @@ test.describe("cases page", () => {
     ).toBeVisible();
     await expect(
       page.getByTestId("case-message-bubble-ccm_case_new_open_8"),
-    ).toContainText("The outer box is torn and the chair leg has visible scratches.");
+    ).toContainText(
+      "The outer box is torn and the chair leg has visible scratches.",
+    );
     await expect(
       page.getByTestId("case-message-deleted-placeholder-ccm_case_new_open_9"),
     ).toBeVisible();
@@ -1344,6 +1346,28 @@ test.describe("cases page", () => {
     });
     await expect(header).toBeVisible();
 
+    const collapsedSamples: string[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      if (index > 0) {
+        await page.waitForTimeout(60);
+      }
+
+      collapsedSamples.push(
+        (await banner.getAttribute("data-collapsed")) ?? "",
+      );
+    }
+
+    expect(collapsedSamples).toEqual([
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+    ]);
+
     await scrollContainer.evaluate((element) => {
       element.scrollTop = element.scrollHeight;
     });
@@ -1363,6 +1387,38 @@ test.describe("cases page", () => {
 
     await page.getByTestId("case-conversation-back-button").click();
     await expect(page.getByTestId("case-conversation-slide")).not.toBeVisible();
+  });
+
+  test("closing the conversation does not replay the cases tab animation", async ({
+    page,
+  }) => {
+    await installMockAuth(page);
+    await installCasesMocks(page);
+
+    await page.goto("/cases");
+    await openCase(page, "case_new_open");
+
+    const tabOutlet = page.locator("#main-content > div");
+
+    await page.getByTestId("case-conversation-back-button").click();
+    await expect(page).toHaveURL("/cases");
+    await expect(page.getByTestId("case-conversation-slide")).not.toBeVisible();
+    await expect(page.getByTestId("cases-page")).toBeVisible();
+
+    const transforms: string[] = [];
+    for (let index = 0; index < 5; index += 1) {
+      if (index > 0) {
+        await page.waitForTimeout(50);
+      }
+
+      transforms.push(
+        await tabOutlet.evaluate(
+          (element) => getComputedStyle(element).transform,
+        ),
+      );
+    }
+
+    expect(transforms).toEqual(["none", "none", "none", "none", "none"]);
   });
 
   test("opening a conversation marks the latest visible message as read and clears the cases unread badge without duplicate calls", async ({

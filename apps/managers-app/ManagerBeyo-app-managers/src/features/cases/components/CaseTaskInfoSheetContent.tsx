@@ -2,8 +2,7 @@ import { CaseTaskInfoCard } from "@/features/cases/components/CaseTaskInfoCard";
 import type { GetTaskResult } from "@/features/tasks/api/get-task";
 import { TASK_DETAIL_SURFACE_ID } from "@/features/tasks/surfaces";
 import { useSurface } from "@/hooks/use-surface";
-
-import { CASE_TASK_INFO_SHEET_SURFACE_ID } from "../surfaces";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
 type CaseTaskInfoSheetContentProps = {
   taskId: string;
@@ -21,12 +20,13 @@ export function CaseTaskInfoSheetContent({
   onRetry,
 }: CaseTaskInfoSheetContentProps): React.JSX.Element {
   const surface = useSurface();
+  const header = useSurfaceHeader();
 
   if (isPending && !taskDetail) {
     return (
       <div className="flex flex-col gap-3 p-4">
         <div className="h-5 w-28 animate-pulse rounded-full bg-muted" />
-        <div className="flex gap-3 rounded-[1.5rem] border border-border bg-card p-3">
+        <div className="flex gap-3 rounded-3xl border border-border bg-card p-3">
           <div className="aspect-square w-24 animate-pulse rounded-[1.25rem] bg-muted" />
           <div className="flex flex-1 flex-col gap-3 py-1">
             <div className="h-5 w-32 animate-pulse rounded-full bg-muted" />
@@ -41,7 +41,7 @@ export function CaseTaskInfoSheetContent({
   if (isError || !taskDetail) {
     return (
       <div className="flex flex-col gap-4 p-4">
-        <div className="rounded-[1.5rem] border border-dashed border-border bg-card/70 px-5 py-6 text-center">
+        <div className="rounded-3xl border border-dashed border-border bg-card/70 px-5 py-6 text-center">
           <p className="text-sm font-medium text-foreground">
             Task info could not be loaded.
           </p>
@@ -66,8 +66,8 @@ export function CaseTaskInfoSheetContent({
     <div className="flex flex-col gap-4 p-4">
       <CaseTaskInfoCard
         onOpenTask={() => {
-          surface.close(CASE_TASK_INFO_SHEET_SURFACE_ID);
           surface.open(TASK_DETAIL_SURFACE_ID, { taskId });
+          header?.requestClose();
         }}
         taskDetail={taskDetail}
       />

@@ -58,12 +58,30 @@ export const CaseTaskSnapshotSchema = z.object({
 });
 export type CaseTaskSnapshot = z.infer<typeof CaseTaskSnapshotSchema>;
 
+export const CaseTypeSnapshotSchema = z.object({
+  name: z.string(),
+  image_url: z.string().nullable().optional(),
+  image: z.string().nullable().optional(),
+});
+export type CaseTypeSnapshot = z.infer<typeof CaseTypeSnapshotSchema>;
+
+export function getCaseTypeImageUrl(
+  caseType: CaseTypeSnapshot | null | undefined,
+): string | null {
+  if (!caseType) {
+    return null;
+  }
+
+  return caseType.image_url ?? caseType.image ?? null;
+}
+
 export const CaseListCardRawSchema = z.object({
   client_id: z.string().transform((v) => v as CaseId),
   created_at: z.string().datetime({ offset: true }),
   state: z.enum(CASE_STATE),
   case_type_id: z.string().nullable(),
-  type_label: z.string().nullable(),
+  case_type: CaseTypeSnapshotSchema.nullable().optional(),
+  type_label: z.string().nullable().optional(),
   participant_count: z.number().int(),
   messages_count: z.number().int(),
   created_by: CaseUserSnapshotSchema,
@@ -154,7 +172,8 @@ export type MessagesPagination = z.infer<typeof MessagesPaginationSchema>;
 export const CaseDetailBaseSchema = z.object({
   client_id: z.string().transform((v) => v as CaseId),
   state: z.enum(CASE_STATE),
-  type_label: z.string().nullable(),
+  case_type: CaseTypeSnapshotSchema.nullable().optional(),
+  type_label: z.string().nullable().optional(),
   participants_count: z.number().int(),
   conversations_count: z.number().int(),
   messages_count: z.number().int(),
@@ -250,6 +269,13 @@ export type ListMessagesParams = {
 export type CaseListCardViewModel = CaseListCardRaw & {
   state_label: string;
 };
+
+export function getCaseTypeName(
+  caseType: CaseTypeSnapshot | null | undefined,
+  fallback = "Case",
+): string {
+  return caseType?.name?.trim() || fallback;
+}
 
 export function toCaseListCardViewModel(
   c: CaseListCardRaw,

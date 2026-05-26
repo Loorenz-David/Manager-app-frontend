@@ -3,7 +3,7 @@ import { ChevronRight } from "lucide-react";
 
 import type { CaseId } from "@/types/common";
 
-import type { CaseListCardViewModel } from "../types";
+import { getCaseTypeName, type CaseListCardViewModel } from "../types";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -100,8 +100,7 @@ export const CaseCard = memo(function CaseCard({
             decoding="async"
             draggable={false}
             loading="lazy"
-            // src={profilePicture}
-            src="https://media.licdn.com/dms/image/v2/D4D03AQEJg5oCmelT8g/profile-displayphoto-crop_800_800/B4DZ3TEkuHG8AI-/0/1777362688388?e=1781136000&v=beta&t=9Y9c0Pv_36Ufm7DHqxik1Pqpj3vzRy5cCqnf9xli7rA"
+            src={profilePicture}
           />
         ) : (
           <span>{getInitials(card.created_by.username)}</span>
@@ -111,11 +110,11 @@ export const CaseCard = memo(function CaseCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-            {card.type_label ?? "Case"}
+            {getCaseTypeName(card.case_type, card.type_label ?? "Case")}
           </span>
           {unreadCount > 0 ? (
             <span
-              className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 p-1 text-[11px] font-semibold leading-none text-[color:var(--color-card)]"
+              className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 p-1 text-[11px] font-semibold leading-none text-card"
               data-testid={`case-card-unread-${card.client_id}`}
             >
               {unreadCount}

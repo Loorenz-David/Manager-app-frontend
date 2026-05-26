@@ -1,27 +1,46 @@
-import TextareaAutosize from 'react-textarea-autosize';
+import TextareaAutosize from "react-textarea-autosize";
+import { Plus, SendHorizontal } from "lucide-react";
+import { useEffect, useState } from "react";
 
-import { useCaseConversationContext } from '../../providers/CaseConversationProvider';
+import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 
 export function CaseBasicComposer(): React.JSX.Element {
   const controller = useCaseConversationContext();
+  const [isMultiline, setIsMultiline] = useState(false);
   const isEditing = controller.editingMessageId !== null;
   const trimmedSendDraft = controller.draftText.trim();
   const trimmedEditDraft = controller.editingDraftText.trim();
   const isSendDisabled = trimmedSendDraft.length === 0 || controller.isSending;
-  const isEditDisabled = trimmedEditDraft.length === 0 || controller.isSubmittingEdit;
-  const composerValue = isEditing ? controller.editingDraftText : controller.draftText;
+  const isEditDisabled =
+    trimmedEditDraft.length === 0 || controller.isSubmittingEdit;
+  const composerValue = isEditing
+    ? controller.editingDraftText
+    : controller.draftText;
   const composerError = isEditing ? controller.editError : controller.sendError;
-  const composerPlaceholder = isEditing ? 'Edit your message' : 'Write a message';
+  const composerPlaceholder = isEditing
+    ? "Edit your message"
+    : "Write a message";
+
+  useEffect(() => {
+    if (composerValue.trim().length === 0) {
+      setIsMultiline(false);
+    }
+  }, [composerValue]);
 
   return (
     <div
-      className="absolute inset-x-0 bottom-0 z-20 bg-background shadow-[0_-1px_0_0_var(--color-border)]"
+      className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
       data-testid="case-composer"
     >
-      <div className="px-4 pb-[calc(var(--safe-bottom,0px)+1rem)] pt-3">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 h-[calc(var(--safe-bottom,0)+3.4rem)] bg-background"
+      />
+
+      <div className="pointer-events-auto relative z-10 px-4 pb-[calc(var(--safe-bottom,0)+0.8rem)] pt-2">
         {isEditing ? (
           <div
-            className="mb-3 flex items-center justify-between gap-3 rounded-[1.25rem] border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground"
+            className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5 text-sm text-foreground"
             data-testid="case-composer-edit-mode"
           >
             <span className="min-w-0 flex-1 font-medium">Editing message</span>
@@ -36,12 +55,10 @@ export function CaseBasicComposer(): React.JSX.Element {
         ) : null}
         {composerError ? (
           <div
-            className="mb-3 flex items-center justify-between gap-3 rounded-[1.25rem] border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive"
             data-testid="case-composer-error"
           >
-            <span className="min-w-0 flex-1">
-              {composerError.message}
-            </span>
+            <span className="min-w-0 flex-1">{composerError.message}</span>
             <button
               className="shrink-0 rounded-full border border-destructive/30 px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
               disabled={isEditing ? isEditDisabled : isSendDisabled}
@@ -59,14 +76,38 @@ export function CaseBasicComposer(): React.JSX.Element {
             </button>
           </div>
         ) : null}
-        <div className="flex items-end gap-3">
-          <div className="min-w-0 flex-1 rounded-[1.75rem] border border-border bg-card shadow-sm transition-colors duration-150 focus-within:border-primary/40">
+
+        <div
+          className={[
+            "flex gap-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]",
+            isMultiline ? "items-end" : "items-center",
+          ].join(" ")}
+        >
+          {!isEditing ? (
+            <button
+              aria-label="Open composer actions"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+              type="button"
+            >
+              <Plus className="size-5" />
+            </button>
+          ) : null}
+
+          <div className="min-w-0 flex flex-1 items-center rounded-[1.35rem] bg-card transition-colors duration-150">
             <TextareaAutosize
-              className="max-h-32 w-full resize-none bg-transparent px-4 py-3 text-base text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
+              className={[
+                "max-h-32 w-full resize-none bg-transparent px-3 text-base text-foreground outline-none placeholder:text-muted-foreground scrollbar-none [&::-webkit-scrollbar]:hidden disabled:cursor-not-allowed",
+                isMultiline ? "py-1.5 leading-6" : "h-9 py-0 leading-9",
+              ].join(" ")}
               data-testid="case-composer-textarea"
-              disabled={isEditing ? controller.isSubmittingEdit : controller.isSending}
+              disabled={
+                isEditing ? controller.isSubmittingEdit : controller.isSending
+              }
               maxRows={4}
               minRows={1}
+              onHeightChange={(height, meta) => {
+                setIsMultiline(height > meta.rowHeight + 1);
+              }}
               onChange={(event) => {
                 if (isEditing) {
                   controller.setEditingDraftText(event.target.value);
@@ -79,17 +120,18 @@ export function CaseBasicComposer(): React.JSX.Element {
               value={composerValue}
             />
           </div>
+
           {isEditing ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 pr-0.5">
               <button
-                className="rounded-full border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors duration-150 hover:bg-muted"
+                className="rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted"
                 onClick={controller.cancelEditing}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-[color:var(--color-card)] shadow-sm transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                 data-testid="case-composer-save-button"
                 disabled={isEditDisabled}
                 onClick={() => {
@@ -102,7 +144,8 @@ export function CaseBasicComposer(): React.JSX.Element {
             </div>
           ) : (
             <button
-              className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-[color:var(--color-card)] shadow-sm transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+              aria-label="Send message"
+              className="mr-0.5 self-end flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
               data-testid="case-composer-send-button"
               disabled={isSendDisabled}
               onClick={() => {
@@ -110,7 +153,7 @@ export function CaseBasicComposer(): React.JSX.Element {
               }}
               type="button"
             >
-              Send
+              <SendHorizontal className="size-4" />
             </button>
           )}
         </div>

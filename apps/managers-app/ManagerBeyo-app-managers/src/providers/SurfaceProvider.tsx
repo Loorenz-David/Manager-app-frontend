@@ -175,11 +175,16 @@ function SurfaceRenderer(): React.JSX.Element {
     (surface) => !closingSurfaceIds.has(surface.id),
   );
   const topOverlay = interactiveOverlays.at(-1);
-  const isSheetTopmost = topOverlay?.surface === "sheet";
-  const topOverlayIndex = stateOverlays.findIndex(
-    (surface) => surface.id === topOverlay?.id,
-  );
-  const topOverlayZIndex = 50 + topOverlayIndex * 10;
+  const topSheet = [...stateOverlays]
+    .reverse()
+    .find((surface) => surface.surface === "sheet");
+  const topSheetIndex = topSheet
+    ? stateOverlays.findIndex((surface) => surface.id === topSheet.id)
+    : -1;
+  const topSheetZIndex = 50 + topSheetIndex * 10;
+  const isTopSheetClosing = topSheet
+    ? closingSurfaceIds.has(topSheet.id)
+    : false;
 
   useEffect(() => {
     const activeIds = new Set(stack.map((surface) => surface.id));
@@ -195,15 +200,15 @@ function SurfaceRenderer(): React.JSX.Element {
 
   return createPortal(
     <AnimatePresence>
-      {isSheetTopmost && topOverlay ? (
+      {topSheet ? (
         <m.div
           key="surface-shared-sheet-backdrop"
-          animate={{ opacity: 1 }}
+          animate={{ opacity: isTopSheetClosing ? 0 : 1 }}
           aria-hidden="true"
           className="pointer-events-none fixed inset-0 bg-black/30 backdrop-blur-[2px]"
           exit={{ opacity: 0 }}
           initial={{ opacity: 0 }}
-          style={{ zIndex: topOverlayZIndex - 1 }}
+          style={{ zIndex: topSheetZIndex - 1 }}
           transition={transitions.surface}
         />
       ) : null}

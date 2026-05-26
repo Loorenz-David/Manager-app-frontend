@@ -1,27 +1,34 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
+import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
-import { useCaseConversationMessagesContext } from '../providers/CaseConversationProvider';
-import { CaseMessageRow } from './CaseMessageRow';
+import { useCaseConversationMessagesContext } from "../providers/CaseConversationProvider";
+import { CaseMessageRow } from "./CaseMessageRow";
 
 const PREPEND_STABLE_BASE_INDEX = 10_000;
 const FOOTER_BOTTOM_OFFSET_STYLE = {
-  height: 'var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))',
+  height:
+    "var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))",
 } as CSSProperties;
 
 type CaseMessageListProps = {
-  topSpacingClassName: string;
+  isContextBannerCollapsed: boolean;
 };
 
 export function CaseMessageList({
-  topSpacingClassName,
+  isContextBannerCollapsed,
 }: CaseMessageListProps): React.JSX.Element {
   const controller = useCaseConversationMessagesContext();
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
-  const [firstItemIndex, setFirstItemIndex] = useState(PREPEND_STABLE_BASE_INDEX);
-  const [scrollerElement, setScrollerElement] = useState<HTMLElement | null>(null);
+  const topInsetRef = useRef<HTMLDivElement | null>(null);
+  const layoutCompensationUntilRef = useRef(0);
+  const [firstItemIndex, setFirstItemIndex] = useState(
+    PREPEND_STABLE_BASE_INDEX,
+  );
+  const [scrollerElement, setScrollerElement] = useState<HTMLElement | null>(
+    null,
+  );
   const previousItemCountRef = useRef(controller.items.length);
   const previousPageCountRef = useRef(controller.pageCount);
   const hasPerformedInitialBottomScrollRef = useRef(false);
@@ -50,51 +57,101 @@ export function CaseMessageList({
     }
 
     const handleScroll = () => {
-      const maxScrollTop = Math.max(0, scrollerElement.scrollHeight - scrollerElement.clientHeight);
-      controller.handleListScroll(maxScrollTop - scrollerElement.scrollTop);
+      const maxScrollTop = Math.max(
+        0,
+        scrollerElement.scrollHeight - scrollerElement.clientHeight,
+      );
+      controller.handleListScroll({
+        distanceFromBottom: maxScrollTop - scrollerElement.scrollTop,
+        scrollTop: scrollerElement.scrollTop,
+        isLayoutCompensation:
+          performance.now() < layoutCompensationUntilRef.current,
+      });
     };
 
     handleScroll();
-    scrollerElement.addEventListener('scroll', handleScroll, { passive: true });
+    scrollerElement.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      scrollerElement.removeEventListener('scroll', handleScroll);
+      scrollerElement.removeEventListener("scroll", handleScroll);
     };
   }, [controller, scrollerElement]);
 
   useEffect(() => {
-    if (controller.items.length === 0 || hasPerformedInitialBottomScrollRef.current) {
+    const scrollElement = scrollerElement;
+    const topInsetElement = topInsetRef.current;
+
+    if (!scrollElement || !topInsetElement) {
+      return;
+    }
+
+    let previousHeight = -1;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const nextHeight = entry.contentRect.height;
+
+      if (previousHeight === -1) {
+        previousHeight = nextHeight;
+        return;
+      }
+
+      const delta = previousHeight - nextHeight;
+      previousHeight = nextHeight;
+
+      if (delta === 0 || scrollElement.scrollTop <= 0) {
+        return;
+      }
+
+      layoutCompensationUntilRef.current = performance.now() + 120;
+      scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop - delta);
+    });
+
+    observer.observe(topInsetElement);
+    return () => observer.disconnect();
+  }, [scrollerElement, isContextBannerCollapsed]);
+
+  useEffect(() => {
+    if (
+      controller.items.length === 0 ||
+      hasPerformedInitialBottomScrollRef.current
+    ) {
       return;
     }
 
     virtuosoRef.current?.scrollToIndex({
       index: controller.items.length - 1,
-      align: 'end',
-      behavior: 'auto',
+      align: "end",
+      behavior: "auto",
     });
     hasPerformedInitialBottomScrollRef.current = true;
   }, [controller.items.length]);
 
   useEffect(() => {
-    if (controller.scrollToBottomRequestVersion === 0 || controller.items.length === 0) {
+    if (
+      controller.scrollToBottomRequestVersion === 0 ||
+      controller.items.length === 0
+    ) {
       return;
     }
 
     virtuosoRef.current?.scrollToIndex({
       index: controller.items.length - 1,
-      align: 'end',
-      behavior: 'auto',
+      align: "end",
+      behavior: "auto",
     });
   }, [controller.items.length, controller.scrollToBottomRequestVersion]);
 
   if (controller.isError && controller.items.length === 0) {
     return (
-      <div className={cn('flex min-h-0 flex-1 flex-col', topSpacingClassName)} data-testid="case-message-list">
-        <div
-          className="flex flex-1 items-center justify-center px-6 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))]"
-        >
+      <div
+        className={cn("flex min-h-0 flex-1 flex-col bg-background")}
+        data-testid="case-message-list"
+      >
+        <div className="flex flex-1 items-center justify-center px-6 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))]">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
-            <p className="text-sm text-muted-foreground">Messages could not be loaded.</p>
+            <p className="text-sm text-muted-foreground">
+              Messages could not be loaded.
+            </p>
             <button
               className="rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted"
               onClick={() => {
@@ -111,7 +168,10 @@ export function CaseMessageList({
   }
 
   return (
-    <div className={cn('min-h-0 flex-1', topSpacingClassName)} data-testid="case-message-list">
+    <div
+      className={cn("min-h-0 flex-1 bg-background")}
+      data-testid="case-message-list"
+    >
       <Virtuoso
         ref={virtuosoRef}
         alignToBottom
@@ -121,13 +181,13 @@ export function CaseMessageList({
         data-testid="case-conversation-scroll-container"
         defaultItemHeight={88}
         firstItemIndex={firstItemIndex}
-        followOutput={(isAtBottom) => (isAtBottom ? 'auto' : false)}
+        followOutput={(isAtBottom) => (isAtBottom ? "auto" : false)}
         increaseViewportBy={{ top: 240, bottom: 320 }}
         initialTopMostItemIndex={
           controller.items.length > 0
             ? {
                 index: controller.items.length - 1,
-                align: 'end',
+                align: "end",
               }
             : 0
         }
@@ -141,28 +201,39 @@ export function CaseMessageList({
         totalCount={controller.items.length}
         components={{
           EmptyPlaceholder: () => (
-            <div
-              className="flex min-h-full items-end px-4 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))] pt-8"
-            >
+            <div className="flex min-h-full items-end px-4 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))] pt-8">
               <div className="w-full rounded-[2rem] border border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-sm">
-                <p className="text-sm font-semibold text-foreground">No messages yet</p>
+                <p className="text-sm font-semibold text-foreground">
+                  No messages yet
+                </p>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  The conversation thread is ready for the upcoming composer flow.
+                  The conversation thread is ready for the upcoming composer
+                  flow.
                 </p>
               </div>
             </div>
           ),
           Footer: () => <div style={FOOTER_BOTTOM_OFFSET_STYLE} />,
-          Header: () =>
-            controller.isLoadingOlder ? (
-              <div className="flex justify-center px-4 py-3">
-                <span className="rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
-                  Loading older messages...
-                </span>
-              </div>
-            ) : (
-              <div className="h-3" />
-            ),
+          Header: () => (
+            <>
+              <div
+                ref={topInsetRef}
+                className={cn(
+                  "transition-[height] duration-200 ease-out",
+                  isContextBannerCollapsed ? "h-20" : "h-36",
+                )}
+              />
+              {controller.isLoadingOlder ? (
+                <div className="flex justify-center px-4 py-3">
+                  <span className="rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+                    Loading older messages...
+                  </span>
+                </div>
+              ) : (
+                <div className="h-3" />
+              )}
+            </>
+          ),
         }}
       />
     </div>

@@ -1,33 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
-import type { ApiRequestError } from '@/lib/api-client';
-import { ROUTES } from '@/lib/routes';
-import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
-import { RETURN_SOURCE_LABEL, TASK_TYPE_LABEL } from '@/features/tasks/lib/task-detail';
-import { useSurface } from '@/hooks/use-surface';
-import { selectUser, useAuthStore } from '@/store/auth.store';
-import type { CaseId, UserId } from '@/types/common';
+import type { ApiRequestError } from "@/lib/api-client";
+import { ROUTES } from "@/lib/routes";
+import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
+import {
+  RETURN_SOURCE_LABEL,
+  TASK_TYPE_LABEL,
+} from "@/features/tasks/lib/task-detail";
+import { useSurface } from "@/hooks/use-surface";
+import { selectUser, useAuthStore } from "@/store/auth.store";
+import type { CaseId, UserId } from "@/types/common";
 
-import { useDeleteCaseMessage } from '../actions/use-delete-case-message';
-import { useEditCaseMessage } from '../actions/use-edit-case-message';
-import { useMarkCaseRead } from '../actions/use-mark-case-read';
-import { useSendCaseMessage } from '../actions/use-send-case-message';
-import { useCaseParticipantsQuery } from '../api/use-case-participants';
-import { useUpdateCaseState } from '../actions/use-update-case-state';
-import { caseKeys } from '../api/case-keys';
-import { useCaseLinksQuery } from '../api/use-case-links';
-import { useGetCaseQuery } from '../api/use-get-case';
+import { useDeleteCaseMessage } from "../actions/use-delete-case-message";
+import { useEditCaseMessage } from "../actions/use-edit-case-message";
+import { useMarkCaseRead } from "../actions/use-mark-case-read";
+import { useSendCaseMessage } from "../actions/use-send-case-message";
+import { useCaseParticipantsQuery } from "../api/use-case-participants";
+import { useUpdateCaseState } from "../actions/use-update-case-state";
+import { caseKeys } from "../api/case-keys";
+import { useCaseLinksQuery } from "../api/use-case-links";
+import { useGetCaseQuery } from "../api/use-get-case";
 import {
   CASE_MESSAGE_EDIT_REQUEST_EVENT,
   type CaseMessageEditRequestDetail,
-} from '../lib/case-message-edit-events';
+} from "../lib/case-message-edit-events";
 import {
   CASE_CONVERSATION_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
-} from '../surfaces';
+} from "../surfaces";
+import { getCaseTypeName } from "../types";
 import type {
   CaseConversationMessageRaw,
   CaseDetailBase,
@@ -35,22 +39,29 @@ import type {
   CaseLink,
   CaseListCardRaw,
   CaseParticipant,
-} from '../types';
+} from "../types";
 
-type CaseState = CaseDetailBase['state'];
+type CaseState = CaseDetailBase["state"];
 
 type StateTransition = {
   label: string;
   nextState: CaseState;
 };
 
-const CONTEXT_BANNER_COLLAPSE_THRESHOLD = 24;
+const CONTEXT_BANNER_COLLAPSE_THRESHOLD = 56;
+const CONTEXT_BANNER_EXPAND_THRESHOLD = 8;
 const SCROLL_DIRECTION_THRESHOLD = 6;
+
+type ConversationScrollMetrics = {
+  distanceFromBottom: number;
+  scrollTop: number;
+  isLayoutCompensation?: boolean;
+};
 
 export type CaseConversationController = {
   caseDetail: CaseDetailRaw | undefined;
   currentParticipant: CaseParticipant | null;
-  taskDetail: ReturnType<typeof useGetTaskQuery>['data'];
+  taskDetail: ReturnType<typeof useGetTaskQuery>["data"];
   currentUserId: UserId | null;
   lastReadMessageSeq: number | null;
   taskClientId: string | null;
@@ -61,7 +72,7 @@ export type CaseConversationController = {
   nextState: CaseState | null;
   isContextBannerCollapsed: boolean;
   draftText: string;
-  editingMessageId: CaseConversationMessageRaw['client_id'] | null;
+  editingMessageId: CaseConversationMessageRaw["client_id"] | null;
   editingDraftText: string;
   isSending: boolean;
   isSubmittingEdit: boolean;
@@ -71,7 +82,7 @@ export type CaseConversationController = {
   isError: boolean;
   sendError: ApiRequestError | Error | null;
   editError: ApiRequestError | Error | null;
-  setBodyScrollTop: (scrollTop: number) => void;
+  setBodyScrollTop: (metrics: ConversationScrollMetrics) => void;
   setDraftText: (value: string) => void;
   setEditingDraftText: (value: string) => void;
   resetScrollChrome: () => void;
@@ -96,23 +107,27 @@ function resolveTaskLink(links: CaseLink[] | undefined): CaseLink | null {
     return null;
   }
 
-  const taskLinks = links.filter((link) => link.entity_type === 'task');
+  const taskLinks = links.filter((link) => link.entity_type === "task");
 
-  return taskLinks.find((link) => link.role === 'subject') ?? taskLinks[0] ?? null;
+  return (
+    taskLinks.find((link) => link.role === "subject") ?? taskLinks[0] ?? null
+  );
 }
 
-function getStateTransition(state: CaseState | null | undefined): StateTransition | null {
-  if (state === 'open') {
+function getStateTransition(
+  state: CaseState | null | undefined,
+): StateTransition | null {
+  if (state === "open") {
     return {
-      label: 'Process',
-      nextState: 'resolving',
+      label: "Process",
+      nextState: "resolving",
     };
   }
 
-  if (state === 'resolving') {
+  if (state === "resolving") {
     return {
-      label: 'Resolve',
-      nextState: 'resolved',
+      label: "Resolve",
+      nextState: "resolved",
     };
   }
 
@@ -127,7 +142,9 @@ function getTaskTypeLabel(taskType: string | null | undefined): string | null {
   return TASK_TYPE_LABEL[taskType as keyof typeof TASK_TYPE_LABEL];
 }
 
-function getReturnSourceLabel(returnSource: string | null | undefined): string | null {
+function getReturnSourceLabel(
+  returnSource: string | null | undefined,
+): string | null {
   if (!returnSource || !(returnSource in RETURN_SOURCE_LABEL)) {
     return null;
   }
@@ -142,9 +159,9 @@ function getMessageDisplayText(message: CaseConversationMessageRaw): string {
 
   return (
     message.content
-      ?.map((block) => block.text || block.label_value || block.link || '')
-      .join('')
-      .trim() ?? ''
+      ?.map((block) => block.text || block.label_value || block.link || "")
+      .join("")
+      .trim() ?? ""
   );
 }
 
@@ -172,18 +189,22 @@ export function useCaseConversationController(
   const navigate = useNavigate();
   const location = useLocation();
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
-  const [isContextBannerCollapsed, setIsContextBannerCollapsed] = useState(false);
-  const [draftText, setDraftTextState] = useState('');
+  const [isContextBannerCollapsed, setIsContextBannerCollapsed] =
+    useState(false);
+  const [draftText, setDraftTextState] = useState("");
   const [editingMessageId, setEditingMessageId] = useState<
-    CaseConversationMessageRaw['client_id'] | null
+    CaseConversationMessageRaw["client_id"] | null
   >(null);
-  const [editingDraftText, setEditingDraftTextState] = useState('');
-  const [editingOriginalText, setEditingOriginalText] = useState('');
-  const [editingMessageSeq, setEditingMessageSeq] = useState<number | null>(null);
+  const [editingDraftText, setEditingDraftTextState] = useState("");
+  const [editingOriginalText, setEditingOriginalText] = useState("");
+  const [editingMessageSeq, setEditingMessageSeq] = useState<number | null>(
+    null,
+  );
   const [localSendError, setLocalSendError] = useState<Error | null>(null);
   const [localEditError, setLocalEditError] = useState<Error | null>(null);
   const hasObservedInitialScrollRef = useRef(false);
-  const lastBodyScrollTopRef = useRef(0);
+  const lastListScrollTopRef = useRef(0);
+  const accumulatedScrollIntentRef = useRef(0);
   const lastRequestedReadSeqRef = useRef(0);
   const lastAcknowledgedReadSeqRef = useRef(0);
 
@@ -200,10 +221,15 @@ export function useCaseConversationController(
   );
   const participantsQuery = useCaseParticipantsQuery(caseClientId);
   const linksQuery = useCaseLinksQuery(caseClientId);
-  const taskLink = useMemo(() => resolveTaskLink(linksQuery.data), [linksQuery.data]);
-  const taskClientId = taskLink?.entity_client_id ?? cachedCaseSnapshot?.task?.client_id ?? null;
+  const taskLink = useMemo(
+    () => resolveTaskLink(linksQuery.data),
+    [linksQuery.data],
+  );
+  const taskClientId =
+    taskLink?.entity_client_id ?? cachedCaseSnapshot?.task?.client_id ?? null;
   const taskQuery = useGetTaskQuery(taskClientId);
-  const conversationClientId = caseQuery.data?.case.conversation_client_id ?? null;
+  const conversationClientId =
+    caseQuery.data?.case.conversation_client_id ?? null;
 
   const markCaseReadMutation = useMarkCaseRead();
   const sendCaseMessageMutation = useSendCaseMessage(caseClientId);
@@ -217,7 +243,9 @@ export function useCaseConversationController(
   });
   const stateMutation = useUpdateCaseState(caseClientId);
   const currentParticipant =
-    participantsQuery.data?.find((participant) => participant.user_id === currentUserId) ?? null;
+    participantsQuery.data?.find(
+      (participant) => participant.user_id === currentUserId,
+    ) ?? null;
   const lastReadMessageSeq = currentParticipant?.last_read_message_seq ?? null;
 
   if ((lastReadMessageSeq ?? 0) > lastAcknowledgedReadSeqRef.current) {
@@ -238,24 +266,43 @@ export function useCaseConversationController(
       | undefined;
 
     if (state?.background) {
-      navigate(-1);
+      navigate(`${state.background.pathname}${state.background.search}`, {
+        replace: true,
+        state: {
+          skipTabAnimation: true,
+        },
+      });
       return;
     }
 
     if (location.pathname.startsWith(`${ROUTES.cases}/`)) {
-      navigate(ROUTES.cases, { replace: true });
+      navigate(ROUTES.cases, {
+        replace: true,
+        state: {
+          skipTabAnimation: true,
+        },
+      });
       return;
     }
   };
+
+  const caseDetailTypeName = getCaseTypeName(
+    caseQuery.data?.case.case_type,
+    caseQuery.data?.case.type_label ?? "",
+  );
+  const cachedCaseTypeName = getCaseTypeName(
+    cachedCaseSnapshot?.case_type,
+    cachedCaseSnapshot?.type_label ?? "",
+  );
 
   const primaryLabel =
     taskQuery.data?.item?.article_number ??
     taskQuery.data?.item?.sku ??
     cachedCaseSnapshot?.task?.item?.article_number ??
     cachedCaseSnapshot?.task?.item?.sku ??
-    caseQuery.data?.case.type_label ??
-    cachedCaseSnapshot?.type_label ??
-    'Case';
+    (caseDetailTypeName || undefined) ??
+    (cachedCaseTypeName || undefined) ??
+    "Case";
 
   const subtitleSegments = [
     taskQuery.data?.task.task_type
@@ -266,40 +313,84 @@ export function useCaseConversationController(
       : getReturnSourceLabel(cachedCaseSnapshot?.task?.return_source),
   ].filter((value): value is string => Boolean(value));
 
-  const subtitle = subtitleSegments.join(' • ') || 'Case conversation';
+  const subtitle = subtitleSegments.join(" • ") || "Case conversation";
   const isTaskContextAvailable = Boolean(taskClientId) && !taskQuery.isError;
   const isTaskContextPending =
-    Boolean(taskClientId) && !taskQuery.data && (linksQuery.isPending || taskQuery.isPending);
+    Boolean(taskClientId) &&
+    !taskQuery.data &&
+    (linksQuery.isPending || taskQuery.isPending);
   const isHardConversationError = caseQuery.isError;
 
-  const setBodyScrollTop = (scrollTop: number) => {
+  const setBodyScrollTop = ({
+    distanceFromBottom,
+    scrollTop,
+    isLayoutCompensation,
+  }: ConversationScrollMetrics) => {
+    const nextDistanceFromBottom = Math.max(0, distanceFromBottom);
     const nextScrollTop = Math.max(0, scrollTop);
 
     if (!hasObservedInitialScrollRef.current) {
       hasObservedInitialScrollRef.current = true;
-      lastBodyScrollTopRef.current = nextScrollTop;
+      lastListScrollTopRef.current = nextScrollTop;
+      accumulatedScrollIntentRef.current = 0;
       setIsContextBannerCollapsed(false);
       return;
     }
 
-    const delta = nextScrollTop - lastBodyScrollTopRef.current;
-    lastBodyScrollTopRef.current = nextScrollTop;
+    const delta = nextScrollTop - lastListScrollTopRef.current;
+    lastListScrollTopRef.current = nextScrollTop;
 
-    if (nextScrollTop <= CONTEXT_BANNER_COLLAPSE_THRESHOLD) {
-      setIsContextBannerCollapsed(false);
+    if (isLayoutCompensation) {
       return;
     }
 
-    if (Math.abs(delta) < SCROLL_DIRECTION_THRESHOLD) {
+    if (delta === 0) {
       return;
     }
 
-    setIsContextBannerCollapsed(delta > 0);
+    if (
+      accumulatedScrollIntentRef.current !== 0 &&
+      Math.sign(delta) !== Math.sign(accumulatedScrollIntentRef.current)
+    ) {
+      accumulatedScrollIntentRef.current = 0;
+    }
+
+    accumulatedScrollIntentRef.current += delta;
+
+    if (
+      Math.abs(accumulatedScrollIntentRef.current) < SCROLL_DIRECTION_THRESHOLD
+    ) {
+      return;
+    }
+
+    const directionalDelta = accumulatedScrollIntentRef.current;
+    accumulatedScrollIntentRef.current = 0;
+
+    setIsContextBannerCollapsed((previous) => {
+      if (
+        !previous &&
+        directionalDelta < 0 &&
+        nextDistanceFromBottom >= CONTEXT_BANNER_COLLAPSE_THRESHOLD
+      ) {
+        return true;
+      }
+
+      if (
+        previous &&
+        directionalDelta > 0 &&
+        nextDistanceFromBottom <= CONTEXT_BANNER_EXPAND_THRESHOLD
+      ) {
+        return false;
+      }
+
+      return previous;
+    });
   };
 
   const resetScrollChrome = () => {
     hasObservedInitialScrollRef.current = false;
-    lastBodyScrollTopRef.current = 0;
+    lastListScrollTopRef.current = 0;
+    accumulatedScrollIntentRef.current = 0;
     setIsContextBannerCollapsed(false);
   };
 
@@ -362,15 +453,18 @@ export function useCaseConversationController(
 
   const cancelEditing = () => {
     setEditingMessageId(null);
-    setEditingDraftTextState('');
-    setEditingOriginalText('');
+    setEditingDraftTextState("");
+    setEditingOriginalText("");
     setEditingMessageSeq(null);
     setLocalEditError(null);
     editCaseMessageMutation.reset();
   };
 
   const startEditing = (message: CaseConversationMessageRaw) => {
-    if (message.has_been_deleted || message.created_by?.client_id !== currentUserId) {
+    if (
+      message.has_been_deleted ||
+      message.created_by?.client_id !== currentUserId
+    ) {
       return;
     }
 
@@ -402,7 +496,9 @@ export function useCaseConversationController(
       canEdit,
       canDelete,
       onRequestDelete: async () => {
-        await deleteCaseMessageMutation.deleteCaseMessageAsync(message.client_id);
+        await deleteCaseMessageMutation.deleteCaseMessageAsync(
+          message.client_id,
+        );
         if (editingMessageId === message.client_id) {
           cancelEditing();
         }
@@ -413,13 +509,16 @@ export function useCaseConversationController(
 
   useEffect(() => {
     const handleEditRequest = (event: Event) => {
-      const detail = (event as CustomEvent<CaseMessageEditRequestDetail>).detail;
+      const detail = (event as CustomEvent<CaseMessageEditRequestDetail>)
+        .detail;
 
       if (!detail?.messageClientId) {
         return;
       }
 
-      setEditingMessageId(detail.messageClientId as CaseConversationMessageRaw['client_id']);
+      setEditingMessageId(
+        detail.messageClientId as CaseConversationMessageRaw["client_id"],
+      );
       setEditingDraftTextState(detail.messageText);
       setEditingOriginalText(detail.messageText);
       setEditingMessageSeq(detail.messageSeq);
@@ -429,7 +528,10 @@ export function useCaseConversationController(
     window.addEventListener(CASE_MESSAGE_EDIT_REQUEST_EVENT, handleEditRequest);
 
     return () => {
-      window.removeEventListener(CASE_MESSAGE_EDIT_REQUEST_EVENT, handleEditRequest);
+      window.removeEventListener(
+        CASE_MESSAGE_EDIT_REQUEST_EVENT,
+        handleEditRequest,
+      );
     };
   }, [caseClientId]);
 
@@ -441,7 +543,7 @@ export function useCaseConversationController(
     }
 
     if (!conversationClientId) {
-      setLocalSendError(new Error('Conversation is not available yet.'));
+      setLocalSendError(new Error("Conversation is not available yet."));
       sendCaseMessageMutation.reset();
       return;
     }
@@ -453,26 +555,30 @@ export function useCaseConversationController(
     sendCaseMessageMutation.reset();
 
     try {
-      const createdMessage = await sendCaseMessageMutation.sendCaseMessageAsync({
-        conversation_client_id: conversationClientId,
-        content: [
-          {
-            type: 'text',
-            text: trimmedDraftText,
-            mention: null,
-            label_value: null,
-            link: null,
-          },
-        ],
-        plain_text: trimmedDraftText,
-      });
+      const createdMessage = await sendCaseMessageMutation.sendCaseMessageAsync(
+        {
+          conversation_client_id: conversationClientId,
+          content: [
+            {
+              type: "text",
+              text: trimmedDraftText,
+              mention: null,
+              label_value: null,
+              link: null,
+            },
+          ],
+          plain_text: trimmedDraftText,
+        },
+      );
 
-      setDraftTextState('');
+      setDraftTextState("");
       options.scrollToBottom?.();
       await requestMarkRead(createdMessage.message_seq);
     } catch (error) {
       setLocalSendError(
-        error instanceof Error ? error : new Error('Message could not be sent.'),
+        error instanceof Error
+          ? error
+          : new Error("Message could not be sent."),
       );
     }
   };
@@ -516,7 +622,9 @@ export function useCaseConversationController(
       }
     } catch (error) {
       setLocalEditError(
-        error instanceof Error ? error : new Error('Message could not be updated.'),
+        error instanceof Error
+          ? error
+          : new Error("Message could not be updated."),
       );
     }
   };
@@ -576,7 +684,9 @@ export function useCaseConversationController(
         return;
       }
 
-      await stateMutation.updateCaseStateAsync({ new_state: transition.nextState });
+      await stateMutation.updateCaseStateAsync({
+        new_state: transition.nextState,
+      });
       closeConversation();
     },
     requestMarkRead,

@@ -1,12 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState } from "react";
 
-import { useSurface } from '@/hooks/use-surface';
-import type { CaseId } from '@/types/common';
+import { useSurface } from "@/hooks/use-surface";
+import type { CaseId } from "@/types/common";
 
-import { useListCasesQuery } from '../api/use-list-cases';
-import { useUnreadCountsQuery } from '../api/use-unread-counts';
-import { CASE_CONVERSATION_SURFACE_ID } from '../surfaces';
-import { toCaseListCardViewModel, type CaseListCardViewModel } from '../types';
+import { useListCasesQuery } from "../api/use-list-cases";
+import { useUnreadCountsQuery } from "../api/use-unread-counts";
+import { CASE_CONVERSATION_SURFACE_ID } from "../surfaces";
+import {
+  getCaseTypeName,
+  toCaseListCardViewModel,
+  type CaseListCardViewModel,
+} from "../types";
 
 function getLocalDateKey(value: Date): string {
   return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
@@ -23,7 +27,7 @@ function matchesSearch(card: CaseListCardViewModel, rawQuery: string): boolean {
   }
 
   const candidates = [
-    card.type_label,
+    getCaseTypeName(card.case_type, card.type_label ?? ""),
     card.created_by.username,
     card.task?.item?.article_number,
     card.task?.item?.sku,
@@ -51,9 +55,9 @@ export type CasesViewController = {
 
 export function useCasesViewController(): CasesViewController {
   const surface = useSurface();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const listQuery = useListCasesQuery({ case_state: 'open,resolving' });
+  const listQuery = useListCasesQuery({ case_state: "open,resolving" });
 
   const viewModels = useMemo(
     () =>
@@ -63,7 +67,10 @@ export function useCasesViewController(): CasesViewController {
     [listQuery.data],
   );
 
-  const caseClientIds = useMemo(() => viewModels.map((item) => item.client_id), [viewModels]);
+  const caseClientIds = useMemo(
+    () => viewModels.map((item) => item.client_id),
+    [viewModels],
+  );
   const unreadCountsQuery = useUnreadCountsQuery(caseClientIds);
 
   const filteredCases = useMemo(
@@ -77,17 +84,17 @@ export function useCasesViewController(): CasesViewController {
     const resolvingCases: CaseListCardViewModel[] = [];
 
     for (const card of filteredCases) {
-      if (card.state === 'resolving') {
+      if (card.state === "resolving") {
         resolvingCases.push(card);
         continue;
       }
 
-      if (card.state === 'open' && isCreatedToday(card.created_at)) {
+      if (card.state === "open" && isCreatedToday(card.created_at)) {
         newCases.push(card);
         continue;
       }
 
-      if (card.state === 'open') {
+      if (card.state === "open") {
         activeCases.push(card);
       }
     }
@@ -101,17 +108,17 @@ export function useCasesViewController(): CasesViewController {
 
   return {
     newGroup: {
-      label: 'New',
+      label: "New",
       count: groupedCases.newCases.length,
       cases: groupedCases.newCases,
     },
     activeGroup: {
-      label: 'Active',
+      label: "Active",
       count: groupedCases.activeCases.length,
       cases: groupedCases.activeCases,
     },
     resolvingGroup: {
-      label: 'Resolving',
+      label: "Resolving",
       count: groupedCases.resolvingCases.length,
       cases: groupedCases.resolvingCases,
     },

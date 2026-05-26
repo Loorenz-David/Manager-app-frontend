@@ -1,22 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-import { selectUser, useAuthStore } from '@/store/auth.store';
-import type { CaseId } from '@/types/common';
+import { selectUser, useAuthStore } from "@/store/auth.store";
+import type { CaseId } from "@/types/common";
 
 import {
   CASE_CONVERSATION_MESSAGES_PAGE_SIZE,
   useCaseConversationMessagesQuery,
-} from '../api/use-case-conversation-messages';
-import type { CaseConversationMessageRaw } from '../types';
+} from "../api/use-case-conversation-messages";
+import type { CaseConversationMessageRaw } from "../types";
 
 export type CaseMessageRenderItem =
   | {
-      kind: 'date-separator';
+      kind: "date-separator";
       key: string;
       label: string;
     }
   | {
-      kind: 'message';
+      kind: "message";
       key: string;
       message: CaseConversationMessageRaw;
       isOwnMessage: boolean;
@@ -28,34 +28,43 @@ export type CaseConversationMessagesController = {
   isLoadingInitial: boolean;
   isLoadingOlder: boolean;
   isError: boolean;
+  distanceFromBottom: number;
   pageCount: number;
   scrollToBottomRequestVersion: number;
   loadOlder: () => void;
   scrollToBottom: () => void;
-  handleListScroll: (scrollTop: number) => void;
+  handleListScroll: (metrics: {
+    distanceFromBottom: number;
+    scrollTop: number;
+    isLayoutCompensation?: boolean;
+  }) => void;
   retry: () => Promise<void>;
 };
 
 type UseCaseConversationMessagesControllerArgs = {
   caseClientId: CaseId;
   lastReadMessageSeq?: number | null;
-  onListScrollTopChange?: (scrollTop: number) => void;
+  onListScrollTopChange?: (metrics: {
+    distanceFromBottom: number;
+    scrollTop: number;
+    isLayoutCompensation?: boolean;
+  }) => void;
   requestMarkRead?: (upToMessageSeq: number) => Promise<void>;
 };
 
 function getLocalDateKey(date: Date): string {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
 function formatDateLabel(date: Date): string {
   return new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
+    month: "short",
+    day: "numeric",
+    year: "numeric",
   }).format(date);
 }
 
@@ -94,7 +103,7 @@ function toRenderItems(
 
     if (dateKey !== previousDateKey) {
       items.push({
-        kind: 'date-separator',
+        kind: "date-separator",
         key: dateKey,
         label: formatDateLabel(createdAt),
       });
@@ -102,7 +111,7 @@ function toRenderItems(
     }
 
     items.push({
-      kind: 'message',
+      kind: "message",
       key: message.client_id,
       message,
       isOwnMessage: message.created_by?.client_id === currentUserId,
@@ -121,8 +130,11 @@ export function useCaseConversationMessagesController({
   requestMarkRead,
 }: UseCaseConversationMessagesControllerArgs): CaseConversationMessagesController {
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
-  const [scrollToBottomRequestVersion, setScrollToBottomRequestVersion] = useState(0);
-  const [distanceFromBottom, setDistanceFromBottom] = useState<number | null>(null);
+  const [scrollToBottomRequestVersion, setScrollToBottomRequestVersion] =
+    useState(0);
+  const [distanceFromBottom, setDistanceFromBottom] = useState<number | null>(
+    null,
+  );
   const query = useCaseConversationMessagesQuery(caseClientId, {
     messagesLimit: CASE_CONVERSATION_MESSAGES_PAGE_SIZE,
   });
@@ -132,12 +144,15 @@ export function useCaseConversationMessagesController({
     [query.data?.pages],
   );
 
-  const items = useMemo(() => toRenderItems(messages, currentUserId), [messages, currentUserId]);
+  const items = useMemo(
+    () => toRenderItems(messages, currentUserId),
+    [messages, currentUserId],
+  );
   const latestMessageItem = useMemo(() => {
     for (let index = items.length - 1; index >= 0; index -= 1) {
       const item = items[index];
 
-      if (item?.kind === 'message') {
+      if (item?.kind === "message") {
         return {
           messageSeq: item.message.message_seq,
         };
@@ -152,12 +167,21 @@ export function useCaseConversationMessagesController({
     distanceFromBottom <= LATEST_MESSAGE_VISIBLE_DISTANCE_THRESHOLD;
 
   useEffect(() => {
-    if (!requestMarkRead || !isLatestMessageVisible || latestMessageItem === null) {
+    if (
+      !requestMarkRead ||
+      !isLatestMessageVisible ||
+      latestMessageItem === null
+    ) {
       return;
     }
 
     void requestMarkRead(latestMessageItem.messageSeq);
-  }, [isLatestMessageVisible, lastReadMessageSeq, latestMessageItem, requestMarkRead]);
+  }, [
+    isLatestMessageVisible,
+    lastReadMessageSeq,
+    latestMessageItem,
+    requestMarkRead,
+  ]);
 
   return {
     items,
@@ -165,6 +189,7 @@ export function useCaseConversationMessagesController({
     isLoadingInitial: query.isPending && !query.data,
     isLoadingOlder: query.isFetchingNextPage,
     isError: query.isError,
+    distanceFromBottom: distanceFromBottom ?? 0,
     pageCount: query.data?.pages.length ?? 0,
     scrollToBottomRequestVersion,
     loadOlder: () => {
@@ -175,9 +200,9 @@ export function useCaseConversationMessagesController({
     scrollToBottom: () => {
       setScrollToBottomRequestVersion((value) => value + 1);
     },
-    handleListScroll: (scrollTop: number) => {
-      setDistanceFromBottom(scrollTop);
-      onListScrollTopChange?.(scrollTop);
+    handleListScroll: (metrics) => {
+      setDistanceFromBottom(metrics.distanceFromBottom);
+      onListScrollTopChange?.(metrics);
     },
     retry: async () => {
       await query.refetch();
