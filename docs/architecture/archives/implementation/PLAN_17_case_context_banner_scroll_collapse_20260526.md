@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_17_case_context_banner_scroll_collapse_20260526`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-26T00:00:00Z`
-- Last updated at (UTC): `2026-05-26T00:00:00Z`
+- Last updated at (UTC): `2026-05-26T08:24:21Z`
 - Related issue/ticket: `-`
 - Intention plan: `docs/architecture/under_construction/intention/intention_of_cases.md`
 
@@ -80,6 +80,7 @@ _(none)_
 ### File read intent - pattern vs. relational
 
 Permitted relational reads:
+
 - `apps/managers-app/ManagerBeyo-app-managers/src/components/surfaces/SlidePageSurface.tsx` - confirms the stock surface scroll area, which the feature view is replacing with its own content rhythm
 - `docs/architecture/under_construction/intention/intention_of_cases.md` - exact banner content and collapse behavior
 

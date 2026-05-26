@@ -465,11 +465,46 @@ test.describe('cases page', () => {
     await openCase(page, 'case_new_open');
 
     await expect(page.getByTestId('case-conversation-header')).toBeVisible();
+    await expect(page.getByTestId('case-conversation-context-banner')).toBeVisible();
+    await expect(page.getByTestId('case-conversation-context-banner')).toHaveAttribute(
+      'data-collapsed',
+      'false',
+    );
     await expect(page.getByRole('heading', { name: 'Conversation' })).toHaveCount(0);
     await expect(page.getByTestId('case-conversation-primary-label')).toHaveText('ART-DETAIL-001');
     await expect(page.getByTestId('case-conversation-subtitle')).toHaveText('Return • After purchase');
     await expect(page.getByTestId('case-conversation-info-button')).toBeEnabled();
     await expect(page.getByTestId('case-conversation-state-button')).toHaveText('Process');
+  });
+
+  test('context banner collapses on upward scroll and restores on downward scroll', async ({
+    page,
+  }) => {
+    await installMockAuth(page);
+    await installCasesMocks(page);
+
+    await page.goto('/cases');
+    await openCase(page, 'case_new_open');
+
+    const header = page.getByTestId('case-conversation-header');
+    const banner = page.getByTestId('case-conversation-context-banner');
+    const scrollContainer = page.getByTestId('case-conversation-scroll-container');
+
+    await expect(banner).toHaveAttribute('data-collapsed', 'false');
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 80;
+    });
+
+    await expect(banner).toHaveAttribute('data-collapsed', 'true', { timeout: 1000 });
+    await expect(header).toBeVisible();
+
+    await scrollContainer.evaluate((element) => {
+      element.scrollTop = 0;
+    });
+
+    await expect(banner).toHaveAttribute('data-collapsed', 'false', { timeout: 1000 });
+    await expect(header).toBeVisible();
   });
 
   test('back button closes the conversation slide', async ({ page }) => {

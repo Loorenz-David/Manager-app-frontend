@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
 import { RETURN_SOURCE_LABEL, TASK_TYPE_LABEL } from '@/features/tasks/lib/task-detail';
@@ -22,6 +22,9 @@ type StateTransition = {
   nextState: CaseState;
 };
 
+const CONTEXT_BANNER_COLLAPSE_THRESHOLD = 24;
+const SCROLL_DIRECTION_THRESHOLD = 6;
+
 export type CaseConversationController = {
   caseDetail: CaseDetailRaw | undefined;
   taskDetail: ReturnType<typeof useGetTaskQuery>['data'];
@@ -32,10 +35,13 @@ export type CaseConversationController = {
   canOpenInfo: boolean;
   stateActionLabel: string | null;
   nextState: CaseState | null;
+  isContextBannerCollapsed: boolean;
   isPendingCase: boolean;
   isPendingTask: boolean;
   isAdvancingState: boolean;
   isError: boolean;
+  setBodyScrollTop: (scrollTop: number) => void;
+  resetScrollChrome: () => void;
   closeConversation: () => void;
   openInfo: () => void;
   advanceState: () => Promise<void>;
@@ -73,6 +79,8 @@ function getStateTransition(state: CaseState | null | undefined): StateTransitio
 export function useCaseConversationController(caseClientId: CaseId): CaseConversationController {
   const surface = useSurface();
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
+  const [isContextBannerCollapsed, setIsContextBannerCollapsed] = useState(false);
+  const lastBodyScrollTopRef = useRef(0);
 
   const caseQuery = useGetCaseQuery(caseClientId, { messages_limit: 10 });
   const linksQuery = useCaseLinksQuery(caseClientId);
@@ -100,6 +108,28 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
 
   const subtitle = subtitleSegments.join(' • ') || 'Case conversation';
 
+  const setBodyScrollTop = (scrollTop: number) => {
+    const nextScrollTop = Math.max(0, scrollTop);
+    const delta = nextScrollTop - lastBodyScrollTopRef.current;
+    lastBodyScrollTopRef.current = nextScrollTop;
+
+    if (nextScrollTop <= CONTEXT_BANNER_COLLAPSE_THRESHOLD) {
+      setIsContextBannerCollapsed(false);
+      return;
+    }
+
+    if (Math.abs(delta) < SCROLL_DIRECTION_THRESHOLD) {
+      return;
+    }
+
+    setIsContextBannerCollapsed(delta > 0);
+  };
+
+  const resetScrollChrome = () => {
+    lastBodyScrollTopRef.current = 0;
+    setIsContextBannerCollapsed(false);
+  };
+
   return {
     caseDetail: caseQuery.data,
     taskDetail: taskQuery.data,
@@ -110,6 +140,7 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
     canOpenInfo: Boolean(taskClientId),
     stateActionLabel: transition?.label ?? null,
     nextState: transition?.nextState ?? null,
+    isContextBannerCollapsed,
     isPendingCase: caseQuery.isPending,
     isPendingTask: linksQuery.isPending || (Boolean(taskClientId) && taskQuery.isPending),
     isAdvancingState: stateMutation.isPending,
@@ -117,6 +148,8 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
       caseQuery.isError ||
       linksQuery.isError ||
       (Boolean(taskClientId) && taskQuery.isError),
+    setBodyScrollTop,
+    resetScrollChrome,
     closeConversation,
     openInfo: () => {
       if (!taskClientId) {

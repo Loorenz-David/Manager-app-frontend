@@ -7,7 +7,7 @@ export function CaseConversationHeader(): React.JSX.Element {
 
   return (
     <header
-      className="fixed inset-x-0 top-[var(--safe-top)] z-20 border-b border-border bg-background"
+      className="fixed inset-x-0 top-[var(--safe-top)] z-30 border-b border-border bg-background"
       data-testid="case-conversation-header"
     >
       <div className="flex min-h-20 items-center gap-3 px-4 py-3">
