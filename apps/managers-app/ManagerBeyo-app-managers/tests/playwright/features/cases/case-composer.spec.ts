@@ -660,6 +660,48 @@ async function getComposerText(page: Page): Promise<string> {
   return composerInput.locator.inputValue();
 }
 
+async function focusRichComposerEditor(page: Page) {
+  await page.getByTestId('case-rich-composer-editor').click();
+}
+
+async function installComposerAnimationSpy(page: Page) {
+  await page.evaluate(() => {
+    const editor = document.querySelector('[data-testid="case-rich-composer-editor"]');
+
+    if (!editor) {
+      throw new Error('Composer editor not found.');
+    }
+
+    const events: string[] = [];
+
+    Object.defineProperty(window, '__caseComposerAnimationEvents', {
+      configurable: true,
+      value: events,
+      writable: true,
+    });
+
+    editor.addEventListener('animationstart', (event) => {
+      const animationEvent = event as AnimationEvent;
+      events.push(animationEvent.animationName);
+    });
+  });
+}
+
+async function countComposerAnimationEvents(
+  page: Page,
+  animationName: string,
+): Promise<number> {
+  return page.evaluate(
+    (targetAnimationName) =>
+      ((window as typeof window & {
+        __caseComposerAnimationEvents?: string[];
+      }).__caseComposerAnimationEvents ?? []).filter(
+        (animation) => animation === targetAnimationName,
+      ).length,
+    animationName,
+  );
+}
+
 async function longPressOwnMessage(page: Page, messageClientId: string) {
   const target = page.getByTestId(`case-message-actions-trigger-${messageClientId}`);
 
@@ -694,6 +736,148 @@ test.describe('case composer', () => {
 
     await fillComposer(page, 'Plain text update');
     await expect(sendButton).toBeEnabled();
+  });
+
+  test('rich composer toolbar renders and toggle buttons switch active state on and off', async ({
+    page,
+  }) => {
+    await installComposerMocks(page);
+    await openCase(page);
+    await focusRichComposerEditor(page);
+
+    await expect(page.getByTestId('case-composer-toolbar')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-bold')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-underline')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-big')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-small')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-color')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-shake')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-pulse')).toBeVisible();
+    await expect(page.getByTestId('case-composer-toolbar-mention')).toBeVisible();
+
+    const boldButton = page.getByTestId('case-composer-toolbar-bold');
+    await expect(boldButton).toHaveAttribute('data-state', 'inactive');
+    await boldButton.click();
+    await expect(boldButton).toHaveAttribute('data-state', 'active');
+    await boldButton.click();
+    await expect(boldButton).toHaveAttribute('data-state', 'inactive');
+
+    const bigButton = page.getByTestId('case-composer-toolbar-big');
+    const smallButton = page.getByTestId('case-composer-toolbar-small');
+    await bigButton.click();
+    await expect(bigButton).toHaveAttribute('data-state', 'active');
+    await smallButton.click();
+    await expect(bigButton).toHaveAttribute('data-state', 'inactive');
+    await expect(smallButton).toHaveAttribute('data-state', 'active');
+    await smallButton.click();
+    await expect(smallButton).toHaveAttribute('data-state', 'inactive');
+
+    const colorButton = page.getByTestId('case-composer-toolbar-color');
+    await colorButton.click();
+    await expect(colorButton).toHaveAttribute('data-state', 'active');
+    await colorButton.click();
+    await expect(colorButton).toHaveAttribute('data-state', 'inactive');
+
+    const shakeButton = page.getByTestId('case-composer-toolbar-shake');
+    await shakeButton.click();
+    await expect(shakeButton).toHaveAttribute('data-state', 'active');
+    await shakeButton.click();
+    await expect(shakeButton).toHaveAttribute('data-state', 'inactive');
+
+    const pulseButton = page.getByTestId('case-composer-toolbar-pulse');
+    await pulseButton.click();
+    await expect(pulseButton).toHaveAttribute('data-state', 'active');
+    await pulseButton.click();
+    await expect(pulseButton).toHaveAttribute('data-state', 'inactive');
+  });
+
+  test('toolbar toggles keep typing and send working with backend-safe payloads', async ({
+    page,
+  }) => {
+    const sendRequests: Array<{
+      client_id: string;
+      conversation_client_id: string;
+      plain_text: string;
+      content: Array<{
+        type: string;
+        text: string;
+        mention: null;
+        label_value: null;
+        link: null;
+      }>;
+    }> = [];
+
+    await installComposerMocks(page, {
+      onSendRequest: (body) => {
+        sendRequests.push(body);
+      },
+    });
+    await openCase(page);
+    await focusRichComposerEditor(page);
+
+    await page.getByTestId('case-composer-toolbar-bold').click();
+    await page.getByTestId('case-composer-toolbar-color').click();
+    await page.getByTestId('case-composer-toolbar-shake').click();
+    await page.getByTestId('case-composer-toolbar-mention').click();
+
+    await fillComposer(page, 'Styled composer update');
+    await page.getByTestId('case-composer-send-button').click();
+
+    await expect.poll(() => sendRequests.length).toBe(1);
+    expect(sendRequests[0]).toEqual({
+      client_id: expect.stringMatching(/^ccm_/),
+      conversation_client_id: 'ccv_case_composer',
+      plain_text: 'Styled composer update',
+      content: [
+        {
+          type: 'text',
+          text: 'Styled composer update',
+          mention: null,
+          label_value: null,
+          link: null,
+        },
+      ],
+    });
+
+    await expect(page.getByText('Styled composer update')).toBeVisible();
+    await expect.poll(() => getComposerText(page)).toBe('');
+  });
+
+  test('active animation plays on first typing and replays once when the toggle is turned off', async ({
+    page,
+  }) => {
+    await installComposerMocks(page);
+    await openCase(page);
+    await focusRichComposerEditor(page);
+    await installComposerAnimationSpy(page);
+
+    await page.getByTestId('case-composer-toolbar-shake').click();
+    await page.keyboard.type('A');
+
+    await expect
+      .poll(() => countComposerAnimationEvents(page, 'case-composer-inline-shake'))
+      .toBeGreaterThanOrEqual(1);
+
+    await page.keyboard.type('nimated text');
+    await page.getByTestId('case-composer-toolbar-shake').click();
+
+    await expect
+      .poll(() => countComposerAnimationEvents(page, 'case-composer-inline-shake'))
+      .toBeGreaterThanOrEqual(2);
+
+    await page.getByTestId('case-composer-toolbar-pulse').click();
+    await page.keyboard.type('P');
+
+    await expect
+      .poll(() => countComposerAnimationEvents(page, 'case-composer-inline-pulse'))
+      .toBeGreaterThanOrEqual(1);
+
+    await page.keyboard.type('ulse text');
+    await page.getByTestId('case-composer-toolbar-pulse').click();
+
+    await expect
+      .poll(() => countComposerAnimationEvents(page, 'case-composer-inline-pulse'))
+      .toBeGreaterThanOrEqual(2);
   });
 
   test('sending posts one text block, shows the new message, clears the draft, and keeps the last row above the composer', async ({

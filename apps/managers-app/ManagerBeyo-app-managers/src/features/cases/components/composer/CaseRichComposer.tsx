@@ -1,11 +1,14 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { Plus, SendHorizontal } from "lucide-react";
 import { m } from "framer-motion";
 
+import { CaseComposerToolbar } from "./CaseComposerToolbar";
+import type { CaseComposerEditorToolbarActions } from "./CaseComposerEditor";
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 import {
   CASE_RICH_TEXT_TEST_IDS,
   hasMeaningfulCaseMessageContent,
+  type CaseComposerToolbarState,
 } from "../../lib/case-lexical-serialization";
 
 const LazyCaseComposerEditor = lazy(() =>
@@ -14,8 +17,24 @@ const LazyCaseComposerEditor = lazy(() =>
   })),
 );
 
+const EMPTY_TOOLBAR_STATE: CaseComposerToolbarState = {
+  big: false,
+  bold: false,
+  color: false,
+  pulse: false,
+  shake: false,
+  small: false,
+  underline: false,
+};
+
 export function CaseRichComposer(): React.JSX.Element {
   const controller = useCaseConversationContext();
+  const [pulsePreviewTick, setPulsePreviewTick] = useState(0);
+  const [shakePreviewTick, setShakePreviewTick] = useState(0);
+  const [toolbarActions, setToolbarActions] =
+    useState<CaseComposerEditorToolbarActions | null>(null);
+  const [toolbarState, setToolbarState] =
+    useState<CaseComposerToolbarState>(EMPTY_TOOLBAR_STATE);
   const isEditing = controller.editingMessageId !== null;
   const composerContent = isEditing
     ? controller.editingComposerContent
@@ -30,6 +49,58 @@ export function CaseRichComposer(): React.JSX.Element {
   const isEditDisabled =
     !hasMeaningfulCaseMessageContent(controller.editingComposerContent) ||
     controller.isSubmittingEdit;
+  const isComposerDisabled = isEditing
+    ? controller.isSubmittingEdit
+    : controller.isSending;
+  const handleToolbarActionsReady = useCallback(
+    (nextActions: CaseComposerEditorToolbarActions | null) => {
+      setToolbarActions(nextActions);
+
+      if (nextActions === null) {
+        setToolbarState(EMPTY_TOOLBAR_STATE);
+      }
+    },
+    [],
+  );
+
+  const toolbarButtonActions = {
+    big: () => {
+      toolbarActions?.toggleBig();
+    },
+    bold: () => {
+      toolbarActions?.toggleBold();
+    },
+    color: () => {
+      toolbarActions?.openColorPicker();
+    },
+    mention: () => {
+      toolbarActions?.openMentionPicker();
+    },
+    pulse: () => {
+      toolbarActions?.togglePulse();
+      setPulsePreviewTick((currentValue) => currentValue + 1);
+    },
+    shake: () => {
+      toolbarActions?.toggleShake();
+      setShakePreviewTick((currentValue) => currentValue + 1);
+    },
+    small: () => {
+      toolbarActions?.toggleSmall();
+    },
+    underline: () => {
+      toolbarActions?.toggleUnderline();
+    },
+  } satisfies Record<
+    | "big"
+    | "bold"
+    | "color"
+    | "mention"
+    | "pulse"
+    | "shake"
+    | "small"
+    | "underline",
+    () => void
+  >;
 
   return (
     <div
@@ -109,78 +180,88 @@ export function CaseRichComposer(): React.JSX.Element {
           </div>
         ) : null}
 
-        <div className="flex items-end gap-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-          {!isEditing ? (
-            <button
-              aria-label="Open composer actions"
-              className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
-              type="button"
-            >
-              <Plus className="size-5" />
-            </button>
-          ) : null}
+        <div className="rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+          <CaseComposerToolbar
+            actions={toolbarButtonActions}
+            disabled={isComposerDisabled || toolbarActions === null}
+            pulsePreviewTick={pulsePreviewTick}
+            shakePreviewTick={shakePreviewTick}
+            state={toolbarState}
+          />
 
-          <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
-            <Suspense
-              fallback={
-                <div className="min-h-9 px-3 py-2 text-base text-muted-foreground">
-                  Loading composer...
-                </div>
-              }
-            >
-              <LazyCaseComposerEditor
-                content={composerContent}
-                disabled={
-                  isEditing ? controller.isSubmittingEdit : controller.isSending
+          <div className="flex items-end gap-2">
+            {!isEditing ? (
+              <button
+                aria-label="Open composer actions"
+                className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors duration-150 hover:bg-muted hover:text-foreground"
+                type="button"
+              >
+                <Plus className="size-5" />
+              </button>
+            ) : null}
+
+            <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
+              <Suspense
+                fallback={
+                  <div className="min-h-9 px-3 py-2 text-base text-muted-foreground">
+                    Loading composer...
+                  </div>
                 }
-                onChange={({ content, plainText }) => {
-                  if (isEditing) {
-                    controller.setEditingComposerContent(content, plainText);
-                    return;
-                  }
-
-                  controller.setComposerContent(content, plainText);
-                }}
-                placeholder={composerPlaceholder}
-              />
-            </Suspense>
-          </div>
-
-          {isEditing ? (
-            <div className="flex items-center gap-1.5 pr-0.5">
-              <button
-                className="rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted"
-                onClick={controller.cancelEditing}
-                type="button"
               >
-                Cancel
-              </button>
-              <button
-                className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-                data-testid="case-composer-save-button"
-                disabled={isEditDisabled}
-                onClick={() => {
-                  void controller.submitEdit();
-                }}
-                type="button"
-              >
-                Save
-              </button>
+                <LazyCaseComposerEditor
+                  content={composerContent}
+                  disabled={isComposerDisabled}
+                  onChange={({ content, plainText }) => {
+                    if (isEditing) {
+                      controller.setEditingComposerContent(content, plainText);
+                      return;
+                    }
+
+                    controller.setComposerContent(content, plainText);
+                  }}
+                  onToolbarActionsReady={handleToolbarActionsReady}
+                  onToolbarStateChange={setToolbarState}
+                  placeholder={composerPlaceholder}
+                />
+              </Suspense>
             </div>
-          ) : (
-            <button
-              aria-label="Send message"
-              className="mr-0.5 self-end flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-              data-testid="case-composer-send-button"
-              disabled={isSendDisabled}
-              onClick={() => {
-                void controller.sendDraft();
-              }}
-              type="button"
-            >
-              <SendHorizontal className="size-4" />
-            </button>
-          )}
+
+            {isEditing ? (
+              <div className="flex items-center gap-1.5 pr-0.5">
+                <button
+                  className="rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted"
+                  onClick={controller.cancelEditing}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                  data-testid="case-composer-save-button"
+                  disabled={isEditDisabled}
+                  onClick={() => {
+                    void controller.submitEdit();
+                  }}
+                  type="button"
+                >
+                  Save
+                </button>
+              </div>
+            ) : (
+              <button
+                aria-label="Send message"
+                className="mr-0.5 self-end flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                data-testid="case-composer-send-button"
+                disabled={isSendDisabled}
+                onClick={() => {
+                  void controller.sendDraft();
+                }}
+                type="button"
+              >
+                <SendHorizontal className="size-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>

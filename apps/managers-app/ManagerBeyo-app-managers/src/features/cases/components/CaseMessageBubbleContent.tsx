@@ -9,12 +9,27 @@ type CaseMessageBubbleContentProps = {
   isOwnMessage: boolean;
 };
 
+function getAnimationClassName(
+  marks: CaseInlinePartMarks | undefined,
+): string | undefined {
+  if (marks?.animation === 'shake') {
+    return 'case-message-animation-shake';
+  }
+
+  if (marks?.animation === 'pulse') {
+    return 'case-message-animation-pulse';
+  }
+
+  return undefined;
+}
+
 function getTextClassName(marks: CaseInlinePartMarks | undefined): string {
   return cn(
     marks?.bold && 'font-semibold',
     marks?.underline && 'underline underline-offset-2',
     marks?.size === 'small' && 'text-xs',
     marks?.size === 'large' && 'text-base',
+    getAnimationClassName(marks),
   );
 }
 

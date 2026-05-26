@@ -1,4 +1,8 @@
-import { $patchStyleText } from "@lexical/selection";
+import {
+  $getSelectionStyleValueForProperty,
+  $patchStyleText,
+} from "@lexical/selection";
+import { mergeRegister } from "@lexical/utils";
 import {
   $createParagraphNode,
   $createTextNode,
@@ -15,6 +19,7 @@ import {
   type LexicalEditor,
   type LexicalNode,
   type TextNode,
+  getStyleObjectFromCSS,
 } from "lexical";
 
 import type {
@@ -27,8 +32,16 @@ import {
   toBackendPlainText,
 } from "./message-content-adapter";
 
-const LARGE_TEXT_STYLE = "font-size: 1.125rem;";
-const SMALL_TEXT_STYLE = "font-size: 0.875rem;";
+const LARGE_TEXT_FONT_SIZE = "1.35rem";
+const SMALL_TEXT_FONT_SIZE = "0.875rem";
+const LARGE_TEXT_STYLE = `font-size: ${LARGE_TEXT_FONT_SIZE};`;
+const SMALL_TEXT_STYLE = `font-size: ${SMALL_TEXT_FONT_SIZE};`;
+const CASE_COMPOSER_INLINE_COLOR = "var(--case-composer-color-accent)";
+const CASE_COMPOSER_ANIMATION_STYLE_PROPERTY = "--case-composer-animation";
+const CASE_COMPOSER_SHAKE_ANIMATION =
+  "case-composer-inline-shake 320ms ease-in-out 1";
+const CASE_COMPOSER_PULSE_ANIMATION =
+  "case-composer-inline-pulse 360ms ease-out 1";
 
 export const CASE_RICH_TEXT_TEST_IDS = {
   composer: "case-rich-composer",
@@ -40,7 +53,81 @@ type TextSegment = {
   text: string;
 };
 
-type ComposerSize = NonNullable<CaseInlinePartMarks["size"]>;
+export type CaseComposerToolbarState = {
+  bold: boolean;
+  underline: boolean;
+  big: boolean;
+  small: boolean;
+  color: boolean;
+  shake: boolean;
+  pulse: boolean;
+};
+
+type ComposerSize = Exclude<NonNullable<CaseInlinePartMarks["size"]>, "base">;
+type ComposerAnimation = "shake" | "pulse";
+
+const EMPTY_TOOLBAR_STATE: CaseComposerToolbarState = {
+  big: false,
+  bold: false,
+  color: false,
+  pulse: false,
+  shake: false,
+  small: false,
+  underline: false,
+};
+const pendingFirstTypingAnimationReplay = new WeakMap<
+  LexicalEditor,
+  ComposerAnimation | null
+>();
+
+function toInlineStyleString(styleObject: Record<string, string>): string {
+  return Object.entries(styleObject)
+    .map(([property, value]) => `${property}: ${value};`)
+    .join(" ");
+}
+
+function getAnimationStyleValue(animation: ComposerAnimation): string {
+  return animation === "shake"
+    ? CASE_COMPOSER_SHAKE_ANIMATION
+    : CASE_COMPOSER_PULSE_ANIMATION;
+}
+
+function readComposerAnimation(
+  styleObject: Record<string, string>,
+): ComposerAnimation | undefined {
+  const animation = styleObject[CASE_COMPOSER_ANIMATION_STYLE_PROPERTY];
+
+  if (animation === "shake" || animation === "pulse") {
+    return animation;
+  }
+
+  return undefined;
+}
+
+function buildStyleObjectFromMarks(
+  marks: CaseInlinePartMarks | undefined,
+): Record<string, string> {
+  const styleObject: Record<string, string> = {};
+
+  if (marks?.size === "large") {
+    styleObject["font-size"] = LARGE_TEXT_FONT_SIZE;
+  } else if (marks?.size === "small") {
+    styleObject["font-size"] = SMALL_TEXT_FONT_SIZE;
+  }
+
+  if (marks?.color) {
+    styleObject.color = marks.color;
+  }
+
+  if (marks?.animation === "shake" || marks?.animation === "pulse") {
+    styleObject.display = "inline-block";
+    styleObject[CASE_COMPOSER_ANIMATION_STYLE_PROPERTY] = marks.animation;
+    styleObject.animation = getAnimationStyleValue(marks.animation);
+    styleObject["transform-origin"] = "center";
+  }
+
+  return styleObject;
+}
 
 function getReadableText(part: CaseInlinePart): string {
   if (part.kind === "label") {
@@ -65,12 +152,22 @@ function getTextNodeMarks(node: TextNode): CaseInlinePartMarks | undefined {
     marks.underline = true;
   }
 
-  const style = node.getStyle();
+  const styleObject = getStyleObjectFromCSS(node.getStyle());
 
-  if (style.includes("font-size: 1.125rem")) {
+  if (styleObject["font-size"] === LARGE_TEXT_FONT_SIZE) {
     marks.size = "large";
-  } else if (style.includes("font-size: 0.875rem")) {
+  } else if (styleObject["font-size"] === SMALL_TEXT_FONT_SIZE) {
     marks.size = "small";
+  }
+
+  if (styleObject.color) {
+    marks.color = styleObject.color;
+  }
+
+  const animation = readComposerAnimation(styleObject);
+
+  if (animation) {
+    marks.animation = animation;
   }
 
   return Object.keys(marks).length > 0 ? marks : undefined;
@@ -170,10 +267,10 @@ function createTextNodeWithMarks(segment: TextSegment): TextNode {
     textNode.toggleFormat("underline");
   }
 
-  if (segment.marks?.size === "large") {
-    textNode.setStyle(LARGE_TEXT_STYLE);
-  } else if (segment.marks?.size === "small") {
-    textNode.setStyle(SMALL_TEXT_STYLE);
+  const styleObject = buildStyleObjectFromMarks(segment.marks);
+
+  if (Object.keys(styleObject).length > 0) {
+    textNode.setStyle(toInlineStyleString(styleObject));
   }
 
   return textNode;
@@ -325,59 +422,292 @@ export function trimCaseMessageContent(
   };
 }
 
+function readStyleValue(property: string): string {
+  const selection = $getSelection();
+
+  if (!$isRangeSelection(selection)) {
+    return "";
+  }
+
+  return $getSelectionStyleValueForProperty(selection, property, "").trim();
+}
+
+function collectAnimatedComposerElements(
+  editor: LexicalEditor,
+  animation: ComposerAnimation,
+): HTMLElement[] {
+  const animatedElements: HTMLElement[] = [];
+
+  editor.getEditorState().read(() => {
+    const root = $getRoot();
+
+    const visitNode = (node: LexicalNode) => {
+      if ($isTextNode(node) && getTextNodeMarks(node)?.animation === animation) {
+        const element = editor.getElementByKey(node.getKey());
+
+        if (element) {
+          animatedElements.push(element);
+        }
+
+        return;
+      }
+
+      if (!$isElementNode(node)) {
+        return;
+      }
+
+      node.getChildren().forEach(visitNode);
+    };
+
+    root.getChildren().forEach(visitNode);
+  });
+
+  return animatedElements;
+}
+
+function replayComposerAnimationOnElement(
+  element: HTMLElement,
+  animation: ComposerAnimation,
+): void {
+  element.style.display = "inline-block";
+  element.style.animation = "none";
+  element.style.transformOrigin = "center";
+  void element.offsetHeight;
+  element.style.animation = getAnimationStyleValue(animation);
+}
+
+function queueComposerAnimationReplay(
+  editor: LexicalEditor,
+  animation: ComposerAnimation,
+): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.requestAnimationFrame(() => {
+    collectAnimatedComposerElements(editor, animation).forEach((element) => {
+      replayComposerAnimationOnElement(element, animation);
+    });
+  });
+}
+
+function toggleSelectionStylePatch(
+  editor: LexicalEditor,
+  options: {
+    applyPatch: Record<string, string>;
+    clearPatch: Record<string, null>;
+    isActive: (currentValue: string) => boolean;
+    property: string;
+  },
+): void {
+  editor.update(() => {
+    const selection = $getSelection();
+
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    const currentValue = $getSelectionStyleValueForProperty(
+      selection,
+      options.property,
+      "",
+    ).trim();
+
+    $patchStyleText(
+      selection,
+      options.isActive(currentValue) ? options.clearPatch : options.applyPatch,
+    );
+  });
+}
+
+export function readCaseComposerToolbarState(): CaseComposerToolbarState {
+  const selection = $getSelection();
+
+  if (!$isRangeSelection(selection)) {
+    return EMPTY_TOOLBAR_STATE;
+  }
+
+  const fontSize = readStyleValue("font-size");
+  const color = readStyleValue("color");
+  const animation = readStyleValue(CASE_COMPOSER_ANIMATION_STYLE_PROPERTY);
+
+  return {
+    big: fontSize === LARGE_TEXT_FONT_SIZE,
+    bold: selection.hasFormat("bold"),
+    color: color.length > 0,
+    pulse: animation === "pulse",
+    shake: animation === "shake",
+    small: fontSize === SMALL_TEXT_FONT_SIZE,
+    underline: selection.hasFormat("underline"),
+  };
+}
+
+export function toggleCaseComposerBold(editor: LexicalEditor): void {
+  editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
+}
+
+export function toggleCaseComposerUnderline(editor: LexicalEditor): void {
+  editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
+}
+
+export function toggleCaseComposerSize(
+  editor: LexicalEditor,
+  size: ComposerSize,
+): void {
+  const nextSize = size === "large" ? LARGE_TEXT_FONT_SIZE : SMALL_TEXT_FONT_SIZE;
+
+  toggleSelectionStylePatch(editor, {
+    applyPatch: {
+      "font-size": nextSize,
+    },
+    clearPatch: {
+      "font-size": null,
+    },
+    isActive: (currentValue) => currentValue === nextSize,
+    property: "font-size",
+  });
+}
+
+export function toggleCaseComposerColor(editor: LexicalEditor): void {
+  toggleSelectionStylePatch(editor, {
+    applyPatch: {
+      color: CASE_COMPOSER_INLINE_COLOR,
+    },
+    clearPatch: {
+      color: null,
+    },
+    isActive: (currentValue) => currentValue.length > 0,
+    property: "color",
+  });
+}
+
+export function toggleCaseComposerAnimation(
+  editor: LexicalEditor,
+  animation: ComposerAnimation,
+): void {
+  let replayAnimationOnDisable = false;
+
+  editor.update(() => {
+    const selection = $getSelection();
+
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    const currentValue = $getSelectionStyleValueForProperty(
+      selection,
+      CASE_COMPOSER_ANIMATION_STYLE_PROPERTY,
+      "",
+    ).trim();
+    const isTurningOn = currentValue !== animation;
+
+    $patchStyleText(
+      selection,
+      isTurningOn
+        ? {
+            display: "inline-block",
+            [CASE_COMPOSER_ANIMATION_STYLE_PROPERTY]: animation,
+            animation: getAnimationStyleValue(animation),
+            "transform-origin": "center",
+          }
+        : {
+            display: null,
+            [CASE_COMPOSER_ANIMATION_STYLE_PROPERTY]: null,
+            animation: null,
+            "transform-origin": null,
+          },
+    );
+
+    pendingFirstTypingAnimationReplay.set(
+      editor,
+      isTurningOn ? animation : null,
+    );
+    replayAnimationOnDisable = !isTurningOn;
+  });
+
+  if (replayAnimationOnDisable) {
+    queueComposerAnimationReplay(editor, animation);
+  }
+}
+
+export function insertCaseComposerMentionTrigger(editor: LexicalEditor): void {
+  editor.update(() => {
+    const selection = $getSelection();
+
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    selection.insertText("@");
+  });
+}
+
 export function registerCaseComposerFormattingShortcuts(
   editor: LexicalEditor,
 ): () => void {
-  return editor.registerCommand(
-    KEY_DOWN_COMMAND,
-    (event) => {
-      const isModifierPressed = event.metaKey || event.ctrlKey;
+  let pendingAnimationReplay: ComposerAnimation | null = null;
 
-      if (!isModifierPressed) {
-        return false;
+  return mergeRegister(
+    editor.registerUpdateListener(() => {
+      if (!pendingAnimationReplay) {
+        return;
       }
 
-      if (event.key.toLowerCase() === "b") {
-        editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold");
-        return true;
-      }
+      const animationToReplay = pendingAnimationReplay;
+      pendingAnimationReplay = null;
+      queueComposerAnimationReplay(editor, animationToReplay);
+    }),
+    editor.registerCommand(
+      KEY_DOWN_COMMAND,
+      (event) => {
+        const isModifierPressed = event.metaKey || event.ctrlKey;
 
-      if (event.key.toLowerCase() === "u") {
-        editor.dispatchCommand(FORMAT_TEXT_COMMAND, "underline");
-        return true;
-      }
+        if (!isModifierPressed) {
+          const pendingTypingAnimation =
+            pendingFirstTypingAnimationReplay.get(editor) ?? null;
 
-      if (!event.shiftKey) {
-        return false;
-      }
-
-      if (event.key === ">" || event.key === ".") {
-        event.preventDefault();
-        editor.update(() => {
-          const selection = $getSelection();
-
-          if ($isRangeSelection(selection)) {
-            $patchStyleText(selection, { "font-size": "1.125rem" });
+          if (
+            pendingTypingAnimation &&
+            event.key.length === 1 &&
+            !event.altKey
+          ) {
+            pendingAnimationReplay = pendingTypingAnimation;
+            pendingFirstTypingAnimationReplay.set(editor, null);
           }
-        });
-        return true;
-      }
 
-      if (event.key === "<" || event.key === ",") {
-        event.preventDefault();
-        editor.update(() => {
-          const selection = $getSelection();
+          return false;
+        }
 
-          if ($isRangeSelection(selection)) {
-            $patchStyleText(selection, { "font-size": "0.875rem" });
-          }
-        });
-        return true;
-      }
+        if (event.key.toLowerCase() === "b") {
+          toggleCaseComposerBold(editor);
+          return true;
+        }
 
-      return false;
-    },
-    COMMAND_PRIORITY_LOW,
+        if (event.key.toLowerCase() === "u") {
+          toggleCaseComposerUnderline(editor);
+          return true;
+        }
+
+        if (!event.shiftKey) {
+          return false;
+        }
+
+        if (event.key === ">" || event.key === ".") {
+          event.preventDefault();
+          toggleCaseComposerSize(editor, "large");
+          return true;
+        }
+
+        if (event.key === "<" || event.key === ",") {
+          event.preventDefault();
+          toggleCaseComposerSize(editor, "small");
+          return true;
+        }
+
+        return false;
+      },
+      COMMAND_PRIORITY_LOW,
+    ),
   );
 }
 

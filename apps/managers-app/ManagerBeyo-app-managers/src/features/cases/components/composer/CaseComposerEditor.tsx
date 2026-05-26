@@ -5,6 +5,8 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
+import { mergeRegister } from "@lexical/utils";
+import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from "lexical";
 
 import { cn } from "@/lib/utils";
 
@@ -12,15 +14,34 @@ import type { CaseMessageContent } from "../../message-content";
 import {
   CASE_RICH_TEXT_TEST_IDS,
   initializeCaseComposerEditorState,
+  insertCaseComposerMentionTrigger,
+  readCaseComposerToolbarState,
   registerCaseComposerFormattingShortcuts,
   serializeCaseEditorState,
   setCaseComposerEditorContent,
+  toggleCaseComposerAnimation,
+  toggleCaseComposerBold,
+  toggleCaseComposerColor,
+  toggleCaseComposerSize,
+  toggleCaseComposerUnderline,
+  type CaseComposerToolbarState,
 } from "../../lib/case-lexical-serialization";
 import { toBackendPlainText } from "../../lib/message-content-adapter";
 
 type CaseComposerEditorChange = {
   content: CaseMessageContent;
   plainText: string;
+};
+
+export type CaseComposerEditorToolbarActions = {
+  openColorPicker: () => void;
+  openMentionPicker: () => void;
+  toggleBig: () => void;
+  toggleBold: () => void;
+  togglePulse: () => void;
+  toggleShake: () => void;
+  toggleSmall: () => void;
+  toggleUnderline: () => void;
 };
 
 type CaseComposerEditorProps = {
@@ -30,6 +51,10 @@ type CaseComposerEditorProps = {
   onBlur?: () => void;
   onChange: (change: CaseComposerEditorChange) => void;
   onFocus?: () => void;
+  onToolbarActionsReady?: (
+    actions: CaseComposerEditorToolbarActions | null,
+  ) => void;
+  onToolbarStateChange?: (state: CaseComposerToolbarState) => void;
   placeholder: string;
 };
 
@@ -98,6 +123,105 @@ function ChangeBridgePlugin({
   );
 }
 
+function createToolbarActions(
+  editor: Parameters<typeof toggleCaseComposerBold>[0],
+): CaseComposerEditorToolbarActions {
+  // Collapsed selections intentionally use Lexical's insertion-style behavior so
+  // toolbar taps stay deterministic on mobile instead of guessing the current word.
+  return {
+    openColorPicker: () => {
+      toggleCaseComposerColor(editor);
+    },
+    openMentionPicker: () => {
+      insertCaseComposerMentionTrigger(editor);
+    },
+    toggleBig: () => {
+      toggleCaseComposerSize(editor, "large");
+    },
+    toggleBold: () => {
+      toggleCaseComposerBold(editor);
+    },
+    togglePulse: () => {
+      toggleCaseComposerAnimation(editor, "pulse");
+    },
+    toggleShake: () => {
+      toggleCaseComposerAnimation(editor, "shake");
+    },
+    toggleSmall: () => {
+      toggleCaseComposerSize(editor, "small");
+    },
+    toggleUnderline: () => {
+      toggleCaseComposerUnderline(editor);
+    },
+  };
+}
+
+function ToolbarBridgePlugin({
+  onToolbarActionsReady,
+  onToolbarStateChange,
+}: {
+  onToolbarActionsReady?: (
+    actions: CaseComposerEditorToolbarActions | null,
+  ) => void;
+  onToolbarStateChange?: (state: CaseComposerToolbarState) => void;
+}): React.JSX.Element | null {
+  const [editor] = useLexicalComposerContext();
+  const lastToolbarStateRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!onToolbarStateChange) {
+      return;
+    }
+
+    const emitToolbarState = (state: CaseComposerToolbarState) => {
+      const nextSnapshot = JSON.stringify(state);
+
+      if (nextSnapshot === lastToolbarStateRef.current) {
+        return;
+      }
+
+      lastToolbarStateRef.current = nextSnapshot;
+      onToolbarStateChange(state);
+    };
+
+    editor.getEditorState().read(() => {
+      emitToolbarState(readCaseComposerToolbarState());
+    });
+
+    return mergeRegister(
+      editor.registerUpdateListener(({ editorState }) => {
+        editorState.read(() => {
+          emitToolbarState(readCaseComposerToolbarState());
+        });
+      }),
+      editor.registerCommand(
+        SELECTION_CHANGE_COMMAND,
+        () => {
+          editor.getEditorState().read(() => {
+            emitToolbarState(readCaseComposerToolbarState());
+          });
+          return false;
+        },
+        COMMAND_PRIORITY_LOW,
+      ),
+    );
+  }, [editor, onToolbarStateChange]);
+
+  useEffect(() => {
+    if (!onToolbarActionsReady) {
+      return;
+    }
+
+    onToolbarActionsReady(createToolbarActions(editor));
+
+    return () => {
+      onToolbarActionsReady(null);
+    };
+  }, [editor, onToolbarActionsReady]);
+
+  return null;
+}
+
 export function CaseComposerEditor({
   className,
   content,
@@ -105,6 +229,8 @@ export function CaseComposerEditor({
   onBlur,
   onChange,
   onFocus,
+  onToolbarActionsReady,
+  onToolbarStateChange,
   placeholder,
 }: CaseComposerEditorProps): React.JSX.Element {
   const initialSnapshot = JSON.stringify(content);
@@ -133,6 +259,10 @@ export function CaseComposerEditor({
       <ChangeBridgePlugin
         lastEmittedSnapshotRef={lastEmittedSnapshotRef}
         onChange={onChange}
+      />
+      <ToolbarBridgePlugin
+        onToolbarActionsReady={onToolbarActionsReady}
+        onToolbarStateChange={onToolbarStateChange}
       />
       <EditableStatePlugin disabled={disabled} />
       <RichTextPlugin

@@ -639,6 +639,7 @@ The first version should prioritize a stable, well-architected foundation that c
 - `docs/architecture/archives/implementation/PLAN_21_message_edit_and_soft_delete_interactions_20260526.md` — archived, implemented own-message edit/delete actions, a message-actions sheet, composer edit mode, and runtime coverage for edited/deleted thread states.
 - `docs/architecture/archives/implementation/PLAN_22_rich_content_dto_and_renderer_foundation_20260526.md` — archived, implemented the app-owned rich-content DTO, backend adapter layer, bubble renderer foundation, and focused unit coverage.
 - `docs/architecture/archives/implementation/PLAN_23_lexical_rich_text_composer_foundation_20260526.md` — archived, implemented the Lexical-backed composer foundation, feature-level composer mode switch, DTO-safe editor serialization boundary, and focused runtime coverage for both rich and fallback composer modes.
+- `docs/architecture/archives/implementation/PLAN_24_composer_styling_toolbar_and_inline_style_toggles_20260526.md` — archived, implemented the rich-composer styling toolbar, active inline-style toggles, deterministic collapsed-selection insertion styles, and focused runtime coverage for toolbar interactions.
 
 ## Progress notes
 
@@ -654,3 +655,4 @@ The first version should prioritize a stable, well-architected foundation that c
 - `2026-05-26T12:39:43Z` `codex`: Implemented own-message edit/delete interactions, added the message-actions sheet plus composer edit mode, passed `npm run typecheck` and the case composer Playwright spec on both mobile and desktop, and archived PLAN 21.
 - `2026-05-26T12:56:00Z` `codex`: Implemented the app-owned rich-content DTO and backend adapter layer, updated message bubbles to render mentions/labels/links through the new renderer foundation, passed `npm run typecheck` plus focused adapter/bubble Vitest coverage, and archived PLAN 22.
 - `2026-05-26T16:49:36Z` `codex`: Implemented the Lexical-backed rich composer foundation, added the feature-level composer mode switch plus DTO-safe editor serialization, passed `npm run typecheck` and the focused mobile composer Playwright spec, and archived PLAN 23.
+- `2026-05-26T17:04:21Z` `codex`: Implemented the rich-composer styling toolbar, added active inline-style toggles plus deterministic collapsed-selection insertion styles, passed `npm run typecheck` and the focused mobile composer Playwright spec, and archived PLAN 24.
