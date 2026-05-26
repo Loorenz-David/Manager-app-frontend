@@ -629,8 +629,10 @@ The first version should prioritize a stable, well-architected foundation that c
 
 - `docs/architecture/archives/implementation/PLAN_13_cases_types_and_api_foundation_20260526.md` — archived, implemented the cases typed foundation and API layer.
 - `docs/architecture/archives/implementation/PLAN_14_cases_page_ui_20260526.md` — archived, implemented the cases page UI, grouped card list, and stub conversation slide surface.
+- `docs/architecture/archives/implementation/PLAN_15_cases_conversation_shell_and_header_20260526.md` — archived, implemented the real conversation slide shell, custom header, and case-state transition flow.
 
 ## Progress notes
 
 - `2026-05-26T07:19:39Z` `codex`: Implemented the cases typed foundations, added the planned API modules and query keys, passed `npm run typecheck`, and archived the implementation plan.
 - `2026-05-26T07:29:40Z` `codex`: Implemented the cases page UI, added the grouped case cards and conversation surface stub, passed `npm run typecheck` and `npm run test:e2e:mobile -- --grep "cases page"`, and archived PLAN 14.
+- `2026-05-26T07:49:37Z` `codex`: Implemented the conversation shell, task-linked custom header, and case-state transition close flow, passed `npm run typecheck` and `npx playwright test tests/playwright/features/cases/cases-page.spec.ts --project=mobile`, and archived PLAN 15.
