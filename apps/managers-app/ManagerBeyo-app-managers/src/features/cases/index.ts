@@ -1,5 +1,7 @@
 export { CasesView } from './components/CasesView';
 export { CasesViewProvider } from './providers/CasesViewProvider';
+export { caseSurfaces, CASE_CONVERSATION_SURFACE_ID } from './surfaces';
+export type { CaseConversationSurfaceProps } from './surfaces';
 export type {
   AddParticipantsInput,
   CaseConversationMessageRaw,

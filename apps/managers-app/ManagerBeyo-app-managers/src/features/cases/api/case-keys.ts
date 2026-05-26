@@ -7,7 +7,7 @@ export const caseKeys = {
   list: (params: ListCasesParams = {}) => [...caseKeys.lists(), params] as const,
   details: () => [...caseKeys.all, 'detail'] as const,
   detail: (id: CaseId) => [...caseKeys.details(), id] as const,
-  unreadCounts: () => [...caseKeys.all, 'unread-counts'] as const,
+  unreadCounts: (caseClientIds?: string[]) => [...caseKeys.all, 'unread-counts', caseClientIds] as const,
   participantsList: (caseId: CaseId) => [...caseKeys.all, 'participants', caseId] as const,
   conversationMessages: (
     conversationId: CaseConversationId,
