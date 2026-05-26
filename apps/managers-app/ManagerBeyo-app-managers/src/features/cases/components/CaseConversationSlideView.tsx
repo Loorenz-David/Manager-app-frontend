@@ -12,6 +12,7 @@ import { CaseConversationContextBanner } from "./CaseConversationContextBanner";
 import { CaseConversationHeader } from "./CaseConversationHeader";
 import { CaseMessageList } from "./CaseMessageList";
 import { CaseBasicComposer } from "./composer/CaseBasicComposer";
+import { CaseRichComposer } from "./composer/CaseRichComposer";
 
 const CONVERSATION_LAYOUT_STYLE = {
   "--case-conversation-bottom-offset": "calc(var(--safe-bottom,0px) + 9.75rem)",
@@ -123,7 +124,11 @@ export function CaseConversationSlideView(): React.JSX.Element {
           </m.button>
         ) : null}
       </AnimatePresence>
-      <CaseBasicComposer />
+      {controller.composerMode === "rich" ? (
+        <CaseRichComposer />
+      ) : (
+        <CaseBasicComposer />
+      )}
     </div>
   );
 }

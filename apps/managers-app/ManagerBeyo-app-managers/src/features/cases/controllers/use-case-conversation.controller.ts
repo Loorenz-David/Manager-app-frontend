@@ -23,15 +23,30 @@ import { caseKeys } from "../api/case-keys";
 import { useCaseLinksQuery } from "../api/use-case-links";
 import { useGetCaseQuery } from "../api/use-get-case";
 import {
+  resolveCaseComposerMode,
+  type CaseComposerMode,
+} from "../config";
+import {
   CASE_MESSAGE_EDIT_REQUEST_EVENT,
   type CaseMessageEditRequestDetail,
 } from "../lib/case-message-edit-events";
+import {
+  createPlainTextCaseMessageContent,
+  hasMeaningfulCaseMessageContent,
+  trimCaseMessageContent,
+} from "../lib/case-lexical-serialization";
+import {
+  fromBackendMessageContent,
+  toBackendMessageContent,
+  toBackendPlainText,
+} from "../lib/message-content-adapter";
 import {
   CASE_CONVERSATION_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from "../surfaces";
 import { ENABLE_TYPING_STUB } from "../lib/typing-indicator-flags";
+import type { CaseMessageContent } from "../message-content";
 import { getCaseTypeName } from "../types";
 import type {
   CaseConversationMessageRaw,
@@ -59,8 +74,15 @@ type ConversationScrollMetrics = {
   isLayoutCompensation?: boolean;
 };
 
+type CaseComposerDraft = {
+  content: CaseMessageContent;
+  plainText: string;
+};
+
 export type CaseConversationController = {
   caseDetail: CaseDetailRaw | undefined;
+  composerContent: CaseMessageContent;
+  composerMode: CaseComposerMode;
   currentParticipant: CaseParticipant | null;
   taskDetail: ReturnType<typeof useGetTaskQuery>["data"];
   currentUserId: UserId | null;
@@ -74,6 +96,7 @@ export type CaseConversationController = {
   isContextBannerCollapsed: boolean;
   typingIndicatorText: string | null;
   draftText: string;
+  editingComposerContent: CaseMessageContent;
   editingMessageId: CaseConversationMessageRaw["client_id"] | null;
   editingDraftText: string;
   isSending: boolean;
@@ -85,7 +108,12 @@ export type CaseConversationController = {
   sendError: ApiRequestError | Error | null;
   editError: ApiRequestError | Error | null;
   setBodyScrollTop: (metrics: ConversationScrollMetrics) => void;
+  setComposerContent: (content: CaseMessageContent, plainText: string) => void;
   setDraftText: (value: string) => void;
+  setEditingComposerContent: (
+    content: CaseMessageContent,
+    plainText: string,
+  ) => void;
   setEditingDraftText: (value: string) => void;
   resetScrollChrome: () => void;
   closeConversation: () => void;
@@ -167,6 +195,39 @@ function getMessageDisplayText(message: CaseConversationMessageRaw): string {
   );
 }
 
+function createComposerDraftFromPlainText(text: string): CaseComposerDraft {
+  return {
+    content: createPlainTextCaseMessageContent(text),
+    plainText: text,
+  };
+}
+
+function getComposerDraftKey(draft: CaseComposerDraft): string {
+  return JSON.stringify({
+    content: draft.content,
+    plainText: draft.plainText,
+  });
+}
+
+function createComposerDraftFromMessage(
+  message: CaseConversationMessageRaw,
+): CaseComposerDraft {
+  const content = fromBackendMessageContent(message.content, message.mentions);
+  const plainText =
+    message.plain_text.trim().length > 0
+      ? message.plain_text
+      : toBackendPlainText(content);
+
+  if (content.parts.length === 0) {
+    return createComposerDraftFromPlainText(getMessageDisplayText(message));
+  }
+
+  return {
+    content,
+    plainText,
+  };
+}
+
 function resolveCachedCaseSnapshot(
   caseLists: Array<[readonly unknown[], CaseListCardRaw[] | undefined]>,
   caseClientId: CaseId,
@@ -190,15 +251,20 @@ export function useCaseConversationController(
   const surface = useSurface();
   const navigate = useNavigate();
   const location = useLocation();
+  const composerMode = resolveCaseComposerMode();
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
   const [isContextBannerCollapsed, setIsContextBannerCollapsed] =
     useState(false);
-  const [draftText, setDraftTextState] = useState("");
+  const [composerDraft, setComposerDraftState] = useState<CaseComposerDraft>(
+    () => createComposerDraftFromPlainText(""),
+  );
   const [editingMessageId, setEditingMessageId] = useState<
     CaseConversationMessageRaw["client_id"] | null
   >(null);
-  const [editingDraftText, setEditingDraftTextState] = useState("");
-  const [editingOriginalText, setEditingOriginalText] = useState("");
+  const [editingDraft, setEditingDraftState] = useState<CaseComposerDraft>(() =>
+    createComposerDraftFromPlainText(""),
+  );
+  const [editingOriginalDraftKey, setEditingOriginalDraftKey] = useState("");
   const [editingMessageSeq, setEditingMessageSeq] = useState<number | null>(
     null,
   );
@@ -209,6 +275,8 @@ export function useCaseConversationController(
   const accumulatedScrollIntentRef = useRef(0);
   const lastRequestedReadSeqRef = useRef(0);
   const lastAcknowledgedReadSeqRef = useRef(0);
+  const draftText = composerDraft.plainText;
+  const editingDraftText = editingDraft.plainText;
 
   const caseQuery = useGetCaseQuery(caseClientId, { messages_limit: 10 });
   const cachedCaseSnapshot = useMemo(
@@ -433,8 +501,14 @@ export function useCaseConversationController(
     }
   };
 
-  const setDraftText = (value: string) => {
-    setDraftTextState(value);
+  const setComposerContent = (
+    content: CaseMessageContent,
+    plainText: string,
+  ) => {
+    setComposerDraftState({
+      content,
+      plainText,
+    });
 
     if (localSendError) {
       setLocalSendError(null);
@@ -445,8 +519,21 @@ export function useCaseConversationController(
     }
   };
 
-  const setEditingDraftText = (value: string) => {
-    setEditingDraftTextState(value);
+  const setDraftText = (value: string) => {
+    setComposerContent(
+      createPlainTextCaseMessageContent(value),
+      value,
+    );
+  };
+
+  const setEditingComposerContent = (
+    content: CaseMessageContent,
+    plainText: string,
+  ) => {
+    setEditingDraftState({
+      content,
+      plainText,
+    });
 
     if (localEditError) {
       setLocalEditError(null);
@@ -457,10 +544,17 @@ export function useCaseConversationController(
     }
   };
 
+  const setEditingDraftText = (value: string) => {
+    setEditingComposerContent(
+      createPlainTextCaseMessageContent(value),
+      value,
+    );
+  };
+
   const cancelEditing = () => {
     setEditingMessageId(null);
-    setEditingDraftTextState("");
-    setEditingOriginalText("");
+    setEditingDraftState(createComposerDraftFromPlainText(""));
+    setEditingOriginalDraftKey("");
     setEditingMessageSeq(null);
     setLocalEditError(null);
     editCaseMessageMutation.reset();
@@ -474,11 +568,11 @@ export function useCaseConversationController(
       return;
     }
 
-    const messageText = getMessageDisplayText(message);
+    const nextDraft = createComposerDraftFromMessage(message);
 
     setEditingMessageId(message.client_id);
-    setEditingDraftTextState(messageText);
-    setEditingOriginalText(messageText);
+    setEditingDraftState(nextDraft);
+    setEditingOriginalDraftKey(getComposerDraftKey(nextDraft));
     setEditingMessageSeq(message.message_seq);
     setLocalEditError(null);
     editCaseMessageMutation.reset();
@@ -522,13 +616,22 @@ export function useCaseConversationController(
         return;
       }
 
+      const message = caseQuery.data?.case_conversation_messages.find(
+        (entry) => entry.client_id === detail.messageClientId,
+      );
+
+      const nextDraft = message
+        ? createComposerDraftFromMessage(message)
+        : createComposerDraftFromPlainText(detail.messageText);
+
       setEditingMessageId(
         detail.messageClientId as CaseConversationMessageRaw["client_id"],
       );
-      setEditingDraftTextState(detail.messageText);
-      setEditingOriginalText(detail.messageText);
+      setEditingDraftState(nextDraft);
+      setEditingOriginalDraftKey(getComposerDraftKey(nextDraft));
       setEditingMessageSeq(detail.messageSeq);
       setLocalEditError(null);
+      editCaseMessageMutation.reset();
     };
 
     window.addEventListener(CASE_MESSAGE_EDIT_REQUEST_EVENT, handleEditRequest);
@@ -539,12 +642,16 @@ export function useCaseConversationController(
         handleEditRequest,
       );
     };
-  }, [caseClientId]);
+  }, [caseQuery.data?.case_conversation_messages]);
 
   const sendDraft = async () => {
-    const trimmedDraftText = draftText.trim();
+    const normalizedContent = trimCaseMessageContent(composerDraft.content);
+    const backendPlainText = toBackendPlainText(normalizedContent).trim();
 
-    if (trimmedDraftText.length === 0) {
+    if (
+      backendPlainText.length === 0 ||
+      !hasMeaningfulCaseMessageContent(normalizedContent)
+    ) {
       return;
     }
 
@@ -564,20 +671,12 @@ export function useCaseConversationController(
       const createdMessage = await sendCaseMessageMutation.sendCaseMessageAsync(
         {
           conversation_client_id: conversationClientId,
-          content: [
-            {
-              type: "text",
-              text: trimmedDraftText,
-              mention: null,
-              label_value: null,
-              link: null,
-            },
-          ],
-          plain_text: trimmedDraftText,
+          content: toBackendMessageContent(normalizedContent),
+          plain_text: backendPlainText,
         },
       );
 
-      setDraftTextState("");
+      setComposerDraftState(createComposerDraftFromPlainText(""));
       options.scrollToBottom?.();
       await requestMarkRead(createdMessage.message_seq);
     } catch (error) {
@@ -596,13 +695,17 @@ export function useCaseConversationController(
       return;
     }
 
-    const trimmedEditingDraftText = editingDraftText.trim();
+    const normalizedContent = trimCaseMessageContent(editingDraft.content);
+    const backendPlainText = toBackendPlainText(normalizedContent).trim();
 
-    if (trimmedEditingDraftText.length === 0) {
+    if (
+      backendPlainText.length === 0 ||
+      !hasMeaningfulCaseMessageContent(normalizedContent)
+    ) {
       return;
     }
 
-    if (trimmedEditingDraftText === editingOriginalText.trim()) {
+    if (getComposerDraftKey(editingDraft) === editingOriginalDraftKey) {
       cancelEditing();
       return;
     }
@@ -615,8 +718,9 @@ export function useCaseConversationController(
 
     try {
       const editedMessage = await editCaseMessageMutation.editCaseMessageAsync({
+        content: toBackendMessageContent(normalizedContent),
         messageClientId: editingMessageId,
-        text: trimmedEditingDraftText,
+        plainText: backendPlainText,
       });
 
       cancelEditing();
@@ -645,6 +749,8 @@ export function useCaseConversationController(
 
   return {
     caseDetail: caseQuery.data,
+    composerContent: composerDraft.content,
+    composerMode,
     currentParticipant,
     taskDetail: taskQuery.data,
     currentUserId,
@@ -658,6 +764,7 @@ export function useCaseConversationController(
     isContextBannerCollapsed,
     typingIndicatorText,
     draftText,
+    editingComposerContent: editingDraft.content,
     editingMessageId,
     editingDraftText,
     isSending: sendCaseMessageMutation.isPending,
@@ -669,7 +776,9 @@ export function useCaseConversationController(
     sendError,
     editError,
     setBodyScrollTop,
+    setComposerContent,
     setDraftText,
+    setEditingComposerContent,
     setEditingDraftText,
     resetScrollChrome,
     closeConversation,

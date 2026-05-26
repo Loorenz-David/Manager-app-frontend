@@ -5,7 +5,7 @@ import type { CaseConversationId, CaseConversationMessageId, CaseId } from '@/ty
 
 import { caseKeys } from '../api/case-keys';
 import { editMessage } from '../api/edit-message';
-import type { CaseConversationMessageRaw } from '../types';
+import type { CaseConversationMessageRaw, MessageContentBlock } from '../types';
 
 type UseEditCaseMessageOptions = {
   caseClientId: CaseId;
@@ -13,8 +13,9 @@ type UseEditCaseMessageOptions = {
 };
 
 type EditCaseMessageVariables = {
+  content: MessageContentBlock[];
   messageClientId: CaseConversationMessageId;
-  text: string;
+  plainText: string;
 };
 
 export function useEditCaseMessage({
@@ -25,23 +26,14 @@ export function useEditCaseMessage({
 
   const mutation = useMutation({
     mutationFn: async ({
+      content,
       messageClientId,
-      text,
+      plainText,
     }: EditCaseMessageVariables): Promise<CaseConversationMessageRaw> => {
-      const trimmedText = text.trim();
-
       return editMessage({
         message_client_id: messageClientId,
-        content: [
-          {
-            type: 'text',
-            text: trimmedText,
-            mention: null,
-            label_value: null,
-            link: null,
-          },
-        ],
-        plain_text: trimmedText,
+        content,
+        plain_text: plainText,
       });
     },
     onSuccess: () => {

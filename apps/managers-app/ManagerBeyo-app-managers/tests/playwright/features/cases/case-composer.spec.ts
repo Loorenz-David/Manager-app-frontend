@@ -2,6 +2,8 @@ import type { Page } from '@playwright/test';
 
 import { expect, test } from '../../fixtures/app-fixture';
 
+const CASE_COMPOSER_MODE_STORAGE_KEY = 'managerbeyo.cases.composerMode';
+
 function encodeBase64Url(value: string): string {
   return Buffer.from(value).toString('base64url');
 }
@@ -82,6 +84,15 @@ async function installVibrationMock(page: Page) {
       },
     });
   });
+}
+
+async function setCaseComposerMode(page: Page, mode: 'basic' | 'rich') {
+  await page.addInitScript(
+    ([storageKey, nextMode]) => {
+      window.localStorage.setItem(storageKey, nextMode);
+    },
+    [CASE_COMPOSER_MODE_STORAGE_KEY, mode] as const,
+  );
 }
 
 function createCaseMessage(params: {
@@ -618,6 +629,37 @@ async function openCase(page: Page) {
   await expect(page.getByTestId('case-conversation-slide')).toBeVisible();
 }
 
+async function getComposerInput(page: Page) {
+  const richEditor = page.getByTestId('case-rich-composer-editor');
+
+  if ((await richEditor.count()) > 0) {
+    return {
+      kind: 'rich' as const,
+      locator: richEditor,
+    };
+  }
+
+  return {
+    kind: 'basic' as const,
+    locator: page.getByTestId('case-composer-textarea'),
+  };
+}
+
+async function fillComposer(page: Page, text: string) {
+  const composerInput = await getComposerInput(page);
+  await composerInput.locator.fill(text);
+}
+
+async function getComposerText(page: Page): Promise<string> {
+  const composerInput = await getComposerInput(page);
+
+  if (composerInput.kind === 'rich') {
+    return (await composerInput.locator.textContent()) ?? '';
+  }
+
+  return composerInput.locator.inputValue();
+}
+
 async function longPressOwnMessage(page: Page, messageClientId: string) {
   const target = page.getByTestId(`case-message-actions-trigger-${messageClientId}`);
 
@@ -632,22 +674,25 @@ test.describe('case composer', () => {
     await openCase(page);
 
     const sendButton = page.getByTestId('case-composer-send-button');
-    const textarea = page.getByTestId('case-composer-textarea');
 
     await expect(page.getByTestId('case-composer')).toBeVisible();
+    await expect(page.getByTestId('case-rich-composer')).toBeVisible();
     await expect(sendButton).toBeDisabled();
 
-    await textarea.fill('   ');
+    await fillComposer(page, '   ');
     await expect(sendButton).toBeDisabled();
   });
 
-  test('typing enables send', async ({ page }) => {
+  test('rich composer mounts and typing enables send', async ({ page }) => {
     await installComposerMocks(page);
     await openCase(page);
 
     const sendButton = page.getByTestId('case-composer-send-button');
 
-    await page.getByTestId('case-composer-textarea').fill('Plain text update');
+    await expect(page.getByTestId('case-rich-composer')).toBeVisible();
+    await expect(page.getByTestId('case-rich-composer-editor')).toBeVisible();
+
+    await fillComposer(page, 'Plain text update');
     await expect(sendButton).toBeEnabled();
   });
 
@@ -681,7 +726,7 @@ test.describe('case composer', () => {
     });
     await openCase(page);
 
-    await page.getByTestId('case-composer-textarea').fill('  Warehouse update is ready.  ');
+    await fillComposer(page, '  Warehouse update is ready.  ');
     await page.getByTestId('case-composer-send-button').click();
 
     await expect.poll(() => sendRequests.length).toBe(1);
@@ -699,7 +744,7 @@ test.describe('case composer', () => {
     expect(sendRequests[0]?.client_id).toMatch(/^ccm_/);
 
     await expect(page.getByText('Warehouse update is ready.')).toBeVisible();
-    await expect(page.getByTestId('case-composer-textarea')).toHaveValue('');
+    await expect.poll(() => getComposerText(page)).toBe('');
     await expect
       .poll(() => markReadRequests.at(-1)?.up_to_message_seq ?? null)
       .toBe(4);
@@ -720,19 +765,17 @@ test.describe('case composer', () => {
     await installComposerMocks(page, { failuresBeforeSuccess: 1 });
     await openCase(page);
 
-    const textarea = page.getByTestId('case-composer-textarea');
-
-    await textarea.fill('Retry this draft');
+    await fillComposer(page, 'Retry this draft');
     await page.getByTestId('case-composer-send-button').click();
 
     await expect(page.getByTestId('case-composer-error')).toBeVisible();
     await expect(page.getByTestId('case-composer-error')).toContainText('Message send failed.');
-    await expect(textarea).toHaveValue('Retry this draft');
+    await expect.poll(() => getComposerText(page)).toBe('Retry this draft');
 
     await page.getByRole('button', { name: 'Retry' }).click();
 
     await expect(page.getByText('Retry this draft')).toBeVisible();
-    await expect(textarea).toHaveValue('');
+    await expect.poll(() => getComposerText(page)).toBe('');
     await expect(page.getByTestId('case-composer-error')).toHaveCount(0);
   });
 
@@ -777,15 +820,16 @@ test.describe('case composer', () => {
     });
     await openCase(page);
 
-    await page.getByTestId('case-composer-textarea').fill('Draft to keep');
+    await fillComposer(page, 'Draft to keep');
     await longPressOwnMessage(page, 'ccm_case_composer_2');
     await page.getByTestId('case-message-edit-button').click();
 
-    const textarea = page.getByTestId('case-composer-textarea');
     await expect(page.getByTestId('case-composer-edit-mode')).toBeVisible();
-    await expect(textarea).toHaveValue('I am checking the warehouse notes now.');
+    await expect.poll(() => getComposerText(page)).toBe(
+      'I am checking the warehouse notes now.',
+    );
 
-    await textarea.fill('  Updated warehouse note for the customer file.  ');
+    await fillComposer(page, '  Updated warehouse note for the customer file.  ');
     await page.getByTestId('case-composer-save-button').click();
 
     await expect.poll(() => editRequests.length).toBe(1);
@@ -807,7 +851,7 @@ test.describe('case composer', () => {
       page.getByTestId('case-message-bubble-ccm_case_composer_2'),
     ).toContainText('Updated warehouse note for the customer file.');
     await expect(page.getByTestId('case-message-edited-indicator-ccm_case_composer_2')).toBeVisible();
-    await expect(textarea).toHaveValue('Draft to keep');
+    await expect.poll(() => getComposerText(page)).toBe('Draft to keep');
   });
 
   test('soft delete replaces the message content with the deleted placeholder', async ({ page }) => {
@@ -829,5 +873,20 @@ test.describe('case composer', () => {
       page.getByTestId('case-message-deleted-placeholder-ccm_case_composer_2'),
     ).toBeVisible();
     await expect(page.getByTestId('case-message-row-ccm_case_composer_2')).toBeVisible();
+  });
+
+  test('basic fallback mode still works when configured', async ({ page }) => {
+    await setCaseComposerMode(page, 'basic');
+    await installComposerMocks(page);
+    await openCase(page);
+
+    await expect(page.getByTestId('case-composer-textarea')).toBeVisible();
+    await expect(page.getByTestId('case-rich-composer')).toHaveCount(0);
+
+    await fillComposer(page, 'Fallback composer still sends');
+    await page.getByTestId('case-composer-send-button').click();
+
+    await expect(page.getByText('Fallback composer still sends')).toBeVisible();
+    await expect.poll(() => getComposerText(page)).toBe('');
   });
 });
