@@ -613,7 +613,7 @@ None
 #### Parameters
 | Name | In | Required | Type |
 | --- | --- | --- | --- |
-| conversation_client_ids | query | No | string |
+| case_client_ids | query | No | string |
 
 #### Request Body
 None

@@ -2,6 +2,8 @@ import { useMutation, useQueryClient, type InfiniteData, type QueryKey } from '@
 
 import { buildEntityKey, useImagesStore } from '@/features/images/store/images.store';
 import type { ImageViewModel } from '@/features/images/types';
+import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
+import { useUpholsterySelectionStore } from '@/features/upholstery/store/upholstery-selection.store';
 
 import { createTask } from '../api/create-task';
 import type { ListTasksResult } from '../api/list-tasks';
@@ -203,6 +205,8 @@ export function useCreateTask() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: upholsteryKeys.pickerLists() });
+      useUpholsterySelectionStore.getState().clear();
     },
   });
 }

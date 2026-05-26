@@ -2,6 +2,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { taskKeys } from '@/features/tasks/api/task-keys';
 import type { TaskDetailRaw } from '@/features/tasks/types';
+import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
+import { useUpholsterySelectionStore } from '@/features/upholstery/store/upholstery-selection.store';
 
 import { setItemUpholsteryQuantity } from '../api/set-item-upholstery-quantity';
 
@@ -37,6 +39,8 @@ export function useSetUpholsteryQuantity(taskId: string) {
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: detailKey });
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: upholsteryKeys.pickerLists() });
+      useUpholsterySelectionStore.getState().clear();
     },
   });
 }
