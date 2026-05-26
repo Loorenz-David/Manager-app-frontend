@@ -9,7 +9,10 @@ import type { CaseId, UserId } from '@/types/common';
 import { useUpdateCaseState } from '../actions/use-update-case-state';
 import { useCaseLinksQuery } from '../api/use-case-links';
 import { useGetCaseQuery } from '../api/use-get-case';
-import { CASE_CONVERSATION_SURFACE_ID } from '../surfaces';
+import {
+  CASE_CONVERSATION_SURFACE_ID,
+  CASE_TASK_INFO_SHEET_SURFACE_ID,
+} from '../surfaces';
 import type { CaseDetailBase, CaseDetailRaw, CaseLink } from '../types';
 
 type CaseState = CaseDetailBase['state'];
@@ -115,7 +118,16 @@ export function useCaseConversationController(caseClientId: CaseId): CaseConvers
       linksQuery.isError ||
       (Boolean(taskClientId) && taskQuery.isError),
     closeConversation,
-    openInfo: () => undefined,
+    openInfo: () => {
+      if (!taskClientId) {
+        return;
+      }
+
+      surface.open(CASE_TASK_INFO_SHEET_SURFACE_ID, {
+        caseClientId,
+        taskId: taskClientId,
+      });
+    },
     advanceState: async () => {
       if (!transition) {
         return;

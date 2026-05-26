@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_16_case_task_info_bottom_sheet_20260526`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-26T00:00:00Z`
-- Last updated at (UTC): `2026-05-26T00:00:00Z`
+- Last updated at (UTC): `2026-05-26T07:58:15Z`
 - Related issue/ticket: `-`
 - Intention plan: `docs/architecture/under_construction/intention/intention_of_cases.md`
 

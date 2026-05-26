@@ -184,14 +184,23 @@ function createCaseDetail(caseClientId: string, state: 'open' | 'resolving' | 'r
   };
 }
 
-function createTaskDetail(taskId: string, articleNumber: string, taskType: 'return' | 'pre_order' | 'internal', returnSource: 'after_purchase' | 'before_purchase' | 'store_return') {
+function createTaskDetail(
+  taskId: string,
+  articleNumber: string,
+  taskType: 'return' | 'pre_order' | 'internal',
+  returnSource: 'after_purchase' | 'before_purchase' | 'store_return',
+  options?: {
+    imageUrl?: string | null;
+    state?: 'pending' | 'assigned' | 'working' | 'stalled' | 'ready' | 'resolved' | 'failed' | 'cancelled';
+  },
+) {
   return {
     task: {
       client_id: taskId,
       task_scalar_id: 1,
       task_type: taskType,
       priority: 'normal',
-      state: 'pending',
+      state: options?.state ?? 'pending',
       title: null,
       summary: null,
       return_source: returnSource,
@@ -236,7 +245,17 @@ function createTaskDetail(taskId: string, articleNumber: string, taskType: 'retu
       item_category_snapshot: null,
       item_major_category_snapshot: null,
     },
-    item_images: [],
+    item_images: options?.imageUrl
+      ? [
+          {
+            client_id: `img_${taskId}`,
+            image_url: options.imageUrl,
+            width_px: 1200,
+            height_px: 1200,
+            file_size_bytes: 32_000,
+          },
+        ]
+      : [],
     item_issues: [],
     item_upholstery: [],
     requirements: [],
@@ -289,7 +308,10 @@ async function installCasesMocks(
     ],
   };
   const taskDetails = {
-    task_1: createTaskDetail('task_1', 'ART-DETAIL-001', 'return', 'after_purchase'),
+    task_1: createTaskDetail('task_1', 'ART-DETAIL-001', 'return', 'after_purchase', {
+      imageUrl: 'https://example.com/task-1.jpg',
+      state: 'assigned',
+    }),
     task_2: createTaskDetail('task_2', 'ART-DETAIL-002', 'internal', 'store_return'),
     task_3: createTaskDetail('task_3', 'ART-DETAIL-003', 'pre_order', 'before_purchase'),
   };
@@ -459,6 +481,46 @@ test.describe('cases page', () => {
 
     await page.getByTestId('case-conversation-back-button').click();
     await expect(page.getByTestId('case-conversation-slide')).not.toBeVisible();
+  });
+
+  test('info button opens the task info sheet and the task detail slide', async ({ page }) => {
+    await installMockAuth(page);
+    await installCasesMocks(page);
+
+    await page.goto('/cases');
+    await openCase(page, 'case_new_open');
+
+    await page.getByTestId('case-conversation-info-button').click();
+
+    await expect(page.getByTestId('case-task-info-sheet')).toBeVisible();
+    await expect(page.getByTestId('case-task-info-card')).toBeVisible();
+    await expect(page.getByTestId('case-task-info-image')).toBeVisible();
+    await expect(page.getByTestId('case-task-info-state')).toContainText('Assigned');
+    await expect(page.getByTestId('case-task-info-card')).toContainText('ART-DETAIL-001');
+    await expect(page.getByTestId('case-task-info-card')).toContainText('Return');
+    await expect(page.getByTestId('case-task-info-card')).toContainText('After purchase');
+
+    await page.getByTestId('case-task-info-card').click();
+
+    await expect(page.getByTestId('task-detail-slide')).toBeVisible();
+    await expect(page.getByTestId('case-task-info-sheet')).not.toBeVisible();
+    await expect(page.getByTestId('case-conversation-slide')).toBeVisible();
+
+    const taskDetailFollowsConversation = await page.evaluate(() => {
+      const conversation = document.querySelector('[data-testid="case-conversation-slide"]');
+      const taskDetail = document.querySelector('[data-testid="task-detail-slide"]');
+
+      if (!conversation || !taskDetail) {
+        return false;
+      }
+
+      return Boolean(
+        conversation.compareDocumentPosition(taskDetail) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+    });
+
+    expect(taskDetailFollowsConversation).toBe(true);
   });
 
   test('state button maps backend transitions and closes the slide on success', async ({

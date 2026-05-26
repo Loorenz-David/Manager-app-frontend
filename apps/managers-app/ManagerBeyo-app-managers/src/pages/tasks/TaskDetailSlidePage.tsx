@@ -73,12 +73,18 @@ export function TaskDetailSlidePage(): React.JSX.Element {
   const { taskId } = useSurfaceProps<TaskDetailSurfaceProps>();
 
   if (!taskId) {
-    return <div className="p-6 text-sm text-muted-foreground">Task id is missing.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground" data-testid="task-detail-slide">
+        Task id is missing.
+      </div>
+    );
   }
 
   return (
-    <TaskDetailProvider taskId={taskId}>
-      <TaskDetailSlidePageContent />
-    </TaskDetailProvider>
+    <div className="min-h-full bg-background" data-testid="task-detail-slide">
+      <TaskDetailProvider taskId={taskId}>
+        <TaskDetailSlidePageContent />
+      </TaskDetailProvider>
+    </div>
   );
 }

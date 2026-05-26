@@ -4,8 +4,15 @@ export {
   CaseConversationProvider,
   useCaseConversationContext,
 } from './providers/CaseConversationProvider';
-export { caseSurfaces, CASE_CONVERSATION_SURFACE_ID } from './surfaces';
-export type { CaseConversationSurfaceProps } from './surfaces';
+export {
+  caseSurfaces,
+  CASE_CONVERSATION_SURFACE_ID,
+  CASE_TASK_INFO_SHEET_SURFACE_ID,
+} from './surfaces';
+export type {
+  CaseConversationSurfaceProps,
+  CaseTaskInfoSheetSurfaceProps,
+} from './surfaces';
 export { useGetCaseQuery } from './api/use-get-case';
 export { useCaseLinksQuery } from './api/use-case-links';
 export { useUpdateCaseState } from './actions/use-update-case-state';

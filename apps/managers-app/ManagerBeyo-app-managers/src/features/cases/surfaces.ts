@@ -3,9 +3,15 @@ import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
 import { lazyWithPreload } from '@/utils/lazy-with-preload';
 
 export const CASE_CONVERSATION_SURFACE_ID = 'case-conversation-slide';
+export const CASE_TASK_INFO_SHEET_SURFACE_ID = 'case-task-info-sheet';
 
 export type CaseConversationSurfaceProps = {
   caseClientId: CaseId;
+};
+
+export type CaseTaskInfoSheetSurfaceProps = {
+  caseClientId: CaseId;
+  taskId: string;
 };
 
 function loadCaseConversationSlidePage() {
@@ -14,11 +20,22 @@ function loadCaseConversationSlidePage() {
   }));
 }
 
+function loadCaseTaskInfoSheetPage() {
+  return import('@/pages/cases/CaseTaskInfoSheetPage').then((module) => ({
+    default: module.CaseTaskInfoSheetPage,
+  }));
+}
+
 const caseConversationSlide = lazyWithPreload(loadCaseConversationSlidePage);
+const caseTaskInfoSheet = lazyWithPreload(loadCaseTaskInfoSheetPage);
 
 export const caseSurfaces: SurfaceRegistrations = {
   [CASE_CONVERSATION_SURFACE_ID]: {
     surface: 'slide',
     component: caseConversationSlide.Component,
+  },
+  [CASE_TASK_INFO_SHEET_SURFACE_ID]: {
+    surface: 'sheet',
+    component: caseTaskInfoSheet.Component,
   },
 };
