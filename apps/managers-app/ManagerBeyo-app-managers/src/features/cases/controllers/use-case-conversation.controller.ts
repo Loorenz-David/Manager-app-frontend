@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -10,6 +10,8 @@ import { useSurface } from '@/hooks/use-surface';
 import { selectUser, useAuthStore } from '@/store/auth.store';
 import type { CaseId, UserId } from '@/types/common';
 
+import { useDeleteCaseMessage } from '../actions/use-delete-case-message';
+import { useEditCaseMessage } from '../actions/use-edit-case-message';
 import { useMarkCaseRead } from '../actions/use-mark-case-read';
 import { useSendCaseMessage } from '../actions/use-send-case-message';
 import { useCaseParticipantsQuery } from '../api/use-case-participants';
@@ -18,10 +20,16 @@ import { caseKeys } from '../api/case-keys';
 import { useCaseLinksQuery } from '../api/use-case-links';
 import { useGetCaseQuery } from '../api/use-get-case';
 import {
+  CASE_MESSAGE_EDIT_REQUEST_EVENT,
+  type CaseMessageEditRequestDetail,
+} from '../lib/case-message-edit-events';
+import {
   CASE_CONVERSATION_SURFACE_ID,
+  CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from '../surfaces';
 import type {
+  CaseConversationMessageRaw,
   CaseDetailBase,
   CaseDetailRaw,
   CaseLink,
@@ -53,21 +61,30 @@ export type CaseConversationController = {
   nextState: CaseState | null;
   isContextBannerCollapsed: boolean;
   draftText: string;
+  editingMessageId: CaseConversationMessageRaw['client_id'] | null;
+  editingDraftText: string;
   isSending: boolean;
+  isSubmittingEdit: boolean;
   isPendingCase: boolean;
   isPendingTask: boolean;
   isAdvancingState: boolean;
   isError: boolean;
   sendError: ApiRequestError | Error | null;
+  editError: ApiRequestError | Error | null;
   setBodyScrollTop: (scrollTop: number) => void;
   setDraftText: (value: string) => void;
+  setEditingDraftText: (value: string) => void;
   resetScrollChrome: () => void;
   closeConversation: () => void;
   openInfo: () => void;
+  openMessageActions: (message: CaseConversationMessageRaw) => void;
+  startEditing: (message: CaseConversationMessageRaw) => void;
+  cancelEditing: () => void;
   advanceState: () => Promise<void>;
   requestMarkRead: (upToMessageSeq: number) => Promise<void>;
   refetch: () => Promise<void>;
   sendDraft: () => Promise<void>;
+  submitEdit: () => Promise<void>;
 };
 
 type UseCaseConversationControllerOptions = {
@@ -118,6 +135,19 @@ function getReturnSourceLabel(returnSource: string | null | undefined): string |
   return RETURN_SOURCE_LABEL[returnSource as keyof typeof RETURN_SOURCE_LABEL];
 }
 
+function getMessageDisplayText(message: CaseConversationMessageRaw): string {
+  if (message.plain_text.trim().length > 0) {
+    return message.plain_text;
+  }
+
+  return (
+    message.content
+      ?.map((block) => block.text || block.label_value || block.link || '')
+      .join('')
+      .trim() ?? ''
+  );
+}
+
 function resolveCachedCaseSnapshot(
   caseLists: Array<[readonly unknown[], CaseListCardRaw[] | undefined]>,
   caseClientId: CaseId,
@@ -144,7 +174,14 @@ export function useCaseConversationController(
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
   const [isContextBannerCollapsed, setIsContextBannerCollapsed] = useState(false);
   const [draftText, setDraftTextState] = useState('');
+  const [editingMessageId, setEditingMessageId] = useState<
+    CaseConversationMessageRaw['client_id'] | null
+  >(null);
+  const [editingDraftText, setEditingDraftTextState] = useState('');
+  const [editingOriginalText, setEditingOriginalText] = useState('');
+  const [editingMessageSeq, setEditingMessageSeq] = useState<number | null>(null);
   const [localSendError, setLocalSendError] = useState<Error | null>(null);
+  const [localEditError, setLocalEditError] = useState<Error | null>(null);
   const hasObservedInitialScrollRef = useRef(false);
   const lastBodyScrollTopRef = useRef(0);
   const lastRequestedReadSeqRef = useRef(0);
@@ -166,14 +203,22 @@ export function useCaseConversationController(
   const taskLink = useMemo(() => resolveTaskLink(linksQuery.data), [linksQuery.data]);
   const taskClientId = taskLink?.entity_client_id ?? cachedCaseSnapshot?.task?.client_id ?? null;
   const taskQuery = useGetTaskQuery(taskClientId);
+  const conversationClientId = caseQuery.data?.case.conversation_client_id ?? null;
 
   const markCaseReadMutation = useMarkCaseRead();
   const sendCaseMessageMutation = useSendCaseMessage(caseClientId);
+  const editCaseMessageMutation = useEditCaseMessage({
+    caseClientId,
+    conversationClientId,
+  });
+  const deleteCaseMessageMutation = useDeleteCaseMessage({
+    caseClientId,
+    conversationClientId,
+  });
   const stateMutation = useUpdateCaseState(caseClientId);
   const currentParticipant =
     participantsQuery.data?.find((participant) => participant.user_id === currentUserId) ?? null;
   const lastReadMessageSeq = currentParticipant?.last_read_message_seq ?? null;
-  const conversationClientId = caseQuery.data?.case.conversation_client_id ?? null;
 
   if ((lastReadMessageSeq ?? 0) > lastAcknowledgedReadSeqRef.current) {
     lastAcknowledgedReadSeqRef.current = lastReadMessageSeq ?? 0;
@@ -303,6 +348,91 @@ export function useCaseConversationController(
     }
   };
 
+  const setEditingDraftText = (value: string) => {
+    setEditingDraftTextState(value);
+
+    if (localEditError) {
+      setLocalEditError(null);
+    }
+
+    if (editCaseMessageMutation.error) {
+      editCaseMessageMutation.reset();
+    }
+  };
+
+  const cancelEditing = () => {
+    setEditingMessageId(null);
+    setEditingDraftTextState('');
+    setEditingOriginalText('');
+    setEditingMessageSeq(null);
+    setLocalEditError(null);
+    editCaseMessageMutation.reset();
+  };
+
+  const startEditing = (message: CaseConversationMessageRaw) => {
+    if (message.has_been_deleted || message.created_by?.client_id !== currentUserId) {
+      return;
+    }
+
+    const messageText = getMessageDisplayText(message);
+
+    setEditingMessageId(message.client_id);
+    setEditingDraftTextState(messageText);
+    setEditingOriginalText(messageText);
+    setEditingMessageSeq(message.message_seq);
+    setLocalEditError(null);
+    editCaseMessageMutation.reset();
+    surface.close(CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID);
+  };
+
+  const openMessageActions = (message: CaseConversationMessageRaw) => {
+    const isOwnMessage = message.created_by?.client_id === currentUserId;
+    const canEdit = isOwnMessage && !message.has_been_deleted;
+    const canDelete = isOwnMessage && !message.has_been_deleted;
+
+    if (!canEdit && !canDelete) {
+      return;
+    }
+
+    surface.open(CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID, {
+      caseClientId,
+      messageClientId: message.client_id,
+      messageSeq: message.message_seq,
+      messageText: getMessageDisplayText(message),
+      canEdit,
+      canDelete,
+      onRequestDelete: async () => {
+        await deleteCaseMessageMutation.deleteCaseMessageAsync(message.client_id);
+        if (editingMessageId === message.client_id) {
+          cancelEditing();
+        }
+        surface.close(CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID);
+      },
+    });
+  };
+
+  useEffect(() => {
+    const handleEditRequest = (event: Event) => {
+      const detail = (event as CustomEvent<CaseMessageEditRequestDetail>).detail;
+
+      if (!detail?.messageClientId) {
+        return;
+      }
+
+      setEditingMessageId(detail.messageClientId as CaseConversationMessageRaw['client_id']);
+      setEditingDraftTextState(detail.messageText);
+      setEditingOriginalText(detail.messageText);
+      setEditingMessageSeq(detail.messageSeq);
+      setLocalEditError(null);
+    };
+
+    window.addEventListener(CASE_MESSAGE_EDIT_REQUEST_EVENT, handleEditRequest);
+
+    return () => {
+      window.removeEventListener(CASE_MESSAGE_EDIT_REQUEST_EVENT, handleEditRequest);
+    };
+  }, [caseClientId]);
+
   const sendDraft = async () => {
     const trimmedDraftText = draftText.trim();
 
@@ -348,6 +478,48 @@ export function useCaseConversationController(
   };
 
   const sendError = localSendError ?? sendCaseMessageMutation.error;
+  const editError = localEditError ?? editCaseMessageMutation.error;
+  const submitEdit = async () => {
+    if (!editingMessageId) {
+      return;
+    }
+
+    const trimmedEditingDraftText = editingDraftText.trim();
+
+    if (trimmedEditingDraftText.length === 0) {
+      return;
+    }
+
+    if (trimmedEditingDraftText === editingOriginalText.trim()) {
+      cancelEditing();
+      return;
+    }
+
+    if (localEditError) {
+      setLocalEditError(null);
+    }
+
+    editCaseMessageMutation.reset();
+
+    try {
+      const editedMessage = await editCaseMessageMutation.editCaseMessageAsync({
+        messageClientId: editingMessageId,
+        text: trimmedEditingDraftText,
+      });
+
+      cancelEditing();
+
+      if (editingMessageSeq !== null) {
+        await requestMarkRead(editingMessageSeq);
+      } else {
+        await requestMarkRead(editedMessage.message_seq);
+      }
+    } catch (error) {
+      setLocalEditError(
+        error instanceof Error ? error : new Error('Message could not be updated.'),
+      );
+    }
+  };
   const refetch = async () => {
     await Promise.allSettled([
       caseQuery.refetch(),
@@ -371,16 +543,24 @@ export function useCaseConversationController(
     nextState: transition?.nextState ?? null,
     isContextBannerCollapsed,
     draftText,
+    editingMessageId,
+    editingDraftText,
     isSending: sendCaseMessageMutation.isPending,
+    isSubmittingEdit: editCaseMessageMutation.isPending,
     isPendingCase: caseQuery.isPending,
     isPendingTask: isTaskContextPending,
     isAdvancingState: stateMutation.isPending,
     isError: isHardConversationError,
     sendError,
+    editError,
     setBodyScrollTop,
     setDraftText,
+    setEditingDraftText,
     resetScrollChrome,
     closeConversation,
+    openMessageActions,
+    startEditing,
+    cancelEditing,
     openInfo: () => {
       if (!taskClientId || !isTaskContextAvailable) {
         return;
@@ -402,5 +582,6 @@ export function useCaseConversationController(
     requestMarkRead,
     refetch,
     sendDraft,
+    submitEdit,
   };
 }

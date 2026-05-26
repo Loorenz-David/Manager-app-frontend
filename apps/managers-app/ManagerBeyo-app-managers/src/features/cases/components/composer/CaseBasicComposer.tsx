@@ -1,11 +1,17 @@
-import TextareaAutosize from "react-textarea-autosize";
+import TextareaAutosize from 'react-textarea-autosize';
 
-import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
+import { useCaseConversationContext } from '../../providers/CaseConversationProvider';
 
 export function CaseBasicComposer(): React.JSX.Element {
   const controller = useCaseConversationContext();
-  const isSendDisabled =
-    controller.draftText.trim().length === 0 || controller.isSending;
+  const isEditing = controller.editingMessageId !== null;
+  const trimmedSendDraft = controller.draftText.trim();
+  const trimmedEditDraft = controller.editingDraftText.trim();
+  const isSendDisabled = trimmedSendDraft.length === 0 || controller.isSending;
+  const isEditDisabled = trimmedEditDraft.length === 0 || controller.isSubmittingEdit;
+  const composerValue = isEditing ? controller.editingDraftText : controller.draftText;
+  const composerError = isEditing ? controller.editError : controller.sendError;
+  const composerPlaceholder = isEditing ? 'Edit your message' : 'Write a message';
 
   return (
     <div
@@ -13,18 +19,38 @@ export function CaseBasicComposer(): React.JSX.Element {
       data-testid="case-composer"
     >
       <div className="px-4 pb-[calc(var(--safe-bottom,0px)+1rem)] pt-3">
-        {controller.sendError ? (
+        {isEditing ? (
+          <div
+            className="mb-3 flex items-center justify-between gap-3 rounded-[1.25rem] border border-primary/15 bg-primary/5 px-4 py-3 text-sm text-foreground"
+            data-testid="case-composer-edit-mode"
+          >
+            <span className="min-w-0 flex-1 font-medium">Editing message</span>
+            <button
+              className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-muted"
+              onClick={controller.cancelEditing}
+              type="button"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : null}
+        {composerError ? (
           <div
             className="mb-3 flex items-center justify-between gap-3 rounded-[1.25rem] border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive"
             data-testid="case-composer-error"
           >
             <span className="min-w-0 flex-1">
-              {controller.sendError.message}
+              {composerError.message}
             </span>
             <button
               className="shrink-0 rounded-full border border-destructive/30 px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-              disabled={isSendDisabled}
+              disabled={isEditing ? isEditDisabled : isSendDisabled}
               onClick={() => {
+                if (isEditing) {
+                  void controller.submitEdit();
+                  return;
+                }
+
                 void controller.sendDraft();
               }}
               type="button"
@@ -38,27 +64,55 @@ export function CaseBasicComposer(): React.JSX.Element {
             <TextareaAutosize
               className="max-h-32 w-full resize-none bg-transparent px-4 py-3 text-base text-foreground outline-none placeholder:text-muted-foreground disabled:cursor-not-allowed"
               data-testid="case-composer-textarea"
-              disabled={controller.isSending}
+              disabled={isEditing ? controller.isSubmittingEdit : controller.isSending}
               maxRows={4}
               minRows={1}
               onChange={(event) => {
+                if (isEditing) {
+                  controller.setEditingDraftText(event.target.value);
+                  return;
+                }
+
                 controller.setDraftText(event.target.value);
               }}
-              placeholder="Write a message"
-              value={controller.draftText}
+              placeholder={composerPlaceholder}
+              value={composerValue}
             />
           </div>
-          <button
-            className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-[color:var(--color-card)] shadow-sm transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
-            data-testid="case-composer-send-button"
-            disabled={isSendDisabled}
-            onClick={() => {
-              void controller.sendDraft();
-            }}
-            type="button"
-          >
-            Send
-          </button>
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <button
+                className="rounded-full border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground shadow-sm transition-colors duration-150 hover:bg-muted"
+                onClick={controller.cancelEditing}
+                type="button"
+              >
+                Cancel
+              </button>
+              <button
+                className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-[color:var(--color-card)] shadow-sm transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+                data-testid="case-composer-save-button"
+                disabled={isEditDisabled}
+                onClick={() => {
+                  void controller.submitEdit();
+                }}
+                type="button"
+              >
+                Save
+              </button>
+            </div>
+          ) : (
+            <button
+              className="rounded-full bg-primary px-4 py-3 text-sm font-semibold text-[color:var(--color-card)] shadow-sm transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
+              data-testid="case-composer-send-button"
+              disabled={isSendDisabled}
+              onClick={() => {
+                void controller.sendDraft();
+              }}
+              type="button"
+            >
+              Send
+            </button>
+          )}
         </div>
       </div>
     </div>

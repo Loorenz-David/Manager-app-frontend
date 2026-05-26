@@ -64,6 +64,26 @@ async function installMockAuth(page: Page) {
   });
 }
 
+async function installVibrationMock(page: Page) {
+  await page.addInitScript(() => {
+    const calls: Array<number | number[]> = [];
+
+    Object.defineProperty(window, '__caseComposerVibrateCalls', {
+      configurable: true,
+      value: calls,
+      writable: true,
+    });
+
+    Object.defineProperty(navigator, 'vibrate', {
+      configurable: true,
+      value: (pattern: number | number[]) => {
+        calls.push(pattern);
+        return true;
+      },
+    });
+  });
+}
+
 function createCaseMessage(params: {
   caseId: string;
   sequence: number;
@@ -198,6 +218,18 @@ async function installComposerMocks(
       case_participant_client_id: string;
       up_to_message_seq: number;
     }) => void;
+    onEditRequest?: (body: {
+      message_client_id: string;
+      plain_text: string;
+      content: Array<{
+        type: string;
+        text: string;
+        mention: null;
+        label_value: null;
+        link: null;
+      }>;
+    }) => void;
+    onDeleteRequest?: (messageClientId: string) => void;
     onSendRequest?: (body: {
       client_id: string;
       conversation_client_id: string;
@@ -290,6 +322,7 @@ async function installComposerMocks(
   };
   let sendAttempts = 0;
 
+  await installVibrationMock(page);
   await installMockAuth(page);
 
   await page.route('**/api/v1/cases/*/links', async (route) => {
@@ -324,6 +357,103 @@ async function installComposerMocks(
         data: {
           participants,
         },
+      }),
+    });
+  });
+
+  await page.route('**/api/v1/cases/messages/*', async (route) => {
+    const method = route.request().method();
+    const messageClientId = route.request().url().split('/').at(-1) ?? '';
+
+    if (method === 'PATCH') {
+      const body = route.request().postDataJSON() as {
+        message_client_id: string;
+        plain_text: string;
+        content: Array<{
+          type: string;
+          text: string;
+          mention: null;
+          label_value: null;
+          link: null;
+        }>;
+      };
+      const message = messages.find((entry) => entry.client_id === messageClientId);
+
+      options?.onEditRequest?.(body);
+
+      if (!message) {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ok: false,
+            error: 'Message not found.',
+          }),
+        });
+        return;
+      }
+
+      message.plain_text = body.plain_text;
+      message.content = body.content;
+      message.has_been_edited = true;
+      message.updated_at = '2026-05-26T09:12:00Z';
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          warnings: [],
+          data: {
+            message,
+          },
+        }),
+      });
+      return;
+    }
+
+    if (method === 'DELETE') {
+      const message = messages.find((entry) => entry.client_id === messageClientId);
+
+      options?.onDeleteRequest?.(messageClientId);
+
+      if (!message) {
+        await route.fulfill({
+          status: 404,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ok: false,
+            error: 'Message not found.',
+          }),
+        });
+        return;
+      }
+
+      message.has_been_deleted = true;
+      message.plain_text = '';
+      message.content = [];
+      message.updated_at = '2026-05-26T09:13:00Z';
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          warnings: [],
+          data: {
+            deleted: true,
+          },
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 405,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        ok: false,
+        error: 'Method not allowed.',
       }),
     });
   });
@@ -420,6 +550,16 @@ async function installComposerMocks(
   });
 
   await page.route('**/api/v1/cases/*', async (route) => {
+    const requestUrl = new URL(route.request().url());
+
+    if (
+      route.request().method() !== 'GET' ||
+      !/^\/api\/v1\/cases\/[^/]+$/.test(requestUrl.pathname)
+    ) {
+      await route.fallback();
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -476,6 +616,14 @@ async function openCase(page: Page) {
   await page.goto('/cases');
   await page.getByTestId('case-card-case_composer').click();
   await expect(page.getByTestId('case-conversation-slide')).toBeVisible();
+}
+
+async function longPressOwnMessage(page: Page, messageClientId: string) {
+  const target = page.getByTestId(`case-message-actions-trigger-${messageClientId}`);
+
+  await target.dispatchEvent('pointerdown', { pointerType: 'touch' });
+  await page.waitForTimeout(600);
+  await target.dispatchEvent('pointerup', { pointerType: 'touch' });
 }
 
 test.describe('case composer', () => {
@@ -586,5 +734,100 @@ test.describe('case composer', () => {
     await expect(page.getByText('Retry this draft')).toBeVisible();
     await expect(textarea).toHaveValue('');
     await expect(page.getByTestId('case-composer-error')).toHaveCount(0);
+  });
+
+  test('own messages open the action sheet', async ({ page }) => {
+    await installComposerMocks(page);
+    await openCase(page);
+
+    await expect(page.getByTestId('case-message-actions-trigger-ccm_case_composer_2')).toBeVisible();
+    await expect(page.getByTestId('case-message-actions-trigger-ccm_case_composer_1')).toHaveCount(0);
+
+    await longPressOwnMessage(page, 'ccm_case_composer_2');
+
+    await expect(page.getByTestId('case-message-actions-sheet')).toBeVisible();
+    await expect(page.getByTestId('case-message-edit-button')).toBeVisible();
+    await expect(page.getByTestId('case-message-delete-button')).toBeVisible();
+    await expect
+      .poll(() => page.evaluate(() => (window as typeof window & {
+        __caseComposerVibrateCalls?: Array<number | number[]>;
+      }).__caseComposerVibrateCalls?.length ?? 0))
+      .toBe(1);
+  });
+
+  test('editing updates the rendered bubble, shows the edited indicator, and preserves the send draft', async ({
+    page,
+  }) => {
+    const editRequests: Array<{
+      message_client_id: string;
+      plain_text: string;
+      content: Array<{
+        type: string;
+        text: string;
+        mention: null;
+        label_value: null;
+        link: null;
+      }>;
+    }> = [];
+
+    await installComposerMocks(page, {
+      onEditRequest: (body) => {
+        editRequests.push(body);
+      },
+    });
+    await openCase(page);
+
+    await page.getByTestId('case-composer-textarea').fill('Draft to keep');
+    await longPressOwnMessage(page, 'ccm_case_composer_2');
+    await page.getByTestId('case-message-edit-button').click();
+
+    const textarea = page.getByTestId('case-composer-textarea');
+    await expect(page.getByTestId('case-composer-edit-mode')).toBeVisible();
+    await expect(textarea).toHaveValue('I am checking the warehouse notes now.');
+
+    await textarea.fill('  Updated warehouse note for the customer file.  ');
+    await page.getByTestId('case-composer-save-button').click();
+
+    await expect.poll(() => editRequests.length).toBe(1);
+    expect(editRequests[0]).toEqual({
+      message_client_id: 'ccm_case_composer_2',
+      plain_text: 'Updated warehouse note for the customer file.',
+      content: [
+        {
+          type: 'text',
+          text: 'Updated warehouse note for the customer file.',
+          mention: null,
+          label_value: null,
+          link: null,
+        },
+      ],
+    });
+
+    await expect(
+      page.getByTestId('case-message-bubble-ccm_case_composer_2'),
+    ).toContainText('Updated warehouse note for the customer file.');
+    await expect(page.getByTestId('case-message-edited-indicator-ccm_case_composer_2')).toBeVisible();
+    await expect(textarea).toHaveValue('Draft to keep');
+  });
+
+  test('soft delete replaces the message content with the deleted placeholder', async ({ page }) => {
+    const deleteRequests: string[] = [];
+
+    await installComposerMocks(page, {
+      onDeleteRequest: (messageClientId) => {
+        deleteRequests.push(messageClientId);
+      },
+    });
+    await openCase(page);
+
+    await longPressOwnMessage(page, 'ccm_case_composer_2');
+    await page.getByTestId('case-message-delete-button').click();
+    await page.getByTestId('case-message-delete-button').click();
+
+    await expect.poll(() => deleteRequests).toEqual(['ccm_case_composer_2']);
+    await expect(
+      page.getByTestId('case-message-deleted-placeholder-ccm_case_composer_2'),
+    ).toBeVisible();
+    await expect(page.getByTestId('case-message-row-ccm_case_composer_2')).toBeVisible();
   });
 });

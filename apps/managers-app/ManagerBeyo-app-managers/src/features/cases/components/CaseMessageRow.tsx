@@ -1,8 +1,13 @@
+import { useEffect, useRef } from 'react';
+
 import { cn } from '@/lib/utils';
 
 import type { CaseMessageRenderItem } from '../controllers/use-case-conversation-messages.controller';
+import { useCaseConversationContext } from '../providers/CaseConversationProvider';
 import { CaseMessageDateSeparator } from './CaseMessageDateSeparator';
 import { CaseMessageBubble } from './CaseMessageBubble';
+
+const LONG_PRESS_MS = 500;
 
 type CaseMessageRowProps = {
   item: CaseMessageRenderItem;
@@ -31,12 +36,42 @@ function formatMessageTime(value: string): string {
 }
 
 export function CaseMessageRow({ item }: CaseMessageRowProps): React.JSX.Element {
+  const controller = useCaseConversationContext();
+  const longPressTimerRef = useRef<number | null>(null);
+
+  function clearLongPressTimer(): void {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  }
+
+  useEffect(() => clearLongPressTimer, []);
+
   if (item.kind === 'date-separator') {
     return <CaseMessageDateSeparator label={item.label} separatorKey={item.key} />;
   }
 
   const { message, isOwnMessage } = item;
   const createdBy = message.created_by;
+  const canOpenActions = isOwnMessage && !message.has_been_deleted;
+
+  function handlePointerDown(): void {
+    if (!canOpenActions) {
+      return;
+    }
+
+    clearLongPressTimer();
+    longPressTimerRef.current = window.setTimeout(() => {
+      navigator.vibrate?.(10);
+      controller.openMessageActions(message);
+      longPressTimerRef.current = null;
+    }, LONG_PRESS_MS);
+  }
+
+  function handlePointerUp(): void {
+    clearLongPressTimer();
+  }
 
   return (
     <div
@@ -74,14 +109,44 @@ export function CaseMessageRow({ item }: CaseMessageRowProps): React.JSX.Element
         )}
       >
         {!isOwnMessage && createdBy?.username ? (
-          <p className="px-1 text-[11px] font-medium text-muted-foreground">{createdBy.username}</p>
+          <p className="px-1 text-[11px] font-medium text-[color:var(--color-muted-intense)]">
+            {createdBy.username}
+          </p>
         ) : null}
 
-        <CaseMessageBubble isOwnMessage={isOwnMessage} message={message} />
+        <div
+          className={cn(
+            'flex max-w-full items-end gap-2',
+            isOwnMessage ? 'flex-row' : 'flex-row-reverse',
+          )}
+        >
+          <div
+            className={cn(canOpenActions && 'touch-none')}
+            data-testid={canOpenActions ? `case-message-actions-trigger-${message.client_id}` : undefined}
+            onContextMenu={
+              canOpenActions
+                ? (event) => {
+                    event.preventDefault();
+                  }
+                : undefined
+            }
+            onPointerCancel={canOpenActions ? clearLongPressTimer : undefined}
+            onPointerDown={canOpenActions ? handlePointerDown : undefined}
+            onPointerLeave={canOpenActions ? clearLongPressTimer : undefined}
+            onPointerUp={canOpenActions ? handlePointerUp : undefined}
+          >
+            <CaseMessageBubble isOwnMessage={isOwnMessage} message={message} />
+          </div>
+        </div>
 
-        <span className="px-1 text-[11px] text-muted-foreground">
-          {formatMessageTime(message.created_at)}
-        </span>
+        <div className="flex items-center gap-2 px-1 text-[11px] text-[color:var(--color-muted-intense)]">
+          <span>{formatMessageTime(message.created_at)}</span>
+          {message.has_been_edited && !message.has_been_deleted ? (
+            <span data-testid={`case-message-edited-indicator-${message.client_id}`}>
+              Edited
+            </span>
+          ) : null}
+        </div>
       </div>
     </div>
   );

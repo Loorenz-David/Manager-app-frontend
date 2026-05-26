@@ -1,9 +1,9 @@
-import { CaseTaskInfoCard } from '@/features/cases/components/CaseTaskInfoCard';
-import type { GetTaskResult } from '@/features/tasks/api/get-task';
-import { TASK_DETAIL_SURFACE_ID } from '@/features/tasks/surfaces';
-import { useSurface } from '@/hooks/use-surface';
+import { CaseTaskInfoCard } from "@/features/cases/components/CaseTaskInfoCard";
+import type { GetTaskResult } from "@/features/tasks/api/get-task";
+import { TASK_DETAIL_SURFACE_ID } from "@/features/tasks/surfaces";
+import { useSurface } from "@/hooks/use-surface";
 
-import { CASE_TASK_INFO_SHEET_SURFACE_ID } from '../surfaces';
+import { CASE_TASK_INFO_SHEET_SURFACE_ID } from "../surfaces";
 
 type CaseTaskInfoSheetContentProps = {
   taskId: string;
@@ -64,13 +64,6 @@ export function CaseTaskInfoSheetContent({
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <div>
-        <p className="text-sm font-semibold text-foreground">Linked task</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Review the context here or jump into the full task detail slide.
-        </p>
-      </div>
-
       <CaseTaskInfoCard
         onOpenTask={() => {
           surface.close(CASE_TASK_INFO_SHEET_SURFACE_ID);

@@ -55,7 +55,7 @@ export function CasesView(): React.JSX.Element {
             </h1>
           </div>
           <button
-            className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium text-foreground shadow-md"
+            className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm border-[color:var(--color-light-border)]"
             type="button"
           >
             <History className="size-4" />

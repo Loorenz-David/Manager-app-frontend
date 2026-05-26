@@ -9,15 +9,19 @@ export { useCaseConversationMessagesQuery } from './api/use-case-conversation-me
 export {
   caseSurfaces,
   CASE_CONVERSATION_SURFACE_ID,
+  CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from './surfaces';
 export type {
   CaseConversationSurfaceProps,
+  CaseMessageActionsSheetSurfaceProps,
   CaseTaskInfoSheetSurfaceProps,
 } from './surfaces';
 export { useGetCaseQuery } from './api/use-get-case';
 export { useCaseLinksQuery } from './api/use-case-links';
 export { useCaseParticipantsQuery } from './api/use-case-participants';
+export { useDeleteCaseMessage } from './actions/use-delete-case-message';
+export { useEditCaseMessage } from './actions/use-edit-case-message';
 export { useUpdateCaseState } from './actions/use-update-case-state';
 export { useMarkCaseRead } from './actions/use-mark-case-read';
 export { useSendCaseMessage } from './actions/use-send-case-message';

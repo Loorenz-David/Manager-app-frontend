@@ -33,7 +33,8 @@ export function CaseMessageBubble({
   return (
     <div
       className={cn(
-        'min-w-0 max-w-full rounded-[1.5rem] px-4 py-3 text-sm shadow-sm',
+        'min-w-0 max-w-full select-none rounded-[1.5rem] px-4 py-3 text-sm shadow-sm [-webkit-touch-callout:none] [-webkit-user-select:none]',
+        message.has_been_deleted && 'border border-dashed border-border shadow-none',
         isOwnMessage
           ? 'rounded-br-md bg-primary text-card'
           : 'rounded-bl-md bg-card text-foreground',

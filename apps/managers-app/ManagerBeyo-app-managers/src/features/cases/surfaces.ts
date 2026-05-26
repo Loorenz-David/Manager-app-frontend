@@ -5,6 +5,7 @@ import { buildCaseConversationRoute } from '@/lib/routes';
 
 export const CASE_CONVERSATION_SURFACE_ID = 'case-conversation-slide';
 export const CASE_TASK_INFO_SHEET_SURFACE_ID = 'case-task-info-sheet';
+export const CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID = 'case-message-actions-sheet';
 
 export type CaseConversationSurfaceProps = {
   caseClientId: CaseId;
@@ -13,6 +14,16 @@ export type CaseConversationSurfaceProps = {
 export type CaseTaskInfoSheetSurfaceProps = {
   caseClientId: CaseId;
   taskId: string;
+};
+
+export type CaseMessageActionsSheetSurfaceProps = {
+  caseClientId: string;
+  messageClientId: string;
+  messageSeq: number;
+  messageText: string;
+  canEdit: boolean;
+  canDelete: boolean;
+  onRequestDelete?: () => Promise<void>;
 };
 
 function loadCaseConversationSlidePage() {
@@ -27,8 +38,15 @@ function loadCaseTaskInfoSheetPage() {
   }));
 }
 
+function loadCaseMessageActionsSheetPage() {
+  return import('@/pages/cases/CaseMessageActionsSheetPage').then((module) => ({
+    default: module.CaseMessageActionsSheetPage,
+  }));
+}
+
 const caseConversationSlide = lazyWithPreload(loadCaseConversationSlidePage);
 const caseTaskInfoSheet = lazyWithPreload(loadCaseTaskInfoSheetPage);
+const caseMessageActionsSheet = lazyWithPreload(loadCaseMessageActionsSheetPage);
 
 export const caseSurfaces: SurfaceRegistrations = {
   [CASE_CONVERSATION_SURFACE_ID]: {
@@ -39,5 +57,9 @@ export const caseSurfaces: SurfaceRegistrations = {
   [CASE_TASK_INFO_SHEET_SURFACE_ID]: {
     surface: 'sheet',
     component: caseTaskInfoSheet.Component,
+  },
+  [CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID]: {
+    surface: 'sheet',
+    component: caseMessageActionsSheet.Component,
   },
 };
