@@ -8,10 +8,12 @@ export const caseKeys = {
   details: () => [...caseKeys.all, 'detail'] as const,
   detail: (id: CaseId) => [...caseKeys.details(), id] as const,
   conversationDetailPagesRoot: () => [...caseKeys.all, 'conversation-detail-pages'] as const,
+  conversationDetailPagesForCase: (caseId: CaseId) =>
+    [...caseKeys.conversationDetailPagesRoot(), caseId] as const,
   conversationDetailPages: (
     caseId: CaseId,
     params: { messages_limit: number },
-  ) => [...caseKeys.conversationDetailPagesRoot(), caseId, params] as const,
+  ) => [...caseKeys.conversationDetailPagesForCase(caseId), params] as const,
   linksRoot: () => [...caseKeys.all, 'links'] as const,
   links: (caseId: CaseId) => [...caseKeys.linksRoot(), caseId] as const,
   unreadCountsRoot: () => [...caseKeys.all, 'unread-counts'] as const,

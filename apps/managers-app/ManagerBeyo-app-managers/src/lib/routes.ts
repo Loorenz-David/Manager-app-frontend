@@ -3,9 +3,14 @@ export const ROUTES = {
   home: '/',
   tasks: '/tasks',
   cases: '/cases',
+  caseConversation: '/cases/:caseId',
   stats: '/stats',
   settings: '/settings',
 } as const;
+
+export function buildCaseConversationRoute(caseId: string): string {
+  return `${ROUTES.cases}/${caseId}`;
+}
 
 export const TAB_ORDER = [
   ROUTES.tasks,

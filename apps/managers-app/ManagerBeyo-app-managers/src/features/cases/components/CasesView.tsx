@@ -1,32 +1,36 @@
-import { History } from 'lucide-react';
+import { History } from "lucide-react";
 
-import { SearchBar } from '@/components/primitives';
+import { SearchBar } from "@/components/primitives";
 
-import { useCasesViewContext } from '../providers/CasesViewProvider';
-import { CasesSectionGroup } from './CasesSectionGroup';
+import { useCasesViewContext } from "../providers/CasesViewProvider";
+import { CasesSectionGroup } from "./CasesSectionGroup";
 
 function getOrdinalSuffix(day: number): string {
   const remainder = day % 100;
   if (remainder >= 11 && remainder <= 13) {
-    return 'th';
+    return "th";
   }
 
   switch (day % 10) {
     case 1:
-      return 'st';
+      return "st";
     case 2:
-      return 'nd';
+      return "nd";
     case 3:
-      return 'rd';
+      return "rd";
     default:
-      return 'th';
+      return "th";
   }
 }
 
 function formatHeaderDate(date: Date): string {
   const day = date.getDate();
-  const month = new Intl.DateTimeFormat(undefined, { month: 'long' }).format(date);
-  const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'long' }).format(date);
+  const month = new Intl.DateTimeFormat(undefined, { month: "long" }).format(
+    date,
+  );
+  const weekday = new Intl.DateTimeFormat(undefined, {
+    weekday: "long",
+  }).format(date);
 
   return `${day}${getOrdinalSuffix(day)} ${month}, ${weekday}`;
 }
@@ -36,11 +40,19 @@ export function CasesView(): React.JSX.Element {
   const todayLabel = formatHeaderDate(new Date());
 
   return (
-    <div className="flex h-full flex-col bg-background" data-testid="cases-page">
-      <div className="border-b border-border/70 bg-background px-4 pb-4 pt-5" data-testid="cases-header">
+    <div
+      className="flex h-full flex-col bg-background"
+      data-testid="cases-page"
+    >
+      <div
+        className="border-b border-border/70 bg-background px-4 pb-4 pt-5"
+        data-testid="cases-header"
+      >
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">Cases</h1>
+            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
+              Cases
+            </h1>
           </div>
           <button
             className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium text-foreground shadow-md"
@@ -51,7 +63,7 @@ export function CasesView(): React.JSX.Element {
           </button>
         </div>
 
-        <p className="mt-3 text-sm text-muted-foreground">{todayLabel}</p>
+        <p className="mt-1 text-sm text-muted-foreground">{todayLabel}</p>
 
         <div className="mt-4">
           <SearchBar

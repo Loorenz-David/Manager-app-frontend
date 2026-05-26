@@ -2,6 +2,7 @@ import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 export function useSurface() {
   const open = useSurfaceStore((state) => state.open);
+  const hydrate = useSurfaceStore((state) => state.hydrate);
   const close = useSurfaceStore((state) => state.close);
   const closeTop = useSurfaceStore((state) => state.closeTop);
   const closeAll = useSurfaceStore((state) => state.closeAll);
@@ -9,6 +10,7 @@ export function useSurface() {
 
   return {
     open,
+    hydrate,
     close,
     closeTop,
     closeAll,

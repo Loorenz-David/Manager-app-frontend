@@ -1,7 +1,7 @@
-import type { CaseId } from '@/types/common';
+import type { CaseId } from "@/types/common";
 
-import { CaseCard } from './CaseCard';
-import type { CasesGroup } from '../controllers/use-cases-view.controller';
+import { CaseCard } from "./CaseCard";
+import type { CasesGroup } from "../controllers/use-cases-view.controller";
 
 type CasesSectionGroupProps = {
   group: CasesGroup;
@@ -18,12 +18,12 @@ export function CasesSectionGroup({
 }: CasesSectionGroupProps): React.JSX.Element {
   return (
     <section className="flex flex-col gap-3" data-testid={sectionTestId}>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
         <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">
           {group.label}
         </h2>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-foreground">
-          {group.count}
+        <span className="rounded-full   text-xs font-medium text-muted-foreground">
+          ( {group.count} )
         </span>
       </div>
 

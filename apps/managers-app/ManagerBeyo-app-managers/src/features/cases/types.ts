@@ -1,6 +1,6 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { ClientIdSchema } from '@/lib/client-id';
+import { ClientIdSchema } from "@/lib/client-id";
 import type {
   CaseConversationId,
   CaseConversationMessageId,
@@ -8,12 +8,23 @@ import type {
   CaseLinkId,
   CaseParticipantId,
   UserId,
-} from '@/types/common';
+} from "@/types/common";
 
-export const CASE_STATE = ['open', 'resolving', 'resolved'] as const;
-export const CASE_LINK_ENTITY_TYPE = ['task', 'customer'] as const;
-export const CASE_LINK_ROLE = ['origin', 'subject', 'context', 'actor', 'resolution'] as const;
-export const MESSAGE_CONTENT_BLOCK_TYPE = ['text', 'mention', 'label', 'link'] as const;
+export const CASE_STATE = ["open", "resolving", "resolved"] as const;
+export const CASE_LINK_ENTITY_TYPE = ["task", "customer"] as const;
+export const CASE_LINK_ROLE = [
+  "origin",
+  "subject",
+  "context",
+  "actor",
+  "resolution",
+] as const;
+export const MESSAGE_CONTENT_BLOCK_TYPE = [
+  "text",
+  "mention",
+  "label",
+  "link",
+] as const;
 
 export const CaseUserSnapshotSchema = z.object({
   client_id: z.string().transform((v) => v as UserId),
@@ -24,10 +35,10 @@ export type CaseUserSnapshot = z.infer<typeof CaseUserSnapshotSchema>;
 
 export const CaseTaskItemImageSnapshotSchema = z.object({
   client_id: z.string(),
-  image_url: z.string(),
-  width_px: z.number().int(),
-  height_px: z.number().int(),
-  file_size_bytes: z.number().int(),
+  image_url: z.string().nullable().optional(),
+  width_px: z.number().int().nullable().optional(),
+  height_px: z.number().int().nullable().optional(),
+  file_size_bytes: z.number().int().nullable().optional(),
 });
 
 export const CaseTaskItemSnapshotSchema = z.object({
@@ -58,7 +69,7 @@ export const CaseListCardRawSchema = z.object({
   created_by: CaseUserSnapshotSchema,
   entity_type: z.enum(CASE_LINK_ENTITY_TYPE).nullable(),
   last_message_seq: z.number().int(),
-  task: CaseTaskSnapshotSchema.nullable(),
+  task: CaseTaskSnapshotSchema.nullable().optional(),
 });
 export type CaseListCardRaw = z.infer<typeof CaseListCardRawSchema>;
 
@@ -96,7 +107,10 @@ export const MentionResolutionSchema = z.object({
 export type MentionResolution = z.infer<typeof MentionResolutionSchema>;
 
 export const CaseConversationMessageRawSchema = z.object({
-  case_id: z.string().transform((v) => v as CaseId).optional(),
+  case_id: z
+    .string()
+    .transform((v) => v as CaseId)
+    .optional(),
   client_id: z.string().transform((v) => v as CaseConversationMessageId),
   message_seq: z.number().int(),
   created_at: z.string().datetime({ offset: true }),
@@ -109,7 +123,9 @@ export const CaseConversationMessageRawSchema = z.object({
   images: z.array(MessageImageSnapshotSchema).optional(),
   mentions: z.array(MentionResolutionSchema).optional(),
 });
-export type CaseConversationMessageRaw = z.infer<typeof CaseConversationMessageRawSchema>;
+export type CaseConversationMessageRaw = z.infer<
+  typeof CaseConversationMessageRawSchema
+>;
 
 export const CaseLinkSchema = z.object({
   client_id: z.string().transform((v) => v as CaseLinkId),
@@ -144,7 +160,10 @@ export const CaseDetailBaseSchema = z.object({
   messages_count: z.number().int(),
   created_at: z.string().datetime({ offset: true }),
   created_by_id: z.string().transform((v) => v as UserId),
-  conversation_client_id: z.string().transform((v) => v as CaseConversationId).nullable(),
+  conversation_client_id: z
+    .string()
+    .transform((v) => v as CaseConversationId)
+    .nullable(),
   conversation_messages_count: z.number().int().nullable(),
   conversation_last_message_seq: z.number().int().nullable(),
   conversation_created_at: z.string().datetime({ offset: true }).nullable(),
@@ -168,7 +187,7 @@ export type CreateCaseInput = z.infer<typeof CreateCaseInputSchema>;
 
 export const UpdateCaseStateInputSchema = z.object({
   case_client_id: z.string().transform((v) => v as CaseId),
-  new_state: z.enum(CASE_STATE, { message: 'State is required.' }),
+  new_state: z.enum(CASE_STATE, { message: "State is required." }),
 });
 export type UpdateCaseStateInput = z.infer<typeof UpdateCaseStateInputSchema>;
 
@@ -181,14 +200,18 @@ export const SendMessageInputSchema = z.object({
 export type SendMessageInput = z.infer<typeof SendMessageInputSchema>;
 
 export const EditMessageInputSchema = z.object({
-  message_client_id: z.string().transform((v) => v as CaseConversationMessageId),
+  message_client_id: z
+    .string()
+    .transform((v) => v as CaseConversationMessageId),
   content: z.array(MessageContentBlockSchema).min(1),
   plain_text: z.string().min(1),
 });
 export type EditMessageInput = z.infer<typeof EditMessageInputSchema>;
 
 export const MarkReadInputSchema = z.object({
-  case_participant_client_id: z.string().transform((v) => v as CaseParticipantId),
+  case_participant_client_id: z
+    .string()
+    .transform((v) => v as CaseParticipantId),
   up_to_message_seq: z.number().int(),
 });
 export type MarkReadInput = z.infer<typeof MarkReadInputSchema>;
@@ -228,11 +251,13 @@ export type CaseListCardViewModel = CaseListCardRaw & {
   state_label: string;
 };
 
-export function toCaseListCardViewModel(c: CaseListCardRaw): CaseListCardViewModel {
+export function toCaseListCardViewModel(
+  c: CaseListCardRaw,
+): CaseListCardViewModel {
   const stateLabels: Record<(typeof CASE_STATE)[number], string> = {
-    open: 'Open',
-    resolving: 'Resolving',
-    resolved: 'Resolved',
+    open: "Open",
+    resolving: "Resolving",
+    resolved: "Resolved",
   };
 
   return {

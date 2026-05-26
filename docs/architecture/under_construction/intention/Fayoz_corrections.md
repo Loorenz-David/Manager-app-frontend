@@ -16,7 +16,15 @@ then for changing the the list_order value of an upholstery we will use dnd libr
 
 ---
 
-designer field is removed enterily.
+designer field ( ItemDesignerField ) is removed enterily, it will no longer be part of any of the task form creations, we still keep it in the schema in case in the future we will use it:
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation/components/InternalFormContent.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation/components/PreOrderFormContent.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation/components/ReturnFormContent.tsx
+
+---
 
 working section attachement of user is removed.
 

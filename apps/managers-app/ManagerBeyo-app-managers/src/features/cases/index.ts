@@ -20,6 +20,7 @@ export { useCaseLinksQuery } from './api/use-case-links';
 export { useCaseParticipantsQuery } from './api/use-case-participants';
 export { useUpdateCaseState } from './actions/use-update-case-state';
 export { useMarkCaseRead } from './actions/use-mark-case-read';
+export { useSendCaseMessage } from './actions/use-send-case-message';
 export type {
   CaseConversationMessagesController,
   CaseMessageRenderItem,

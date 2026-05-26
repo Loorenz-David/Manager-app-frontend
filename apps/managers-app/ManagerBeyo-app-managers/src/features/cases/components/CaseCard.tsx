@@ -1,20 +1,20 @@
-import { memo } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { memo } from "react";
+import { ChevronRight } from "lucide-react";
 
-import type { CaseId } from '@/types/common';
+import type { CaseId } from "@/types/common";
 
-import type { CaseListCardViewModel } from '../types';
+import type { CaseListCardViewModel } from "../types";
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
-    return '?';
+    return "?";
   }
 
   return parts
     .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? '')
-    .join('');
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
 }
 
 function getDateKey(value: Date): string {
@@ -27,10 +27,10 @@ function isSameLocalDay(left: Date, right: Date): boolean {
 
 function formatCompactDateTime(date: Date): string {
   const year = String(date.getFullYear()).slice(-2);
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
 
   return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
@@ -41,8 +41,8 @@ function formatCreatedAt(isoString: string): string {
 
   if (isSameLocalDay(createdAt, now)) {
     return new Intl.DateTimeFormat(undefined, {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     }).format(createdAt);
   }
 
@@ -50,7 +50,10 @@ function formatCreatedAt(isoString: string): string {
   const elapsedDays = Math.floor(elapsedMs / 86_400_000);
 
   if (elapsedDays > 0 && elapsedDays < 7) {
-    return new Intl.RelativeTimeFormat(undefined, { numeric: 'always' }).format(-elapsedDays, 'day');
+    return new Intl.RelativeTimeFormat(undefined, { numeric: "always" }).format(
+      -elapsedDays,
+      "day",
+    );
   }
 
   return formatCompactDateTime(createdAt);
@@ -89,7 +92,7 @@ export const CaseCard = memo(function CaseCard({
       type="button"
       onClick={() => onOpen(card.client_id)}
     >
-      <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm font-semibold text-foreground">
+      <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[10px] font-semibold leading-none text-foreground">
         {profilePicture ? (
           <img
             alt=""
@@ -97,7 +100,8 @@ export const CaseCard = memo(function CaseCard({
             decoding="async"
             draggable={false}
             loading="lazy"
-            src={profilePicture}
+            // src={profilePicture}
+            src="https://media.licdn.com/dms/image/v2/D4D03AQEJg5oCmelT8g/profile-displayphoto-crop_800_800/B4DZ3TEkuHG8AI-/0/1777362688388?e=1781136000&v=beta&t=9Y9c0Pv_36Ufm7DHqxik1Pqpj3vzRy5cCqnf9xli7rA"
           />
         ) : (
           <span>{getInitials(card.created_by.username)}</span>
@@ -107,11 +111,11 @@ export const CaseCard = memo(function CaseCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-            {card.type_label ?? 'Case'}
+            {card.type_label ?? "Case"}
           </span>
           {unreadCount > 0 ? (
             <span
-              className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold leading-none text-primary-foreground"
+              className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 p-1 text-[11px] font-semibold leading-none text-[color:var(--color-card)]"
               data-testid={`case-card-unread-${card.client_id}`}
             >
               {unreadCount}

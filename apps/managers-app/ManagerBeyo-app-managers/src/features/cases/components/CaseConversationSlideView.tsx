@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, type CSSProperties } from 'react';
 
 import { cn } from '@/lib/utils';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
@@ -7,6 +7,11 @@ import { useCaseConversationContext } from '../providers/CaseConversationProvide
 import { CaseConversationContextBanner } from './CaseConversationContextBanner';
 import { CaseConversationHeader } from './CaseConversationHeader';
 import { CaseMessageList } from './CaseMessageList';
+import { CaseBasicComposer } from './composer/CaseBasicComposer';
+
+const CONVERSATION_LAYOUT_STYLE = {
+  '--case-conversation-bottom-offset': 'calc(var(--safe-bottom,0px) + 9.75rem)',
+} as CSSProperties;
 
 function ConversationLoadingShell(): React.JSX.Element {
   return (
@@ -18,7 +23,7 @@ function ConversationLoadingShell(): React.JSX.Element {
         <div className="mt-auto rounded-[2rem] border border-dashed border-border bg-card/60 px-5 py-6 text-center">
           <p className="text-sm font-medium text-foreground">Preparing the conversation shell</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Task context, links, and state controls are loading.
+            Case details and messages are loading.
           </p>
         </div>
       </div>
@@ -78,6 +83,7 @@ export function CaseConversationSlideView(): React.JSX.Element {
     <div
       className="relative flex h-full min-h-full flex-col overflow-hidden bg-background"
       data-testid="case-conversation-slide"
+      style={CONVERSATION_LAYOUT_STYLE}
     >
       <CaseConversationHeader />
       <CaseConversationContextBanner />
@@ -87,6 +93,7 @@ export function CaseConversationSlideView(): React.JSX.Element {
           controller.isContextBannerCollapsed ? 'pt-20' : 'pt-36',
         )}
       />
+      <CaseBasicComposer />
     </div>
   );
 }

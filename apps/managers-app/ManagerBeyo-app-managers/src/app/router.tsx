@@ -53,6 +53,14 @@ export const router = createBrowserRouter([
                 ),
               },
               {
+                path: ROUTES.caseConversation,
+                element: lazyRoute(() =>
+                  import('@/pages/cases/CaseConversationPage').then((module) => ({
+                    default: module.CaseConversationPage,
+                  })),
+                ),
+              },
+              {
                 path: ROUTES.stats,
                 element: lazyRoute(() =>
                   import('@/pages/stats/StatsPage').then((module) => ({

@@ -634,6 +634,8 @@ The first version should prioritize a stable, well-architected foundation that c
 - `docs/architecture/archives/implementation/PLAN_17_case_context_banner_scroll_collapse_20260526.md` — archived, implemented the secondary case-context banner and scroll-driven collapse behavior beneath the fixed conversation header.
 - `docs/architecture/archives/implementation/PLAN_18_message_list_foundation_with_virtualization_20260526.md` — archived, implemented the virtualized conversation thread, older-page loading, date separators, and deleted-message rendering foundation.
 - `docs/architecture/archives/implementation/PLAN_19_message_read_unread_integration_20260526.md` — archived, implemented participant-backed read-position tracking, monotonic mark-read mutation orchestration, and unread-badge refresh integration.
+- `docs/architecture/archives/implementation/PLAN_20_basic_message_composer_and_send_flow_20260526.md` — archived, implemented the fixed plain-text composer, pessimistic send mutation flow, send-success read advancement, and mobile composer runtime coverage.
+- `docs/architecture/archives/implementation/PLAN_20_5_case_conversation_loading_fix_20260526.md` — archived, implemented reload-safe route identity, restored slide-surface rendering through route hydration, and made task-context failures non-blocking for conversation rendering.
 
 ## Progress notes
 
@@ -644,3 +646,5 @@ The first version should prioritize a stable, well-architected foundation that c
 - `2026-05-26T08:24:21Z` `codex`: Implemented the secondary context banner, added the reusable scroll-collapse controller API and feature-owned conversation scroll container, passed `npm run typecheck` and `npx playwright test tests/playwright/features/cases/cases-page.spec.ts --project=mobile`, and archived PLAN 17.
 - `2026-05-26T08:44:05Z` `codex`: Implemented the virtualized conversation message list with paginated case-detail loading, chronological render items, deleted placeholders, and prepend-safe older-page fetching, passed `npm run typecheck` plus the cases Playwright spec on both mobile and desktop, and archived PLAN 18.
 - `2026-05-26T09:08:22Z` `codex`: Implemented participant-backed read/unread integration, added monotonic mark-read orchestration plus unread-count refresh, passed `npm run typecheck` and the cases Playwright spec on mobile, and archived PLAN 19.
+- `2026-05-26T09:33:51Z` `codex`: Implemented the fixed plain-text composer, added the pessimistic send-message action plus send-success read advancement, passed `npm run typecheck` and the dedicated mobile composer Playwright spec, and archived PLAN 20.
+- `2026-05-26T12:20:13Z` `codex`: Implemented reload-safe case conversation routing without giving up the slide-surface shell, added route hydration for direct entry/refresh, made task lookup failures non-blocking, passed `npm run typecheck` plus focused desktop/mobile Playwright coverage, and archived PLAN 20.5.

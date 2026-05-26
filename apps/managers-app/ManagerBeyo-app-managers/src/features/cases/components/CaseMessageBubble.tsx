@@ -10,11 +10,26 @@ type CaseMessageBubbleProps = {
   children?: ReactNode;
 };
 
+function getMessageDisplayText(message: CaseConversationMessageRaw): string {
+  if (message.plain_text.trim().length > 0) {
+    return message.plain_text;
+  }
+
+  return (
+    message.content
+      ?.map((block) => block.text || block.label_value || block.link || '')
+      .join('')
+      .trim() ?? ''
+  );
+}
+
 export function CaseMessageBubble({
   message,
   isOwnMessage,
   children,
 }: CaseMessageBubbleProps): React.JSX.Element {
+  const displayText = getMessageDisplayText(message);
+
   return (
     <div
       className={cn(
@@ -36,7 +51,7 @@ export function CaseMessageBubble({
           Message deleted
         </p>
       ) : (
-        children ?? <p className="whitespace-pre-wrap break-words leading-5">{message.plain_text}</p>
+        children ?? <p className="whitespace-pre-wrap break-words leading-5">{displayText}</p>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import type { CaseId } from '@/types/common';
 import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
 import { lazyWithPreload } from '@/utils/lazy-with-preload';
+import { buildCaseConversationRoute } from '@/lib/routes';
 
 export const CASE_CONVERSATION_SURFACE_ID = 'case-conversation-slide';
 export const CASE_TASK_INFO_SHEET_SURFACE_ID = 'case-task-info-sheet';
@@ -32,6 +33,7 @@ const caseTaskInfoSheet = lazyWithPreload(loadCaseTaskInfoSheetPage);
 export const caseSurfaces: SurfaceRegistrations = {
   [CASE_CONVERSATION_SURFACE_ID]: {
     surface: 'slide',
+    path: (props) => buildCaseConversationRoute((props as CaseConversationSurfaceProps).caseClientId),
     component: caseConversationSlide.Component,
   },
   [CASE_TASK_INFO_SHEET_SURFACE_ID]: {

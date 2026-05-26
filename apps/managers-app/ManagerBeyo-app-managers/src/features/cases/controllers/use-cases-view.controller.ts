@@ -5,7 +5,7 @@ import type { CaseId } from '@/types/common';
 
 import { useListCasesQuery } from '../api/use-list-cases';
 import { useUnreadCountsQuery } from '../api/use-unread-counts';
-import { CASE_CONVERSATION_SURFACE_ID, type CaseConversationSurfaceProps } from '../surfaces';
+import { CASE_CONVERSATION_SURFACE_ID } from '../surfaces';
 import { toCaseListCardViewModel, type CaseListCardViewModel } from '../types';
 
 function getLocalDateKey(value: Date): string {
@@ -96,9 +96,7 @@ export function useCasesViewController(): CasesViewController {
   }, [filteredCases]);
 
   function openCase(caseClientId: CaseId): void {
-    surface.open(CASE_CONVERSATION_SURFACE_ID, {
-      caseClientId,
-    } satisfies CaseConversationSurfaceProps);
+    surface.open(CASE_CONVERSATION_SURFACE_ID, { caseClientId });
   }
 
   return {

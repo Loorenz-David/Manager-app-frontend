@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 
 import { cn } from '@/lib/utils';
@@ -7,6 +7,9 @@ import { useCaseConversationMessagesContext } from '../providers/CaseConversatio
 import { CaseMessageRow } from './CaseMessageRow';
 
 const PREPEND_STABLE_BASE_INDEX = 10_000;
+const FOOTER_BOTTOM_OFFSET_STYLE = {
+  height: 'var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))',
+} as CSSProperties;
 
 type CaseMessageListProps = {
   topSpacingClassName: string;
@@ -87,7 +90,9 @@ export function CaseMessageList({
   if (controller.isError && controller.items.length === 0) {
     return (
       <div className={cn('flex min-h-0 flex-1 flex-col', topSpacingClassName)} data-testid="case-message-list">
-        <div className="flex flex-1 items-center justify-center px-6 pb-[calc(var(--safe-bottom,0)+6rem)]">
+        <div
+          className="flex flex-1 items-center justify-center px-6 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))]"
+        >
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">Messages could not be loaded.</p>
             <button
@@ -136,7 +141,9 @@ export function CaseMessageList({
         totalCount={controller.items.length}
         components={{
           EmptyPlaceholder: () => (
-            <div className="flex min-h-full items-end px-4 pb-[calc(var(--safe-bottom,0)+6rem)] pt-8">
+            <div
+              className="flex min-h-full items-end px-4 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))] pt-8"
+            >
               <div className="w-full rounded-[2rem] border border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-sm">
                 <p className="text-sm font-semibold text-foreground">No messages yet</p>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -145,7 +152,7 @@ export function CaseMessageList({
               </div>
             </div>
           ),
-          Footer: () => <div className="h-[calc(var(--safe-bottom,0)+6rem)]" />,
+          Footer: () => <div style={FOOTER_BOTTOM_OFFSET_STYLE} />,
           Header: () =>
             controller.isLoadingOlder ? (
               <div className="flex justify-center px-4 py-3">

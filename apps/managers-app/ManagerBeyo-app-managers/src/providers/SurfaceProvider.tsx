@@ -43,6 +43,7 @@ type SurfaceState = {
   navigate?: NavigateFunction;
   init: (registry: SurfaceRegistrations, navigate: NavigateFunction) => void;
   open: (id: string, props?: Record<string, unknown>) => void;
+  hydrate: (id: string, props?: Record<string, unknown>) => void;
   close: (id: string) => void;
   closeTop: () => void;
   closeAll: () => void;
@@ -110,6 +111,30 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     }));
   },
 
+  hydrate: (id, props = {}) => {
+    const { registry, stack } = get();
+    const registration = registry[id];
+
+    if (!registration) {
+      if (import.meta.env.DEV) {
+        console.warn(`[SurfaceManager] "${id}" is not registered.`);
+      }
+      return;
+    }
+
+    const existingIndex = stack.findIndex((surface) => surface.id === id);
+    if (existingIndex >= 0) {
+      const nextStack = [...stack];
+      nextStack[existingIndex] = { id, ...registration, props };
+      set({ stack: nextStack });
+      return;
+    }
+
+    set((state) => ({
+      stack: [...state.stack, { id, ...registration, props }],
+    }));
+  },
+
   close: (id) =>
     set((state) => ({
       stack: state.stack.filter((surface) => surface.id !== id),
@@ -145,9 +170,7 @@ function SurfaceRenderer(): React.JSX.Element {
   const [closingSurfaceIds, setClosingSurfaceIds] = useState<Set<string>>(
     new Set(),
   );
-  const stateOverlays = stack.filter(
-    (surface) => surface.surface !== "page" && !surface.path,
-  );
+  const stateOverlays = stack.filter((surface) => surface.surface !== "page");
   const interactiveOverlays = stateOverlays.filter(
     (surface) => !closingSurfaceIds.has(surface.id),
   );
