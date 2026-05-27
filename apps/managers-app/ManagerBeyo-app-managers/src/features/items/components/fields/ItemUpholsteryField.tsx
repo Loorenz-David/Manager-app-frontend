@@ -1,12 +1,13 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { cva } from 'class-variance-authority';
 import { ChevronRight } from 'lucide-react';
 
 import { ImagePlaceholder } from '@/components/primitives';
+import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
+import { UPHOLSTERY_PICKER_SLIDE_ID } from '@/features/upholstery/surfaces';
+import type { ListUpholsteryPickerParams, UpholsteryPickerOption } from '@/features/upholstery/types';
 
-import {
-  useUpholsteryPickerOptionQuery,
-  useUpholsterySelectionStore,
-} from '@/features/upholstery';
+import { useUpholsteryPickerOptionQuery } from '@/features/upholstery';
 import { useSurface } from '@/hooks/use-surface';
 import { cn } from '@/lib/utils';
 import { StatePill, type StatePillVariant } from '@/components/primitives';
@@ -48,19 +49,38 @@ export function ItemUpholsteryField({
   testId,
 }: ItemUpholsteryFieldProps): React.JSX.Element {
   const surface = useSurface();
-  const storeOptions = useUpholsterySelectionStore((state) => state.options);
-  const storeMatch = value
-    ? storeOptions.find((entry) => entry.client_id === value) ?? null
+  const queryClient = useQueryClient();
+  const cachedSelection = value
+    ? (
+        queryClient.getQueriesData<{
+          upholsteries: UpholsteryPickerOption[];
+          has_more: boolean;
+        }>({
+          queryKey: upholsteryKeys.pickerLists(),
+        }) as Array<
+          [
+            readonly [
+              'upholsteries',
+              'picker',
+              'list',
+              ListUpholsteryPickerParams,
+            ],
+            { upholsteries: UpholsteryPickerOption[]; has_more: boolean } | undefined,
+          ]
+        >
+      )
+        .flatMap(([, data]) => data?.upholsteries ?? [])
+        .find((entry) => entry.client_id === value) ?? null
     : null;
   const { data: fetchedOption, isPending } = useUpholsteryPickerOptionQuery(
-    storeMatch === null ? value : null,
+    cachedSelection === null ? value : null,
   );
-  const selectedUpholstery = storeMatch ?? fetchedOption ?? null;
+  const selectedUpholstery = cachedSelection ?? fetchedOption ?? null;
   const hasSelection = value !== null && value !== undefined;
   const isLoadingSelection = hasSelection && selectedUpholstery === null && isPending;
 
   function handlePress(): void {
-    surface.open('upholstery-picker', {
+    surface.open(UPHOLSTERY_PICKER_SLIDE_ID, {
       currentClientId: value,
       onSelect: onChange,
       title,

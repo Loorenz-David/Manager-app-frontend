@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_29_upholstery_picker_quick_filters_favorite_and_reorder_20260527`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-27T10:00:00Z`
-- Last updated at (UTC): `2026-05-27T10:00:00Z`
+- Last updated at (UTC): `2026-05-27T07:37:23Z`
 - Related issue/ticket: `HANDOFF_TO_FRONTEND_upholsteries_crud_contract_20260527`
 - Intention plan: _none (feature described directly in conversation)_
 

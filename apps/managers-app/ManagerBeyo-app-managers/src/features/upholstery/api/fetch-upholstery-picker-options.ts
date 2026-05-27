@@ -26,6 +26,8 @@ export async function fetchUpholsteryPickerOptions(
     limit: params.limit ?? 50,
     offset: params.offset ?? 0,
     q: params.q,
+    in_stock: params.in_stock,
+    favorite: params.favorite,
   });
 
   return {

@@ -6,7 +6,6 @@ import { useAuthStore } from '@/store/auth.store';
 import { ApiEnvelopeSchema } from '@/types/api';
 import { useIssueCategoryConfigSelectionStore } from '@/features/items/store/issue-category-config-selection.store';
 import { useItemCategorySelectionStore } from '@/features/items/store/item-category-selection.store';
-import { useUpholsterySelectionStore } from '@/features/upholstery/store/upholstery-selection.store';
 import { useWorkingSectionSelectionStore } from '@/features/working-sections/store/working-section-selection.store';
 
 const SignOutResponseSchema = ApiEnvelopeSchema(z.object({}));
@@ -24,7 +23,6 @@ export function useSignOutMutation() {
     mutationFn: signOut,
     onSettled: () => {
       queryClient.clear();
-      useUpholsterySelectionStore.getState().clear();
       useWorkingSectionSelectionStore.getState().clear();
       useItemCategorySelectionStore.getState().clear();
       useIssueCategoryConfigSelectionStore.getState().clear();

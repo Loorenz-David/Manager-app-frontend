@@ -9,6 +9,8 @@ const TEST_RECORD = {
   name: 'Natural Linen',
   code: 'LN-001',
   image_url: 'https://example.com/upholstery.jpg',
+  favorite: false,
+  list_order: 1,
   current_stored_amount_meters: '1.05',
   inventory_condition: 'available' as const,
 };
@@ -50,14 +52,41 @@ describe('UpholsteryCard', () => {
         record={TEST_RECORD}
         isSelected
         onSelect={handleSelect}
+        testId="upholstery-card-uph_linen_natural"
       />,
     );
 
-    const button = screen.getByRole('button', { name: /natural linen/i });
-    expect(button).toHaveClass('bg-primary', 'text-card', 'transition-colors', 'duration-150');
+    const button = screen.getByRole('button', { name: 'Natural Linen' });
+    expect(screen.getByTestId('upholstery-card-uph_linen_natural')).toHaveClass(
+      'bg-primary',
+      'text-card',
+      'transition-colors',
+      'duration-150',
+    );
 
     await user.click(button);
 
     expect(handleSelect).toHaveBeenCalledWith('uph_linen_natural');
+  });
+
+  it('renders the favorite button and triggers the toggle callback', async () => {
+    const user = userEvent.setup();
+    const handleToggleFavorite = vi.fn();
+
+    render(
+      <UpholsteryCard
+        record={{ ...TEST_RECORD, favorite: true }}
+        isSelected={false}
+        onSelect={vi.fn()}
+        onToggleFavorite={handleToggleFavorite}
+      />,
+    );
+
+    const favoriteButton = screen.getByTestId('upholstery-card-favorite-button');
+    expect(favoriteButton).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(favoriteButton);
+
+    expect(handleToggleFavorite).toHaveBeenCalledWith('uph_linen_natural', true);
   });
 });

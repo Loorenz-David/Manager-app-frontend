@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import type { BoxPickerOption } from '@/components/primitives/box-picker/box-picker.types';
 import { ClientIdSchema } from '@/lib/client-id';
 import type { UpholsteryId, UpholsteryInventoryId } from '@/types/common';
 
@@ -92,6 +93,8 @@ export const UpholsteryPickerOptionSchema = z.object({
   name: z.string(),
   code: z.string().nullable(),
   image_url: z.string().nullable(),
+  favorite: z.boolean(),
+  list_order: z.number().nullable(),
   current_stored_amount_meters: z.string().nullable(),
   inventory_condition: z.enum(UPHOLSTERY_INVENTORY_CONDITION).nullable(),
 });
@@ -101,7 +104,17 @@ export type ListUpholsteryPickerParams = {
   q?: string;
   limit?: number;
   offset?: number;
+  in_stock?: boolean;
+  favorite?: boolean;
 };
+
+export type UpholsteryQuickFilter = 'in_stock' | 'out_of_stock' | 'favorite';
+
+export const UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS: Array<BoxPickerOption<UpholsteryQuickFilter>> = [
+  { value: 'in_stock', label: 'In Stock' },
+  { value: 'out_of_stock', label: 'Out of Stock' },
+  { value: 'favorite', label: 'Favorites' },
+];
 
 export type UpholsteryInventoryViewModel = UpholsteryInventory & {
   stored_meters_display: string | null;

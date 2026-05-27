@@ -1,4 +1,4 @@
-import type { InternalFormValues, ReturnFormValues } from '../types';
+import type { InternalFormValues, ReturnFormValues } from "../types";
 
 type BaseIds = {
   taskClientId: string;
@@ -6,12 +6,14 @@ type BaseIds = {
   customerClientId: string;
 };
 
-function toOptionalString(value: string | null | undefined): string | undefined {
+function toOptionalString(
+  value: string | null | undefined,
+): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
 }
 
-function buildCustomerFields(customer: ReturnFormValues['customer']) {
+function buildCustomerFields(customer: ReturnFormValues["customer"]) {
   const address = customer.address;
 
   return {
@@ -19,7 +21,7 @@ function buildCustomerFields(customer: ReturnFormValues['customer']) {
     primary_phone_number: toOptionalString(customer.primary_phone_number),
     primary_email: toOptionalString(customer.primary_email),
     customer_address: {
-      line1: toOptionalString(address?.street) ?? '',
+      line1: toOptionalString(address?.street) ?? "",
       city: toOptionalString(address?.city),
       postal_code: toOptionalString(address?.postal_code),
       country: toOptionalString(address?.country),
@@ -28,19 +30,19 @@ function buildCustomerFields(customer: ReturnFormValues['customer']) {
 }
 
 function buildItemFields(
-  item: ReturnFormValues['item'],
+  item: ReturnFormValues["item"],
   itemClientId: string,
   forceInclude: boolean,
 ) {
   const hasAnyItemData = Boolean(
     toOptionalString(item.article_number) ??
-      toOptionalString(item.sku) ??
-      toOptionalString(item.designer) ??
-      item.item_category_id ??
-      toOptionalString(item.item_position) ??
-      item.item_currency ??
-      item.major_category ??
-      (item.quantity != null && item.quantity !== 1 ? String(item.quantity) : ''),
+    toOptionalString(item.sku) ??
+    toOptionalString(item.designer) ??
+    item.item_category_id ??
+    toOptionalString(item.item_position) ??
+    item.item_currency ??
+    item.major_category ??
+    (item.quantity != null && item.quantity !== 1 ? String(item.quantity) : ""),
   );
 
   if (!forceInclude && !hasAnyItemData) {
@@ -59,7 +61,7 @@ function buildItemFields(
   };
 }
 
-function buildIssueFields(issues: ReturnFormValues['item_issues']) {
+function buildIssueFields(issues: ReturnFormValues["item_issues"]) {
   if (!issues || issues.length === 0) {
     return undefined;
   }
@@ -70,14 +72,16 @@ function buildIssueFields(issues: ReturnFormValues['item_issues']) {
   }));
 }
 
-function buildUpholsteryFields(upholstery: ReturnFormValues['item_upholstery']) {
+function buildUpholsteryFields(
+  upholstery: ReturnFormValues["item_upholstery"],
+) {
   if (!upholstery.upholstery_client_id) {
     return undefined;
   }
 
   return {
     upholstery_id: upholstery.upholstery_client_id,
-    source: 'internal' as const,
+    source: "internal" as const,
     amount_meters: upholstery.upholstery_amount_meters ?? undefined,
   };
 }
@@ -90,7 +94,7 @@ function buildAdditionalDetails(additionalDetails: string | undefined) {
 export function normalizeReturnFormPayload(
   values: ReturnFormValues,
   ids: BaseIds,
-  taskType: 'return' | 'pre_order' = 'return',
+  taskType: "return" | "pre_order" = "return",
 ): Record<string, unknown> {
   const issueFields = buildIssueFields(values.item_issues);
   const upholsteryFields = buildUpholsteryFields(values.item_upholstery);
@@ -99,12 +103,18 @@ export function normalizeReturnFormPayload(
     ids.itemClientId,
     Boolean(issueFields) || Boolean(upholsteryFields),
   );
+  const steps = (values.working_section_assignments ?? []).map(
+    (assignment) => ({
+      working_section_id: assignment.working_section_id,
+      worker_id: assignment.assigned_worker_id || undefined,
+    }),
+  );
 
   return {
     client_id: ids.taskClientId,
     task_type: taskType,
-    state: 'pending',
-    priority: 'normal',
+    state: "pending",
+    priority: "normal",
     return_source: values.return_source || undefined,
     fulfillment_method: values.fulfillment_method || undefined,
     scheduled_start_at: values.scheduled_start_at || undefined,
@@ -115,6 +125,7 @@ export function normalizeReturnFormPayload(
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),
     ...(upholsteryFields ? { item_upholstery: upholsteryFields } : {}),
+    ...(steps.length > 0 ? { steps } : {}),
   };
 }
 
@@ -138,16 +149,21 @@ export function normalizeInternalFormPayload(
     ...(values.needs_cleaning_assignment
       ? [
           {
-            working_section_id: values.needs_cleaning_assignment.working_section_id,
-            worker_id: values.needs_cleaning_assignment.assigned_worker_id || undefined,
+            working_section_id:
+              values.needs_cleaning_assignment.working_section_id,
+            worker_id:
+              values.needs_cleaning_assignment.assigned_worker_id || undefined,
           },
         ]
       : []),
     ...(values.oiling_treatment_assignment
       ? [
           {
-            working_section_id: values.oiling_treatment_assignment.working_section_id,
-            worker_id: values.oiling_treatment_assignment.assigned_worker_id || undefined,
+            working_section_id:
+              values.oiling_treatment_assignment.working_section_id,
+            worker_id:
+              values.oiling_treatment_assignment.assigned_worker_id ||
+              undefined,
           },
         ]
       : []),
@@ -155,9 +171,9 @@ export function normalizeInternalFormPayload(
 
   return {
     client_id: ids.taskClientId,
-    task_type: 'internal',
-    state: 'pending',
-    priority: 'normal',
+    task_type: "internal",
+    state: "pending",
+    priority: "normal",
     ready_by_at: values.ready_by_at || undefined,
     additional_details: buildAdditionalDetails(values.additional_details),
     ...(itemFields ? { item: itemFields } : {}),
