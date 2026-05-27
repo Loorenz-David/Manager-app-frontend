@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_25_bottom_sheet_styling_interactions_and_keyboard_restoration_20260526`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-26T00:00:00Z`
-- Last updated at (UTC): `2026-05-26T00:00:00Z`
+- Last updated at (UTC): `2026-05-26T18:22:17Z`
 - Related issue/ticket: `-`
 - Intention plan: `docs/architecture/under_construction/intention/intention_of_cases.md`
 
@@ -34,6 +34,11 @@
 ## Clarifications required
 
 _(none)_
+
+## Implementation amendment
+
+- The original bottom-sheet approach in this plan was superseded during implementation.
+- Final implementation uses an inline expanded toolbar color mode instead of a sheet because dismissing/restoring the keyboard and selection was interfering with the editor flow.
 
 ## Acceptance criteria
 

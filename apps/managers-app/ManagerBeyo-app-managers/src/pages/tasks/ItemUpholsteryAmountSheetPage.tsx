@@ -1,27 +1,40 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 
-import { NumberInput } from '@/components/primitives';
-import { useSetUpholsteryQuantity } from '@/features/items/actions/use-set-upholstery-quantity';
-import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
-import { ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID } from '@/features/tasks/surfaces';
-import type { ItemUpholsteryAmountSurfaceProps } from '@/features/tasks/surfaces';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { NumberInput } from "@/components/primitives";
+import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
+import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
+import { ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID } from "@/features/tasks/surfaces";
+import type { ItemUpholsteryAmountSurfaceProps } from "@/features/tasks/surfaces";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
 function roundToFourDecimals(value: number): number {
   return Math.round(value * 10_000) / 10_000;
 }
 
+type MultiplierFactor = 0.25 | 0.5;
+
+function getComputedAmount(
+  quantity: number | null | undefined,
+  factor: MultiplierFactor,
+): number {
+  return roundToFourDecimals((quantity ?? 0) * factor);
+}
+
 export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { taskId, itemUpholsteryId, prefill } = useSurfaceProps<ItemUpholsteryAmountSurfaceProps>();
-  const taskQuery = useGetTaskQuery(taskId ?? '');
-  const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId ?? '');
+  const { taskId, itemUpholsteryId, prefill, showQuantityChangedWarning } =
+    useSurfaceProps<ItemUpholsteryAmountSurfaceProps>();
+  const taskQuery = useGetTaskQuery(taskId ?? "");
+  const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId ?? "");
 
   const requirementsById = useMemo(() => {
     const entries = taskQuery.data?.requirements ?? [];
-    return new Map<string, (typeof entries)[number]>(entries.map((entry) => [entry.client_id, entry]));
+    return new Map<string, (typeof entries)[number]>(
+      entries.map((entry) => [entry.client_id, entry]),
+    );
   }, [taskQuery.data?.requirements]);
 
   const activeUpholstery = useMemo(
@@ -36,33 +49,72 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   );
 
   const upholstery = useMemo(
-    () => activeUpholstery.find((entry) => entry.client_id === itemUpholsteryId) ?? null,
+    () =>
+      activeUpholstery.find((entry) => entry.client_id === itemUpholsteryId) ??
+      null,
     [activeUpholstery, itemUpholsteryId],
   );
 
-  const resolvedAmount = upholstery?.activeRequirement?.amount_meters ?? upholstery?.amount_meters ?? null;
+  const resolvedAmount =
+    upholstery?.activeRequirement?.amount_meters ??
+    upholstery?.amount_meters ??
+    null;
   const [amountMeters, setAmountMeters] = useState<number | null>(
     prefill?.amountMeters ?? resolvedAmount,
   );
+  const [selectedFactor, setSelectedFactor] = useState<MultiplierFactor | null>(
+    null,
+  );
+  const quantity = taskQuery.data?.item?.quantity ?? 0;
 
   useEffect(() => {
-    header?.setTitle('Edit upholstery amount');
+    header?.setTitle("Edit upholstery amount");
     header?.setActions(null);
   }, [header]);
 
   useEffect(() => {
     if (prefill) return;
-    setAmountMeters(upholstery?.activeRequirement?.amount_meters ?? upholstery?.amount_meters ?? null);
-  }, [prefill, upholstery?.activeRequirement?.amount_meters, upholstery?.amount_meters]);
-
-  function applyMultiplier(factor: number): void {
-    setAmountMeters((current) =>
-      current === null ? factor : roundToFourDecimals(current * factor),
+    setAmountMeters(
+      upholstery?.activeRequirement?.amount_meters ??
+        upholstery?.amount_meters ??
+        null,
     );
+  }, [
+    prefill,
+    upholstery?.activeRequirement?.amount_meters,
+    upholstery?.amount_meters,
+  ]);
+
+  useEffect(() => {
+    if (selectedFactor === null) {
+      return;
+    }
+
+    setAmountMeters(getComputedAmount(quantity, selectedFactor));
+  }, [quantity, selectedFactor]);
+
+  function applyMultiplier(factor: MultiplierFactor): void {
+    setSelectedFactor(factor);
+    setAmountMeters(getComputedAmount(quantity, factor));
   }
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      {showQuantityChangedWarning ? (
+        <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-amber-900">
+          <AlertTriangle
+            aria-hidden="true"
+            className="mt-0.5 size-4 shrink-0"
+          />
+          <p
+            className="text-sm leading-snug"
+            data-testid="item-upholstery-amount-quantity-warning"
+          >
+            Quantity changed. Review the upholstery amount so it stays coherent
+            with the new quantity.
+          </p>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-muted-foreground">
           Amount <span className="font-normal">(optional)</span>
@@ -74,7 +126,10 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
           step={0.25}
           unitLabel="m"
           value={amountMeters}
-          onValueChange={(next) => setAmountMeters(next ?? null)}
+          onValueChange={(next) => {
+            setSelectedFactor(null);
+            setAmountMeters(next ?? null);
+          }}
         />
         <div className="grid grid-cols-2 gap-2 pt-1">
           <button
@@ -107,14 +162,13 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
             },
             {
               onError: () => {
-                useSurfaceStore.getState().open(
-                  ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
-                  {
-                    taskId: taskId ?? '',
+                useSurfaceStore
+                  .getState()
+                  .open(ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID, {
+                    taskId: taskId ?? "",
                     itemUpholsteryId: upholstery.client_id,
                     prefill: { amountMeters },
-                  },
-                );
+                  });
               },
             },
           );

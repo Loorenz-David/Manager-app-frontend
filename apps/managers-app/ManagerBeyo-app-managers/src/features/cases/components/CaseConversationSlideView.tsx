@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
@@ -44,9 +44,12 @@ export function CaseConversationSlideView(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useCaseConversationContext();
   const messagesController = useCaseConversationMessagesContext();
+  const [isRichComposerToolbarVisible, setIsRichComposerToolbarVisible] =
+    useState(false);
   const showScrollToBottomCta =
     messagesController.items.length > 0 &&
-    messagesController.distanceFromBottom > SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX;
+    messagesController.distanceFromBottom > SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX &&
+    !isRichComposerToolbarVisible;
 
   useEffect(() => {
     header?.setTitle("");
@@ -125,7 +128,9 @@ export function CaseConversationSlideView(): React.JSX.Element {
         ) : null}
       </AnimatePresence>
       {controller.composerMode === "rich" ? (
-        <CaseRichComposer />
+        <CaseRichComposer
+          onToolbarVisibilityChange={setIsRichComposerToolbarVisible}
+        />
       ) : (
         <CaseBasicComposer />
       )}

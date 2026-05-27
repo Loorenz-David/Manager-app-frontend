@@ -1,34 +1,67 @@
-import { useController, useFormContext } from 'react-hook-form';
+import { useEffect, useState } from "react";
+import { useController, useFormContext } from "react-hook-form";
 
-import { FieldErrorPill, FieldLabelRow, NumberInput } from '@/components/primitives';
+import {
+  FieldErrorPill,
+  FieldLabelRow,
+  NumberInput,
+} from "@/components/primitives";
 
 function roundToFourDecimals(value: number): number {
   return Math.round(value * 10_000) / 10_000;
 }
 
-export function ItemUpholsteryAmountField() {
+type MultiplierFactor = 0.25 | 0.5;
+
+type ItemUpholsteryAmountFieldProps = {
+  quantity?: number | null;
+};
+
+function getComputedAmount(
+  quantity: number | null | undefined,
+  factor: MultiplierFactor,
+): number {
+  return roundToFourDecimals((quantity ?? 0) * factor);
+}
+
+export function ItemUpholsteryAmountField({
+  quantity = 0,
+}: ItemUpholsteryAmountFieldProps = {}) {
   const {
     control,
     formState: { errors },
   } = useFormContext();
+  const [selectedFactor, setSelectedFactor] = useState<MultiplierFactor | null>(
+    null,
+  );
   const { field } = useController({
-    name: 'item_upholstery.upholstery_amount_meters',
+    name: "item_upholstery.upholstery_amount_meters",
     control,
   });
   const error = (
     errors as { item_upholstery?: Record<string, { message?: string }> }
   ).item_upholstery?.upholstery_amount_meters?.message;
 
-  function applyMultiplier(factor: number): void {
-    const currentValue = typeof field.value === 'number' ? field.value : null;
-    const nextValue = currentValue === null ? factor : roundToFourDecimals(currentValue * factor);
-    field.onChange(nextValue);
+  useEffect(() => {
+    if (selectedFactor === null) {
+      return;
+    }
+
+    field.onChange(getComputedAmount(quantity, selectedFactor));
+  }, [field, quantity, selectedFactor]);
+
+  function applyMultiplier(factor: MultiplierFactor): void {
+    setSelectedFactor(factor);
+    field.onChange(getComputedAmount(quantity, factor));
   }
 
   return (
     <div className="flex flex-col gap-1.5">
       <FieldLabelRow htmlFor="item-upholstery-amount" label="Amount" optional>
-        <FieldErrorPill data-testid="item-upholstery-amount-error" message={error} />
+        <FieldErrorPill
+          data-testid="item-upholstery-amount-error"
+          message={error}
+        />
       </FieldLabelRow>
       <NumberInput
         id="item-upholstery-amount"
@@ -43,7 +76,10 @@ export function ItemUpholsteryAmountField() {
         invalid={Boolean(error)}
         value={field.value ?? null}
         onBlur={field.onBlur}
-        onValueChange={(nextValue) => field.onChange(nextValue ?? undefined)}
+        onValueChange={(nextValue) => {
+          setSelectedFactor(null);
+          field.onChange(nextValue ?? undefined);
+        }}
       />
       <div className="grid grid-cols-2 gap-2">
         <button

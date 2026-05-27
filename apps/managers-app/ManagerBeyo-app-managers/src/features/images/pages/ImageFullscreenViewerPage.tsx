@@ -291,7 +291,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
               {mode === 'preview-edit' ? (
                 <button
                   aria-label="Edit image"
-                  className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors duration-150 hover:bg-black/55"
+                  className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-zinc-200/80 text-zinc-900 backdrop-blur-sm transition-colors duration-150 hover:bg-zinc-200/95"
                   data-testid="viewer-edit-button"
                   type="button"
                   onClick={handleEditPress}
@@ -305,7 +305,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
 
             <button
               aria-label="Close viewer"
-              className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors duration-150 hover:bg-black/55"
+              className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-zinc-200/80 text-zinc-900 backdrop-blur-sm transition-colors duration-150 hover:bg-zinc-200/95"
               data-testid="viewer-close-button"
               type="button"
               onClick={handleClose}

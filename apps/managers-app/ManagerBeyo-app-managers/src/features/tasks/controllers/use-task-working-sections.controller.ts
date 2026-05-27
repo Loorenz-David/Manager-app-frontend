@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { useAddTaskStep } from '@/features/tasks/actions/use-add-task-step';
-import { useAssignStepWorker } from '@/features/tasks/actions/use-assign-step-worker';
 import { useRemoveTaskStep } from '@/features/tasks/actions/use-remove-task-step';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
 import { humanizeSnakeCase } from '@/features/tasks/lib/task-detail';
@@ -15,10 +14,6 @@ import {
 } from '@/features/tasks/surfaces';
 import type { TaskDetailRaw } from '@/features/tasks/types';
 import { useWorkingSectionPickerFlow } from '@/features/working-sections/flows/use-working-section-picker.flow';
-import {
-  WORKING_SECTION_WORKER_PICKER_SURFACE_ID,
-  type WorkingSectionWorkerPickerSurfaceProps,
-} from '@/features/working-sections/surfaces';
 import type {
   WorkingSectionMember,
   WorkingSectionOption,
@@ -144,13 +139,6 @@ function clonePendingReassignments(
   }));
 }
 
-function openWorkerPicker(
-  surface: ReturnType<typeof useSurface>,
-  props: WorkingSectionWorkerPickerSurfaceProps,
-) {
-  surface.open(WORKING_SECTION_WORKER_PICKER_SURFACE_ID, props);
-}
-
 export function useTaskWorkingSectionsController(
   taskId: string,
   init: ControllerInit = {},
@@ -160,7 +148,6 @@ export function useTaskWorkingSectionsController(
   const workingSectionFlow = useWorkingSectionPickerFlow();
   const addTaskStep = useAddTaskStep(taskId);
   const removeTaskStep = useRemoveTaskStep(taskId);
-  const assignStepWorker = useAssignStepWorker(taskId);
   const [pendingAdds, setPendingAdds] = useState<RecoveredPendingAdd[]>(
     () => clonePendingAdds(init.initialPendingAdds ?? []),
   );
@@ -225,47 +212,6 @@ export function useTaskWorkingSectionsController(
     [],
   );
 
-  const stageReassignment = useCallback(
-    (stepId: string, workerId: string, displayName: string | null) => {
-      const pendingAdd = pendingAdds.find((candidate) => candidate._pendingId === stepId);
-
-      if (pendingAdd) {
-        setPendingAdds((current) =>
-          current.map((candidate) =>
-            candidate._pendingId === stepId
-              ? {
-                  ...candidate,
-                  worker_id: workerId,
-                  assigned_worker_display_name_snapshot: displayName,
-                }
-              : candidate,
-          ),
-        );
-        return;
-      }
-
-      const baseStep = baseTaskSteps.find((candidate) => candidate.client_id === stepId);
-
-      if (
-        baseStep &&
-        baseStep.assigned_worker_id === workerId &&
-        (baseStep.assigned_worker_display_name_snapshot ?? null) === displayName
-      ) {
-        setPendingReassignments((current) =>
-          current.filter((candidate) => candidate.step_id !== stepId),
-        );
-        return;
-      }
-
-      setPendingReassignments((current) => {
-        const next = current.filter((candidate) => candidate.step_id !== stepId);
-        next.push({ step_id: stepId, worker_id: workerId, display_name: displayName });
-        return next;
-      });
-    },
-    [baseTaskSteps, pendingAdds],
-  );
-
   const sectionEntries = useMemo<TaskWorkingSectionEntry[]>(() => {
     const filteredSections =
       majorCategory === undefined || majorCategory === null
@@ -307,69 +253,6 @@ export function useTaskWorkingSectionsController(
     });
   }, [effectiveTaskSteps, majorCategory, workingSectionFlow.options]);
 
-  const handleSectionPress = useCallback(
-    (sectionId: string) => {
-      const entry = sectionEntries.find(
-        (candidate) => candidate.section.client_id === sectionId,
-      );
-
-      if (!entry) {
-        return;
-      }
-
-      if (entry.activeStep) {
-        const activeStep = entry.activeStep;
-
-        if (entry.section.members.length === 0) {
-          return;
-        }
-
-        openWorkerPicker(surface, {
-          sectionName: entry.section.name,
-          members: entry.section.members,
-          currentWorkerId: activeStep.assigned_worker_id ?? null,
-          onSelect: (workerId: string) => {
-            const member =
-              entry.section.members.find(
-                (candidate) => candidate.client_id === workerId,
-              ) ?? null;
-
-            stageReassignment(
-              activeStep.client_id,
-              workerId,
-              member?.username ?? null,
-            );
-          },
-        });
-        return;
-      }
-
-      if (entry.section.members.length === 0) {
-        stageStepStart(entry.section);
-        return;
-      }
-
-      if (entry.section.members.length === 1) {
-        stageStepStart(entry.section, entry.section.members[0]);
-        return;
-      }
-
-      openWorkerPicker(surface, {
-        sectionName: entry.section.name,
-        members: entry.section.members,
-        currentWorkerId: null,
-        onSelect: (workerId: string) => {
-          const member =
-            entry.section.members.find(
-              (candidate) => candidate.client_id === workerId,
-            ) ?? null;
-          stageStepStart(entry.section, member ?? undefined);
-        },
-      });
-    },
-    [sectionEntries, stageReassignment, stageStepStart, surface],
-  );
-
   const handleRemoveStep = useCallback((stepId: string) => {
     const isPendingAdd = pendingAdds.some((candidate) => candidate._pendingId === stepId);
 
@@ -387,6 +270,26 @@ export function useTaskWorkingSectionsController(
       current.filter((candidate) => candidate.step_id !== stepId),
     );
   }, [pendingAdds]);
+
+  const handleSectionPress = useCallback(
+    (sectionId: string) => {
+      const entry = sectionEntries.find(
+        (candidate) => candidate.section.client_id === sectionId,
+      );
+
+      if (!entry) {
+        return;
+      }
+
+      if (entry.activeStep) {
+        handleRemoveStep(entry.activeStep.client_id);
+        return;
+      }
+
+      stageStepStart(entry.section);
+    },
+    [handleRemoveStep, sectionEntries, stageStepStart],
+  );
 
   const handleSaveAndClose = useCallback(async () => {
     if (isSaving) {
@@ -421,14 +324,7 @@ export function useTaskWorkingSectionsController(
         });
       }
 
-      for (const pendingReassignment of recoverySnapshot.recoveredPendingReassignments ?? []) {
-        await assignStepWorker.mutateAsync({
-          step_id: pendingReassignment.step_id,
-          worker_id: pendingReassignment.worker_id,
-          assigned_worker_display_name_snapshot:
-            pendingReassignment.display_name,
-        });
-      }
+      // Worker reassignment is intentionally disabled.
     } catch {
       useSurfaceStore.getState().open(
         TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
@@ -437,7 +333,6 @@ export function useTaskWorkingSectionsController(
     }
   }, [
     addTaskStep,
-    assignStepWorker,
     buildRecoverySnapshot,
     closeDiscardSheet,
     closeSlide,

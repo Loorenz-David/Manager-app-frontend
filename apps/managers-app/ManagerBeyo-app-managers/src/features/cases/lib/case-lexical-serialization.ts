@@ -22,6 +22,10 @@ import {
   getStyleObjectFromCSS,
 } from "lexical";
 
+import {
+  getCaseComposerColorValue,
+  type CaseComposerColorToken,
+} from "../components/composer/CaseColorPalette";
 import type {
   CaseInlinePart,
   CaseInlinePartMarks,
@@ -54,10 +58,10 @@ type TextSegment = {
 };
 
 export type CaseComposerToolbarState = {
+  activeColor: string | null;
   bold: boolean;
   underline: boolean;
   big: boolean;
-  small: boolean;
   color: boolean;
   shake: boolean;
   pulse: boolean;
@@ -67,12 +71,12 @@ type ComposerSize = Exclude<NonNullable<CaseInlinePartMarks["size"]>, "base">;
 type ComposerAnimation = "shake" | "pulse";
 
 const EMPTY_TOOLBAR_STATE: CaseComposerToolbarState = {
+  activeColor: null,
   big: false,
   bold: false,
   color: false,
   pulse: false,
   shake: false,
-  small: false,
   underline: false,
 };
 const pendingFirstTypingAnimationReplay = new WeakMap<
@@ -212,7 +216,11 @@ function appendNodeText(
   inheritedMarks?: CaseInlinePartMarks,
 ): void {
   if ($isTextNode(node)) {
-    pushTextPart(parts, node.getTextContent(), inheritedMarks ?? getTextNodeMarks(node));
+    pushTextPart(
+      parts,
+      node.getTextContent(),
+      inheritedMarks ?? getTextNodeMarks(node),
+    );
     return;
   }
 
@@ -360,9 +368,7 @@ export function initializeCaseComposerEditorState(
   replaceRootWithContent(content);
 }
 
-export function toCaseComposerBackendMessageContent(
-  editorState: EditorState,
-) {
+export function toCaseComposerBackendMessageContent(editorState: EditorState) {
   return toBackendMessageContent(serializeCaseEditorState(editorState));
 }
 
@@ -442,7 +448,10 @@ function collectAnimatedComposerElements(
     const root = $getRoot();
 
     const visitNode = (node: LexicalNode) => {
-      if ($isTextNode(node) && getTextNodeMarks(node)?.animation === animation) {
+      if (
+        $isTextNode(node) &&
+        getTextNodeMarks(node)?.animation === animation
+      ) {
         const element = editor.getElementByKey(node.getKey());
 
         if (element) {
@@ -532,12 +541,12 @@ export function readCaseComposerToolbarState(): CaseComposerToolbarState {
   const animation = readStyleValue(CASE_COMPOSER_ANIMATION_STYLE_PROPERTY);
 
   return {
+    activeColor: color.length > 0 ? color : null,
     big: fontSize === LARGE_TEXT_FONT_SIZE,
     bold: selection.hasFormat("bold"),
     color: color.length > 0,
     pulse: animation === "pulse",
     shake: animation === "shake",
-    small: fontSize === SMALL_TEXT_FONT_SIZE,
     underline: selection.hasFormat("underline"),
   };
 }
@@ -554,7 +563,8 @@ export function toggleCaseComposerSize(
   editor: LexicalEditor,
   size: ComposerSize,
 ): void {
-  const nextSize = size === "large" ? LARGE_TEXT_FONT_SIZE : SMALL_TEXT_FONT_SIZE;
+  const nextSize =
+    size === "large" ? LARGE_TEXT_FONT_SIZE : SMALL_TEXT_FONT_SIZE;
 
   toggleSelectionStylePatch(editor, {
     applyPatch: {
@@ -578,6 +588,25 @@ export function toggleCaseComposerColor(editor: LexicalEditor): void {
     },
     isActive: (currentValue) => currentValue.length > 0,
     property: "color",
+  });
+}
+
+export function setCaseComposerColor(
+  editor: LexicalEditor,
+  colorToken: CaseComposerColorToken,
+): void {
+  const colorValue = getCaseComposerColorValue(colorToken);
+
+  editor.update(() => {
+    const selection = $getSelection();
+
+    if (!$isRangeSelection(selection)) {
+      return;
+    }
+
+    $patchStyleText(selection, {
+      color: colorValue,
+    });
   });
 }
 

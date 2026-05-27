@@ -1,7 +1,11 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Plus, SendHorizontal } from "lucide-react";
 import { m } from "framer-motion";
 
+import {
+  getCaseComposerColorToken,
+  type CaseComposerColorToken,
+} from "./CaseColorPalette";
 import { CaseComposerToolbar } from "./CaseComposerToolbar";
 import type { CaseComposerEditorToolbarActions } from "./CaseComposerEditor";
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
@@ -18,23 +22,34 @@ const LazyCaseComposerEditor = lazy(() =>
 );
 
 const EMPTY_TOOLBAR_STATE: CaseComposerToolbarState = {
+  activeColor: null,
   big: false,
   bold: false,
   color: false,
   pulse: false,
   shake: false,
-  small: false,
   underline: false,
 };
 
-export function CaseRichComposer(): React.JSX.Element {
+type CaseComposerExpandedTool = "color";
+
+type CaseRichComposerProps = {
+  onToolbarVisibilityChange?: (isVisible: boolean) => void;
+};
+
+export function CaseRichComposer({
+  onToolbarVisibilityChange,
+}: CaseRichComposerProps): React.JSX.Element {
   const controller = useCaseConversationContext();
   const [pulsePreviewTick, setPulsePreviewTick] = useState(0);
   const [shakePreviewTick, setShakePreviewTick] = useState(0);
+  const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [toolbarActions, setToolbarActions] =
     useState<CaseComposerEditorToolbarActions | null>(null);
   const [toolbarState, setToolbarState] =
     useState<CaseComposerToolbarState>(EMPTY_TOOLBAR_STATE);
+  const [expandedTool, setExpandedTool] =
+    useState<CaseComposerExpandedTool | null>(null);
   const isEditing = controller.editingMessageId !== null;
   const composerContent = isEditing
     ? controller.editingComposerContent
@@ -57,10 +72,66 @@ export function CaseRichComposer(): React.JSX.Element {
       setToolbarActions(nextActions);
 
       if (nextActions === null) {
+        setExpandedTool(null);
         setToolbarState(EMPTY_TOOLBAR_STATE);
       }
     },
     [],
+  );
+  const handleExpandedColorSelect = useCallback(
+    (colorToken: CaseComposerColorToken) => {
+      toolbarActions?.applyColor(colorToken);
+    },
+    [toolbarActions],
+  );
+  const handleExpandedToolCollapse = useCallback(() => {
+    toolbarActions?.applyColor("default");
+    setExpandedTool(null);
+  }, [toolbarActions]);
+  const handleEditorFocus = useCallback(() => {
+    setIsEditorFocused(true);
+  }, []);
+  const handleEditorBlur = useCallback(() => {
+    setIsEditorFocused(false);
+    setExpandedTool(null);
+  }, []);
+
+  useEffect(() => {
+    onToolbarVisibilityChange?.(isEditorFocused);
+  }, [isEditorFocused, onToolbarVisibilityChange]);
+
+  // On mobile, scrolling dismisses the keyboard but never fires a blur event on
+  // the contenteditable. Detect keyboard dismissal via visualViewport height
+  // growing and treat it as a blur.
+  useEffect(() => {
+    if (!isEditorFocused || !window.visualViewport) {
+      return;
+    }
+
+    let lastHeight = window.visualViewport.height;
+
+    const handleViewportResize = () => {
+      const currentHeight = window.visualViewport!.height;
+
+      if (currentHeight > lastHeight) {
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+
+      lastHeight = currentHeight;
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportResize);
+
+    return () => {
+      window.visualViewport!.removeEventListener("resize", handleViewportResize);
+    };
+  }, [isEditorFocused]);
+
+  useEffect(
+    () => () => {
+      onToolbarVisibilityChange?.(false);
+    },
+    [onToolbarVisibilityChange],
   );
 
   const toolbarButtonActions = {
@@ -71,7 +142,7 @@ export function CaseRichComposer(): React.JSX.Element {
       toolbarActions?.toggleBold();
     },
     color: () => {
-      toolbarActions?.openColorPicker();
+      setExpandedTool("color");
     },
     mention: () => {
       toolbarActions?.openMentionPicker();
@@ -84,21 +155,11 @@ export function CaseRichComposer(): React.JSX.Element {
       toolbarActions?.toggleShake();
       setShakePreviewTick((currentValue) => currentValue + 1);
     },
-    small: () => {
-      toolbarActions?.toggleSmall();
-    },
     underline: () => {
       toolbarActions?.toggleUnderline();
     },
   } satisfies Record<
-    | "big"
-    | "bold"
-    | "color"
-    | "mention"
-    | "pulse"
-    | "shake"
-    | "small"
-    | "underline",
+    "big" | "bold" | "color" | "mention" | "pulse" | "shake" | "underline",
     () => void
   >;
 
@@ -180,15 +241,25 @@ export function CaseRichComposer(): React.JSX.Element {
           </div>
         ) : null}
 
-        <div className="rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-          <CaseComposerToolbar
-            actions={toolbarButtonActions}
-            disabled={isComposerDisabled || toolbarActions === null}
-            pulsePreviewTick={pulsePreviewTick}
-            shakePreviewTick={shakePreviewTick}
-            state={toolbarState}
-          />
+        {isEditorFocused ? (
+          <div className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+            <CaseComposerToolbar
+              actions={toolbarButtonActions}
+              disabled={isComposerDisabled || toolbarActions === null}
+              expandedColorToken={getCaseComposerColorToken(
+                toolbarState.activeColor,
+              )}
+              expandedTool={expandedTool}
+              onCollapseExpandedTool={handleExpandedToolCollapse}
+              onSelectExpandedColor={handleExpandedColorSelect}
+              pulsePreviewTick={pulsePreviewTick}
+              shakePreviewTick={shakePreviewTick}
+              state={toolbarState}
+            />
+          </div>
+        ) : null}
 
+        <div className="rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
           <div className="flex items-end gap-2">
             {!isEditing ? (
               <button
@@ -211,6 +282,7 @@ export function CaseRichComposer(): React.JSX.Element {
                 <LazyCaseComposerEditor
                   content={composerContent}
                   disabled={isComposerDisabled}
+                  onBlur={handleEditorBlur}
                   onChange={({ content, plainText }) => {
                     if (isEditing) {
                       controller.setEditingComposerContent(content, plainText);
@@ -219,6 +291,7 @@ export function CaseRichComposer(): React.JSX.Element {
 
                     controller.setComposerContent(content, plainText);
                   }}
+                  onFocus={handleEditorFocus}
                   onToolbarActionsReady={handleToolbarActionsReady}
                   onToolbarStateChange={setToolbarState}
                   placeholder={composerPlaceholder}

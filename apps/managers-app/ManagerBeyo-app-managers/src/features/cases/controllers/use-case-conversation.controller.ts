@@ -22,10 +22,7 @@ import { useUpdateCaseState } from "../actions/use-update-case-state";
 import { caseKeys } from "../api/case-keys";
 import { useCaseLinksQuery } from "../api/use-case-links";
 import { useGetCaseQuery } from "../api/use-get-case";
-import {
-  resolveCaseComposerMode,
-  type CaseComposerMode,
-} from "../config";
+import { resolveCaseComposerMode, type CaseComposerMode } from "../config";
 import {
   CASE_MESSAGE_EDIT_REQUEST_EVENT,
   type CaseMessageEditRequestDetail,
@@ -324,9 +321,7 @@ export function useCaseConversationController(
 
   const transition = getStateTransition(caseQuery.data?.case.state);
   const typingIndicatorText =
-    ENABLE_TYPING_STUB && caseQuery.data?.case
-      ? "Writing..."
-      : null;
+    ENABLE_TYPING_STUB && caseQuery.data?.case ? "Writing..." : null;
   const closeConversation = () => {
     surface.close(CASE_CONVERSATION_SURFACE_ID);
 
@@ -520,10 +515,7 @@ export function useCaseConversationController(
   };
 
   const setDraftText = (value: string) => {
-    setComposerContent(
-      createPlainTextCaseMessageContent(value),
-      value,
-    );
+    setComposerContent(createPlainTextCaseMessageContent(value), value);
   };
 
   const setEditingComposerContent = (
@@ -545,10 +537,7 @@ export function useCaseConversationController(
   };
 
   const setEditingDraftText = (value: string) => {
-    setEditingComposerContent(
-      createPlainTextCaseMessageContent(value),
-      value,
-    );
+    setEditingComposerContent(createPlainTextCaseMessageContent(value), value);
   };
 
   const cancelEditing = () => {

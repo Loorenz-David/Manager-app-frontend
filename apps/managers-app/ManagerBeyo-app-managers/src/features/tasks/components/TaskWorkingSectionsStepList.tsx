@@ -1,5 +1,3 @@
-import { X } from "lucide-react";
-
 import { ContentCard, ImagePlaceholder, StatePill } from "@/components/primitives";
 import { useTaskWorkingSectionsContext } from "@/features/tasks/providers/TaskWorkingSectionsProvider";
 import { cn } from "@/lib/utils";
@@ -37,8 +35,6 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
       data-testid="task-working-sections-step-list"
     >
       {controller.sectionEntries.map((entry) => {
-        const activeStep = entry.activeStep;
-
         return (
           <div key={entry.section.client_id} className="relative px-2 pt-2">
             {entry.stateLabel ? (
@@ -141,26 +137,6 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
                     </p>
                   )}
                 </div>
-
-                {activeStep ? (
-                  <button
-                    type="button"
-                    aria-label={`Remove ${entry.section.name}`}
-                    className={cn(
-                      " flex size-6 shrink-0 items-center justify-center self-center p-1 opacity-70 hover:opacity-100",
-                      entry.isActive
-                        ? "text-[var(--color-card)]"
-                        : "text-foreground",
-                    )}
-                    data-testid={`task-working-section-remove-${entry.section.client_id}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      controller.handleRemoveStep(activeStep.client_id);
-                    }}
-                  >
-                    <X aria-hidden="true" className="size-3" />
-                  </button>
-                ) : null}
               </div>
             </button>
           </div>

@@ -11,6 +11,7 @@ import { COMMAND_PRIORITY_LOW, SELECTION_CHANGE_COMMAND } from "lexical";
 import { cn } from "@/lib/utils";
 
 import type { CaseMessageContent } from "../../message-content";
+import type { CaseComposerColorToken } from "./CaseColorPalette";
 import {
   CASE_RICH_TEXT_TEST_IDS,
   initializeCaseComposerEditorState,
@@ -18,10 +19,10 @@ import {
   readCaseComposerToolbarState,
   registerCaseComposerFormattingShortcuts,
   serializeCaseEditorState,
+  setCaseComposerColor,
   setCaseComposerEditorContent,
   toggleCaseComposerAnimation,
   toggleCaseComposerBold,
-  toggleCaseComposerColor,
   toggleCaseComposerSize,
   toggleCaseComposerUnderline,
   type CaseComposerToolbarState,
@@ -34,7 +35,7 @@ type CaseComposerEditorChange = {
 };
 
 export type CaseComposerEditorToolbarActions = {
-  openColorPicker: () => void;
+  applyColor: (colorToken: CaseComposerColorToken) => void;
   openMentionPicker: () => void;
   toggleBig: () => void;
   toggleBold: () => void;
@@ -129,8 +130,8 @@ function createToolbarActions(
   // Collapsed selections intentionally use Lexical's insertion-style behavior so
   // toolbar taps stay deterministic on mobile instead of guessing the current word.
   return {
-    openColorPicker: () => {
-      toggleCaseComposerColor(editor);
+    applyColor: (colorToken) => {
+      setCaseComposerColor(editor, colorToken);
     },
     openMentionPicker: () => {
       insertCaseComposerMentionTrigger(editor);
@@ -236,6 +237,15 @@ export function CaseComposerEditor({
   const initialSnapshot = JSON.stringify(content);
   const lastAppliedSnapshotRef = useRef(initialSnapshot);
   const lastEmittedSnapshotRef = useRef(initialSnapshot);
+  // Lexical triggers a focus event during initialization. Suppress it so the
+  // editor does not steal focus (and open the mobile keyboard) on page load.
+  const suppressFocusOnMountRef = useRef(true);
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      suppressFocusOnMountRef.current = false;
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   return (
     <LexicalComposer
@@ -276,7 +286,13 @@ export function CaseComposerEditor({
             )}
             data-testid={CASE_RICH_TEXT_TEST_IDS.editor}
             onBlur={onBlur}
-            onFocus={onFocus}
+            onFocus={(event) => {
+              if (suppressFocusOnMountRef.current) {
+                event.currentTarget.blur();
+                return;
+              }
+              onFocus?.();
+            }}
             spellCheck
           />
         }

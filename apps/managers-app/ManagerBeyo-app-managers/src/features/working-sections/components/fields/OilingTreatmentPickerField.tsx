@@ -1,23 +1,10 @@
-import { Droplets, X } from 'lucide-react';
+import { Droplets } from 'lucide-react';
 import { useController, useFormContext } from 'react-hook-form';
 
 import { FieldErrorPill } from '@/components/primitives';
 import { cn } from '@/lib/utils';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 import { useOilingTreatmentPickerFlow } from '../../flows/use-oiling-treatment-picker.flow';
-import { usePreloadSurface } from '@/hooks/use-preload-surface';
-import {
-  WORKING_SECTION_WORKER_PICKER_SURFACE_ID,
-  preloadWorkingSectionWorkerPickerSurface,
-} from '../../surfaces';
-
-function findCandidate(
-  candidates: ReturnType<typeof useOilingTreatmentPickerFlow>['candidates'],
-  workerId: string,
-) {
-  return candidates.find((candidate) => candidate.member.client_id === workerId) ?? null;
-}
 
 export function OilingTreatmentPickerField(): React.JSX.Element {
   const { control } = useFormContext();
@@ -28,52 +15,19 @@ export function OilingTreatmentPickerField(): React.JSX.Element {
     defaultValue: null,
   });
 
-  usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
-
-  const selectedCandidate =
-    field.value === null || field.value === undefined
-      ? null
-      : flow.candidates.find(
-          (candidate) =>
-            candidate.workingSectionId === field.value.working_section_id &&
-            candidate.member.client_id === field.value.assigned_worker_id,
-        ) ?? null;
-
   function handlePress(): void {
     if (flow.sections.length === 0) {
       return;
     }
 
-    if (flow.candidates.length === 0) {
-      field.onChange({
-        working_section_id: flow.sections[0].client_id,
-        assigned_worker_id: null,
-      });
+    if (field.value) {
+      field.onChange(null);
       return;
     }
 
-    if (flow.candidates.length === 1) {
-      const candidate = flow.candidates[0];
-      field.onChange({
-        working_section_id: candidate.workingSectionId,
-        assigned_worker_id: candidate.member.client_id,
-      });
-      return;
-    }
-
-    useSurfaceStore.getState().open(WORKING_SECTION_WORKER_PICKER_SURFACE_ID, {
-      sectionName: 'Oiling workers',
-      members: flow.members,
-      currentWorkerId: field.value?.assigned_worker_id ?? null,
-      onSelect: (workerId: string) => {
-        const candidate = findCandidate(flow.candidates, workerId);
-        if (!candidate) return;
-
-        field.onChange({
-          working_section_id: candidate.workingSectionId,
-          assigned_worker_id: candidate.member.client_id,
-        });
-      },
+    field.onChange({
+      working_section_id: flow.sections[0].client_id,
+      assigned_worker_id: null,
     });
   }
 
@@ -111,57 +65,19 @@ export function OilingTreatmentPickerField(): React.JSX.Element {
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-1">
           <span className="truncate text-sm font-medium">Oiling treatment</span>
-          {selectedCandidate ? (
-            <span className="flex items-center gap-2">
-              {selectedCandidate.member.profile_picture ? (
-                <img
-                  alt=""
-                  aria-hidden="true"
-                  className="size-4 shrink-0 rounded-full object-cover"
-                  src={selectedCandidate.member.profile_picture}
-                />
-              ) : (
-                <div aria-hidden="true" className="size-4 shrink-0 rounded-full bg-muted" />
-              )}
-              <span
-                className={cn(
-                  'truncate text-xs',
-                  field.value ? 'text-card/80' : 'text-muted-foreground',
-                )}
-              >
-                {selectedCandidate.member.username}
-              </span>
-            </span>
-          ) : (
-            <span
-              className={cn(
-                'truncate text-xs transition-colors duration-150',
-                field.value ? 'text-card/80' : 'text-muted-foreground',
-              )}
-            >
-              {field.value
-                ? 'No worker selected'
-                : flow.isLoading
-                  ? 'Loading workers…'
-                  : 'Tap to assign'}
-            </span>
-          )}
-        </span>
-
-        {field.value ? (
-          <button
-            type="button"
-            aria-label="Clear oiling assignment"
-            className="ml-1 flex size-6 shrink-0 items-center justify-center rounded-full p-1 opacity-70 hover:opacity-100"
-            data-testid="oiling-treatment-picker-clear"
-            onClick={(event) => {
-              event.stopPropagation();
-              field.onChange(null);
-            }}
+          <span
+            className={cn(
+              'truncate text-xs transition-colors duration-150',
+              field.value ? 'text-card/80' : 'text-muted-foreground',
+            )}
           >
-            <X className="size-3" />
-          </button>
-        ) : null}
+            {field.value
+              ? 'Selected'
+              : flow.isLoading
+                ? 'Loading working sections…'
+                : 'Tap to select'}
+          </span>
+        </span>
       </div>
 
       <FieldErrorPill
