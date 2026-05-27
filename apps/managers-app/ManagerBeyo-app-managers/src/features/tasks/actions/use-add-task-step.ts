@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { taskKeys } from '@/features/tasks/api/task-keys';
 import type { TaskDetailRaw } from '@/features/tasks/types';
+import { generateClientId } from '@/lib/client-id';
 
 import { addTaskStep } from '../api/add-task-step';
 
@@ -36,7 +37,7 @@ export function useAddTaskStep(taskId: string) {
           task_steps: [
             ...old.task_steps,
             {
-              client_id: crypto.randomUUID(),
+              client_id: generateClientId('TaskStep'),
               task_id: taskId,
               state: 'pending',
               readiness_status: 'ready',

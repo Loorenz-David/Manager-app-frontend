@@ -56,6 +56,12 @@ export function HorizontalScrollArea({
     updateThumb();
     element.addEventListener('scroll', updateThumb, { passive: true });
 
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        element.removeEventListener('scroll', updateThumb);
+      };
+    }
+
     const resizeObserver = new ResizeObserver(updateThumb);
     resizeObserver.observe(element);
     if (element.firstElementChild) {

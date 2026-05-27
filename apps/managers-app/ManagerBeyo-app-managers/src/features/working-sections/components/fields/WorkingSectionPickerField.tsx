@@ -1,13 +1,18 @@
 import { useMemo } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { FieldErrorPill, ImagePlaceholder } from "@/components/primitives";
+import {
+  FieldErrorPill,
+  ImagePlaceholder,
+  WorkingSectionShortcutBar,
+} from "@/components/primitives";
 import { useWorkingSectionPickerFlow } from "@/features/working-sections/flows/use-working-section-picker.flow";
 import { cn } from "@/lib/utils";
 import type {
   WorkingSectionAssignment,
   WorkingSectionOption,
 } from "../../types";
+import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "../../constants/working-section-shortcuts";
 
 type WorkingSectionBoxProps = {
   section: WorkingSectionOption;
@@ -76,10 +81,12 @@ function WorkingSectionBox({
 
 type WorkingSectionPickerFieldProps = {
   majorCategory?: string;
+  showShortcutBar?: boolean;
 };
 
 export function WorkingSectionPickerField({
   majorCategory,
+  showShortcutBar = true,
 }: WorkingSectionPickerFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
   const flow = useWorkingSectionPickerFlow();
@@ -122,6 +129,15 @@ export function WorkingSectionPickerField({
     ]);
   }
 
+  function handleShortcutPress(resolvedIds: string[]) {
+    field.onChange(
+      resolvedIds.map((sectionId) => ({
+        working_section_id: sectionId,
+        assigned_worker_id: null,
+      })),
+    );
+  }
+
   return (
     <div
       className="flex flex-col gap-1.5"
@@ -153,6 +169,16 @@ export function WorkingSectionPickerField({
           );
         })}
       </div>
+
+      {showShortcutBar ? (
+        <WorkingSectionShortcutBar
+          shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+          availableSections={displayedOptions}
+          onShortcutPress={handleShortcutPress}
+          className="pt-1"
+          data-testid="working-section-picker-shortcut-bar"
+        />
+      ) : null}
 
       <FieldErrorPill
         data-testid="working-section-picker-error"

@@ -37,6 +37,7 @@ import { usePreloadSurface } from "@/hooks/use-preload-surface";
 
 import { ContentCard, FieldLabelRow } from "@/components/primitives";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
+import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
 
@@ -208,6 +209,12 @@ export function InternalFormContent(): React.JSX.Element {
           activeStepId={staged.activeStepId}
           data-testid="internal-staged-form"
           direction={staged.direction}
+          footer={
+            <TaskCreationAssignmentFooter
+              activeStepId={staged.activeStepId}
+              majorCategory={majorCategory}
+            />
+          }
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
@@ -215,6 +222,7 @@ export function InternalFormContent(): React.JSX.Element {
           onAdvance={staged.advance}
           onBack={staged.back}
           onNavigate={staged.navigateTo}
+          showNavigation={false}
           stepStatusMap={staged.stepStatusMap}
           steps={staged.steps}
         >
@@ -250,7 +258,10 @@ export function InternalFormContent(): React.JSX.Element {
           <StagedFormStep id="assignment" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
-                <WorkingSectionPickerField majorCategory={majorCategory} />
+                <WorkingSectionPickerField
+                  majorCategory={majorCategory}
+                  showShortcutBar={false}
+                />
               </ContentCard>
             </div>
           </StagedFormStep>

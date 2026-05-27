@@ -1,3 +1,5 @@
+import { generateClientId } from '@/lib/client-id';
+
 export function buildCompressedImageFileName(extension = 'webp'): string {
-  return `img_${crypto.randomUUID()}.${extension}`;
+  return `${generateClientId('Image')}.${extension}`;
 }

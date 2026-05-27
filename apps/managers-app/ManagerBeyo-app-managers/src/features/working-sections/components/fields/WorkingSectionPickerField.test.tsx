@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { FormProvider, useForm } from 'react-hook-form';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ScrollVisibilityProvider } from '@/components/primitives';
 import type { WorkingSectionOption } from '@/features/working-sections/types';
 
 import { WorkingSectionPickerField } from './WorkingSectionPickerField';
@@ -100,9 +101,11 @@ function renderField(majorCategory?: string) {
     });
 
     return (
-      <FormProvider {...methods}>
-        <WorkingSectionPickerField majorCategory={majorCategory} />
-      </FormProvider>
+      <ScrollVisibilityProvider scrollElement={null}>
+        <FormProvider {...methods}>
+          <WorkingSectionPickerField majorCategory={majorCategory} />
+        </FormProvider>
+      </ScrollVisibilityProvider>
     );
   };
 
@@ -137,23 +140,29 @@ describe('WorkingSectionPickerField', () => {
     expect(screen.queryByTestId('working-section-box-ws_upholstery')).not.toBeInTheDocument();
   });
 
-  it('auto-selects the only member for single-member sections', async () => {
+  it('selects the section when it has a single available member', async () => {
     const user = userEvent.setup();
     renderField();
 
     await user.click(screen.getByTestId('working-section-box-ws_carpentry'));
 
-    expect(screen.getByText('Carol Davis')).toBeVisible();
+    expect(screen.getByTestId('working-section-box-ws_carpentry')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(openMock).not.toHaveBeenCalled();
   });
 
-  it('selects a section with no members and shows no worker label', async () => {
+  it('selects a section with no members', async () => {
     const user = userEvent.setup();
     renderField();
 
     await user.click(screen.getByTestId('working-section-box-ws_cleaning'));
 
-    expect(screen.getByText('No worker selected')).toBeVisible();
+    expect(screen.getByTestId('working-section-box-ws_cleaning')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
     expect(openMock).not.toHaveBeenCalled();
   });
 
@@ -171,5 +180,51 @@ describe('WorkingSectionPickerField', () => {
     expect(screen.getByText('Upholstery')).toBeVisible();
     expect(screen.getByText('Finishing')).toBeVisible();
     expect(screen.queryByText('Carpentry')).not.toBeInTheDocument();
+  });
+
+  it('replaces the current selection with the shortcut preset', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByTestId('working-section-box-ws_cleaning'));
+    await user.click(screen.getByTestId('shortcut-pill-full-job'));
+
+    expect(screen.getByTestId('working-section-box-ws_upholstery')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByTestId('working-section-box-ws_carpentry')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByTestId('working-section-box-ws_finishing')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByTestId('working-section-box-ws_cleaning')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('replaces an earlier shortcut selection when a different pill is pressed', async () => {
+    const user = userEvent.setup();
+    renderField();
+
+    await user.click(screen.getByTestId('shortcut-pill-upholstery-finish'));
+    await user.click(screen.getByTestId('shortcut-pill-carpentry-finish'));
+
+    expect(screen.getByTestId('working-section-box-ws_upholstery')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByTestId('working-section-box-ws_carpentry')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByTestId('working-section-box-ws_finishing')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });

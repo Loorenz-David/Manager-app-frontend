@@ -58,6 +58,8 @@ export { SearchBar } from './search-bar';
 export type { SearchBarProps } from './search-bar';
 export { HorizontalScrollArea } from './horizontal-scroll-area';
 export type { HorizontalScrollAreaProps } from './horizontal-scroll-area';
+export { WorkingSectionShortcutBar } from './working-section-shortcut-bar';
+export type { WorkingSectionShortcutBarProps } from './working-section-shortcut-bar';
 export { StatePill } from './state-pill';
 export type { StatePillProps, StatePillVariant } from './state-pill';
 export { ContentCard } from './form-field-container';

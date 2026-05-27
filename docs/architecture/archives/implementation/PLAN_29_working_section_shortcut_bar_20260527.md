@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_29_working_section_shortcut_bar_20260527`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-05-27T00:00:00Z`
-- Last updated at (UTC): `2026-05-27T00:00:00Z`
+- Last updated at (UTC): `2026-05-27T11:50:28Z`
 - Related issue/ticket: —
 - Intention plan: —
 
@@ -375,10 +375,10 @@ import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@/features/working-sections";
 
 ## Review log
 
-_(empty — awaiting Codex implementation)_
+- `2026-05-27T11:50:28Z` — Implemented the working-section shortcut bar across the task slide and working-section picker field, exposed `StagedForm` scroll-visibility context for shared hide/reveal behavior, passed `npm run typecheck`, passed the focused `WorkingSectionPickerField` Vitest file, wrote `docs/architecture/implemented_summaries/SUMMARY_PLAN_29_working_section_shortcut_bar_20260527.md`, and created `docs/architecture/archives/ARCHIVE_PLAN_29_working_section_shortcut_bar_20260527_1150.md`.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `david`
+- Current state: `archived`
+- Next state: `none`
+- Transition owner: `Codex`

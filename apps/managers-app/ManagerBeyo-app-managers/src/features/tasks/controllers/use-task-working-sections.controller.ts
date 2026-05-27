@@ -19,6 +19,7 @@ import type {
   WorkingSectionOption,
 } from '@/features/working-sections/types';
 import { useSurface } from '@/hooks/use-surface';
+import { generateClientId } from '@/lib/client-id';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type TaskStep = TaskDetailRaw['task_steps'][number];
@@ -201,7 +202,7 @@ export function useTaskWorkingSectionsController(
       setPendingAdds((current) => [
         ...current,
         {
-          _pendingId: crypto.randomUUID(),
+          _pendingId: generateClientId('TaskStep'),
           working_section_id: section.client_id,
           worker_id: member?.client_id ?? null,
           working_section_name_snapshot: section.name,
@@ -291,6 +292,26 @@ export function useTaskWorkingSectionsController(
     [handleRemoveStep, sectionEntries, stageStepStart],
   );
 
+  const handleShortcutPress = useCallback(
+    (sectionIds: string[]) => {
+      const targetSectionIds = new Set(sectionIds);
+
+      for (const entry of sectionEntries) {
+        const shouldBeActive = targetSectionIds.has(entry.section.client_id);
+
+        if (entry.activeStep && !shouldBeActive) {
+          handleRemoveStep(entry.activeStep.client_id);
+          continue;
+        }
+
+        if (!entry.isActive && shouldBeActive) {
+          stageStepStart(entry.section);
+        }
+      }
+    },
+    [handleRemoveStep, sectionEntries, stageStepStart],
+  );
+
   const handleSaveAndClose = useCallback(async () => {
     if (isSaving) {
       return;
@@ -373,6 +394,7 @@ export function useTaskWorkingSectionsController(
     isSaving,
     refetch: taskQuery.refetch,
     handleSectionPress,
+    handleShortcutPress,
     handleRemoveStep,
     handleSaveAndClose,
     handleCloseWithGuard,

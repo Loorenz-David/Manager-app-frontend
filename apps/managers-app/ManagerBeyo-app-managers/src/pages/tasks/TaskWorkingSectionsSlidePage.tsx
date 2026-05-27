@@ -1,25 +1,88 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import {
   ContentCard,
   StagedForm,
   StagedFormStep,
+  WorkingSectionShortcutBar,
 } from "@/components/primitives";
+import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
 import { TaskWorkingSectionsStepList } from "@/features/tasks/components/TaskWorkingSectionsStepList";
 import {
   TaskWorkingSectionsProvider,
   useTaskWorkingSectionsContext,
 } from "@/features/tasks/providers/TaskWorkingSectionsProvider";
+import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@/features/working-sections";
 import { preloadWorkingSectionWorkerPickerSurface } from "@/features/working-sections/surfaces";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import type { TaskWorkingSectionsSurfaceProps } from "@/features/tasks/surfaces";
 import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { cn } from "@/lib/utils";
+
+function TaskWorkingSectionsFooter({
+  availableSections,
+  canShowShortcuts,
+  hasUnsavedChanges,
+  isSaving,
+  onShortcutPress,
+  onSaveAndClose,
+}: {
+  availableSections: ReturnType<
+    typeof useTaskWorkingSectionsContext
+  >["sectionEntries"][number]["section"][];
+  canShowShortcuts: boolean;
+  hasUnsavedChanges: boolean;
+  isSaving: boolean;
+  onShortcutPress: (sectionIds: string[]) => void;
+  onSaveAndClose: () => Promise<void>;
+}): React.JSX.Element {
+  const { isHidden } = useScrollVisibilityContext();
+
+  return (
+    <div className="bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
+      {canShowShortcuts ? (
+        <div
+          className={cn(
+            "overflow-hidden transition-[max-height,margin-bottom] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            isHidden ? "mb-0 max-h-0" : "mb-3 max-h-24",
+          )}
+        >
+          <WorkingSectionShortcutBar
+            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+            availableSections={availableSections}
+            onShortcutPress={onShortcutPress}
+            animationMode="translate"
+            data-testid="task-working-sections-shortcut-bar"
+            className="py-2"
+            trackClassName="mt-3"
+          />
+        </div>
+      ) : null}
+
+      <button
+        className="w-full rounded-2xl bg-(--color-primary) px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+        data-testid="task-working-sections-save-button"
+        disabled={isSaving || !hasUnsavedChanges}
+        type="button"
+        onClick={() => {
+          void onSaveAndClose();
+        }}
+      >
+        {isSaving ? "Saving..." : "Save & Close"}
+      </button>
+    </div>
+  );
+}
 
 function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskWorkingSectionsContext();
+  const availableSections = useMemo(
+    () => controller.sectionEntries.map((entry) => entry.section),
+    [controller.sectionEntries],
+  );
   const staged = useStagedForm({
     steps: [
       { id: "selected", title: "Selected" },
@@ -28,6 +91,8 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
     ],
     mode: "free",
   });
+  const showShortcutBar =
+    staged.activeStepId === "selected" && controller.sectionEntries.length > 0;
 
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
 
@@ -41,11 +106,7 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
     return () => {
       header?.setCloseInterceptor(null);
     };
-  }, [
-    controller.handleCloseWithGuard,
-    controller.hasUnsavedChanges,
-    header,
-  ]);
+  }, [controller.handleCloseWithGuard, controller.hasUnsavedChanges, header]);
 
   if (controller.isPending) {
     return (
@@ -87,28 +148,21 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
       onBack={staged.back}
       onNavigate={staged.navigateTo}
       footer={
-        controller.hasUnsavedChanges ? (
-          <div className="bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
-            <button
-              className="w-full rounded-2xl bg-(--color-primary) px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-              data-testid="task-working-sections-save-button"
-              disabled={controller.isSaving}
-              type="button"
-              onClick={() => {
-                void controller.handleSaveAndClose();
-              }}
-            >
-              {controller.isSaving ? "Saving..." : "Save & Close"}
-            </button>
-          </div>
-        ) : undefined
+        <TaskWorkingSectionsFooter
+          availableSections={availableSections}
+          canShowShortcuts={showShortcutBar}
+          hasUnsavedChanges={controller.hasUnsavedChanges}
+          isSaving={controller.isSaving}
+          onShortcutPress={controller.handleShortcutPress}
+          onSaveAndClose={controller.handleSaveAndClose}
+        />
       }
       showNavigation={false}
       stepStatusMap={staged.stepStatusMap}
       steps={staged.steps}
     >
       <StagedFormStep id="selected" className="px-0">
-        <div className="flex flex-col gap-4 px-3">
+        <div className="flex flex-col gap-4 px-3 pb-20">
           <TaskWorkingSectionsStepList />
         </div>
       </StagedFormStep>

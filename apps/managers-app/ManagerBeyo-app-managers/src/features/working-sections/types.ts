@@ -57,3 +57,5 @@ export type WorkingSectionShortcutCandidate = {
   workingSectionId: string;
   member: WorkingSectionMember;
 };
+
+export type WorkingSectionShortcutConfig = Record<string, string[]>;

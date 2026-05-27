@@ -1,4 +1,8 @@
-import { ContentCard, ImagePlaceholder, StatePill } from "@/components/primitives";
+import {
+  ContentCard,
+  ImagePlaceholder,
+  StatePill,
+} from "@/components/primitives";
 import { useTaskWorkingSectionsContext } from "@/features/tasks/providers/TaskWorkingSectionsProvider";
 import { cn } from "@/lib/utils";
 

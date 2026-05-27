@@ -1,6 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
 
+import { ScrollVisibilityContext } from "@/components/primitives/scroll-visibility/ScrollVisibilityContext";
 import { useScrollVisibility } from "@/components/primitives/scroll-visibility";
 import { cn } from "@/lib/utils";
 
@@ -137,31 +138,35 @@ export function StagedForm({
           <StagedFormTimeline />
         </div>
 
-        <div
-          ref={scrollRef}
-          className="relative flex-1 overflow-x-hidden overflow-y-auto"
-          data-testid="staged-form-scroll-container"
+        <ScrollVisibilityContext.Provider
+          value={{ isHidden: isCompact, reset, suspend }}
         >
-          {/* h-10 -mb-10 keeps the sticky fade inside the scroll container without pushing content down. */}
-          <m.div
-            animate={{ opacity: isScrolled ? 1 : 0 }}
-            className="pointer-events-none sticky top-0 z-20 h-10 -mb-10 bg-gradient-to-b from-background to-transparent [mask-image:linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]"
-            initial={false}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          />
+          <div
+            ref={scrollRef}
+            className="relative flex-1 overflow-x-hidden overflow-y-auto"
+            data-testid="staged-form-scroll-container"
+          >
+            {/* h-10 -mb-10 keeps the sticky fade inside the scroll container without pushing content down. */}
+            <m.div
+              animate={{ opacity: isScrolled ? 1 : 0 }}
+              className="pointer-events-none sticky top-0 z-20 h-10 -mb-10 bg-gradient-to-b from-background to-transparent [mask-image:linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]"
+              initial={false}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+            />
 
-          <AnimatePresence custom={direction} mode="wait">
-            {getActiveStepChild(children, activeStepId)}
-          </AnimatePresence>
-        </div>
-
-        {footer ? (
-          <div className="relative z-10 shrink-0">{footer}</div>
-        ) : showNavigation ? (
-          <div className="relative z-10 shrink-0">
-            <StagedFormNavigation />
+            <AnimatePresence custom={direction} mode="wait">
+              {getActiveStepChild(children, activeStepId)}
+            </AnimatePresence>
           </div>
-        ) : null}
+
+          {footer ? (
+            <div className="relative z-10 shrink-0">{footer}</div>
+          ) : showNavigation ? (
+            <div className="relative z-10 shrink-0">
+              <StagedFormNavigation />
+            </div>
+          ) : null}
+        </ScrollVisibilityContext.Provider>
       </div>
     </StagedFormContext.Provider>
   );

@@ -54,6 +54,7 @@ import { useSurface } from "@/hooks/use-surface";
 import type { StepStatus } from "@/types/staged-form";
 
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
+import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { TASK_CREATION_PRE_ORDER_SURFACE_ID } from "../surfaces";
 import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
@@ -228,6 +229,12 @@ export function PreOrderFormContent(): React.JSX.Element {
           activeStepId={staged.activeStepId}
           data-testid="pre-order-staged-form"
           direction={staged.direction}
+          footer={
+            <TaskCreationAssignmentFooter
+              activeStepId={staged.activeStepId}
+              majorCategory={majorCategory}
+            />
+          }
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
@@ -235,6 +242,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           onAdvance={staged.advance}
           onBack={staged.back}
           onNavigate={staged.navigateTo}
+          showNavigation={false}
           stepStatusMap={staged.stepStatusMap}
           steps={staged.steps}
         >
@@ -278,7 +286,10 @@ export function PreOrderFormContent(): React.JSX.Element {
           <StagedFormStep id="assignment" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
-                <WorkingSectionPickerField majorCategory={majorCategory} />
+                <WorkingSectionPickerField
+                  majorCategory={majorCategory}
+                  showShortcutBar={false}
+                />
               </ContentCard>
             </div>
           </StagedFormStep>
