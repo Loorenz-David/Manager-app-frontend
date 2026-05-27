@@ -288,6 +288,7 @@ export function PreOrderFormContent(): React.JSX.Element {
               <ContentCard data-testid="pre-order-form-images-section">
                 <EntityImagesProvider
                   entityClientId={itemClientId}
+                  captureFlow="camera-to-editor"
                   entityType="item"
                 >
                   <ImagePreviewGrid

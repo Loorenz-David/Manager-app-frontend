@@ -21,6 +21,7 @@ export function CaseComposerDraftImagesProvider({
 
   return (
     <EntityImagesProvider
+      captureFlow="camera-to-editor"
       entityClientId={draftMessageClientId}
       entityType="case_conversation_message"
       onImagesChanged={() => {

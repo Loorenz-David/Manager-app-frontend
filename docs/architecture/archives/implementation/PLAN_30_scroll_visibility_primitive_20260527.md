@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_30_scroll_visibility_primitive_20260527`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `copilot`
 - Created at (UTC): `2026-05-27T10:00:00Z`
-- Last updated at (UTC): `2026-05-27T11:00:00Z`
+- Last updated at (UTC): `2026-05-27T08:51:10Z`
 - Related issue/ticket: _none_
 - Intention plan: _none — feature request originated in conversation_
 

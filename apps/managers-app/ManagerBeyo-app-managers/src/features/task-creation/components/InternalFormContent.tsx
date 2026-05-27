@@ -47,12 +47,11 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
   item: [
     "item",
     "item_upholstery",
-    "item_issues",
     "needs_cleaning_assignment",
     "oiling_treatment_assignment",
   ],
   assignment: ["working_section_assignments"],
-  task: ["ready_by_at", "additional_details"],
+  task: ["item_issues", "ready_by_at", "additional_details"],
 };
 
 function UpholsteryField({
@@ -137,13 +136,20 @@ export function InternalFormContent(): React.JSX.Element {
 
           if (
             errors.item ??
-            errors.item_issues ??
             errors.item_upholstery ??
             errors.needs_cleaning_assignment ??
             errors.oiling_treatment_assignment
           ) {
             setStatus("item", "error");
           }
+          if (
+            errors.item_issues ??
+            errors.additional_details ??
+            errors.ready_by_at
+          ) {
+            setStatus("task", "error");
+          }
+
           if (errors.working_section_assignments) {
             setStatus("assignment", "error");
           }
@@ -216,6 +222,7 @@ export function InternalFormContent(): React.JSX.Element {
             <div className="flex flex-col gap-4">
               <ContentCard>
                 <ItemIdentityField />
+                <ItemPositionField />
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />
@@ -223,12 +230,6 @@ export function InternalFormContent(): React.JSX.Element {
               {majorCategory === "seat" ? (
                 <ContentCard>
                   <ItemQuantityField />
-                  <ItemPositionField />
-                </ContentCard>
-              ) : null}
-              {majorCategory === "wood" ? (
-                <ContentCard>
-                  <ItemIssuesField />
                 </ContentCard>
               ) : null}
               {majorCategory === "wood" ? (
@@ -259,6 +260,7 @@ export function InternalFormContent(): React.JSX.Element {
               <ContentCard data-testid="internal-form-images-section">
                 <EntityImagesProvider
                   entityClientId={itemClientId}
+                  captureFlow="camera-to-editor"
                   entityType="item"
                 >
                   <ImagePreviewGrid
@@ -266,6 +268,9 @@ export function InternalFormContent(): React.JSX.Element {
                     testId="internal-form-images-grid"
                   />
                 </EntityImagesProvider>
+              </ContentCard>
+              <ContentCard>
+                <ItemIssuesField />
               </ContentCard>
               <ContentCard>
                 <TaskReadyByDateField />

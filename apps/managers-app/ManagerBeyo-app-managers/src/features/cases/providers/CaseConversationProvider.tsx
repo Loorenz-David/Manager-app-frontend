@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useRef, type ReactNode } from 'react';
 
 import type { CaseId } from '@/types/common';
 
@@ -32,14 +32,9 @@ export function CaseConversationProvider({
   const messagesController = useCaseConversationMessagesController({
     caseClientId,
     lastReadMessageSeq: controller.lastReadMessageSeq,
-    onListScrollTopChange: controller.setBodyScrollTop,
     requestMarkRead: controller.requestMarkRead,
   });
   scrollToBottomRef.current = messagesController.scrollToBottom;
-
-  useEffect(() => {
-    controller.resetScrollChrome();
-  }, [caseClientId]);
 
   return (
     <CaseConversationContext.Provider value={controller}>

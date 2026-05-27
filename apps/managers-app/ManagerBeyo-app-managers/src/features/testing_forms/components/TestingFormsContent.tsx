@@ -1,17 +1,19 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Controller, FormProvider, useForm, type FieldPath } from 'react-hook-form';
-import { z } from 'zod';
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Controller,
+  FormProvider,
+  useForm,
+  type FieldPath,
+} from "react-hook-form";
+import { z } from "zod";
 
-import { StagedForm, StagedFormStep } from '@/components/primitives';
+import { StagedForm, StagedFormStep } from "@/components/primitives";
 import {
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
-} from '@/components/primitives/date';
-import { CustomerFieldGroup, CustomerFieldsSchema } from '@/features/customers';
-import {
-  EntityImagesProvider,
-  ImagePreviewGrid,
-} from '@/features/images';
+} from "@/components/primitives/date";
+import { CustomerFieldGroup, CustomerFieldsSchema } from "@/features/customers";
+import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
 import {
   ItemCategorySelectionField,
   ItemDetailsFieldGroup,
@@ -21,7 +23,7 @@ import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
   ItemUpholsteryFieldsSchema,
-} from '@/features/items';
+} from "@/features/items";
 import {
   TaskAdditionalDetailsField,
   TaskAdditionalDetailsFieldsSchema,
@@ -29,22 +31,22 @@ import {
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
   TaskReturnSourceField,
-} from '@/features/tasks';
+} from "@/features/tasks";
 import {
   NeedsCleaningPickerField,
   OilingTreatmentPickerField,
   WorkingSectionPickerField,
   WorkingSectionPickerFieldsSchema,
-} from '@/features/working-sections';
-import { usePreloadSurface } from '@/hooks/use-preload-surface';
-import { useStagedForm } from '@/hooks/use-staged-form';
-import { DateOnlySchema } from '@/types/common';
+} from "@/features/working-sections";
+import { usePreloadSurface } from "@/hooks/use-preload-surface";
+import { useStagedForm } from "@/hooks/use-staged-form";
+import { DateOnlySchema } from "@/types/common";
 
-const TASK_FULFILLMENT_METHOD = ['pickup_at_store', 'delivery'] as const;
+const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
 const TASK_RETURN_SOURCE = [
-  'after_purchase',
-  'before_purchase',
-  'store_return',
+  "after_purchase",
+  "before_purchase",
+  "store_return",
 ] as const;
 
 const TestingFormsSchema = z.object({
@@ -57,10 +59,14 @@ const TestingFormsSchema = z.object({
   scheduled_end_at: DateOnlySchema.nullable().optional(),
   fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
   return_source: z.enum(TASK_RETURN_SOURCE).optional(),
-  additional_details: TaskAdditionalDetailsFieldsSchema.shape.additional_details,
-  working_section_assignments: WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
-  needs_cleaning_assignment: WorkingSectionPickerFieldsSchema.shape.needs_cleaning_assignment,
-  oiling_treatment_assignment: WorkingSectionPickerFieldsSchema.shape.oiling_treatment_assignment,
+  additional_details:
+    TaskAdditionalDetailsFieldsSchema.shape.additional_details,
+  working_section_assignments:
+    WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
+  needs_cleaning_assignment:
+    WorkingSectionPickerFieldsSchema.shape.needs_cleaning_assignment,
+  oiling_treatment_assignment:
+    WorkingSectionPickerFieldsSchema.shape.oiling_treatment_assignment,
 });
 
 type TestingFormsValues = z.input<typeof TestingFormsSchema>;
@@ -73,23 +79,23 @@ export function TestingFormsContent(): React.JSX.Element {
     resolver: zodResolver(TestingFormsSchema),
     defaultValues: {
       customer: {
-        display_name: '',
+        display_name: "",
         customer_type: undefined,
-        primary_email: '',
-        primary_phone_number: '',
+        primary_email: "",
+        primary_phone_number: "",
         address: {
-          street: '',
-          city: '',
-          postal_code: '',
-          country: '',
+          street: "",
+          city: "",
+          postal_code: "",
+          country: "",
         },
       },
       item: {
-        designer: '',
-        article_number: '',
-        sku: '',
+        designer: "",
+        article_number: "",
+        sku: "",
         quantity: undefined,
-        item_position: '',
+        item_position: "",
         item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,
@@ -104,7 +110,7 @@ export function TestingFormsContent(): React.JSX.Element {
       scheduled_end_at: null,
       fulfillment_method: undefined,
       return_source: undefined,
-      additional_details: '',
+      additional_details: "",
       working_section_assignments: [],
       needs_cleaning_assignment: null,
       oiling_treatment_assignment: null,
@@ -113,36 +119,36 @@ export function TestingFormsContent(): React.JSX.Element {
 
   const staged = useStagedForm({
     steps: [
-      { id: 'item', title: 'Item' },
-      { id: 'customer', title: 'Customer' },
-      { id: 'task', title: 'Task' },
+      { id: "item", title: "Item" },
+      { id: "customer", title: "Customer" },
+      { id: "task", title: "Task" },
     ],
-    mode: 'free',
+    mode: "free",
     onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
       const stepFieldsMap: Record<string, FieldPath<TestingFormsValues>[]> = {
         item: [
-          'item',
-          'item_upholstery',
-          'item_issues',
-          'needs_cleaning_assignment',
-          'oiling_treatment_assignment',
+          "item",
+          "item_upholstery",
+          "item_issues",
+          "needs_cleaning_assignment",
+          "oiling_treatment_assignment",
         ],
-        customer: ['customer'],
+        customer: ["customer"],
         task: [
-          'fulfillment_method',
-          'return_source',
-          'additional_details',
-          'working_section_assignments',
+          "fulfillment_method",
+          "return_source",
+          "additional_details",
+          "working_section_assignments",
         ],
       };
 
       // On the last step, validate all steps so skipped ones show error state.
-      if (currentStepId === 'task') {
+      if (currentStepId === "task") {
         const allValid = await form.trigger();
         if (!allValid) {
           const { errors } = form.formState;
-          if (errors.item ?? errors.item_issues) setStatus('item', 'error');
-          if (errors.customer) setStatus('customer', 'error');
+          if (errors.item ?? errors.item_issues) setStatus("item", "error");
+          if (errors.customer) setStatus("customer", "error");
         }
         return allValid;
       }
@@ -151,7 +157,7 @@ export function TestingFormsContent(): React.JSX.Element {
     },
     onSubmit: () =>
       form.handleSubmit((values) => {
-        console.log('testing_forms submit', values);
+        console.log("testing_forms submit", values);
       })(),
   });
   return (
@@ -181,7 +187,8 @@ export function TestingFormsContent(): React.JSX.Element {
               <div>
                 <h2 className="text-lg font-semibold text-foreground">Item</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Validate the item details field composition layer and selectors.
+                  Validate the item details field composition layer and
+                  selectors.
                 </p>
               </div>
               <div className="flex flex-col gap-4">
@@ -211,12 +218,19 @@ export function TestingFormsContent(): React.JSX.Element {
                 <ItemIssuesField />
                 <NeedsCleaningPickerField />
                 <OilingTreatmentPickerField />
-                <section className="rounded-2xl border border-border p-4" data-testid="testing-images-harness-section">
+                <section
+                  className="rounded-2xl border border-border p-4"
+                  data-testid="testing-images-harness-section"
+                >
                   <EntityImagesProvider
                     entityType="item"
                     entityClientId="testing-item-images"
+                    captureFlow="camera-to-editor"
                   >
-                    <ImagePreviewGrid maxImages={6} testId="testing-images-grid" />
+                    <ImagePreviewGrid
+                      maxImages={6}
+                      testId="testing-images-grid"
+                    />
                   </EntityImagesProvider>
                 </section>
               </div>
@@ -226,9 +240,12 @@ export function TestingFormsContent(): React.JSX.Element {
           <StagedFormStep id="customer">
             <section className="flex flex-col gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Customer</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Customer
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Validate the composed customer field group and nested address inputs.
+                  Validate the composed customer field group and nested address
+                  inputs.
                 </p>
               </div>
               <CustomerFieldGroup />
@@ -238,9 +255,12 @@ export function TestingFormsContent(): React.JSX.Element {
           <StagedFormStep id="task">
             <section className="flex flex-col gap-4">
               <div>
-                <h2 className="text-lg font-semibold text-foreground">Task fields</h2>
+                <h2 className="text-lg font-semibold text-foreground">
+                  Task fields
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Validate the box-picker task selectors alongside the date sheet flows.
+                  Validate the box-picker task selectors alongside the date
+                  sheet flows.
                 </p>
               </div>
               <div className="flex flex-col gap-4">

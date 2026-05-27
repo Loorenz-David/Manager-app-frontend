@@ -1321,7 +1321,7 @@ test.describe("cases page", () => {
     expect(Math.abs(anchorAfter - anchorBefore)).toBeLessThan(100);
   });
 
-  test("context banner collapses on upward scroll and restores on downward scroll", async ({
+  test("context banner collapses after the list scrolls and restores at the top", async ({
     page,
   }) => {
     await installMockAuth(page);
@@ -1336,9 +1336,10 @@ test.describe("cases page", () => {
       "case-conversation-scroll-container",
     );
     await expect(banner).toHaveAttribute("data-collapsed", "false");
+    await page.waitForTimeout(150);
 
     await scrollContainer.evaluate((element) => {
-      element.scrollTop = 0;
+      element.scrollTop = 10;
     });
 
     await expect(banner).toHaveAttribute("data-collapsed", "true", {
@@ -1369,7 +1370,7 @@ test.describe("cases page", () => {
     ]);
 
     await scrollContainer.evaluate((element) => {
-      element.scrollTop = element.scrollHeight;
+      element.scrollTop = 0;
     });
 
     await expect(banner).toHaveAttribute("data-collapsed", "false", {

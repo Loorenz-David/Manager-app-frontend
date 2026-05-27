@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   closestCenter,
   DndContext,
@@ -63,6 +63,7 @@ function SortableUpholsteryDnDCard({
     <div
       ref={setNodeRef}
       className="select-none"
+      data-testid={`upholstery-sortable-card-${record.client_id}`}
       style={style}
       onContextMenu={(event) => event.preventDefault()}
     >
@@ -113,7 +114,10 @@ export function UpholsteryReorderSheetPage(): React.JSX.Element {
   const [activeId, setActiveId] = useState<string | null>(null);
   const autoCloseTimerRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);
-  const orderedItems = clientId ? buildOrderedItems(data?.upholsteries ?? [], clientId) : [];
+  const orderedItems = useMemo(
+    () => (clientId ? buildOrderedItems(data?.upholsteries ?? [], clientId) : []),
+    [clientId, data?.upholsteries],
+  );
   const activeItem = activeId
     ? localOrder.find((item) => item.client_id === activeId) ?? null
     : null;
@@ -121,13 +125,13 @@ export function UpholsteryReorderSheetPage(): React.JSX.Element {
   const sensors = useSensors(
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 0,
-        tolerance: 4,
+        delay: 250,
+        tolerance: 8,
       },
     }),
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 0,
+        distance: 6,
       },
     }),
   );
@@ -135,7 +139,8 @@ export function UpholsteryReorderSheetPage(): React.JSX.Element {
   useEffect(() => {
     header?.setTitle('Reorder upholsteries');
     header?.setActions(null);
-  }, [header]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // header omitted — SurfaceHeaderContext.Provider recreates the header object on each surface render
 
   useEffect(() => {
     if (!isDraggingRef.current) {

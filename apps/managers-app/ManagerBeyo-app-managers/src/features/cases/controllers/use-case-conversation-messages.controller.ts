@@ -33,22 +33,13 @@ export type CaseConversationMessagesController = {
   scrollToBottomRequestVersion: number;
   loadOlder: () => void;
   scrollToBottom: () => void;
-  handleListScroll: (metrics: {
-    distanceFromBottom: number;
-    scrollTop: number;
-    isLayoutCompensation?: boolean;
-  }) => void;
+  handleListScroll: (metrics: { distanceFromBottom: number }) => void;
   retry: () => Promise<void>;
 };
 
 type UseCaseConversationMessagesControllerArgs = {
   caseClientId: CaseId;
   lastReadMessageSeq?: number | null;
-  onListScrollTopChange?: (metrics: {
-    distanceFromBottom: number;
-    scrollTop: number;
-    isLayoutCompensation?: boolean;
-  }) => void;
   requestMarkRead?: (upToMessageSeq: number) => Promise<void>;
 };
 
@@ -126,7 +117,6 @@ const LATEST_MESSAGE_VISIBLE_DISTANCE_THRESHOLD = 160;
 export function useCaseConversationMessagesController({
   caseClientId,
   lastReadMessageSeq,
-  onListScrollTopChange,
   requestMarkRead,
 }: UseCaseConversationMessagesControllerArgs): CaseConversationMessagesController {
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
@@ -202,7 +192,6 @@ export function useCaseConversationMessagesController({
     },
     handleListScroll: (metrics) => {
       setDistanceFromBottom(metrics.distanceFromBottom);
-      onListScrollTopChange?.(metrics);
     },
     retry: async () => {
       await query.refetch();

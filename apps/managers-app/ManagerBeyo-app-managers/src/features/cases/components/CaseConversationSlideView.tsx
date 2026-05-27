@@ -2,6 +2,7 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
+import { ScrollVisibilityProvider } from "@/components/primitives/scroll-visibility";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
 import {
@@ -46,6 +47,7 @@ export function CaseConversationSlideView(): React.JSX.Element {
   const messagesController = useCaseConversationMessagesContext();
   const [isRichComposerToolbarVisible, setIsRichComposerToolbarVisible] =
     useState(false);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const showScrollToBottomCta =
     messagesController.items.length > 0 &&
     messagesController.distanceFromBottom > SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX &&
@@ -107,10 +109,15 @@ export function CaseConversationSlideView(): React.JSX.Element {
       style={CONVERSATION_LAYOUT_STYLE}
     >
       <CaseConversationHeader />
-      <CaseConversationContextBanner />
-      <CaseMessageList
-        isContextBannerCollapsed={controller.isContextBannerCollapsed}
-      />
+      <ScrollVisibilityProvider
+        inverted
+        hysteresis={16}
+        scrollElement={scrollElement}
+        threshold={56}
+      >
+        <CaseConversationContextBanner />
+        <CaseMessageList onScrollerRef={setScrollElement} />
+      </ScrollVisibilityProvider>
       <AnimatePresence>
         {showScrollToBottomCta ? (
           <m.button

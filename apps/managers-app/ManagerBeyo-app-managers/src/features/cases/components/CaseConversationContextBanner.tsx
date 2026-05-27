@@ -1,14 +1,9 @@
-import { m } from "framer-motion";
-
 import { ImagePlaceholder } from "@/components/primitives";
+import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
+import { cn } from "@/lib/utils";
 
 import { getCaseTypeImageUrl, getCaseTypeName } from "../types";
 import { useCaseConversationContext } from "../providers/CaseConversationProvider";
-
-const BANNER_COLLAPSE_TRANSITION = {
-  duration: 0.22,
-  ease: [0.32, 0.72, 0, 1] as const,
-};
 
 function formatCreatedAt(value: string): string {
   const createdAt = new Date(value);
@@ -28,6 +23,7 @@ function formatCreatedAt(value: string): string {
 
 export function CaseConversationContextBanner(): React.JSX.Element | null {
   const controller = useCaseConversationContext();
+  const { isHidden } = useScrollVisibilityContext();
   const caseDetail = controller.caseDetail?.case;
   const caseTypeImageUrl = getCaseTypeImageUrl(caseDetail?.case_type);
   const caseTypeName = caseDetail
@@ -39,13 +35,18 @@ export function CaseConversationContextBanner(): React.JSX.Element | null {
   }
 
   return (
-    <m.div
-      animate={controller.isContextBannerCollapsed ? { y: -64 } : { y: 0 }}
-      className="fixed inset-x-0 top-[calc(var(--safe-top)+5rem)] z-20 h-16 overflow-hidden border-b border-primary/20 bg-primary text-card shadow-sm will-change-transform"
-      data-collapsed={controller.isContextBannerCollapsed ? "true" : "false"}
+    <div
+      className={cn(
+        "fixed inset-x-0 top-[calc(var(--safe-top)+5rem)] z-20 h-16 overflow-hidden",
+        "border-b border-primary/20 bg-primary text-card shadow-sm will-change-transform",
+        // CSS transition keeps the animation on the compositor even under heavy scroll load.
+        // duration and ease match the previous Framer Motion transition exactly.
+        "transition-transform duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        // -translate-y-16 = -4rem = -64px, matches h-16 on this element
+        isHidden ? "-translate-y-16" : "translate-y-0",
+      )}
+      data-collapsed={isHidden ? "true" : "false"}
       data-testid="case-conversation-context-banner"
-      initial={false}
-      transition={BANNER_COLLAPSE_TRANSITION}
     >
       <div className="flex h-16 flex-col justify-center px-4">
         <div className="flex w-full items-center justify-between gap-3">
@@ -75,6 +76,6 @@ export function CaseConversationContextBanner(): React.JSX.Element | null {
           </p>
         </div>
       </div>
-    </m.div>
+    </div>
   );
 }

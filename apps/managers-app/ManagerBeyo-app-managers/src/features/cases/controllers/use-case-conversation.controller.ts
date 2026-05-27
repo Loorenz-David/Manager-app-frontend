@@ -62,16 +62,6 @@ type StateTransition = {
   nextState: CaseState;
 };
 
-const CONTEXT_BANNER_COLLAPSE_THRESHOLD = 56;
-const CONTEXT_BANNER_EXPAND_THRESHOLD = 8;
-const SCROLL_DIRECTION_THRESHOLD = 6;
-
-type ConversationScrollMetrics = {
-  distanceFromBottom: number;
-  scrollTop: number;
-  isLayoutCompensation?: boolean;
-};
-
 type CaseComposerDraft = {
   content: CaseMessageContent;
   plainText: string;
@@ -107,7 +97,6 @@ export type CaseConversationController = {
   canOpenInfo: boolean;
   stateActionLabel: string | null;
   nextState: CaseState | null;
-  isContextBannerCollapsed: boolean;
   typingIndicatorText: string | null;
   draftText: string;
   draftMessageClientId: string;
@@ -126,7 +115,6 @@ export type CaseConversationController = {
   isError: boolean;
   sendError: ApiRequestError | Error | null;
   editError: ApiRequestError | Error | null;
-  setBodyScrollTop: (metrics: ConversationScrollMetrics) => void;
   setComposerContent: (content: CaseMessageContent, plainText: string) => void;
   setDraftText: (value: string) => void;
   setDraftAttachmentsState: (state: DraftAttachmentsState) => void;
@@ -135,7 +123,6 @@ export type CaseConversationController = {
     plainText: string,
   ) => void;
   setEditingDraftText: (value: string) => void;
-  resetScrollChrome: () => void;
   closeConversation: () => void;
   openInfo: () => void;
   openMessageActions: (message: CaseConversationMessageRaw) => void;
@@ -273,8 +260,6 @@ export function useCaseConversationController(
   const location = useLocation();
   const composerMode = resolveCaseComposerMode();
   const currentUserId = useAuthStore(selectUser)?.id ?? null;
-  const [isContextBannerCollapsed, setIsContextBannerCollapsed] =
-    useState(false);
   const [composerDraft, setComposerDraftState] = useState<CaseComposerDraft>(
     () => createComposerDraftFromPlainText(""),
   );
@@ -295,9 +280,6 @@ export function useCaseConversationController(
   );
   const [localSendError, setLocalSendError] = useState<Error | null>(null);
   const [localEditError, setLocalEditError] = useState<Error | null>(null);
-  const hasObservedInitialScrollRef = useRef(false);
-  const lastListScrollTopRef = useRef(0);
-  const accumulatedScrollIntentRef = useRef(0);
   const lastRequestedReadSeqRef = useRef(0);
   const lastAcknowledgedReadSeqRef = useRef(0);
   const draftText = composerDraft.plainText;
@@ -425,79 +407,6 @@ export function useCaseConversationController(
     !taskQuery.data &&
     (linksQuery.isPending || taskQuery.isPending);
   const isHardConversationError = caseQuery.isError;
-
-  const setBodyScrollTop = ({
-    distanceFromBottom,
-    scrollTop,
-    isLayoutCompensation,
-  }: ConversationScrollMetrics) => {
-    const nextDistanceFromBottom = Math.max(0, distanceFromBottom);
-    const nextScrollTop = Math.max(0, scrollTop);
-
-    if (!hasObservedInitialScrollRef.current) {
-      hasObservedInitialScrollRef.current = true;
-      lastListScrollTopRef.current = nextScrollTop;
-      accumulatedScrollIntentRef.current = 0;
-      setIsContextBannerCollapsed(false);
-      return;
-    }
-
-    const delta = nextScrollTop - lastListScrollTopRef.current;
-    lastListScrollTopRef.current = nextScrollTop;
-
-    if (isLayoutCompensation) {
-      return;
-    }
-
-    if (delta === 0) {
-      return;
-    }
-
-    if (
-      accumulatedScrollIntentRef.current !== 0 &&
-      Math.sign(delta) !== Math.sign(accumulatedScrollIntentRef.current)
-    ) {
-      accumulatedScrollIntentRef.current = 0;
-    }
-
-    accumulatedScrollIntentRef.current += delta;
-
-    if (
-      Math.abs(accumulatedScrollIntentRef.current) < SCROLL_DIRECTION_THRESHOLD
-    ) {
-      return;
-    }
-
-    const directionalDelta = accumulatedScrollIntentRef.current;
-    accumulatedScrollIntentRef.current = 0;
-
-    setIsContextBannerCollapsed((previous) => {
-      if (
-        !previous &&
-        directionalDelta < 0 &&
-        nextDistanceFromBottom >= CONTEXT_BANNER_COLLAPSE_THRESHOLD
-      ) {
-        return true;
-      }
-
-      if (
-        previous &&
-        directionalDelta > 0 &&
-        nextDistanceFromBottom <= CONTEXT_BANNER_EXPAND_THRESHOLD
-      ) {
-        return false;
-      }
-
-      return previous;
-    });
-  };
-
-  const resetScrollChrome = () => {
-    hasObservedInitialScrollRef.current = false;
-    lastListScrollTopRef.current = 0;
-    accumulatedScrollIntentRef.current = 0;
-    setIsContextBannerCollapsed(false);
-  };
 
   const requestMarkRead = async (upToMessageSeq: number) => {
     if (!currentParticipant || upToMessageSeq <= 0) {
@@ -828,7 +737,6 @@ export function useCaseConversationController(
     canOpenInfo: isTaskContextAvailable,
     stateActionLabel: transition?.label ?? null,
     nextState: transition?.nextState ?? null,
-    isContextBannerCollapsed,
     typingIndicatorText,
     draftText,
     draftMessageClientId,
@@ -847,13 +755,11 @@ export function useCaseConversationController(
     isError: isHardConversationError,
     sendError,
     editError,
-    setBodyScrollTop,
     setComposerContent,
     setDraftText,
     setDraftAttachmentsState,
     setEditingComposerContent,
     setEditingDraftText,
-    resetScrollChrome,
     closeConversation,
     openMessageActions,
     startEditing,

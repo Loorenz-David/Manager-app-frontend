@@ -1,27 +1,41 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useEntityImagesQuery } from '../api/use-entity-images';
-import { imageKeys } from '../api/image-keys';
-import { runImageUploadPipeline } from '../lib/image-upload-pipeline';
-import { buildEntityKey, EMPTY_OPTIMISTIC_IMAGES, useImagesStore } from '../store/images.store';
-import { useDeleteImage } from '../actions/use-delete-image';
-import { useReorderImages } from '../actions/use-reorder-images';
-import { useUnlinkImage } from '../actions/use-unlink-image';
-import type { Image, ImageLinkEntityType, ImageUploadState, ImageViewModel } from '../types';
+import { useEntityImagesQuery } from "../api/use-entity-images";
+import { imageKeys } from "../api/image-keys";
+import { runImageUploadPipeline } from "../lib/image-upload-pipeline";
+import {
+  buildEntityKey,
+  EMPTY_OPTIMISTIC_IMAGES,
+  useImagesStore,
+} from "../store/images.store";
+import { useDeleteImage } from "../actions/use-delete-image";
+import { useReorderImages } from "../actions/use-reorder-images";
+import { useUnlinkImage } from "../actions/use-unlink-image";
+import type {
+  Image,
+  ImageLinkEntityType,
+  ImageUploadState,
+  ImageViewModel,
+} from "../types";
 import {
   toImageAnnotationViewModel,
   toImageAnnotationViewModels,
   toImageViewModel,
-} from '../types';
-import { useSurface } from '@/hooks/use-surface';
-import { generateClientId } from '@/lib/client-id';
+} from "../types";
+import { useSurface } from "@/hooks/use-surface";
+import { generateClientId } from "@/lib/client-id";
 import {
   IMAGE_CAMERA_SURFACE_ID,
   IMAGE_EDITOR_SURFACE_ID,
   IMAGE_METADATA_SURFACE_ID,
   IMAGE_VIEWER_SURFACE_ID,
-} from '../surfaces';
+} from "../surfaces";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
+
+type DeleteImageOptions = {
+  hardDelete?: boolean;
+};
 
 export {
   IMAGE_CAMERA_SURFACE_ID,
@@ -30,20 +44,24 @@ export {
   IMAGE_VIEWER_SURFACE_ID,
 };
 
-export type ImageViewerMode = 'preview-only' | 'preview-edit';
+export type ImageViewerMode = "preview-only" | "preview-edit";
+export type ImageCaptureFlow = "camera-to-viewer" | "camera-to-editor";
 
 export type UseEntityImagesControllerInput = {
   entityType: ImageLinkEntityType;
   entityClientId: string;
   viewerMode?: ImageViewerMode;
+  captureFlow?: ImageCaptureFlow;
   onImagesChanged?: () => void;
 };
 
 export type ImageCameraSurfaceProps = {
   entityType: ImageLinkEntityType;
   entityClientId: string;
+  captureFlow: ImageCaptureFlow;
   latestImageUrl?: string;
-  onCapture: (rawBlob: Blob) => void;
+  onCapture: (rawBlob: Blob) => ImageViewModel;
+  onEditCapturedImage?: (capturedImage: ImageViewModel) => void;
   onViewLatest?: () => void;
 };
 
@@ -71,6 +89,9 @@ export type ImageEditorSurfaceProps = {
   image: ImageViewModel;
   entityType: ImageLinkEntityType;
   entityClientId: string;
+  isDirectCaptureSession?: boolean;
+  onSaveComplete?: () => void;
+  onCancelCapture?: (imageClientId: string) => Promise<void> | void;
 };
 
 function toConfirmedOptimisticViewModel(
@@ -95,7 +116,7 @@ function toConfirmedOptimisticViewModel(
     heightPx: image.height_px ?? null,
     fileSizeBytes: image.file_size_bytes ?? null,
     createdAt: image.created_at,
-    uploadState: 'completed',
+    uploadState: "completed",
     isOptimistic: true,
     isDeleted: false,
     pendingUploadClientId: null,
@@ -110,11 +131,11 @@ function toConfirmedOptimisticViewModel(
 
 function isUploadingState(state: ImageUploadState): boolean {
   return (
-    state === 'captured' ||
-    state === 'compressing' ||
-    state === 'requesting_upload_url' ||
-    state === 'uploading' ||
-    state === 'confirming'
+    state === "captured" ||
+    state === "compressing" ||
+    state === "requesting_upload_url" ||
+    state === "uploading" ||
+    state === "confirming"
   );
 }
 
@@ -127,13 +148,24 @@ function revokeLocalObjectUrl(image: ImageViewModel | undefined): void {
 export function useEntityImagesController(
   input: UseEntityImagesControllerInput,
 ) {
-  const { entityType, entityClientId, viewerMode = 'preview-edit', onImagesChanged } = input;
+  const {
+    entityType,
+    entityClientId,
+    viewerMode = "preview-edit",
+    captureFlow = "camera-to-viewer",
+    onImagesChanged,
+  } = input;
   const entityKey = buildEntityKey(entityType, entityClientId);
   const queryClient = useQueryClient();
   const surface = useSurface();
   const uploadRetrySourcesRef = useRef(new Map<string, Blob>());
+  const pendingDeleteModesRef = useRef(new Map<string, DeleteImageOptions>());
 
-  const { data: serverImages = [], isPending, isError } = useEntityImagesQuery({
+  const {
+    data: serverImages = [],
+    isPending,
+    isError,
+  } = useEntityImagesQuery({
     entity_type: entityType,
     entity_client_id: entityClientId,
   });
@@ -141,10 +173,18 @@ export function useEntityImagesController(
   const optimisticImages = useImagesStore(
     (state) => state.optimisticImages[entityKey] ?? EMPTY_OPTIMISTIC_IMAGES,
   );
-  const insertOptimisticImage = useImagesStore((state) => state.insertOptimisticImage);
-  const patchOptimisticImage = useImagesStore((state) => state.patchOptimisticImage);
-  const removeOptimisticImage = useImagesStore((state) => state.removeOptimisticImage);
-  const clearOptimisticImages = useImagesStore((state) => state.clearOptimisticImages);
+  const insertOptimisticImage = useImagesStore(
+    (state) => state.insertOptimisticImage,
+  );
+  const patchOptimisticImage = useImagesStore(
+    (state) => state.patchOptimisticImage,
+  );
+  const removeOptimisticImage = useImagesStore(
+    (state) => state.removeOptimisticImage,
+  );
+  const clearOptimisticImages = useImagesStore(
+    (state) => state.clearOptimisticImages,
+  );
 
   const unlinkAction = useUnlinkImage();
   const deleteAction = useDeleteImage();
@@ -152,10 +192,14 @@ export function useEntityImagesController(
 
   const clearRetrySource = useCallback((imageClientId: string) => {
     uploadRetrySourcesRef.current.delete(imageClientId);
+    pendingDeleteModesRef.current.delete(imageClientId);
   }, []);
 
   const confirmedImages = useMemo(
-    () => [...serverImages].sort((left, right) => left.display_order - right.display_order),
+    () =>
+      [...serverImages].sort(
+        (left, right) => left.display_order - right.display_order,
+      ),
     [serverImages],
   );
 
@@ -171,7 +215,8 @@ export function useEntityImagesController(
 
   useEffect(() => {
     return () => {
-      const currentImages = useImagesStore.getState().optimisticImages[entityKey] ?? [];
+      const currentImages =
+        useImagesStore.getState().optimisticImages[entityKey] ?? [];
       currentImages.forEach((image) => {
         revokeLocalObjectUrl(image);
         clearRetrySource(image.clientId);
@@ -181,7 +226,9 @@ export function useEntityImagesController(
   }, [clearOptimisticImages, clearRetrySource, entityKey]);
 
   useEffect(() => {
-    const confirmedIds = new Set(serverImages.map((image) => image.image.client_id));
+    const confirmedIds = new Set(
+      serverImages.map((image) => image.image.client_id),
+    );
 
     optimisticImages.forEach((image) => {
       if (confirmedIds.has(image.clientId) && image.localObjectUrl === null) {
@@ -189,7 +236,13 @@ export function useEntityImagesController(
         removeOptimisticImage(entityKey, image.clientId);
       }
     });
-  }, [clearRetrySource, entityKey, optimisticImages, removeOptimisticImage, serverImages]);
+  }, [
+    clearRetrySource,
+    entityKey,
+    optimisticImages,
+    removeOptimisticImage,
+    serverImages,
+  ]);
 
   const invalidateEntityImages = useCallback(async () => {
     await queryClient.invalidateQueries({
@@ -224,17 +277,35 @@ export function useEntityImagesController(
         .then(async (confirmedImage) => {
           const currentImage = useImagesStore
             .getState()
-            .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+            .optimisticImages[
+              entityKey
+            ]?.find((image) => image.clientId === imageClientId);
 
-          if (currentImage?.uploadState === 'delete_requested') {
+          if (currentImage?.uploadState === "delete_requested") {
+            const deleteOptions =
+              pendingDeleteModesRef.current.get(imageClientId);
+            const shouldHardDelete = deleteOptions?.hardDelete === true;
             revokeLocalObjectUrl(currentImage);
             clearRetrySource(imageClientId);
             removeOptimisticImage(entityKey, imageClientId);
-            void unlinkAction.unlinkImageAsync({
-              image_client_id: confirmedImage.client_id,
-              entity_type: entityType,
-              entity_client_id: entityClientId,
-            });
+
+            if (shouldHardDelete) {
+              void deleteAction
+                .deleteImageWithOptionsAsync({
+                  imageClientId: confirmedImage.client_id,
+                  hardDelete: true,
+                })
+                .then(() => onImagesChanged?.());
+              return;
+            }
+
+            void unlinkAction
+              .unlinkImageAsync({
+                image_client_id: confirmedImage.client_id,
+                entity_type: entityType,
+                entity_client_id: entityClientId,
+              })
+              .then(() => onImagesChanged?.());
             return;
           }
 
@@ -256,9 +327,11 @@ export function useEntityImagesController(
         .catch((error: unknown) => {
           const currentImage = useImagesStore
             .getState()
-            .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+            .optimisticImages[
+              entityKey
+            ]?.find((image) => image.clientId === imageClientId);
 
-          if (currentImage?.uploadState === 'delete_requested') {
+          if (currentImage?.uploadState === "delete_requested") {
             revokeLocalObjectUrl(currentImage);
             clearRetrySource(imageClientId);
             removeOptimisticImage(entityKey, imageClientId);
@@ -266,8 +339,9 @@ export function useEntityImagesController(
           }
 
           patchOptimisticImage(entityKey, imageClientId, {
-            uploadState: 'failed',
-            uploadError: error instanceof Error ? error.message : 'Upload failed.',
+            uploadState: "failed",
+            uploadError:
+              error instanceof Error ? error.message : "Upload failed.",
           });
         });
     },
@@ -276,7 +350,9 @@ export function useEntityImagesController(
       entityClientId,
       entityKey,
       entityType,
+      deleteAction,
       invalidateEntityImages,
+      onImagesChanged,
       patchOptimisticImage,
       removeOptimisticImage,
       unlinkAction,
@@ -285,14 +361,13 @@ export function useEntityImagesController(
 
   const uploadImage = useCallback(
     (rawBlob: Blob) => {
-      const optimisticClientId = generateClientId('Image');
+      const optimisticClientId = generateClientId("Image");
       const localObjectUrl = URL.createObjectURL(rawBlob);
       const maxDisplayOrder = images.reduce(
         (maxValue, image) => Math.max(maxValue, image.displayOrder),
         -1,
       );
-
-      insertOptimisticImage(entityKey, {
+      const optimisticImage: ImageViewModel = {
         clientId: optimisticClientId,
         linkClientId: null,
         entityType,
@@ -304,20 +379,24 @@ export function useEntityImagesController(
         heightPx: null,
         fileSizeBytes: rawBlob.size,
         createdAt: new Date().toISOString(),
-        uploadState: 'captured',
+        uploadState: "captured",
         isOptimistic: true,
         isDeleted: false,
         pendingUploadClientId: null,
         uploadError: null,
         annotation: null,
         annotations: [],
-      });
+      };
+
+      insertOptimisticImage(entityKey, optimisticImage);
       uploadRetrySourcesRef.current.set(optimisticClientId, rawBlob);
       startUpload({
         imageClientId: optimisticClientId,
         rawBlob,
         fallbackDisplayOrder: maxDisplayOrder + 1,
       });
+
+      return optimisticImage;
     },
     [
       images,
@@ -334,9 +413,15 @@ export function useEntityImagesController(
       const rawBlob = uploadRetrySourcesRef.current.get(imageClientId);
       const currentImage = useImagesStore
         .getState()
-        .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+        .optimisticImages[
+          entityKey
+        ]?.find((image) => image.clientId === imageClientId);
 
-      if (!rawBlob || !currentImage || isUploadingState(currentImage.uploadState)) {
+      if (
+        !rawBlob ||
+        !currentImage ||
+        isUploadingState(currentImage.uploadState)
+      ) {
         return;
       }
 
@@ -351,7 +436,7 @@ export function useEntityImagesController(
       patchOptimisticImage(entityKey, imageClientId, {
         isDeleted: false,
         uploadError: null,
-        uploadState: 'captured',
+        uploadState: "captured",
       });
       startUpload({
         imageClientId,
@@ -363,16 +448,19 @@ export function useEntityImagesController(
   );
 
   const deleteImage = useCallback(
-    (imageClientId: string) => {
+    (imageClientId: string, options?: DeleteImageOptions) => {
       const optimisticImage = useImagesStore
         .getState()
-        .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+        .optimisticImages[
+          entityKey
+        ]?.find((image) => image.clientId === imageClientId);
 
       if (optimisticImage) {
         if (isUploadingState(optimisticImage.uploadState)) {
+          pendingDeleteModesRef.current.set(imageClientId, options ?? {});
           patchOptimisticImage(entityKey, imageClientId, {
             isDeleted: true,
-            uploadState: 'delete_requested',
+            uploadState: "delete_requested",
           });
           return;
         }
@@ -382,20 +470,33 @@ export function useEntityImagesController(
 
         removeOptimisticImage(entityKey, imageClientId);
 
-        if (optimisticImage.uploadState !== 'completed') {
+        if (optimisticImage.uploadState !== "completed") {
           return;
         }
       }
 
-      void unlinkAction.unlinkImageAsync({
-        image_client_id: imageClientId,
-        entity_type: entityType,
-        entity_client_id: entityClientId,
-      }).then(() => onImagesChanged?.());
+      if (options?.hardDelete) {
+        void deleteAction
+          .deleteImageWithOptionsAsync({
+            imageClientId,
+            hardDelete: true,
+          })
+          .then(() => onImagesChanged?.());
+        return;
+      }
+
+      void unlinkAction
+        .unlinkImageAsync({
+          image_client_id: imageClientId,
+          entity_type: entityType,
+          entity_client_id: entityClientId,
+        })
+        .then(() => onImagesChanged?.());
     },
     [
       clearRetrySource,
       entityClientId,
+      deleteAction,
       entityKey,
       entityType,
       onImagesChanged,
@@ -424,7 +525,7 @@ export function useEntityImagesController(
         entityType,
         entityClientId,
         mode: viewerMode,
-        onDelete: viewerMode === 'preview-edit' ? deleteImage : undefined,
+        onDelete: viewerMode === "preview-edit" ? deleteImage : undefined,
       } satisfies ImageViewerSurfaceProps);
     },
     [deleteImage, entityClientId, entityType, images, surface, viewerMode],
@@ -436,19 +537,51 @@ export function useEntityImagesController(
   const openViewerRef = useRef(openViewer);
   openViewerRef.current = openViewer;
 
+  const openEditorForCapturedImage = useCallback(
+    (capturedImage: ImageViewModel) => {
+      surface.open(IMAGE_EDITOR_SURFACE_ID, {
+        image: capturedImage,
+        entityType,
+        entityClientId,
+        isDirectCaptureSession: true,
+        onSaveComplete: () => {
+          useSurfaceStore
+            .getState()
+            .closeMany([IMAGE_EDITOR_SURFACE_ID, IMAGE_CAMERA_SURFACE_ID]);
+        },
+        onCancelCapture: (imageClientId: string) => {
+          deleteImage(imageClientId, { hardDelete: true });
+        },
+      } satisfies ImageEditorSurfaceProps);
+    },
+    [deleteImage, entityClientId, entityType, surface],
+  );
+
   const openCamera = useCallback(() => {
     surface.open(IMAGE_CAMERA_SURFACE_ID, {
       entityType,
       entityClientId,
+      captureFlow,
       latestImageUrl: imagesRef.current.at(-1)?.imageUrl,
       onCapture: uploadImage,
+      onEditCapturedImage:
+        captureFlow === "camera-to-editor"
+          ? openEditorForCapturedImage
+          : undefined,
       onViewLatest: () => {
         const latest = imagesRef.current.at(-1);
         if (!latest) return;
         openViewerRef.current(latest.clientId);
       },
     } satisfies ImageCameraSurfaceProps);
-  }, [entityClientId, entityType, surface, uploadImage]);
+  }, [
+    captureFlow,
+    entityClientId,
+    entityType,
+    openEditorForCapturedImage,
+    surface,
+    uploadImage,
+  ]);
 
   const openMetadataSheet = useCallback(
     (imageClientId: string) => {
@@ -462,7 +595,7 @@ export function useEntityImagesController(
         entityType,
         entityClientId,
         mode: viewerMode,
-        onDelete: viewerMode === 'preview-edit' ? deleteImage : undefined,
+        onDelete: viewerMode === "preview-edit" ? deleteImage : undefined,
       } satisfies ImageMetadataSurfaceProps);
     },
     [deleteImage, entityClientId, entityType, images, surface, viewerMode],
@@ -479,12 +612,18 @@ export function useEntityImagesController(
     openCamera,
     openViewer,
     openMetadataSheet,
-    isUploading: optimisticImages.some((image) => isUploadingState(image.uploadState)),
-    hasFailedUploads: optimisticImages.some((image) => image.uploadState === 'failed'),
+    isUploading: optimisticImages.some((image) =>
+      isUploadingState(image.uploadState),
+    ),
+    hasFailedUploads: optimisticImages.some(
+      (image) => image.uploadState === "failed",
+    ),
     isDeleting: unlinkAction.isPending || deleteAction.isPending,
     isReordering: reorderAction.isPending,
   };
 }
 
-export type ImageEntityController = ReturnType<typeof useEntityImagesController>;
+export type ImageEntityController = ReturnType<
+  typeof useEntityImagesController
+>;
 export type EntityImagesController = ImageEntityController;

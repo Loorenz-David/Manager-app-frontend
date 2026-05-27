@@ -26,6 +26,7 @@ export function TaskImagesSection(): React.JSX.Element {
       {itemId ? (
         <EntityImagesProvider
           entityClientId={itemId}
+          captureFlow="camera-to-editor"
           entityType="item"
           onImagesChanged={handleImagesChanged}
         >

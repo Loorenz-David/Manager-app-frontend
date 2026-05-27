@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
+import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
 import { cn } from "@/lib/utils";
 
 import { useCaseConversationMessagesContext } from "../providers/CaseConversationProvider";
@@ -12,44 +13,118 @@ const FOOTER_BOTTOM_OFFSET_STYLE = {
     "var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))",
 } as CSSProperties;
 
+// Defined outside the component so the function reference is stable across renders.
+// Virtuoso treats a new component function reference as a different component type
+// and will unmount/remount it, causing a brief height-0 flash that shifts scroll.
+function VirtuosoFooter() {
+  return <div style={FOOTER_BOTTOM_OFFSET_STYLE} />;
+}
+
+function VirtuosoEmptyPlaceholder() {
+  return (
+    <div className="flex min-h-full items-end px-4 pb-(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem)) pt-8">
+      <div className="w-full rounded-4xl border border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-sm">
+        <p className="text-sm font-semibold text-foreground">
+          No messages yet
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          The conversation thread is ready for the upcoming composer flow.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 type CaseMessageListProps = {
-  isContextBannerCollapsed: boolean;
+  onScrollerRef: (element: HTMLElement | null) => void;
 };
 
 export function CaseMessageList({
-  isContextBannerCollapsed,
+  onScrollerRef,
 }: CaseMessageListProps): React.JSX.Element {
   const controller = useCaseConversationMessagesContext();
+  const { isHidden: isContextBannerCollapsed, suspend } =
+    useScrollVisibilityContext();
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
   const topInsetRef = useRef<HTMLDivElement | null>(null);
-  const layoutCompensationUntilRef = useRef(0);
-  const [firstItemIndex, setFirstItemIndex] = useState(
-    PREPEND_STABLE_BASE_INDEX,
-  );
   const [scrollerElement, setScrollerElement] = useState<HTMLElement | null>(
     null,
   );
-  const previousItemCountRef = useRef(controller.items.length);
-  const previousPageCountRef = useRef(controller.pageCount);
+  const [isScrollVisibilityReady, setIsScrollVisibilityReady] = useState(false);
   const hasPerformedInitialBottomScrollRef = useRef(false);
 
-  useEffect(() => {
-    const previousPageCount = previousPageCountRef.current;
-    const previousItemCount = previousItemCountRef.current;
+  // Captured once when items first arrive — stable initial scroll target.
+  const initialTopMostItemIndexRef = useRef<
+    { index: number; align: "end" } | 0
+  >(0);
+  if (
+    controller.items.length > 0 &&
+    initialTopMostItemIndexRef.current === 0
+  ) {
+    initialTopMostItemIndexRef.current = {
+      index: controller.items.length - 1,
+      align: "end",
+    };
+  }
 
-    if (controller.pageCount > previousPageCount && previousPageCount > 0) {
-      const prependedItemCount = controller.items.length - previousItemCount;
-
-      if (prependedItemCount > 0) {
-        // Virtuoso preserves the viewport anchor for prepended data by shifting
-        // firstItemIndex down by exactly the number of newly inserted render items.
-        setFirstItemIndex((value) => value - prependedItemCount);
-      }
+  // Tracks prepended item count synchronously during render so firstItemIndex
+  // and data are always in sync in the same commit.
+  const prependTrackerRef = useRef({
+    prevPageCount: 0,
+    prevItemCount: 0,
+    prependedCount: 0,
+  });
+  const tracker = prependTrackerRef.current;
+  if (controller.pageCount !== tracker.prevPageCount) {
+    if (
+      controller.pageCount > tracker.prevPageCount &&
+      tracker.prevPageCount > 0
+    ) {
+      const delta = controller.items.length - tracker.prevItemCount;
+      if (delta > 0) tracker.prependedCount += delta;
     }
+    tracker.prevPageCount = controller.pageCount;
+    tracker.prevItemCount = controller.items.length;
+  }
+  const firstItemIndex = PREPEND_STABLE_BASE_INDEX - tracker.prependedCount;
 
-    previousItemCountRef.current = controller.items.length;
-    previousPageCountRef.current = controller.pageCount;
-  }, [controller.items.length, controller.pageCount]);
+  // Ref lets the Header read the current loading state without being recreated.
+  const isLoadingOlderRef = useRef(controller.isLoadingOlder);
+  isLoadingOlderRef.current = controller.isLoadingOlder;
+
+  // Header only recreates when the banner state changes (infrequent; handled by the
+  // existing ResizeObserver below). It must NOT recreate on data arrival — a new
+  // function reference causes Virtuoso to unmount/remount the Header, creating a
+  // brief height-0 flash that triggers scroll compensation and produces the flicker.
+  const components = useMemo(
+    () => ({
+      Footer: VirtuosoFooter,
+      EmptyPlaceholder: VirtuosoEmptyPlaceholder,
+      Header: () => (
+        <>
+          <div
+            ref={topInsetRef}
+            className={cn(
+              "transition-[height] duration-200 ease-out",
+              isContextBannerCollapsed ? "h-20" : "h-36",
+            )}
+          />
+          <div className="flex justify-center px-4 py-3">
+            <span
+              className={cn(
+                "rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm",
+                !isLoadingOlderRef.current && "invisible",
+              )}
+            >
+              Loading older messages...
+            </span>
+          </div>
+        </>
+      ),
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isContextBannerCollapsed],
+  );
 
   useEffect(() => {
     if (!scrollerElement) {
@@ -63,9 +138,6 @@ export function CaseMessageList({
       );
       controller.handleListScroll({
         distanceFromBottom: maxScrollTop - scrollerElement.scrollTop,
-        scrollTop: scrollerElement.scrollTop,
-        isLayoutCompensation:
-          performance.now() < layoutCompensationUntilRef.current,
       });
     };
 
@@ -102,13 +174,19 @@ export function CaseMessageList({
         return;
       }
 
-      layoutCompensationUntilRef.current = performance.now() + 120;
+      suspend();
       scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop - delta);
     });
 
     observer.observe(topInsetElement);
     return () => observer.disconnect();
-  }, [scrollerElement, isContextBannerCollapsed]);
+  }, [isContextBannerCollapsed, scrollerElement, suspend]);
+
+  useEffect(() => {
+    if (controller.pageCount > 0 && controller.items.length === 0) {
+      setIsScrollVisibilityReady(true);
+    }
+  }, [controller.items.length, controller.pageCount]);
 
   useEffect(() => {
     if (
@@ -124,6 +202,7 @@ export function CaseMessageList({
       behavior: "auto",
     });
     hasPerformedInitialBottomScrollRef.current = true;
+    setIsScrollVisibilityReady(true);
   }, [controller.items.length]);
 
   useEffect(() => {
@@ -141,13 +220,26 @@ export function CaseMessageList({
     });
   }, [controller.items.length, controller.scrollToBottomRequestVersion]);
 
+  useEffect(() => {
+    if (!isScrollVisibilityReady) {
+      onScrollerRef(null);
+      return;
+    }
+
+    onScrollerRef(scrollerElement);
+
+    return () => {
+      onScrollerRef(null);
+    };
+  }, [isScrollVisibilityReady, onScrollerRef, scrollerElement]);
+
   if (controller.isError && controller.items.length === 0) {
     return (
       <div
         className={cn("flex min-h-0 flex-1 flex-col bg-background")}
         data-testid="case-message-list"
       >
-        <div className="flex flex-1 items-center justify-center px-6 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))]">
+        <div className="flex flex-1 items-center justify-center px-6 pb-(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))">
           <div className="flex max-w-sm flex-col items-center gap-3 text-center">
             <p className="text-sm text-muted-foreground">
               Messages could not be loaded.
@@ -176,6 +268,7 @@ export function CaseMessageList({
         ref={virtuosoRef}
         alignToBottom
         className="h-full"
+        components={components}
         computeItemKey={(_index, item) => item.key}
         data={controller.items}
         data-testid="case-conversation-scroll-container"
@@ -183,57 +276,14 @@ export function CaseMessageList({
         firstItemIndex={firstItemIndex}
         followOutput={(isAtBottom) => (isAtBottom ? "auto" : false)}
         increaseViewportBy={{ top: 240, bottom: 320 }}
-        initialTopMostItemIndex={
-          controller.items.length > 0
-            ? {
-                index: controller.items.length - 1,
-                align: "end",
-              }
-            : 0
-        }
+        initialTopMostItemIndex={initialTopMostItemIndexRef.current}
         itemContent={(_index, item) => <CaseMessageRow item={item} />}
         scrollerRef={(element) => {
-          setScrollerElement(element instanceof HTMLElement ? element : null);
+          const nextElement = element instanceof HTMLElement ? element : null;
+          setScrollerElement(nextElement);
         }}
         startReached={() => {
           controller.loadOlder();
-        }}
-        totalCount={controller.items.length}
-        components={{
-          EmptyPlaceholder: () => (
-            <div className="flex min-h-full items-end px-4 pb-[var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))] pt-8">
-              <div className="w-full rounded-[2rem] border border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-sm">
-                <p className="text-sm font-semibold text-foreground">
-                  No messages yet
-                </p>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  The conversation thread is ready for the upcoming composer
-                  flow.
-                </p>
-              </div>
-            </div>
-          ),
-          Footer: () => <div style={FOOTER_BOTTOM_OFFSET_STYLE} />,
-          Header: () => (
-            <>
-              <div
-                ref={topInsetRef}
-                className={cn(
-                  "transition-[height] duration-200 ease-out",
-                  isContextBannerCollapsed ? "h-20" : "h-36",
-                )}
-              />
-              {controller.isLoadingOlder ? (
-                <div className="flex justify-center px-4 py-3">
-                  <span className="rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
-                    Loading older messages...
-                  </span>
-                </div>
-              ) : (
-                <div className="h-3" />
-              )}
-            </>
-          ),
         }}
       />
     </div>

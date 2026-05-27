@@ -1,6 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { Children, isValidElement, useEffect, useRef, useState } from "react";
 
+import { useScrollVisibility } from "@/components/primitives/scroll-visibility";
 import { cn } from "@/lib/utils";
 
 import { StagedFormContext } from "./StagedFormContext";
@@ -39,10 +40,14 @@ export function StagedForm({
   children,
   "data-testid": testId,
 }: StagedFormProps): React.JSX.Element {
-  const scrollRef = useRef<HTMLDivElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
-  const [isCompact, setIsCompact] = useState(false);
+  const { scrollRef, isHidden: isCompact, reset, suspend } =
+    useScrollVisibility({
+      threshold: 56,
+      hysteresis: 8,
+    });
   const [isScrolled, setIsScrolled] = useState(false);
+  const isScrolledRef = useRef(false);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -52,13 +57,14 @@ export function StagedForm({
     }
 
     const onScroll = () => {
-      const scrollTop = element.scrollTop;
-      setIsScrolled(scrollTop > 0);
-      setIsCompact((prev) => {
-        if (!prev && scrollTop > 56) return true;
-        if (prev && scrollTop < 8) return false;
-        return prev;
-      });
+      const nextIsScrolled = element.scrollTop > 0;
+
+      if (isScrolledRef.current === nextIsScrolled) {
+        return;
+      }
+
+      isScrolledRef.current = nextIsScrolled;
+      setIsScrolled(nextIsScrolled);
     };
 
     element.addEventListener("scroll", onScroll, { passive: true });
@@ -71,9 +77,10 @@ export function StagedForm({
       scrollRef.current.scrollTop = 0;
     }
 
-    setIsCompact(false);
+    isScrolledRef.current = false;
     setIsScrolled(false);
-  }, [activeStepId]);
+    reset();
+  }, [activeStepId, reset, scrollRef]);
 
   // Compensate scrollTop frame-by-frame as the timeline animates in/out.
   // Without this, the scroll container's top edge shifts when the timeline height
@@ -96,13 +103,14 @@ export function StagedForm({
       // Only compensate when the user has scrolled; at scrollTop=0 there is
       // nothing to anchor and compensation would fight the navigation reset.
       if (delta !== 0 && scrollEl.scrollTop > 0) {
+        suspend();
         scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - delta);
       }
     });
 
     observer.observe(timelineEl);
     return () => observer.disconnect();
-  }, []);
+  }, [scrollRef, suspend]);
 
   const contextValue = {
     steps,

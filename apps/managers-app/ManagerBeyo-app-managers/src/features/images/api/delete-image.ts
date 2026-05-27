@@ -1,11 +1,21 @@
-import { apiClient } from '@/lib/api-client';
+import { apiClient } from "@/lib/api-client";
 
-import { DeleteImageResponseSchema } from '../types';
+import { DeleteImageResponseSchema } from "../types";
 
-export async function deleteImage(imageClientId: string): Promise<string> {
+export type DeleteImageInput = {
+  imageClientId: string;
+  hardDelete?: boolean;
+};
+
+export async function deleteImage({
+  imageClientId,
+  hardDelete,
+}: DeleteImageInput): Promise<string> {
   const response = await apiClient.delete(
     `/api/v1/images/${imageClientId}`,
     DeleteImageResponseSchema,
+    undefined,
+    { hard_delete: hardDelete ? true : undefined },
   );
   return response.data.client_id;
 }

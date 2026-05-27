@@ -95,22 +95,6 @@ function UpholsteryField({
   );
 }
 
-function ReturnAssignmentStep({
-  majorCategory,
-}: {
-  majorCategory: ReturnFormValues["item"]["major_category"];
-}): React.JSX.Element {
-  return (
-    <StagedFormStep id="assignment" className="px-0">
-      <div className="flex flex-col gap-4">
-        <ContentCard>
-          <WorkingSectionPickerField majorCategory={majorCategory} />
-        </ContentCard>
-      </div>
-    </StagedFormStep>
-  );
-}
-
 export function ReturnFormContent(): React.JSX.Element {
   usePreloadSurface(preloadCalendarRangePickerSurface);
   usePreloadSurface(preloadCalendarSinglePickerSurface);
@@ -306,7 +290,13 @@ export function ReturnFormContent(): React.JSX.Element {
           </StagedFormStep>
 
           {hasAssignmentStep ? (
-            <ReturnAssignmentStep majorCategory={majorCategory} />
+            <StagedFormStep id="assignment" className="px-0">
+              <div className="flex flex-col gap-4">
+                <ContentCard>
+                  <WorkingSectionPickerField majorCategory={majorCategory} />
+                </ContentCard>
+              </div>
+            </StagedFormStep>
           ) : null}
 
           <StagedFormStep id="details" className="px-0">
@@ -314,6 +304,7 @@ export function ReturnFormContent(): React.JSX.Element {
               <ContentCard data-testid="return-form-images-section">
                 <EntityImagesProvider
                   entityClientId={itemClientId}
+                  captureFlow="camera-to-editor"
                   entityType="item"
                 >
                   <ImagePreviewGrid

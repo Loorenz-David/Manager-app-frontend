@@ -71,3 +71,13 @@ export { ImagePlaceholder } from './image-placeholder';
 export type { ImagePlaceholderProps } from './image-placeholder';
 export { ConfirmActionButton } from './confirm-action-button';
 export type { ConfirmActionButtonProps } from './confirm-action-button';
+
+export {
+  ScrollVisibilityProvider,
+  useScrollVisibility,
+  useScrollVisibilityContext,
+} from './scroll-visibility';
+export type {
+  ScrollVisibilityContextValue,
+  ScrollVisibilityOptions,
+} from './scroll-visibility';

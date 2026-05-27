@@ -9,6 +9,8 @@ import {
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 import { usePreloadSurface } from '@/hooks/use-preload-surface';
 
+import { TASK_READY_BY_QUICK_SELECT_OPTIONS } from './task-ready-by-quick-select-options';
+
 /**
  * Binds to the flat `ready_by_at` path from `CreateTaskInputSchema`.
  * If a future compound form namespaces task fields, this path must change.
@@ -27,6 +29,7 @@ export function TaskReadyByDateField() {
     useSurfaceStore.getState().open('calendar-single-picker', {
       currentValue: field.value ?? null,
       onSelect: (iso: string | null) => field.onChange(iso),
+      quickSelectOptions: TASK_READY_BY_QUICK_SELECT_OPTIONS,
       title: 'Select due date',
     });
   }

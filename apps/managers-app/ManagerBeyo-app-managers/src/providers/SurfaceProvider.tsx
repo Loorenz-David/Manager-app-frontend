@@ -45,6 +45,7 @@ type SurfaceState = {
   open: (id: string, props?: Record<string, unknown>) => void;
   hydrate: (id: string, props?: Record<string, unknown>) => void;
   close: (id: string) => void;
+  closeMany: (ids: string[]) => void;
   closeTop: () => void;
   closeAll: () => void;
 };
@@ -139,6 +140,17 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     set((state) => ({
       stack: state.stack.filter((surface) => surface.id !== id),
     })),
+
+  closeMany: (ids) => {
+    if (ids.length === 0) {
+      return;
+    }
+
+    const idsToClose = new Set(ids);
+    set((state) => ({
+      stack: state.stack.filter((surface) => !idsToClose.has(surface.id)),
+    }));
+  },
 
   closeTop: () =>
     set((state) => ({

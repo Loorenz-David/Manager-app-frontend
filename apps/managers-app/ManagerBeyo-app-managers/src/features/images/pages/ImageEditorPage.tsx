@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useSurface } from '@/hooks/use-surface';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
-import { useCreateImageAnnotation } from '../actions/use-create-image-annotation';
-import { useDeleteImageAnnotation } from '../actions/use-delete-image-annotation';
-import { useUpdateImageAnnotation } from '../actions/use-update-image-annotation';
-import { useImageQuery } from '../api/use-image';
+import { useSurface } from "@/hooks/use-surface";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
+import { useCreateImageAnnotation } from "../actions/use-create-image-annotation";
+import { useDeleteImageAnnotation } from "../actions/use-delete-image-annotation";
+import { useUpdateImageAnnotation } from "../actions/use-update-image-annotation";
+import { useImageQuery } from "../api/use-image";
 import {
   ImageAnnotationCanvas,
   type ImageAnnotationCanvasHandle,
-} from '../components/ImageAnnotationCanvas';
-import { ImageEditorBottomControls } from '../components/ImageEditorBottomControls';
-import { ZoomableEditorStage } from '../components/ZoomableEditorStage';
-import type { ImageEditorSurfaceProps } from '../controllers/use-entity-images.controller';
+} from "../components/ImageAnnotationCanvas";
+import { ImageEditorBottomControls } from "../components/ImageEditorBottomControls";
+import { ZoomableEditorStage } from "../components/ZoomableEditorStage";
+import type { ImageEditorSurfaceProps } from "../controllers/use-entity-images.controller";
 import {
   IMAGE_ANNOTATION_ACTIONS_SURFACE_ID,
   IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID,
@@ -23,7 +23,7 @@ import {
   type ImageAnnotationActionsSurfaceProps,
   type ImageAnnotationToolPickerSurfaceProps,
   type ImageEditorDiscardChangesSurfaceProps,
-} from '../surfaces';
+} from "../surfaces";
 import {
   type AnnotatedCanvasItem,
   buildImageAnnotationPayload,
@@ -33,7 +33,7 @@ import {
   type ImageAnnotationItemData,
   type ImageAnnotationTool,
   type TextAnnotationData,
-} from '../types';
+} from "../types";
 
 const DEFAULT_TEXT_SIZE = 0.04;
 
@@ -61,7 +61,10 @@ function buildCanvasBox(
   imageWidth: number,
   imageHeight: number,
 ): CanvasBox {
-  const scale = Math.min(containerWidth / imageWidth, containerHeight / imageHeight);
+  const scale = Math.min(
+    containerWidth / imageWidth,
+    containerHeight / imageHeight,
+  );
   const width = imageWidth * scale;
   const height = imageHeight * scale;
 
@@ -74,7 +77,7 @@ function buildCanvasBox(
 }
 
 function mergeSurfaceImage(
-  baseImage: ImageEditorSurfaceProps['image'] | undefined,
+  baseImage: ImageEditorSurfaceProps["image"] | undefined,
   freshImage: Image | undefined,
 ) {
   if (!baseImage) {
@@ -90,7 +93,9 @@ function mergeSurfaceImage(
     annotation: freshImage.image_annotation
       ? toImageAnnotationViewModel(freshImage.image_annotation)
       : null,
-    annotations: (freshImage.image_annotations ?? []).map(toImageAnnotationViewModel),
+    annotations: (freshImage.image_annotations ?? []).map(
+      toImageAnnotationViewModel,
+    ),
     createdAt: freshImage.created_at,
     fileSizeBytes: freshImage.file_size_bytes ?? null,
     heightPx: freshImage.height_px ?? null,
@@ -99,16 +104,18 @@ function mergeSurfaceImage(
   };
 }
 
-function isTextCanvasItem(item: AnnotatedCanvasItem | null): item is AnnotatedCanvasItem & {
+function isTextCanvasItem(
+  item: AnnotatedCanvasItem | null,
+): item is AnnotatedCanvasItem & {
   data: TextAnnotationData;
 } {
-  return item?.data.tool === 'text';
+  return item?.data.tool === "text";
 }
 
 function buildTextAnnotation(
   anchor: Point,
   value: string,
-  base?: Pick<TextAnnotationData, 'color' | 'fontSize'>,
+  base?: Pick<TextAnnotationData, "color" | "fontSize">,
 ): TextAnnotationData | null {
   const trimmedValue = value.trim();
 
@@ -117,19 +124,20 @@ function buildTextAnnotation(
   }
 
   return {
-    tool: 'text',
+    tool: "text",
     x: anchor.x,
     y: anchor.y,
     text: trimmedValue,
     fontSize: base?.fontSize ?? DEFAULT_TEXT_SIZE,
-    color: base?.color ?? '#ffffff',
+    color: base?.color ?? "#ffffff",
   };
 }
 
 export function ImageEditorPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
-  const { image } = useSurfaceProps<ImageEditorSurfaceProps>();
+  const { image, isDirectCaptureSession, onSaveComplete, onCancelCapture } =
+    useSurfaceProps<ImageEditorSurfaceProps>();
   const { data: freshImage } = useImageQuery(image?.clientId);
   const { createAnnotationAsync, isPending } = useCreateImageAnnotation();
   const { deleteAnnotationAsync } = useDeleteImageAnnotation();
@@ -146,56 +154,85 @@ export function ImageEditorPage(): React.JSX.Element {
     textStartY: number;
   } | null>(null);
   const handleSaveAndCloseRef = useRef<() => Promise<void>>(async () => {});
-  const handleDeleteAnnotationRef = useRef<((item: AnnotatedCanvasItem) => void) | null>(null);
+  const handleDeleteAnnotationRef = useRef<
+    ((item: AnnotatedCanvasItem) => void) | null
+  >(null);
   const previousToolBeforeEditRef = useRef<ImageAnnotationTool | null>(null);
-  const [activeTool, setActiveTool] = useState<ImageAnnotationTool>('draw');
-  const [sessionItems, setSessionItems] = useState<ImageAnnotationItemData[]>([]);
+  const [activeTool, setActiveTool] = useState<ImageAnnotationTool>("draw");
+  const [sessionItems, setSessionItems] = useState<ImageAnnotationItemData[]>(
+    [],
+  );
   const [canvasBox, setCanvasBox] = useState<CanvasBox | null>(null);
-  const [naturalSize, setNaturalSize] = useState<{ height: number; width: number } | null>(
+  const [naturalSize, setNaturalSize] = useState<{
+    height: number;
+    width: number;
+  } | null>(
     image?.widthPx && image.heightPx
       ? { width: image.widthPx, height: image.heightPx }
       : null,
   );
   const [textAnchor, setTextAnchor] = useState<Point | null>(null);
-  const [textValue, setTextValue] = useState('');
-  const [activeTextTarget, setActiveTextTarget] = useState<AnnotatedCanvasItem | null>(null);
-  const [textMoveState, setTextMoveState] = useState<TextMoveState | null>(null);
+  const [textValue, setTextValue] = useState("");
+  const [activeTextTarget, setActiveTextTarget] =
+    useState<AnnotatedCanvasItem | null>(null);
+  const [textMoveState, setTextMoveState] = useState<TextMoveState | null>(
+    null,
+  );
+  const [isCancelingCapture, setIsCancelingCapture] = useState(false);
   const textMoveStateRef = useRef<TextMoveState | null>(null);
   textMoveStateRef.current = textMoveState;
 
   const currentImage = mergeSurfaceImage(image, freshImage);
-  const persistedCanvasItems: AnnotatedCanvasItem[] = (currentImage?.annotations ?? []).flatMap(
-    (annotation) => {
-      const item = readImageAnnotationSingleItem(annotation);
+  const persistedCanvasItems: AnnotatedCanvasItem[] = (
+    currentImage?.annotations ?? []
+  ).flatMap((annotation) => {
+    const item = readImageAnnotationSingleItem(annotation);
 
-      return item
-        ? [{ data: item, annotationClientId: annotation.clientId, source: 'persisted' as const }]
-        : [];
-    },
+    return item
+      ? [
+          {
+            data: item,
+            annotationClientId: annotation.clientId,
+            source: "persisted" as const,
+          },
+        ]
+      : [];
+  });
+  const sessionCanvasItems: AnnotatedCanvasItem[] = sessionItems.map(
+    (item) => ({
+      data: item,
+      annotationClientId: null,
+      source: "session" as const,
+    }),
   );
-  const sessionCanvasItems: AnnotatedCanvasItem[] = sessionItems.map((item) => ({
-    data: item,
-    annotationClientId: null,
-    source: 'session' as const,
-  }));
-  const allCanvasItems: AnnotatedCanvasItem[] = [...persistedCanvasItems, ...sessionCanvasItems];
+  const allCanvasItems: AnnotatedCanvasItem[] = [
+    ...persistedCanvasItems,
+    ...sessionCanvasItems,
+  ];
   const editingOrMovingItem = activeTextTarget ?? textMoveState?.item ?? null;
   const visibleCanvasItems = editingOrMovingItem
     ? allCanvasItems.filter((item) => {
-        if (editingOrMovingItem.source === 'persisted' && editingOrMovingItem.annotationClientId) {
-          return item.annotationClientId !== editingOrMovingItem.annotationClientId;
+        if (
+          editingOrMovingItem.source === "persisted" &&
+          editingOrMovingItem.annotationClientId
+        ) {
+          return (
+            item.annotationClientId !== editingOrMovingItem.annotationClientId
+          );
         }
 
         return item !== editingOrMovingItem;
       })
     : allCanvasItems;
-  const displayUrl = currentImage?.localObjectUrl ?? currentImage?.imageUrl ?? '';
+  const displayUrl =
+    currentImage?.localObjectUrl ?? currentImage?.imageUrl ?? "";
   const hasUnsavedChanges =
-    sessionItems.length > 0 || (textAnchor !== null && textValue.trim() !== '');
-  const isAnnotationUnavailable = !currentImage || currentImage.uploadState !== 'completed';
+    sessionItems.length > 0 || (textAnchor !== null && textValue.trim() !== "");
+  const isAnnotationUnavailable =
+    !currentImage || currentImage.uploadState !== "completed";
 
   useEffect(() => {
-    header?.setTitle('');
+    header?.setTitle("");
     header?.setActions(null);
     header?.setHeaderHidden(true);
   }, [header]);
@@ -254,9 +291,18 @@ export function ImageEditorPage(): React.JSX.Element {
     useSurfaceStore.getState().close(IMAGE_EDITOR_SURFACE_ID);
   }, []);
 
+  const completeSaveFlow = useCallback(() => {
+    if (onSaveComplete) {
+      onSaveComplete();
+      return;
+    }
+
+    closeEditor();
+  }, [closeEditor, onSaveComplete]);
+
   const resetTextDraft = useCallback(() => {
     setTextAnchor(null);
-    setTextValue('');
+    setTextValue("");
     setActiveTextTarget(null);
     if (previousToolBeforeEditRef.current !== null) {
       setActiveTool(previousToolBeforeEditRef.current);
@@ -273,9 +319,11 @@ export function ImageEditorPage(): React.JSX.Element {
 
   const applyTextItemUpdate = useCallback(
     (item: AnnotatedCanvasItem, nextItem: TextAnnotationData) => {
-      if (item.source === 'session') {
+      if (item.source === "session") {
         setSessionItems((current) =>
-          current.map((sessionItem) => (sessionItem === item.data ? nextItem : sessionItem)),
+          current.map((sessionItem) =>
+            sessionItem === item.data ? nextItem : sessionItem,
+          ),
         );
         return;
       }
@@ -371,7 +419,7 @@ export function ImageEditorPage(): React.JSX.Element {
 
     if (!currentImage) {
       useSurfaceStore.getState().close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
-      closeEditor();
+      completeSaveFlow();
       return;
     }
 
@@ -379,7 +427,7 @@ export function ImageEditorPage(): React.JSX.Element {
 
     if (!payload || finalSessionItems.length === 0) {
       useSurfaceStore.getState().close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
-      closeEditor();
+      completeSaveFlow();
       return;
     }
 
@@ -390,11 +438,11 @@ export function ImageEditorPage(): React.JSX.Element {
     });
 
     useSurfaceStore.getState().close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
-    closeEditor();
+    completeSaveFlow();
   }, [
     activeTextTarget,
     applyTextItemUpdate,
-    closeEditor,
+    completeSaveFlow,
     commitMove,
     createAnnotationAsync,
     currentImage,
@@ -408,8 +456,10 @@ export function ImageEditorPage(): React.JSX.Element {
 
   const handleDeleteAnnotation = useCallback(
     (item: AnnotatedCanvasItem) => {
-      if (item.source === 'session') {
-        setSessionItems((current) => current.filter((sessionItem) => sessionItem !== item.data));
+      if (item.source === "session") {
+        setSessionItems((current) =>
+          current.filter((sessionItem) => sessionItem !== item.data),
+        );
         return;
       }
 
@@ -431,6 +481,22 @@ export function ImageEditorPage(): React.JSX.Element {
       return;
     }
 
+    if (isDirectCaptureSession) {
+      if (!currentImage) {
+        closeEditor();
+        return;
+      }
+
+      setIsCancelingCapture(true);
+      void Promise.resolve(onCancelCapture?.(currentImage.clientId)).finally(
+        () => {
+          setIsCancelingCapture(false);
+          closeEditor();
+        },
+      );
+      return;
+    }
+
     if (!hasUnsavedChanges) {
       closeEditor();
       return;
@@ -438,12 +504,22 @@ export function ImageEditorPage(): React.JSX.Element {
 
     surface.open(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID, {
       onDiscardAndClose: () => {
-        useSurfaceStore.getState().close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
+        useSurfaceStore
+          .getState()
+          .close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
         closeEditor();
       },
       onSaveAndClose: () => void handleSaveAndCloseRef.current(),
     } satisfies ImageEditorDiscardChangesSurfaceProps);
-  }, [cancelMove, closeEditor, hasUnsavedChanges, surface]);
+  }, [
+    cancelMove,
+    closeEditor,
+    currentImage,
+    hasUnsavedChanges,
+    isDirectCaptureSession,
+    onCancelCapture,
+    surface,
+  ]);
 
   const handleUndo = useCallback(() => {
     if (textAnchor !== null) {
@@ -461,36 +537,46 @@ export function ImageEditorPage(): React.JSX.Element {
     } satisfies ImageAnnotationToolPickerSurfaceProps);
   }, [activeTool, surface]);
 
-  const handleEditText = useCallback((item: AnnotatedCanvasItem) => {
-    if (!isTextCanvasItem(item)) {
-      return;
-    }
+  const handleEditText = useCallback(
+    (item: AnnotatedCanvasItem) => {
+      if (!isTextCanvasItem(item)) {
+        return;
+      }
 
-    cancelMove();
-    previousToolBeforeEditRef.current = activeTool;
-    setActiveTool('text');
-    setActiveTextTarget(item);
-    setTextAnchor({ x: item.data.x, y: item.data.y });
-    setTextValue(item.data.text);
-  }, [activeTool, cancelMove]);
+      cancelMove();
+      previousToolBeforeEditRef.current = activeTool;
+      setActiveTool("text");
+      setActiveTextTarget(item);
+      setTextAnchor({ x: item.data.x, y: item.data.y });
+      setTextValue(item.data.text);
+    },
+    [activeTool, cancelMove],
+  );
 
-  const handleMoveText = useCallback((item: AnnotatedCanvasItem) => {
-    if (!isTextCanvasItem(item)) {
-      return;
-    }
+  const handleMoveText = useCallback(
+    (item: AnnotatedCanvasItem) => {
+      if (!isTextCanvasItem(item)) {
+        return;
+      }
 
-    resetTextDraft();
-    canvasRef.current?.setInteractionEnabled(false);
-    setTextMoveState({ item, currentX: item.data.x, currentY: item.data.y });
-  }, [resetTextDraft]);
+      resetTextDraft();
+      canvasRef.current?.setInteractionEnabled(false);
+      setTextMoveState({ item, currentX: item.data.x, currentY: item.data.y });
+    },
+    [resetTextDraft],
+  );
 
   const handleAnnotationTap = useCallback(
     (item: AnnotatedCanvasItem) => {
       surface.open(IMAGE_ANNOTATION_ACTIONS_SURFACE_ID, {
         item,
         onDelete: () => handleDeleteAnnotationRef.current?.(item),
-        onEditText: isTextCanvasItem(item) ? () => handleEditText(item) : undefined,
-        onMoveText: isTextCanvasItem(item) ? () => handleMoveText(item) : undefined,
+        onEditText: isTextCanvasItem(item)
+          ? () => handleEditText(item)
+          : undefined,
+        onMoveText: isTextCanvasItem(item)
+          ? () => handleMoveText(item)
+          : undefined,
       } satisfies ImageAnnotationActionsSurfaceProps);
     },
     [handleEditText, handleMoveText, surface],
@@ -498,7 +584,10 @@ export function ImageEditorPage(): React.JSX.Element {
 
   if (!currentImage) {
     return (
-      <div className="flex h-full items-center justify-center bg-black text-white" data-testid="image-editor-page">
+      <div
+        className="flex h-full items-center justify-center bg-black text-white"
+        data-testid="image-editor-page"
+      >
         <button
           className="inline-flex h-11 items-center rounded-2xl border border-white/15 px-4 text-sm"
           data-testid="image-editor-close-missing"
@@ -517,7 +606,9 @@ export function ImageEditorPage(): React.JSX.Element {
         className="flex h-full flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white"
         data-testid="image-editor-uploading-state"
       >
-        <p className="text-sm text-white/75">Upload in progress - annotation unavailable.</p>
+        <p className="text-sm text-white/75">
+          Upload in progress - annotation unavailable.
+        </p>
         <button
           className="inline-flex h-11 items-center rounded-2xl border border-white/15 px-4 text-sm"
           data-testid="image-editor-unavailable-close"
@@ -531,7 +622,10 @@ export function ImageEditorPage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full min-h-full flex-col bg-black text-white" data-testid="image-editor-page">
+    <div
+      className="flex h-full min-h-full flex-col bg-black text-white"
+      data-testid="image-editor-page"
+    >
       <div
         ref={containerRef}
         className="relative min-h-0 flex-1 overflow-hidden touch-none"
@@ -580,12 +674,14 @@ export function ImageEditorPage(): React.JSX.Element {
                 activeTool={activeTool}
                 annotations={visibleCanvasItems}
                 height={canvasBox.height}
-                onAnnotationComplete={(item) => setSessionItems((current) => [...current, item])}
+                onAnnotationComplete={(item) =>
+                  setSessionItems((current) => [...current, item])
+                }
                 onAnnotationTap={handleAnnotationTap}
                 onTextPlacementRequest={(point) => {
                   setActiveTextTarget(null);
                   setTextAnchor(point);
-                  setTextValue('');
+                  setTextValue("");
                 }}
                 width={canvasBox.width}
               />
@@ -602,7 +698,11 @@ export function ImageEditorPage(): React.JSX.Element {
                     minWidth: 200,
                     width: `${Math.max(
                       200,
-                      textValue.length * DEFAULT_TEXT_SIZE * canvasBox.height * 0.62 + 32,
+                      textValue.length *
+                        DEFAULT_TEXT_SIZE *
+                        canvasBox.height *
+                        0.62 +
+                        32,
                     )}px`,
                   }}
                   type="text"
@@ -617,12 +717,12 @@ export function ImageEditorPage(): React.JSX.Element {
                   }}
                   onChange={(event) => setTextValue(event.target.value)}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
+                    if (event.key === "Enter") {
                       event.preventDefault();
                       commitText(textValue);
                     }
 
-                    if (event.key === 'Escape') {
+                    if (event.key === "Escape") {
                       event.preventDefault();
                       resetTextDraft();
                     }
@@ -636,7 +736,7 @@ export function ImageEditorPage(): React.JSX.Element {
                   style={{
                     left: `${textMoveState.currentX * canvasBox.width}px`,
                     top: `${textMoveState.currentY * canvasBox.height}px`,
-                    cursor: 'grab',
+                    cursor: "grab",
                     zIndex: 10,
                   }}
                   onPointerDown={(event) => {
@@ -662,7 +762,10 @@ export function ImageEditorPage(): React.JSX.Element {
                     };
                   }}
                   onPointerMove={(event) => {
-                    if (event.pointerId !== movePointerIdRef.current || !moveDragStartRef.current) {
+                    if (
+                      event.pointerId !== movePointerIdRef.current ||
+                      !moveDragStartRef.current
+                    ) {
                       return;
                     }
 
@@ -673,8 +776,10 @@ export function ImageEditorPage(): React.JSX.Element {
                     }
 
                     const rect = canvasElement.getBoundingClientRect();
-                    const currentNormX = (event.clientX - rect.left) / rect.width;
-                    const currentNormY = (event.clientY - rect.top) / rect.height;
+                    const currentNormX =
+                      (event.clientX - rect.left) / rect.width;
+                    const currentNormY =
+                      (event.clientY - rect.top) / rect.height;
                     const newX =
                       moveDragStartRef.current.textStartX +
                       (currentNormX - moveDragStartRef.current.normX);
@@ -709,7 +814,9 @@ export function ImageEditorPage(): React.JSX.Element {
                 >
                   <div
                     className="border-2 border-dashed border-white px-2 py-1 text-white"
-                    style={{ fontSize: `${textMoveState.item.data.fontSize * canvasBox.height}px` }}
+                    style={{
+                      fontSize: `${textMoveState.item.data.fontSize * canvasBox.height}px`,
+                    }}
                   >
                     {textMoveState.item.data.text}
                   </div>
@@ -724,7 +831,7 @@ export function ImageEditorPage(): React.JSX.Element {
         activeTool={activeTool}
         canUndo={sessionItems.length > 0 || textAnchor !== null}
         hasUnsavedChanges={hasUnsavedChanges}
-        isSaving={isPending}
+        isSaving={isPending || isCancelingCapture}
         onClose={handleClose}
         onDone={() => void handleSaveAndClose()}
         onOpenToolPicker={handleOpenToolPicker}

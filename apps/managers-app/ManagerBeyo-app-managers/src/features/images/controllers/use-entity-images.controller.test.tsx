@@ -1,8 +1,13 @@
-import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderHook, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { buildEntityImage, buildImage, createTestQueryClient, createTestWrapper } from '../test-utils';
-import { buildEntityKey, useImagesStore } from '../store/images.store';
+import {
+  buildEntityImage,
+  buildImage,
+  createTestQueryClient,
+  createTestWrapper,
+} from "../test-utils";
+import { buildEntityKey, useImagesStore } from "../store/images.store";
 
 const {
   useEntityImagesQueryMock,
@@ -12,6 +17,7 @@ const {
   useReorderImagesMock,
   useUnlinkImageMock,
   generateClientIdMock,
+  deleteImageWithOptionsAsyncMock,
 } = vi.hoisted(() => ({
   useEntityImagesQueryMock: vi.fn(),
   runImageUploadPipelineMock: vi.fn(),
@@ -20,40 +26,45 @@ const {
   useReorderImagesMock: vi.fn(),
   useUnlinkImageMock: vi.fn(),
   generateClientIdMock: vi.fn(),
+  deleteImageWithOptionsAsyncMock: vi.fn(),
 }));
 
-vi.mock('../api/use-entity-images', () => ({
+vi.mock("../api/use-entity-images", () => ({
   useEntityImagesQuery: useEntityImagesQueryMock,
 }));
 
-vi.mock('../lib/image-upload-pipeline', () => ({
+vi.mock("../lib/image-upload-pipeline", () => ({
   runImageUploadPipeline: runImageUploadPipelineMock,
 }));
 
-vi.mock('../actions/use-delete-image', () => ({
+vi.mock("../actions/use-delete-image", () => ({
   useDeleteImage: useDeleteImageMock,
 }));
 
-vi.mock('../actions/use-reorder-images', () => ({
+vi.mock("../actions/use-reorder-images", () => ({
   useReorderImages: useReorderImagesMock,
 }));
 
-vi.mock('../actions/use-unlink-image', () => ({
+vi.mock("../actions/use-unlink-image", () => ({
   useUnlinkImage: useUnlinkImageMock,
 }));
 
-vi.mock('@/hooks/use-surface', () => ({
+vi.mock("@/hooks/use-surface", () => ({
   useSurface: useSurfaceMock,
 }));
 
-vi.mock('@/lib/client-id', () => ({
-  generateClientId: generateClientIdMock,
-}));
+vi.mock("@/lib/client-id", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/client-id")>();
+  return {
+    ...actual,
+    generateClientId: generateClientIdMock,
+  };
+});
 
-import { useEntityImagesController } from './use-entity-images.controller';
+import { useEntityImagesController } from "./use-entity-images.controller";
 
-describe('useEntityImagesController', () => {
-  const entityKey = buildEntityKey('item', 'item_1');
+describe("useEntityImagesController", () => {
+  const entityKey = buildEntityKey("item", "item_1");
   const revokeObjectURLMock = vi.fn();
   const createObjectURLMock = vi.fn();
   const unlinkImageAsyncMock = vi.fn();
@@ -68,35 +79,40 @@ describe('useEntityImagesController', () => {
       isError: false,
     });
     useSurfaceMock.mockReturnValue({ open: vi.fn() });
-    useDeleteImageMock.mockReturnValue({});
+    useDeleteImageMock.mockReturnValue({
+      deleteImageWithOptionsAsync: deleteImageWithOptionsAsyncMock,
+      isPending: false,
+    });
     useReorderImagesMock.mockReturnValue({ reorderImages: vi.fn() });
-    useUnlinkImageMock.mockReturnValue({ unlinkImageAsync: unlinkImageAsyncMock });
-    generateClientIdMock.mockReturnValue('optimistic_img_1');
+    useUnlinkImageMock.mockReturnValue({
+      unlinkImageAsync: unlinkImageAsyncMock,
+    });
+    generateClientIdMock.mockReturnValue("optimistic_img_1");
 
-    createObjectURLMock.mockReturnValue('blob:optimistic');
-    vi.stubGlobal('URL', {
+    createObjectURLMock.mockReturnValue("blob:optimistic");
+    vi.stubGlobal("URL", {
       createObjectURL: createObjectURLMock,
       revokeObjectURL: revokeObjectURLMock,
     } as unknown as typeof URL);
   });
 
-  it('merges confirmed server images with pending optimistic images and removes duplicates', async () => {
+  it("merges confirmed server images with pending optimistic images and removes duplicates", async () => {
     useImagesStore.setState({
       optimisticImages: {
         [entityKey]: [
           {
-            clientId: 'img_server',
+            clientId: "img_server",
             linkClientId: null,
-            entityType: 'item',
-            entityClientId: 'item_1',
-            imageUrl: 'https://cdn.example.com/image-server.webp',
+            entityType: "item",
+            entityClientId: "item_1",
+            imageUrl: "https://cdn.example.com/image-server.webp",
             localObjectUrl: null,
             displayOrder: 5,
             widthPx: 800,
             heightPx: 800,
             fileSizeBytes: 500,
-            createdAt: '2026-05-21T12:00:00.000Z',
-            uploadState: 'completed',
+            createdAt: "2026-05-21T12:00:00.000Z",
+            uploadState: "completed",
             isOptimistic: true,
             isDeleted: false,
             pendingUploadClientId: null,
@@ -105,18 +121,18 @@ describe('useEntityImagesController', () => {
             annotations: [],
           },
           {
-            clientId: 'img_pending',
+            clientId: "img_pending",
             linkClientId: null,
-            entityType: 'item',
-            entityClientId: 'item_1',
-            imageUrl: 'blob:pending',
-            localObjectUrl: 'blob:pending',
+            entityType: "item",
+            entityClientId: "item_1",
+            imageUrl: "blob:pending",
+            localObjectUrl: "blob:pending",
             displayOrder: 1,
             widthPx: null,
             heightPx: null,
             fileSizeBytes: 400,
-            createdAt: '2026-05-21T12:00:00.000Z',
-            uploadState: 'uploading',
+            createdAt: "2026-05-21T12:00:00.000Z",
+            uploadState: "uploading",
             isOptimistic: true,
             isDeleted: false,
             pendingUploadClientId: null,
@@ -130,7 +146,10 @@ describe('useEntityImagesController', () => {
     useEntityImagesQueryMock.mockReturnValue({
       data: [
         buildEntityImage({
-          image: buildImage({ client_id: 'img_server', image_url: 'https://cdn.example.com/image-server.webp' }),
+          image: buildImage({
+            client_id: "img_server",
+            image_url: "https://cdn.example.com/image-server.webp",
+          }),
           display_order: 0,
         }),
       ],
@@ -141,24 +160,27 @@ describe('useEntityImagesController', () => {
     const { result } = renderHook(
       () =>
         useEntityImagesController({
-          entityType: 'item',
-          entityClientId: 'item_1',
+          entityType: "item",
+          entityClientId: "item_1",
         }),
       {
         wrapper: createTestWrapper(createTestQueryClient()),
       },
     );
 
-    expect(result.current.images.map((image) => image.clientId)).toEqual(['img_server', 'img_pending']);
+    expect(result.current.images.map((image) => image.clientId)).toEqual([
+      "img_server",
+      "img_pending",
+    ]);
 
     await waitFor(() => {
       expect(useImagesStore.getState().optimisticImages[entityKey]).toEqual([
-        expect.objectContaining({ clientId: 'img_pending' }),
+        expect.objectContaining({ clientId: "img_pending" }),
       ]);
     });
   });
 
-  it('cleans up and unlinks when an uploading image is deleted before confirmation finishes', async () => {
+  it("cleans up and unlinks when an uploading image is deleted before confirmation finishes", async () => {
     let resolveUpload!: (image: ReturnType<typeof buildImage>) => void;
     runImageUploadPipelineMock.mockImplementation(
       () =>
@@ -168,89 +190,93 @@ describe('useEntityImagesController', () => {
     );
 
     const queryClient = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     const { result } = renderHook(
       () =>
         useEntityImagesController({
-          entityType: 'item',
-          entityClientId: 'item_1',
+          entityType: "item",
+          entityClientId: "item_1",
         }),
       {
         wrapper: createTestWrapper(queryClient),
       },
     );
 
-    result.current.uploadImage(new Blob(['raw'], { type: 'image/png' }));
+    result.current.uploadImage(new Blob(["raw"], { type: "image/png" }));
 
     await waitFor(() => {
       expect(result.current.images).toHaveLength(1);
     });
 
-    result.current.deleteImage('optimistic_img_1');
+    result.current.deleteImage("optimistic_img_1");
 
     expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
       expect.objectContaining({
         isDeleted: true,
-        uploadState: 'delete_requested',
+        uploadState: "delete_requested",
       }),
     );
 
-    resolveUpload(buildImage({ client_id: 'img_confirmed' }));
+    resolveUpload(buildImage({ client_id: "img_confirmed" }));
 
     await waitFor(() => {
       expect(useImagesStore.getState().optimisticImages[entityKey]).toEqual([]);
     });
 
-    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:optimistic');
+    expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:optimistic");
     expect(unlinkImageAsyncMock).toHaveBeenCalledWith({
-      image_client_id: 'img_confirmed',
-      entity_type: 'item',
-      entity_client_id: 'item_1',
+      image_client_id: "img_confirmed",
+      entity_type: "item",
+      entity_client_id: "item_1",
     });
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
-  it('retries a failed optimistic upload with the original blob source', async () => {
+  it("retries a failed optimistic upload with the original blob source", async () => {
     runImageUploadPipelineMock
-      .mockRejectedValueOnce(new Error('Upload failed.'))
-      .mockResolvedValueOnce(buildImage({ client_id: 'img_retried' }));
+      .mockRejectedValueOnce(new Error("Upload failed."))
+      .mockResolvedValueOnce(buildImage({ client_id: "img_retried" }));
 
     const queryClient = createTestQueryClient();
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     const { result } = renderHook(
       () =>
         useEntityImagesController({
-          entityType: 'item',
-          entityClientId: 'item_1',
+          entityType: "item",
+          entityClientId: "item_1",
         }),
       {
         wrapper: createTestWrapper(queryClient),
       },
     );
 
-    const sourceBlob = new Blob(['retry-source'], { type: 'image/png' });
+    const sourceBlob = new Blob(["retry-source"], { type: "image/png" });
 
     result.current.uploadImage(sourceBlob);
 
     await waitFor(() => {
-      expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
+      expect(
+        useImagesStore.getState().optimisticImages[entityKey]?.[0],
+      ).toEqual(
         expect.objectContaining({
-          clientId: 'optimistic_img_1',
-          uploadState: 'failed',
-          uploadError: 'Upload failed.',
+          clientId: "optimistic_img_1",
+          uploadState: "failed",
+          uploadError: "Upload failed.",
         }),
       );
     });
 
-    result.current.retryImageUpload('optimistic_img_1');
+    result.current.retryImageUpload("optimistic_img_1");
 
     await waitFor(() => {
       expect(runImageUploadPipelineMock).toHaveBeenCalledTimes(2);
-      expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
+      expect(
+        useImagesStore.getState().optimisticImages[entityKey]?.[0],
+      ).toEqual(
         expect.objectContaining({
-          clientId: 'img_retried',
-          uploadState: 'completed',
-          imageUrl: 'https://cdn.example.com/image-1.webp',
+          clientId: "img_retried",
+          uploadState: "completed",
+          imageUrl: "https://cdn.example.com/image-1.webp",
           localObjectUrl: null,
           uploadError: null,
         }),
@@ -267,7 +293,34 @@ describe('useEntityImagesController', () => {
         rawBlob: sourceBlob,
       }),
     );
-    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:optimistic');
+    expect(revokeObjectURLMock).toHaveBeenCalledWith("blob:optimistic");
     expect(invalidateSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("passes direct capture flow props when opening the camera surface", () => {
+    const openMock = vi.fn();
+    useSurfaceMock.mockReturnValue({ open: openMock });
+
+    const { result } = renderHook(
+      () =>
+        useEntityImagesController({
+          entityType: "item",
+          entityClientId: "item_1",
+          captureFlow: "camera-to-editor",
+        }),
+      {
+        wrapper: createTestWrapper(createTestQueryClient()),
+      },
+    );
+
+    result.current.openCamera();
+
+    expect(openMock).toHaveBeenCalledWith(
+      "image-camera",
+      expect.objectContaining({
+        captureFlow: "camera-to-editor",
+        onEditCapturedImage: expect.any(Function),
+      }),
+    );
   });
 });
