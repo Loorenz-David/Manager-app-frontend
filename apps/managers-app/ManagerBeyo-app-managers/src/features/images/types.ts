@@ -515,7 +515,36 @@ export function toImageAnnotationViewModel(
   };
 }
 
+export function mergeImageAnnotationViewModels(
+  annotation: ImageAnnotationViewModel | null | undefined,
+  annotations: ImageAnnotationViewModel[],
+): ImageAnnotationViewModel[] {
+  if (!annotation) {
+    return annotations;
+  }
+
+  return annotations.some((item) => item.clientId === annotation.clientId)
+    ? annotations
+    : [annotation, ...annotations];
+}
+
+export function toImageAnnotationViewModels(
+  annotation: ImageAnnotation | null | undefined,
+  annotations: ImageAnnotation[] | null | undefined,
+): ImageAnnotationViewModel[] {
+  const mappedAnnotation = annotation
+    ? toImageAnnotationViewModel(annotation)
+    : null;
+  const mappedAnnotations = (annotations ?? []).map(toImageAnnotationViewModel);
+
+  return mergeImageAnnotationViewModels(mappedAnnotation, mappedAnnotations);
+}
+
 export function toImageViewModel(entityImage: EntityImage): ImageViewModel {
+  const annotation = entityImage.image.image_annotation
+    ? toImageAnnotationViewModel(entityImage.image.image_annotation)
+    : null;
+
   return {
     clientId: entityImage.image.client_id,
     linkClientId: entityImage.link_client_id,
@@ -533,10 +562,11 @@ export function toImageViewModel(entityImage: EntityImage): ImageViewModel {
     isDeleted: false,
     pendingUploadClientId: null,
     uploadError: null,
-    annotation: entityImage.image.image_annotation
-      ? toImageAnnotationViewModel(entityImage.image.image_annotation)
-      : null,
-    annotations: (entityImage.image.image_annotations ?? []).map(toImageAnnotationViewModel),
+    annotation,
+    annotations: toImageAnnotationViewModels(
+      entityImage.image.image_annotation,
+      entityImage.image.image_annotations,
+    ),
     isFullyLoaded: true,
   };
 }

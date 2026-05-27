@@ -209,4 +209,65 @@ describe('useEntityImagesController', () => {
     });
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  it('retries a failed optimistic upload with the original blob source', async () => {
+    runImageUploadPipelineMock
+      .mockRejectedValueOnce(new Error('Upload failed.'))
+      .mockResolvedValueOnce(buildImage({ client_id: 'img_retried' }));
+
+    const queryClient = createTestQueryClient();
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderHook(
+      () =>
+        useEntityImagesController({
+          entityType: 'item',
+          entityClientId: 'item_1',
+        }),
+      {
+        wrapper: createTestWrapper(queryClient),
+      },
+    );
+
+    const sourceBlob = new Blob(['retry-source'], { type: 'image/png' });
+
+    result.current.uploadImage(sourceBlob);
+
+    await waitFor(() => {
+      expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
+        expect.objectContaining({
+          clientId: 'optimistic_img_1',
+          uploadState: 'failed',
+          uploadError: 'Upload failed.',
+        }),
+      );
+    });
+
+    result.current.retryImageUpload('optimistic_img_1');
+
+    await waitFor(() => {
+      expect(runImageUploadPipelineMock).toHaveBeenCalledTimes(2);
+      expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
+        expect.objectContaining({
+          clientId: 'img_retried',
+          uploadState: 'completed',
+          imageUrl: 'https://cdn.example.com/image-1.webp',
+          localObjectUrl: null,
+          uploadError: null,
+        }),
+      );
+    });
+
+    expect(runImageUploadPipelineMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        rawBlob: sourceBlob,
+      }),
+    );
+    expect(runImageUploadPipelineMock.mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        rawBlob: sourceBlob,
+      }),
+    );
+    expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:optimistic');
+    expect(invalidateSpy).toHaveBeenCalledTimes(1);
+  });
 });

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { ApiRequestError } from "@/lib/api-client";
+import { generateClientId } from "@/lib/client-id";
 import { ROUTES } from "@/lib/routes";
 import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
 import {
@@ -76,6 +77,22 @@ type CaseComposerDraft = {
   plainText: string;
 };
 
+type DraftAttachmentsState = {
+  count: number;
+  hasFailures: boolean;
+  isUploading: boolean;
+};
+
+const EMPTY_DRAFT_ATTACHMENTS_STATE: DraftAttachmentsState = {
+  count: 0,
+  hasFailures: false,
+  isUploading: false,
+};
+const WAIT_FOR_ATTACHMENTS_ERROR =
+  "Wait for image uploads to finish before sending.";
+const RESOLVE_FAILED_ATTACHMENTS_ERROR =
+  "Retry or remove failed image uploads before sending.";
+
 export type CaseConversationController = {
   caseDetail: CaseDetailRaw | undefined;
   composerContent: CaseMessageContent;
@@ -93,10 +110,15 @@ export type CaseConversationController = {
   isContextBannerCollapsed: boolean;
   typingIndicatorText: string | null;
   draftText: string;
+  draftMessageClientId: string;
+  draftAttachmentCount: number;
+  canSendDraft: boolean;
   editingComposerContent: CaseMessageContent;
   editingMessageId: CaseConversationMessageRaw["client_id"] | null;
   editingDraftText: string;
   isSending: boolean;
+  isDraftAttachmentUploading: boolean;
+  hasFailedDraftAttachments: boolean;
   isSubmittingEdit: boolean;
   isPendingCase: boolean;
   isPendingTask: boolean;
@@ -107,6 +129,7 @@ export type CaseConversationController = {
   setBodyScrollTop: (metrics: ConversationScrollMetrics) => void;
   setComposerContent: (content: CaseMessageContent, plainText: string) => void;
   setDraftText: (value: string) => void;
+  setDraftAttachmentsState: (state: DraftAttachmentsState) => void;
   setEditingComposerContent: (
     content: CaseMessageContent,
     plainText: string,
@@ -255,6 +278,11 @@ export function useCaseConversationController(
   const [composerDraft, setComposerDraftState] = useState<CaseComposerDraft>(
     () => createComposerDraftFromPlainText(""),
   );
+  const [draftMessageClientId, setDraftMessageClientId] = useState(() =>
+    generateClientId("CaseConversationMessage"),
+  );
+  const [draftAttachmentsState, setDraftAttachmentsStateValue] =
+    useState<DraftAttachmentsState>(EMPTY_DRAFT_ATTACHMENTS_STATE);
   const [editingMessageId, setEditingMessageId] = useState<
     CaseConversationMessageRaw["client_id"] | null
   >(null);
@@ -309,6 +337,14 @@ export function useCaseConversationController(
     conversationClientId,
   });
   const stateMutation = useUpdateCaseState(caseClientId);
+  const hasDraftTextContent = hasMeaningfulCaseMessageContent(
+    composerDraft.content,
+  );
+  const canSendDraft =
+    (hasDraftTextContent || draftAttachmentsState.count > 0) &&
+    !draftAttachmentsState.isUploading &&
+    !draftAttachmentsState.hasFailures &&
+    !sendCaseMessageMutation.isPending;
   const currentParticipant =
     participantsQuery.data?.find(
       (participant) => participant.user_id === currentUserId,
@@ -518,6 +554,30 @@ export function useCaseConversationController(
     setComposerContent(createPlainTextCaseMessageContent(value), value);
   };
 
+  const setDraftAttachmentsState = (state: DraftAttachmentsState) => {
+    setDraftAttachmentsStateValue((currentState) => {
+      if (
+        currentState.count === state.count &&
+        currentState.hasFailures === state.hasFailures &&
+        currentState.isUploading === state.isUploading
+      ) {
+        return currentState;
+      }
+
+      return state;
+    });
+
+    if (
+      localSendError &&
+      (localSendError.message === WAIT_FOR_ATTACHMENTS_ERROR ||
+        localSendError.message === RESOLVE_FAILED_ATTACHMENTS_ERROR) &&
+      !state.isUploading &&
+      !state.hasFailures
+    ) {
+      setLocalSendError(null);
+    }
+  };
+
   const setEditingComposerContent = (
     content: CaseMessageContent,
     plainText: string,
@@ -635,12 +695,10 @@ export function useCaseConversationController(
 
   const sendDraft = async () => {
     const normalizedContent = trimCaseMessageContent(composerDraft.content);
-    const backendPlainText = toBackendPlainText(normalizedContent).trim();
+    const hasTextContent = hasMeaningfulCaseMessageContent(normalizedContent);
+    const hasAttachments = draftAttachmentsState.count > 0;
 
-    if (
-      backendPlainText.length === 0 ||
-      !hasMeaningfulCaseMessageContent(normalizedContent)
-    ) {
+    if (!hasTextContent && !hasAttachments) {
       return;
     }
 
@@ -654,18 +712,38 @@ export function useCaseConversationController(
       setLocalSendError(null);
     }
 
+    if (draftAttachmentsState.isUploading) {
+      setLocalSendError(new Error(WAIT_FOR_ATTACHMENTS_ERROR));
+      return;
+    }
+
+    if (draftAttachmentsState.hasFailures) {
+      setLocalSendError(new Error(RESOLVE_FAILED_ATTACHMENTS_ERROR));
+      return;
+    }
+
     sendCaseMessageMutation.reset();
+
+    const contentForSend = hasTextContent
+      ? normalizedContent
+      : createPlainTextCaseMessageContent(" ");
+    const backendPlainText = hasTextContent
+      ? toBackendPlainText(contentForSend).trim()
+      : " ";
 
     try {
       const createdMessage = await sendCaseMessageMutation.sendCaseMessageAsync(
         {
+          client_id: draftMessageClientId,
           conversation_client_id: conversationClientId,
-          content: toBackendMessageContent(normalizedContent),
+          content: toBackendMessageContent(contentForSend),
           plain_text: backendPlainText,
         },
       );
 
       setComposerDraftState(createComposerDraftFromPlainText(""));
+      setDraftMessageClientId(generateClientId("CaseConversationMessage"));
+      setDraftAttachmentsStateValue(EMPTY_DRAFT_ATTACHMENTS_STATE);
       options.scrollToBottom?.();
       await requestMarkRead(createdMessage.message_seq);
     } catch (error) {
@@ -753,10 +831,15 @@ export function useCaseConversationController(
     isContextBannerCollapsed,
     typingIndicatorText,
     draftText,
+    draftMessageClientId,
+    draftAttachmentCount: draftAttachmentsState.count,
+    canSendDraft,
     editingComposerContent: editingDraft.content,
     editingMessageId,
     editingDraftText,
     isSending: sendCaseMessageMutation.isPending,
+    isDraftAttachmentUploading: draftAttachmentsState.isUploading,
+    hasFailedDraftAttachments: draftAttachmentsState.hasFailures,
     isSubmittingEdit: editCaseMessageMutation.isPending,
     isPendingCase: caseQuery.isPending,
     isPendingTask: isTaskContextPending,
@@ -767,6 +850,7 @@ export function useCaseConversationController(
     setBodyScrollTop,
     setComposerContent,
     setDraftText,
+    setDraftAttachmentsState,
     setEditingComposerContent,
     setEditingDraftText,
     resetScrollChrome,

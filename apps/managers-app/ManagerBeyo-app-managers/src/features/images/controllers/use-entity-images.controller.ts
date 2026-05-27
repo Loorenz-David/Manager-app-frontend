@@ -9,7 +9,11 @@ import { useDeleteImage } from '../actions/use-delete-image';
 import { useReorderImages } from '../actions/use-reorder-images';
 import { useUnlinkImage } from '../actions/use-unlink-image';
 import type { Image, ImageLinkEntityType, ImageUploadState, ImageViewModel } from '../types';
-import { toImageViewModel } from '../types';
+import {
+  toImageAnnotationViewModel,
+  toImageAnnotationViewModels,
+  toImageViewModel,
+} from '../types';
 import { useSurface } from '@/hooks/use-surface';
 import { generateClientId } from '@/lib/client-id';
 import {
@@ -75,6 +79,10 @@ function toConfirmedOptimisticViewModel(
   entityClientId: string,
   displayOrder: number,
 ): ImageViewModel {
+  const annotation = image.image_annotation
+    ? toImageAnnotationViewModel(image.image_annotation)
+    : null;
+
   return {
     clientId: image.client_id,
     linkClientId: null,
@@ -92,22 +100,11 @@ function toConfirmedOptimisticViewModel(
     isDeleted: false,
     pendingUploadClientId: null,
     uploadError: null,
-    annotation: image.image_annotation
-      ? {
-          clientId: image.image_annotation.client_id,
-          annotationType: image.image_annotation.annotation_type,
-          data: image.image_annotation.data ?? null,
-          accuracy: image.image_annotation.accuracy ?? null,
-          createdAt: image.image_annotation.created_at,
-        }
-      : null,
-    annotations: (image.image_annotations ?? []).map((annotation) => ({
-      clientId: annotation.client_id,
-      annotationType: annotation.annotation_type,
-      data: annotation.data ?? null,
-      accuracy: annotation.accuracy ?? null,
-      createdAt: annotation.created_at,
-    })),
+    annotation,
+    annotations: toImageAnnotationViewModels(
+      image.image_annotation,
+      image.image_annotations,
+    ),
   };
 }
 
@@ -121,6 +118,12 @@ function isUploadingState(state: ImageUploadState): boolean {
   );
 }
 
+function revokeLocalObjectUrl(image: ImageViewModel | undefined): void {
+  if (image?.localObjectUrl) {
+    URL.revokeObjectURL(image.localObjectUrl);
+  }
+}
+
 export function useEntityImagesController(
   input: UseEntityImagesControllerInput,
 ) {
@@ -128,6 +131,7 @@ export function useEntityImagesController(
   const entityKey = buildEntityKey(entityType, entityClientId);
   const queryClient = useQueryClient();
   const surface = useSurface();
+  const uploadRetrySourcesRef = useRef(new Map<string, Blob>());
 
   const { data: serverImages = [], isPending, isError } = useEntityImagesQuery({
     entity_type: entityType,
@@ -146,6 +150,10 @@ export function useEntityImagesController(
   const deleteAction = useDeleteImage();
   const reorderAction = useReorderImages();
 
+  const clearRetrySource = useCallback((imageClientId: string) => {
+    uploadRetrySourcesRef.current.delete(imageClientId);
+  }, []);
+
   const confirmedImages = useMemo(
     () => [...serverImages].sort((left, right) => left.display_order - right.display_order),
     [serverImages],
@@ -163,19 +171,117 @@ export function useEntityImagesController(
 
   useEffect(() => {
     return () => {
+      const currentImages = useImagesStore.getState().optimisticImages[entityKey] ?? [];
+      currentImages.forEach((image) => {
+        revokeLocalObjectUrl(image);
+        clearRetrySource(image.clientId);
+      });
       clearOptimisticImages(entityKey);
     };
-  }, [clearOptimisticImages, entityKey]);
+  }, [clearOptimisticImages, clearRetrySource, entityKey]);
 
   useEffect(() => {
     const confirmedIds = new Set(serverImages.map((image) => image.image.client_id));
 
     optimisticImages.forEach((image) => {
       if (confirmedIds.has(image.clientId) && image.localObjectUrl === null) {
+        clearRetrySource(image.clientId);
         removeOptimisticImage(entityKey, image.clientId);
       }
     });
-  }, [entityKey, optimisticImages, removeOptimisticImage, serverImages]);
+  }, [clearRetrySource, entityKey, optimisticImages, removeOptimisticImage, serverImages]);
+
+  const invalidateEntityImages = useCallback(async () => {
+    await queryClient.invalidateQueries({
+      queryKey: imageKeys.list({
+        entity_type: entityType,
+        entity_client_id: entityClientId,
+      }),
+    });
+    onImagesChanged?.();
+  }, [entityClientId, entityType, onImagesChanged, queryClient]);
+
+  const startUpload = useCallback(
+    ({
+      imageClientId,
+      rawBlob,
+      fallbackDisplayOrder,
+    }: {
+      imageClientId: string;
+      rawBlob: Blob;
+      fallbackDisplayOrder: number;
+    }) => {
+      void runImageUploadPipeline({
+        rawBlob,
+        entityType,
+        entityClientId,
+        onProgress: (progressState) => {
+          patchOptimisticImage(entityKey, imageClientId, {
+            uploadState: progressState,
+          });
+        },
+      })
+        .then(async (confirmedImage) => {
+          const currentImage = useImagesStore
+            .getState()
+            .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+
+          if (currentImage?.uploadState === 'delete_requested') {
+            revokeLocalObjectUrl(currentImage);
+            clearRetrySource(imageClientId);
+            removeOptimisticImage(entityKey, imageClientId);
+            void unlinkAction.unlinkImageAsync({
+              image_client_id: confirmedImage.client_id,
+              entity_type: entityType,
+              entity_client_id: entityClientId,
+            });
+            return;
+          }
+
+          revokeLocalObjectUrl(currentImage);
+          clearRetrySource(imageClientId);
+          patchOptimisticImage(
+            entityKey,
+            imageClientId,
+            toConfirmedOptimisticViewModel(
+              confirmedImage,
+              entityType,
+              entityClientId,
+              currentImage?.displayOrder ?? fallbackDisplayOrder,
+            ),
+          );
+
+          await invalidateEntityImages();
+        })
+        .catch((error: unknown) => {
+          const currentImage = useImagesStore
+            .getState()
+            .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+
+          if (currentImage?.uploadState === 'delete_requested') {
+            revokeLocalObjectUrl(currentImage);
+            clearRetrySource(imageClientId);
+            removeOptimisticImage(entityKey, imageClientId);
+            return;
+          }
+
+          patchOptimisticImage(entityKey, imageClientId, {
+            uploadState: 'failed',
+            uploadError: error instanceof Error ? error.message : 'Upload failed.',
+          });
+        });
+    },
+    [
+      clearRetrySource,
+      entityClientId,
+      entityKey,
+      entityType,
+      invalidateEntityImages,
+      patchOptimisticImage,
+      removeOptimisticImage,
+      unlinkAction,
+    ],
+  );
 
   const uploadImage = useCallback(
     (rawBlob: Blob) => {
@@ -206,82 +312,54 @@ export function useEntityImagesController(
         annotation: null,
         annotations: [],
       });
-
-      void runImageUploadPipeline({
+      uploadRetrySourcesRef.current.set(optimisticClientId, rawBlob);
+      startUpload({
+        imageClientId: optimisticClientId,
         rawBlob,
-        entityType,
-        entityClientId,
-        onProgress: (progressState) => {
-          patchOptimisticImage(entityKey, optimisticClientId, {
-            uploadState: progressState,
-          });
-        },
-      })
-        .then(async (confirmedImage) => {
-          const currentImage = useImagesStore
-            .getState()
-            .optimisticImages[entityKey]?.find((image) => image.clientId === optimisticClientId);
-
-          if (currentImage?.uploadState === 'delete_requested') {
-            URL.revokeObjectURL(localObjectUrl);
-            removeOptimisticImage(entityKey, optimisticClientId);
-            void unlinkAction.unlinkImageAsync({
-              image_client_id: confirmedImage.client_id,
-              entity_type: entityType,
-              entity_client_id: entityClientId,
-            });
-            return;
-          }
-
-          URL.revokeObjectURL(localObjectUrl);
-          patchOptimisticImage(
-            entityKey,
-            optimisticClientId,
-            toConfirmedOptimisticViewModel(
-              confirmedImage,
-              entityType,
-              entityClientId,
-              currentImage?.displayOrder ?? maxDisplayOrder + 1,
-            ),
-          );
-
-          await queryClient.invalidateQueries({
-            queryKey: imageKeys.list({
-              entity_type: entityType,
-              entity_client_id: entityClientId,
-            }),
-          });
-          onImagesChanged?.();
-        })
-        .catch((error: unknown) => {
-          const currentImage = useImagesStore
-            .getState()
-            .optimisticImages[entityKey]?.find((image) => image.clientId === optimisticClientId);
-
-          if (currentImage?.uploadState === 'delete_requested') {
-            URL.revokeObjectURL(localObjectUrl);
-            removeOptimisticImage(entityKey, optimisticClientId);
-            return;
-          }
-
-          patchOptimisticImage(entityKey, optimisticClientId, {
-            uploadState: 'failed',
-            uploadError: error instanceof Error ? error.message : 'Upload failed.',
-          });
-        });
+        fallbackDisplayOrder: maxDisplayOrder + 1,
+      });
     },
     [
+      images,
+      insertOptimisticImage,
+      startUpload,
       entityClientId,
       entityKey,
       entityType,
-      images,
-      insertOptimisticImage,
-      onImagesChanged,
-      patchOptimisticImage,
-      queryClient,
-      removeOptimisticImage,
-      unlinkAction,
     ],
+  );
+
+  const retryImageUpload = useCallback(
+    (imageClientId: string) => {
+      const rawBlob = uploadRetrySourcesRef.current.get(imageClientId);
+      const currentImage = useImagesStore
+        .getState()
+        .optimisticImages[entityKey]?.find((image) => image.clientId === imageClientId);
+
+      if (!rawBlob || !currentImage || isUploadingState(currentImage.uploadState)) {
+        return;
+      }
+
+      if (currentImage.localObjectUrl === null) {
+        const nextLocalObjectUrl = URL.createObjectURL(rawBlob);
+        patchOptimisticImage(entityKey, imageClientId, {
+          imageUrl: nextLocalObjectUrl,
+          localObjectUrl: nextLocalObjectUrl,
+        });
+      }
+
+      patchOptimisticImage(entityKey, imageClientId, {
+        isDeleted: false,
+        uploadError: null,
+        uploadState: 'captured',
+      });
+      startUpload({
+        imageClientId,
+        rawBlob,
+        fallbackDisplayOrder: currentImage.displayOrder,
+      });
+    },
+    [entityKey, patchOptimisticImage, startUpload],
   );
 
   const deleteImage = useCallback(
@@ -299,9 +377,8 @@ export function useEntityImagesController(
           return;
         }
 
-        if (optimisticImage.localObjectUrl !== null) {
-          URL.revokeObjectURL(optimisticImage.localObjectUrl);
-        }
+        revokeLocalObjectUrl(optimisticImage);
+        clearRetrySource(imageClientId);
 
         removeOptimisticImage(entityKey, imageClientId);
 
@@ -317,6 +394,7 @@ export function useEntityImagesController(
       }).then(() => onImagesChanged?.());
     },
     [
+      clearRetrySource,
       entityClientId,
       entityKey,
       entityType,
@@ -395,12 +473,14 @@ export function useEntityImagesController(
     isPending,
     isError,
     uploadImage,
+    retryImageUpload,
     deleteImage,
     reorderImages,
     openCamera,
     openViewer,
     openMetadataSheet,
     isUploading: optimisticImages.some((image) => isUploadingState(image.uploadState)),
+    hasFailedUploads: optimisticImages.some((image) => image.uploadState === 'failed'),
     isDeleting: unlinkAction.isPending || deleteAction.isPending,
     isReordering: reorderAction.isPending,
   };

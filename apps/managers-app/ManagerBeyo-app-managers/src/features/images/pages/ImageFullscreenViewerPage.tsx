@@ -16,7 +16,11 @@ import {
 import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
 import { ImageAnnotationSvgLayer } from '../components/ImageAnnotationSvgLayer';
 import { ZoomableImage } from '../components/ZoomableImage';
-import { toImageAnnotationViewModel, type ImageViewModel } from '../types';
+import {
+  toImageAnnotationViewModel,
+  toImageAnnotationViewModels,
+  type ImageViewModel,
+} from '../types';
 
 function clampIndex(index: number, imageCount: number): number {
   if (imageCount <= 0) {
@@ -130,7 +134,10 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     const nextAnnotation = freshImage.image_annotation
       ? toImageAnnotationViewModel(freshImage.image_annotation)
       : null;
-    const nextAnnotations = (freshImage.image_annotations ?? []).map(toImageAnnotationViewModel);
+    const nextAnnotations = toImageAnnotationViewModels(
+      freshImage.image_annotation,
+      freshImage.image_annotations,
+    );
     const nextAnnotationSignature = JSON.stringify({
       annotation: nextAnnotation,
       annotations: nextAnnotations,

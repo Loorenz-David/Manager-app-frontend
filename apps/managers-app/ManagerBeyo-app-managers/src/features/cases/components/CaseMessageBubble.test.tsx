@@ -1,10 +1,30 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const useImageQueryMock = vi.fn<
+  (imageClientId: string | null | undefined) => { data: unknown }
+>(() => ({ data: undefined }));
+
+vi.mock('@/hooks/use-surface', () => ({
+  useSurface: () => ({
+    open: () => undefined,
+  }),
+}));
+
+vi.mock('@/features/images/api/use-image', () => ({
+  useImageQuery: (imageClientId: string | null | undefined) =>
+    useImageQueryMock(imageClientId),
+}));
 
 import { CaseConversationMessageRawSchema } from '../types';
 import { CaseMessageBubble } from './CaseMessageBubble';
 
 describe('CaseMessageBubble', () => {
+  beforeEach(() => {
+    useImageQueryMock.mockReset();
+    useImageQueryMock.mockReturnValue({ data: undefined });
+  });
+
   it('renders backend content blocks through the adapter-backed renderer', () => {
     const message = CaseConversationMessageRawSchema.parse({
       client_id: 'ccm_1',
@@ -128,5 +148,82 @@ describe('CaseMessageBubble', () => {
 
     expect(screen.getByText('Message deleted')).toBeInTheDocument();
     expect(screen.queryByText('Should not render')).not.toBeInTheDocument();
+  });
+
+  it('renders message images inside the bubble when the backend returns attachments', () => {
+    const message = CaseConversationMessageRawSchema.parse({
+      client_id: 'ccm_4',
+      message_seq: 4,
+      created_at: '2026-05-26T10:03:00+00:00',
+      content: null,
+      plain_text: '',
+      has_been_edited: false,
+      has_been_deleted: false,
+      images: [
+        {
+          client_id: 'img_case_msg_1',
+          image_url: 'https://cdn.example.com/case-message-1.webp',
+          storage_provider: 's3',
+          source_type: 'uploaded',
+          width_px: 960,
+          height_px: 960,
+          file_size_bytes: 4096,
+          created_at: '2026-05-26T10:03:00+00:00',
+        },
+      ],
+    });
+
+    render(<CaseMessageBubble isOwnMessage={false} message={message} />);
+
+    expect(
+      screen.getByTestId('case-message-image-grid-ccm_4'),
+    ).toBeInTheDocument();
+  });
+
+  it('renders image annotations in the bubble preview from the initial case payload', () => {
+    const message = CaseConversationMessageRawSchema.parse({
+      client_id: 'ccm_5',
+      message_seq: 5,
+      created_at: '2026-05-27T10:03:00+00:00',
+      content: null,
+      plain_text: '',
+      has_been_edited: false,
+      has_been_deleted: false,
+      images: [
+        {
+          client_id: 'img_case_msg_2',
+          image_url: 'https://cdn.example.com/case-message-2.webp',
+          storage_provider: 's3',
+          source_type: 'uploaded',
+          width_px: null,
+          height_px: null,
+          file_size_bytes: 4096,
+          created_at: '2026-05-27T10:03:00+00:00',
+          image_annotation: {
+            client_id: 'ann_case_msg_2',
+            annotation_type: 'rectangle',
+            data: {
+              tool: 'rectangle',
+              x: 0.1,
+              y: 0.1,
+              width: 0.3,
+              height: 0.2,
+              color: '#ff0000',
+              strokeWidth: 4,
+            },
+            accuracy: null,
+            created_at: '2026-05-27T10:03:00+00:00',
+          },
+        },
+      ],
+    });
+
+    render(<CaseMessageBubble isOwnMessage={false} message={message} />);
+
+    expect(
+      screen.getByTestId(
+        'case-message-image-annotation-ccm_5-img_case_msg_2',
+      ),
+    ).toBeVisible();
   });
 });

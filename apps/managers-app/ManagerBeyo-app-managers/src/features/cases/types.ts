@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { ImageAnnotationSchema } from "@/features/images/types";
 import { ClientIdSchema } from "@/lib/client-id";
 import type {
   CaseConversationId,
@@ -111,10 +112,15 @@ export const MessageImageSnapshotSchema = z.object({
   image_url: z.string(),
   storage_provider: z.string(),
   source_type: z.string(),
-  width_px: z.number().int(),
-  height_px: z.number().int(),
-  file_size_bytes: z.number().int(),
+  source_reference: z.string().nullable().optional(),
+  width_px: z.number().int().nullable().optional(),
+  height_px: z.number().int().nullable().optional(),
+  file_size_bytes: z.number().int().nullable().optional(),
   created_at: z.string().datetime({ offset: true }),
+  last_event: z.unknown().nullable().optional(),
+  events: z.array(z.unknown()).optional(),
+  image_annotation: ImageAnnotationSchema.nullable().optional(),
+  image_annotations: z.array(ImageAnnotationSchema).optional(),
 });
 
 export const MentionResolutionSchema = z.object({

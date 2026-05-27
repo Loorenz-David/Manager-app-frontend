@@ -641,6 +641,7 @@ The first version should prioritize a stable, well-architected foundation that c
 - `docs/architecture/archives/implementation/PLAN_23_lexical_rich_text_composer_foundation_20260526.md` — archived, implemented the Lexical-backed composer foundation, feature-level composer mode switch, DTO-safe editor serialization boundary, and focused runtime coverage for both rich and fallback composer modes.
 - `docs/architecture/archives/implementation/PLAN_24_composer_styling_toolbar_and_inline_style_toggles_20260526.md` — archived, implemented the rich-composer styling toolbar, active inline-style toggles, deterministic collapsed-selection insertion styles, and focused runtime coverage for toolbar interactions.
 - `docs/architecture/archives/implementation/PLAN_25_bottom_sheet_styling_interactions_and_keyboard_restoration_20260526.md` — archived, originally scoped a bottom-sheet color flow but ultimately implemented an inline expanded color toolbar mode after the sheet strategy proved disruptive to keyboard and selection continuity.
+- `docs/architecture/archives/implementation/PLAN_27_image_attachments_in_case_conversation_20260526.md` — archived, integrated generic image attachments into case conversation drafts, added retryable composer uploads, and rendered persisted message images inside bubbles.
 
 ## Progress notes
 
@@ -658,3 +659,4 @@ The first version should prioritize a stable, well-architected foundation that c
 - `2026-05-26T16:49:36Z` `codex`: Implemented the Lexical-backed rich composer foundation, added the feature-level composer mode switch plus DTO-safe editor serialization, passed `npm run typecheck` and the focused mobile composer Playwright spec, and archived PLAN 23.
 - `2026-05-26T17:04:21Z` `codex`: Implemented the rich-composer styling toolbar, added active inline-style toggles plus deterministic collapsed-selection insertion styles, passed `npm run typecheck` and the focused mobile composer Playwright spec, and archived PLAN 24.
 - `2026-05-26T18:22:17Z` `codex`: Rejected the original PLAN 25 sheet orchestration during implementation, reverted to the PLAN 24 toolbar baseline, implemented inline expanded color selection instead, passed `npm run typecheck` and the focused mobile composer Playwright spec, and archived PLAN 25.
+- `2026-05-27T05:27:38Z` `codex`: Integrated generic image attachments into case conversation drafts, added retryable upload support plus persisted message-image bubbles, passed `npm run typecheck` and focused attachment/image Vitest coverage, and archived PLAN 27.

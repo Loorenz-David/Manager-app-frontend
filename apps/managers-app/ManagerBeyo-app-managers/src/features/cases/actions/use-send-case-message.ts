@@ -1,24 +1,17 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiRequestError } from '@/lib/api-client';
-import { generateClientId } from '@/lib/client-id';
 import type { CaseId } from '@/types/common';
 
 import { caseKeys } from '../api/case-keys';
 import { sendMessage } from '../api/send-message';
 import type { SendMessageInput } from '../types';
 
-type SendCaseMessageVariables = Omit<SendMessageInput, 'client_id'>;
-
 export function useSendCaseMessage(caseClientId: CaseId) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (input: SendCaseMessageVariables) =>
-      sendMessage({
-        ...input,
-        client_id: generateClientId('CaseConversationMessage'),
-      }),
+    mutationFn: (input: SendMessageInput) => sendMessage(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: caseKeys.detail(caseClientId),
