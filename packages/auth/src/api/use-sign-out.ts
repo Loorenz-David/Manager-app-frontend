@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { setAccessToken } from "@beyo/api-client";
-import { apiClient } from "@beyo/api-client";
+import { apiClient, setAccessToken } from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 

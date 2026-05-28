@@ -4,8 +4,6 @@ export { durations, easings, transitions, tabVariants } from './animation';
 
 export { notify } from './notify';
 
-export { lazyWithPreload } from './lazy-with-preload';
-
 export {
   CLIENT_ID_PREFIXES,
   CLIENT_ID_REGEX,

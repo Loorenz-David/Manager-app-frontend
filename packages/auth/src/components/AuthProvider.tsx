@@ -3,8 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { PageSkeleton } from "@beyo/ui";
-import { decodeTokenClaims, initSession } from "@beyo/api-client";
-import { apiClient } from "@beyo/api-client";
+import { apiClient, decodeTokenClaims, initSession } from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import type { UserId, WorkspaceId } from "@beyo/lib";
@@ -76,7 +75,7 @@ export function AuthProvider({
     window.addEventListener("auth:session-expired", handleExpired);
     return () =>
       window.removeEventListener("auth:session-expired", handleExpired);
-  }, [clearAuth, queryClient, navigate]);
+  }, [clearAuth, queryClient, navigate, signInRoute]);
 
   if (!ready) {
     return <PageSkeleton />;

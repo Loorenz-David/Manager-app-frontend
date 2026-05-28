@@ -9,7 +9,7 @@ This document is the authoritative contract for AI agents performing the task of
 Packages expose **raw TypeScript source files** — there is no `tsc` build, no `dist/` output, and no per-package compilation step. Each consuming app's Vite compiler traverses and compiles package source as part of the app build. This is intentional.
 
 **Why this matters:**
-- Tailwind CSS v4 (via `@tailwindcss/vite`) auto-discovers class names from all files in Vite's module graph. Source packages are part of that graph automatically.
+- Tailwind CSS v4 (via `@tailwindcss/vite`) traverses Vite's module graph for class names, but it **excludes `node_modules`** from scanning — including workspace symlinks under `node_modules/@beyo/*`. Consuming apps must explicitly register each package source directory with an `@source` directive in their `index.css` (see §6).
 - No watch-mode or build-pipeline complexity per package.
 - TypeScript with `moduleResolution: "bundler"` resolves `.ts` and `.tsx` files directly from `package.json` `exports`.
 
@@ -127,6 +127,7 @@ Each package has a `tsconfig.json`:
   "compilerOptions": {
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
+    "types": ["node", "vite/client"],
     "module": "esnext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -143,7 +144,33 @@ Each package has a `tsconfig.json`:
 }
 ```
 
+The `"types": ["node", "vite/client"]` field is required to resolve `import.meta.env` (Vite's env object) and Node globals inside package source files. Without it, TypeScript cannot find `import.meta.env` and will error.
+
 **No `paths` aliases inside packages.** Packages use relative imports only. The `@/` alias belongs to apps, not packages.
+
+### App `tsconfig.app.json` — path alias (TypeScript 6)
+
+Apps use `paths` to resolve the `@/` alias. With TypeScript 6 and `moduleResolution: "bundler"`, `paths` entries with relative values resolve relative to the `tsconfig.json` file — `baseUrl` is no longer needed and is deprecated. Do not add `baseUrl` or `ignoreDeprecations`:
+
+```json
+"paths": {
+  "@/*": ["./src/*"]
+}
+```
+
+### CSS imports from `@beyo/styles`
+
+Import styles using the package's declared export path, not a direct internal file path:
+
+```css
+/* ✅ Correct — follows the exports field */
+@import "@beyo/styles";
+
+/* ❌ Wrong — bypasses the package contract */
+@import "@beyo/styles/src/index.css";
+```
+
+Vite's CSS resolver follows the `exports` field in `package.json`. Since `@beyo/styles` declares `"exports": { ".": "./src/index.css" }`, the bare import resolves to the correct file through the public surface.
 
 ---
 
@@ -167,6 +194,29 @@ With `moduleResolution: "bundler"`, TypeScript follows the `"exports"` field in 
 
 Vite also uses the `"exports"` field via `resolve.conditions`. It will find `./src/index.ts` and compile it as part of the app bundle.
 
+### Step 4: App's `src/index.css` — add `@source` directives
+
+Tailwind CSS v4 excludes `node_modules` from scanning, including workspace symlinks. Any `@beyo/*` package that contains Tailwind class names (i.e., `.tsx`/`.ts` files with `className` strings or class name constants) must be explicitly registered.
+
+Add one `@source` line per package, pointing to its `src/` directory relative to the app's `index.css`:
+
+```css
+@import "tailwindcss";
+@import "@beyo/styles";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/auth/src";
+```
+
+**Which packages need `@source`:**
+- `@beyo/ui` — all UI components contain Tailwind class names
+- `@beyo/auth` — `SignInForm` and other auth components contain Tailwind class names
+- `@beyo/lib` — pure utility functions, no Tailwind class names, no `@source` needed
+- `@beyo/api-client` — no Tailwind class names, no `@source` needed
+- `@beyo/hooks` — no Tailwind class names, no `@source` needed
+- `@beyo/styles` — is the CSS source itself; importing it is sufficient
+
+**Rule:** When you add a new `@beyo/*` package to an app and that package contains any `.tsx` with `className` props or `.ts` with class name string constants, add a corresponding `@source` directive. Omitting it produces unstyled components with no error — it fails silently.
+
 ### Verify resolution works
 
 After `npm install`, check that `node_modules/@beyo/<name>` is a symlink pointing to `packages/<name>`. If it is not a symlink, the workspace is not linked — re-run `npm install` from the root.
@@ -176,25 +226,32 @@ After `npm install`, check that `node_modules/@beyo/<name>` is a symlink pointin
 ## 7. Package Catalogue and Peer Dependencies
 
 ### `@beyo/lib`
-**Contents:** `date/`, `number/`, `phone/`, `utils.ts`, `animation.ts`, `notify.ts`, `client-id.ts`
-**Peer dependencies:** `libphonenumber-js`, `sonner`
+**Contents:** `date/`, `number/`, `phone/`, `types/`, `utils.ts`, `animation.ts`, `notify.ts`, `client-id.ts`
+**Peer dependencies:** `clsx`, `libphonenumber-js`, `sonner`, `tailwind-merge`, `ulid`, `zod`
 **No React dependency** — this package is pure TypeScript utilities. Keep it that way.
+- `clsx` + `tailwind-merge` are required by `utils.ts` for the `cn()` helper.
+- `ulid` is required by `client-id.ts`.
+- `zod` is required by the `types/` schema definitions (`ApiEnvelopeSchema`, `ClientIdSchema`, etc.).
+- `lazyWithPreload` is NOT in this package — it is a React utility and lives in `@beyo/ui/src/lib/`.
 
 ### `@beyo/api-client`
 **Contents:** `api-client.ts`, `auth-token.ts`, `env.ts`
-**Peer dependencies:** `zod`
+**Peer dependencies:** `@beyo/lib`, `zod`
 **Note:** `auth-token.ts` lives here because `api-client.ts` calls `refreshAccessToken` and `getAccessToken` from it. They are tightly coupled. Do not split them.
 **Note:** `env.ts` exposes `VITE_API_URL`. Keep it here — both apps need the same env key for the API URL.
+**Note:** `@beyo/lib` is a peer dep because `api-client.ts` imports `ApiErrorSchema` from it.
 
 ### `@beyo/ui`
-**Contents:** `components/primitives/`, `components/surfaces/`, `components/ui/`
-**Peer dependencies:** `react`, `react-dom`, `framer-motion`, `vaul`, `lucide-react`, `clsx`, `tailwind-merge`, `class-variance-authority`, `@use-gesture/react`, `embla-carousel-react`, `react-textarea-autosize`, `react-virtuoso`, `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`
+**Contents:** `components/primitives/`, `components/surfaces/`, `components/ui/`, `providers/SurfaceProvider.tsx`, `lib/lazy-route.tsx`, `lib/lazy-with-preload.ts`
+**Peer dependencies:** `@beyo/lib`, `class-variance-authority`, `framer-motion`, `lucide-react`, `react`, `react-dom`, `react-day-picker`, `react-router-dom`, `react-textarea-autosize`, `vaul`, `zustand`
 **Note:** Only include the peers that the package actually imports. Do not list every dep from the app.
-**Tailwind note:** CSS class names in this package are picked up by Tailwind automatically because Vite includes source files in its module graph. No `@source` directive needed.
+**Note:** `lazyWithPreload` lives in `lib/lazy-with-preload.ts` here (not in `@beyo/lib`) because it wraps `React.lazy` and is inherently a React utility.
+**Note:** `clsx` and `tailwind-merge` are NOT listed as peers here — they are accessed through the `cn()` helper exported from `@beyo/lib`.
+**Tailwind note:** CSS class names in this package are NOT picked up automatically — Tailwind excludes `node_modules` (including workspace symlinks) from scanning. Consuming apps must add `@source "../../../../packages/ui/src"` to their `index.css`. See §6 Step 4.
 
 ### `@beyo/hooks`
-**Contents:** `hooks/` (surface hooks, use-staged-form, use-surface-*)
-**Peer dependencies:** `react`, `@beyo/ui`
+**Contents:** `BreakpointProvider.tsx`, `use-preload-surface.ts`, `use-staged-form.ts`, `use-surface.ts`, `use-surface-header.ts`, `use-surface-props.ts`
+**Peer dependencies:** `@beyo/lib`, `@beyo/ui`, `react`
 
 ### `@beyo/auth`
 **Contents:** `features/auth/` — session initialization, guards, auth context

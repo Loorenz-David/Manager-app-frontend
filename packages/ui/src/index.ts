@@ -20,6 +20,7 @@ export { SurfaceSkeleton } from './components/ui/SurfaceSkeleton';
 export { RouteErrorBoundary } from './components/ui/RouteErrorBoundary';
 
 export { lazyRoute } from './lib/lazy-route';
+export { lazyWithPreload } from './lib/lazy-with-preload';
 
 export * from './components/primitives/box-picker';
 export * from './components/primitives/box-slide-picker';

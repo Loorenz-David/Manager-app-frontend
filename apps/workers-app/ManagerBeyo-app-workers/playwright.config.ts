@@ -70,7 +70,9 @@ export default defineConfig({
 
     url: "http://localhost:5174",
 
-    reuseExistingServer: true,
+    cwd: process.cwd(),
+
+    reuseExistingServer: false,
 
     timeout: 120 * 1000,
   },
