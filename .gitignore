@@ -29,3 +29,18 @@ dist-ssr
 node_modules/
 
 **/node_modules/
+
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.test.example
+
+
+# Test artifacts
+test-results/
+playwright-report/
+blob-report/
+coverage/
+.nyc_output/
