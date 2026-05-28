@@ -1,0 +1,50 @@
+@theme {
+  --color-background: #f4f4f4;
+  --color-foreground: #303030;
+  --color-card: #ffffff;
+  --color-muted: #d0d3d9;
+  --color-muted-foreground: #6e7785;
+  --color-muted-intense: #6e778599;
+  --color-primary: #303030;
+  --color-border: #d0d3d9;
+  --color-light-container: #fafafa;
+  --color-soft-container: #f8f9fa;
+  --color-light-border: #f5f5f5;
+  --color-between-border: #dedede;
+  --color-icon: #8e8e8e;
+  --color-destructive: #c0392b;
+  --color-info-pill: #e8e8e8;
+  --color-info-pill-border: #d8d8d8;
+}
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+body {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: Inter, system-ui, sans-serif;
+}

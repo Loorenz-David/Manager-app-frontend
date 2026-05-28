@@ -1,0 +1,14 @@
+{
+  "name": "@beyo/hooks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@beyo/lib": "*",
+    "@beyo/ui": "*",
+    "react": ">=19.0.0"
+  }
+}
