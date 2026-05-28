@@ -27,8 +27,6 @@ import {
   useCreateTask,
 } from "@/features/tasks";
 import {
-  NeedsCleaningPickerField,
-  OilingTreatmentPickerField,
   WorkingSectionPickerField,
   preloadWorkingSectionWorkerPickerSurface,
 } from "@/features/working-sections";
@@ -45,12 +43,7 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
   string,
   FieldPath<InternalFormValues>[]
 > = {
-  item: [
-    "item",
-    "item_upholstery",
-    "needs_cleaning_assignment",
-    "oiling_treatment_assignment",
-  ],
+  item: ["item", "item_upholstery"],
   assignment: ["working_section_assignments"],
   task: ["item_issues", "ready_by_at", "additional_details"],
 };
@@ -105,8 +98,6 @@ export function InternalFormContent(): React.JSX.Element {
         upholstery_amount_meters: null,
       },
       item_issues: [],
-      needs_cleaning_assignment: null,
-      oiling_treatment_assignment: null,
       working_section_assignments: [],
       ready_by_at: null,
       additional_details: "",
@@ -135,12 +126,7 @@ export function InternalFormContent(): React.JSX.Element {
         if (!allValid) {
           const { errors } = form.formState;
 
-          if (
-            errors.item ??
-            errors.item_upholstery ??
-            errors.needs_cleaning_assignment ??
-            errors.oiling_treatment_assignment
-          ) {
+          if (errors.item ?? errors.item_upholstery) {
             setStatus("item", "error");
           }
           if (
@@ -186,8 +172,6 @@ export function InternalFormContent(): React.JSX.Element {
             upholstery_amount_meters: null,
           },
           item_issues: [],
-          needs_cleaning_assignment: null,
-          oiling_treatment_assignment: null,
           working_section_assignments: [],
           ready_by_at: null,
           additional_details: "",
@@ -240,12 +224,6 @@ export function InternalFormContent(): React.JSX.Element {
                   <ItemQuantityField />
                 </ContentCard>
               ) : null}
-              {majorCategory === "wood" ? (
-                <ContentCard>
-                  <NeedsCleaningPickerField />
-                  <OilingTreatmentPickerField />
-                </ContentCard>
-              ) : null}
               {majorCategory === "seat" ? (
                 <ContentCard>
                   <UpholsteryField control={form.control} />
@@ -272,6 +250,7 @@ export function InternalFormContent(): React.JSX.Element {
                 <EntityImagesProvider
                   entityClientId={itemClientId}
                   captureFlow="camera-to-editor"
+                  deleteMode="hard-delete"
                   entityType="item"
                 >
                   <ImagePreviewGrid

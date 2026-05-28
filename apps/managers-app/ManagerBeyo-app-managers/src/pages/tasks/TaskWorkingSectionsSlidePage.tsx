@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 
 function TaskWorkingSectionsFooter({
   availableSections,
+  selectedSectionIds,
   canShowShortcuts,
   hasUnsavedChanges,
   isSaving,
@@ -32,6 +33,7 @@ function TaskWorkingSectionsFooter({
   availableSections: ReturnType<
     typeof useTaskWorkingSectionsContext
   >["sectionEntries"][number]["section"][];
+  selectedSectionIds: string[];
   canShowShortcuts: boolean;
   hasUnsavedChanges: boolean;
   isSaving: boolean;
@@ -45,19 +47,27 @@ function TaskWorkingSectionsFooter({
       {canShowShortcuts ? (
         <div
           className={cn(
-            "overflow-hidden transition-[max-height,margin-bottom] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isHidden ? "mb-0 max-h-0" : "mb-3 max-h-24",
+            "overflow-hidden transition-[max-height,margin,opacity] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            isHidden ? "mb-0 max-h-0 opacity-0" : "mb-3 max-h-28 opacity-100",
           )}
         >
-          <WorkingSectionShortcutBar
-            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
-            availableSections={availableSections}
-            onShortcutPress={onShortcutPress}
-            animationMode="translate"
-            data-testid="task-working-sections-shortcut-bar"
-            className="py-2"
-            trackClassName="mt-3"
-          />
+          <div
+            className={cn(
+              "transition-transform duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              isHidden ? "translate-y-full" : "translate-y-0",
+            )}
+          >
+            <WorkingSectionShortcutBar
+              shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+              availableSections={availableSections}
+              selectedSectionIds={selectedSectionIds}
+              onShortcutPress={onShortcutPress}
+              animationMode="translate"
+              data-testid="task-working-sections-shortcut-bar"
+              className="py-2"
+              trackClassName="mt-3"
+            />
+          </div>
         </div>
       ) : null}
 
@@ -81,6 +91,13 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
   const controller = useTaskWorkingSectionsContext();
   const availableSections = useMemo(
     () => controller.sectionEntries.map((entry) => entry.section),
+    [controller.sectionEntries],
+  );
+  const selectedSectionIds = useMemo(
+    () =>
+      controller.sectionEntries
+        .filter((entry) => entry.isActive)
+        .map((entry) => entry.section.client_id),
     [controller.sectionEntries],
   );
   const staged = useStagedForm({
@@ -150,6 +167,7 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
       footer={
         <TaskWorkingSectionsFooter
           availableSections={availableSections}
+          selectedSectionIds={selectedSectionIds}
           canShowShortcuts={showShortcutBar}
           hasUnsavedChanges={controller.hasUnsavedChanges}
           isSaving={controller.isSaving}

@@ -136,9 +136,17 @@ function buildTextAnnotation(
 export function ImageEditorPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
-  const { image, isDirectCaptureSession, onSaveComplete, onCancelCapture } =
+  const {
+    image,
+    isDirectCaptureSession,
+    onSaveComplete,
+    onCancelCapture,
+    onDeferredConfirm,
+  } =
     useSurfaceProps<ImageEditorSurfaceProps>();
-  const { data: freshImage } = useImageQuery(image?.clientId);
+  const { data: freshImage } = useImageQuery(
+    onDeferredConfirm ? undefined : image?.clientId,
+  );
   const { createAnnotationAsync, isPending } = useCreateImageAnnotation();
   const { deleteAnnotationAsync } = useDeleteImageAnnotation();
   const { updateAnnotation } = useUpdateImageAnnotation();
@@ -229,7 +237,8 @@ export function ImageEditorPage(): React.JSX.Element {
   const hasUnsavedChanges =
     sessionItems.length > 0 || (textAnchor !== null && textValue.trim() !== "");
   const isAnnotationUnavailable =
-    !currentImage || currentImage.uploadState !== "completed";
+    !currentImage ||
+    (onDeferredConfirm === undefined && currentImage.uploadState !== "completed");
 
   useEffect(() => {
     header?.setTitle("");
@@ -423,6 +432,13 @@ export function ImageEditorPage(): React.JSX.Element {
       return;
     }
 
+    if (onDeferredConfirm) {
+      onDeferredConfirm(finalSessionItems);
+      useSurfaceStore.getState().close(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID);
+      completeSaveFlow();
+      return;
+    }
+
     const payload = buildImageAnnotationPayload(finalSessionItems);
 
     if (!payload || finalSessionItems.length === 0) {
@@ -446,6 +462,7 @@ export function ImageEditorPage(): React.JSX.Element {
     commitMove,
     createAnnotationAsync,
     currentImage,
+    onDeferredConfirm,
     resetTextDraft,
     sessionItems,
     textAnchor,
@@ -520,6 +537,14 @@ export function ImageEditorPage(): React.JSX.Element {
     onCancelCapture,
     surface,
   ]);
+
+  useEffect(() => {
+    header?.setCloseInterceptor(handleClose);
+
+    return () => {
+      header?.setCloseInterceptor(null);
+    };
+  }, [handleClose, header]);
 
   const handleUndo = useCallback(() => {
     if (textAnchor !== null) {

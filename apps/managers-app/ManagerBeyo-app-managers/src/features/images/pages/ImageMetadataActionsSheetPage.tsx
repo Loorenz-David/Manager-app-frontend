@@ -13,6 +13,7 @@ const UPLOAD_STATE_LABELS: Record<ImageUploadState, string | null> = {
   compressing: 'Compressing',
   requesting_upload_url: 'Preparing upload',
   uploading: 'Uploading',
+  pre_confirm: 'Ready to finalize',
   confirming: 'Finalizing upload',
   completed: null,
   failed: 'Upload failed',

@@ -82,15 +82,24 @@ export function ImageCameraPage(): React.JSX.Element {
         onEditCapturedImage?.(capturedImage);
       }
 
-      const thumbUrl = URL.createObjectURL(blob);
-      if (localLatestUrlRef.current)
-        URL.revokeObjectURL(localLatestUrlRef.current);
-      localLatestUrlRef.current = thumbUrl;
-      setLocalLatestUrl(thumbUrl);
+      if (captureFlow !== "camera-to-editor") {
+        const thumbUrl = URL.createObjectURL(blob);
+        if (localLatestUrlRef.current)
+          URL.revokeObjectURL(localLatestUrlRef.current);
+        localLatestUrlRef.current = thumbUrl;
+        setLocalLatestUrl(thumbUrl);
+      }
     } finally {
       setIsCapturing(false);
     }
-  }, [captureFrame, isCapturing, onCapture, triggerFlash]);
+  }, [
+    captureFlow,
+    captureFrame,
+    isCapturing,
+    onCapture,
+    onEditCapturedImage,
+    triggerFlash,
+  ]);
 
   const handleClose = useCallback(() => {
     header?.requestClose();

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_image_confirm_upload_deferred_instance_flow_20260527`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `GitHub Copilot`
 - Created at (UTC): `2026-05-27T00:00:00Z`
-- Last updated at (UTC): `2026-05-27T00:00:00Z`
+- Last updated at (UTC): `2026-05-27T13:32:23Z`
 - Related issue/ticket: —
 - Intention plan: `docs/architecture/under_construction/intention/INTENTION_image_confirm_upload_deferred_instance_flow_20260527.md`
 
@@ -902,10 +902,12 @@ Currently `isSaving={isPending || isCancelingCapture}` passes `isPending` from `
 
 ## Review log
 
-_(empty)_
+- `2026-05-27T13:32:23Z` — Implemented deferred pre-upload + background confirm flow across image schemas, pipeline, controller, and editor.
+- `2026-05-27T13:32:23Z` — Added focused Vitest coverage for pre-upload, batch validation, and deferred confirm payload sequencing.
+- `2026-05-27T13:32:23Z` — Validation passed: `npm run typecheck`, focused Vitest suite for touched image files.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `David`
+- Current state: `archived`
+- Next state: `—`
+- Transition owner: `Codex`

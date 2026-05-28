@@ -12,6 +12,7 @@ import {
   $isLineBreakNode,
   $isRangeSelection,
   $isTextNode,
+  $setSelection,
   FORMAT_TEXT_COMMAND,
   KEY_DOWN_COMMAND,
   COMMAND_PRIORITY_LOW,
@@ -313,7 +314,14 @@ function replaceRootWithContent(content: CaseMessageContent): void {
     root.append(paragraphNode);
   }
 
-  root.selectEnd();
+  if (content.parts.length > 0) {
+    root.selectEnd();
+  } else {
+    // Explicitly clear selection so Lexical has nothing to reconcile against the
+    // DOM. Leaving the previous stale selection causes Lexical to briefly focus
+    // the contenteditable to re-establish it, which reopens the mobile keyboard.
+    $setSelection(null);
+  }
 }
 
 export function createPlainTextCaseMessageContent(

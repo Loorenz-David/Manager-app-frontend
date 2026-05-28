@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 
-import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
 import { cn } from "@/lib/utils";
 
 import { useCaseConversationMessagesContext } from "../providers/CaseConversationProvider";
 import { CaseMessageRow } from "./CaseMessageRow";
 
 const PREPEND_STABLE_BASE_INDEX = 10_000;
+const OLDER_MESSAGES_PREFETCH_TOP_PX = 96;
 const FOOTER_BOTTOM_OFFSET_STYLE = {
   height:
     "var(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem))",
@@ -24,9 +24,7 @@ function VirtuosoEmptyPlaceholder() {
   return (
     <div className="flex min-h-full items-end px-4 pb-(--case-conversation-bottom-offset,calc(var(--safe-bottom,0px)+6rem)) pt-8">
       <div className="w-full rounded-4xl border border-dashed border-border bg-card/70 px-6 py-8 text-center shadow-sm">
-        <p className="text-sm font-semibold text-foreground">
-          No messages yet
-        </p>
+        <p className="text-sm font-semibold text-foreground">No messages yet</p>
         <p className="mt-2 text-sm text-muted-foreground">
           The conversation thread is ready for the upcoming composer flow.
         </p>
@@ -34,6 +32,15 @@ function VirtuosoEmptyPlaceholder() {
     </div>
   );
 }
+
+// Stable components object — defined outside the component so the reference never
+// changes across renders. Virtuoso treats a new reference as a different component
+// type and unmounts/remounts the slot, producing a height-0 flash that misfires
+// followOutput and jumps the scroll to the bottom.
+const VIRTUOSO_COMPONENTS = {
+  Footer: VirtuosoFooter,
+  EmptyPlaceholder: VirtuosoEmptyPlaceholder,
+};
 
 type CaseMessageListProps = {
   onScrollerRef: (element: HTMLElement | null) => void;
@@ -43,10 +50,7 @@ export function CaseMessageList({
   onScrollerRef,
 }: CaseMessageListProps): React.JSX.Element {
   const controller = useCaseConversationMessagesContext();
-  const { isHidden: isContextBannerCollapsed, suspend } =
-    useScrollVisibilityContext();
   const virtuosoRef = useRef<VirtuosoHandle | null>(null);
-  const topInsetRef = useRef<HTMLDivElement | null>(null);
   const [scrollerElement, setScrollerElement] = useState<HTMLElement | null>(
     null,
   );
@@ -57,10 +61,7 @@ export function CaseMessageList({
   const initialTopMostItemIndexRef = useRef<
     { index: number; align: "end" } | 0
   >(0);
-  if (
-    controller.items.length > 0 &&
-    initialTopMostItemIndexRef.current === 0
-  ) {
+  if (controller.items.length > 0 && initialTopMostItemIndexRef.current === 0) {
     initialTopMostItemIndexRef.current = {
       index: controller.items.length - 1,
       align: "end",
@@ -84,52 +85,16 @@ export function CaseMessageList({
       if (delta > 0) tracker.prependedCount += delta;
     }
     tracker.prevPageCount = controller.pageCount;
-    tracker.prevItemCount = controller.items.length;
   }
+  tracker.prevItemCount = controller.items.length;
   const firstItemIndex = PREPEND_STABLE_BASE_INDEX - tracker.prependedCount;
-
-  // Ref lets the Header read the current loading state without being recreated.
-  const isLoadingOlderRef = useRef(controller.isLoadingOlder);
-  isLoadingOlderRef.current = controller.isLoadingOlder;
-
-  // Header only recreates when the banner state changes (infrequent; handled by the
-  // existing ResizeObserver below). It must NOT recreate on data arrival — a new
-  // function reference causes Virtuoso to unmount/remount the Header, creating a
-  // brief height-0 flash that triggers scroll compensation and produces the flicker.
-  const components = useMemo(
-    () => ({
-      Footer: VirtuosoFooter,
-      EmptyPlaceholder: VirtuosoEmptyPlaceholder,
-      Header: () => (
-        <>
-          <div
-            ref={topInsetRef}
-            className={cn(
-              "transition-[height] duration-200 ease-out",
-              isContextBannerCollapsed ? "h-20" : "h-36",
-            )}
-          />
-          <div className="flex justify-center px-4 py-3">
-            <span
-              className={cn(
-                "rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm",
-                !isLoadingOlderRef.current && "invisible",
-              )}
-            >
-              Loading older messages...
-            </span>
-          </div>
-        </>
-      ),
-    }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [isContextBannerCollapsed],
-  );
 
   useEffect(() => {
     if (!scrollerElement) {
       return;
     }
+
+    scrollerElement.style.overflowAnchor = "none";
 
     const handleScroll = () => {
       const maxScrollTop = Math.max(
@@ -139,6 +104,12 @@ export function CaseMessageList({
       controller.handleListScroll({
         distanceFromBottom: maxScrollTop - scrollerElement.scrollTop,
       });
+
+      // Trigger older-page fetch slightly before absolute top to reduce
+      // visible anchor compensation jumps during prepend.
+      if (scrollerElement.scrollTop <= OLDER_MESSAGES_PREFETCH_TOP_PX) {
+        controller.loadOlder();
+      }
     };
 
     handleScroll();
@@ -146,41 +117,9 @@ export function CaseMessageList({
 
     return () => {
       scrollerElement.removeEventListener("scroll", handleScroll);
+      scrollerElement.style.overflowAnchor = "";
     };
   }, [controller, scrollerElement]);
-
-  useEffect(() => {
-    const scrollElement = scrollerElement;
-    const topInsetElement = topInsetRef.current;
-
-    if (!scrollElement || !topInsetElement) {
-      return;
-    }
-
-    let previousHeight = -1;
-
-    const observer = new ResizeObserver(([entry]) => {
-      const nextHeight = entry.contentRect.height;
-
-      if (previousHeight === -1) {
-        previousHeight = nextHeight;
-        return;
-      }
-
-      const delta = previousHeight - nextHeight;
-      previousHeight = nextHeight;
-
-      if (delta === 0 || scrollElement.scrollTop <= 0) {
-        return;
-      }
-
-      suspend();
-      scrollElement.scrollTop = Math.max(0, scrollElement.scrollTop - delta);
-    });
-
-    observer.observe(topInsetElement);
-    return () => observer.disconnect();
-  }, [isContextBannerCollapsed, scrollerElement, suspend]);
 
   useEffect(() => {
     if (controller.pageCount > 0 && controller.items.length === 0) {
@@ -261,21 +200,24 @@ export function CaseMessageList({
 
   return (
     <div
-      className={cn("min-h-0 flex-1 bg-background")}
+      className={cn(
+        "min-h-0 flex-1 bg-background transition-opacity duration-100",
+        isScrollVisibilityReady ? "opacity-100" : "opacity-0",
+      )}
       data-testid="case-message-list"
     >
       <Virtuoso
         ref={virtuosoRef}
         alignToBottom
         className="h-full"
-        components={components}
+        components={VIRTUOSO_COMPONENTS}
         computeItemKey={(_index, item) => item.key}
         data={controller.items}
         data-testid="case-conversation-scroll-container"
-        defaultItemHeight={88}
+        defaultItemHeight={420}
         firstItemIndex={firstItemIndex}
         followOutput={(isAtBottom) => (isAtBottom ? "auto" : false)}
-        increaseViewportBy={{ top: 240, bottom: 320 }}
+        increaseViewportBy={{ top: 600, bottom: 320 }}
         initialTopMostItemIndex={initialTopMostItemIndexRef.current}
         itemContent={(_index, item) => <CaseMessageRow item={item} />}
         scrollerRef={(element) => {

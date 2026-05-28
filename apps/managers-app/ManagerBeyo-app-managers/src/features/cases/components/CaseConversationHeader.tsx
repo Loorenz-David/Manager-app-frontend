@@ -7,7 +7,7 @@ export function CaseConversationHeader(): React.JSX.Element {
 
   return (
     <header
-      className="fixed inset-x-0 top-[var(--safe-top)] z-30 border-b border-border bg-background"
+      className="relative z-30 border-b border-border bg-background"
       data-testid="case-conversation-header"
     >
       <div className="flex min-h-20 items-center gap-3  py-3">
@@ -39,7 +39,7 @@ export function CaseConversationHeader(): React.JSX.Element {
         <div className="flex shrink-0 items-center gap-2">
           <button
             aria-label="Open info"
-            className="flex size-8 px-2 items-center justify-center rounded-lg shadow-sm border border-[color:var(--color-light-border)] bg-card text-foreground transition-colors duration-150 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex size-8 items-center justify-center rounded-lg border border-light-border bg-card px-2 text-foreground shadow-sm transition-colors duration-150 hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
             data-testid="case-conversation-info-button"
             disabled={!controller.canOpenInfo}
             onClick={controller.openInfo}
@@ -50,7 +50,7 @@ export function CaseConversationHeader(): React.JSX.Element {
 
           {controller.stateActionLabel ? (
             <button
-              className="inline-flex min-h-8 items-center justify-center mr-3 rounded-lg bg-card shadow-sm border border-[color:var(--color-light-border)] px-4 py-1 text-sm font-semibold text-primary transition disabled:cursor-not-allowed disabled:opacity-60"
+              className="mr-3 inline-flex min-h-8 items-center justify-center rounded-lg border border-light-border bg-card px-4 py-1 text-sm font-semibold text-primary shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
               data-testid="case-conversation-state-button"
               disabled={controller.isAdvancingState}
               onClick={() => {

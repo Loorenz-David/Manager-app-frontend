@@ -23,7 +23,23 @@ export type ImageUploadPipelineInput = {
   onProgress?: (state: UploadPipelineProgressState) => void;
 };
 
-export async function runImageUploadPipeline(input: ImageUploadPipelineInput): Promise<Image> {
+export type ImagePreUploadResult = {
+  pendingUploadClientId: string;
+  widthPx: number;
+  heightPx: number;
+};
+
+export type ImagePreUploadPipelineInput = {
+  rawBlob: Blob;
+  entityType: ImageLinkEntityType;
+  entityClientId: string;
+  compressionOptions?: ImageCompressionOptions;
+  onProgress?: (state: UploadPipelineProgressState) => void;
+};
+
+export async function runImagePreUploadPipeline(
+  input: ImagePreUploadPipelineInput,
+): Promise<ImagePreUploadResult> {
   const compressionOptions =
     input.compressionOptions ?? DEFAULT_IMAGE_COMPRESSION_OPTIONS;
 
@@ -46,9 +62,25 @@ export async function runImageUploadPipeline(input: ImageUploadPipelineInput): P
     contentType: compressedImage.contentType,
   });
 
+  return {
+    pendingUploadClientId: uploadData.pending_upload_client_id,
+    widthPx: compressedImage.widthPx,
+    heightPx: compressedImage.heightPx,
+  };
+}
+
+export async function runImageUploadPipeline(input: ImageUploadPipelineInput): Promise<Image> {
+  const preUploadResult = await runImagePreUploadPipeline({
+    rawBlob: input.rawBlob,
+    entityType: input.entityType,
+    entityClientId: input.entityClientId,
+    compressionOptions: input.compressionOptions,
+    onProgress: input.onProgress,
+  });
+
   input.onProgress?.('confirming');
   const image = await confirmImageUpload({
-    pending_upload_client_id: uploadData.pending_upload_client_id,
+    pending_upload_client_id: preUploadResult.pendingUploadClientId,
     entity_type: input.entityType,
     entity_client_id: input.entityClientId,
   });

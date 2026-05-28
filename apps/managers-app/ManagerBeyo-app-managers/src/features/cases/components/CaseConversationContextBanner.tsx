@@ -37,8 +37,8 @@ export function CaseConversationContextBanner(): React.JSX.Element | null {
   return (
     <div
       className={cn(
-        "fixed inset-x-0 top-[calc(var(--safe-top)+5rem)] z-20 h-16 overflow-hidden",
-        "border-b border-primary/20 bg-primary text-card shadow-sm will-change-transform",
+        "absolute inset-x-0 top-full z-20 h-16 overflow-hidden",
+        "border-b border-muted bg-primary text-card shadow-sm will-change-transform",
         // CSS transition keeps the animation on the compositor even under heavy scroll load.
         // duration and ease match the previous Framer Motion transition exactly.
         "transition-transform duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",

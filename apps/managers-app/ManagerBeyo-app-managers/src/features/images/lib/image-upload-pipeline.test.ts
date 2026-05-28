@@ -33,7 +33,10 @@ vi.mock('../api/confirm-image-upload', () => ({
   confirmImageUpload: confirmImageUploadMock,
 }));
 
-import { runImageUploadPipeline } from './image-upload-pipeline';
+import {
+  runImagePreUploadPipeline,
+  runImageUploadPipeline,
+} from './image-upload-pipeline';
 import { buildImage } from '../test-utils';
 
 describe('runImageUploadPipeline', () => {
@@ -123,5 +126,29 @@ describe('runImageUploadPipeline', () => {
       entity_type: 'item',
       entity_client_id: 'item_1',
     });
+  });
+
+  it('returns pre-upload metadata without confirming the image instance', async () => {
+    const progressStates: string[] = [];
+
+    await expect(
+      runImagePreUploadPipeline({
+        rawBlob: new Blob(['raw']),
+        entityType: 'item',
+        entityClientId: 'item_1',
+        onProgress: (state) => progressStates.push(state),
+      }),
+    ).resolves.toEqual({
+      pendingUploadClientId: 'pending_1',
+      widthPx: 400,
+      heightPx: 400,
+    });
+
+    expect(progressStates).toEqual([
+      'compressing',
+      'requesting_upload_url',
+      'uploading',
+    ]);
+    expect(confirmImageUploadMock).not.toHaveBeenCalled();
   });
 });

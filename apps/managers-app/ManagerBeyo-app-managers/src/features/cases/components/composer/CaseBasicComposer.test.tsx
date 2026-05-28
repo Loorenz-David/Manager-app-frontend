@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -70,5 +70,21 @@ describe("CaseBasicComposer", () => {
     expect(
       screen.queryByTestId("mock-inline-camera-button"),
     ).not.toBeInTheDocument();
+  });
+
+  it("blurs the focused textarea before sending", () => {
+    controllerValue.draftText = "Need help";
+
+    render(<CaseBasicComposer />);
+
+    const textarea = screen.getByTestId("case-composer-textarea");
+    textarea.focus();
+
+    expect(textarea).toHaveFocus();
+
+    fireEvent.click(screen.getByTestId("case-composer-send-button"));
+
+    expect(controllerValue.sendDraft).toHaveBeenCalledTimes(1);
+    expect(textarea).not.toHaveFocus();
   });
 });

@@ -141,33 +141,10 @@ export function normalizeInternalFormPayload(
     Boolean(issueFields) || Boolean(upholsteryFields),
   );
 
-  const steps = [
-    ...(values.working_section_assignments ?? []).map((assignment) => ({
-      working_section_id: assignment.working_section_id,
-      worker_id: assignment.assigned_worker_id || undefined,
-    })),
-    ...(values.needs_cleaning_assignment
-      ? [
-          {
-            working_section_id:
-              values.needs_cleaning_assignment.working_section_id,
-            worker_id:
-              values.needs_cleaning_assignment.assigned_worker_id || undefined,
-          },
-        ]
-      : []),
-    ...(values.oiling_treatment_assignment
-      ? [
-          {
-            working_section_id:
-              values.oiling_treatment_assignment.working_section_id,
-            worker_id:
-              values.oiling_treatment_assignment.assigned_worker_id ||
-              undefined,
-          },
-        ]
-      : []),
-  ];
+  const steps = (values.working_section_assignments ?? []).map((assignment) => ({
+    working_section_id: assignment.working_section_id,
+    worker_id: assignment.assigned_worker_id || undefined,
+  }));
 
   return {
     client_id: ids.taskClientId,

@@ -6,6 +6,7 @@ import { m } from "framer-motion";
 import { CaseComposerAttachmentStrip } from "./CaseComposerAttachmentStrip";
 import { CaseComposerDraftImagesProvider } from "./CaseComposerDraftImagesProvider";
 import { CaseComposerInlineCameraButton } from "./CaseComposerInlineCameraButton";
+import { blurActiveComposerElement } from "./blur-active-composer-element";
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 
 export function CaseBasicComposer(): React.JSX.Element {
@@ -23,6 +24,16 @@ export function CaseBasicComposer(): React.JSX.Element {
   const composerPlaceholder = isEditing
     ? "Edit your message"
     : "Write a message";
+  const handleSubmit = () => {
+    blurActiveComposerElement();
+
+    if (isEditing) {
+      void controller.submitEdit();
+      return;
+    }
+
+    void controller.sendDraft();
+  };
 
   useEffect(() => {
     if (composerValue.trim().length === 0) {
@@ -74,23 +85,6 @@ export function CaseBasicComposer(): React.JSX.Element {
             </div>
           ) : null}
 
-          {isEditing ? (
-            <div
-              className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5 text-sm text-foreground"
-              data-testid="case-composer-edit-mode"
-            >
-              <span className="min-w-0 flex-1 font-medium">
-                Editing message
-              </span>
-              <button
-                className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-muted"
-                onClick={controller.cancelEditing}
-                type="button"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : null}
           {composerError ? (
             <div
               className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive"
@@ -100,14 +94,8 @@ export function CaseBasicComposer(): React.JSX.Element {
               <button
                 className="shrink-0 rounded-full border border-destructive/30 px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isEditing ? isEditDisabled : isSendDisabled}
-                onClick={() => {
-                  if (isEditing) {
-                    void controller.submitEdit();
-                    return;
-                  }
-
-                  void controller.sendDraft();
-                }}
+                onClick={handleSubmit}
+                onPointerDown={blurActiveComposerElement}
                 type="button"
               >
                 Retry
@@ -164,9 +152,8 @@ export function CaseBasicComposer(): React.JSX.Element {
                   className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                   data-testid="case-composer-save-button"
                   disabled={isEditDisabled}
-                  onClick={() => {
-                    void controller.submitEdit();
-                  }}
+                  onClick={handleSubmit}
+                  onPointerDown={blurActiveComposerElement}
                   type="button"
                 >
                   Save
@@ -178,9 +165,8 @@ export function CaseBasicComposer(): React.JSX.Element {
                 className="mr-0.5 self-end flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                 data-testid="case-composer-send-button"
                 disabled={isSendDisabled}
-                onClick={() => {
-                  void controller.sendDraft();
-                }}
+                onClick={handleSubmit}
+                onPointerDown={blurActiveComposerElement}
                 type="button"
               >
                 <SendHorizontal className="size-4" />

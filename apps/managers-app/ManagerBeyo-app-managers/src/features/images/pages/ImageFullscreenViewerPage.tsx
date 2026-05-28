@@ -1,26 +1,26 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
-import { Ellipsis, Pencil, X } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { Ellipsis, Pencil, X } from "lucide-react";
 
-import { useSurface } from '@/hooks/use-surface';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider'; // kept for auto-close effect only
-import { useImageQuery } from '../api/use-image';
+import { useSurface } from "@/hooks/use-surface";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { useSurfaceStore } from "@/providers/SurfaceProvider"; // kept for auto-close effect only
+import { useImageQuery } from "../api/use-image";
 import {
   IMAGE_EDITOR_SURFACE_ID,
   IMAGE_METADATA_SURFACE_ID,
   type ImageMetadataSurfaceProps,
   type ImageViewerSurfaceProps,
-} from '../controllers/use-entity-images.controller';
-import { ImageCarouselIndicators } from '../components/ImageCarouselIndicators';
-import { ImageAnnotationSvgLayer } from '../components/ImageAnnotationSvgLayer';
-import { ZoomableImage } from '../components/ZoomableImage';
+} from "../controllers/use-entity-images.controller";
+import { ImageCarouselIndicators } from "../components/ImageCarouselIndicators";
+import { ImageAnnotationSvgLayer } from "../components/ImageAnnotationSvgLayer";
+import { ZoomableImage } from "../components/ZoomableImage";
 import {
   toImageAnnotationViewModel,
   toImageAnnotationViewModels,
   type ImageViewModel,
-} from '../types';
+} from "../types";
 
 function clampIndex(index: number, imageCount: number): number {
   if (imageCount <= 0) {
@@ -38,13 +38,18 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     initialImageClientId,
     entityType,
     entityClientId,
-    mode = 'preview-only',
+    mode = "preview-only",
     onDelete,
     enableOnDemandImageLoad = false,
   } = useSurfaceProps<ImageViewerSurfaceProps>();
-  const safeInitialImages = useMemo(() => initialImages.filter((image) => !image.isDeleted), [initialImages]);
+  const safeInitialImages = useMemo(
+    () => initialImages.filter((image) => !image.isDeleted),
+    [initialImages],
+  );
   const fallbackInitialIndex = Math.max(
-    safeInitialImages.findIndex((image) => image.clientId === initialImageClientId),
+    safeInitialImages.findIndex(
+      (image) => image.clientId === initialImageClientId,
+    ),
     0,
   );
   const [images, setImages] = useState<ImageViewModel[]>(safeInitialImages);
@@ -53,17 +58,19 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
   const activeIndexRef = useRef(activeIndex);
   activeIndexRef.current = activeIndex;
   const isAnySlideZoomedRef = useRef(false);
-  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(new Set());
+  const [hiddenAnnotationIds, setHiddenAnnotationIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: 'start',
+    align: "start",
     loop: false,
     startIndex: fallbackInitialIndex,
     watchDrag: () => !isAnySlideZoomedRef.current,
   });
 
   useEffect(() => {
-    header?.setTitle('');
+    header?.setTitle("");
     header?.setActions(null);
     header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,10 +93,10 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
     };
 
     syncSelectedIndex();
-    emblaApi.on('select', syncSelectedIndex);
+    emblaApi.on("select", syncSelectedIndex);
 
     return () => {
-      emblaApi.off('select', syncSelectedIndex);
+      emblaApi.off("select", syncSelectedIndex);
     };
   }, [emblaApi]);
 
@@ -107,9 +114,9 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
       emblaApi.scrollTo(clampedIndex, true);
     }
     setActiveIndex(clampedIndex);
-  // images.length change = deletion. Deliberately excludes activeIndex
-  // to avoid re-running on every swipe.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // images.length change = deletion. Deliberately excludes activeIndex
+    // to avoid re-running on every swipe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [emblaApi, images.length]);
 
   useEffect(() => {
@@ -122,8 +129,11 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
 
   const currentImage = images[activeIndex];
   const currentImageClientId = currentImage?.clientId;
-  const shouldLoadCurrentImage = enableOnDemandImageLoad && currentImage?.isFullyLoaded === false;
-  const currentImageQueryId = shouldLoadCurrentImage ? currentImageClientId : currentImage?.clientId;
+  const shouldLoadCurrentImage =
+    enableOnDemandImageLoad && currentImage?.isFullyLoaded === false;
+  const currentImageQueryId = shouldLoadCurrentImage
+    ? currentImageClientId
+    : currentImage?.clientId;
   const { data: freshImage } = useImageQuery(currentImageQueryId);
 
   useEffect(() => {
@@ -193,7 +203,9 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
 
   const handleDelete = useCallback(
     (imageClientId: string) => {
-      setImages((currentImages) => currentImages.filter((image) => image.clientId !== imageClientId));
+      setImages((currentImages) =>
+        currentImages.filter((image) => image.clientId !== imageClientId),
+      );
       onDelete?.(imageClientId);
     },
     [onDelete],
@@ -209,7 +221,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
       entityType,
       entityClientId,
       mode,
-      onDelete: mode === 'preview-edit' ? handleDelete : undefined,
+      onDelete: mode === "preview-edit" ? handleDelete : undefined,
       annotationsVisible: !hiddenAnnotationIds.has(currentImage.clientId),
       onToggleAnnotations: () => handleToggleAnnotation(currentImage.clientId),
     } satisfies ImageMetadataSurfaceProps);
@@ -253,7 +265,11 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden" data-testid="viewer-carousel" ref={emblaRef}>
+      <div
+        className="min-h-0 flex-1 overflow-hidden"
+        data-testid="viewer-carousel"
+        ref={emblaRef}
+      >
         <div className="flex h-full">
           {images.map((image) => {
             const displayUrl = image.localObjectUrl ?? image.imageUrl;
@@ -290,15 +306,18 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-[calc(var(--safe-bottom)+1rem)] pt-6">
         <div className="flex flex-col gap-4">
           <div className="flex justify-center">
-            <ImageCarouselIndicators count={images.length} activeIndex={activeIndex} />
+            <ImageCarouselIndicators
+              count={images.length}
+              activeIndex={activeIndex}
+            />
           </div>
 
           <div className="flex items-center justify-between">
             <div className="min-w-0">
-              {mode === 'preview-edit' ? (
+              {mode === "preview-edit" ? (
                 <button
                   aria-label="Edit image"
-                  className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-zinc-200/80 text-zinc-900 backdrop-blur-sm transition-colors duration-150 hover:bg-zinc-200/95"
+                  className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-[color:var(--color-border)]/10 text-card backdrop-blur-sm transition-colors duration-150 hover:bg-[color:var(--color-primary-hover)]"
                   data-testid="viewer-edit-button"
                   type="button"
                   onClick={handleEditPress}
@@ -312,7 +331,7 @@ export function ImageFullscreenViewerPage(): React.JSX.Element {
 
             <button
               aria-label="Close viewer"
-              className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-zinc-200/80 text-zinc-900 backdrop-blur-sm transition-colors duration-150 hover:bg-zinc-200/95"
+              className="pointer-events-auto inline-flex size-12 items-center justify-center rounded-full bg-[color:var(--color-border)]/10 text-card backdrop-blur-sm transition-colors duration-150 hover:bg-zinc-200/95"
               data-testid="viewer-close-button"
               type="button"
               onClick={handleClose}

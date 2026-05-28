@@ -1,6 +1,5 @@
 import type {
   CaseInlinePart,
-  CaseInlinePartMarks,
   CaseMessageContent,
 } from '../message-content';
 import type { MentionResolution, MessageContentBlock } from '../types';
@@ -17,20 +16,6 @@ function toTextBlock(text: string): MessageContentBlock {
     label_value: null,
     link: null,
   };
-}
-
-function hasFutureOnlyMarks(marks: CaseInlinePartMarks | undefined): boolean {
-  if (!marks) {
-    return false;
-  }
-
-  return Boolean(
-    marks.bold ||
-      marks.underline ||
-      marks.size ||
-      marks.color ||
-      marks.animation,
-  );
 }
 
 function getReadableText(part: CaseInlinePart): string {
@@ -74,12 +59,15 @@ export function fromBackendMessageContent(
     parts: blocks.map((block): CaseInlinePart => {
       const text = getFallbackText(block);
 
+      const marks = block.marks ?? undefined;
+
       if (block.type === 'mention' && block.mention) {
         const resolution = resolveMention(block, mentionResolutions);
 
         return {
           kind: 'mention',
           text,
+          marks,
           reference: {
             entityType: block.mention.mention_table,
             entityId: block.mention.mention_id,
@@ -93,6 +81,7 @@ export function fromBackendMessageContent(
         return {
           kind: 'label',
           text,
+          marks,
           value: block.label_value,
         };
       }
@@ -101,6 +90,7 @@ export function fromBackendMessageContent(
         return {
           kind: 'link',
           text,
+          marks,
           href: block.link,
         };
       }
@@ -108,6 +98,7 @@ export function fromBackendMessageContent(
       return {
         kind: 'text',
         text,
+        marks,
       };
     }),
   };
@@ -118,10 +109,7 @@ export function toBackendMessageContent(
 ): MessageContentBlock[] {
   return appContent.parts.map((part) => {
     const readableText = getReadableText(part);
-
-    if (hasFutureOnlyMarks(part.marks)) {
-      return toTextBlock(readableText);
-    }
+    const marks = part.marks ?? null;
 
     if (part.kind === 'mention') {
       return {
@@ -134,6 +122,7 @@ export function toBackendMessageContent(
         },
         label_value: null,
         link: null,
+        marks,
       };
     }
 
@@ -144,6 +133,7 @@ export function toBackendMessageContent(
         mention: null,
         label_value: part.value,
         link: null,
+        marks,
       };
     }
 
@@ -154,10 +144,11 @@ export function toBackendMessageContent(
         mention: null,
         label_value: null,
         link: part.href,
+        marks,
       };
     }
 
-    return toTextBlock(readableText);
+    return { ...toTextBlock(readableText), marks };
   });
 }
 

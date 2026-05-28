@@ -98,12 +98,21 @@ export const MessageMentionSchema = z.object({
   client_id: z.string(),
 });
 
+export const MessageContentBlockMarksSchema = z.object({
+  bold: z.boolean().optional(),
+  underline: z.boolean().optional(),
+  size: z.enum(['small', 'base', 'large']).optional(),
+  color: z.string().optional(),
+  animation: z.string().optional(),
+});
+
 export const MessageContentBlockSchema = z.object({
   type: z.enum(MESSAGE_CONTENT_BLOCK_TYPE),
   text: z.string(),
   mention: MessageMentionSchema.nullable().optional(),
   label_value: z.string().nullable().optional(),
   link: z.string().nullable().optional(),
+  marks: MessageContentBlockMarksSchema.nullable().optional(),
 });
 export type MessageContentBlock = z.infer<typeof MessageContentBlockSchema>;
 

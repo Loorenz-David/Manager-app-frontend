@@ -45,10 +45,6 @@ export const InternalFormSchema = z.object({
   item: ItemDetailsFieldsSchema,
   item_upholstery: ItemUpholsteryFieldsSchema,
   item_issues: ItemIssuesFieldsSchema.shape.item_issues,
-  needs_cleaning_assignment:
-    WorkingSectionPickerFieldsSchema.shape.needs_cleaning_assignment,
-  oiling_treatment_assignment:
-    WorkingSectionPickerFieldsSchema.shape.oiling_treatment_assignment,
   working_section_assignments:
     WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
   ready_by_at: DateOnlySchema.nullable().optional(),

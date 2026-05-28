@@ -6,6 +6,7 @@ import {
   ImagePlaceholder,
   WorkingSectionShortcutBar,
 } from "@/components/primitives";
+import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
 import { useWorkingSectionPickerFlow } from "@/features/working-sections/flows/use-working-section-picker.flow";
 import { cn } from "@/lib/utils";
 import type {
@@ -63,16 +64,17 @@ function WorkingSectionBox({
           aria-hidden="true"
           className="w-16 self-stretch shrink-0 overflow-hidden"
         >
-          <ImagePlaceholder className="bg-transparent" iconClassName="size-5 opacity-50" />
+          <ImagePlaceholder
+            className="bg-transparent"
+            iconClassName="size-5 opacity-50"
+          />
         </div>
       )}
 
       <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-3">
         <span className="truncate text-sm font-medium">{section.name}</span>
         {isSelected ? (
-          <span className="truncate text-xs opacity-80">
-            Selected
-          </span>
+          <span className="truncate text-xs opacity-80">Selected</span>
         ) : null}
       </span>
     </div>
@@ -90,6 +92,7 @@ export function WorkingSectionPickerField({
 }: WorkingSectionPickerFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
   const flow = useWorkingSectionPickerFlow();
+  const { isHidden } = useScrollVisibilityContext();
   const { field, fieldState } = useController({
     name: "working_section_assignments",
     control,
@@ -171,13 +174,21 @@ export function WorkingSectionPickerField({
       </div>
 
       {showShortcutBar ? (
-        <WorkingSectionShortcutBar
-          shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
-          availableSections={displayedOptions}
-          onShortcutPress={handleShortcutPress}
-          className="pt-1"
-          data-testid="working-section-picker-shortcut-bar"
-        />
+        <div
+          className={cn(
+            "overflow-hidden transition-[max-height,padding,opacity] duration-300 ease-in-out",
+            isHidden ? "max-h-0 pt-0 opacity-0" : "max-h-24 pt-1 opacity-100",
+          )}
+          data-testid="working-section-picker-shortcut-bar-container"
+        >
+          <WorkingSectionShortcutBar
+            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+            availableSections={displayedOptions}
+            selectedSectionIds={selectedSectionIds}
+            onShortcutPress={handleShortcutPress}
+            data-testid="working-section-picker-shortcut-bar"
+          />
+        </div>
       ) : null}
 
       <FieldErrorPill

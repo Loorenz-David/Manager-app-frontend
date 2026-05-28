@@ -1,6 +1,10 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { CaseMessageContent } from "../../message-content";
+
+const emptyComposerContent: CaseMessageContent = { parts: [] };
 
 const controllerValue = {
   cancelEditing: vi.fn(),
@@ -10,12 +14,12 @@ const controllerValue = {
       client_id: "case_1",
     },
   },
-  composerContent: { parts: [] },
+  composerContent: emptyComposerContent,
   draftAttachmentCount: 0,
   draftMessageClientId: "ccm_draft_1",
   draftText: "",
   editError: null,
-  editingComposerContent: { parts: [] },
+  editingComposerContent: emptyComposerContent,
   editingDraftText: "",
   editingMessageId: null as string | null,
   isSending: false,
@@ -51,7 +55,9 @@ vi.mock("./CaseComposerInlineCameraButton", () => ({
 }));
 
 vi.mock("./CaseComposerEditor", () => ({
-  CaseComposerEditor: () => <div data-testid="mock-rich-editor" />,
+  CaseComposerEditor: () => (
+    <div contentEditable data-testid="mock-rich-editor" tabIndex={0} />
+  ),
 }));
 
 import { CaseRichComposer } from "./CaseRichComposer";
@@ -76,5 +82,23 @@ describe("CaseRichComposer", () => {
     expect(
       screen.queryByTestId("mock-inline-camera-button"),
     ).not.toBeInTheDocument();
+  });
+
+  it("blurs the focused editor before sending", () => {
+    controllerValue.composerContent = {
+      parts: [{ kind: "text", text: "Need help" }],
+    };
+
+    render(<CaseRichComposer />);
+
+    const editor = screen.getByTestId("mock-rich-editor");
+    editor.focus();
+
+    expect(editor).toHaveFocus();
+
+    fireEvent.click(screen.getByTestId("case-composer-send-button"));
+
+    expect(controllerValue.sendDraft).toHaveBeenCalledTimes(1);
+    expect(editor).not.toHaveFocus();
   });
 });

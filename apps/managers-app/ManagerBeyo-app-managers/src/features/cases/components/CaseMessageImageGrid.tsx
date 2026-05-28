@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import { cn } from "@/lib/utils";
 import { useSurface } from "@/hooks/use-surface";
 import { useImageQuery } from "@/features/images/api/use-image";
+import { useDeleteImage } from "@/features/images/actions/use-delete-image";
 import { ImageAnnotationSvgLayer } from "@/features/images/components/ImageAnnotationSvgLayer";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -14,15 +16,25 @@ import {
 } from "@/features/images/types";
 
 import type { CaseConversationMessageRaw } from "../types";
+import { useCaseConversationMessagesContext } from "../providers/CaseConversationProvider";
+
+// Maximum images shown in the collage grid; any beyond this show a "+N" badge
+// on the last visible cell. Tapping opens the viewer at that cell so the user
+// can swipe through the remaining images.
+const MAX_COLLAGE_IMAGES = 4;
 
 type CaseMessageImageGridProps = {
   message: CaseConversationMessageRaw;
 };
 
-type MessageImageSnapshot = NonNullable<CaseConversationMessageRaw["images"]>[number];
+type MessageImageSnapshot = NonNullable<
+  CaseConversationMessageRaw["images"]
+>[number];
 type NaturalSize = { width: number; height: number };
 
-function toMessageImages(message: CaseConversationMessageRaw): ImageViewModel[] {
+function toMessageImages(
+  message: CaseConversationMessageRaw,
+): ImageViewModel[] {
   return (message.images ?? []).map((image, index) => ({
     annotation: image.image_annotation
       ? toImageAnnotationViewModel(image.image_annotation)
@@ -56,18 +68,25 @@ function shouldHydrateMessageImage(image: MessageImageSnapshot): boolean {
       ? true
       : (image.image_annotations?.length ?? 0) > 0;
 
-  return !hasSnapshotAnnotations || image.width_px == null || image.height_px == null;
+  return (
+    hasSnapshotAnnotations &&
+    (image.width_px == null || image.height_px == null)
+  );
 }
 
 function useRenderableMessageImage(
   image: MessageImageSnapshot,
 ): Pick<ImageViewModel, "annotations" | "heightPx" | "imageUrl" | "widthPx"> {
   const shouldHydrate = shouldHydrateMessageImage(image);
-  const { data: freshImage } = useImageQuery(shouldHydrate ? image.client_id : null);
+  const { data: freshImage } = useImageQuery(
+    shouldHydrate ? image.client_id : null,
+  );
 
   return useMemo(() => {
-    const annotation = freshImage?.image_annotation ?? image.image_annotation ?? null;
-    const annotations = freshImage?.image_annotations ?? image.image_annotations ?? [];
+    const annotation =
+      freshImage?.image_annotation ?? image.image_annotation ?? null;
+    const annotations =
+      freshImage?.image_annotations ?? image.image_annotations ?? [];
 
     return {
       imageUrl: freshImage?.image_url ?? image.image_url,
@@ -78,17 +97,50 @@ function useRenderableMessageImage(
   }, [freshImage, image]);
 }
 
+// ---------------------------------------------------------------------------
+// Collage layout
+//
+// All configurations share the same outer aspect-4/5 container so the message
+// bubble height is always stable regardless of image count — the same principle
+// Instagram and Telegram use to prevent virtual-list scroll corrections.
+//
+// 1 image  → full container
+// 2 images → stacked vertically (2 rows, 1 column)
+// 3 images → left column full height (3fr), right column two rows (2fr)
+// 4+       → 2×2 grid; images beyond 4 fold into a "+N" badge on the last cell
+// ---------------------------------------------------------------------------
+type CollageCell = { rowSpan?: 2 };
+type CollageLayout = { gridClass: string; cells: CollageCell[] };
+
+function getCollageLayout(imageCount: number): CollageLayout {
+  switch (Math.min(imageCount, MAX_COLLAGE_IMAGES)) {
+    case 1:
+      return { gridClass: "grid-cols-1 grid-rows-1", cells: [{}] };
+    case 2:
+      return { gridClass: "grid-cols-1 grid-rows-2", cells: [{}, {}] };
+    case 3:
+      return {
+        gridClass: "grid-cols-[3fr_2fr] grid-rows-2",
+        cells: [{ rowSpan: 2 }, {}, {}],
+      };
+    default:
+      return { gridClass: "grid-cols-2 grid-rows-2", cells: [{}, {}, {}, {}] };
+  }
+}
+
 type CaseMessageImageTileProps = {
   image: MessageImageSnapshot;
   messageClientId: string;
-  imagesCount: number;
+  rowSpan?: 2;
+  extraBadge?: number;
   onOpen: (imageClientId: string) => void;
 };
 
 function CaseMessageImageTile({
   image,
   messageClientId,
-  imagesCount,
+  rowSpan,
+  extraBadge,
   onOpen,
 }: CaseMessageImageTileProps): React.JSX.Element {
   const renderableImage = useRenderableMessageImage(image);
@@ -106,19 +158,28 @@ function CaseMessageImageTile({
       return;
     }
 
-    setNaturalSize({
-      width: renderableImage.widthPx,
-      height: renderableImage.heightPx,
+    if (renderableImage.annotations.length === 0) {
+      return;
+    }
+
+    setNaturalSize((prev) => {
+      if (
+        prev?.width === renderableImage.widthPx &&
+        prev?.height === renderableImage.heightPx
+      ) {
+        return prev;
+      }
+      return {
+        width: renderableImage.widthPx!,
+        height: renderableImage.heightPx!,
+      };
     });
   }, [renderableImage.heightPx, renderableImage.widthPx]);
 
   return (
     <button
       aria-label="Open message image"
-      className={[
-        "overflow-hidden rounded-[1.1rem] bg-black/5",
-        imagesCount === 1 ? "col-span-2" : "",
-      ].join(" ")}
+      className={cn("relative overflow-hidden", rowSpan === 2 && "row-span-2")}
       data-testid={`case-message-image-${messageClientId}-${image.client_id}`}
       onClick={() => {
         onOpen(image.client_id);
@@ -134,39 +195,50 @@ function CaseMessageImageTile({
       }}
       type="button"
     >
-      <div className="relative">
-        <img
-          alt=""
-          className={[
-            "w-full object-cover",
-            imagesCount === 1 ? "aspect-[4/5]" : "aspect-square",
-          ].join(" ")}
-          decoding="async"
-          draggable={false}
-          loading="lazy"
-          onLoad={(event) => {
-            const { naturalHeight, naturalWidth } = event.currentTarget;
+      {/* img is absolutely positioned — it cannot influence Virtuoso's
+          ResizeObserver measurements. The collage outer div owns the height. */}
+      <img
+        alt=""
+        className="absolute inset-0 size-full object-cover"
+        decoding="async"
+        draggable={false}
+        loading="eager"
+        onLoad={(event) => {
+          const { naturalHeight, naturalWidth } = event.currentTarget;
 
-            if (naturalWidth <= 0 || naturalHeight <= 0) {
-              return;
+          if (naturalWidth <= 0 || naturalHeight <= 0) {
+            return;
+          }
+
+          if (renderableImage.annotations.length === 0) {
+            return;
+          }
+
+          setNaturalSize((prev) => {
+            if (
+              prev?.width === naturalWidth &&
+              prev?.height === naturalHeight
+            ) {
+              return prev;
             }
-
-            setNaturalSize({
-              width: naturalWidth,
-              height: naturalHeight,
-            });
-          }}
-          src={renderableImage.imageUrl}
-        />
-        <ImageAnnotationSvgLayer
-          annotations={renderableImage.annotations}
-          coverMode
-          heightPx={naturalSize?.height ?? renderableImage.heightPx}
-          markerId={`case-msg-ann-${messageClientId}-${image.client_id}`}
-          testId={`case-message-image-annotation-${messageClientId}-${image.client_id}`}
-          widthPx={naturalSize?.width ?? renderableImage.widthPx}
-        />
-      </div>
+            return { width: naturalWidth, height: naturalHeight };
+          });
+        }}
+        src={renderableImage.imageUrl}
+      />
+      <ImageAnnotationSvgLayer
+        annotations={renderableImage.annotations}
+        coverMode
+        heightPx={naturalSize?.height ?? renderableImage.heightPx}
+        markerId={`case-msg-ann-${messageClientId}-${image.client_id}`}
+        testId={`case-message-image-annotation-${messageClientId}-${image.client_id}`}
+        widthPx={naturalSize?.width ?? renderableImage.widthPx}
+      />
+      {extraBadge !== undefined && extraBadge > 0 && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <span className="text-2xl font-bold text-white">+{extraBadge}</span>
+        </div>
+      )}
     </button>
   );
 }
@@ -175,7 +247,18 @@ export function CaseMessageImageGrid({
   message,
 }: CaseMessageImageGridProps): React.JSX.Element | null {
   const surface = useSurface();
+  const messagesController = useCaseConversationMessagesContext();
+  const { deleteImageWithOptionsAsync } = useDeleteImage();
   const images = useMemo(() => toMessageImages(message), [message]);
+  const handleDelete = useCallback(
+    (imageClientId: string) => {
+      void deleteImageWithOptionsAsync({
+        imageClientId,
+        hardDelete: true,
+      }).then(() => messagesController.retry());
+    },
+    [deleteImageWithOptionsAsync, messagesController],
+  );
 
   const openViewer = useCallback(
     (initialImageClientId: string) => {
@@ -184,31 +267,48 @@ export function CaseMessageImageGrid({
         initialImageClientId,
         entityType: "case_conversation_message",
         entityClientId: message.client_id,
-        mode: "preview-only",
+        mode: "preview-edit",
+        onDelete: handleDelete,
         enableOnDemandImageLoad: false,
       });
     },
-    [images, message.client_id, surface],
+    [handleDelete, images, message.client_id, surface],
   );
 
-  if (images.length === 0) {
+  const rawImages = message.images ?? [];
+
+  if (rawImages.length === 0) {
     return null;
   }
 
+  const layout = getCollageLayout(rawImages.length);
+  const visibleImages = rawImages.slice(0, MAX_COLLAGE_IMAGES);
+  const extraCount = Math.max(0, rawImages.length - MAX_COLLAGE_IMAGES);
+
   return (
     <div
-      className="mt-3 grid grid-cols-2 gap-2"
+      className="mt-3 h-75 w-60 max-w-full overflow-hidden rounded-[1.1rem]"
       data-testid={`case-message-image-grid-${message.client_id}`}
     >
-      {(message.images ?? []).map((image) => (
-        <CaseMessageImageTile
-          key={image.client_id}
-          image={image}
-          imagesCount={images.length}
-          messageClientId={message.client_id}
-          onOpen={openViewer}
-        />
-      ))}
+      <div className={cn("grid size-full gap-px", layout.gridClass)}>
+        {visibleImages.map((image, index) => {
+          const cell = layout.cells[index]!;
+          const isLastVisible = index === visibleImages.length - 1;
+          const badge =
+            isLastVisible && extraCount > 0 ? extraCount : undefined;
+
+          return (
+            <CaseMessageImageTile
+              key={image.client_id}
+              extraBadge={badge}
+              image={image}
+              messageClientId={message.client_id}
+              rowSpan={cell.rowSpan}
+              onOpen={openViewer}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }

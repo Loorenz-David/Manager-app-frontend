@@ -1,6 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
 import {
+  type ImageDeleteMode,
   useEntityImagesController,
   type EntityImagesController,
   type ImageCaptureFlow,
@@ -15,6 +16,7 @@ type EntityImagesProviderProps = {
   entityClientId: string;
   viewerMode?: ImageViewerMode;
   captureFlow?: ImageCaptureFlow;
+  deleteMode?: ImageDeleteMode;
   onImagesChanged?: () => void;
   children: ReactNode;
 };
@@ -36,6 +38,7 @@ export function EntityImagesProvider({
   entityClientId,
   viewerMode,
   captureFlow,
+  deleteMode,
   onImagesChanged,
   children,
 }: EntityImagesProviderProps): React.JSX.Element {
@@ -44,6 +47,7 @@ export function EntityImagesProvider({
     entityClientId,
     viewerMode,
     captureFlow,
+    deleteMode,
     onImagesChanged,
   });
 

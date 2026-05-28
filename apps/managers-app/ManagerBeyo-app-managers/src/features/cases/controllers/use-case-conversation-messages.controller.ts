@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { selectUser, useAuthStore } from "@/store/auth.store";
 import type { CaseId } from "@/types/common";
@@ -20,6 +20,7 @@ export type CaseMessageRenderItem =
       key: string;
       message: CaseConversationMessageRaw;
       isOwnMessage: boolean;
+      isNew: boolean;
     };
 
 export type CaseConversationMessagesController = {
@@ -84,6 +85,7 @@ function flattenMessages(
 function toRenderItems(
   messages: CaseConversationMessageRaw[],
   currentUserId: string | null,
+  initialMaxSeq: number | null,
 ): CaseMessageRenderItem[] {
   const items: CaseMessageRenderItem[] = [];
   let previousDateKey: string | null = null;
@@ -106,6 +108,7 @@ function toRenderItems(
       key: message.client_id,
       message,
       isOwnMessage: message.created_by?.client_id === currentUserId,
+      isNew: initialMaxSeq !== null && message.message_seq > initialMaxSeq,
     });
   }
 
@@ -134,8 +137,15 @@ export function useCaseConversationMessagesController({
     [query.data?.pages],
   );
 
+  // Captured once when messages first arrive — the baseline for "new" detection.
+  // Any message arriving with seq above this was delivered during the current session.
+  const initialMaxSeqRef = useRef<number | null>(null);
+  if (messages.length > 0 && initialMaxSeqRef.current === null) {
+    initialMaxSeqRef.current = Math.max(...messages.map((m) => m.message_seq));
+  }
+
   const items = useMemo(
-    () => toRenderItems(messages, currentUserId),
+    () => toRenderItems(messages, currentUserId, initialMaxSeqRef.current),
     [messages, currentUserId],
   );
   const latestMessageItem = useMemo(() => {

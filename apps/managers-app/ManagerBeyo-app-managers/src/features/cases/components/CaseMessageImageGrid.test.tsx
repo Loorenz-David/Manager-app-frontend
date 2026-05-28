@@ -2,6 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const openMock = vi.fn();
+const retryMock = vi.fn();
+const deleteImageWithOptionsAsyncMock = vi.fn();
 const useImageQueryMock = vi.fn<
   (imageClientId: string | null | undefined) => { data: unknown }
 >(() => ({ data: undefined }));
@@ -17,6 +19,18 @@ vi.mock("@/features/images/api/use-image", () => ({
     useImageQueryMock(imageClientId),
 }));
 
+vi.mock("@/features/images/actions/use-delete-image", () => ({
+  useDeleteImage: () => ({
+    deleteImageWithOptionsAsync: deleteImageWithOptionsAsyncMock,
+  }),
+}));
+
+vi.mock("../providers/CaseConversationProvider", () => ({
+  useCaseConversationMessagesContext: () => ({
+    retry: retryMock,
+  }),
+}));
+
 import { IMAGE_VIEWER_SURFACE_ID } from "@/features/images/surfaces";
 
 import { CaseConversationMessageRawSchema } from "../types";
@@ -27,9 +41,12 @@ describe("CaseMessageImageGrid", () => {
     openMock.mockReset();
     useImageQueryMock.mockReset();
     useImageQueryMock.mockReturnValue({ data: undefined });
+    retryMock.mockReset();
+    deleteImageWithOptionsAsyncMock.mockReset();
+    deleteImageWithOptionsAsyncMock.mockResolvedValue("img_msg_1");
   });
 
-  it("renders persisted message images and opens the viewer in preview-only mode", () => {
+  it("renders persisted message images and opens the viewer in preview-edit mode", () => {
     const message = CaseConversationMessageRawSchema.parse({
       client_id: "ccm_img_1",
       message_seq: 10,
@@ -65,7 +82,8 @@ describe("CaseMessageImageGrid", () => {
         entityClientId: "ccm_img_1",
         entityType: "case_conversation_message",
         initialImageClientId: "img_msg_1",
-        mode: "preview-only",
+        mode: "preview-edit",
+        onDelete: expect.any(Function),
       }),
     );
   });
@@ -135,6 +153,48 @@ describe("CaseMessageImageGrid", () => {
     expect(
       screen.getByTestId("case-message-image-annotation-ccm_img_2-img_msg_2"),
     ).toBeVisible();
+  });
+
+  it("hard deletes the image row from the viewer callback and refreshes the conversation", async () => {
+    const message = CaseConversationMessageRawSchema.parse({
+      client_id: "ccm_img_delete",
+      message_seq: 10,
+      created_at: "2026-05-27T10:00:00Z",
+      content: null,
+      plain_text: "",
+      has_been_edited: false,
+      has_been_deleted: false,
+      images: [
+        {
+          client_id: "img_msg_delete",
+          image_url: "https://cdn.example.com/case-message-delete.webp",
+          storage_provider: "s3",
+          source_type: "uploaded",
+          width_px: 1280,
+          height_px: 960,
+          file_size_bytes: 4096,
+          created_at: "2026-05-27T10:00:00Z",
+        },
+      ],
+    });
+
+    render(<CaseMessageImageGrid message={message} />);
+
+    fireEvent.click(
+      screen.getByTestId("case-message-image-ccm_img_delete-img_msg_delete"),
+    );
+
+    const openArgs = openMock.mock.calls[0]?.[1] as {
+      onDelete?: (imageClientId: string) => void;
+    };
+
+    await openArgs.onDelete?.("img_msg_delete");
+
+    expect(deleteImageWithOptionsAsyncMock).toHaveBeenCalledWith({
+      imageClientId: "img_msg_delete",
+      hardDelete: true,
+    });
+    expect(retryMock).toHaveBeenCalledOnce();
   });
 
   it("hydrates partial message image snapshots through the image feature query", () => {

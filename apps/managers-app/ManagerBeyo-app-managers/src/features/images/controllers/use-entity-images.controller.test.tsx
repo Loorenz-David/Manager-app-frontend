@@ -12,6 +12,8 @@ import { buildEntityKey, useImagesStore } from "../store/images.store";
 const {
   useEntityImagesQueryMock,
   runImageUploadPipelineMock,
+  runImagePreUploadPipelineMock,
+  confirmImageUploadMock,
   useSurfaceMock,
   useDeleteImageMock,
   useReorderImagesMock,
@@ -21,6 +23,8 @@ const {
 } = vi.hoisted(() => ({
   useEntityImagesQueryMock: vi.fn(),
   runImageUploadPipelineMock: vi.fn(),
+  runImagePreUploadPipelineMock: vi.fn(),
+  confirmImageUploadMock: vi.fn(),
   useSurfaceMock: vi.fn(),
   useDeleteImageMock: vi.fn(),
   useReorderImagesMock: vi.fn(),
@@ -35,6 +39,11 @@ vi.mock("../api/use-entity-images", () => ({
 
 vi.mock("../lib/image-upload-pipeline", () => ({
   runImageUploadPipeline: runImageUploadPipelineMock,
+  runImagePreUploadPipeline: runImagePreUploadPipelineMock,
+}));
+
+vi.mock("../api/confirm-image-upload", () => ({
+  confirmImageUpload: confirmImageUploadMock,
 }));
 
 vi.mock("../actions/use-delete-image", () => ({
@@ -68,6 +77,7 @@ describe("useEntityImagesController", () => {
   const revokeObjectURLMock = vi.fn();
   const createObjectURLMock = vi.fn();
   const unlinkImageAsyncMock = vi.fn();
+  const openMock = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -78,7 +88,7 @@ describe("useEntityImagesController", () => {
       isPending: false,
       isError: false,
     });
-    useSurfaceMock.mockReturnValue({ open: vi.fn() });
+    useSurfaceMock.mockReturnValue({ open: openMock });
     useDeleteImageMock.mockReturnValue({
       deleteImageWithOptionsAsync: deleteImageWithOptionsAsyncMock,
       isPending: false,
@@ -88,6 +98,15 @@ describe("useEntityImagesController", () => {
       unlinkImageAsync: unlinkImageAsyncMock,
     });
     generateClientIdMock.mockReturnValue("optimistic_img_1");
+    deleteImageWithOptionsAsyncMock.mockResolvedValue("img_deleted");
+    runImagePreUploadPipelineMock.mockResolvedValue({
+      pendingUploadClientId: "pending_1",
+      widthPx: 640,
+      heightPx: 480,
+    });
+    confirmImageUploadMock.mockResolvedValue(
+      buildImage({ client_id: "optimistic_img_1" }),
+    );
 
     createObjectURLMock.mockReturnValue("blob:optimistic");
     vi.stubGlobal("URL", {
@@ -298,9 +317,6 @@ describe("useEntityImagesController", () => {
   });
 
   it("passes direct capture flow props when opening the camera surface", () => {
-    const openMock = vi.fn();
-    useSurfaceMock.mockReturnValue({ open: openMock });
-
     const { result } = renderHook(
       () =>
         useEntityImagesController({
@@ -322,5 +338,161 @@ describe("useEntityImagesController", () => {
         onEditCapturedImage: expect.any(Function),
       }),
     );
+  });
+
+  it("stores deferred annotations and confirms once pre-upload finishes", async () => {
+    let resolvePreUpload!: (value: {
+      pendingUploadClientId: string;
+      widthPx: number;
+      heightPx: number;
+    }) => void;
+    runImagePreUploadPipelineMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolvePreUpload = resolve;
+        }),
+    );
+
+    const { result } = renderHook(
+      () =>
+        useEntityImagesController({
+          entityType: "item",
+          entityClientId: "item_1",
+          captureFlow: "camera-to-editor",
+        }),
+      {
+        wrapper: createTestWrapper(createTestQueryClient()),
+      },
+    );
+
+    result.current.openCamera();
+
+    const cameraProps = openMock.mock.calls[0]?.[1];
+    expect(cameraProps).toBeDefined();
+
+    const capturedImage = cameraProps.onCapture(
+      new Blob(["raw"], { type: "image/png" }),
+    );
+    cameraProps.onEditCapturedImage?.(capturedImage);
+
+    const editorProps = openMock.mock.calls[1]?.[1];
+    expect(editorProps).toBeDefined();
+
+    editorProps.onDeferredConfirm([
+      {
+        tool: "text",
+        x: 0.2,
+        y: 0.3,
+        text: "note",
+        fontSize: 0.04,
+        color: "#ffffff",
+      },
+    ]);
+
+    expect(confirmImageUploadMock).not.toHaveBeenCalled();
+
+    resolvePreUpload({
+      pendingUploadClientId: "pending_1",
+      widthPx: 640,
+      heightPx: 480,
+    });
+
+    await waitFor(() => {
+      expect(confirmImageUploadMock).toHaveBeenCalledWith({
+        pending_upload_client_id: "pending_1",
+        entity_type: "item",
+        entity_client_id: "item_1",
+        image_client_id: "optimistic_img_1",
+        width_px: 640,
+        height_px: 480,
+        image_annotations: [
+          {
+            tool: "text",
+            x: 0.2,
+            y: 0.3,
+            text: "note",
+            fontSize: 0.04,
+            color: "#ffffff",
+          },
+        ],
+      });
+    });
+
+    expect(
+      (confirmImageUploadMock.mock.calls[0]?.[0] as Record<string, unknown>)?.[
+        "file_size_bytes"
+      ],
+    ).toBeUndefined();
+  });
+
+  it("moves deferred captures into pre_confirm when upload finishes before done", async () => {
+    const { result } = renderHook(
+      () =>
+        useEntityImagesController({
+          entityType: "item",
+          entityClientId: "item_1",
+          captureFlow: "camera-to-editor",
+        }),
+      {
+        wrapper: createTestWrapper(createTestQueryClient()),
+      },
+    );
+
+    result.current.uploadImage(new Blob(["raw"], { type: "image/png" }));
+
+    await waitFor(() => {
+      expect(useImagesStore.getState().optimisticImages[entityKey]?.[0]).toEqual(
+        expect.objectContaining({
+          clientId: "optimistic_img_1",
+          uploadState: "pre_confirm",
+          pendingUploadClientId: "pending_1",
+          widthPx: 640,
+          heightPx: 480,
+        }),
+      );
+    });
+
+    expect(runImagePreUploadPipelineMock).toHaveBeenCalledTimes(1);
+    expect(runImageUploadPipelineMock).not.toHaveBeenCalled();
+    expect(confirmImageUploadMock).not.toHaveBeenCalled();
+  });
+
+  it("uses hard delete for completed images when deleteMode is configured as hard-delete", async () => {
+    useEntityImagesQueryMock.mockReturnValue({
+      data: [
+        buildEntityImage({
+          image: buildImage({
+            client_id: "img_server",
+            image_url: "https://cdn.example.com/image-server.webp",
+          }),
+          display_order: 0,
+        }),
+      ],
+      isPending: false,
+      isError: false,
+    });
+
+    const { result } = renderHook(
+      () =>
+        useEntityImagesController({
+          entityType: "item",
+          entityClientId: "item_1",
+          deleteMode: "hard-delete",
+        }),
+      {
+        wrapper: createTestWrapper(createTestQueryClient()),
+      },
+    );
+
+    result.current.deleteImage("img_server");
+
+    await waitFor(() => {
+      expect(deleteImageWithOptionsAsyncMock).toHaveBeenCalledWith({
+        imageClientId: "img_server",
+        hardDelete: true,
+      });
+    });
+
+    expect(unlinkImageAsyncMock).not.toHaveBeenCalled();
   });
 });

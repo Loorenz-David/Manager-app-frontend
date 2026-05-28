@@ -1,38 +1,53 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { type InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiRequestError } from '@/lib/api-client';
-import type { CaseConversationId, CaseId } from '@/types/common';
+import type { CaseConversationMessageId, CaseId } from '@/types/common';
 
 import { caseKeys } from '../api/case-keys';
 import { deleteMessage } from '../api/delete-message';
+import type { CaseDetailRaw } from '../types';
 
 type UseDeleteCaseMessageOptions = {
   caseClientId: CaseId;
-  conversationClientId?: CaseConversationId | null;
+  conversationClientId?: string | null;
 };
 
-export function useDeleteCaseMessage({
-  caseClientId,
-  conversationClientId,
-}: UseDeleteCaseMessageOptions) {
+function softDeleteMessageInPages(
+  data: InfiniteData<CaseDetailRaw> | undefined,
+  messageClientId: CaseConversationMessageId,
+): InfiniteData<CaseDetailRaw> | undefined {
+  if (!data) {
+    return data;
+  }
+
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      case_conversation_messages: page.case_conversation_messages.map((m) =>
+        m.client_id === messageClientId ? { ...m, has_been_deleted: true } : m,
+      ),
+    })),
+  };
+}
+
+export function useDeleteCaseMessage({ caseClientId }: UseDeleteCaseMessageOptions) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: deleteMessage,
-    onSuccess: () => {
+    onSuccess: (_, messageClientId) => {
+      queryClient.setQueriesData<InfiniteData<CaseDetailRaw>>(
+        { queryKey: caseKeys.conversationDetailPagesForCase(caseClientId) },
+        (data) => softDeleteMessageInPages(data, messageClientId),
+      );
       void queryClient.invalidateQueries({
         queryKey: caseKeys.detail(caseClientId),
+        refetchType: 'none',
       });
-      void queryClient.invalidateQueries({
-        queryKey: caseKeys.conversationDetailPagesForCase(caseClientId),
-      });
-      if (conversationClientId) {
-        void queryClient.invalidateQueries({
-          queryKey: caseKeys.conversationMessages(conversationClientId),
-        });
-      }
       void queryClient.invalidateQueries({
         queryKey: caseKeys.lists(),
+        refetchType: 'none',
       });
     },
   });

@@ -11,6 +11,7 @@ import { CaseComposerDraftImagesProvider } from "./CaseComposerDraftImagesProvid
 import { CaseComposerInlineCameraButton } from "./CaseComposerInlineCameraButton";
 import { CaseComposerToolbar } from "./CaseComposerToolbar";
 import type { CaseComposerEditorToolbarActions } from "./CaseComposerEditor";
+import { blurActiveComposerElement } from "./blur-active-composer-element";
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 import {
   CASE_RICH_TEXT_TEST_IDS,
@@ -63,6 +64,16 @@ export function CaseRichComposer({
   const composerPlaceholder = isEditing
     ? "Edit your message"
     : "Write a message";
+  const handleSubmit = () => {
+    blurActiveComposerElement();
+
+    if (isEditing) {
+      void controller.submitEdit();
+      return;
+    }
+
+    void controller.sendDraft();
+  };
   const isSendDisabled = !controller.canSendDraft;
   const isEditDisabled =
     !hasMeaningfulCaseMessageContent(controller.editingComposerContent) ||
@@ -216,24 +227,6 @@ export function CaseRichComposer({
             </div>
           ) : null}
 
-          {isEditing ? (
-            <div
-              className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-primary/15 bg-primary/5 px-4 py-2.5 text-sm text-foreground"
-              data-testid="case-composer-edit-mode"
-            >
-              <span className="min-w-0 flex-1 font-medium">
-                Editing message
-              </span>
-              <button
-                className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-muted"
-                onClick={controller.cancelEditing}
-                type="button"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : null}
-
           {composerError ? (
             <div
               className="mb-2 flex items-center justify-between gap-3 rounded-2xl border border-destructive/20 bg-destructive/5 px-4 py-2.5 text-sm text-destructive"
@@ -243,14 +236,8 @@ export function CaseRichComposer({
               <button
                 className="shrink-0 rounded-full border border-destructive/30 px-3 py-1 text-xs font-semibold transition-colors duration-150 hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
                 disabled={isEditing ? isEditDisabled : isSendDisabled}
-                onClick={() => {
-                  if (isEditing) {
-                    void controller.submitEdit();
-                    return;
-                  }
-
-                  void controller.sendDraft();
-                }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleSubmit}
                 type="button"
               >
                 Retry
@@ -324,9 +311,8 @@ export function CaseRichComposer({
                     className="rounded-full bg-primary px-3 py-2 text-xs font-semibold text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                     data-testid="case-composer-save-button"
                     disabled={isEditDisabled}
-                    onClick={() => {
-                      void controller.submitEdit();
-                    }}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={handleSubmit}
                     type="button"
                   >
                     Save
@@ -338,9 +324,8 @@ export function CaseRichComposer({
                   className="mr-0.5 self-end flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-card transition-all duration-150 hover:opacity-95 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                   data-testid="case-composer-send-button"
                   disabled={isSendDisabled}
-                  onClick={() => {
-                    void controller.sendDraft();
-                  }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={handleSubmit}
                   type="button"
                 >
                   <SendHorizontal className="size-4" />

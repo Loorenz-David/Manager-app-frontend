@@ -43,6 +43,9 @@ export function TaskCreationAssignmentFooter({
   );
   const showShortcutBar =
     activeStepId === "assignment" && availableSections.length > 0;
+  const selectedSectionIds = (field.value ?? []).map(
+    (assignment) => assignment.working_section_id,
+  );
 
   function handleShortcutPress(sectionIds: string[]) {
     field.onChange(
@@ -58,19 +61,22 @@ export function TaskCreationAssignmentFooter({
       {showShortcutBar ? (
         <div
           className={cn(
-            "overflow-hidden px-4 transition-[padding-top] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isHidden ? "pt-0" : "pt-3",
+            "overflow-hidden px-4 transition-[max-height,margin,padding,opacity] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+            isHidden
+              ? "mb-0 max-h-0 pt-0 opacity-0"
+              : "mb-3 max-h-24 pt-3 opacity-100",
           )}
         >
           <div
             className={cn(
-              "overflow-hidden transition-[max-height,margin-bottom] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-              isHidden ? "mb-0 max-h-0" : "mb-3 max-h-24",
+              "transition-transform duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+              isHidden ? "translate-y-full" : "translate-y-0",
             )}
           >
             <WorkingSectionShortcutBar
               shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
               availableSections={availableSections}
+              selectedSectionIds={selectedSectionIds}
               onShortcutPress={handleShortcutPress}
               animationMode="translate"
               data-testid="task-creation-working-sections-shortcut-bar"

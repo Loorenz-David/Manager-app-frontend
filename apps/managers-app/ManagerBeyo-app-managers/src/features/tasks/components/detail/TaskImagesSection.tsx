@@ -27,6 +27,7 @@ export function TaskImagesSection(): React.JSX.Element {
         <EntityImagesProvider
           entityClientId={itemId}
           captureFlow="camera-to-editor"
+          deleteMode="hard-delete"
           entityType="item"
           onImagesChanged={handleImagesChanged}
         >

@@ -1,5 +1,4 @@
 import { useEffect, useState, type CSSProperties } from "react";
-import { AnimatePresence, m } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 import { ScrollVisibilityProvider } from "@/components/primitives/scroll-visibility";
@@ -19,7 +18,7 @@ const CONVERSATION_LAYOUT_STYLE = {
   "--case-conversation-bottom-offset": "calc(var(--safe-bottom,0px) + 9.75rem)",
 } as CSSProperties;
 
-const SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX = 120;
+const SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX = 600;
 
 function ConversationLoadingShell(): React.JSX.Element {
   return (
@@ -28,7 +27,7 @@ function ConversationLoadingShell(): React.JSX.Element {
         <div className="ml-auto h-16 w-40 animate-pulse rounded-3xl bg-card" />
         <div className="h-20 w-56 animate-pulse rounded-3xl bg-card" />
         <div className="ml-auto h-14 w-32 animate-pulse rounded-3xl bg-card" />
-        <div className="mt-auto rounded-[2rem] border border-dashed border-border bg-card/60 px-5 py-6 text-center">
+        <div className="mt-auto rounded-4xl border border-dashed border-border bg-card/60 px-5 py-6 text-center">
           <p className="text-sm font-medium text-foreground">
             Preparing the conversation shell
           </p>
@@ -48,8 +47,9 @@ export function CaseConversationSlideView(): React.JSX.Element {
   const [isRichComposerToolbarVisible, setIsRichComposerToolbarVisible] =
     useState(false);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  const hasMessages = messagesController.items.length > 0;
   const showScrollToBottomCta =
-    messagesController.items.length > 0 &&
+    hasMessages &&
     messagesController.distanceFromBottom > SCROLL_TO_BOTTOM_CTA_THRESHOLD_PX &&
     !isRichComposerToolbarVisible;
 
@@ -63,7 +63,15 @@ export function CaseConversationSlideView(): React.JSX.Element {
     };
   }, [header]);
 
-  if (controller.isPendingCase && !controller.caseDetail) {
+  // Keep loading shell until BOTH case detail AND the initial message page are ready.
+  // Without this guard, useGetCaseQuery can resolve before useCaseConversationMessagesQuery,
+  // switching to the full layout with an empty Virtuoso list, then re-rendering when
+  // messages arrive — producing the visible double-render flicker.
+  const isInitialLoading =
+    (controller.isPendingCase && !controller.caseDetail) ||
+    messagesController.isLoadingInitial;
+
+  if (isInitialLoading) {
     return (
       <div
         className="relative min-h-full bg-background"
@@ -104,36 +112,46 @@ export function CaseConversationSlideView(): React.JSX.Element {
 
   return (
     <div
-      className="relative flex h-full min-h-full flex-col overflow-hidden bg-background"
+      className="relative flex h-full min-h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
       data-testid="case-conversation-slide"
       style={CONVERSATION_LAYOUT_STYLE}
     >
-      <CaseConversationHeader />
       <ScrollVisibilityProvider
         inverted
         hysteresis={16}
         scrollElement={scrollElement}
         threshold={56}
       >
-        <CaseConversationContextBanner />
-        <CaseMessageList onScrollerRef={setScrollElement} />
+        <div className="relative shrink-0">
+          <CaseConversationHeader />
+          <CaseConversationContextBanner />
+        </div>
+        <div className="relative flex min-h-0 flex-1 flex-col">
+          <CaseMessageList onScrollerRef={setScrollElement} />
+        </div>
       </ScrollVisibilityProvider>
-      <AnimatePresence>
-        {showScrollToBottomCta ? (
-          <m.button
-            animate={{ opacity: 1, x: "-50%", y: 0 }}
-            className="absolute left-1/2 bottom-[calc(var(--safe-bottom,0)+6.75rem)] z-30 flex size-11 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md transition-colors duration-150 hover:bg-muted"
-            data-testid="case-scroll-to-bottom-button"
-            exit={{ opacity: 0, x: "-50%", y: 10 }}
-            initial={{ opacity: 0, x: "-50%", y: 14 }}
-            onClick={messagesController.scrollToBottom}
-            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            type="button"
-          >
-            <ChevronDown aria-hidden="true" className="size-5" />
-          </m.button>
-        ) : null}
-      </AnimatePresence>
+      {messagesController.isLoadingOlder ? (
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(var(--safe-top)+5rem)] z-10 flex justify-center px-4 py-3">
+          <span className="rounded-full bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm">
+            Loading older messages...
+          </span>
+        </div>
+      ) : null}
+      {hasMessages ? (
+        <button
+          aria-hidden={!showScrollToBottomCta}
+          className={`absolute left-1/2 bottom-[calc(var(--safe-bottom,0)+5.50rem)] z-30 flex size-11 -translate-x-1/2 transform-gpu items-center justify-center rounded-full border border-border bg-card text-foreground shadow-md will-change-[opacity] transition-opacity hover:bg-muted ${
+            showScrollToBottomCta
+              ? "pointer-events-auto opacity-100 duration-180 ease-out"
+              : "pointer-events-none opacity-0 duration-90 ease-linear"
+          }`}
+          data-testid="case-scroll-to-bottom-button"
+          onClick={messagesController.scrollToBottom}
+          type="button"
+        >
+          <ChevronDown aria-hidden="true" className="size-5" />
+        </button>
+      ) : null}
       {controller.composerMode === "rich" ? (
         <CaseRichComposer
           onToolbarVisibilityChange={setIsRichComposerToolbarVisible}

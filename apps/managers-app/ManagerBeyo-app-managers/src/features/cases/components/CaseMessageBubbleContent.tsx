@@ -7,11 +7,17 @@ import type { CaseInlinePart, CaseInlinePartMarks, CaseMessageContent } from '..
 type CaseMessageBubbleContentProps = {
   content: CaseMessageContent;
   isOwnMessage: boolean;
+  isNew: boolean;
 };
 
 function getAnimationClassName(
   marks: CaseInlinePartMarks | undefined,
+  isNew: boolean,
 ): string | undefined {
+  if (!isNew) {
+    return undefined;
+  }
+
   if (marks?.animation === 'shake') {
     return 'case-message-animation-shake';
   }
@@ -23,13 +29,13 @@ function getAnimationClassName(
   return undefined;
 }
 
-function getTextClassName(marks: CaseInlinePartMarks | undefined): string {
+function getTextClassName(marks: CaseInlinePartMarks | undefined, isNew: boolean): string {
   return cn(
     marks?.bold && 'font-semibold',
     marks?.underline && 'underline underline-offset-2',
     marks?.size === 'small' && 'text-xs',
     marks?.size === 'large' && 'text-base',
-    getAnimationClassName(marks),
+    getAnimationClassName(marks, isNew),
   );
 }
 
@@ -47,10 +53,11 @@ function renderInlinePart(
   part: CaseInlinePart,
   index: number,
   isOwnMessage: boolean,
+  isNew: boolean,
 ): React.JSX.Element {
   const key = `${part.kind}-${index}`;
   const commonProps = {
-    className: getTextClassName(part.marks),
+    className: getTextClassName(part.marks, isNew),
     'data-animation': part.marks?.animation,
     style: getTextStyle(part.marks),
   };
@@ -118,10 +125,11 @@ function renderInlinePart(
 export function CaseMessageBubbleContent({
   content,
   isOwnMessage,
+  isNew,
 }: CaseMessageBubbleContentProps): React.JSX.Element {
   return (
     <p className="whitespace-pre-wrap break-words leading-5">
-      {content.parts.map((part, index) => renderInlinePart(part, index, isOwnMessage))}
+      {content.parts.map((part, index) => renderInlinePart(part, index, isOwnMessage, isNew))}
     </p>
   );
 }

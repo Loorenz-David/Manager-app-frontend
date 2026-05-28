@@ -1,12 +1,12 @@
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { CaseId } from '@/types/common';
+import type { CaseId } from "@/types/common";
 
-import { caseKeys } from './case-keys';
-import { getCase } from './get-case';
-import type { CaseDetailRaw } from '../types';
+import { caseKeys } from "./case-keys";
+import { getCase } from "./get-case";
+import type { CaseDetailRaw } from "../types";
 
-export const CASE_CONVERSATION_MESSAGES_PAGE_SIZE = 10;
+export const CASE_CONVERSATION_MESSAGES_PAGE_SIZE = 25;
 
 type UseCaseConversationMessagesOptions = {
   messagesLimit?: number;
@@ -17,18 +17,21 @@ export function useCaseConversationMessagesQuery(
   options: UseCaseConversationMessagesOptions = {},
 ) {
   const queryClient = useQueryClient();
-  const messagesLimit = options.messagesLimit ?? CASE_CONVERSATION_MESSAGES_PAGE_SIZE;
+  const messagesLimit =
+    options.messagesLimit ?? CASE_CONVERSATION_MESSAGES_PAGE_SIZE;
   const initialDetail = caseClientId
     ? queryClient.getQueryData<CaseDetailRaw>(caseKeys.detail(caseClientId))
     : undefined;
 
   return useInfiniteQuery({
     queryKey: caseClientId
-      ? caseKeys.conversationDetailPages(caseClientId, { messages_limit: messagesLimit })
-      : [...caseKeys.conversationDetailPagesRoot(), 'missing'] as const,
+      ? caseKeys.conversationDetailPages(caseClientId, {
+          messages_limit: messagesLimit,
+        })
+      : ([...caseKeys.conversationDetailPagesRoot(), "missing"] as const),
     queryFn: ({ pageParam }) => {
       if (!caseClientId) {
-        throw new Error('Case id is required.');
+        throw new Error("Case id is required.");
       }
 
       return getCase({

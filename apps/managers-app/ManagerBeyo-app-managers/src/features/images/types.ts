@@ -109,8 +109,24 @@ export const ConfirmImageUploadInputSchema = z.object({
   pending_upload_client_id: z.string(),
   entity_type: z.enum(IMAGE_LINK_ENTITY_TYPE),
   entity_client_id: z.string(),
+  image_client_id: z.string().optional(),
+  width_px: z.number().int().optional(),
+  height_px: z.number().int().optional(),
+  image_annotations: z.array(z.record(z.string(), z.unknown())).optional(),
 });
 export type ConfirmImageUploadInput = z.infer<typeof ConfirmImageUploadInputSchema>;
+
+export const ConfirmImageUploadBatchItemSchema = ConfirmImageUploadInputSchema;
+export type ConfirmImageUploadBatchItem = z.infer<
+  typeof ConfirmImageUploadBatchItemSchema
+>;
+
+export const ConfirmImageUploadBatchEnvelopeSchema = z.object({
+  items: z.array(ConfirmImageUploadBatchItemSchema).min(1),
+});
+export type ConfirmImageUploadBatchEnvelope = z.infer<
+  typeof ConfirmImageUploadBatchEnvelopeSchema
+>;
 
 export const ReorderImagesInputSchema = z.object({
   entity_type: z.enum(IMAGE_LINK_ENTITY_TYPE),
@@ -166,6 +182,15 @@ export const ConfirmImageUploadResponseSchema = ApiEnvelopeSchema(
   ok: z.literal(true),
 });
 export type ConfirmImageUploadResponse = z.infer<typeof ConfirmImageUploadResponseSchema>;
+
+export const ConfirmImageUploadBatchResponseSchema = ApiEnvelopeSchema(
+  z.object({ images: z.array(ImageSchema) }),
+).extend({
+  ok: z.literal(true),
+});
+export type ConfirmImageUploadBatchResponse = z.infer<
+  typeof ConfirmImageUploadBatchResponseSchema
+>;
 
 export const ReorderImagesResponseSchema = ApiEnvelopeSchema(
   z.object({ reordered: z.number().int() }),
@@ -247,6 +272,7 @@ export const IMAGE_UPLOAD_STATE = [
   'compressing',
   'requesting_upload_url',
   'uploading',
+  'pre_confirm',
   'confirming',
   'completed',
   'failed',

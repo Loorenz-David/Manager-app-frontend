@@ -63,7 +63,7 @@ export function CaseMessageRow({
     );
   }
 
-  const { message, isOwnMessage } = item;
+  const { message, isOwnMessage, isNew } = item;
   const createdBy = message.created_by;
   const canOpenActions = isOwnMessage && !message.has_been_deleted;
 
@@ -117,6 +117,9 @@ export function CaseMessageRow({
       )}
       data-own-message={isOwnMessage ? "true" : "false"}
       data-testid={`case-message-row-${message.client_id}`}
+      style={
+        (message.images?.length ?? 0) > 0 ? { minHeight: "420px" } : undefined
+      }
     >
       {!isOwnMessage ? (
         <div
@@ -176,7 +179,11 @@ export function CaseMessageRow({
             onPointerMove={canOpenActions ? handlePointerMove : undefined}
             onPointerUp={canOpenActions ? handlePointerUp : undefined}
           >
-            <CaseMessageBubble isOwnMessage={isOwnMessage} message={message} />
+            <CaseMessageBubble
+              isNew={isNew}
+              isOwnMessage={isOwnMessage}
+              message={message}
+            />
           </div>
         </div>
 

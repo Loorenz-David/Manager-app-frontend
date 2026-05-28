@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { ApiRequestError } from '@/lib/api-client';
-import type { CaseId } from '@/types/common';
+import type { CaseId, CaseParticipantId } from '@/types/common';
 
 import { caseKeys } from '../api/case-keys';
 import { markRead } from '../api/mark-read';
-import type { CaseParticipantId } from '@/types/common';
+import type { CaseParticipant } from '../types';
 
 type MarkCaseReadVariables = {
   caseClientId: CaseId;
@@ -25,9 +25,19 @@ export function useMarkCaseRead() {
         case_participant_client_id: caseParticipantClientId,
         up_to_message_seq: upToMessageSeq,
       }),
-    onSuccess: (_lastReadMessageSeq, { caseClientId }) => {
+    onSuccess: (lastReadMessageSeq, { caseClientId, caseParticipantClientId }) => {
+      queryClient.setQueryData<CaseParticipant[]>(
+        caseKeys.participantsList(caseClientId),
+        (currentData) =>
+          currentData?.map((p) =>
+            p.client_id === caseParticipantClientId
+              ? { ...p, last_read_message_seq: lastReadMessageSeq }
+              : p,
+          ),
+      );
       void queryClient.invalidateQueries({
         queryKey: caseKeys.participantsList(caseClientId),
+        refetchType: 'none',
       });
       void queryClient.invalidateQueries({ queryKey: caseKeys.unreadCountsRoot() });
     },

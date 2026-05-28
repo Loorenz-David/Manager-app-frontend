@@ -300,6 +300,7 @@ export function PreOrderFormContent(): React.JSX.Element {
                 <EntityImagesProvider
                   entityClientId={itemClientId}
                   captureFlow="camera-to-editor"
+                  deleteMode="hard-delete"
                   entityType="item"
                 >
                   <ImagePreviewGrid

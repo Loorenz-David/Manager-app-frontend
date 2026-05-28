@@ -226,6 +226,7 @@ export function TestingFormsContent(): React.JSX.Element {
                     entityType="item"
                     entityClientId="testing-item-images"
                     captureFlow="camera-to-editor"
+                    deleteMode="hard-delete"
                   >
                     <ImagePreviewGrid
                       maxImages={6}

@@ -11,6 +11,7 @@ import { CaseMessageImageGrid } from './CaseMessageImageGrid';
 type CaseMessageBubbleProps = {
   message: CaseConversationMessageRaw;
   isOwnMessage: boolean;
+  isNew: boolean;
   children?: ReactNode;
 };
 
@@ -38,6 +39,7 @@ function getRenderableContent(message: CaseConversationMessageRaw): CaseMessageC
 export function CaseMessageBubble({
   message,
   isOwnMessage,
+  isNew,
   children,
 }: CaseMessageBubbleProps): React.JSX.Element {
   const content = getRenderableContent(message);
@@ -70,7 +72,7 @@ export function CaseMessageBubble({
         children ?? (
           <>
             {hasTextContent ? (
-              <CaseMessageBubbleContent content={content} isOwnMessage={isOwnMessage} />
+              <CaseMessageBubbleContent content={content} isNew={isNew} isOwnMessage={isOwnMessage} />
             ) : null}
             {hasImages ? <CaseMessageImageGrid message={message} /> : null}
           </>
