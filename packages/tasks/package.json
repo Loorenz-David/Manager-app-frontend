@@ -1,0 +1,17 @@
+{
+  "name": "@beyo/tasks",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@beyo/api-client": "*",
+    "@beyo/lib": "*",
+    "@beyo/ui": "*",
+    "@tanstack/react-query": ">=5.0.0",
+    "react": ">=19.0.0",
+    "zod": ">=4.0.0"
+  }
+}

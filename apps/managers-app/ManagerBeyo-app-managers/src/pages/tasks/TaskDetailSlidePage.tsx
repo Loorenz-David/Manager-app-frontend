@@ -1,22 +1,25 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
+import { TaskFlowTimeline } from "@beyo/tasks";
 
-import { ContentCard, DashedInfoGroup } from '@/components/primitives';
+import { ContentCard, DashedInfoGroup } from "@/components/primitives";
 import {
   TaskBodyCategoryRow,
   TaskCustomerSection,
   TaskDetailBottomActions,
   TaskDetailHeader,
-  TaskFlowTimeline,
   TaskImagesSection,
   TaskIssuesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
   TaskWorkingSectionsField,
-} from '@/features/tasks/components/detail';
-import { TaskDetailProvider, useTaskDetailContext } from '@/features/tasks/providers/TaskDetailProvider';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import type { TaskDetailSurfaceProps } from '@/features/tasks/surfaces';
+} from "@/features/tasks/components/detail";
+import {
+  TaskDetailProvider,
+  useTaskDetailContext,
+} from "@/features/tasks/providers/TaskDetailProvider";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import type { TaskDetailSurfaceProps } from "@/features/tasks/surfaces";
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
@@ -27,13 +30,17 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [header]);
 
   if (controller.isPending) {
-    return <div className="p-6 text-sm text-muted-foreground">Loading task…</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">Loading task…</div>
+    );
   }
 
   if (controller.isError || !controller.taskDetail) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
-        <p className="text-sm text-muted-foreground">Task details could not be loaded.</p>
+        <p className="text-sm text-muted-foreground">
+          Task details could not be loaded.
+        </p>
         <button
           type="button"
           className="rounded-full border border-border px-4 py-2 text-sm font-medium"
@@ -59,10 +66,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           <TaskScheduledDeliverySection />
         </DashedInfoGroup>
         <TaskImagesSection />
-        {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() === 'seat' && (
-          <TaskUpholsterySection />
-        )}
-        <TaskFlowTimeline />
+        {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
+          "seat" && <TaskUpholsterySection />}
+        <TaskFlowTimeline
+          taskId={controller.taskId}
+          onRecordPress={controller.openFlowRecord}
+        />
       </ContentCard>
       <TaskDetailBottomActions />
     </div>
@@ -74,7 +83,10 @@ export function TaskDetailSlidePage(): React.JSX.Element {
 
   if (!taskId) {
     return (
-      <div className="p-6 text-sm text-muted-foreground" data-testid="task-detail-slide">
+      <div
+        className="p-6 text-sm text-muted-foreground"
+        data-testid="task-detail-slide"
+      >
         Task id is missing.
       </div>
     );

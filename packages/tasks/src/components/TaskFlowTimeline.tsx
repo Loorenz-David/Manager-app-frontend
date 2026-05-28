@@ -1,12 +1,21 @@
-import { cn } from "@/lib/utils";
+import { cn } from "@beyo/lib";
+import { SectionLabel } from "@beyo/ui";
 
-import { formatDateTime, getFlowActorLabel } from "../../lib/task-detail";
-import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
-import { SectionLabel } from "@/components/primitives/shared/SectionLabel";
+import { useTaskFlowRecordsQuery } from "../api/use-task-flow-records-query";
+import { formatDateTime, getFlowActorLabel } from "../lib/task-flow-record";
 
-export function TaskFlowTimeline(): React.JSX.Element {
-  const { flowRecords, isFlowPending, openFlowRecord } = useTaskDetailContext();
-  const sorted = [...flowRecords].sort(
+type TaskFlowTimelineProps = {
+  taskId: string;
+  onRecordPress: (entityClientId: string) => void;
+};
+
+export function TaskFlowTimeline({
+  taskId,
+  onRecordPress,
+}: TaskFlowTimelineProps): React.JSX.Element {
+  const query = useTaskFlowRecordsQuery(taskId);
+
+  const sorted = [...(query.data?.flow_records ?? [])].sort(
     (left, right) =>
       new Date(right.created_at).getTime() -
       new Date(left.created_at).getTime(),
@@ -14,19 +23,23 @@ export function TaskFlowTimeline(): React.JSX.Element {
 
   return (
     <div
-      className="flex flex-col gap-3 mt-7"
+      className="mt-7 flex flex-col gap-3"
       data-testid="task-detail-flow-section"
     >
       <SectionLabel as="h3" tone="muted">
         Flow timeline
       </SectionLabel>
 
-      {isFlowPending ? (
-        <p className="text-sm text-[color:var(--color-muted-foreground)]">
+      {query.isPending ? (
+        <p className="text-sm text-muted-foreground">
           Loading timeline…
         </p>
+      ) : query.isError ? (
+        <p className="text-sm text-muted-foreground">
+          Could not load timeline.
+        </p>
       ) : sorted.length === 0 ? (
-        <p className="text-sm text-[color:var(--color-muted-foreground)]">
+        <p className="text-sm text-muted-foreground">
           No flow records yet.
         </p>
       ) : (
@@ -38,9 +51,9 @@ export function TaskFlowTimeline(): React.JSX.Element {
             return (
               <button
                 key={`${record.entity_client_id}-${record.created_at}`}
-                type="button"
                 className="flex w-full gap-0 text-left"
-                onClick={() => openFlowRecord(record.entity_client_id)}
+                type="button"
+                onClick={() => onRecordPress(record.entity_client_id)}
               >
                 <div className="relative mr-3 flex w-4 shrink-0 flex-col items-center">
                   <div
@@ -48,11 +61,11 @@ export function TaskFlowTimeline(): React.JSX.Element {
                       "mt-0.5 h-3 w-3 shrink-0 rounded-full",
                       isMostRecent
                         ? "bg-primary"
-                        : "bg-[color:var(--color-border)]",
+                        : "bg-(--color-border)",
                     )}
                   />
                   {!isLast ? (
-                    <div className="mt-1 w-px flex-1 bg-[color:var(--color-border)]" />
+                    <div className="mt-1 w-px flex-1 bg-(--color-border)" />
                   ) : null}
                 </div>
 
@@ -60,7 +73,7 @@ export function TaskFlowTimeline(): React.JSX.Element {
                   <p
                     className={cn(
                       "text-sm",
-                      isMostRecent ? " text-foreground" : " text-foreground/75",
+                      isMostRecent ? "text-foreground" : "text-foreground/75",
                     )}
                   >
                     {record.description ?? record.type}

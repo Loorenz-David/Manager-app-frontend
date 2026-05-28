@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_workers_home_working_sections_steps_20260528`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: GitHub Copilot
 - Created at (UTC): `2026-05-28T00:00:00Z`
-- Last updated at (UTC): `2026-05-28T00:00:00Z`
+- Last updated at (UTC): `2026-05-28T13:40:01Z`
 - Related issue/ticket: N/A
 - Backend handoff: `docs/handoff/from_backend/HANDOFF_TO_FRONTEND_route_transition_step_state_contract_20260528.md`
 
@@ -2023,6 +2023,6 @@ _Empty — plan not yet reviewed._
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
+- Current state: `archived`
+- Next state: `none`
 - Transition owner: David Loorenz

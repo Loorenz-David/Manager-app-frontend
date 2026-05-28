@@ -1,22 +1,20 @@
-import { useMemo } from 'react';
+import { useMemo } from "react";
 
-import { useDeleteItemIssue } from '@/features/items/actions/use-delete-item-issue';
-import { useIssueCategoryConfigsQuery } from '@/features/items/api/use-issue-category-configs';
-import { useSetUpholsteryQuantity } from '@/features/items/actions/use-set-upholstery-quantity';
-import { useUpdateItemUpholstery } from '@/features/items/actions/use-update-item-upholstery';
-import { useUpdateItem } from '@/features/items/actions/use-update-item';
-import { useDeleteTask } from '@/features/tasks/actions/use-delete-task';
-import { useResolveTask } from '@/features/tasks/actions/use-resolve-task';
-import { useUpdateTask } from '@/features/tasks/actions/use-update-task';
+import { useDeleteItemIssue } from "@/features/items/actions/use-delete-item-issue";
+import { useIssueCategoryConfigsQuery } from "@/features/items/api/use-issue-category-configs";
+import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
+import { useUpdateItemUpholstery } from "@/features/items/actions/use-update-item-upholstery";
+import { useUpdateItem } from "@/features/items/actions/use-update-item";
+import { useDeleteTask } from "@/features/tasks/actions/use-delete-task";
+import { useResolveTask } from "@/features/tasks/actions/use-resolve-task";
+import { useUpdateTask } from "@/features/tasks/actions/use-update-task";
 
-import { useGetTaskQuery } from '../api/use-get-task-query';
-import { useTaskFlowRecordsQuery } from '../api/use-task-flow-records-query';
-import { useTaskDetailFlow } from '../flows/use-task-detail.flow';
-import { getTaskTitle } from '../lib/task-detail';
+import { useGetTaskQuery } from "../api/use-get-task-query";
+import { useTaskDetailFlow } from "../flows/use-task-detail.flow";
+import { getTaskTitle } from "../lib/task-detail";
 
 export function useTaskDetailController(taskId: string) {
   const taskQuery = useGetTaskQuery(taskId);
-  const flowRecordsQuery = useTaskFlowRecordsQuery(taskId);
 
   const itemId = taskQuery.data?.item?.client_id ?? null;
   const itemCategoryId = taskQuery.data?.item?.item_category_id ?? undefined;
@@ -42,7 +40,9 @@ export function useTaskDetailController(taskId: string) {
 
   const requirementsById = useMemo(() => {
     const entries = taskQuery.data?.requirements ?? [];
-    return new Map<string, (typeof entries)[number]>(entries.map((entry) => [entry.client_id, entry]));
+    return new Map<string, (typeof entries)[number]>(
+      entries.map((entry) => [entry.client_id, entry]),
+    );
   }, [taskQuery.data?.requirements]);
 
   const activeUpholstery = useMemo(
@@ -60,11 +60,9 @@ export function useTaskDetailController(taskId: string) {
     taskId,
     taskDetail: taskQuery.data ?? null,
     issueNameByTypeId,
-    flowRecords: flowRecordsQuery.data?.flow_records ?? [],
-    title: taskQuery.data ? getTaskTitle(taskQuery.data.task) : 'Task',
+    title: taskQuery.data ? getTaskTitle(taskQuery.data.task) : "Task",
     isPending: taskQuery.isPending,
     isError: taskQuery.isError,
-    isFlowPending: flowRecordsQuery.isPending,
     refetch: taskQuery.refetch,
     activeUpholstery,
     updateTask,

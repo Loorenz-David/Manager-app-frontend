@@ -19,6 +19,7 @@
     "@beyo/auth": "*",
     "@beyo/cases": "*",
     "@beyo/hooks": "*",
+    "@beyo/item-categories": "*",
     "@beyo/images": "*",
     "@beyo/lib": "*",
     "@beyo/styles": "*",
