@@ -1,6 +1,10 @@
 export { CasesRouteEntry } from "./route-entry";
 export { CaseConversationRouteEntry } from "./components/CaseConversationRouteEntry";
 export { CaseConversationRouteHydrator } from "./components/CaseConversationRouteHydrator";
+export { CaseCreationRouteEntry } from "./components/CaseCreationRouteEntry";
+export { CaseCreationFormContent } from "./components/CaseCreationFormContent";
+export { CaseInitialMessageComposer } from "./components/CaseInitialMessageComposer";
+export { CaseTypePickerRouteEntry } from "./components/CaseTypePickerRouteEntry";
 
 export {
   CasesViewProvider,
@@ -11,14 +15,23 @@ export {
   useCaseConversationContext,
   useCaseConversationMessagesContext,
 } from "./providers/CaseConversationProvider";
+export {
+  CaseCreationFormProvider,
+  useCaseCreationFormContext,
+} from "./providers/CaseCreationFormProvider";
 
 export {
   CASE_CONVERSATION_SURFACE_ID,
+  CASE_CREATION_SLIDE_SURFACE_ID,
+  CASE_TYPE_PICKER_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
 } from "./surface-ids";
 export type {
+  CaseCreationSurfaceOpeners,
   CaseConversationSurfaceProps,
+  CaseCreationSlideSurfaceProps,
+  CaseTypePickerSheetSurfaceProps,
   CaseTaskInfoSheetSurfaceProps,
   CaseMessageActionsSheetSurfaceProps,
 } from "./surface-ids";
@@ -33,6 +46,11 @@ export {
   toCaseListCardViewModel,
 } from "./types";
 export type {
+  CaseTypeId,
+  CaseType,
+  CaseTypeSelectedDisplay,
+  ListCaseTypesParams,
+  CaseCreationFormValues,
   CaseListCardViewModel,
   CaseDetailRaw,
   CaseDetailBase,
@@ -65,12 +83,15 @@ export { useGetCaseQuery } from "./api/use-get-case";
 export { useCaseLinksQuery } from "./api/use-case-links";
 export { useCaseParticipantsQuery } from "./api/use-case-participants";
 export { useListCasesQuery } from "./api/use-list-cases";
+export { useListCaseTypesQuery } from "./api/use-list-case-types";
 
 export { useDeleteCaseMessage } from "./actions/use-delete-case-message";
 export { useEditCaseMessage } from "./actions/use-edit-case-message";
 export { useMarkCaseRead } from "./actions/use-mark-case-read";
+export { useCreateCase } from "./actions/use-create-case";
 export { useSendCaseMessage } from "./actions/use-send-case-message";
 export { useUpdateCaseState } from "./actions/use-update-case-state";
+export type { CreateCaseAction } from "./actions/use-create-case";
 
 export type { CaseConversationController } from "./controllers/use-case-conversation.controller";
 export type { CasesViewController } from "./controllers/use-cases-view.controller";

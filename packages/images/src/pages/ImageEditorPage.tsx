@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useSurface } from "@beyo/hooks";
 import { useSurfaceHeader } from "@beyo/hooks";
 import { useSurfaceProps } from "@beyo/hooks";
 import { useSurfaceStore } from "@beyo/ui";
@@ -135,7 +134,6 @@ function buildTextAnnotation(
 
 export function ImageEditorPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const surface = useSurface();
   const {
     image,
     isDirectCaptureSession,
@@ -519,7 +517,7 @@ export function ImageEditorPage(): React.JSX.Element {
       return;
     }
 
-    surface.open(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID, {
+    useSurfaceStore.getState().open(IMAGE_EDITOR_DISCARD_CHANGES_SURFACE_ID, {
       onDiscardAndClose: () => {
         useSurfaceStore
           .getState()
@@ -535,7 +533,6 @@ export function ImageEditorPage(): React.JSX.Element {
     hasUnsavedChanges,
     isDirectCaptureSession,
     onCancelCapture,
-    surface,
   ]);
 
   useEffect(() => {
@@ -556,11 +553,11 @@ export function ImageEditorPage(): React.JSX.Element {
   }, [resetTextDraft, textAnchor]);
 
   const handleOpenToolPicker = useCallback(() => {
-    surface.open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
+    useSurfaceStore.getState().open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
       activeTool,
       onSelect: setActiveTool,
     } satisfies ImageAnnotationToolPickerSurfaceProps);
-  }, [activeTool, surface]);
+  }, [activeTool]);
 
   const handleEditText = useCallback(
     (item: AnnotatedCanvasItem) => {
@@ -593,7 +590,7 @@ export function ImageEditorPage(): React.JSX.Element {
 
   const handleAnnotationTap = useCallback(
     (item: AnnotatedCanvasItem) => {
-      surface.open(IMAGE_ANNOTATION_ACTIONS_SURFACE_ID, {
+      useSurfaceStore.getState().open(IMAGE_ANNOTATION_ACTIONS_SURFACE_ID, {
         item,
         onDelete: () => handleDeleteAnnotationRef.current?.(item),
         onEditText: isTextCanvasItem(item)
@@ -604,7 +601,7 @@ export function ImageEditorPage(): React.JSX.Element {
           : undefined,
       } satisfies ImageAnnotationActionsSurfaceProps);
     },
-    [handleEditText, handleMoveText, surface],
+    [handleEditText, handleMoveText],
   );
 
   if (!currentImage) {

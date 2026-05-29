@@ -20,6 +20,32 @@ export const CASE_LINK_ROLE = [
   "actor",
   "resolution",
 ] as const;
+
+export type CaseTypeId = string & { readonly _brand: "CaseTypeId" };
+
+export const CaseTypeSchema = z.object({
+  client_id: z.string().transform((v) => v as CaseTypeId),
+  name: z.string(),
+  image_url: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  entity_type: z.string().nullable().optional(),
+});
+export type CaseType = z.infer<typeof CaseTypeSchema>;
+
+export type ListCaseTypesParams = {
+  limit?: number;
+  offset?: number;
+  q?: string;
+  entity_type?: string;
+};
+
+export type CaseTypeSelectedDisplay = {
+  clientId: string;
+  name: string;
+  imageUrl: string | null;
+  description: string | null;
+};
+
 export const MESSAGE_CONTENT_BLOCK_TYPE = [
   "text",
   "mention",
@@ -101,7 +127,7 @@ export const MessageMentionSchema = z.object({
 export const MessageContentBlockMarksSchema = z.object({
   bold: z.boolean().optional(),
   underline: z.boolean().optional(),
-  size: z.enum(['small', 'base', 'large']).optional(),
+  size: z.enum(["small", "base", "large"]).optional(),
   color: z.string().optional(),
   animation: z.string().optional(),
 });
@@ -115,6 +141,13 @@ export const MessageContentBlockSchema = z.object({
   marks: MessageContentBlockMarksSchema.nullable().optional(),
 });
 export type MessageContentBlock = z.infer<typeof MessageContentBlockSchema>;
+
+export const InitialMessageInputSchema = z.object({
+  client_id: z.string().nullable().optional(),
+  content: z.array(MessageContentBlockSchema),
+  plain_text: z.string().optional(),
+});
+export type InitialMessageInput = z.infer<typeof InitialMessageInputSchema>;
 
 export const MessageImageSnapshotSchema = z.object({
   client_id: z.string(),
@@ -216,8 +249,21 @@ export const CreateCaseInputSchema = z.object({
   client_id: ClientIdSchema,
   case_type_id: z.string().min(1).optional(),
   type_label: z.string().max(128).optional(),
+  participants: z.array(z.string()).optional(),
+  selected_all: z.boolean().optional(),
+  skip_participants: z.array(z.string()).optional(),
+  initial_message: InitialMessageInputSchema.nullable().optional(),
 });
 export type CreateCaseInput = z.infer<typeof CreateCaseInputSchema>;
+
+export const CaseCreationFormSchema = z.object({
+  case_type_id: z.string().min(1).optional(),
+  type_label: z.string().trim().min(1).max(128).optional(),
+  participants: z.array(z.string()).optional(),
+  selected_all: z.boolean().optional(),
+  skip_participants: z.array(z.string()).optional(),
+});
+export type CaseCreationFormValues = z.infer<typeof CaseCreationFormSchema>;
 
 export const UpdateCaseStateInputSchema = z.object({
   case_client_id: z.string().transform((v) => v as CaseId),

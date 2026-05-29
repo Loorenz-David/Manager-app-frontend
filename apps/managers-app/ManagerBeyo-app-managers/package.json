@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@beyo/lib": "*",
+    "@beyo/upholstery": "*",
     "@beyo/tasks": "*",
     "@beyo/ui": "*",
     "@dnd-kit/core": "^6.3.1",

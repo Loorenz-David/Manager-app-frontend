@@ -66,15 +66,20 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           </div>
         ) : null}
 
-        <div className="mx-4 mt-1">
-          <ContentCard>
+        <div className=" mt-1">
+          <ContentCard gapClassName="gap-4">
             <TaskStepImagesPreview />
+
             <TaskStepItemDetailsSection />
+
             <TaskStepUpholsterySection />
-            <TaskFlowTimeline
-              taskId={controller.taskId}
-              onRecordPress={controller.handleOpenFlowRecord}
-            />
+
+            <div className="mt-5">
+              <TaskFlowTimeline
+                taskId={controller.taskId}
+                onRecordPress={controller.handleOpenFlowRecord}
+              />
+            </div>
           </ContentCard>
         </div>
       </div>

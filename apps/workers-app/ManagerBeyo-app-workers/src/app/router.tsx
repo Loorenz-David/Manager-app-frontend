@@ -1,9 +1,9 @@
-import { createBrowserRouter } from 'react-router-dom';
-import { AppShell } from '@/app/AppShell';
-import { RootRoute } from '@/app/RootRoute';
-import { GuestRoute, ProtectedRoute } from '@/features/auth';
-import { lazyRoute } from '@/lib/lazy-route';
-import { ROUTES } from '@/lib/routes';
+import { createBrowserRouter } from "react-router-dom";
+import { AppShell } from "@/app/AppShell";
+import { RootRoute } from "@/app/RootRoute";
+import { GuestRoute, ProtectedRoute } from "@/features/auth";
+import { lazyRoute } from "@/lib/lazy-route";
+import { ROUTES } from "@/lib/routes";
 
 export const router = createBrowserRouter([
   {
@@ -15,7 +15,7 @@ export const router = createBrowserRouter([
           {
             path: ROUTES.signIn,
             element: lazyRoute(() =>
-              import('@/pages/auth/SignInPage').then((module) => ({
+              import("@/pages/auth/SignInPage").then((module) => ({
                 default: module.SignInPage,
               })),
             ),
@@ -31,7 +31,7 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.home,
                 element: lazyRoute(() =>
-                  import('@/pages/home/HomePage').then((module) => ({
+                  import("@/pages/home/HomePage").then((module) => ({
                     default: module.HomePage,
                   })),
                 ),
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.tasks,
                 element: lazyRoute(() =>
-                  import('@/pages/tasks/TasksPage').then((module) => ({
+                  import("@/pages/tasks/TasksPage").then((module) => ({
                     default: module.TasksPage,
                   })),
                 ),
@@ -47,23 +47,35 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.cases,
                 element: lazyRoute(() =>
-                  import('@/pages/cases/CasesPage').then((module) => ({
+                  import("@/pages/cases/CasesPage").then((module) => ({
                     default: module.CasesPage,
                   })),
                 ),
               },
               {
+                path: ROUTES.caseCreation,
+                element: lazyRoute(() =>
+                  import("@/pages/cases/CaseCreationSlidePage").then(
+                    (module) => ({
+                      default: module.CaseCreationSlidePage,
+                    }),
+                  ),
+                ),
+              },
+              {
                 path: ROUTES.caseConversation,
                 element: lazyRoute(() =>
-                  import('@/pages/cases/CaseConversationPage').then((module) => ({
-                    default: module.CaseConversationPage,
-                  })),
+                  import("@/pages/cases/CaseConversationPage").then(
+                    (module) => ({
+                      default: module.CaseConversationPage,
+                    }),
+                  ),
                 ),
               },
               {
                 path: ROUTES.stats,
                 element: lazyRoute(() =>
-                  import('@/pages/stats/StatsPage').then((module) => ({
+                  import("@/pages/stats/StatsPage").then((module) => ({
                     default: module.StatsPage,
                   })),
                 ),
@@ -71,7 +83,7 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.settings,
                 element: lazyRoute(() =>
-                  import('@/pages/settings/SettingsPage').then((module) => ({
+                  import("@/pages/settings/SettingsPage").then((module) => ({
                     default: module.SettingsPage,
                   })),
                 ),
@@ -81,9 +93,9 @@ export const router = createBrowserRouter([
         ],
       },
       {
-        path: '*',
+        path: "*",
         element: lazyRoute(() =>
-          import('@/pages/NotFoundPage').then((module) => ({
+          import("@/pages/NotFoundPage").then((module) => ({
             default: module.NotFoundPage,
           })),
         ),

@@ -3,10 +3,15 @@ export const ROUTES = {
   home: "/",
   tasks: "/tasks",
   cases: "/cases",
+  caseCreation: "/cases/new",
   caseConversation: "/cases/:caseId",
   stats: "/stats",
   settings: "/settings",
 } as const;
+
+export function buildCaseCreationRoute(): string {
+  return ROUTES.caseCreation;
+}
 
 export function buildCaseConversationRoute(caseId: string): string {
   return `${ROUTES.cases}/${caseId}`;

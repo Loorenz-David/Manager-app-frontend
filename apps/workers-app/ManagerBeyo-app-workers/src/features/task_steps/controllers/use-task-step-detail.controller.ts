@@ -2,6 +2,16 @@ import { useCallback, useMemo } from "react";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import {
+  useItemCategoryByIdFlow,
+  type ItemCategoryId,
+  type ItemCategoryViewModel,
+} from "@beyo/item-categories";
+import {
+  CASE_CREATION_SLIDE_SURFACE_ID,
+  CASE_TYPE_PICKER_SHEET_SURFACE_ID,
+  type CaseCreationSurfaceOpeners,
+} from "@beyo/cases";
+import {
   IMAGE_VIEWER_SURFACE_ID,
   ImageAnnotationSchema,
   toImageAnnotationViewModel,
@@ -30,6 +40,10 @@ export type TaskStepDetailController = {
   taskId: TaskId;
   workingSectionId: WorkingSectionId;
   step: TaskStep | null;
+  itemCategory: ItemCategoryViewModel | null;
+  isItemCategoryPending: boolean;
+  isItemCategoryError: boolean;
+  isSeatCategory: boolean;
   vm: TaskStepCardViewModel | null;
   isPending: boolean;
   isError: boolean;
@@ -42,6 +56,7 @@ export type TaskStepDetailController = {
   handleComplete: () => void;
   handleOpenImageViewer: (initialImageClientId: string) => void;
   handleOpenActionsSheet: () => void;
+  handleOpenCaseCreation: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
   isTransitioning: boolean;
   transitioningStepId: TaskStepId | null;
@@ -65,6 +80,19 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     () => query.data?.items.find((s) => s.client_id === resolvedStepId) ?? null,
     [query.data?.items, resolvedStepId],
   );
+
+  const itemCategoryId =
+    step?.item?.item_category_id != null
+      ? (step.item.item_category_id as ItemCategoryId)
+      : null;
+
+  const {
+    category: itemCategory,
+    isPending: isItemCategoryPending,
+    isError: isItemCategoryError,
+  } = useItemCategoryByIdFlow(itemCategoryId);
+
+  const isSeatCategory = itemCategory?.majorCategory === "seat";
 
   const vm = useMemo(
     () => (step ? toTaskStepCardViewModel(step) : null),
@@ -98,7 +126,13 @@ export function useTaskStepDetailController(): TaskStepDetailController {
       new_state: "completed",
       working_section_id: resolvedWorkingSectionId,
     });
-  }, [vm, resolvedTaskId, resolvedStepId, resolvedWorkingSectionId, transitionStepState]);
+  }, [
+    vm,
+    resolvedTaskId,
+    resolvedStepId,
+    resolvedWorkingSectionId,
+    transitionStepState,
+  ]);
 
   const handleOpenImageViewer = useCallback(
     (initialImageClientId: string) => {
@@ -164,6 +198,19 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     } as TaskStepActionsSheetSurfaceProps);
   }, [openSurface, resolvedStepId, resolvedTaskId]);
 
+  const handleOpenCaseCreation = useCallback(() => {
+    const surfaceOpeners: CaseCreationSurfaceOpeners = {
+      openCaseTypePicker: (props) =>
+        openSurface(CASE_TYPE_PICKER_SHEET_SURFACE_ID, props),
+      // add openParticipantPicker here when that field is introduced
+    };
+
+    openSurface(CASE_CREATION_SLIDE_SURFACE_ID, {
+      entityTypes: ["task"],
+      surfaceOpeners,
+    });
+  }, [openSurface]);
+
   // Flow record detail surface not yet registered in workers app.
   const handleOpenFlowRecord = useCallback((_entityClientId: string) => {}, []);
 
@@ -172,6 +219,10 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     taskId: resolvedTaskId,
     workingSectionId: resolvedWorkingSectionId,
     step,
+    itemCategory,
+    isItemCategoryPending,
+    isItemCategoryError,
+    isSeatCategory,
     vm,
     isPending: query.isPending,
     isError: query.isError,
@@ -180,6 +231,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     handleComplete,
     handleOpenImageViewer,
     handleOpenActionsSheet,
+    handleOpenCaseCreation,
     handleOpenFlowRecord,
     isTransitioning,
     transitioningStepId: pendingStepId ?? null,

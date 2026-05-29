@@ -1,5 +1,14 @@
 import { z } from "zod";
-import { DashedInfoSection, ImagePlaceholder, SectionLabel } from "@beyo/ui";
+import {
+  DashedInfoSection,
+  ImagePlaceholder,
+  SectionLabel,
+  StatePill,
+} from "@beyo/ui";
+import {
+  formatUpholsteryRequirementLabel,
+  getUpholsteryRequirementVariant,
+} from "@beyo/upholstery";
 import { useUpholsteryQuery } from "@/features/upholstery";
 import { UpholsteryRequirementSchema } from "../../types";
 import { useTaskStepDetailContext } from "../../providers/TaskStepDetailProvider";
@@ -11,15 +20,20 @@ function UpholsteryEntryCard({
 }: {
   requirement: UpholsteryRequirement;
 }): React.JSX.Element | null {
-  const query = useUpholsteryQuery(requirement.item_upholstery_id);
+  const upholsteryClientId =
+    requirement.upholstery_id ?? requirement.item_upholstery_id ?? null;
 
-  if (query.isPending) {
+  const query = useUpholsteryQuery(upholsteryClientId);
+  const requirementVariant = getUpholsteryRequirementVariant(requirement.state);
+  const isFetchingUpholstery = Boolean(upholsteryClientId) && query.isPending;
+
+  if (isFetchingUpholstery) {
     return <div className="h-16 animate-pulse rounded-xl bg-muted" />;
   }
 
-  if (query.isError || !query.data) {
-    return null;
-  }
+  const upholsteryName = query.data?.name ?? "Upholstery unavailable";
+  const upholsteryCode = query.data?.code ?? null;
+  const upholsteryImageUrl = query.data?.image_url ?? null;
 
   return (
     <div
@@ -27,14 +41,14 @@ function UpholsteryEntryCard({
       data-testid={`upholstery-entry-card-${requirement.client_id}`}
     >
       <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {query.data.image_url ? (
+        {upholsteryImageUrl ? (
           <img
             alt=""
             className="size-full object-cover"
             decoding="async"
             draggable={false}
             loading="lazy"
-            src={query.data.image_url}
+            src={upholsteryImageUrl}
           />
         ) : (
           <ImagePlaceholder iconClassName="size-4 text-muted-foreground/60" />
@@ -42,11 +56,19 @@ function UpholsteryEntryCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">
-          {query.data.name}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium text-foreground">
+            {upholsteryName}
+          </p>
+          {requirementVariant ? (
+            <StatePill
+              label={formatUpholsteryRequirementLabel(requirement.state)}
+              variant={requirementVariant}
+            />
+          ) : null}
+        </div>
         <p className="text-xs text-muted-foreground">
-          {query.data.code ? `Code ${query.data.code} · ` : ""}
+          {upholsteryCode ? `${upholsteryCode} · ` : ""}
           {requirement.amount_meters} m
         </p>
       </div>
@@ -55,19 +77,18 @@ function UpholsteryEntryCard({
 }
 
 export function TaskStepUpholsterySection(): React.JSX.Element | null {
-  const { step } = useTaskStepDetailContext();
+  const { step, isSeatCategory } = useTaskStepDetailContext();
 
-  if (!step?.item) {
+  if (!step?.item || !isSeatCategory) {
     return null;
   }
 
-  const requirements = step.item.upholstery_requirement;
+  const requirements = step.item.upholstery_requirement.filter(
+    (requirement) => requirement.state !== "failed",
+  );
 
   return (
-    <DashedInfoSection
-      className="mt-4 py-4"
-      data-testid="task-step-upholstery-section"
-    >
+    <DashedInfoSection className=" " data-testid="task-step-upholstery-section">
       <SectionLabel as="h3" tone="muted">
         Selected Upholstery
       </SectionLabel>
@@ -75,7 +96,7 @@ export function TaskStepUpholsterySection(): React.JSX.Element | null {
       {requirements.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upholstery linked.</p>
       ) : (
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="flex flex-col gap-2">
           {requirements.map((requirement) => (
             <UpholsteryEntryCard
               key={requirement.client_id}

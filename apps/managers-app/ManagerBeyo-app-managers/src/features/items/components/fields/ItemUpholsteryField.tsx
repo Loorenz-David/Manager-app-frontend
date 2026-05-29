@@ -1,20 +1,23 @@
-import { useQueryClient } from '@tanstack/react-query';
-import { cva } from 'class-variance-authority';
-import { ChevronRight } from 'lucide-react';
+import { useQueryClient } from "@tanstack/react-query";
+import { cva } from "class-variance-authority";
+import { ChevronRight } from "lucide-react";
 
-import { ImagePlaceholder } from '@/components/primitives';
-import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
-import { UPHOLSTERY_PICKER_SLIDE_ID } from '@/features/upholstery/surfaces';
-import type { ListUpholsteryPickerParams, UpholsteryPickerOption } from '@/features/upholstery/types';
+import { ImagePlaceholder } from "@/components/primitives";
+import { upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { UPHOLSTERY_PICKER_SLIDE_ID } from "@/features/upholstery/surfaces";
+import type {
+  ListUpholsteryPickerParams,
+  UpholsteryPickerOption,
+} from "@/features/upholstery/types";
 
-import { useUpholsteryPickerOptionQuery } from '@/features/upholstery';
-import { useSurface } from '@/hooks/use-surface';
-import { cn } from '@/lib/utils';
-import { StatePill, type StatePillVariant } from '@/components/primitives';
-import type { ItemUpholsteryRequirementState } from '@/features/items/types';
+import { useUpholsteryPickerOptionQuery } from "@/features/upholstery";
+import { useSurface } from "@/hooks/use-surface";
+import { cn } from "@/lib/utils";
+import { StatePill, type StatePillVariant } from "@/components/primitives";
+import type { ItemUpholsteryRequirementState } from "@/features/items/types";
 
 const itemUpholsteryFieldVariants = cva(
-  'flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+  "flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
 );
 
 type ItemUpholsteryFieldProps = {
@@ -28,20 +31,23 @@ type ItemUpholsteryFieldProps = {
   testId?: string;
 };
 
-const REQUIREMENT_VARIANT: Record<ItemUpholsteryRequirementState, StatePillVariant> = {
-  missing_quantity: 'warning',
-  available: 'success',
-  needs_ordering: 'warning',
-  ordered: 'active',
-  in_use: 'active',
-  completed: 'success',
-  failed: 'danger',
+const REQUIREMENT_VARIANT: Record<
+  ItemUpholsteryRequirementState,
+  StatePillVariant
+> = {
+  missing_quantity: "warning",
+  available: "success",
+  needs_ordering: "warning",
+  ordered: "active",
+  in_use: "active",
+  completed: "success",
+  failed: "danger",
 };
 
 export function ItemUpholsteryField({
   value,
   onChange,
-  placeholder = 'Select upholstery',
+  placeholder = "Select upholstery",
   title,
   description,
   requirementState = null,
@@ -51,7 +57,7 @@ export function ItemUpholsteryField({
   const surface = useSurface();
   const queryClient = useQueryClient();
   const cachedSelection = value
-    ? (
+    ? ((
         queryClient.getQueriesData<{
           upholsteries: UpholsteryPickerOption[];
           has_more: boolean;
@@ -60,24 +66,28 @@ export function ItemUpholsteryField({
         }) as Array<
           [
             readonly [
-              'upholsteries',
-              'picker',
-              'list',
+              "upholsteries",
+              "picker",
+              "list",
               ListUpholsteryPickerParams,
             ],
-            { upholsteries: UpholsteryPickerOption[]; has_more: boolean } | undefined,
+            (
+              | { upholsteries: UpholsteryPickerOption[]; has_more: boolean }
+              | undefined
+            ),
           ]
         >
       )
         .flatMap(([, data]) => data?.upholsteries ?? [])
-        .find((entry) => entry.client_id === value) ?? null
+        .find((entry) => entry.client_id === value) ?? null)
     : null;
   const { data: fetchedOption, isPending } = useUpholsteryPickerOptionQuery(
     cachedSelection === null ? value : null,
   );
   const selectedUpholstery = cachedSelection ?? fetchedOption ?? null;
   const hasSelection = value !== null && value !== undefined;
-  const isLoadingSelection = hasSelection && selectedUpholstery === null && isPending;
+  const isLoadingSelection =
+    hasSelection && selectedUpholstery === null && isPending;
 
   function handlePress(): void {
     surface.open(UPHOLSTERY_PICKER_SLIDE_ID, {
@@ -117,7 +127,7 @@ export function ItemUpholsteryField({
                 </span>
                 {requirementState ? (
                   <StatePill
-                    label={requirementState.replaceAll('_', ' ')}
+                    label={requirementState.replaceAll("_", " ")}
                     variant={REQUIREMENT_VARIANT[requirementState]}
                   />
                 ) : null}
@@ -129,19 +139,23 @@ export function ItemUpholsteryField({
               ) : null}
             </span>
           ) : isLoadingSelection ? (
-            <span className="truncate text-sm text-muted-foreground">Loading upholstery…</span>
+            <span className="truncate text-sm text-muted-foreground">
+              Loading upholstery…
+            </span>
           ) : (
             <span className="truncate text-sm text-foreground">{value}</span>
           )
         ) : (
-          <span className="truncate text-sm text-muted-foreground">{placeholder}</span>
+          <span className="truncate text-sm text-muted-foreground">
+            {placeholder}
+          </span>
         )}
       </span>
       <ChevronRight
         aria-hidden="true"
         className={cn(
-          'size-4 shrink-0',
-          hasSelection ? 'text-muted-foreground' : 'text-icon',
+          "size-4 shrink-0",
+          hasSelection ? "text-muted-foreground" : "text-icon",
         )}
       />
     </button>

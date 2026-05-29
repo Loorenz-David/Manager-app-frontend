@@ -11,7 +11,7 @@ export const ItemCategorySchema = z.object({
   name: z.string(),
   major_category: MajorCategorySchema,
   created_at: z.string(),
-  created_by_id: z.string(),
+  created_by_id: z.string().nullable(),
   image_url: z.string().nullable(),
 });
 export type ItemCategory = z.infer<typeof ItemCategorySchema>;

@@ -25,7 +25,10 @@ export function TaskStepImagesPreview(): React.JSX.Element | null {
   const extraCount = Math.max(0, step.item_images.length - 3);
 
   return (
-    <div className="flex gap-2" data-testid="task-step-images-preview">
+    <div
+      className="grid grid-cols-3 gap-2"
+      data-testid="task-step-images-preview"
+    >
       {previews.map((image, index) => {
         const isThirdSlot = index === 2;
         const showExtraOverlay = isThirdSlot && extraCount > 0;
@@ -38,7 +41,7 @@ export function TaskStepImagesPreview(): React.JSX.Element | null {
           <button
             key={image.client_id}
             type="button"
-            className="relative aspect-square flex-1 overflow-hidden rounded-xl bg-muted"
+            className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted"
             data-testid={`task-step-image-tap-${image.client_id}`}
             onClick={() => handleOpenImageViewer(image.client_id)}
           >

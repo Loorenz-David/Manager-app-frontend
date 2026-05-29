@@ -2,6 +2,7 @@ import { m } from "framer-motion";
 import {
   Calendar,
   ChevronLeft,
+  MessageSquareMore,
   RotateCcw,
   ShoppingBag,
   Wrench,
@@ -140,7 +141,8 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 
 export function TaskStepDetailHeader(): React.JSX.Element | null {
   const header = useSurfaceHeader();
-  const { vm, handleOpenActionsSheet } = useTaskStepDetailContext();
+  const { vm, handleOpenActionsSheet, handleOpenCaseCreation } =
+    useTaskStepDetailContext();
 
   if (!vm) {
     return null;
@@ -177,6 +179,16 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
           label={humanizeSnakeCase(vm.state) || vm.state}
           variant={STEP_STATE_VARIANT[vm.state]}
         />
+
+        <button
+          type="button"
+          aria-label="Open case creation"
+          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+          data-testid="task-step-detail-open-case-creation"
+          onClick={handleOpenCaseCreation}
+        >
+          <MessageSquareMore className="size-4" />
+        </button>
 
         <button
           type="button"

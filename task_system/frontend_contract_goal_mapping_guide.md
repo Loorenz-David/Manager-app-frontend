@@ -26,6 +26,7 @@ This is the core discipline. The two questions have different answers:
 | How do I handle form validation and server errors? | `09_forms.md` |
 | How do I set up a route with lazy loading? | `11_routing.md` |
 | How do I write a feature component that consumes context? | `07_components.md` |
+| How does a package field open a picker surface? | `35_shared_packages.md §13` |
 | What does this existing feature's API return? | Implementation file or `types.ts` |
 | What fields does this existing form have? | Implementation file |
 | How does this existing controller aggregate its queries? | Implementation file |
@@ -176,6 +177,7 @@ Add:
 - "environment", "env var", "VITE_", "import.meta.env" → `03`
 - "dto", "view model", "client_id", "response schema", "toXxxViewModel" → `24`
 - "memoization", "useMemo", "useCallback", "React.memo", "virtualize" → `18`
+- "surfaceOpeners", "surface opener", "package picker", "openSurface from package", "picker injection", "package surface boundary", "XxxSurfaceOpeners", "callback injection surface" → `35_shared_packages §13`
 
 ---
 

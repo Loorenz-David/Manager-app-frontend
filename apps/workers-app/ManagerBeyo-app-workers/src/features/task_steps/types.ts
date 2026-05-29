@@ -69,7 +69,8 @@ export const UserRefSchema = z.object({
 
 export const UpholsteryRequirementSchema = z.object({
   client_id: z.string(),
-  item_upholstery_id: z.string(),
+  item_upholstery_id: z.string().nullable().optional(),
+  upholstery_id: z.string().nullable().optional(),
   state: z.string(),
   source: z.string(),
   amount_meters: z.number(),

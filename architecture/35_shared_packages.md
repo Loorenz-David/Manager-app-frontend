@@ -352,3 +352,186 @@ All `npm install` commands run from the `frontend/` root, not from inside a pack
 cd /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend
 npm install
 ```
+
+---
+
+## 13. Packages and App Surfaces
+
+### The Rule
+
+**Packages must never call `openSurface` directly.**
+
+Surface registration lives in apps. A package component that calls `openSurface(SOME_ID, ...)` directly would import from `@beyo/ui`'s surface system and implicitly assume that surface is registered in the consuming app — a compile-time import with a runtime assumption. This is a package boundary violation.
+
+Instead, packages declare what they need through a typed `XxxSurfaceOpeners` map, and apps inject concrete implementations via surface props.
+
+---
+
+### The Pattern — `surfaceOpeners` injection
+
+#### 1. Package declares the openers map (in `surface-ids.ts`)
+
+Every package that contains picker trigger fields defines a single grouped type for all the surface-opening callbacks it may need. All keys are optional — the package always handles `undefined` gracefully with `?.()`.
+
+```ts
+// packages/cases/src/surface-ids.ts
+
+export const CASE_CREATION_SLIDE_SURFACE_ID = "case-creation-slide";
+export const CASE_TYPE_PICKER_SHEET_SURFACE_ID = "case-type-picker-sheet";
+
+export type CaseCreationSurfaceOpeners = {
+  openCaseTypePicker?: (props: CaseTypePickerSheetSurfaceProps) => void;
+  // add one optional key per new picker field
+};
+
+export type CaseCreationSlideSurfaceProps = {
+  entityTypes?: string[];
+  surfaceOpeners: CaseCreationSurfaceOpeners; // required at type level; default {} in provider
+};
+
+export type CaseTypePickerSheetSurfaceProps = {
+  entityTypes?: string[];
+  currentCaseTypeId?: string | null;
+  onSelect: (selection: CaseTypeSelectedDisplay) => void;
+};
+```
+
+#### 2. Package route entry reads openers from surface props
+
+The `XxxRouteEntry` component (the package's self-contained entry point) reads `surfaceOpeners` from `useSurfaceProps<T>()` and passes it straight to the provider. It does not inspect or augment the map.
+
+```tsx
+// packages/cases/src/components/CaseCreationRouteEntry.tsx
+
+const { entityTypes, surfaceOpeners } = useSurfaceProps<CaseCreationSlideSurfaceProps>();
+
+return (
+  <CaseCreationFormProvider entityTypes={entityTypes} surfaceOpeners={surfaceOpeners}>
+    <CaseCreationFormContent />
+  </CaseCreationFormProvider>
+);
+```
+
+#### 3. Package provider holds and exposes openers via context
+
+The provider stores `surfaceOpeners ?? {}` and exposes it through the feature context. This is the only way package components access the map — via context, never via props drilling.
+
+```tsx
+// packages/cases/src/providers/CaseCreationFormProvider.tsx
+
+type CaseCreationFormContextValue = {
+  caseClientId: CaseId;
+  regenerateId: () => void;
+  surfaceOpeners: CaseCreationSurfaceOpeners;
+  // ...other context values
+};
+
+// Inside provider:
+const value: CaseCreationFormContextValue = {
+  ...
+  surfaceOpeners: surfaceOpeners ?? {},
+};
+```
+
+#### 4. Package trigger field calls openers via context
+
+Trigger fields read `surfaceOpeners` from context and call the relevant opener with `?.()`. They never import `useSurface` or `openSurface`.
+
+```tsx
+// packages/cases/src/components/CaseTypePickerTriggerField.tsx
+
+const { surfaceOpeners, selectedCaseType, setSelectedCaseType, entityTypes } =
+  useCaseCreationFormContext();
+const form = useFormContext<CaseCreationFormValues>();
+const currentCaseTypeId = useWatch({ control: form.control, name: "case_type_id" });
+
+function handlePress(): void {
+  surfaceOpeners.openCaseTypePicker?.({
+    entityTypes,
+    currentCaseTypeId: currentCaseTypeId ?? null,
+    onSelect: (selection) => {
+      setSelectedCaseType(selection);
+      form.setValue("case_type_id", selection.clientId, { shouldDirty: true });
+      form.setValue("type_label", selection.name, { shouldDirty: true });
+    },
+  });
+}
+```
+
+The `onSelect` closure is created inside the trigger field (where `form.setValue` and context setters are in scope), passed through the surface system as an opaque function, and called by the picker sheet upon selection.
+
+#### 5. App controller provides implementations (the only place `openSurface` is called)
+
+The app controller is the single location where surface IDs and `openSurface` are used for picker surfaces. It assembles the `surfaceOpeners` object and passes it when opening the parent surface.
+
+```ts
+// apps/workers-app/.../controllers/use-task-step-detail.controller.ts
+
+import {
+  CASE_CREATION_SLIDE_SURFACE_ID,
+  CASE_TYPE_PICKER_SHEET_SURFACE_ID,
+  type CaseCreationSurfaceOpeners,
+} from "@beyo/cases";
+
+const handleOpenCaseCreation = useCallback(() => {
+  const surfaceOpeners: CaseCreationSurfaceOpeners = {
+    openCaseTypePicker: (props) =>
+      openSurface(CASE_TYPE_PICKER_SHEET_SURFACE_ID, props),
+    // add openParticipantPicker here when introducing that field
+  };
+  openSurface(CASE_CREATION_SLIDE_SURFACE_ID, {
+    entityTypes: ["task"],
+    surfaceOpeners,
+  });
+}, [openSurface]);
+```
+
+---
+
+### Ownership table
+
+| Concern | Owned by |
+|---|---|
+| `XxxSurfaceOpeners` type | Package (`surface-ids.ts`) |
+| Surface IDs (`CASE_TYPE_PICKER_SHEET_SURFACE_ID`) | Package (`surface-ids.ts`) |
+| Surface registration (`useSurface`, `lazyWithPreload`) | App (`features/<domain>/surfaces.ts`) |
+| `openSurface` calls for picker surfaces | App controller only |
+| `surfaceOpeners` map assembly | App controller |
+| Picker page component (`XxxPickerRouteEntry`) | Package (self-contained) |
+| `useSurfaceProps` call inside picker page | Package |
+| `onSelect` closure | Package trigger field |
+
+---
+
+### Adding a new picker field to an existing feature
+
+When a new picker field is needed (e.g., participant picker), the change set is:
+
+1. **Package `surface-ids.ts`** — add one optional key to `XxxSurfaceOpeners`: `openParticipantPicker?: (props: ParticipantPickerSheetSurfaceProps) => void;` and add the new props type.
+2. **Package** — add the trigger field component, picker route entry, picker sheet content, query hook, and API function (parallel to the existing picker).
+3. **App `surfaces.ts`** — register the new sheet surface with `lazyWithPreload`.
+4. **App controller** — add `openParticipantPicker: (props) => openSurface(PARTICIPANT_PICKER_SHEET_SURFACE_ID, props)` to the existing `surfaceOpeners` object. No other controller changes needed.
+5. **Package `index.ts`** — export new public types and the new `RouteEntry`.
+
+The provider, route entry, and surface props type are **unchanged** — the optional key in `CaseCreationSurfaceOpeners` means the new opener is automatically available through context without any provider modifications.
+
+---
+
+### Anti-patterns — do not do these
+
+```ts
+// ❌ Package component calling openSurface directly
+import { useSurface } from "@beyo/ui";
+const { openSurface } = useSurface();
+openSurface(CASE_TYPE_PICKER_SHEET_SURFACE_ID, props); // violates package boundary
+
+// ❌ Passing a surface ID into the package and calling openSurface with it
+// The package still ends up importing and calling openSurface — same violation.
+
+// ❌ Separate prop per opener (does not scale)
+type CaseCreationSlideSurfaceProps = {
+  openCaseTypePicker?: (props: ...) => void;
+  openParticipantPicker?: (props: ...) => void; // grows without bound
+  // → use surfaceOpeners map instead
+};
+```

@@ -1,29 +1,30 @@
-import {
-  useItemCategoryByIdFlow,
-  type ItemCategoryId,
-} from "@beyo/item-categories";
-import { EyebrowLabel, InfoPill } from "@beyo/ui";
+import type { ItemCategoryViewModel } from "@beyo/item-categories";
+import { DashedInfoGroup, EyebrowLabel, InfoPill } from "@beyo/ui";
 import { useTaskStepDetailContext } from "../../providers/TaskStepDetailProvider";
 
 function ItemCategoryPill({
-  categoryId,
+  category,
+  isPending,
+  isError,
 }: {
-  categoryId: string;
+  category: ItemCategoryViewModel | null;
+  isPending: boolean;
+  isError: boolean;
 }): React.JSX.Element | null {
-  const { category, isPending, isError } = useItemCategoryByIdFlow(
-    categoryId as ItemCategoryId,
-  );
-
   if (isError) {
     return null;
   }
 
-  if (isPending || !category) {
+  if (isPending) {
     return (
       <InfoPill className="animate-pulse text-transparent" aria-hidden="true">
         ···
       </InfoPill>
     );
+  }
+
+  if (!category) {
+    return null;
   }
 
   return (
@@ -44,33 +45,64 @@ function ItemCategoryPill({
 }
 
 export function TaskStepItemDetailsSection(): React.JSX.Element | null {
-  const { step } = useTaskStepDetailContext();
+  const {
+    step,
+    itemCategory,
+    isItemCategoryPending,
+    isItemCategoryError,
+    isSeatCategory,
+  } = useTaskStepDetailContext();
 
   if (!step?.item) {
     return null;
   }
 
+  const hasPosition = Boolean(step.item.item_position);
+  const hasCategory = Boolean(step.item.item_category_id);
+  const shouldRenderQuantity = isSeatCategory;
+  const shouldRenderDetails =
+    hasPosition || shouldRenderQuantity || hasCategory;
+
+  if (!shouldRenderDetails) {
+    return null;
+  }
+
   return (
-    <div
-      className="mt-2 flex flex-col gap-3"
-      data-testid="task-step-item-details"
-    >
-      {step.item.item_position ? (
-        <div className="flex flex-col gap-1">
-          <EyebrowLabel>Position</EyebrowLabel>
-          <p className="text-sm text-foreground">{step.item.item_position}</p>
-        </div>
-      ) : null}
+    <DashedInfoGroup data-testid="task-step-item-details">
+      <div className=" flex items-start gap-4 overflow-x-auto px-3 py-3">
+        {hasPosition ? (
+          <div className="flex shrink-0 flex-col gap-1">
+            <EyebrowLabel>Position</EyebrowLabel>
+            <InfoPill>
+              <span className="text-sm">{step.item.item_position}</span>
+            </InfoPill>
+          </div>
+        ) : null}
 
-      <div className="flex flex-wrap gap-2">
-        <InfoPill data-testid="task-step-item-qty-pill">
-          <span className="text-sm">{step.item.quantity}x</span>
-        </InfoPill>
+        {shouldRenderQuantity ? (
+          <div className="flex shrink-0 flex-col gap-1">
+            <EyebrowLabel>Quantity</EyebrowLabel>
+            <InfoPill data-testid="task-step-item-qty-pill">
+              <span className="text-sm">
+                {step.item.quantity} piece{step.item.quantity > 1 ? "s" : ""}
+              </span>
+            </InfoPill>
+          </div>
+        ) : null}
 
-        {step.item.item_category_id ? (
-          <ItemCategoryPill categoryId={step.item.item_category_id} />
+        {hasCategory ? (
+          <div className="flex min-w-0 shrink-0 flex-col gap-1">
+            <EyebrowLabel>Category</EyebrowLabel>
+            <div className="min-w-0">
+              <ItemCategoryPill
+                category={itemCategory}
+                isPending={isItemCategoryPending}
+                isError={isItemCategoryError}
+              />
+            </div>
+          </div>
         ) : null}
       </div>
-    </div>
+    </DashedInfoGroup>
   );
 }
