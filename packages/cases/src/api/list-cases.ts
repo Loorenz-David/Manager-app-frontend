@@ -18,6 +18,7 @@ export async function listCases(params: ListCasesParams): Promise<CaseListCardRa
   if (params.created_by_id) queryParams.created_by_id = params.created_by_id;
   if (params.entity_type) queryParams.entity_type = params.entity_type;
   if (params.entity_client_id) queryParams.entity_client_id = params.entity_client_id;
+  if (params.includes_participants) queryParams.includes_participants = params.includes_participants;
   if (params.offset != null) queryParams.offset = params.offset;
   if (params.limit != null) queryParams.limit = params.limit;
 

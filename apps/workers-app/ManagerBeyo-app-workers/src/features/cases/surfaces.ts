@@ -3,14 +3,14 @@ import {
   CASE_CONVERSATION_SURFACE_ID,
   CASE_CREATION_SLIDE_SURFACE_ID,
   CASE_TYPE_PICKER_SHEET_SURFACE_ID,
+  PARTICIPANT_PICKER_SLIDE_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
+  CASE_FILTER_SHEET_SURFACE_ID,
   type CaseConversationSurfaceProps,
 } from "@beyo/cases";
 
-import {
-  buildCaseConversationRoute,
-  buildCaseCreationRoute,
-} from "@/lib/routes";
+import { buildCaseConversationRoute } from "@/lib/routes";
+import { TASK_CASES_SLIDE_SURFACE_ID } from "@/features/task_steps/surface-ids";
 
 function loadCaseConversationSlidePage() {
   return import("@/pages/cases/CaseConversationSlidePage").then((module) => ({
@@ -21,6 +21,12 @@ function loadCaseConversationSlidePage() {
 function loadCaseMessageActionsSheetPage() {
   return import("@/pages/cases/CaseMessageActionsSheetPage").then((module) => ({
     default: module.CaseMessageActionsSheetPage,
+  }));
+}
+
+function loadCaseFilterSheetPage() {
+  return import("@beyo/cases").then((module) => ({
+    default: module.CaseFilterSheetRouteEntry,
   }));
 }
 
@@ -36,15 +42,33 @@ function loadCaseTypePickerSheetPage() {
   }));
 }
 
+function loadParticipantPickerSlidePage() {
+  return import("@/pages/cases/ParticipantPickerSlidePage").then((module) => ({
+    default: module.ParticipantPickerSlidePage,
+  }));
+}
+
+function loadTaskCasesSlidePage() {
+  return import("@/pages/task_steps/TaskCasesSlidePage").then((module) => ({
+    default: module.TaskCasesSlidePage,
+  }));
+}
+
 const caseConversationSlide = lazyWithPreload(loadCaseConversationSlidePage);
 const caseMessageActionsSheet = lazyWithPreload(
   loadCaseMessageActionsSheetPage,
 );
+const caseFilterSheet = lazyWithPreload(loadCaseFilterSheetPage);
 const caseCreationSlide = lazyWithPreload(loadCaseCreationSlidePage);
 const caseTypePickerSheet = lazyWithPreload(loadCaseTypePickerSheetPage);
+const participantPickerSlide = lazyWithPreload(loadParticipantPickerSlidePage);
+const taskCasesSlide = lazyWithPreload(loadTaskCasesSlidePage);
 
 export const preloadCaseCreationSlideSurface = caseCreationSlide.preload;
 export const preloadCaseTypePickerSheetSurface = caseTypePickerSheet.preload;
+export const preloadParticipantPickerSlideSurface =
+  participantPickerSlide.preload;
+export const preloadTaskCasesSlideSurface = taskCasesSlide.preload;
 
 export const caseSurfaces: SurfaceRegistrations = {
   [CASE_CONVERSATION_SURFACE_ID]: {
@@ -59,13 +83,24 @@ export const caseSurfaces: SurfaceRegistrations = {
     surface: "sheet",
     component: caseMessageActionsSheet.Component,
   },
+  [CASE_FILTER_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: caseFilterSheet.Component,
+  },
   [CASE_CREATION_SLIDE_SURFACE_ID]: {
     surface: "slide",
-    path: () => buildCaseCreationRoute(),
     component: caseCreationSlide.Component,
   },
   [CASE_TYPE_PICKER_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: caseTypePickerSheet.Component,
+  },
+  [PARTICIPANT_PICKER_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: participantPickerSlide.Component,
+  },
+  [TASK_CASES_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: taskCasesSlide.Component,
   },
 };

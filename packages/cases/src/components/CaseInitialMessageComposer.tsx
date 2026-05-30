@@ -28,6 +28,9 @@ const EMPTY_TOOLBAR_STATE: CaseComposerToolbarState = {
 
 type CaseComposerExpandedTool = "color";
 
+const KEYBOARD_OPEN_THRESHOLD_PX = 80;
+const KEYBOARD_CLOSE_SNAP_THRESHOLD_PX = 32;
+
 type CaseInitialMessageComposerProps = {
   className?: string;
   placeholder?: string;
@@ -94,25 +97,36 @@ export function CaseInitialMessageComposer({
       return;
     }
 
-    let lastHeight = window.visualViewport.height;
+    const viewport = window.visualViewport;
+    const initialHeight = viewport.height;
+    let minHeightSeen = initialHeight;
+    let keyboardOpened = false;
 
     const handleViewportResize = () => {
-      const currentHeight = window.visualViewport!.height;
+      const currentHeight = viewport.height;
 
-      if (currentHeight > lastHeight) {
-        (document.activeElement as HTMLElement | null)?.blur();
+      if (currentHeight < minHeightSeen) {
+        minHeightSeen = currentHeight;
       }
 
-      lastHeight = currentHeight;
+      if (!keyboardOpened) {
+        keyboardOpened =
+          initialHeight - minHeightSeen >= KEYBOARD_OPEN_THRESHOLD_PX;
+      }
+
+      // Only blur after we observed a real keyboard-open height drop.
+      if (
+        keyboardOpened &&
+        currentHeight >= initialHeight - KEYBOARD_CLOSE_SNAP_THRESHOLD_PX
+      ) {
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
     };
 
-    window.visualViewport.addEventListener("resize", handleViewportResize);
+    viewport.addEventListener("resize", handleViewportResize);
 
     return () => {
-      window.visualViewport!.removeEventListener(
-        "resize",
-        handleViewportResize,
-      );
+      viewport.removeEventListener("resize", handleViewportResize);
     };
   }, [isEditorFocused]);
 
@@ -146,10 +160,7 @@ export function CaseInitialMessageComposer({
   >;
 
   return (
-    <div
-      className={className}
-      data-testid="case-initial-message-composer"
-    >
+    <div className={className} data-testid="case-initial-message-composer">
       {isEditorFocused ? (
         <div className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
           <CaseComposerToolbar
@@ -168,17 +179,18 @@ export function CaseInitialMessageComposer({
         </div>
       ) : null}
 
-      <div className="rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+      <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
         <div className="flex items-end gap-2">
           <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
             <Suspense
               fallback={
-                <div className="min-h-9 px-3 py-2 text-base text-muted-foreground">
+                <div className="min-h-24 px-3 py-2 text-base text-muted-foreground">
                   Loading composer...
                 </div>
               }
             >
               <LazyCaseComposerEditor
+                className="min-h-24"
                 content={composerContent}
                 onBlur={handleEditorBlur}
                 onChange={({ content, plainText }) => {

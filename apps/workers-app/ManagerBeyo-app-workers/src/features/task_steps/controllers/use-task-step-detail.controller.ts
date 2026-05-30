@@ -7,9 +7,14 @@ import {
   type ItemCategoryViewModel,
 } from "@beyo/item-categories";
 import {
+  CASE_CONVERSATION_SURFACE_ID,
   CASE_CREATION_SLIDE_SURFACE_ID,
   CASE_TYPE_PICKER_SHEET_SURFACE_ID,
+  PARTICIPANT_PICKER_SLIDE_SURFACE_ID,
+  useListCasesQuery,
+  useUnreadCountsQuery,
   type CaseCreationSurfaceOpeners,
+  type ParticipantPickerSlideSurfaceProps,
 } from "@beyo/cases";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -23,17 +28,27 @@ import {
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import {
+  TASK_CASES_SLIDE_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
+  type TaskCasesSlideSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
 } from "../surface-ids";
 import {
   STEP_TERMINAL_STATES,
   toTaskStepCardViewModel,
+  type CasesSummary,
   type StepState,
   type TaskStep,
   type TaskStepCardViewModel,
 } from "../types";
+
+export type LiveCasesSummary = {
+  openResolvingCount: number;
+  totalUnread: number;
+  unreadCaseCount: number;
+  singleUnreadCaseId: string | null;
+};
 
 export type TaskStepDetailController = {
   stepId: TaskStepId;
@@ -48,6 +63,8 @@ export type TaskStepDetailController = {
   isPending: boolean;
   isError: boolean;
   isStepTerminal: boolean;
+  casesSummary: CasesSummary | null;
+  liveCasesSummary: LiveCasesSummary;
   handleTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
@@ -56,10 +73,11 @@ export type TaskStepDetailController = {
   handleComplete: () => void;
   handleOpenImageViewer: (initialImageClientId: string) => void;
   handleOpenActionsSheet: () => void;
-  handleOpenCaseCreation: () => void;
+  handleOpenCasesForTask: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
   isTransitioning: boolean;
   transitioningStepId: TaskStepId | null;
+  refetch: () => Promise<void>;
 };
 
 export function useTaskStepDetailController(): TaskStepDetailController {
@@ -105,6 +123,48 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     pendingStepId,
   } = useTransitionStepState();
   const { open: openSurface } = useSurface();
+
+  const taskCasesQuery = useListCasesQuery({
+    case_state: "open,resolving",
+    entity_client_id: resolvedTaskId,
+    entity_type: "task",
+  });
+
+  const taskCaseIds = useMemo(
+    () => (taskCasesQuery.data ?? []).map((c) => c.client_id),
+    [taskCasesQuery.data],
+  );
+
+  const taskUnreadCountsQuery = useUnreadCountsQuery(
+    taskCaseIds.length > 0 ? taskCaseIds : undefined,
+  );
+
+  async function refetch(): Promise<void> {
+    await Promise.all([
+      query.refetch(),
+      taskCasesQuery.refetch(),
+      taskUnreadCountsQuery.refetch(),
+    ]);
+  }
+
+  const liveCasesSummary = useMemo<LiveCasesSummary>(() => {
+    const cases = taskCasesQuery.data ?? [];
+    const unreadCounts = taskUnreadCountsQuery.data ?? {};
+    const unreadCaseIds = taskCaseIds.filter(
+      (id) => (unreadCounts[id] ?? 0) > 0,
+    );
+
+    return {
+      openResolvingCount: cases.length,
+      totalUnread: unreadCaseIds.reduce(
+        (sum, id) => sum + (unreadCounts[id] ?? 0),
+        0,
+      ),
+      unreadCaseCount: unreadCaseIds.length,
+      singleUnreadCaseId:
+        unreadCaseIds.length === 1 ? (unreadCaseIds[0] ?? null) : null,
+    };
+  }, [taskCasesQuery.data, taskCaseIds, taskUnreadCountsQuery.data]);
 
   const handleTransition = useCallback(
     (targetStepId: TaskStepId, targetTaskId: TaskId, nextState: StepState) => {
@@ -198,18 +258,38 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     } as TaskStepActionsSheetSurfaceProps);
   }, [openSurface, resolvedStepId, resolvedTaskId]);
 
-  const handleOpenCaseCreation = useCallback(() => {
-    const surfaceOpeners: CaseCreationSurfaceOpeners = {
-      openCaseTypePicker: (props) =>
-        openSurface(CASE_TYPE_PICKER_SHEET_SURFACE_ID, props),
-      // add openParticipantPicker here when that field is introduced
-    };
+  const handleOpenCasesForTask = useCallback(() => {
+    if (liveCasesSummary.openResolvingCount === 0) {
+      const surfaceOpeners: CaseCreationSurfaceOpeners = {
+        openCaseTypePicker: (props) =>
+          openSurface(CASE_TYPE_PICKER_SHEET_SURFACE_ID, props),
+        openParticipantPicker: (props: ParticipantPickerSlideSurfaceProps) =>
+          openSurface(PARTICIPANT_PICKER_SLIDE_SURFACE_ID, props),
+      };
 
-    openSurface(CASE_CREATION_SLIDE_SURFACE_ID, {
-      entityTypes: ["task"],
-      surfaceOpeners,
-    });
-  }, [openSurface]);
+      openSurface(CASE_CREATION_SLIDE_SURFACE_ID, {
+        entityTypes: ["task"],
+        entityClientId: resolvedTaskId,
+        title: vm?.articleLabel,
+        surfaceOpeners,
+      });
+      return;
+    }
+
+    if (
+      liveCasesSummary.unreadCaseCount === 1 &&
+      liveCasesSummary.singleUnreadCaseId
+    ) {
+      openSurface(CASE_CONVERSATION_SURFACE_ID, {
+        caseClientId: liveCasesSummary.singleUnreadCaseId,
+      });
+      return;
+    }
+
+    openSurface(TASK_CASES_SLIDE_SURFACE_ID, {
+      taskId: resolvedTaskId,
+    } as TaskCasesSlideSurfaceProps);
+  }, [liveCasesSummary, openSurface, resolvedTaskId, vm]);
 
   // Flow record detail surface not yet registered in workers app.
   const handleOpenFlowRecord = useCallback((_entityClientId: string) => {}, []);
@@ -227,13 +307,16 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     isPending: query.isPending,
     isError: query.isError,
     isStepTerminal: vm ? STEP_TERMINAL_STATES.has(vm.state) : false,
+    casesSummary: step?.cases_summary ?? null,
+    liveCasesSummary,
     handleTransition,
     handleComplete,
     handleOpenImageViewer,
     handleOpenActionsSheet,
-    handleOpenCaseCreation,
+    handleOpenCasesForTask,
     handleOpenFlowRecord,
     isTransitioning,
     transitioningStepId: pendingStepId ?? null,
+    refetch,
   };
 }

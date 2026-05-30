@@ -1,5 +1,6 @@
+import { useRef } from "react";
 import { ArrowLeft } from "lucide-react";
-import { ImagePlaceholder, SearchBar } from "@beyo/ui";
+import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
 import type { WorkingSectionViewModel } from "../../working_sections/types";
 import { useWorkingSectionStepsContext } from "../providers/WorkingSectionStepsProvider";
 import { TaskStepCard } from "./TaskStepCard";
@@ -20,12 +21,14 @@ export function WorkingSectionStepsView({
     isError,
     search,
     setSearch,
+    refetch,
     handleTransition,
     handleOpenTaskActions,
     handleOpenTaskDetail,
     handleOpenImageViewer,
     transitioningStepId,
   } = useWorkingSectionStepsContext();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const nonTerminalEntries = Object.entries(nonTerminalCounts).filter(
     ([, count]) => count > 0,
@@ -98,7 +101,12 @@ export function WorkingSectionStepsView({
         />
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <PullToRefresh
+        className="flex-1"
+        scrollClassName="overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
+        onRefresh={refetch}
+      >
         {isPending ? (
           <div className="flex flex-col gap-3 py-2">
             {[0, 1, 2, 3].map((i) => (
@@ -141,7 +149,7 @@ export function WorkingSectionStepsView({
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
     </div>
   );
 }

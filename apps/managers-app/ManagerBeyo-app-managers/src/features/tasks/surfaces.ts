@@ -1,5 +1,5 @@
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
-import { lazyWithPreload } from "@/utils/lazy-with-preload";
+import { lazyWithPreload } from "@beyo/ui";
 
 export const TASK_DETAIL_SURFACE_ID = "task-detail-slide";
 export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";

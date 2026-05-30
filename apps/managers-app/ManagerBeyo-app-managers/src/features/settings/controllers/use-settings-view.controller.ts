@@ -1,9 +1,9 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 
-import { useSignOutMutation } from '@/features/auth';
-import { ROUTES } from '@/lib/routes';
+import { useSignOutMutation } from "@beyo/auth";
+import { ROUTES } from "@/lib/routes";
 
-import type { SettingsState } from '../types';
+import type { SettingsState } from "../types";
 
 export type SettingsViewController = SettingsState;
 

@@ -1,14 +1,14 @@
-import type { SurfaceRegistrations } from '@/providers/SurfaceProvider';
-import { lazyWithPreload } from '@/utils/lazy-with-preload';
+import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
+import { lazyWithPreload } from "@beyo/ui";
 
 function loadCalendarSinglePickerPage() {
-  return import('@/pages/calendar/CalendarSinglePickerPage').then((module) => ({
+  return import("@/pages/calendar/CalendarSinglePickerPage").then((module) => ({
     default: module.CalendarSinglePickerPage,
   }));
 }
 
 function loadCalendarRangePickerPage() {
-  return import('@/pages/calendar/CalendarRangePickerPage').then((module) => ({
+  return import("@/pages/calendar/CalendarRangePickerPage").then((module) => ({
     default: module.CalendarRangePickerPage,
   }));
 }
@@ -27,12 +27,12 @@ export function preloadCalendarSurfaces(): Promise<unknown[]> {
 }
 
 export const calendarSurfaces: SurfaceRegistrations = {
-  'calendar-single-picker': {
-    surface: 'sheet',
+  "calendar-single-picker": {
+    surface: "sheet",
     component: calendarSinglePicker.Component,
   },
-  'calendar-range-picker': {
-    surface: 'sheet',
+  "calendar-range-picker": {
+    surface: "sheet",
     component: calendarRangePicker.Component,
   },
 };

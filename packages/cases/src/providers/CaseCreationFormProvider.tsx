@@ -3,15 +3,23 @@ import { createContext, useContext, useState } from "react";
 import { generateClientId } from "@beyo/lib";
 import type { CaseId } from "@beyo/lib";
 import type { CaseCreationSurfaceOpeners } from "../surface-ids";
-import type { CaseTypeSelectedDisplay } from "../types";
+import type {
+  CaseTypeSelectedDisplay,
+  ParticipantSelectedDisplay,
+} from "../types";
 import type { CaseMessageContent } from "../message-content";
 
 type CaseCreationFormContextValue = {
   caseClientId: CaseId;
   regenerateId: () => void;
   entityTypes?: string[];
+  entityClientId?: string;
   selectedCaseType: CaseTypeSelectedDisplay | null;
   setSelectedCaseType: (ct: CaseTypeSelectedDisplay | null) => void;
+  selectedParticipants: ParticipantSelectedDisplay[];
+  setSelectedParticipants: (participants: ParticipantSelectedDisplay[]) => void;
+  participantsTotalCount: number | null;
+  setParticipantsTotalCount: (count: number | null) => void;
   surfaceOpeners: CaseCreationSurfaceOpeners;
   composerContent: CaseMessageContent;
   composerPlainText: string;
@@ -24,10 +32,12 @@ const CaseCreationFormContext =
 export function CaseCreationFormProvider({
   children,
   entityTypes,
+  entityClientId,
   surfaceOpeners,
 }: {
   children: React.ReactNode;
   entityTypes?: string[];
+  entityClientId?: string;
   surfaceOpeners?: CaseCreationSurfaceOpeners;
 }): React.JSX.Element {
   const [caseClientId, setCaseClientId] = useState<CaseId>(
@@ -35,6 +45,12 @@ export function CaseCreationFormProvider({
   );
   const [selectedCaseType, setSelectedCaseType] =
     useState<CaseTypeSelectedDisplay | null>(null);
+  const [selectedParticipants, setSelectedParticipants] = useState<
+    ParticipantSelectedDisplay[]
+  >([]);
+  const [participantsTotalCount, setParticipantsTotalCount] = useState<
+    number | null
+  >(null);
   const [composerContent, setComposerContentState] =
     useState<CaseMessageContent>(() => ({ parts: [] }));
   const [composerPlainText, setComposerPlainText] = useState<string>("");
@@ -57,8 +73,13 @@ export function CaseCreationFormProvider({
         caseClientId,
         regenerateId,
         entityTypes,
+        entityClientId,
         selectedCaseType,
         setSelectedCaseType,
+        selectedParticipants,
+        setSelectedParticipants,
+        participantsTotalCount,
+        setParticipantsTotalCount,
         surfaceOpeners: surfaceOpeners ?? {},
         composerContent,
         composerPlainText,

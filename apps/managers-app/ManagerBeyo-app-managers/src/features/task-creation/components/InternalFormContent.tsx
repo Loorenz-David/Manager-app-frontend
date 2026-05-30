@@ -10,7 +10,7 @@ import {
 
 import { StagedForm, StagedFormStep } from "@/components/primitives";
 import { preloadCalendarSinglePickerSurface } from "@/components/primitives/date";
-import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import {
   ItemCategorySelectionField,
   ItemIdentityField,

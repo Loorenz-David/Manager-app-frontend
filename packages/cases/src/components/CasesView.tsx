@@ -1,6 +1,7 @@
+import { useRef } from "react";
 import { History } from "lucide-react";
 
-import { SearchBar } from "@beyo/ui";
+import { PullToRefresh, SearchBar } from "@beyo/ui";
 
 import { useCasesViewContext } from "../providers/CasesViewProvider";
 import { CasesSectionGroup } from "./CasesSectionGroup";
@@ -38,6 +39,7 @@ function formatHeaderDate(date: Date): string {
 export function CasesView(): React.JSX.Element {
   const controller = useCasesViewContext();
   const todayLabel = formatHeaderDate(new Date());
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
@@ -67,19 +69,24 @@ export function CasesView(): React.JSX.Element {
 
         <div className="mt-4">
           <SearchBar
-            activeFilterCount={0}
+            activeFilterCount={controller.activeFilterCount}
             data-testid="cases-search-bar"
             isLoading={controller.isLoading}
             placeholder="Search cases, articles, or people"
             value={controller.searchQuery}
             onChange={controller.setSearchQuery}
-            onFilterPress={() => {}}
+            onFilterPress={controller.openFilters}
             onSortPress={() => {}}
           />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-[calc(var(--safe-bottom,0)+5rem)] pt-4">
+      <PullToRefresh
+        className="flex-1"
+        scrollClassName="overflow-y-auto overscroll-y-none px-4 pb-[calc(var(--safe-bottom,0)+5rem)] pt-4"
+        scrollRef={scrollRef}
+        onRefresh={controller.refetch}
+      >
         <div className="flex flex-col gap-6">
           <CasesSectionGroup
             group={controller.newGroup}
@@ -88,22 +95,35 @@ export function CasesView(): React.JSX.Element {
             typingByCaseId={controller.typingByCaseId}
             onOpenCase={controller.openCase}
           />
-          <CasesSectionGroup
-            group={controller.activeGroup}
-            sectionTestId="cases-section-active"
-            unreadCounts={controller.unreadCounts}
-            typingByCaseId={controller.typingByCaseId}
-            onOpenCase={controller.openCase}
-          />
-          <CasesSectionGroup
-            group={controller.resolvingGroup}
-            sectionTestId="cases-section-resolving"
-            unreadCounts={controller.unreadCounts}
-            typingByCaseId={controller.typingByCaseId}
-            onOpenCase={controller.openCase}
-          />
+          {controller.showActiveGroup ? (
+            <CasesSectionGroup
+              group={controller.activeGroup}
+              sectionTestId="cases-section-active"
+              unreadCounts={controller.unreadCounts}
+              typingByCaseId={controller.typingByCaseId}
+              onOpenCase={controller.openCase}
+            />
+          ) : null}
+          {controller.showResolvingGroup ? (
+            <CasesSectionGroup
+              group={controller.resolvingGroup}
+              sectionTestId="cases-section-resolving"
+              unreadCounts={controller.unreadCounts}
+              typingByCaseId={controller.typingByCaseId}
+              onOpenCase={controller.openCase}
+            />
+          ) : null}
+          {controller.showResolvedGroup ? (
+            <CasesSectionGroup
+              group={controller.resolvedGroup}
+              sectionTestId="cases-section-resolved"
+              unreadCounts={controller.unreadCounts}
+              typingByCaseId={controller.typingByCaseId}
+              onOpenCase={controller.openCase}
+            />
+          ) : null}
         </div>
-      </div>
+      </PullToRefresh>
     </div>
   );
 }

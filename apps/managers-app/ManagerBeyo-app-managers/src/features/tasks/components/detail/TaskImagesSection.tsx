@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { SectionLabel } from "@/components/primitives";
-import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import { taskKeys } from "../../api/task-keys";
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
 

@@ -1,26 +1,31 @@
-import { createContext, useContext, useRef, type ReactNode } from 'react';
+import { createContext, useContext, useRef, type ReactNode } from "react";
 
-import type { CaseId } from '@beyo/lib';
+import type { CaseId } from "@beyo/lib";
 
 import {
   useCaseConversationController,
   type CaseConversationController,
-} from '../controllers/use-case-conversation.controller';
+} from "../controllers/use-case-conversation.controller";
 import {
   useCaseConversationMessagesController,
   type CaseConversationMessagesController,
-} from '../controllers/use-case-conversation-messages.controller';
+} from "../controllers/use-case-conversation-messages.controller";
+import type { CaseConversationSurfaceOpeners } from "../surface-ids";
 
-const CaseConversationContext = createContext<CaseConversationController | null>(null);
-const CaseConversationMessagesContext = createContext<CaseConversationMessagesController | null>(null);
+const CaseConversationContext =
+  createContext<CaseConversationController | null>(null);
+const CaseConversationMessagesContext =
+  createContext<CaseConversationMessagesController | null>(null);
 
 type CaseConversationProviderProps = {
   caseClientId: CaseId;
+  surfaceOpeners?: CaseConversationSurfaceOpeners;
   children: ReactNode;
 };
 
 export function CaseConversationProvider({
   caseClientId,
+  surfaceOpeners,
   children,
 }: CaseConversationProviderProps): React.JSX.Element {
   const scrollToBottomRef = useRef<() => void>(() => undefined);
@@ -28,6 +33,7 @@ export function CaseConversationProvider({
     scrollToBottom: () => {
       scrollToBottomRef.current();
     },
+    surfaceOpeners,
   });
   const messagesController = useCaseConversationMessagesController({
     caseClientId,
@@ -49,7 +55,9 @@ export function useCaseConversationContext(): CaseConversationController {
   const context = useContext(CaseConversationContext);
 
   if (context === null) {
-    throw new Error('useCaseConversationContext must be used inside CaseConversationProvider');
+    throw new Error(
+      "useCaseConversationContext must be used inside CaseConversationProvider",
+    );
   }
 
   return context;
@@ -60,7 +68,7 @@ export function useCaseConversationMessagesContext(): CaseConversationMessagesCo
 
   if (context === null) {
     throw new Error(
-      'useCaseConversationMessagesContext must be used inside CaseConversationProvider',
+      "useCaseConversationMessagesContext must be used inside CaseConversationProvider",
     );
   }
 

@@ -2,7 +2,7 @@ import { m } from "framer-motion";
 import {
   Calendar,
   ChevronLeft,
-  MessageSquareMore,
+  MessageCircle,
   RotateCcw,
   ShoppingBag,
   Wrench,
@@ -141,8 +141,12 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 
 export function TaskStepDetailHeader(): React.JSX.Element | null {
   const header = useSurfaceHeader();
-  const { vm, handleOpenActionsSheet, handleOpenCaseCreation } =
-    useTaskStepDetailContext();
+  const {
+    vm,
+    liveCasesSummary,
+    handleOpenActionsSheet,
+    handleOpenCasesForTask,
+  } = useTaskStepDetailContext();
 
   if (!vm) {
     return null;
@@ -155,6 +159,7 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
     : null;
   const readyByLabel = formatDateDDMMYY(vm.task.ready_by_at ?? null);
   const days = daysUntil(vm.task.ready_by_at ?? null);
+  const unreadCount = liveCasesSummary.totalUnread;
 
   return (
     <div
@@ -179,25 +184,36 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
           label={humanizeSnakeCase(vm.state) || vm.state}
           variant={STEP_STATE_VARIANT[vm.state]}
         />
-
-        <button
-          type="button"
-          aria-label="Open case creation"
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
-          data-testid="task-step-detail-open-case-creation"
-          onClick={handleOpenCaseCreation}
-        >
-          <MessageSquareMore className="size-4" />
-        </button>
-
-        <button
-          type="button"
-          aria-label="Task actions"
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
-          onClick={handleOpenActionsSheet}
-        >
-          <ThreeDotIcon />
-        </button>
+        <div className="flex rounded-full bg-card shadow-sm border border-light-border">
+          <button
+            type="button"
+            aria-label="Open task cases"
+            className="relative flex shrink-0 items-center justify-center rounded-full p-2 px-4 text-muted-foreground"
+            data-testid="task-step-detail-open-task-cases"
+            onClick={handleOpenCasesForTask}
+          >
+            <MessageCircle className="size-4" />
+            {unreadCount > 0 ? (
+              <span
+                className="task-step-unread-badge pointer-events-none absolute bottom-1 right-2 flex size-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white"
+                data-testid="task-step-detail-header-cases-unread-badge"
+              >
+                <span className="task-step-unread-badge__text">
+                  {unreadCount}
+                </span>
+              </span>
+            ) : null}
+          </button>
+          <div className="my-1 w-px self-stretch bg-border"></div>
+          <button
+            type="button"
+            aria-label="Task actions"
+            className="flex shrink-0 items-center justify-center rounded-full p-3 px-5 text-muted-foreground"
+            onClick={handleOpenActionsSheet}
+          >
+            <ThreeDotIcon />
+          </button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">

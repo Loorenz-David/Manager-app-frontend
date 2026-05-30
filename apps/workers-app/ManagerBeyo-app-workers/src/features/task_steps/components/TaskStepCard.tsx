@@ -132,6 +132,7 @@ export const TaskStepCard = memo(function TaskStepCard({
         year: "2-digit",
       })
     : null;
+  const unreadCount = card.casesSummary?.total_unread ?? 0;
 
   return (
     <div
@@ -166,6 +167,14 @@ export const TaskStepCard = memo(function TaskStepCard({
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
               {articleLabel}
             </span>
+            {unreadCount > 0 ? (
+              <span
+                className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-white"
+                data-testid={`task-card-cases-badge-${stepId}`}
+              >
+                {unreadCount}
+              </span>
+            ) : null}
             <button
               aria-label="Task actions"
               className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"

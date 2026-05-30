@@ -5,10 +5,12 @@ import {
   MessageCircle,
   Settings2,
   type LucideIcon,
-} from 'lucide-react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { preloadPrimaryTabRoute } from '@/lib/primary-tab-preload';
-import { ROUTES, TAB_ORDER, type TabPath } from '@/lib/routes';
+} from "lucide-react";
+import { NavTabBadge } from "@beyo/ui";
+import { useLocation, useNavigate } from "react-router-dom";
+import { preloadPrimaryTabRoute } from "@/lib/primary-tab-preload";
+import { useTabBadgeCountsContext } from "@/providers/TabBadgeCountsProvider";
+import { ROUTES, TAB_ORDER, type TabPath } from "@/lib/routes";
 
 type Tab = {
   label: string;
@@ -17,18 +19,21 @@ type Tab = {
 };
 
 const TABS: Tab[] = [
-  { path: ROUTES.tasks, label: 'Tasks', icon: ListTodo },
-  { path: ROUTES.cases, label: 'Cases', icon: MessageCircle },
-  { path: ROUTES.home, label: 'Home', icon: House },
-  { path: ROUTES.stats, label: 'Stats', icon: ChartColumnIncreasing },
-  { path: ROUTES.settings, label: 'Settings', icon: Settings2 },
+  { path: ROUTES.tasks, label: "Tasks", icon: ListTodo },
+  { path: ROUTES.cases, label: "Cases", icon: MessageCircle },
+  { path: ROUTES.home, label: "Home", icon: House },
+  { path: ROUTES.stats, label: "Stats", icon: ChartColumnIncreasing },
+  { path: ROUTES.settings, label: "Settings", icon: Settings2 },
 ];
 
 function useTabNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { dismissBadge } = useTabBadgeCountsContext();
 
   return function handleTabPress(targetPath: TabPath): void {
+    dismissBadge(targetPath);
+
     if (location.pathname === targetPath) {
       return;
     }
@@ -44,6 +49,7 @@ function useTabNav() {
 export function BottomTabBar(): React.JSX.Element {
   const location = useLocation();
   const handleTabPress = useTabNav();
+  const { badgeState } = useTabBadgeCountsContext();
   const activeIndex = TABS.findIndex((tab) => tab.path === location.pathname);
 
   return (
@@ -67,13 +73,11 @@ export function BottomTabBar(): React.JSX.Element {
 
           return (
             <button
-              aria-current={isActive ? 'page' : undefined}
+              aria-current={isActive ? "page" : undefined}
               className={[
-                'relative flex flex-1 flex-col items-center justify-center gap-0.5 text-xs transition-colors',
-                isActive
-                  ? 'text-primary'
-                  : 'text-icon',
-              ].join(' ')}
+                "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-xs transition-colors",
+                isActive ? "text-primary" : "text-icon",
+              ].join(" ")}
               data-testid={`tab-${tab.label.toLowerCase()}`}
               key={tab.path}
               onFocus={() => {
@@ -85,6 +89,11 @@ export function BottomTabBar(): React.JSX.Element {
               }}
               type="button"
             >
+              <NavTabBadge
+                items={badgeState[tab.path]?.items ?? []}
+                visible={badgeState[tab.path]?.visible ?? false}
+              />
+
               <Icon className="h-5 w-5" strokeWidth={2} />
               <span>{tab.label}</span>
             </button>

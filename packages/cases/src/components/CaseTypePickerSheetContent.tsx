@@ -65,6 +65,7 @@ export function CaseTypePickerSheetContent(): React.JSX.Element {
         value={currentCaseTypeId ?? null}
         onValueChange={handleValueChange}
         options={options}
+        optionClassName="min-h-28"
         layout="grid"
         visualVariant="default"
         columns={2}

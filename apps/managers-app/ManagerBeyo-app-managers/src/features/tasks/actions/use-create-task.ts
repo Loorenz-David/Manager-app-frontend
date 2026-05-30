@@ -1,16 +1,20 @@
-import { useMutation, useQueryClient, type InfiniteData, type QueryKey } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+  type QueryKey,
+} from "@tanstack/react-query";
 
-import { buildEntityKey, useImagesStore } from '@/features/images/store/images.store';
-import type { ImageViewModel } from '@/features/images/types';
-import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
+import type { ImageViewModel } from "@beyo/images";
+import { upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
 
-import { createTask } from '../api/create-task';
-import type { ListTasksResult } from '../api/list-tasks';
-import { taskKeys } from '../api/task-keys';
-import { useItemsStore } from '../store/items.store';
-import { useTaskListImagesStore } from '../store/task-list-images.store';
-import { useTasksStore } from '../store/tasks.store';
-import type { TaskListItemRaw } from '../types';
+import { createTask } from "../api/create-task";
+import type { ListTasksResult } from "../api/list-tasks";
+import { taskKeys } from "../api/task-keys";
+import { useItemsStore } from "../store/items.store";
+import { useTaskListImagesStore } from "../store/task-list-images.store";
+import { useTasksStore } from "../store/tasks.store";
+import type { TaskListItemRaw } from "../types";
 
 type TaskListInfiniteData = InfiniteData<ListTasksResult, number>;
 
@@ -20,7 +24,9 @@ type CreateTaskContext = {
   itemClientId: string | null;
 };
 
-function buildOptimisticListItem(payload: Record<string, unknown>): TaskListItemRaw {
+function buildOptimisticListItem(
+  payload: Record<string, unknown>,
+): TaskListItemRaw {
   const itemPayload = payload.item as Record<string, unknown> | undefined;
   const now = new Date().toISOString();
 
@@ -28,26 +34,38 @@ function buildOptimisticListItem(payload: Record<string, unknown>): TaskListItem
     task: {
       client_id: payload.client_id as string,
       task_scalar_id: 0,
-      task_type: (payload.task_type as TaskListItemRaw['task']['task_type']) ?? 'return',
-      priority: (payload.priority as TaskListItemRaw['task']['priority']) ?? 'normal',
-      state: 'pending',
+      task_type:
+        (payload.task_type as TaskListItemRaw["task"]["task_type"]) ?? "return",
+      priority:
+        (payload.priority as TaskListItemRaw["task"]["priority"]) ?? "normal",
+      state: "pending",
       title: null,
       summary: null,
-      return_source: (payload.return_source as TaskListItemRaw['task']['return_source']) ?? null,
-      item_location: (payload.item_location as TaskListItemRaw['task']['item_location']) ?? null,
-      return_method: (payload.return_method as TaskListItemRaw['task']['return_method']) ?? null,
+      return_source:
+        (payload.return_source as TaskListItemRaw["task"]["return_source"]) ??
+        null,
+      item_location:
+        (payload.item_location as TaskListItemRaw["task"]["item_location"]) ??
+        null,
+      return_method:
+        (payload.return_method as TaskListItemRaw["task"]["return_method"]) ??
+        null,
       fulfillment_method:
-        (payload.fulfillment_method as TaskListItemRaw['task']['fulfillment_method']) ?? null,
-      additional_details: (payload.additional_details as Record<string, unknown> | null) ?? null,
+        (payload.fulfillment_method as TaskListItemRaw["task"]["fulfillment_method"]) ??
+        null,
+      additional_details:
+        (payload.additional_details as Record<string, unknown> | null) ?? null,
       ready_by_at: (payload.ready_by_at as string | null) ?? null,
       scheduled_start_at: (payload.scheduled_start_at as string | null) ?? null,
       scheduled_end_at: (payload.scheduled_end_at as string | null) ?? null,
       customer_id: null,
-      primary_phone_number: (payload.primary_phone_number as string | null) ?? null,
+      primary_phone_number:
+        (payload.primary_phone_number as string | null) ?? null,
       secondary_phone_number: null,
       primary_email: (payload.primary_email as string | null) ?? null,
       secondary_email: null,
-      address: (payload.customer_address as Record<string, unknown> | null) ?? null,
+      address:
+        (payload.customer_address as Record<string, unknown> | null) ?? null,
       created_at: now,
       updated_at: null,
       closed_at: null,
@@ -59,8 +77,9 @@ function buildOptimisticListItem(payload: Record<string, unknown>): TaskListItem
           client_id: itemPayload.client_id as string,
           article_number: (itemPayload.article_number as string | null) ?? null,
           sku: (itemPayload.sku as string | null) ?? null,
-          state: 'pending',
-          item_category_id: (itemPayload.item_category_id as string | null) ?? null,
+          state: "pending",
+          item_category_id:
+            (itemPayload.item_category_id as string | null) ?? null,
           quantity: (itemPayload.quantity as number | null) ?? 1,
           designer: (itemPayload.designer as string | null) ?? null,
           height_in_cm: null,
@@ -97,7 +116,10 @@ function prependOptimisticTask(
 
   return {
     ...current,
-    pages: [{ ...firstPage, items: [optimisticItem, ...withoutExisting] }, ...restPages],
+    pages: [
+      { ...firstPage, items: [optimisticItem, ...withoutExisting] },
+      ...restPages,
+    ],
   };
 }
 
@@ -126,13 +148,15 @@ function patchCreatedTask(
   };
 }
 
-function getOptimisticItemImages(itemClientId: string | null): ImageViewModel[] {
+function getOptimisticItemImages(
+  itemClientId: string | null,
+): ImageViewModel[] {
   if (!itemClientId) {
     return [];
   }
 
-  const entityKey = buildEntityKey('item', itemClientId);
-  const images = useImagesStore.getState().optimisticImages[entityKey] ?? [];
+  const images =
+    useTaskListImagesStore.getState().imagesByItemId[itemClientId] ?? [];
 
   return images
     .filter((image) => !image.isDeleted)
@@ -148,19 +172,22 @@ export function useCreateTask() {
     onMutate: async (payload): Promise<CreateTaskContext> => {
       const taskClientId = payload.client_id as string;
       const itemClientId =
-        ((payload.item as Record<string, unknown> | undefined)?.client_id as string | undefined) ??
-        null;
+        ((payload.item as Record<string, unknown> | undefined)?.client_id as
+          | string
+          | undefined) ?? null;
 
       await queryClient.cancelQueries({ queryKey: taskKeys.lists() });
 
-      const listQueriesSnapshot = queryClient.getQueriesData<TaskListInfiniteData>({
-        queryKey: taskKeys.lists(),
-      });
+      const listQueriesSnapshot =
+        queryClient.getQueriesData<TaskListInfiniteData>({
+          queryKey: taskKeys.lists(),
+        });
 
       const optimisticItem = buildOptimisticListItem(payload);
 
-      queryClient.setQueriesData<TaskListInfiniteData>({ queryKey: taskKeys.lists() }, (old) =>
-        prependOptimisticTask(old, optimisticItem),
+      queryClient.setQueriesData<TaskListInfiniteData>(
+        { queryKey: taskKeys.lists() },
+        (old) => prependOptimisticTask(old, optimisticItem),
       );
 
       const { setOne: setTask, setTaskItemRelation } = useTasksStore.getState();
@@ -171,17 +198,26 @@ export function useCreateTask() {
 
       if (optimisticItem.primary_item) {
         setItem(optimisticItem.primary_item);
-        setTaskItemRelation(taskClientId, optimisticItem.primary_item.client_id);
-        setForItem(optimisticItem.primary_item.client_id, getOptimisticItemImages(itemClientId));
+        setTaskItemRelation(
+          taskClientId,
+          optimisticItem.primary_item.client_id,
+        );
+        setForItem(
+          optimisticItem.primary_item.client_id,
+          getOptimisticItemImages(itemClientId),
+        );
       }
 
       return { listQueriesSnapshot, taskClientId, itemClientId };
     },
     onSuccess: (data) => {
-      useTasksStore.getState().patch(data.client_id, { task_scalar_id: data.task_scalar_id });
+      useTasksStore
+        .getState()
+        .patch(data.client_id, { task_scalar_id: data.task_scalar_id });
 
-      queryClient.setQueriesData<TaskListInfiniteData>({ queryKey: taskKeys.lists() }, (old) =>
-        patchCreatedTask(old, data.client_id, data.task_scalar_id),
+      queryClient.setQueriesData<TaskListInfiniteData>(
+        { queryKey: taskKeys.lists() },
+        (old) => patchCreatedTask(old, data.client_id, data.task_scalar_id),
       );
     },
     onError: (_error, _payload, context) => {
@@ -204,7 +240,9 @@ export function useCreateTask() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      void queryClient.invalidateQueries({ queryKey: upholsteryKeys.pickerLists() });
+      void queryClient.invalidateQueries({
+        queryKey: upholsteryKeys.pickerLists(),
+      });
     },
   });
 }

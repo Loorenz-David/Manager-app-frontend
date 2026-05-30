@@ -9,10 +9,15 @@ export type WorkingSectionsHomeController = {
   sections: WorkingSectionViewModel[];
   isPending: boolean;
   isError: boolean;
+  refetch: () => Promise<void>;
 };
 
 export function useWorkingSectionsHomeController(): WorkingSectionsHomeController {
   const query = useWorkerWorkingSectionsQuery();
+
+  async function refetch(): Promise<void> {
+    await query.refetch();
+  }
 
   const sections = useMemo(
     () => (query.data ?? []).map(toWorkingSectionViewModel),
@@ -23,5 +28,6 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
     sections,
     isPending: query.isPending,
     isError: query.isError,
+    refetch,
   };
 }

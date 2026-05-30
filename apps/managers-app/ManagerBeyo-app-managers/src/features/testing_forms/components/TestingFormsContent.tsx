@@ -13,7 +13,7 @@ import {
   preloadCalendarSinglePickerSurface,
 } from "@/components/primitives/date";
 import { CustomerFieldGroup, CustomerFieldsSchema } from "@/features/customers";
-import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import {
   ItemCategorySelectionField,
   ItemDetailsFieldGroup,

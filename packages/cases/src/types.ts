@@ -249,6 +249,8 @@ export const CreateCaseInputSchema = z.object({
   client_id: ClientIdSchema,
   case_type_id: z.string().min(1).optional(),
   type_label: z.string().max(128).optional(),
+  entity_type: z.string().optional(),
+  entity_client_id: z.string().optional(),
   participants: z.array(z.string()).optional(),
   selected_all: z.boolean().optional(),
   skip_participants: z.array(z.string()).optional(),
@@ -256,13 +258,23 @@ export const CreateCaseInputSchema = z.object({
 });
 export type CreateCaseInput = z.infer<typeof CreateCaseInputSchema>;
 
-export const CaseCreationFormSchema = z.object({
-  case_type_id: z.string().min(1).optional(),
-  type_label: z.string().trim().min(1).max(128).optional(),
-  participants: z.array(z.string()).optional(),
-  selected_all: z.boolean().optional(),
-  skip_participants: z.array(z.string()).optional(),
-});
+export const CaseCreationFormSchema = z
+  .object({
+    case_type_id: z.string().min(1).optional(),
+    type_label: z.string().trim().min(1, "Case type is required.").max(128),
+    participants: z.array(z.string()).optional(),
+    selected_all: z.boolean().optional(),
+    skip_participants: z.array(z.string()).optional(),
+  })
+  .refine(
+    (data) =>
+      (data.participants != null && data.participants.length > 0) ||
+      data.selected_all === true,
+    {
+      message: "At least one participant is required.",
+      path: ["participants"],
+    },
+  );
 export type CaseCreationFormValues = z.infer<typeof CaseCreationFormSchema>;
 
 export const UpdateCaseStateInputSchema = z.object({
@@ -310,6 +322,41 @@ export const AddParticipantsInputSchema = z.object({
 });
 export type AddParticipantsInput = z.infer<typeof AddParticipantsInputSchema>;
 
+export const UserCompactRoleSchema = z.object({
+  client_id: z.string(),
+  name: z.string(),
+});
+
+export const UserCompactSchema = z.object({
+  client_id: z.string().transform((v) => v as UserId),
+  username: z.string(),
+  profile_picture: z.string().nullable(),
+  role: UserCompactRoleSchema.nullable().optional(),
+});
+export type UserCompact = z.infer<typeof UserCompactSchema>;
+
+export type ListUsersParams = {
+  q?: string;
+  limit?: number;
+  offset?: number;
+  compact?: boolean;
+};
+
+export type ParticipantSelectedDisplay = {
+  userId: string;
+  username: string;
+  profilePicture: string | null;
+  roleName: string | null;
+};
+
+export type ParticipantSelectionResult = {
+  participants: string[];
+  selectedAll: boolean;
+  skipParticipants: string[];
+  selectedUsers: ParticipantSelectedDisplay[];
+  totalCount: number | null;
+};
+
 export type ListCasesParams = {
   case_state?: string;
   state?: (typeof CASE_STATE)[number];
@@ -317,8 +364,19 @@ export type ListCasesParams = {
   created_by_id?: string;
   entity_type?: (typeof CASE_LINK_ENTITY_TYPE)[number];
   entity_client_id?: string;
+  includes_participants?: string;
   offset?: number;
   limit?: number;
+};
+
+export type CasesFilterState = {
+  caseStates: (typeof CASE_STATE)[number][];
+  onlyForMe: boolean;
+};
+
+export const DEFAULT_CASES_FILTER: CasesFilterState = {
+  caseStates: ["open", "resolving"],
+  onlyForMe: true,
 };
 
 export type ListMessagesParams = {

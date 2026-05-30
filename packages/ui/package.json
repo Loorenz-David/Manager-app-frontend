@@ -8,6 +8,7 @@
   },
   "peerDependencies": {
     "@beyo/lib": "*",
+    "@use-gesture/react": ">=10.0.0",
     "class-variance-authority": ">=0.7.0",
     "framer-motion": ">=12.0.0",
     "lucide-react": ">=0.400.0",

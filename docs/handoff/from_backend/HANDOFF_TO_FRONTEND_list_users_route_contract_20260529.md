@@ -47,6 +47,11 @@ All query parameters are optional.
   - Default: `0`
   - Minimum: `0`
 
+- `compact: boolean`
+  - Default: `false`
+  - When `true`, returns minimal user data: `client_id`, `username`, `profile_picture`, and `role`. Optimized to skip working_sections fetch.
+  - When `false`, returns full user data with role and working_sections.
+
 ## Example Requests
 
 List first page:
@@ -69,7 +74,13 @@ Combine filters:
 
 `GET /api/v1/users?q=john&string_filters=username,email&role=worker&working_sections=Assembly&limit=25&offset=0`
 
+Compact mode (for mentions, dropdowns):
+
+`GET /api/v1/users?limit=50&compact=true`
+
 ## Success Response Shape
+
+### Full Mode (default, `compact=false`)
 
 Envelope:
 
@@ -100,6 +111,37 @@ Envelope:
     ],
     "users_pagination": {
       "has_more": true,
+      "total": 157,
+      "limit": 25,
+      "offset": 0
+    }
+  }
+}
+```
+
+### Compact Mode (`compact=true`)
+
+Minimal user representation with role (for mentions, dropdowns, member lists):
+
+```json
+{
+  "ok": true,
+  "warnings": [],
+  "data": {
+    "users": [
+      {
+        "client_id": "usr_01...",
+        "username": "john.doe",
+        "profile_picture": "https://...",
+        "role": {
+          "client_id": "wro_01...",
+          "name": "worker"
+        }
+      }
+    ],
+    "users_pagination": {
+      "has_more": true,
+      "total": 157,
       "limit": 25,
       "offset": 0
     }
@@ -117,6 +159,7 @@ Envelope:
     "users": [],
     "users_pagination": {
       "has_more": false,
+      "total": 0,
       "limit": 50,
       "offset": 0
     }
@@ -136,6 +179,10 @@ Envelope:
 ## Frontend Integration Notes
 
 - Use `offset/limit` pagination; continue requesting next page while `users_pagination.has_more` is `true`.
+- `users_pagination.total` shows the total number of users matching the filters (across all pages).
+- **Serialization modes:**
+  - **Full mode** (default): Use for admin/manager dashboards. Includes `role` (workspace role) and `working_sections` (assigned sections). No extra query cost over compact mode.
+  - **Compact mode** (`compact=true`): Use for mention dropdowns, member pickers, case participant selection. Returns minimal data: `client_id`, `username`, `profile_picture`, and `role`. Optimized to skip working sections fetch since role is already in the query.
 - For search UI, send `q` and set `string_filters` based on selected fields.
 - For role multi-select, join selected role names using commas.
 - For working sections multi-select, send section names joined by commas.

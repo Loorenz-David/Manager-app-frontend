@@ -25,7 +25,7 @@ import {
   CustomerPhoneField,
   CustomerTypeField,
 } from "@/features/customers";
-import { EntityImagesProvider, ImagePreviewGrid } from "@/features/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import {
   ItemCategorySelectionField,
   ItemIdentityField,

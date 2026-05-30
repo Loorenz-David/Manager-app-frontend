@@ -1,36 +1,41 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { ClientIdSchema } from '@/lib/client-id';
-import type { ImageViewModel } from '@/features/images/types';
-import { ItemIssueSchema, ItemUpholsteryRequirementSchema, ItemUpholsterySchema, type Item } from '@/features/items/types';
-import type { CustomerId, TaskId, UserId } from '@/types/common';
-import { AddressSchema, DateOnlySchema } from '@/types/common';
+import type { ImageViewModel } from "@beyo/images";
+import { ClientIdSchema } from "@/lib/client-id";
+import {
+  ItemIssueSchema,
+  ItemUpholsteryRequirementSchema,
+  ItemUpholsterySchema,
+  type Item,
+} from "@/features/items/types";
+import type { CustomerId, TaskId, UserId } from "@/types/common";
+import { AddressSchema, DateOnlySchema } from "@/types/common";
 
-export const TASK_TYPE = ['return', 'pre_order', 'internal'] as const;
-export const TASK_PRIORITY = ['low', 'normal', 'high', 'urgent'] as const;
+export const TASK_TYPE = ["return", "pre_order", "internal"] as const;
+export const TASK_PRIORITY = ["low", "normal", "high", "urgent"] as const;
 export const TASK_STATE = [
-  'pending',
-  'assigned',
-  'working',
-  'stalled',
-  'ready',
-  'resolved',
-  'failed',
-  'cancelled',
+  "pending",
+  "assigned",
+  "working",
+  "stalled",
+  "ready",
+  "resolved",
+  "failed",
+  "cancelled",
 ] as const;
 export const TASK_RETURN_SOURCE = [
-  'after_purchase',
-  'before_purchase',
-  'store_return',
+  "after_purchase",
+  "before_purchase",
+  "store_return",
 ] as const;
-export const TASK_ITEM_LOCATION = ['store', 'customer'] as const;
-export const TASK_RETURN_METHOD = ['drop_off_by_customer', 'pickup'] as const;
-export const TASK_FULFILLMENT_METHOD = ['pickup_at_store', 'delivery'] as const;
+export const TASK_ITEM_LOCATION = ["store", "customer"] as const;
+export const TASK_RETURN_METHOD = ["drop_off_by_customer", "pickup"] as const;
+export const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
 export const TASK_NOTE_TYPE = [
-  'user_note',
-  'system_note',
-  'correction_note',
-  'retraction_note',
+  "user_note",
+  "system_note",
+  "correction_note",
+  "retraction_note",
 ] as const;
 
 export type TaskType = (typeof TASK_TYPE)[number];
@@ -40,7 +45,7 @@ export type TaskReturnSource = (typeof TASK_RETURN_SOURCE)[number];
 export type TaskItemLocation = (typeof TASK_ITEM_LOCATION)[number];
 export type TaskReturnMethod = (typeof TASK_RETURN_METHOD)[number];
 export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
-export type TaskTypeFilter = TaskType | 'all';
+export type TaskTypeFilter = TaskType | "all";
 
 export const TaskSchema = z.object({
   id: z.string().transform((v) => v as TaskId),
@@ -58,16 +63,25 @@ export const TaskSchema = z.object({
   ready_by_at: DateOnlySchema.nullable(),
   scheduled_start_at: DateOnlySchema.nullable(),
   scheduled_end_at: DateOnlySchema.nullable(),
-  customer_id: z.string().transform((v) => v as CustomerId).nullable(),
+  customer_id: z
+    .string()
+    .transform((v) => v as CustomerId)
+    .nullable(),
   primary_phone_number: z.string().nullable(),
   secondary_phone_number: z.string().nullable(),
   primary_email: z.string().nullable(),
   secondary_email: z.string().nullable(),
   address: AddressSchema,
   created_at: z.string().datetime({ offset: true }),
-  created_by_id: z.string().transform((v) => v as UserId).nullable(),
+  created_by_id: z
+    .string()
+    .transform((v) => v as UserId)
+    .nullable(),
   updated_at: z.string().datetime({ offset: true }).nullable(),
-  updated_by_id: z.string().transform((v) => v as UserId).nullable(),
+  updated_by_id: z
+    .string()
+    .transform((v) => v as UserId)
+    .nullable(),
   closed_at: z.string().datetime({ offset: true }).nullable(),
   recorded_time_marked_wrong: z.boolean(),
   taken_from_average: z.boolean(),
@@ -185,7 +199,10 @@ export const TaskDetailRawSchema = z.object({
       assigned_worker_display_name_snapshot: z.string().nullable(),
       created_at: z.string().datetime({ offset: true }),
       closed_at: z.string().datetime({ offset: true }).nullable(),
-      latest_state_records: z.record(z.string(), z.unknown()).nullable().optional(),
+      latest_state_records: z
+        .record(z.string(), z.unknown())
+        .nullable()
+        .optional(),
     }),
   ),
   task_notes: z.array(TaskNoteSchema),
@@ -195,8 +212,8 @@ export type TaskDetailRaw = z.infer<typeof TaskDetailRawSchema>;
 
 export const CreateTaskInputSchema = z.object({
   client_id: ClientIdSchema,
-  task_type: z.enum(TASK_TYPE, { message: 'Task type is required.' }),
-  priority: z.enum(TASK_PRIORITY, { message: 'Priority is required.' }),
+  task_type: z.enum(TASK_TYPE, { message: "Task type is required." }),
+  priority: z.enum(TASK_PRIORITY, { message: "Priority is required." }),
   title: z.string().max(255).optional(),
   summary: z.string().max(1024).optional(),
   ready_by_at: DateOnlySchema.nullable().optional(),
@@ -211,14 +228,14 @@ export const CreateTaskInputSchema = z.object({
   secondary_phone_number: z.string().optional(),
   primary_email: z
     .string()
-    .email('Enter a valid email.')
+    .email("Enter a valid email.")
     .optional()
-    .or(z.literal('')),
+    .or(z.literal("")),
   secondary_email: z
     .string()
-    .email('Enter a valid email.')
+    .email("Enter a valid email.")
     .optional()
-    .or(z.literal('')),
+    .or(z.literal("")),
   address: AddressSchema,
   additional_details: z.record(z.string(), z.unknown()).optional(),
 });
@@ -239,8 +256,8 @@ export const UpdateTaskInputSchema = z.object({
   customer_id: z.string().min(1).nullable().optional(),
   primary_phone_number: z.string().nullable().optional(),
   secondary_phone_number: z.string().nullable().optional(),
-  primary_email: z.string().email().nullable().optional().or(z.literal('')),
-  secondary_email: z.string().email().nullable().optional().or(z.literal('')),
+  primary_email: z.string().email().nullable().optional().or(z.literal("")),
+  secondary_email: z.string().email().nullable().optional().or(z.literal("")),
   address: AddressSchema,
   additional_details: z.record(z.string(), z.unknown()).nullable().optional(),
 });
@@ -255,7 +272,7 @@ export type FailTaskInput = z.infer<typeof TransitionTaskInputSchema>;
 
 export const CreateTaskNoteInputSchema = z.object({
   task_id: z.string().transform((v) => v as TaskId),
-  note_type: z.enum(TASK_NOTE_TYPE, { message: 'Note type is required.' }),
+  note_type: z.enum(TASK_NOTE_TYPE, { message: "Note type is required." }),
   content: z.record(z.string(), z.unknown()),
 });
 export type CreateTaskNoteInput = z.infer<typeof CreateTaskNoteInputSchema>;
@@ -295,28 +312,30 @@ export const TaskListItemRawSchema = z.object({
     is_deleted: z.boolean(),
     deleted_at: z.string().nullable(),
   }),
-  primary_item: z.object({
-    client_id: z.string(),
-    article_number: z.string().nullable(),
-    sku: z.string().nullable(),
-    state: z.string(),
-    item_category_id: z.string().nullable(),
-    quantity: z.number().int(),
-    designer: z.string().nullable(),
-    height_in_cm: z.number().int().nullable(),
-    width_in_cm: z.number().int().nullable(),
-    depth_in_cm: z.number().int().nullable(),
-    item_value_minor: z.number().int().nullable(),
-    item_cost_minor: z.number().int().nullable(),
-    item_currency: z.string().nullable(),
-    item_position: z.string().nullable(),
-    external_id: z.string().nullable(),
-    external_url: z.string().nullable(),
-    external_source: z.string().nullable(),
-    external_order_id: z.string().nullable(),
-    item_category_snapshot: z.string().nullable(),
-    item_major_category_snapshot: z.string().nullable(),
-  }).nullable(),
+  primary_item: z
+    .object({
+      client_id: z.string(),
+      article_number: z.string().nullable(),
+      sku: z.string().nullable(),
+      state: z.string(),
+      item_category_id: z.string().nullable(),
+      quantity: z.number().int(),
+      designer: z.string().nullable(),
+      height_in_cm: z.number().int().nullable(),
+      width_in_cm: z.number().int().nullable(),
+      depth_in_cm: z.number().int().nullable(),
+      item_value_minor: z.number().int().nullable(),
+      item_cost_minor: z.number().int().nullable(),
+      item_currency: z.string().nullable(),
+      item_position: z.string().nullable(),
+      external_id: z.string().nullable(),
+      external_url: z.string().nullable(),
+      external_source: z.string().nullable(),
+      external_order_id: z.string().nullable(),
+      item_category_snapshot: z.string().nullable(),
+      item_major_category_snapshot: z.string().nullable(),
+    })
+    .nullable(),
   item_images: z.array(z.record(z.string(), z.unknown())),
 });
 export type TaskListItemRaw = z.infer<typeof TaskListItemRawSchema>;
@@ -346,7 +365,9 @@ export type ListTasksParams = ListTasksFullParams;
 export const TaskAdditionalDetailsFieldsSchema = z.object({
   additional_details: z.string().max(4000).optional(),
 });
-export type TaskAdditionalDetailsFields = z.infer<typeof TaskAdditionalDetailsFieldsSchema>;
+export type TaskAdditionalDetailsFields = z.infer<
+  typeof TaskAdditionalDetailsFieldsSchema
+>;
 
 export type TaskViewModel = Task & {
   display_number: string;
@@ -371,22 +392,30 @@ export type TaskCardViewModel = {
 
 export const TASK_STATE_FILTER_OPTIONS = TASK_STATE.map((state) => ({
   value: state,
-  label: state.charAt(0).toUpperCase() + state.slice(1).replace('_', ' '),
+  label: state.charAt(0).toUpperCase() + state.slice(1).replace("_", " "),
   testId: `task-state-option-${state}`,
 }));
 
 export const TASK_TYPE_PICKER_OPTIONS = [
-  { value: 'all' as const, label: 'All', testId: 'task-type-all' },
-  { value: 'return' as const, label: 'Returns', testId: 'task-type-return' },
-  { value: 'pre_order' as const, label: 'Pre-Orders', testId: 'task-type-pre-order' },
-  { value: 'internal' as const, label: 'Internals', testId: 'task-type-internal' },
+  { value: "all" as const, label: "All", testId: "task-type-all" },
+  { value: "return" as const, label: "Returns", testId: "task-type-return" },
+  {
+    value: "pre_order" as const,
+    label: "Pre-Orders",
+    testId: "task-type-pre-order",
+  },
+  {
+    value: "internal" as const,
+    label: "Internals",
+    testId: "task-type-internal",
+  },
 ] as const;
 
 const dateOnlyFormatter = new Intl.DateTimeFormat(undefined, {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-  timeZone: 'UTC',
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
 });
 
 function formatDateOnly(dateString: string | null): string | null {
@@ -404,7 +433,9 @@ export function toTaskViewModel(task: Task): TaskViewModel {
       ? `${startFormatted} – ${endFormatted}`
       : startFormatted
     : null;
-  const isOverdue = Boolean(task.ready_by_at && new Date(task.ready_by_at) < new Date());
+  const isOverdue = Boolean(
+    task.ready_by_at && new Date(task.ready_by_at) < new Date(),
+  );
 
   return {
     ...task,
@@ -415,7 +446,7 @@ export function toTaskViewModel(task: Task): TaskViewModel {
     ready_by_formatted: readyByFormatted,
     scheduled_range_formatted: scheduledRangeFormatted,
     is_overdue: isOverdue,
-    is_open: !['cancelled', 'failed', 'resolved'].includes(task.state),
+    is_open: !["cancelled", "failed", "resolved"].includes(task.state),
     has_customer: Boolean(task.customer_id),
     has_scheduled_dates: Boolean(task.scheduled_start_at),
   };
@@ -427,7 +458,7 @@ export function toOptimisticTask(input: CreateTaskInput): Task {
     task_scalar_id: 0,
     task_type: input.task_type,
     priority: input.priority,
-    state: 'pending',
+    state: "pending",
     return_source: input.return_source ?? null,
     item_location: input.item_location ?? null,
     return_method: input.return_method ?? null,

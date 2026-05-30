@@ -113,6 +113,11 @@ export const ItemImageSchema = z.union([
 ]);
 export type ItemImage = z.infer<typeof ItemImageSchema>;
 
+export const CasesSummarySchema = z.object({
+  total_unread: z.number().int(),
+});
+export type CasesSummary = z.infer<typeof CasesSummarySchema>;
+
 export const TaskStepSchema = z.object({
   client_id: TaskStepIdSchema,
   task_id: TaskIdSchema,
@@ -134,6 +139,7 @@ export const TaskStepSchema = z.object({
   task: TaskSnapshotSchema,
   item: ItemSnapshotSchema,
   item_images: z.array(ItemImageSchema),
+  cases_summary: CasesSummarySchema.nullable().optional(),
 });
 export type TaskStep = z.infer<typeof TaskStepSchema>;
 
@@ -193,6 +199,7 @@ export type TaskStepCardViewModel = {
   firstImageHeightPx: number | null;
   quantityPillLabel: string | null;
   lastStateRecord: LastStateRecord | null;
+  casesSummary: CasesSummary | null;
 };
 
 export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
@@ -240,6 +247,7 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     firstImageHeightPx,
     quantityPillLabel,
     lastStateRecord: step.last_state_record,
+    casesSummary: step.cases_summary ?? null,
   };
 }
 

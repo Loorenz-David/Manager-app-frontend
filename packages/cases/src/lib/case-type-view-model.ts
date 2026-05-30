@@ -9,6 +9,7 @@ export function toCaseTypePickerOption(
     value: caseType.client_id as string,
     label: caseType.name,
     image: caseType.image_url ?? undefined,
+    imageClassName: "size-14",
     description: caseType.description ?? undefined,
     testId: `case-type-option-${caseType.client_id}`,
   };

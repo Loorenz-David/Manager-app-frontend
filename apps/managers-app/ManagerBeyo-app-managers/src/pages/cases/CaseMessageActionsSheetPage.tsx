@@ -1,14 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-import { ConfirmActionButton } from '@/components/primitives';
-import { dispatchCaseMessageEditRequest } from '@/features/cases/lib/case-message-edit-events';
 import {
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
+  dispatchCaseMessageEditRequest,
   type CaseMessageActionsSheetSurfaceProps,
-} from '@/features/cases/surfaces';
-import { useSurface } from '@/hooks/use-surface';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
+} from "@beyo/cases";
+import { ConfirmActionButton } from "@/components/primitives";
+import { useSurface } from "@/hooks/use-surface";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
 
 export function CaseMessageActionsSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
@@ -18,13 +18,13 @@ export function CaseMessageActionsSheetPage(): React.JSX.Element {
     canEdit = false,
     messageClientId,
     messageSeq,
-    messageText = '',
+    messageText = "",
     onRequestDelete,
   } = useSurfaceProps<CaseMessageActionsSheetSurfaceProps>();
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    header?.setTitle('Message');
+    header?.setTitle("Message");
     header?.setActions(null);
   }, [header]);
 
@@ -33,11 +33,15 @@ export function CaseMessageActionsSheetPage(): React.JSX.Element {
   return (
     <div
       className="flex flex-col gap-3 bg-background p-6"
-      data-message-seq={typeof messageSeq === 'number' ? String(messageSeq) : undefined}
+      data-message-seq={
+        typeof messageSeq === "number" ? String(messageSeq) : undefined
+      }
       data-testid="case-message-actions-sheet"
     >
       {!hasActions ? (
-        <p className="text-sm text-muted-foreground">No actions are available for this message.</p>
+        <p className="text-sm text-muted-foreground">
+          No actions are available for this message.
+        </p>
       ) : null}
 
       {deleteError ? (
@@ -63,7 +67,7 @@ export function CaseMessageActionsSheetPage(): React.JSX.Element {
 
             dispatchCaseMessageEditRequest({
               messageClientId,
-              messageSeq: typeof messageSeq === 'number' ? messageSeq : null,
+              messageSeq: typeof messageSeq === "number" ? messageSeq : null,
               messageText,
             });
             surface.close(CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID);
@@ -87,7 +91,7 @@ export function CaseMessageActionsSheetPage(): React.JSX.Element {
             }
 
             void onRequestDelete().catch(() => {
-              setDeleteError('Message could not be deleted.');
+              setDeleteError("Message could not be deleted.");
             });
           }}
         />

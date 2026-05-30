@@ -1,11 +1,11 @@
-import { lazy, Suspense } from 'react';
-import { useParams } from 'react-router-dom';
+import { lazy, Suspense } from "react";
+import { useParams } from "react-router-dom";
 
-import { PageSkeleton } from '@/components/ui/PageSkeleton';
-import type { CaseId } from '@/types/common';
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
+import type { CaseId } from "@beyo/lib";
 
 const CaseConversationRouteHydrator = lazy(() =>
-  import('@/features/cases/components/CaseConversationRouteHydrator').then((module) => ({
+  import("@beyo/cases").then((module) => ({
     default: module.CaseConversationRouteHydrator,
   })),
 );
@@ -15,7 +15,11 @@ export function CaseConversationPage(): React.JSX.Element {
   const caseClientId = params.caseId as CaseId | undefined;
 
   if (!caseClientId) {
-    return <div className="bg-background p-6 text-sm text-muted-foreground">Case id is missing.</div>;
+    return (
+      <div className="bg-background p-6 text-sm text-muted-foreground">
+        Case id is missing.
+      </div>
+    );
   }
 
   return (

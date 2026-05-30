@@ -58,6 +58,7 @@ export type WorkingSectionStepsController = {
   hasMore: boolean;
   search: string;
   setSearch: (value: string) => void;
+  refetch: () => Promise<void>;
   handleTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
@@ -82,6 +83,10 @@ export function useWorkingSectionStepsController(
     limit: 50,
     offset: 0,
   });
+
+  async function refetch(): Promise<void> {
+    await query.refetch();
+  }
 
   const {
     transitionStepState,
@@ -208,6 +213,7 @@ export function useWorkingSectionStepsController(
     hasMore: query.data?.has_more ?? false,
     search,
     setSearch,
+    refetch,
     handleTransition,
     handleOpenTaskActions,
     handleOpenTaskDetail,

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
+import { useSurfaceHeader } from "@beyo/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
@@ -10,6 +11,8 @@ import type { CaseId } from "@beyo/lib";
 import { useCreateCase } from "../actions/use-create-case";
 import { caseTypeKeys } from "../api/case-type-keys";
 import { listCaseTypes } from "../api/list-case-types";
+import { listUsers } from "../api/list-users";
+import { userKeys } from "../api/user-keys";
 import {
   hasMeaningfulCaseMessageContent,
   trimCaseMessageContent,
@@ -21,17 +24,22 @@ import {
 import { useCaseCreationFormContext } from "../providers/CaseCreationFormProvider";
 import { CaseCreationFormSchema, type CaseCreationFormValues } from "../types";
 import { CaseInitialMessageComposer } from "./CaseInitialMessageComposer";
+import { ParticipantPickerTriggerField } from "./ParticipantPickerTriggerField";
 import { CaseTypePickerTriggerField } from "./CaseTypePickerTriggerField";
 
 export function CaseCreationFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
+  const header = useSurfaceHeader();
   const {
     caseClientId,
     regenerateId,
     entityTypes,
+    entityClientId,
     setSelectedCaseType,
     composerContent,
     setComposerContent,
+    setSelectedParticipants,
+    setParticipantsTotalCount,
   } = useCaseCreationFormContext();
   const { createCaseAsync, isPending } = useCreateCase();
 
@@ -43,6 +51,15 @@ export function CaseCreationFormContent(): React.JSX.Element {
       queryFn: () => listCaseTypes(params),
     });
   }, [queryClient, entityTypes]);
+
+  useEffect(() => {
+    const params = { limit: 50, compact: true };
+
+    void queryClient.prefetchQuery({
+      queryKey: userKeys.list(params),
+      queryFn: () => listUsers(params),
+    });
+  }, [queryClient]);
 
   const form = useForm<CaseCreationFormValues>({
     resolver: zodResolver(CaseCreationFormSchema),
@@ -63,6 +80,9 @@ export function CaseCreationFormContent(): React.JSX.Element {
       await createCaseAsync({
         client_id: caseClientId as CaseId,
         ...values,
+        ...(entityClientId && entityTypes?.[0]
+          ? { entity_type: entityTypes[0], entity_client_id: entityClientId }
+          : {}),
         ...(hasInitialMessage
           ? {
               initial_message: {
@@ -77,6 +97,9 @@ export function CaseCreationFormContent(): React.JSX.Element {
       setSelectedCaseType(null);
       setComposerContent({ parts: [] }, "");
       regenerateId();
+      setSelectedParticipants([]);
+      setParticipantsTotalCount(null);
+      header?.requestClose();
     } catch {
       // Error toast is handled by useCreateCase onError
       // composerContent is intentionally NOT reset on failure (preserved for retry)
@@ -110,6 +133,7 @@ export function CaseCreationFormContent(): React.JSX.Element {
               />
             </EntityImagesProvider>
           </div>
+          <ParticipantPickerTriggerField />
         </div>
 
         <div className="shrink-0 border-t border-border/60 px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3">

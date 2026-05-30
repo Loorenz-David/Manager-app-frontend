@@ -1,19 +1,24 @@
-import { IMAGE_VIEWER_SURFACE_ID } from '@/features/images/surfaces';
-import type { ImageLinkEntityType } from '@/features/images/types';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import {
+  IMAGE_VIEWER_SURFACE_ID,
+  type ImageLinkEntityType,
+} from "@beyo/images";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
-import { useTasksPageFlow, type TasksPageFlow } from '../flows/use-tasks-page.flow';
-import { useTaskListImagesStore } from '../store/task-list-images.store';
-import { useTasksPageStore } from '../store/tasks-page.store';
-import { useTasksStore } from '../store/tasks.store';
+import {
+  useTasksPageFlow,
+  type TasksPageFlow,
+} from "../flows/use-tasks-page.flow";
+import { useTaskListImagesStore } from "../store/task-list-images.store";
+import { useTasksPageStore } from "../store/tasks-page.store";
+import { useTasksStore } from "../store/tasks.store";
 import {
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_FILTER_SHEET_SURFACE_ID,
   type TaskActionsSurfaceProps,
   type TaskDetailSurfaceProps,
-} from '../surfaces';
-import type { TaskState, TaskTypeFilter } from '../types';
+} from "../surfaces";
+import type { TaskState, TaskTypeFilter } from "../types";
 
 export type TasksViewController = TasksPageFlow & {
   taskType: TaskTypeFilter;
@@ -32,10 +37,13 @@ export type TasksViewController = TasksPageFlow & {
 
 export function useTasksViewController(): TasksViewController {
   const flow = useTasksPageFlow();
-  const { taskType, taskStates, q, setTaskType, setTaskStates, setQ } = useTasksPageStore();
-  const imagesByItemId = useTaskListImagesStore((state) => state.imagesByItemId);
+  const { taskType, taskStates, q, setTaskType, setTaskStates, setQ } =
+    useTasksPageStore();
+  const imagesByItemId = useTaskListImagesStore(
+    (state) => state.imagesByItemId,
+  );
   const taskIdToItemId = useTasksStore((state) => state.taskIdToItemId);
-  const activeFilterCount = taskStates.length + (taskType !== 'all' ? 1 : 0);
+  const activeFilterCount = taskStates.length + (taskType !== "all" ? 1 : 0);
 
   function openTaskDetail(taskId: string): void {
     useSurfaceStore.getState().open(TASK_DETAIL_SURFACE_ID, {
@@ -70,9 +78,9 @@ export function useTasksViewController(): TasksViewController {
     useSurfaceStore.getState().open(IMAGE_VIEWER_SURFACE_ID, {
       images,
       initialImageClientId: firstImage.clientId,
-      entityType: 'item' as ImageLinkEntityType,
+      entityType: "item" as ImageLinkEntityType,
       entityClientId: itemId,
-      mode: 'preview-only',
+      mode: "preview-only",
       enableOnDemandImageLoad: true,
     });
   }

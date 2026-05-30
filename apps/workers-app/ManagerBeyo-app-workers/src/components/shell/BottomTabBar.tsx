@@ -6,8 +6,10 @@ import {
   Settings2,
   type LucideIcon,
 } from "lucide-react";
+import { NavTabBadge } from "@beyo/ui";
 import { useLocation, useNavigate } from "react-router-dom";
 import { preloadPrimaryTabRoute } from "@/lib/primary-tab-preload";
+import { useTabBadgeCountsContext } from "@/providers/TabBadgeCountsProvider";
 import { ROUTES, TAB_ORDER, type TabPath } from "@/lib/routes";
 
 type Tab = {
@@ -27,8 +29,11 @@ const TABS: Tab[] = [
 function useTabNav() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { dismissBadge } = useTabBadgeCountsContext();
 
   return function handleTabPress(targetPath: TabPath): void {
+    dismissBadge(targetPath);
+
     if (location.pathname === targetPath) {
       return;
     }
@@ -44,6 +49,7 @@ function useTabNav() {
 export function BottomTabBar(): React.JSX.Element {
   const location = useLocation();
   const handleTabPress = useTabNav();
+  const { badgeState } = useTabBadgeCountsContext();
   const activeIndex = TABS.findIndex((tab) => tab.path === location.pathname);
 
   return (
@@ -83,6 +89,11 @@ export function BottomTabBar(): React.JSX.Element {
                 preloadPrimaryTabRoute(tab.path);
               }}
             >
+              <NavTabBadge
+                items={badgeState[tab.path]?.items ?? []}
+                visible={badgeState[tab.path]?.visible ?? false}
+              />
+
               <Icon className="h-5 w-5" strokeWidth={2} />
               <span>{tab.label}</span>
             </button>

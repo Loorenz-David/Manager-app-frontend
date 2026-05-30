@@ -237,6 +237,8 @@ export function CaseComposerEditor({
   const initialSnapshot = JSON.stringify(content);
   const lastAppliedSnapshotRef = useRef(initialSnapshot);
   const lastEmittedSnapshotRef = useRef(initialSnapshot);
+  const userInitiatedFocusRef = useRef(false);
+  const userInitiatedFocusResetTimeoutRef = useRef<number | null>(null);
   // Lexical triggers a focus event during initialization. Suppress it so the
   // editor does not steal focus (and open the mobile keyboard) on page load.
   const suppressFocusOnMountRef = useRef(true);
@@ -246,6 +248,27 @@ export function CaseComposerEditor({
     });
     return () => cancelAnimationFrame(rafId);
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (userInitiatedFocusResetTimeoutRef.current !== null) {
+        window.clearTimeout(userInitiatedFocusResetTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const markNextFocusAsUserInitiated = () => {
+    userInitiatedFocusRef.current = true;
+
+    if (userInitiatedFocusResetTimeoutRef.current !== null) {
+      window.clearTimeout(userInitiatedFocusResetTimeoutRef.current);
+    }
+
+    userInitiatedFocusResetTimeoutRef.current = window.setTimeout(() => {
+      userInitiatedFocusRef.current = false;
+      userInitiatedFocusResetTimeoutRef.current = null;
+    }, 300);
+  };
 
   return (
     <LexicalComposer
@@ -286,13 +309,20 @@ export function CaseComposerEditor({
             )}
             data-testid={CASE_RICH_TEXT_TEST_IDS.editor}
             onBlur={onBlur}
+            onMouseDown={markNextFocusAsUserInitiated}
             onFocus={(event) => {
-              if (suppressFocusOnMountRef.current) {
+              if (
+                suppressFocusOnMountRef.current &&
+                !userInitiatedFocusRef.current
+              ) {
                 event.currentTarget.blur();
                 return;
               }
+
+              userInitiatedFocusRef.current = false;
               onFocus?.();
             }}
+            onTouchStart={markNextFocusAsUserInitiated}
             spellCheck
           />
         }

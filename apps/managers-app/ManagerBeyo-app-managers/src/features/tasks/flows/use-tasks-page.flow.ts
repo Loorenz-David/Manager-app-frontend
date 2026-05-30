@@ -26,6 +26,7 @@ export type TasksPageFlow = {
   isFetchingMore: boolean;
   hasMore: boolean;
   loadMore: () => void;
+  refetch: () => Promise<void>;
 };
 
 export function useTasksPageFlow(): TasksPageFlow {
@@ -47,6 +48,11 @@ export function useTasksPageFlow(): TasksPageFlow {
   );
 
   const { query, loadMore } = useListTasksQuery(params);
+
+  async function refetch(): Promise<void> {
+    await query.refetch();
+  }
+
   const tasksById = useTasksStore((state) => state.tasksById);
   const taskIdToItemId = useTasksStore((state) => state.taskIdToItemId);
   const itemsById = useItemsStore((state) => state.itemsById);
@@ -115,5 +121,6 @@ export function useTasksPageFlow(): TasksPageFlow {
     isFetchingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage ?? false,
     loadMore,
+    refetch,
   };
 }

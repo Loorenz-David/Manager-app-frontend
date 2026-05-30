@@ -6,68 +6,6 @@ const DAY_MS = 86_400_000;
 const LONG_THREAD_NOTE =
   "\nInspection note captured.\nWarehouse follow-up logged.";
 
-function encodeBase64Url(value: string): string {
-  return Buffer.from(value).toString("base64url");
-}
-
-function createAccessToken(): string {
-  const header = encodeBase64Url(JSON.stringify({ alg: "none", typ: "JWT" }));
-  const payload = encodeBase64Url(
-    JSON.stringify({
-      user_id: "usr_manager",
-      username: "Manager",
-      workspace_id: "ws_1",
-      role_name: "manager",
-      backend_permissions: [],
-      ui: {
-        apps: ["admin"],
-        pages: ["cases", "tasks", "home", "stats", "settings"],
-        buttons: [],
-        actions: [],
-        query_filters: [],
-      },
-    }),
-  );
-
-  return `${header}.${payload}.signature`;
-}
-
-async function installMockAuth(page: Page) {
-  const accessToken = createAccessToken();
-
-  await page.route("**/api/v1/auth/refresh", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        warnings: [],
-        data: {
-          access_token: accessToken,
-        },
-      }),
-    });
-  });
-
-  await page.route("**/api/v1/users/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        warnings: [],
-        data: {
-          user: {
-            client_id: "usr_manager",
-            email: "manager@example.com",
-            username: "Manager",
-          },
-        },
-      }),
-    });
-  });
-}
-
 function createCasesList(now: number) {
   return [
     {
@@ -964,40 +902,6 @@ async function installCasesMocks(
 }
 
 async function installCasesListWithoutTaskMocks(page: Page) {
-  const accessToken = createAccessToken();
-
-  await page.route("**/api/v1/auth/refresh", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        warnings: [],
-        data: {
-          access_token: accessToken,
-        },
-      }),
-    });
-  });
-
-  await page.route("**/api/v1/users/me", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        ok: true,
-        warnings: [],
-        data: {
-          user: {
-            client_id: "usr_manager",
-            email: "manager@example.com",
-            username: "Manager",
-          },
-        },
-      }),
-    });
-  });
-
   await page.route("**/api/v1/cases*", async (route) => {
     const url = new URL(route.request().url());
 
@@ -1053,10 +957,13 @@ async function openCase(page: Page, caseId: string) {
 }
 
 test.describe("cases page", () => {
+  test.beforeEach(async ({ auth }) => {
+    await auth.signIn();
+  });
+
   test("renders groups, filters client-side, shows unread badge, and opens the conversation shell", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1131,7 +1038,6 @@ test.describe("cases page", () => {
   test("refreshing a case conversation keeps the same case route and reloads the thread", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1157,7 +1063,6 @@ test.describe("cases page", () => {
   test("direct case conversation URL loads the thread after a full page entry", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases/case_new_open");
@@ -1193,7 +1098,6 @@ test.describe("cases page", () => {
   test("renders message separators, own and other bubbles, avatars, and deleted placeholders", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1232,7 +1136,6 @@ test.describe("cases page", () => {
   test("conversation still renders when optional task context fails to load", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page, {
       unavailableTaskIds: ["task_1"],
     });
@@ -1268,7 +1171,6 @@ test.describe("cases page", () => {
       url: string;
     }> = [];
 
-    await installMockAuth(page);
     await installCasesMocks(page, {
       onCaseDetailRequest: (payload) => {
         detailRequests.push(payload);
@@ -1339,7 +1241,6 @@ test.describe("cases page", () => {
       url: string;
     }> = [];
 
-    await installMockAuth(page);
     await installCasesMocks(page, {
       onCaseDetailRequest: (payload) => {
         detailRequests.push(payload);
@@ -1410,7 +1311,6 @@ test.describe("cases page", () => {
   test("context banner collapses after the list scrolls and restores at the top", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1472,7 +1372,6 @@ test.describe("cases page", () => {
   });
 
   test("back button closes the conversation slide", async ({ page }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1485,7 +1384,6 @@ test.describe("cases page", () => {
   test("closing the conversation does not replay the cases tab animation", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1522,7 +1420,6 @@ test.describe("cases page", () => {
       up_to_message_seq: number;
     }> = [];
 
-    await installMockAuth(page);
     await installCasesMocks(page, {
       onMarkReadRequest: ({ body }) => {
         markReadRequests.push(body);
@@ -1573,7 +1470,6 @@ test.describe("cases page", () => {
   test("info button opens the task info sheet and the task detail slide", async ({
     page,
   }) => {
-    await installMockAuth(page);
     await installCasesMocks(page);
 
     await page.goto("/cases");
@@ -1636,7 +1532,6 @@ test.describe("cases page", () => {
       }
     });
 
-    await installMockAuth(page);
     await installCasesMocks(page, {
       onStatePatch: (payload) => {
         stateTransitions.push(payload);

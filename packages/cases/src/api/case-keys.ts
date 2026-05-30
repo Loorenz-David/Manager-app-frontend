@@ -19,6 +19,7 @@ export const caseKeys = {
   linksRoot: () => [...caseKeys.all, "links"] as const,
   links: (caseId: CaseId) => [...caseKeys.linksRoot(), caseId] as const,
   unreadCountsRoot: () => [...caseKeys.all, "unread-counts"] as const,
+  globalUnreadCount: () => [...caseKeys.all, "global-unread-count"] as const,
   unreadCounts: (caseClientIds?: string[]) =>
     [...caseKeys.unreadCountsRoot(), caseClientIds] as const,
   participantsList: (caseId: CaseId) =>

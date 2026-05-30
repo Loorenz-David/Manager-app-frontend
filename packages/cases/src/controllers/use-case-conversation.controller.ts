@@ -37,6 +37,7 @@ import {
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
 } from "../surface-ids";
+import type { CaseConversationSurfaceOpeners } from "../surface-ids";
 import { ENABLE_TYPING_STUB } from "../lib/typing-indicator-flags";
 import type { CaseMessageContent } from "../message-content";
 import { getCaseTypeName } from "../types";
@@ -129,6 +130,7 @@ export type CaseConversationController = {
 
 type UseCaseConversationControllerOptions = {
   scrollToBottom?: () => void;
+  surfaceOpeners?: CaseConversationSurfaceOpeners;
 };
 
 function resolveTaskLink(links: CaseLink[] | undefined): CaseLink | null {
@@ -728,6 +730,7 @@ export function useCaseConversationController(
       surface.open(CASE_TASK_INFO_SHEET_SURFACE_ID, {
         caseClientId,
         taskId: taskClientId,
+        renderTaskCard: options.surfaceOpeners?.renderLinkedTaskCard,
       });
     },
     advanceState: async () => {

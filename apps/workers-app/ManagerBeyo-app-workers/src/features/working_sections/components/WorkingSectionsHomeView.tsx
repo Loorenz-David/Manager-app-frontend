@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { PullToRefresh } from "@beyo/ui";
 import { useWorkingSectionsHomeContext } from "../providers/WorkingSectionsHomeProvider";
 import { WorkingSectionCard } from "./WorkingSectionCard";
 import type { WorkingSectionViewModel } from "../types";
@@ -9,7 +11,9 @@ type WorkingSectionsHomeViewProps = {
 export function WorkingSectionsHomeView({
   onSelectSection,
 }: WorkingSectionsHomeViewProps): React.JSX.Element {
-  const { sections, isPending, isError } = useWorkingSectionsHomeContext();
+  const { sections, isPending, isError, refetch } =
+    useWorkingSectionsHomeContext();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
@@ -23,7 +27,12 @@ export function WorkingSectionsHomeView({
         </span>
       </header>
 
-      <div className="flex-1 overflow-y-auto">
+      <PullToRefresh
+        className="flex-1"
+        scrollClassName="overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
+        onRefresh={refetch}
+      >
         {isPending ? (
           <div className="flex flex-col gap-3 px-0 py-2">
             {[0, 1, 2].map((i) => (
@@ -61,7 +70,7 @@ export function WorkingSectionsHomeView({
             ))}
           </div>
         )}
-      </div>
+      </PullToRefresh>
     </div>
   );
 }

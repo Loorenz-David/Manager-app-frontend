@@ -44,3 +44,5 @@ playwright-report/
 blob-report/
 coverage/
 .nyc_output/
+
+package_migration_backup/

@@ -41,6 +41,7 @@ export function useCaseConversationMessagesQuery(
       });
     },
     enabled: Boolean(caseClientId),
+    staleTime: 0,
     initialPageParam: null as number | null,
     initialData: initialDetail
       ? {

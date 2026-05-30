@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { RouteErrorBoundary } from "@/components/ui/RouteErrorBoundary";
-import { SignInForm } from "@/features/auth";
+import { SignInForm } from "@beyo/auth";
 import { ROUTES } from "@/lib/routes";
 
 export function SignInPage(): React.JSX.Element {
@@ -22,6 +22,7 @@ export function SignInPage(): React.JSX.Element {
 
           <div className="w-full rounded-2xl border border-border bg-white p-6 shadow-sm">
             <SignInForm
+              appScope="managers"
               onSuccess={() => navigate(ROUTES.home, { replace: true })}
             />
           </div>

@@ -5,16 +5,12 @@ import { notify } from "@beyo/lib";
 
 import { caseKeys } from "../api/case-keys";
 import { createCase } from "../api/create-case";
-import type { CaseDetailBase, CreateCaseInput } from "../types";
+import type { CreateCaseInput } from "../types";
 
 export function useCreateCase() {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<
-    CaseDetailBase,
-    ApiRequestError,
-    CreateCaseInput
-  >({
+  const mutation = useMutation<void, ApiRequestError, CreateCaseInput>({
     mutationFn: createCase,
     onSuccess: () => {
       notify.success("Case created");
@@ -36,7 +32,6 @@ export function useCreateCase() {
     isPending: mutation.isPending,
     error: mutation.error,
     reset: mutation.reset,
-    data: mutation.data,
   };
 }
 
