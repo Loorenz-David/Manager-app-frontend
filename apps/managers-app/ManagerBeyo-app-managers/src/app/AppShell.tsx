@@ -6,30 +6,7 @@ import { TabBadgeCountsProvider } from "@/providers/TabBadgeCountsProvider";
 
 export function AppShell(): React.JSX.Element {
   useEffect(() => {
-    let idleHandle: number | null = null;
-    let timeoutHandle: number | null = null;
-    const requestIdle = window.requestIdleCallback?.bind(window);
-    const cancelIdle = window.cancelIdleCallback?.bind(window);
-
-    if (requestIdle) {
-      idleHandle = requestIdle(() => {
-        preloadPrimaryTabRoutes();
-      });
-    } else {
-      timeoutHandle = window.setTimeout(() => {
-        preloadPrimaryTabRoutes();
-      }, 150);
-    }
-
-    return () => {
-      if (idleHandle !== null && cancelIdle) {
-        cancelIdle(idleHandle);
-      }
-
-      if (timeoutHandle !== null) {
-        window.clearTimeout(timeoutHandle);
-      }
-    };
+    preloadPrimaryTabRoutes();
   }, []);
 
   return (

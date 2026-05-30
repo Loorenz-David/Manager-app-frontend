@@ -64,6 +64,8 @@ const caseTypePickerSheet = lazyWithPreload(loadCaseTypePickerSheetPage);
 const participantPickerSlide = lazyWithPreload(loadParticipantPickerSlidePage);
 const taskCasesSlide = lazyWithPreload(loadTaskCasesSlidePage);
 
+export const preloadCaseConversationSlideSurface =
+  caseConversationSlide.preload;
 export const preloadCaseCreationSlideSurface = caseCreationSlide.preload;
 export const preloadCaseTypePickerSheetSurface = caseTypePickerSheet.preload;
 export const preloadParticipantPickerSlideSurface =

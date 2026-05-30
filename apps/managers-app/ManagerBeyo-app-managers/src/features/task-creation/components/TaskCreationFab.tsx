@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Plus, RotateCcw, ShoppingBag, Wrench, X } from "lucide-react";
 import { useState } from "react";
 
+import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { cn } from "@/lib/utils";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
@@ -9,6 +10,9 @@ import {
   TASK_CREATION_INTERNAL_SURFACE_ID,
   TASK_CREATION_PRE_ORDER_SURFACE_ID,
   TASK_CREATION_RETURN_SURFACE_ID,
+  preloadInternalTaskSlideSurface,
+  preloadPreOrderTaskSlideSurface,
+  preloadReturnTaskSlideSurface,
 } from "../surfaces";
 
 const FAB_TRANSITION = {
@@ -48,6 +52,10 @@ const ACTION_BUTTONS = [
 
 export function TaskCreationFab(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
+
+  usePreloadSurface(preloadReturnTaskSlideSurface);
+  usePreloadSurface(preloadPreOrderTaskSlideSurface);
+  usePreloadSurface(preloadInternalTaskSlideSurface);
 
   function handleActionPress(surfaceId: string): void {
     useSurfaceStore.getState().open(surfaceId);

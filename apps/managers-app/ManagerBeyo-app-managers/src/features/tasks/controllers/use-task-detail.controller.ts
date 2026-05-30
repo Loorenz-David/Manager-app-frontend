@@ -33,6 +33,10 @@ export function useTaskDetailController(taskId: string) {
   const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId);
   const updateItemUpholstery = useUpdateItemUpholstery(taskId);
 
+  async function refetch(): Promise<void> {
+    await Promise.all([taskQuery.refetch(), issueCategoryConfigsQuery.refetch()]);
+  }
+
   const issueNameByTypeId = useMemo(() => {
     const configs = issueCategoryConfigsQuery.data?.issueConfigs ?? [];
     return new Map(configs.map((c) => [c.issue_type_id, c.issue_type_name]));
@@ -63,7 +67,7 @@ export function useTaskDetailController(taskId: string) {
     title: taskQuery.data ? getTaskTitle(taskQuery.data.task) : "Task",
     isPending: taskQuery.isPending,
     isError: taskQuery.isError,
-    refetch: taskQuery.refetch,
+    refetch,
     activeUpholstery,
     updateTask,
     deleteTask,

@@ -19,12 +19,9 @@ export function PwaUpdateSheetPage(): React.JSX.Element {
       return;
     }
 
-    try {
-      setIsUpdating(true);
-      await onUpdate();
-    } finally {
-      setIsUpdating(false);
-    }
+    setIsUpdating(true);
+    useSurfaceStore.getState().close(PWA_UPDATE_SURFACE_ID);
+    await onUpdate();
   }
 
   function handleLater(): void {

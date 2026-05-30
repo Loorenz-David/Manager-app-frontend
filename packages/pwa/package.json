@@ -1,0 +1,13 @@
+{
+  "name": "@beyo/pwa",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0",
+    "vite-plugin-pwa": ">=0.13.2"
+  }
+}

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { useGlobalCaseUnreadCountQuery } from "@beyo/cases";
-import type { NavTabBadgeItem } from "@beyo/ui";
+import { selectUser, useAuthStore } from "@beyo/auth";
+import {
+  prefetchCasesData,
+  prefetchCasesListData,
+  useUnreadCountsQuery,
+} from "@beyo/cases";
+import { usePrefetchOnCondition, type NavTabBadgeItem } from "@beyo/ui";
 
+import { preloadCaseConversationSlideSurface } from "@/features/cases/surfaces";
 import { ROUTES, type TabPath } from "@/lib/routes";
 
 const BADGE_DISMISS_MS = 5_000;
@@ -19,7 +26,15 @@ export type TabBadgeCountsController = {
 };
 
 export function useTabBadgeCountsController(): TabBadgeCountsController {
-  const { data: caseUnreadCount } = useGlobalCaseUnreadCountQuery();
+  const queryClient = useQueryClient();
+  const userId = (useAuthStore(selectUser)?.id) ?? null;
+  const { data: caseUnreadCountsMap } = useUnreadCountsQuery();
+  const caseUnreadCount = caseUnreadCountsMap
+    ? Object.values(caseUnreadCountsMap).reduce((sum, count) => sum + count, 0)
+    : 0;
+  const unreadCaseIds = caseUnreadCountsMap
+    ? Object.keys(caseUnreadCountsMap)
+    : [];
 
   const lastShownCountRef = useRef<Partial<Record<TabPath, number>>>({});
   const timersRef = useRef<
@@ -28,6 +43,17 @@ export function useTabBadgeCountsController(): TabBadgeCountsController {
   const [badgeState, setBadgeState] = useState<
     Partial<Record<TabPath, TabBadgeState>>
   >({});
+
+  usePrefetchOnCondition(userId != null, () =>
+    prefetchCasesListData(queryClient, userId!),
+  );
+
+  usePrefetchOnCondition(unreadCaseIds.length > 0, () =>
+    Promise.all([
+      preloadCaseConversationSlideSurface(),
+      prefetchCasesData(queryClient, unreadCaseIds),
+    ]),
+  );
 
   const dismissBadge = useCallback((path: TabPath) => {
     const timer = timersRef.current[path];
@@ -47,7 +73,7 @@ export function useTabBadgeCountsController(): TabBadgeCountsController {
   }, []);
 
   useEffect(() => {
-    const count = caseUnreadCount ?? 0;
+    const count = caseUnreadCount;
     const lastShown = lastShownCountRef.current[ROUTES.cases] ?? 0;
 
     if (count <= 0 || count === lastShown) {

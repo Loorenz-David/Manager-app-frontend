@@ -21,6 +21,9 @@ function loadTaskDetailSlidePage() {
 const taskStepActionsSheet = lazyWithPreload(loadTaskStepActionsSheetPage);
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 
+export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
+export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
+
 export const taskStepSurfaces: SurfaceRegistrations = {
   [TASK_STEP_ACTIONS_SHEET_SURFACE_ID]: {
     surface: "sheet",

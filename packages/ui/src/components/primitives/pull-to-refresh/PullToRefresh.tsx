@@ -127,7 +127,7 @@ export function PullToRefresh({
         />
       </m.div>
 
-      <m.div ref={activeRef} className={scrollClassName} style={{ y: pullY }}>
+      <m.div ref={activeRef} className={cn("h-full", scrollClassName)} style={{ y: pullY }}>
         {children}
       </m.div>
     </div>

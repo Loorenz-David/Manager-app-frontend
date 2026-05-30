@@ -1,14 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from "react";
 
-import type { Item } from '@/features/items/types';
-import { toTaskViewModel } from '@/features/tasks/types';
-import type { CustomerId, TaskId } from '@/types/common';
+import type { Item } from "@/features/items/types";
+import { toTaskViewModel } from "@/features/tasks/types";
+import type { CustomerId, TaskId } from "@/types/common";
 
-import { useListTasksQuery } from '../api/use-list-tasks-query';
-import { useItemsStore } from '../store/items.store';
-import { useTaskListImagesStore } from '../store/task-list-images.store';
-import { useTasksPageStore } from '../store/tasks-page.store';
-import { useTasksStore } from '../store/tasks.store';
+import { useListTasksQuery } from "../api/use-list-tasks-query";
+import { useItemsStore } from "../store/items.store";
+import { useTaskListImagesStore } from "../store/task-list-images.store";
+import { useTasksPageStore } from "../store/tasks-page.store";
+import { useTasksStore } from "../store/tasks.store";
 import type {
   TaskCardViewModel,
   TaskFulfillmentMethod,
@@ -18,7 +18,7 @@ import type {
   TaskReturnSource,
   TaskState,
   TaskType,
-} from '../types';
+} from "../types";
 
 export type TasksPageFlow = {
   cards: TaskCardViewModel[];
@@ -40,8 +40,8 @@ export function useTasksPageFlow(): TasksPageFlow {
 
   const params = useMemo(
     () => ({
-      ...(taskType !== 'all' ? { task_types: taskType } : {}),
-      ...(taskStates.length > 0 ? { task_states: taskStates.join(',') } : {}),
+      ...(taskType !== "all" ? { task_types: taskType } : {}),
+      ...(taskStates.length > 0 ? { task_states: taskStates.join(",") } : {}),
       ...(debouncedQ ? { q: debouncedQ } : {}),
     }),
     [debouncedQ, taskStates, taskType],
@@ -56,10 +56,15 @@ export function useTasksPageFlow(): TasksPageFlow {
   const tasksById = useTasksStore((state) => state.tasksById);
   const taskIdToItemId = useTasksStore((state) => state.taskIdToItemId);
   const itemsById = useItemsStore((state) => state.itemsById);
-  const imagesByItemId = useTaskListImagesStore((state) => state.imagesByItemId);
+  const imagesByItemId = useTaskListImagesStore(
+    (state) => state.imagesByItemId,
+  );
 
   const orderedTaskIds = useMemo(
-    () => query.data?.pages.flatMap((page) => page.items.map((item) => item.task.client_id)) ?? [],
+    () =>
+      query.data?.pages.flatMap((page) =>
+        page.items.map((item) => item.task.client_id),
+      ) ?? [],
     [query.data],
   );
 
@@ -86,7 +91,8 @@ export function useTasksPageFlow(): TasksPageFlow {
             return_source: taskRecord.return_source as TaskReturnSource | null,
             item_location: taskRecord.item_location as TaskItemLocation | null,
             return_method: taskRecord.return_method as TaskReturnMethod | null,
-            fulfillment_method: taskRecord.fulfillment_method as TaskFulfillmentMethod | null,
+            fulfillment_method:
+              taskRecord.fulfillment_method as TaskFulfillmentMethod | null,
             title: taskRecord.title,
             summary: taskRecord.summary,
             additional_details: taskRecord.additional_details,

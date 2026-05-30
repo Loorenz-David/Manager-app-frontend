@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
+import { usePrefetchOnCondition } from "@beyo/ui";
 import {
   Controller,
   FormProvider,
@@ -35,6 +37,7 @@ import { usePreloadSurface } from "@/hooks/use-preload-surface";
 
 import { ContentCard, FieldLabelRow } from "@/components/primitives";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
+import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
@@ -73,9 +76,12 @@ function UpholsteryField({
 }
 
 export function InternalFormContent(): React.JSX.Element {
+  const queryClient = useQueryClient();
+
   usePreloadSurface(preloadCalendarSinglePickerSurface);
   usePreloadSurface(preloadItemCategoryPickerSurface);
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
+  usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
   const { taskClientId, itemClientId, customerClientId, regenerateIds } =
     useTaskCreationFormContext();

@@ -21,6 +21,7 @@ export { RouteErrorBoundary } from "./components/ui/RouteErrorBoundary";
 
 export { lazyRoute } from "./lib/lazy-route";
 export { lazyWithPreload } from "./lib/lazy-with-preload";
+export { usePrefetchOnCondition } from "./lib/use-prefetch-on-condition";
 
 export * from "./components/primitives/box-picker";
 export * from "./components/primitives/box-slide-picker";

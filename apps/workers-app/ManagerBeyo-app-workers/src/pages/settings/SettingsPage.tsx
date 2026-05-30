@@ -1,7 +1,16 @@
+import { lazy, Suspense } from "react";
+import { PageSkeleton } from "@/components/ui/PageSkeleton";
+
+const SettingsRouteEntry = lazy(() =>
+  import("@/features/settings/route-entry").then((module) => ({
+    default: module.SettingsRouteEntry,
+  })),
+);
+
 export function SettingsPage(): React.JSX.Element {
   return (
-    <div className="p-4" data-testid="settings-page">
-      <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-    </div>
+    <Suspense fallback={<PageSkeleton />}>
+      <SettingsRouteEntry />
+    </Suspense>
   );
 }

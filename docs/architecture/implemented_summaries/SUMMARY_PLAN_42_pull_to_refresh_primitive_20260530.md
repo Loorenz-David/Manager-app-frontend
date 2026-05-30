@@ -15,7 +15,7 @@
 - Added `@use-gesture/react` as a peer dependency in `packages/ui`.
 - Exported the primitive through a new barrel and `packages/ui/src/index.ts`.
 - Added `refetch(): Promise<void>` to five controller/flow layers used by target views.
-- Wired pull-to-refresh into all planned views: `CasesView`, `TasksView`, `WorkingSectionStepsView`, `WorkingSectionsHomeView`, and `TaskDetailSlidePage`.
+- Wired pull-to-refresh into all planned views: `CasesView`, `TasksView`, `WorkingSectionStepsView`, `WorkingSectionsHomeView`, `TaskDetailSlidePage`, and the managers app `TaskDetailSlidePage`.
 - Applied `overscroll-y-none` to each wired scroll container to suppress native browser pull-to-refresh/overscroll chaining.
 
 ## Files changed
@@ -28,6 +28,8 @@
 - `packages/cases/src/components/CasesView.tsx`
 - `apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/flows/use-tasks-page.flow.ts`
 - `apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx`
+- `apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/controllers/use-task-detail.controller.ts`
+- `apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx`
 - `apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/controllers/use-working-section-steps.controller.ts`
 - `apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx`
 - `apps/workers-app/ManagerBeyo-app-workers/src/features/working_sections/controllers/use-working-sections-home.controller.ts`

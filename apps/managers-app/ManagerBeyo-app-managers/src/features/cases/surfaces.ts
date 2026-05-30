@@ -39,6 +39,9 @@ const caseMessageActionsSheet = lazyWithPreload(
 );
 const caseFilterSheet = lazyWithPreload(loadCaseFilterSheetPage);
 
+export const preloadCaseConversationSlideSurface =
+  caseConversationSlide.preload;
+
 export const caseSurfaces: SurfaceRegistrations = {
   [CASE_CONVERSATION_SURFACE_ID]: {
     surface: "slide",

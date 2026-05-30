@@ -24,6 +24,7 @@
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/lib": "*",
+    "@beyo/pwa": "*",
     "@beyo/styles": "*",
     "@beyo/upholstery": "*",
     "@beyo/tasks": "*",

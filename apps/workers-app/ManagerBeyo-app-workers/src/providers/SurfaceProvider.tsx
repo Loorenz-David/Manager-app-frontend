@@ -2,7 +2,12 @@ import type { ReactNode } from "react";
 import { SurfaceProvider as BaseSurfaceProvider } from "@beyo/ui";
 import { surfaceRegistry } from "@/app/surface-registry";
 
-export type { SurfaceType } from "@beyo/ui";
+export {
+  SurfacePropsContext,
+  SurfaceHeaderContext,
+  useSurfaceStore,
+} from "@beyo/ui";
+export type { SurfaceType, SurfaceRegistrations } from "@beyo/ui";
 
 type SurfaceProviderProps = {
   children: ReactNode;

@@ -1,27 +1,47 @@
-import { ROUTES, type TabPath } from '@/lib/routes';
+import { lazyWithPreload } from "@beyo/ui";
 
-const PRIMARY_TAB_IMPORTERS: Record<TabPath, () => Promise<unknown>> = {
-  [ROUTES.home]: () => import('@/pages/home/HomePage'),
-  [ROUTES.tasks]: () => import('@/pages/tasks/TasksPage'),
-  [ROUTES.cases]: () => import('@/pages/cases/CasesPage'),
-  [ROUTES.stats]: () => import('@/pages/stats/StatsPage'),
-  [ROUTES.settings]: () => import('@/pages/settings/SettingsPage'),
+import { ROUTES, type TabPath } from "@/lib/routes";
+
+export const homePageRoute = lazyWithPreload(() =>
+  import("@/pages/home/HomePage").then((m) => ({ default: m.HomePage })),
+);
+export const tasksPageRoute = lazyWithPreload(() =>
+  import("@/pages/tasks/TasksPage").then((m) => ({ default: m.TasksPage })),
+);
+export const casesPageRoute = lazyWithPreload(() =>
+  import("@/pages/cases/CasesPage").then((m) => ({ default: m.CasesPage })),
+);
+export const statsPageRoute = lazyWithPreload(() =>
+  import("@/pages/stats/StatsPage").then((m) => ({ default: m.StatsPage })),
+);
+export const settingsPageRoute = lazyWithPreload(() =>
+  import("@/pages/settings/SettingsPage").then((m) => ({
+    default: m.SettingsPage,
+  })),
+);
+
+const PRIMARY_TAB_PRELOADERS: Record<TabPath, () => Promise<void>> = {
+  [ROUTES.home]: homePageRoute.preload,
+  [ROUTES.tasks]: tasksPageRoute.preload,
+  [ROUTES.cases]: casesPageRoute.preload,
+  [ROUTES.stats]: statsPageRoute.preload,
+  [ROUTES.settings]: settingsPageRoute.preload,
 };
 
 const preloadedTabs = new Set<TabPath>();
 
-export function preloadPrimaryTabRoute(path: TabPath): Promise<unknown> {
+export function preloadPrimaryTabRoute(path: TabPath): Promise<void> {
   if (preloadedTabs.has(path)) {
     return Promise.resolve();
   }
 
   preloadedTabs.add(path);
-  return PRIMARY_TAB_IMPORTERS[path]();
+  return PRIMARY_TAB_PRELOADERS[path]();
 }
 
 export function preloadPrimaryTabRoutes(): Promise<unknown[]> {
   return Promise.all(
-    (Object.keys(PRIMARY_TAB_IMPORTERS) as TabPath[]).map((path) =>
+    (Object.keys(PRIMARY_TAB_PRELOADERS) as TabPath[]).map((path) =>
       preloadPrimaryTabRoute(path),
     ),
   );

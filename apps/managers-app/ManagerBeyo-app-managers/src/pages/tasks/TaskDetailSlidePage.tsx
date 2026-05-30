@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { TaskFlowTimeline } from "@beyo/tasks";
+import { PullToRefresh } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
 import {
@@ -55,24 +56,32 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
-      <TaskDetailHeader />
-      <ContentCard>
-        <TaskBodyCategoryRow />
-        <DashedInfoGroup>
-          <TaskCustomerSection />
-          <TaskWorkingSectionsField />
-          <TaskIssuesSection />
-          <TaskScheduledDeliverySection />
-        </DashedInfoGroup>
-        <TaskImagesSection />
-        {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
-          "seat" && <TaskUpholsterySection />}
-        <TaskFlowTimeline
-          taskId={controller.taskId}
-          onRecordPress={controller.openFlowRecord}
-        />
-      </ContentCard>
+    <div className="flex h-full flex-col bg-background">
+      <PullToRefresh
+        className="flex-1"
+        scrollClassName="overflow-y-auto overscroll-y-none"
+        onRefresh={controller.refetch}
+      >
+        <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
+          <TaskDetailHeader />
+          <ContentCard>
+            <TaskBodyCategoryRow />
+            <DashedInfoGroup>
+              <TaskCustomerSection />
+              <TaskWorkingSectionsField />
+              <TaskIssuesSection />
+              <TaskScheduledDeliverySection />
+            </DashedInfoGroup>
+            <TaskImagesSection />
+            {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
+              "seat" && <TaskUpholsterySection />}
+            <TaskFlowTimeline
+              taskId={controller.taskId}
+              onRecordPress={controller.openFlowRecord}
+            />
+          </ContentCard>
+        </div>
+      </PullToRefresh>
       <TaskDetailBottomActions />
     </div>
   );

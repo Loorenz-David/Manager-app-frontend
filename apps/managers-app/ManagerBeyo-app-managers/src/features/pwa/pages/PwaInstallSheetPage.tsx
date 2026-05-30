@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useSurfaceHeader } from '@/hooks/use-surface-header';
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
-import { PWA_INSTALL_SURFACE_ID, type PwaInstallSurfaceProps } from '../surfaces';
+import { useEffect, useState } from "react";
+import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
+import {
+  PWA_INSTALL_SURFACE_ID,
+  type PwaInstallSurfaceProps,
+} from "../surfaces";
 
 export function PwaInstallSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
@@ -10,7 +13,7 @@ export function PwaInstallSheetPage(): React.JSX.Element {
   const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
-    header?.setTitle('Install app');
+    header?.setTitle("Install app");
     header?.setActions(null);
   }, [header]);
 
@@ -19,12 +22,10 @@ export function PwaInstallSheetPage(): React.JSX.Element {
       return;
     }
 
-    try {
-      setIsInstalling(true);
-      await onInstall();
-    } finally {
-      setIsInstalling(false);
-    }
+    setIsInstalling(true);
+    await onInstall();
+    setIsInstalling(false);
+    useSurfaceStore.getState().close(PWA_INSTALL_SURFACE_ID);
   }
 
   function handleDismiss(): void {
@@ -34,7 +35,8 @@ export function PwaInstallSheetPage(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4 p-6">
       <p className="text-sm leading-6 text-muted-foreground">
-        Add Manager Beyo to your home screen for a full-screen app experience and faster relaunches.
+        Add Manager Beyo to your home screen for a full-screen app experience
+        and faster relaunches.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         <button
@@ -46,7 +48,7 @@ export function PwaInstallSheetPage(): React.JSX.Element {
             void handleInstall();
           }}
         >
-          {isInstalling ? 'Opening prompt...' : 'Add to home screen'}
+          {isInstalling ? "Opening prompt..." : "Add to home screen"}
         </button>
         <button
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground transition"

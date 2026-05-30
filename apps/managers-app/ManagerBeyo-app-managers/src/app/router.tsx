@@ -1,9 +1,28 @@
+import { Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
+import { PageSkeleton, RouteErrorBoundary } from "@beyo/ui";
 import { AppShell } from "@/app/AppShell";
 import { RootRoute } from "@/app/RootRoute";
 import { GuestRoute, ProtectedRoute } from "@beyo/auth";
 import { lazyRoute } from "@/lib/lazy-route";
+import {
+  casesPageRoute,
+  homePageRoute,
+  settingsPageRoute,
+  statsPageRoute,
+  tasksPageRoute,
+} from "@/lib/primary-tab-preload";
 import { ROUTES } from "@/lib/routes";
+
+function tabRoute(Component: React.ComponentType): React.JSX.Element {
+  return (
+    <RouteErrorBoundary>
+      <Suspense fallback={<PageSkeleton />}>
+        <Component />
+      </Suspense>
+    </RouteErrorBoundary>
+  );
+}
 
 export const router = createBrowserRouter([
   {
@@ -30,27 +49,15 @@ export const router = createBrowserRouter([
             children: [
               {
                 path: ROUTES.home,
-                element: lazyRoute(() =>
-                  import("@/pages/home/HomePage").then((module) => ({
-                    default: module.HomePage,
-                  })),
-                ),
+                element: tabRoute(homePageRoute.Component),
               },
               {
                 path: ROUTES.tasks,
-                element: lazyRoute(() =>
-                  import("@/pages/tasks/TasksPage").then((module) => ({
-                    default: module.TasksPage,
-                  })),
-                ),
+                element: tabRoute(tasksPageRoute.Component),
               },
               {
                 path: ROUTES.cases,
-                element: lazyRoute(() =>
-                  import("@/pages/cases/CasesPage").then((module) => ({
-                    default: module.CasesPage,
-                  })),
-                ),
+                element: tabRoute(casesPageRoute.Component),
               },
               {
                 path: ROUTES.caseConversation,
@@ -64,19 +71,11 @@ export const router = createBrowserRouter([
               },
               {
                 path: ROUTES.stats,
-                element: lazyRoute(() =>
-                  import("@/pages/stats/StatsPage").then((module) => ({
-                    default: module.StatsPage,
-                  })),
-                ),
+                element: tabRoute(statsPageRoute.Component),
               },
               {
                 path: ROUTES.settings,
-                element: lazyRoute(() =>
-                  import("@/pages/settings/SettingsPage").then((module) => ({
-                    default: module.SettingsPage,
-                  })),
-                ),
+                element: tabRoute(settingsPageRoute.Component),
               },
             ],
           },

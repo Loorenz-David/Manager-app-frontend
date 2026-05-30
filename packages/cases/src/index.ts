@@ -102,6 +102,7 @@ export { useListCaseTypesQuery } from "./api/use-list-case-types";
 export { useListUsersQuery } from "./api/use-list-users-query";
 export { useGlobalCaseUnreadCountQuery } from "./api/use-global-case-unread-count";
 export { useUnreadCountsQuery } from "./api/use-unread-counts";
+export { prefetchCasesData, prefetchCasesListData } from "./api/prefetch-cases";
 
 export { useDeleteCaseMessage } from "./actions/use-delete-case-message";
 export { useEditCaseMessage } from "./actions/use-edit-case-message";

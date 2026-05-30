@@ -1,1 +1,1 @@
-export { PwaProvider } from "./PwaProvider";
+export { pwaSurfaces } from "./surfaces";
