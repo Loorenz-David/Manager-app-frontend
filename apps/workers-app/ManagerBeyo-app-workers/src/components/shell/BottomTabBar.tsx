@@ -55,7 +55,7 @@ export function BottomTabBar(): React.JSX.Element {
   return (
     <nav
       aria-label="Main navigation"
-      className="flex-shrink-0 border-t bg-background"
+      className="flex-shrink-0 border-t bg-background z-[50]"
       data-testid="bottom-tab-bar"
     >
       <div className="relative flex h-[60px] items-stretch">

@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePrefetchOnCondition } from "@beyo/ui";
@@ -83,6 +84,8 @@ export function InternalFormContent(): React.JSX.Element {
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
+  const navigateToRef = useRef<(stepId: string) => void>(() => {});
+
   const { taskClientId, itemClientId, customerClientId, regenerateIds } =
     useTaskCreationFormContext();
   const createTask = useCreateTask();
@@ -131,9 +134,15 @@ export function InternalFormContent(): React.JSX.Element {
 
         if (!allValid) {
           const { errors } = form.formState;
+          let firstErrorStep: string | null = null;
 
           if (errors.item ?? errors.item_upholstery) {
             setStatus("item", "error");
+            firstErrorStep ??= "item";
+          }
+          if (errors.working_section_assignments) {
+            setStatus("assignment", "error");
+            firstErrorStep ??= "assignment";
           }
           if (
             errors.item_issues ??
@@ -143,8 +152,8 @@ export function InternalFormContent(): React.JSX.Element {
             setStatus("task", "error");
           }
 
-          if (errors.working_section_assignments) {
-            setStatus("assignment", "error");
+          if (firstErrorStep) {
+            navigateToRef.current(firstErrorStep);
           }
         }
 
@@ -186,6 +195,8 @@ export function InternalFormContent(): React.JSX.Element {
         staged.navigateTo("item");
       })(),
   });
+
+  navigateToRef.current = staged.navigateTo;
 
   return (
     <FormProvider {...form}>

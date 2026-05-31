@@ -1,4 +1,4 @@
-import { AnimatePresence, m } from 'framer-motion';
+import { cn } from '@beyo/lib';
 
 import { BoxPicker, BoxSlidePicker, HorizontalScrollArea, SearchBar } from '@/components/primitives';
 
@@ -19,7 +19,7 @@ type TasksHeaderProps = {
   onFilterPress: () => void;
 };
 
-const COLLAPSE_TRANSITION = { duration: 0.25, ease: [0.32, 0.72, 0, 1] as const };
+const COLLAPSE = "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]";
 
 export function TasksHeader({
   isCompact,
@@ -36,28 +36,19 @@ export function TasksHeader({
 }: TasksHeaderProps): React.JSX.Element {
   return (
     <div className="flex flex-col bg-background" data-testid="tasks-header">
-      <AnimatePresence initial={false}>
-        {!isCompact ? (
-          <m.div
-            key="type-picker"
-            animate={{ height: 'auto', opacity: 1 }}
-            className="overflow-hidden"
-            exit={{ height: 0, opacity: 0 }}
-            initial={{ height: 0, opacity: 0 }}
-            transition={COLLAPSE_TRANSITION}
-          >
-            <div className="px-4 pb-2 pt-3">
-              <BoxSlidePicker
-                dataTestId="tasks-type-picker"
-                options={TASK_TYPE_PICKER_OPTIONS}
-                size="sm"
-                value={taskType}
-                onValueChange={onTaskTypeChange}
-              />
-            </div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+      <div className={cn(COLLAPSE, isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pb-2 pt-3">
+            <BoxSlidePicker
+              dataTestId="tasks-type-picker"
+              options={TASK_TYPE_PICKER_OPTIONS}
+              size="sm"
+              value={taskType}
+              onValueChange={onTaskTypeChange}
+            />
+          </div>
+        </div>
+      </div>
 
       <div className="px-4 py-2">
         <SearchBar
@@ -73,34 +64,25 @@ export function TasksHeader({
         />
       </div>
 
-      <AnimatePresence initial={false}>
-        {!isCompact ? (
-          <m.div
-            key="state-filters"
-            animate={{ height: 'auto', opacity: 1 }}
-            className="overflow-hidden"
-            exit={{ height: 0, opacity: 0 }}
-            initial={{ height: 0, opacity: 0 }}
-            transition={COLLAPSE_TRANSITION}
-          >
-            <HorizontalScrollArea className="pb-2">
-              <BoxPicker
-                className="flex flex-nowrap flex-row gap-1.5 px-4"
-                data-testid="tasks-state-filter"
-                layout="stack"
-                mode="multiple"
-                options={[...TASK_STATE_FILTER_OPTIONS]}
-                size="xs"
-                showDescription={false}
-                showIcon={false}
-                value={taskStates}
-                visualVariant="pill"
-                onValueChange={onTaskStatesChange}
-              />
-            </HorizontalScrollArea>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
+      <div className={cn(COLLAPSE, isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+        <div className="min-h-0 overflow-hidden">
+          <HorizontalScrollArea className="pb-2">
+            <BoxPicker
+              className="flex flex-nowrap flex-row gap-1.5 px-4"
+              data-testid="tasks-state-filter"
+              layout="stack"
+              mode="multiple"
+              options={[...TASK_STATE_FILTER_OPTIONS]}
+              size="xs"
+              showDescription={false}
+              showIcon={false}
+              value={taskStates}
+              visualVariant="pill"
+              onValueChange={onTaskStatesChange}
+            />
+          </HorizontalScrollArea>
+        </div>
+      </div>
     </div>
   );
 }

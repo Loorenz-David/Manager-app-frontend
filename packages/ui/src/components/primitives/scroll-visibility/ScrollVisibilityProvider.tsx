@@ -22,10 +22,11 @@ export function ScrollVisibilityProvider({
   threshold = 56,
   hysteresis = 8,
   inverted = false,
+  mode = "absolute",
   children,
 }: ScrollVisibilityProviderProps): React.JSX.Element {
   const { isHidden, suspend, onScroll, resetState, initialize } = useScrollState(
-    { threshold, hysteresis },
+    { threshold, hysteresis, mode },
   );
 
   useEffect(() => {

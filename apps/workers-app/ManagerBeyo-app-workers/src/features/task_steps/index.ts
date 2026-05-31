@@ -12,7 +12,12 @@ export {
   TaskStepDetailProvider,
   useTaskStepDetailContext,
 } from "./providers/TaskStepDetailProvider";
+export {
+  LastActiveStepCardProvider,
+  useLastActiveStepCardContext,
+} from "./providers/LastActiveStepCardProvider";
 export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
+export { LastActiveStepCard } from "./components/LastActiveStepCard";
 export { taskStepSurfaces } from "./surfaces";
 export {
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,

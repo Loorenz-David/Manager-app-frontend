@@ -5,7 +5,9 @@ import { transitionStepState } from "../api/transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
 import {
   STEP_TERMINAL_STATES,
+  type LastStateRecord,
   type StepState,
+  type TaskStep,
   type TaskStepsPagination,
   type TransitionStepStateInput,
 } from "../types";
@@ -14,10 +16,19 @@ type TransitionInput = TransitionStepStateInput & {
   working_section_id: WorkingSectionId;
 };
 
-function buildOptimisticStateRecord(newState: StepState) {
+const LAST_ACTIVE_STATES = new Set<StepState>([
+  "working",
+  "paused",
+  "ended_shift",
+]);
+
+function buildOptimisticStateRecord(
+  newState: StepState,
+  enteredAt: string,
+): LastStateRecord {
   return {
     state: newState,
-    entered_at: new Date().toISOString(),
+    entered_at: enteredAt,
     exited_at: null,
   };
 }
@@ -27,11 +38,7 @@ function patchStepStateInSectionCache(
   workingSectionId: WorkingSectionId,
   stepId: string,
   newState: StepState,
-  stateRecord: {
-    state: StepState;
-    entered_at: string;
-    exited_at: string | null;
-  },
+  stateRecord: LastStateRecord,
 ) {
   queryClient.setQueriesData<TaskStepsPagination>(
     {
@@ -63,6 +70,66 @@ function patchStepStateInSectionCache(
   );
 }
 
+function patchOptimisticLastActiveStep(
+  current: TaskStep | null | undefined,
+  sectionListLookup: (stepId: string) => TaskStep | undefined,
+  stepId: string,
+  newState: StepState,
+  now: string,
+): TaskStep | null {
+  if (newState === "working") {
+    const base =
+      sectionListLookup(stepId) ??
+      (current?.client_id === stepId ? current : null);
+
+    if (!base) {
+      return current ?? null;
+    }
+
+    return {
+      ...base,
+      state: "working",
+      last_state_record: base.last_state_record
+        ? {
+            ...base.last_state_record,
+            state: "working",
+            entered_at: now,
+            exited_at: null,
+          }
+        : {
+            state: "working",
+            entered_at: now,
+            exited_at: null,
+          },
+    };
+  }
+
+  if (current?.client_id !== stepId) {
+    return current ?? null;
+  }
+
+  if (!LAST_ACTIVE_STATES.has(newState)) {
+    return current ?? null;
+  }
+
+  return {
+    ...current,
+    state: newState,
+    last_state_record: current.last_state_record
+      ? {
+          ...current.last_state_record,
+          state: newState,
+          entered_at: now,
+          exited_at: null,
+        }
+      : {
+          state: newState,
+          entered_at: now,
+          exited_at: null,
+        },
+  };
+}
+
 export function useTransitionStepState() {
   const queryClient = useQueryClient();
 
@@ -76,21 +143,64 @@ export function useTransitionStepState() {
       await queryClient.cancelQueries({
         queryKey: taskStepKeys.sectionListsBySection(working_section_id),
       });
+      await queryClient.cancelQueries({
+        queryKey: taskStepKeys.userLastActive(),
+      });
 
       const previousSectionLists =
         queryClient.getQueriesData<TaskStepsPagination>({
           queryKey: taskStepKeys.sectionListsBySection(working_section_id),
         });
+      const previousLastActive = queryClient.getQueryData<TaskStep | null>(
+        taskStepKeys.userLastActive(),
+      );
+
+      const now = new Date().toISOString();
 
       patchStepStateInSectionCache(
         queryClient,
         working_section_id,
         step_id,
         new_state,
-        buildOptimisticStateRecord(new_state),
+        buildOptimisticStateRecord(new_state, now),
+      );
+      const sectionListLookup = (
+        targetStepId: string,
+      ): TaskStep | undefined => {
+        const allSectionLists = queryClient.getQueriesData<TaskStepsPagination>(
+          {
+            queryKey: taskStepKeys.sectionLists(),
+          },
+        );
+
+        for (const [, data] of allSectionLists) {
+          if (!data) {
+            continue;
+          }
+
+          const found = data.items.find(
+            (step) => step.client_id === targetStepId,
+          );
+          if (found) {
+            return found;
+          }
+        }
+
+        return undefined;
+      };
+
+      queryClient.setQueryData<TaskStep | null>(
+        taskStepKeys.userLastActive(),
+        patchOptimisticLastActiveStep(
+          previousLastActive,
+          sectionListLookup,
+          step_id,
+          new_state,
+          now,
+        ),
       );
 
-      return { previousSectionLists };
+      return { previousSectionLists, previousLastActive };
     },
 
     onSuccess: (data, variables) => {
@@ -101,12 +211,40 @@ export function useTransitionStepState() {
         data.new_state,
         data.last_state_record,
       );
+
+      // For paused / ended_shift transitions, patch userLastActive in-place with the
+      // server-confirmed state and record — no network round-trip, no new object, no flicker.
+      // working and terminal transitions still refetch (see onSettled) because they may
+      // change which step is the last active entirely.
+      if (data.new_state === "paused" || data.new_state === "ended_shift") {
+        queryClient.setQueryData<TaskStep | null>(
+          taskStepKeys.userLastActive(),
+          (currentLastActive) => {
+            if (
+              !currentLastActive ||
+              currentLastActive.client_id !== data.step_id
+            ) {
+              return currentLastActive;
+            }
+
+            return {
+              ...currentLastActive,
+              state: data.new_state,
+              last_state_record: data.last_state_record,
+            };
+          },
+        );
+      }
     },
 
     onError: (_err, _input, context) => {
       context?.previousSectionLists.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
+      queryClient.setQueryData(
+        taskStepKeys.userLastActive(),
+        context?.previousLastActive ?? null,
+      );
 
       notify.error(
         "Action failed",
@@ -114,13 +252,21 @@ export function useTransitionStepState() {
       );
     },
 
-    onSettled: (_data, _err, { working_section_id }) => {
+    onSettled: (_data, _err, { working_section_id, new_state }) => {
       void queryClient.invalidateQueries({
         queryKey: taskStepKeys.sectionListsBySection(working_section_id),
       });
       void queryClient.invalidateQueries({
         queryKey: workerWorkingSectionKeys.mine(),
       });
+      // paused / ended_shift: onSuccess already patched the cache — no refetch needed.
+      // working: refetch to confirm the new active step (backend may have auto-paused another).
+      // terminal: refetch to discover the fallback last active step.
+      if (new_state === "working" || STEP_TERMINAL_STATES.has(new_state)) {
+        void queryClient.invalidateQueries({
+          queryKey: taskStepKeys.userLastActive(),
+        });
+      }
     },
   });
 

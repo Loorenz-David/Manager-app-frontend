@@ -51,8 +51,8 @@ export function TaskStepCircularActionButton({
   const label = labelFromState(state);
   const Icon = isWorking ? Pause : Play;
   const bgClass = isWorking
-    ? "bg-[var(--color-soft-container)] text-foreground"
-    : "bg-primary text-card";
+    ? "bg-[var(--color-soft-container)] text-foreground shadow-md border border-[color:var(--color-light-border)]"
+    : "bg-primary text-card shadow-md border border-[color:var(--color-light-border)]";
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -67,13 +67,15 @@ export function TaskStepCircularActionButton({
         <Icon aria-hidden="true" className="size-8 shrink-0" />
       </button>
 
-      {showTimer ? (
-        <TickingTimer
-          className="font-mono text-sm text-muted-foreground"
-          data-testid={`task-step-circular-timer-${stepId}`}
-          startedAtIso={lastStateRecord.entered_at}
-        />
-      ) : null}
+      <div className="h-5">
+        {showTimer ? (
+          <TickingTimer
+            className="font-mono text-sm text-muted-foreground"
+            data-testid={`task-step-circular-timer-${stepId}`}
+            startedAtIso={lastStateRecord.entered_at}
+          />
+        ) : null}
+      </div>
 
       <span className="text-sm text-muted-foreground">{label}</span>
     </div>

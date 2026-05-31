@@ -40,10 +40,18 @@ export const STEP_QUICK_TRANSITION: Partial<Record<StepState, StepState>> = {
   ended_shift: "working",
 };
 
+export const UserRefSchema = z.object({
+  client_id: UserIdSchema,
+  username: z.string(),
+  profile_picture: z.string().nullable(),
+});
+
 export const LastStateRecordSchema = z.object({
   state: StepStateSchema,
   entered_at: z.string(),
   exited_at: z.string().nullable(),
+  last_action_by: UserRefSchema.nullable().optional(),
+  first_started_at: z.string().nullable().optional(),
 });
 export type LastStateRecord = z.infer<typeof LastStateRecordSchema>;
 
@@ -60,12 +68,6 @@ export const TaskSnapshotSchema = z.object({
   return_method: z.string().nullable(),
 });
 export type TaskSnapshot = z.infer<typeof TaskSnapshotSchema>;
-
-export const UserRefSchema = z.object({
-  client_id: UserIdSchema,
-  username: z.string(),
-  profile_picture: z.string().nullable(),
-});
 
 export const UpholsteryRequirementSchema = z.object({
   client_id: z.string(),
@@ -182,6 +184,7 @@ export type ListWorkingSectionStepsParams = {
   upholstery_search?: boolean;
   limit?: number;
   offset?: number;
+  record_step_state?: string;
 };
 
 export type TaskStepCardViewModel = {

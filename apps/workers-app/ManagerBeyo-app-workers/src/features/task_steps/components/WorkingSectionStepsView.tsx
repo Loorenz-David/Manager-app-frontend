@@ -1,6 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
+import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import type { WorkingSectionViewModel } from "../../working_sections/types";
 import { useWorkingSectionStepsContext } from "../providers/WorkingSectionStepsProvider";
 import { TaskStepCard } from "./TaskStepCard";
@@ -29,6 +30,13 @@ export function WorkingSectionStepsView({
     transitioningStepId,
   } = useWorkingSectionStepsContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const registerScrollElement = useRegisterScrollElement();
+
+  useEffect(() => {
+    const element = scrollRef.current;
+    if (!element) return;
+    return registerScrollElement(element);
+  }, [registerScrollElement]);
 
   const nonTerminalEntries = Object.entries(nonTerminalCounts).filter(
     ([, count]) => count > 0,

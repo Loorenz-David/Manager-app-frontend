@@ -71,11 +71,8 @@ function WorkingSectionBox({
         </div>
       )}
 
-      <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-3">
+      <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-5">
         <span className="truncate text-sm font-medium">{section.name}</span>
-        {isSelected ? (
-          <span className="truncate text-xs opacity-80">Selected</span>
-        ) : null}
       </span>
     </div>
   );
@@ -151,7 +148,7 @@ export function WorkingSectionPickerField({
       </span>
 
       <div
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-3"
         data-testid="working-section-picker-list"
       >
         {flow.isLoading && displayedOptions.length === 0 ? (

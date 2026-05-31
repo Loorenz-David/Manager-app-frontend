@@ -8,8 +8,14 @@ export const taskStepKeys = {
     [
       ...taskStepKeys.sectionLists(),
       params.working_section_id,
-      { q: params.q, limit: params.limit, offset: params.offset },
+      {
+        q: params.q,
+        limit: params.limit,
+        offset: params.offset,
+        record_step_state: params.record_step_state,
+      },
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>
     [...taskStepKeys.sectionLists(), sectionId] as const,
+  userLastActive: () => [...taskStepKeys.all, "user-last-active"] as const,
 };

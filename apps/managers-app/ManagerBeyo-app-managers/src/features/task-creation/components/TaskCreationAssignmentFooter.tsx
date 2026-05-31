@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
 import { WorkingSectionShortcutBar } from "@/components/primitives";
 import { useScrollVisibilityContext } from "@/components/primitives/scroll-visibility";
 import { StagedFormNavigation } from "@/components/primitives/staged-form/StagedFormNavigation";
 import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@/features/working-sections";
+import { SurfaceHeaderContext } from "@/providers/SurfaceProvider";
 import { useWorkingSectionPickerFlow } from "@/features/working-sections/flows/use-working-section-picker.flow";
 import type { WorkingSectionAssignment } from "@/features/working-sections/types";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function TaskCreationAssignmentFooter({
   activeStepId,
   majorCategory,
 }: TaskCreationAssignmentFooterProps): React.JSX.Element {
+  const surfaceHeader = useContext(SurfaceHeaderContext);
   const { control } = useFormContext<AssignmentFooterFormValues>();
   const { field } = useController({
     name: "working_section_assignments",
@@ -86,7 +88,11 @@ export function TaskCreationAssignmentFooter({
         </div>
       ) : null}
 
-      <StagedFormNavigation className="border-t-0" />
+      <StagedFormNavigation
+        className="border-t-0"
+        closeLabel="Close & Back"
+        onClose={surfaceHeader?.requestClose}
+      />
     </div>
   );
 }

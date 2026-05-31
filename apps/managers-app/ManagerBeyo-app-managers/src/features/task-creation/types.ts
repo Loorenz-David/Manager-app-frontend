@@ -41,14 +41,42 @@ export type ReturnFormValues = z.input<typeof ReturnFormSchema>;
 export const PreOrderFormSchema = ReturnFormSchema;
 export type PreOrderFormValues = ReturnFormValues;
 
-export const InternalFormSchema = z.object({
-  item: ItemDetailsFieldsSchema,
-  item_upholstery: ItemUpholsteryFieldsSchema,
-  item_issues: ItemIssuesFieldsSchema.shape.item_issues,
-  working_section_assignments:
-    WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
-  ready_by_at: DateOnlySchema.nullable().optional(),
-  additional_details:
-    TaskAdditionalDetailsFieldsSchema.shape.additional_details,
-});
+export const InternalFormSchema = z
+  .object({
+    item: ItemDetailsFieldsSchema,
+    item_upholstery: ItemUpholsteryFieldsSchema,
+    item_issues: ItemIssuesFieldsSchema.shape.item_issues,
+    working_section_assignments:
+      WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
+    ready_by_at: DateOnlySchema.nullable().optional(),
+    additional_details:
+      TaskAdditionalDetailsFieldsSchema.shape.additional_details,
+  })
+  .superRefine((data, ctx) => {
+    if (!data.item.article_number?.trim() && !data.item.sku?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter an article number or SKU.",
+        path: ["item", "article_number"],
+      });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter an article number or SKU.",
+        path: ["item", "sku"],
+      });
+    }
+    if (!data.item.major_category) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a category type.",
+        path: ["item", "major_category"],
+      });
+    } else if (!data.item.item_category_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a category.",
+        path: ["item", "item_category_id"],
+      });
+    }
+  });
 export type InternalFormValues = z.input<typeof InternalFormSchema>;

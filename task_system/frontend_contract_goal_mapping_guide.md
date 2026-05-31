@@ -27,6 +27,9 @@ This is the core discipline. The two questions have different answers:
 | How do I set up a route with lazy loading? | `11_routing.md` |
 | How do I write a feature component that consumes context? | `07_components.md` |
 | How does a package field open a picker surface? | `35_shared_packages.md §13` |
+| How do I hide a shell element on scroll (global pattern)? | `36_scroll_visibility.md` |
+| How do I hide a surface/slide element on scroll (local pattern)? | `36_scroll_visibility.md` |
+| How does a page register its scroll container? | `36_scroll_visibility.md` |
 | What does this existing feature's API return? | Implementation file or `types.ts` |
 | What fields does this existing form have? | Implementation file |
 | How does this existing controller aggregate its queries? | Implementation file |
@@ -128,6 +131,7 @@ Add:
 - `../architecture/31_animations.md`
 - `../architecture/32_loading_skeletons.md`
 - `../architecture/33_vaul_drawer.md`
+- `../architecture/36_scroll_visibility.md` — if the feature includes elements that hide on scroll or registers a scroll container
 
 ### Performance + dynamic loading
 
@@ -160,6 +164,7 @@ Add:
 - "skeleton", "loading state", "shimmer", "suspense fallback" → `32`, `10`
 - "responsive", "mobile", "breakpoint", "useBreakpoint", "isMobile" → `27`
 - "scroll", "overflow", "scrollbar", "ScrollArea" → `29`
+- "hide on scroll", "scroll visibility", "useScrollVisibility", "useScrollVisibilityContext", "isHidden", "hide on scroll", "scroll-driven hide", "AppScrollElementProvider", "registerScrollElement", "ScrollVisibilityProvider", "PullToRefresh registration", "shell card scroll", "fixed element scroll" → `36`
 - "lazy load", "code split", "bundle", "dynamic import", "lazyRoute", "lazyWithPreload", "usePreloadSurface", "preload surface", "surface preload", "skeleton flash" → `30`, `18`
 - "file upload", "attachment", "multipart", "XHR progress" → `22`
 - "notification", "toast", "notify", "useNotify" → `20`

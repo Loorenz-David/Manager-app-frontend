@@ -22,10 +22,11 @@ export function useScrollVisibility({
   threshold = 56,
   hysteresis = 8,
   inverted = false,
+  mode = "absolute",
 }: ScrollVisibilityOptions = {}): UseScrollVisibilityResult {
   const scrollRef = useRef<HTMLDivElement>(null);
   const { isHidden, suspend, onScroll, resetState, initialize } = useScrollState(
-    { threshold, hysteresis },
+    { threshold, hysteresis, mode },
   );
 
   useEffect(() => {

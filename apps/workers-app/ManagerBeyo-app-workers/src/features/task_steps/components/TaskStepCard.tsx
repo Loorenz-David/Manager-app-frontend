@@ -1,23 +1,11 @@
 import { memo } from "react";
-import { Calendar, RotateCcw, ShoppingBag, Wrench } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { ImageAnnotationSvgLayer } from "@beyo/images";
 import { ImagePlaceholder } from "@beyo/ui";
+import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import type { StepState, TaskStepCardViewModel } from "../types";
 import { TaskStepActionButton } from "./TaskStepActionButton";
-
-const TYPE_ICON: Record<string, LucideIcon> = {
-  return: RotateCcw,
-  pre_order: ShoppingBag,
-  internal: Wrench,
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  return: "Return",
-  pre_order: "Pre-order",
-  internal: "Internal",
-};
 
 const RETURN_SOURCE_LABEL: Record<string, string> = {
   after_purchase: "After purchase",
@@ -120,8 +108,8 @@ export const TaskStepCard = memo(function TaskStepCard({
     lastStateRecord,
   } = card;
   const isTransitioning = transitioningStepId === stepId;
-  const TypeIcon = TYPE_ICON[task.task_type] ?? Wrench;
-  const typeLabel = TYPE_LABEL[task.task_type] ?? task.task_type;
+  const TypeIcon = getTaskTypeIcon(task.task_type);
+  const typeLabel = getTaskTypeLabel(task.task_type);
   const returnSourceLabel = task.return_source
     ? RETURN_SOURCE_LABEL[task.return_source]
     : null;

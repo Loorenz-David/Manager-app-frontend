@@ -5,6 +5,7 @@ import { ContentCard, PullToRefresh, useScrollVisibility } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
+  TaskStepDetailFooter,
   TaskStepDetailHeader,
   TaskStepImagesPreview,
   TaskStepItemDetailsSection,
@@ -18,7 +19,7 @@ import {
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskStepDetailContext();
-  const { scrollRef, isHidden } = useScrollVisibility();
+  const { scrollRef, isHidden } = useScrollVisibility({ mode: "relative" });
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -43,12 +44,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const isStepTransitioning =
     controller.isTransitioning &&
     controller.transitioningStepId === controller.vm.stepId;
+  const canTransitionToCompleted = controller.vm.state === "working";
 
   return (
     <div className="relative flex h-full flex-col bg-background">
       <PullToRefresh
         className="flex-1"
-        scrollClassName="overflow-y-auto overscroll-y-none pb-[calc(var(--safe-bottom,0)+5.5rem)]"
+        scrollClassName="overflow-y-auto overscroll-y-none pb-[calc(var(--safe-bottom,0)+9.5rem)]"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
@@ -87,19 +89,19 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         </div>
       </PullToRefresh>
 
-      {!controller.isStepTerminal ? (
+      {!controller.isStepTerminal && canTransitionToCompleted ? (
         <div
           className={cn(
-            "absolute inset-x-0 bottom-0 transition-transform duration-300",
+            "absolute inset-x-0 bottom-0 z-0 transition-transform duration-300",
             isHidden ? "translate-y-full" : "translate-y-0",
           )}
         >
-          <div className="border-t border-border bg-background px-4 pb-[calc(var(--safe-bottom,0)+0.75rem)] pt-3">
+          <div className="px-4 pb-[calc(var(--safe-bottom,0)+5.25rem)] pt-3">
             <button
               type="button"
               className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
               data-testid="task-step-complete-button"
-              disabled={isStepTransitioning || controller.isStepTerminal}
+              disabled={isStepTransitioning}
               onClick={controller.handleComplete}
             >
               Complete task
@@ -107,6 +109,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           </div>
         </div>
       ) : null}
+
+      <TaskStepDetailFooter
+        unreadCount={controller.liveCasesSummary.totalUnread}
+        isScrollHidden={isHidden}
+        onOpenCases={controller.handleOpenCasesForTask}
+        onClose={() => header?.requestClose()}
+      />
     </div>
   );
 }

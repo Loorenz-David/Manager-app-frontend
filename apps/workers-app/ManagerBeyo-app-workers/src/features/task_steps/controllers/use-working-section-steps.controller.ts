@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSurface } from "@beyo/hooks";
+import { isSameImagePath } from "@beyo/lib";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -26,13 +27,6 @@ import {
   type TaskStepCardViewModel,
 } from "../types";
 
-function isSameImagePath(a: string, b: string): boolean {
-  try {
-    return new URL(a).pathname === new URL(b).pathname;
-  } catch {
-    return a === b;
-  }
-}
 
 function useDebounced<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);

@@ -1,71 +1,50 @@
-import { useEffect, useRef, useState } from "react";
-import { m } from "framer-motion";
-import { PullToRefresh } from "@beyo/ui";
+import { cn } from "@beyo/lib";
+import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
 import { TaskListCard } from "./TaskListCard";
 import { TasksHeader } from "./TasksHeader";
 
+const HEADER_TRANSITION = "transition-[top] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]";
+
+// top-[60px]  — compact: only the search bar is visible (~60 px)
+// top-40      — expanded: type picker + search bar + pill filters (~160 px)
+const COMPACT_TOP = "top-[60px]";
+const EXPANDED_TOP = "top-40";
+
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [isCompact, setIsCompact] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  useEffect(() => {
-    const element = scrollRef.current;
-    if (!element) {
-      return;
-    }
-
-    const onScroll = () => {
-      const scrollTop = element.scrollTop;
-      setIsScrolled(scrollTop > 0);
-      setIsCompact((previous) => {
-        if (!previous && scrollTop > 56) {
-          return true;
-        }
-        if (previous && scrollTop < 8) {
-          return false;
-        }
-        return previous;
-      });
-    };
-
-    element.addEventListener("scroll", onScroll, { passive: true });
-    return () => element.removeEventListener("scroll", onScroll);
-  }, []);
+  const { scrollRef, isHidden: isCompact } = useScrollVisibility({ mode: "relative" });
 
   return (
-    <div className="flex h-full flex-col" data-testid="tasks-view">
-      <TasksHeader
-        activeFilterCount={controller.activeFilterCount}
-        isCompact={isCompact}
-        isLoading={controller.isLoading}
-        q={controller.q}
-        taskStates={controller.taskStates}
-        taskType={controller.taskType}
-        onFilterPress={controller.openFilterSheet}
-        onQChange={controller.setQ}
-        onSortPress={controller.openSortSheet}
-        onTaskStatesChange={controller.setTaskStates}
-        onTaskTypeChange={controller.setTaskType}
-      />
+    <div className="relative flex-1 min-h-0" data-testid="tasks-view">
+      <div className="absolute inset-x-0 top-0 z-10">
+        <TasksHeader
+          activeFilterCount={controller.activeFilterCount}
+          isCompact={isCompact}
+          isLoading={controller.isLoading}
+          q={controller.q}
+          taskStates={controller.taskStates}
+          taskType={controller.taskType}
+          onFilterPress={controller.openFilterSheet}
+          onQChange={controller.setQ}
+          onSortPress={controller.openSortSheet}
+          onTaskStatesChange={controller.setTaskStates}
+          onTaskTypeChange={controller.setTaskType}
+        />
+      </div>
 
       <PullToRefresh
-        className="flex-1"
-        scrollClassName="relative overflow-x-hidden overflow-y-auto overscroll-y-none"
+        className={cn(
+          "absolute inset-x-0 bottom-0",
+          HEADER_TRANSITION,
+          isCompact ? COMPACT_TOP : EXPANDED_TOP,
+        )}
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
         <div data-testid="tasks-list-scroll">
-          <m.div
-            animate={{ opacity: isScrolled ? 1 : 0 }}
-            className="pointer-events-none sticky top-0 z-20 -mb-10 h-10 bg-linear-to-b from-background to-transparent mask-[linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]"
-            initial={false}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-          />
-
           <div
             className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2"
             data-testid="tasks-list"

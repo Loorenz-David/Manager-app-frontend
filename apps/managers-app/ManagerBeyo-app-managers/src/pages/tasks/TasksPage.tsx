@@ -12,7 +12,7 @@ const TasksRouteEntry = lazy(() =>
 export function TasksPage(): React.JSX.Element {
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex h-full min-h-0 flex-col">
         <Suspense fallback={<PageSkeleton />}>
           <TasksRouteEntry />
         </Suspense>

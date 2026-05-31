@@ -1,5 +1,6 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { PullToRefresh } from "@beyo/ui";
+import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import { useWorkingSectionsHomeContext } from "../providers/WorkingSectionsHomeProvider";
 import { WorkingSectionCard } from "./WorkingSectionCard";
 import type { WorkingSectionViewModel } from "../types";
@@ -14,6 +15,13 @@ export function WorkingSectionsHomeView({
   const { sections, isPending, isError, refetch } =
     useWorkingSectionsHomeContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const registerScrollElement = useRegisterScrollElement();
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    return registerScrollElement(el);
+  }, [registerScrollElement]);
 
   return (
     <div

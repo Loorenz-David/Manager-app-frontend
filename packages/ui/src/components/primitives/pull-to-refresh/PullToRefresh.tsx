@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
   type JSX,
@@ -8,6 +9,7 @@ import {
 import { useDrag } from "@use-gesture/react";
 import { animate, m, useMotionValue, useTransform } from "framer-motion";
 import { cn } from "@beyo/lib";
+import { useScrollElementRegistration } from "../scroll-visibility/ScrollElementRegistrationContext";
 
 const THRESHOLD = 80;
 const INDICATOR_HEIGHT = 56;
@@ -34,6 +36,17 @@ export function PullToRefresh({
   const activeRef = externalScrollRef ?? internalScrollRef;
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullY = useMotionValue(0);
+
+  // Only auto-register when PTR owns the scroll ref (no external ref supplied).
+  // When the caller passes scrollRef they manage scroll visibility themselves —
+  // either locally via useScrollVisibility() or globally via useRegisterScrollElement().
+  const registerScrollElement = useScrollElementRegistration();
+  useEffect(() => {
+    if (externalScrollRef || !registerScrollElement) return;
+    const el = activeRef.current;
+    if (!el) return;
+    return registerScrollElement(el);
+  }, [externalScrollRef, registerScrollElement]);
 
   const indicatorOpacity = useTransform(
     pullY,

@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,8 @@ type StagedFormNavigationProps = {
   advanceLabel?: string;
   submitLabel?: string;
   backLabel?: string;
+  closeLabel?: string;
+  onClose?: () => void;
   className?: string;
 };
 
@@ -15,6 +17,8 @@ export function StagedFormNavigation({
   advanceLabel = "Next",
   submitLabel = "Submit",
   backLabel = "Back",
+  closeLabel = "Close",
+  onClose,
   className,
 }: StagedFormNavigationProps): React.JSX.Element {
   const { isAdvancing, isFirstStep, isLastStep, onAdvance, onBack } =
@@ -29,19 +33,30 @@ export function StagedFormNavigation({
       )}
       data-testid="staged-form-navigation"
     >
-      <button
-        className={cn(
-          "inline-flex w-full items-center justify-center gap-1 rounded-xl shadow-sm bg-card px-5 py-3.5 text-sm font-semibold text-foreground transition",
-          isFirstStep && "pointer-events-none opacity-0",
-        )}
-        data-testid="staged-form-back-button"
-        disabled={isFirstStep}
-        type="button"
-        onClick={onBack}
-      >
-        <ChevronLeft aria-hidden="true" className="size-4 shrink-0" />
-        {backLabel}
-      </button>
+      {isFirstStep && onClose ? (
+        <button
+          className="inline-flex w-full items-center justify-center gap-1 rounded-xl shadow-sm bg-card px-5 py-3.5 text-sm font-semibold text-foreground transition"
+          data-testid="staged-form-close-button"
+          type="button"
+          onClick={onClose}
+        >
+          {closeLabel}
+        </button>
+      ) : (
+        <button
+          className={cn(
+            "inline-flex w-full items-center justify-center gap-1 rounded-xl shadow-sm bg-card px-5 py-3.5 text-sm font-semibold text-foreground transition",
+            isFirstStep && "pointer-events-none opacity-0",
+          )}
+          data-testid="staged-form-back-button"
+          disabled={isFirstStep}
+          type="button"
+          onClick={onBack}
+        >
+          <ChevronLeft aria-hidden="true" className="size-4 shrink-0" />
+          {backLabel}
+        </button>
+      )}
 
       <button
         className="inline-flex w-full items-center justify-center gap-1 rounded-xl shadow-sm bg-primary px-6 py-3.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60"
