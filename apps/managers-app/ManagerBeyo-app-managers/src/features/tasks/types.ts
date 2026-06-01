@@ -3,9 +3,6 @@ import { z } from "zod";
 import type { ImageViewModel } from "@beyo/images";
 import { ClientIdSchema } from "@/lib/client-id";
 import {
-  ItemIssueSchema,
-  ItemUpholsteryRequirementSchema,
-  ItemUpholsterySchema,
   type Item,
 } from "@/features/items/types";
 import type { CustomerId, TaskId, UserId } from "@/types/common";
@@ -181,9 +178,6 @@ export const TaskDetailRawSchema = z.object({
     })
     .nullable(),
   item_images: z.array(ImageLightSchema),
-  item_issues: z.array(ItemIssueSchema),
-  item_upholstery: z.array(ItemUpholsterySchema),
-  requirements: z.array(ItemUpholsteryRequirementSchema),
   task_steps: z.array(
     z.object({
       client_id: z.string(),

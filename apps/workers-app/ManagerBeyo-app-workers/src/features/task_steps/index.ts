@@ -18,8 +18,15 @@ export {
 } from "./providers/LastActiveStepCardProvider";
 export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
 export { LastActiveStepCard } from "./components/LastActiveStepCard";
-export { taskStepSurfaces } from "./surfaces";
 export {
+  preloadItemFastIssueSheetSurface,
+  preloadPauseReasonSheetSurface,
+  preloadStepStateFilterSheetSurface,
+  taskStepSurfaces,
+} from "./surfaces";
+export {
+  PAUSE_REASON_SHEET_SURFACE_ID,
+  STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
 } from "./surface-ids";

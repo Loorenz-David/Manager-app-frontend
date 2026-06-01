@@ -1,4 +1,5 @@
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
+import { ITEM_FAST_ISSUE_SHEET_SURFACE_ID } from "@beyo/tasks";
 import { lazyWithPreload } from "@beyo/ui";
 
 function loadItemCategoryPickerSheetPage() {
@@ -17,24 +18,19 @@ function loadItemIssueSeverityPickerSheetPage() {
   );
 }
 
-function loadItemFastIssueSheetPage() {
-  return import("@/features/items/pages/ItemFastIssueSheetPage").then(
-    (module) => ({
-      default: module.ItemFastIssueSheetPage,
-    }),
-  );
-}
-
 const itemCategoryPicker = lazyWithPreload(loadItemCategoryPickerSheetPage);
 const itemIssueSeverityPicker = lazyWithPreload(
   loadItemIssueSeverityPickerSheetPage,
 );
-const itemFastIssuePage = lazyWithPreload(loadItemFastIssueSheetPage);
+const itemFastIssueSheet = lazyWithPreload(() =>
+  import("@beyo/tasks").then((module) => ({
+    default: module.ItemFastIssueSheetPage,
+  })),
+);
 
 export const preloadItemCategoryPickerSurface = itemCategoryPicker.preload;
 export const preloadItemIssueSeverityPickerSurface =
   itemIssueSeverityPicker.preload;
-export const preloadItemFastIssueSurface = itemFastIssuePage.preload;
 
 export const itemSurfaces: SurfaceRegistrations = {
   "item-category-picker": {
@@ -45,8 +41,8 @@ export const itemSurfaces: SurfaceRegistrations = {
     surface: "sheet",
     component: itemIssueSeverityPicker.Component,
   },
-  "item-fast-issue-page": {
+  [ITEM_FAST_ISSUE_SHEET_SURFACE_ID]: {
     surface: "sheet",
-    component: itemFastIssuePage.Component,
+    component: itemFastIssueSheet.Component,
   },
 };

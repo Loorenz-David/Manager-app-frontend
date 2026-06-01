@@ -75,7 +75,7 @@ export const UpholsteryRequirementSchema = z.object({
   upholstery_id: z.string().nullable().optional(),
   state: z.string(),
   source: z.string(),
-  amount_meters: z.number(),
+  amount_meters: z.number().nullable(),
 });
 
 export const ItemSnapshotSchema = z

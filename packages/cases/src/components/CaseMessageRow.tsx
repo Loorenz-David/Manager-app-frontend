@@ -63,7 +63,7 @@ export function CaseMessageRow({
     );
   }
 
-  const { message, isOwnMessage, isNew } = item;
+  const { message, isOwnMessage, isNew, shouldAnimateIn } = item;
   const createdBy = message.created_by;
   const canOpenActions = isOwnMessage && !message.has_been_deleted;
 
@@ -114,7 +114,12 @@ export function CaseMessageRow({
       className={cn(
         "flex w-full items-end gap-2 px-4 py-1.5",
         isOwnMessage ? "justify-end" : "justify-start",
+        shouldAnimateIn &&
+          (isOwnMessage
+            ? "case-message-row-enter-own"
+            : "case-message-row-enter-other"),
       )}
+      data-enter-animation={shouldAnimateIn ? "true" : "false"}
       data-own-message={isOwnMessage ? "true" : "false"}
       data-testid={`case-message-row-${message.client_id}`}
       style={

@@ -39,7 +39,7 @@ function buildItemFields(
     toOptionalString(item.sku) ??
     toOptionalString(item.designer) ??
     item.item_category_id ??
-    toOptionalString(item.item_position) ??
+    (item.item_position != null ? String(item.item_position) : undefined) ??
     item.item_currency ??
     item.major_category ??
     (item.quantity != null && item.quantity !== 1 ? String(item.quantity) : ""),
@@ -56,7 +56,8 @@ function buildItemFields(
     item_category_id: item.item_category_id || undefined,
     quantity: item.quantity ?? 1,
     designer: toOptionalString(item.designer),
-    item_position: toOptionalString(item.item_position),
+    item_position:
+      item.item_position != null ? String(item.item_position) : undefined,
     item_currency: item.item_currency || undefined,
   };
 }
@@ -141,10 +142,12 @@ export function normalizeInternalFormPayload(
     Boolean(issueFields) || Boolean(upholsteryFields),
   );
 
-  const steps = (values.working_section_assignments ?? []).map((assignment) => ({
-    working_section_id: assignment.working_section_id,
-    worker_id: assignment.assigned_worker_id || undefined,
-  }));
+  const steps = (values.working_section_assignments ?? []).map(
+    (assignment) => ({
+      working_section_id: assignment.working_section_id,
+      worker_id: assignment.assigned_worker_id || undefined,
+    }),
+  );
 
   return {
     client_id: ids.taskClientId,

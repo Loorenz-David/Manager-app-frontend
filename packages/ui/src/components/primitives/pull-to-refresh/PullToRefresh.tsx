@@ -14,6 +14,7 @@ import { useScrollElementRegistration } from "../scroll-visibility/ScrollElement
 const THRESHOLD = 80;
 const INDICATOR_HEIGHT = 56;
 const RESISTANCE = 0.4;
+const THRESHOLD_HAPTIC_MS = 12;
 
 export type PullToRefreshProps = {
   onRefresh: () => Promise<void> | void;
@@ -34,8 +35,17 @@ export function PullToRefresh({
 }: PullToRefreshProps): JSX.Element {
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const activeRef = externalScrollRef ?? internalScrollRef;
+  const thresholdHapticTriggeredRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const pullY = useMotionValue(0);
+
+  function triggerThresholdHaptic() {
+    if (typeof navigator === "undefined" || typeof navigator.vibrate !== "function") {
+      return;
+    }
+
+    void navigator.vibrate(THRESHOLD_HAPTIC_MS);
+  }
 
   // Only auto-register when PTR owns the scroll ref (no external ref supplied).
   // When the caller passes scrollRef they manage scroll visibility themselves —
@@ -61,6 +71,10 @@ export function PullToRefresh({
 
   const bind = useDrag(
     ({ active, movement: [, my], first, cancel }) => {
+      if (first) {
+        thresholdHapticTriggeredRef.current = false;
+      }
+
       if (disabled || isRefreshing) {
         cancel();
         return;
@@ -77,7 +91,17 @@ export function PullToRefresh({
       }
 
       if (active) {
-        pullY.set(Math.min(my * RESISTANCE, THRESHOLD * 1.5));
+        const nextPullY = Math.min(my * RESISTANCE, THRESHOLD * 1.5);
+        pullY.set(nextPullY);
+
+        if (
+          nextPullY >= THRESHOLD &&
+          !thresholdHapticTriggeredRef.current
+        ) {
+          thresholdHapticTriggeredRef.current = true;
+          triggerThresholdHaptic();
+        }
+
         return;
       }
 

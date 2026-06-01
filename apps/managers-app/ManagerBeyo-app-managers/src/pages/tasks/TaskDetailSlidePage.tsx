@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { TaskFlowTimeline } from "@beyo/tasks";
+import { TaskFlowTimeline, TaskIssuesSection } from "@beyo/tasks";
 import { PullToRefresh } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
@@ -9,7 +9,6 @@ import {
   TaskDetailBottomActions,
   TaskDetailHeader,
   TaskImagesSection,
-  TaskIssuesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
   TaskWorkingSectionsField,
@@ -56,9 +55,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-full min-h-0 flex-col bg-background">
       <PullToRefresh
-        className="flex-1"
+        className="min-h-0 flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"
         onRefresh={controller.refetch}
       >
@@ -69,7 +68,10 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             <DashedInfoGroup>
               <TaskCustomerSection />
               <TaskWorkingSectionsField />
-              <TaskIssuesSection />
+              <TaskIssuesSection
+                itemId={controller.taskDetail.item?.client_id}
+                surfaceOpeners={controller.issuesSurfaceOpeners}
+              />
               <TaskScheduledDeliverySection />
             </DashedInfoGroup>
             <TaskImagesSection />
@@ -102,7 +104,7 @@ export function TaskDetailSlidePage(): React.JSX.Element {
   }
 
   return (
-    <div className="min-h-full bg-background" data-testid="task-detail-slide">
+    <div className="h-full bg-background" data-testid="task-detail-slide">
       <TaskDetailProvider taskId={taskId}>
         <TaskDetailSlidePageContent />
       </TaskDetailProvider>

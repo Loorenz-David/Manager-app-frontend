@@ -80,7 +80,7 @@ have been implemented and summarised but whose file is still in
    - `under_construction` or `approved` → leave in place.
 3. For each stale file:
    a. If a copy already exists in `archives/implementation/`: keep the newer
-      version; delete the stale copy from `under_construction/implementation/`.
+   version; delete the stale copy from `under_construction/implementation/`.
    b. If no copy exists: move the file using `mv`.
 4. Confirm `under_construction/implementation/` contains only `README.md`,
    `TEMPLATE_PLAN.md`, and active (non-archived) plans.
@@ -94,6 +94,7 @@ have been implemented and summarised but whose file is still in
 ## Output format
 
 Include:
+
 - Current lifecycle state
 - Next required transition
 - Document paths updated or to be created

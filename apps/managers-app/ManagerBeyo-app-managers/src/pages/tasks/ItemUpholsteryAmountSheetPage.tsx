@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
+import {
+  useItemUpholsteryQuery,
+  type UpholsteryRequirementEntry,
+} from "@beyo/tasks";
 
 import { NumberInput } from "@/components/primitives";
 import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
@@ -28,32 +32,34 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
   const { taskId, itemUpholsteryId, prefill, showQuantityChangedWarning } =
     useSurfaceProps<ItemUpholsteryAmountSurfaceProps>();
   const taskQuery = useGetTaskQuery(taskId ?? "");
-  const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId ?? "");
+  const itemId = taskQuery.data?.item?.client_id ?? null;
+  const upholsteryQuery = useItemUpholsteryQuery(itemId);
+  const setUpholsteryQuantity = useSetUpholsteryQuantity(taskId ?? "", itemId);
 
   const requirementsById = useMemo(() => {
-    const entries = taskQuery.data?.requirements ?? [];
-    return new Map<string, (typeof entries)[number]>(
+    const entries = upholsteryQuery.data?.requirements ?? [];
+    return new Map<string, UpholsteryRequirementEntry>(
       entries.map((entry) => [entry.client_id, entry]),
     );
-  }, [taskQuery.data?.requirements]);
+  }, [upholsteryQuery.data?.requirements]);
 
-  const activeUpholstery = useMemo(
-    () =>
-      (taskQuery.data?.item_upholstery ?? []).map((entry) => ({
-        ...entry,
-        activeRequirement: entry.active_requirement_id
-          ? (requirementsById.get(entry.active_requirement_id) ?? null)
-          : null,
-      })),
-    [requirementsById, taskQuery.data?.item_upholstery],
-  );
+  const upholstery = useMemo(() => {
+    const entry =
+      (upholsteryQuery.data?.upholstery ?? []).find(
+        (candidate) => candidate.client_id === itemUpholsteryId,
+      ) ?? null;
 
-  const upholstery = useMemo(
-    () =>
-      activeUpholstery.find((entry) => entry.client_id === itemUpholsteryId) ??
-      null,
-    [activeUpholstery, itemUpholsteryId],
-  );
+    if (!entry) {
+      return null;
+    }
+
+    return {
+      ...entry,
+      activeRequirement: entry.active_requirement_id
+        ? (requirementsById.get(entry.active_requirement_id) ?? null)
+        : null,
+    };
+  }, [requirementsById, upholsteryQuery.data?.upholstery, itemUpholsteryId]);
 
   const resolvedAmount =
     upholstery?.activeRequirement?.amount_meters ??

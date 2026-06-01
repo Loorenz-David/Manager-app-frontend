@@ -1,10 +1,11 @@
 import { ImagePlaceholder, SectionLabel } from "@/components/primitives";
 import { useItemCategoryPickerFlow } from "@/features/items";
+import { TrainFront } from "lucide-react";
 
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
 
 export function TaskBodyCategoryRow(): React.JSX.Element | null {
-  const { taskDetail } = useTaskDetailContext();
+  const { openPositionSheet, taskDetail } = useTaskDetailContext();
   const { isLoading, options } = useItemCategoryPickerFlow();
 
   if (!taskDetail?.item) {
@@ -48,9 +49,15 @@ export function TaskBodyCategoryRow(): React.JSX.Element | null {
         <SectionLabel tone="muted">{categoryLabel ?? "—"}</SectionLabel>
       </div>
       {item.item_position ? (
-        <span className="text-sm text-muted-foreground">
-          {item.item_position}
-        </span>
+        <button
+          data-testid="task-body-position-button"
+          className="inline-flex items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          type="button"
+          onClick={openPositionSheet}
+        >
+          <TrainFront className="size-3.5 shrink-0 text-muted-foreground" />
+          <SectionLabel tone="muted">Wagon : #{item.item_position}</SectionLabel>
+        </button>
       ) : null}
     </div>
   );

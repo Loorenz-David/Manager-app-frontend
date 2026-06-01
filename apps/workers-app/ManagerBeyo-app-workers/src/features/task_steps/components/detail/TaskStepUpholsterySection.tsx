@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { useMemo } from "react";
 import {
   DashedInfoSection,
   ImagePlaceholder,
@@ -6,49 +6,47 @@ import {
   StatePill,
 } from "@beyo/ui";
 import {
+  useItemUpholsteryQuery,
+  type ItemUpholsteryEntry,
+  type UpholsteryRequirementEntry,
+} from "@beyo/tasks";
+import {
   formatUpholsteryRequirementLabel,
   getUpholsteryRequirementVariant,
 } from "@beyo/upholstery";
-import { useUpholsteryQuery } from "@/features/upholstery";
-import { UpholsteryRequirementSchema } from "../../types";
 import { useTaskStepDetailContext } from "../../providers/TaskStepDetailProvider";
 
-type UpholsteryRequirement = z.infer<typeof UpholsteryRequirementSchema>;
+type JoinedEntry = ItemUpholsteryEntry & {
+  activeRequirement: UpholsteryRequirementEntry | null;
+};
 
 function UpholsteryEntryCard({
-  requirement,
+  entry,
 }: {
-  requirement: UpholsteryRequirement;
-}): React.JSX.Element | null {
-  const upholsteryClientId =
-    requirement.upholstery_id ?? requirement.item_upholstery_id ?? null;
-
-  const query = useUpholsteryQuery(upholsteryClientId);
-  const requirementVariant = getUpholsteryRequirementVariant(requirement.state);
-  const isFetchingUpholstery = Boolean(upholsteryClientId) && query.isPending;
-
-  if (isFetchingUpholstery) {
-    return <div className="h-16 animate-pulse rounded-xl bg-muted" />;
-  }
-
-  const upholsteryName = query.data?.name ?? "Upholstery unavailable";
-  const upholsteryCode = query.data?.code ?? null;
-  const upholsteryImageUrl = query.data?.image_url ?? null;
+  entry: JoinedEntry;
+}): React.JSX.Element {
+  const requirementVariant = getUpholsteryRequirementVariant(
+    entry.activeRequirement?.state ?? null,
+  );
+  const amountMeters =
+    entry.activeRequirement?.amount_meters ?? entry.amount_meters;
+  const amountLabel =
+    amountMeters === null ? "Quantity missing" : `${amountMeters} m`;
 
   return (
     <div
       className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2"
-      data-testid={`upholstery-entry-card-${requirement.client_id}`}
+      data-testid={`upholstery-entry-card-${entry.client_id}`}
     >
       <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {upholsteryImageUrl ? (
+        {entry.image_url ? (
           <img
             alt=""
             className="size-full object-cover"
             decoding="async"
             draggable={false}
             loading="lazy"
-            src={upholsteryImageUrl}
+            src={entry.image_url}
           />
         ) : (
           <ImagePlaceholder iconClassName="size-4 text-muted-foreground/60" />
@@ -58,18 +56,20 @@ function UpholsteryEntryCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium text-foreground">
-            {upholsteryName}
+            {entry.name ?? "Upholstery unavailable"}
           </p>
-          {requirementVariant ? (
+          {requirementVariant && entry.activeRequirement ? (
             <StatePill
-              label={formatUpholsteryRequirementLabel(requirement.state)}
+              label={formatUpholsteryRequirementLabel(
+                entry.activeRequirement.state,
+              )}
               variant={requirementVariant}
             />
           ) : null}
         </div>
         <p className="text-xs text-muted-foreground">
-          {upholsteryCode ? `${upholsteryCode} · ` : ""}
-          {requirement.amount_meters} m
+          {entry.code ? `${entry.code} · ` : ""}
+          {amountLabel}
         </p>
       </div>
     </div>
@@ -78,14 +78,32 @@ function UpholsteryEntryCard({
 
 export function TaskStepUpholsterySection(): React.JSX.Element | null {
   const { step, isSeatCategory } = useTaskStepDetailContext();
+  const itemId = step?.item?.client_id ?? null;
+  const upholsteryQuery = useItemUpholsteryQuery(itemId);
+
+  const requirementsById = useMemo(() => {
+    const entries = upholsteryQuery.data?.requirements ?? [];
+    return new Map<string, UpholsteryRequirementEntry>(
+      entries.map((entry) => [entry.client_id, entry]),
+    );
+  }, [upholsteryQuery.data?.requirements]);
+
+  const entries = useMemo<JoinedEntry[]>(
+    () =>
+      (upholsteryQuery.data?.upholstery ?? [])
+        .map((entry) => ({
+          ...entry,
+          activeRequirement: entry.active_requirement_id
+            ? (requirementsById.get(entry.active_requirement_id) ?? null)
+            : null,
+        }))
+        .filter((entry) => entry.activeRequirement?.state !== "failed"),
+    [requirementsById, upholsteryQuery.data?.upholstery],
+  );
 
   if (!step?.item || !isSeatCategory) {
     return null;
   }
-
-  const requirements = step.item.upholstery_requirement.filter(
-    (requirement) => requirement.state !== "failed",
-  );
 
   return (
     <DashedInfoSection className=" " data-testid="task-step-upholstery-section">
@@ -93,15 +111,12 @@ export function TaskStepUpholsterySection(): React.JSX.Element | null {
         Selected Upholstery
       </SectionLabel>
 
-      {requirements.length === 0 ? (
+      {entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">No upholstery linked.</p>
       ) : (
         <div className="flex flex-col gap-2">
-          {requirements.map((requirement) => (
-            <UpholsteryEntryCard
-              key={requirement.client_id}
-              requirement={requirement}
-            />
+          {entries.map((entry) => (
+            <UpholsteryEntryCard key={entry.client_id} entry={entry} />
           ))}
         </div>
       )}

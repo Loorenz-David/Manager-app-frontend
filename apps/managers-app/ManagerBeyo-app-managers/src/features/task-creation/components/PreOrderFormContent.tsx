@@ -123,7 +123,7 @@ export function PreOrderFormContent(): React.JSX.Element {
         article_number: "",
         sku: "",
         quantity: 1,
-        item_position: "",
+        item_position: undefined,
         item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,

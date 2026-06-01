@@ -21,6 +21,7 @@ export type CaseMessageRenderItem =
       message: CaseConversationMessageRaw;
       isOwnMessage: boolean;
       isNew: boolean;
+      shouldAnimateIn: boolean;
     };
 
 export type CaseConversationMessagesController = {
@@ -86,6 +87,7 @@ function toRenderItems(
   messages: CaseConversationMessageRaw[],
   currentUserId: string | null,
   initialMaxSeq: number | null,
+  enteringMessageIds: ReadonlySet<string>,
 ): CaseMessageRenderItem[] {
   const items: CaseMessageRenderItem[] = [];
   let previousDateKey: string | null = null;
@@ -109,6 +111,7 @@ function toRenderItems(
       message,
       isOwnMessage: message.created_by?.client_id === currentUserId,
       isNew: initialMaxSeq !== null && message.message_seq > initialMaxSeq,
+      shouldAnimateIn: enteringMessageIds.has(message.client_id),
     });
   }
 
@@ -116,6 +119,7 @@ function toRenderItems(
 }
 
 const LATEST_MESSAGE_VISIBLE_DISTANCE_THRESHOLD = 160;
+const MESSAGE_ENTER_ANIMATION_DURATION_MS = 320;
 
 export function useCaseConversationMessagesController({
   caseClientId,
@@ -128,6 +132,7 @@ export function useCaseConversationMessagesController({
   const [distanceFromBottom, setDistanceFromBottom] = useState<number | null>(
     null,
   );
+  const [enterAnimationVersion, setEnterAnimationVersion] = useState(0);
   const query = useCaseConversationMessagesQuery(caseClientId, {
     messagesLimit: CASE_CONVERSATION_MESSAGES_PAGE_SIZE,
   });
@@ -140,13 +145,95 @@ export function useCaseConversationMessagesController({
   // Captured once when messages first arrive — the baseline for "new" detection.
   // Any message arriving with seq above this was delivered during the current session.
   const initialMaxSeqRef = useRef<number | null>(null);
+  const hasCapturedInitialMessageSnapshotRef = useRef(false);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const activeEnteringMessageIdsRef = useRef<Set<string>>(new Set());
+  const newlyDetectedMessageIdsRef = useRef<string[] | null>(null);
+  const enterAnimationTimeoutsRef = useRef<Map<string, number>>(new Map());
   if (messages.length > 0 && initialMaxSeqRef.current === null) {
     initialMaxSeqRef.current = Math.max(...messages.map((m) => m.message_seq));
   }
 
+  if (hasCapturedInitialMessageSnapshotRef.current) {
+    const nextNewIds = messages
+      .map((message) => message.client_id)
+      .filter(
+        (messageClientId) => !seenMessageIdsRef.current.has(messageClientId),
+      );
+
+    if (nextNewIds.length > 0) {
+      for (const messageClientId of nextNewIds) {
+        seenMessageIdsRef.current.add(messageClientId);
+        activeEnteringMessageIdsRef.current.add(messageClientId);
+      }
+
+      newlyDetectedMessageIdsRef.current = nextNewIds;
+    } else {
+      newlyDetectedMessageIdsRef.current = null;
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      for (const timeoutId of enterAnimationTimeoutsRef.current.values()) {
+        window.clearTimeout(timeoutId);
+      }
+
+      enterAnimationTimeoutsRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (hasCapturedInitialMessageSnapshotRef.current || !query.data) {
+      return;
+    }
+
+    seenMessageIdsRef.current = new Set(
+      messages.map((message) => message.client_id),
+    );
+    hasCapturedInitialMessageSnapshotRef.current = true;
+  }, [messages, query.data]);
+
+  useEffect(() => {
+    const nextNewIds = newlyDetectedMessageIdsRef.current;
+
+    if (!hasCapturedInitialMessageSnapshotRef.current || !nextNewIds) {
+      return;
+    }
+
+    newlyDetectedMessageIdsRef.current = null;
+
+    for (const messageClientId of nextNewIds) {
+      const existingTimeoutId =
+        enterAnimationTimeoutsRef.current.get(messageClientId);
+
+      if (existingTimeoutId !== undefined) {
+        window.clearTimeout(existingTimeoutId);
+      }
+
+      const timeoutId = window.setTimeout(() => {
+        enterAnimationTimeoutsRef.current.delete(messageClientId);
+        if (!activeEnteringMessageIdsRef.current.has(messageClientId)) {
+          return;
+        }
+
+        activeEnteringMessageIdsRef.current.delete(messageClientId);
+        setEnterAnimationVersion((value) => value + 1);
+      }, MESSAGE_ENTER_ANIMATION_DURATION_MS);
+
+      enterAnimationTimeoutsRef.current.set(messageClientId, timeoutId);
+    }
+  }, [messages]);
+
   const items = useMemo(
-    () => toRenderItems(messages, currentUserId, initialMaxSeqRef.current),
-    [messages, currentUserId],
+    () =>
+      toRenderItems(
+        messages,
+        currentUserId,
+        initialMaxSeqRef.current,
+        activeEnteringMessageIdsRef.current,
+      ),
+    [enterAnimationVersion, messages, currentUserId],
   );
   const latestMessageItem = useMemo(() => {
     for (let index = items.length - 1; index >= 0; index -= 1) {

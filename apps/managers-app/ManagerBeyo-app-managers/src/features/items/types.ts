@@ -1,16 +1,16 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { ClientIdSchema } from '@/lib/client-id';
-import type { ItemId, UpholsteryRequirementId } from '@/types/common';
+import { ClientIdSchema } from "@/lib/client-id";
+import type { ItemId, UpholsteryRequirementId } from "@/types/common";
 
-export const ITEM_STATE = ['pending', 'stalled', 'fixing', 'ready'] as const;
-export const ITEM_CURRENCY = ['swedish_krona', 'danish_krona', 'euro'] as const;
+export const ITEM_STATE = ["pending", "stalled", "fixing", "ready"] as const;
+export const ITEM_CURRENCY = ["swedish_krona", "danish_krona", "euro"] as const;
 export type ItemCurrency = (typeof ITEM_CURRENCY)[number];
 
 const CURRENCY_TO_ISO: Record<ItemCurrency, string> = {
-  swedish_krona: 'SEK',
-  danish_krona: 'DKK',
-  euro: 'EUR',
+  swedish_krona: "SEK",
+  danish_krona: "DKK",
+  euro: "EUR",
 };
 
 export const ItemSchema = z.object({
@@ -54,10 +54,16 @@ export const CreateItemInputSchema = z.object({
   depth_in_cm: z.number().int().positive().optional(),
   item_value_minor: z.number().int().nonnegative().optional(),
   item_cost_minor: z.number().int().nonnegative().optional(),
-  item_currency: z.enum(ITEM_CURRENCY, { message: 'Select a currency.' }).optional(),
+  item_currency: z
+    .enum(ITEM_CURRENCY, { message: "Select a currency." })
+    .optional(),
   item_position: z.string().max(255).optional(),
   external_id: z.string().max(255).optional(),
-  external_url: z.string().url('Enter a valid URL.').optional().or(z.literal('')),
+  external_url: z
+    .string()
+    .url("Enter a valid URL.")
+    .optional()
+    .or(z.literal("")),
   external_source: z.string().max(128).optional(),
   external_order_id: z.string().max(255).optional(),
 });
@@ -77,7 +83,7 @@ export const UpdateItemInputSchema = z.object({
   item_cost_minor: z.number().int().nonnegative().nullable().optional(),
   item_currency: z.enum(ITEM_CURRENCY).optional(),
   item_position: z.string().max(255).nullable().optional(),
-  external_url: z.string().url().nullable().optional().or(z.literal('')),
+  external_url: z.string().url().nullable().optional().or(z.literal("")),
 });
 export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
 
@@ -97,12 +103,14 @@ export type ItemViewModel = Item & {
 };
 
 export function toItemViewModel(item: Item): ItemViewModel {
-  const isoCode = item.item_currency ? CURRENCY_TO_ISO[item.item_currency] : null;
+  const isoCode = item.item_currency
+    ? CURRENCY_TO_ISO[item.item_currency]
+    : null;
 
   const formatMinor = (minor: number | null): string | null => {
     if (minor === null || !isoCode) return null;
     return new Intl.NumberFormat(undefined, {
-      style: 'currency',
+      style: "currency",
       currency: isoCode,
     }).format(minor / 100);
   };
@@ -112,7 +120,9 @@ export function toItemViewModel(item: Item): ItemViewModel {
     ? `${dims[0]}×${dims[1]}×${dims[2]} cm`
     : null;
   const displayName =
-    [item.designer, item.article_number ?? item.sku].filter(Boolean).join(' – ') || item.id;
+    [item.designer, item.article_number ?? item.sku]
+      .filter(Boolean)
+      .join(" – ") || item.id;
 
   return {
     ...item,
@@ -128,7 +138,7 @@ export function toItemViewModel(item: Item): ItemViewModel {
 export function toOptimisticItem(input: CreateItemInput): Item {
   return ItemSchema.parse({
     id: input.client_id,
-    state: 'pending',
+    state: "pending",
     article_number: input.article_number ?? null,
     sku: input.sku ?? null,
     item_category_id: input.item_category_id ?? null,
@@ -157,12 +167,12 @@ export function toOptimisticItem(input: CreateItemInput): Item {
 // ─── Item issue ───────────────────────────────────────────────────────────────
 
 export const ITEM_ISSUE_STATE = [
-  'pending',
-  'fixing',
-  'blocked',
-  'deferred',
-  'skipped',
-  'resolved',
+  "pending",
+  "fixing",
+  "blocked",
+  "deferred",
+  "skipped",
+  "resolved",
 ] as const;
 export type ItemIssueState = (typeof ITEM_ISSUE_STATE)[number];
 
@@ -187,7 +197,7 @@ export type ItemIssue = z.infer<typeof ItemIssueSchema>;
 
 // ─── Item upholstery ──────────────────────────────────────────────────────────
 
-export const ITEM_UPHOLSTERY_SOURCE = ['internal', 'customer'] as const;
+export const ITEM_UPHOLSTERY_SOURCE = ["internal", "customer"] as const;
 export type ItemUpholsterySource = (typeof ITEM_UPHOLSTERY_SOURCE)[number];
 
 export const ItemUpholsterySchema = z.object({
@@ -204,15 +214,18 @@ export const ItemUpholsterySchema = z.object({
 
 export type ItemUpholstery = z.infer<typeof ItemUpholsterySchema>;
 
-export const ITEM_UPHOLSTERY_REQUIREMENT_SOURCE = ['inventory', 'customer_order'] as const;
+export const ITEM_UPHOLSTERY_REQUIREMENT_SOURCE = [
+  "inventory",
+  "customer_order",
+] as const;
 export const ITEM_UPHOLSTERY_REQUIREMENT_STATE = [
-  'missing_quantity',
-  'available',
-  'needs_ordering',
-  'ordered',
-  'in_use',
-  'completed',
-  'failed',
+  "missing_quantity",
+  "available",
+  "needs_ordering",
+  "ordered",
+  "in_use",
+  "completed",
+  "failed",
 ] as const;
 export type ItemUpholsteryRequirementSource =
   (typeof ITEM_UPHOLSTERY_REQUIREMENT_SOURCE)[number];
@@ -230,7 +243,9 @@ export const ItemUpholsteryRequirementSchema = z.object({
   state: z.enum(ITEM_UPHOLSTERY_REQUIREMENT_STATE),
 });
 
-export type ItemUpholsteryRequirement = z.infer<typeof ItemUpholsteryRequirementSchema>;
+export type ItemUpholsteryRequirement = z.infer<
+  typeof ItemUpholsteryRequirementSchema
+>;
 
 // ─── Field composition schema (for form composition in other features) ────────
 
@@ -238,10 +253,27 @@ export const ItemDetailsFieldsSchema = z.object({
   designer: z.string().max(255).optional(),
   article_number: z.string().max(128).optional(),
   sku: z.string().max(128).optional(),
-  quantity: z.number({ message: 'Enter a number.' }).int().nonnegative().optional(),
-  item_position: z.string().max(255).optional(),
+  quantity: z
+    .number({ message: "Enter a number." })
+    .int()
+    .nonnegative()
+    .optional(),
+  item_position: z.preprocess(
+    (value) => {
+      if (
+        value === "" ||
+        value === null ||
+        value === undefined ||
+        Number.isNaN(value)
+      ) {
+        return undefined;
+      }
+      return value;
+    },
+    z.number({ message: "Enter a number." }).int().nonnegative().optional(),
+  ),
   item_currency: z
-    .enum(ITEM_CURRENCY, { message: 'Select a currency.' })
+    .enum(ITEM_CURRENCY, { message: "Select a currency." })
     .optional(),
   item_category_id: z.string().optional(),
   major_category: z.string().optional(),
@@ -251,7 +283,7 @@ export type ItemDetailsFields = z.infer<typeof ItemDetailsFieldsSchema>;
 export const ItemIssuesFieldSchema = z.object({
   issue_id: z.string().min(1),
   // Severity selection is currently disabled in task creation, so allow empty.
-  issue_severity_id: z.string().optional().or(z.literal('')),
+  issue_severity_id: z.string().optional().or(z.literal("")),
 });
 
 export const ItemIssuesFieldsSchema = z.object({
@@ -264,8 +296,8 @@ export type ItemIssuesFields = z.infer<typeof ItemIssuesFieldsSchema>;
 export const ItemUpholsteryFieldsSchema = z.object({
   upholstery_client_id: z.string().nullable().optional(),
   upholstery_amount_meters: z
-    .number({ message: 'Enter a number.' })
-    .positive({ message: 'Enter a positive amount.' })
+    .number({ message: "Enter a number." })
+    .positive({ message: "Enter a positive amount." })
     .nullable()
     .optional(),
 });
@@ -278,7 +310,9 @@ export const ItemCategoryPickerOptionSchema = z.object({
   major_category: z.string(),
   image_url: z.string().nullable(),
 });
-export type ItemCategoryPickerOption = z.infer<typeof ItemCategoryPickerOptionSchema>;
+export type ItemCategoryPickerOption = z.infer<
+  typeof ItemCategoryPickerOptionSchema
+>;
 
 export type ListItemCategoriesPickerParams = {
   q?: string;

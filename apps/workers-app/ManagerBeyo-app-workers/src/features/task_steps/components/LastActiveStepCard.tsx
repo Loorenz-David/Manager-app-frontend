@@ -11,6 +11,8 @@ import {
   useScrollVisibilityContext,
 } from "@beyo/ui";
 import type { TaskId, TaskStepId } from "@beyo/lib";
+import { usePreloadSurface } from "@beyo/hooks";
+import { preloadPauseReasonSheetSurface } from "../surfaces";
 import { transitions } from "@/lib/animation";
 import { cn } from "@beyo/lib";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
@@ -94,6 +96,7 @@ function CardActionButton({
   onTransition,
 }: CardActionButtonProps): React.JSX.Element | null {
   const nextState = STEP_QUICK_TRANSITION[state];
+  usePreloadSurface(preloadPauseReasonSheetSurface);
 
   if (nextState === undefined) {
     return null;

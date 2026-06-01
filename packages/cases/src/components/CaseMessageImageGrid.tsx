@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { cn } from "@beyo/lib";
+import { cn, isSameImagePath } from "@beyo/lib";
 import { useSurface } from "@beyo/hooks";
 import { useImageQuery } from "@beyo/images";
 import { useDeleteImage } from "@beyo/images";
@@ -128,6 +128,21 @@ function getCollageLayout(imageCount: number): CollageLayout {
   }
 }
 
+function canReuseImageSnapshot(
+  cached: MessageImageSnapshot,
+  next: MessageImageSnapshot,
+): boolean {
+  return (
+    cached.client_id === next.client_id &&
+    isSameImagePath(cached.image_url, next.image_url) &&
+    cached.width_px === next.width_px &&
+    cached.height_px === next.height_px &&
+    Boolean(cached.image_annotation) === Boolean(next.image_annotation) &&
+    (cached.image_annotations?.length ?? 0) ===
+      (next.image_annotations?.length ?? 0)
+  );
+}
+
 type CaseMessageImageTileProps = {
   image: MessageImageSnapshot;
   messageClientId: string;
@@ -136,7 +151,7 @@ type CaseMessageImageTileProps = {
   onOpen: (imageClientId: string) => void;
 };
 
-function CaseMessageImageTile({
+const CaseMessageImageTile = memo(function CaseMessageImageTile({
   image,
   messageClientId,
   rowSpan,
@@ -241,7 +256,7 @@ function CaseMessageImageTile({
       )}
     </button>
   );
-}
+});
 
 export function CaseMessageImageGrid({
   message,
@@ -250,6 +265,11 @@ export function CaseMessageImageGrid({
   const messagesController = useCaseConversationMessagesContext();
   const { deleteImageWithOptionsAsync } = useDeleteImage();
   const images = useMemo(() => toMessageImages(message), [message]);
+  const imagesRef = useRef(images);
+  imagesRef.current = images;
+  const stableVisibleImagesRef = useRef<Map<string, MessageImageSnapshot>>(
+    new Map(),
+  );
   const handleDelete = useCallback(
     (imageClientId: string) => {
       void deleteImageWithOptionsAsync({
@@ -263,7 +283,7 @@ export function CaseMessageImageGrid({
   const openViewer = useCallback(
     (initialImageClientId: string) => {
       surface.open(IMAGE_VIEWER_SURFACE_ID, {
-        images,
+        images: imagesRef.current,
         initialImageClientId,
         entityType: "case_conversation_message",
         entityClientId: message.client_id,
@@ -272,7 +292,7 @@ export function CaseMessageImageGrid({
         enableOnDemandImageLoad: false,
       });
     },
-    [handleDelete, images, message.client_id, surface],
+    [handleDelete, message.client_id, surface],
   );
 
   const rawImages = message.images ?? [];
@@ -282,7 +302,21 @@ export function CaseMessageImageGrid({
   }
 
   const layout = getCollageLayout(rawImages.length);
-  const visibleImages = rawImages.slice(0, MAX_COLLAGE_IMAGES);
+  const visibleImages = useMemo(() => {
+    const nextStableImages = rawImages
+      .slice(0, MAX_COLLAGE_IMAGES)
+      .map((image) => {
+        const cached = stableVisibleImagesRef.current.get(image.client_id);
+
+        return cached && canReuseImageSnapshot(cached, image) ? cached : image;
+      });
+
+    stableVisibleImagesRef.current = new Map(
+      nextStableImages.map((image) => [image.client_id, image]),
+    );
+
+    return nextStableImages;
+  }, [rawImages]);
   const extraCount = Math.max(0, rawImages.length - MAX_COLLAGE_IMAGES);
 
   return (

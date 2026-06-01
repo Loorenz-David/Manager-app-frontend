@@ -14,11 +14,12 @@ import {
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useUserLastActiveStepQuery } from "../api/use-user-last-active-step";
 import {
+  PAUSE_REASON_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  type PauseReasonSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
 } from "../surface-ids";
 import { toTaskStepCardViewModel, type StepState } from "../types";
-
 
 export function useLastActiveStepCardController() {
   const query = useUserLastActiveStepQuery();
@@ -75,6 +76,15 @@ export function useLastActiveStepCardController() {
         return;
       }
 
+      if (nextState === "paused") {
+        openSurface(PAUSE_REASON_SHEET_SURFACE_ID, {
+          stepId,
+          taskId,
+          workingSectionId: step.working_section_id,
+        } as PauseReasonSheetSurfaceProps);
+        return;
+      }
+
       transitionStepState({
         task_id: taskId,
         step_id: stepId,
@@ -82,7 +92,7 @@ export function useLastActiveStepCardController() {
         working_section_id: step.working_section_id,
       });
     },
-    [step, transitionStepState],
+    [step, transitionStepState, openSurface],
   );
 
   const handleOpenDetail = useCallback(() => {

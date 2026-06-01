@@ -9,7 +9,6 @@ export {
   TaskDetailBottomActions,
   TaskDetailHeader,
   TaskImagesSection,
-  TaskIssuesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
 } from "./components/detail";

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useItemUpholsteryQuery } from "@beyo/tasks";
 
 import { NumberInput } from "@/components/primitives";
 import { useUpdateItem } from "@/features/items/actions/use-update-item";
@@ -19,7 +20,8 @@ export function ItemQuantitySheetPage(): React.JSX.Element {
   const taskQuery = useGetTaskQuery(taskId ?? "");
   const updateItem = useUpdateItem(taskId ?? "");
   const item = taskQuery.data?.item;
-  const firstUpholstery = taskQuery.data?.item_upholstery?.[0] ?? null;
+  const upholsteryQuery = useItemUpholsteryQuery(itemId);
+  const firstUpholstery = upholsteryQuery.data?.upholstery?.[0] ?? null;
   const [quantity, setQuantity] = useState(
     prefill?.quantity ?? item?.quantity ?? 0,
   );

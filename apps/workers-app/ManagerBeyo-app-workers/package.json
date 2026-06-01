@@ -24,6 +24,7 @@
     "@beyo/lib": "*",
     "@beyo/pwa": "*",
     "@beyo/styles": "*",
+    "@beyo/tasks": "*",
     "@beyo/upholstery": "*",
     "@beyo/ui": "*",
     "@dnd-kit/core": "^6.3.1",

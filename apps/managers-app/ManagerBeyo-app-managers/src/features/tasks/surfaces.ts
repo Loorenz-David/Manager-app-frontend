@@ -6,6 +6,7 @@ export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";
 export const TASK_FILTER_SHEET_SURFACE_ID = "task-filter-sheet";
 export const TASK_SCHEDULED_DATE_SHEET_SURFACE_ID = "task-scheduled-date-sheet";
 export const ITEM_QUANTITY_SHEET_SURFACE_ID = "item-quantity-sheet";
+export const ITEM_POSITION_SHEET_SURFACE_ID = "item-position-sheet";
 export const ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID =
   "item-upholstery-amount-sheet";
 export const TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID =
@@ -38,6 +39,14 @@ export type ItemQuantitySurfaceProps = {
   itemId: string;
   prefill?: {
     quantity: number;
+  };
+};
+
+export type ItemPositionSurfaceProps = {
+  taskId: string;
+  itemId: string;
+  prefill?: {
+    position: number | null;
   };
 };
 
@@ -115,6 +124,12 @@ function loadItemQuantitySheetPage() {
   }));
 }
 
+function loadItemPositionSheetPage() {
+  return import("@/pages/tasks/ItemPositionSheetPage").then((module) => ({
+    default: module.ItemPositionSheetPage,
+  }));
+}
+
 function loadItemUpholsteryAmountSheetPage() {
   return import("@/pages/tasks/ItemUpholsteryAmountSheetPage").then(
     (module) => ({
@@ -158,6 +173,7 @@ const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
 const taskFilterSheet = lazyWithPreload(loadTaskFilterSheetPage);
 const taskScheduledDateSheet = lazyWithPreload(loadTaskScheduledDateSheetPage);
 const itemQuantitySheet = lazyWithPreload(loadItemQuantitySheetPage);
+const itemPositionSheet = lazyWithPreload(loadItemPositionSheetPage);
 const itemUpholsteryAmountSheet = lazyWithPreload(
   loadItemUpholsteryAmountSheetPage,
 );
@@ -195,6 +211,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [ITEM_QUANTITY_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: itemQuantitySheet.Component,
+  },
+  [ITEM_POSITION_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: itemPositionSheet.Component,
   },
   [ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID]: {
     surface: "sheet",

@@ -1,7 +1,6 @@
 export { TaskBodyCategoryRow } from "./TaskBodyCategoryRow";
 export { TaskDetailHeader } from "./TaskDetailHeader";
 export { TaskCustomerSection } from "./TaskCustomerSection";
-export { TaskIssuesSection } from "./TaskIssuesSection";
 export { TaskScheduledDeliverySection } from "./TaskScheduledDeliverySection";
 export { TaskImagesSection } from "./TaskImagesSection";
 export { TaskUpholsterySection } from "./TaskUpholsterySection";

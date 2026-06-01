@@ -14,8 +14,12 @@ import {
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import {
+  PAUSE_REASON_SHEET_SURFACE_ID,
+  STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  type PauseReasonSheetSurfaceProps,
+  type StepStateFilterSheetSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
 } from "../surface-ids";
@@ -26,7 +30,6 @@ import {
   type StepState,
   type TaskStepCardViewModel,
 } from "../types";
-
 
 function useDebounced<T>(value: T, delayMs: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -44,6 +47,13 @@ function useDebounced<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
+export const DEFAULT_STATE_FILTERS: StepState[] = [
+  "pending",
+  "working",
+  "paused",
+  "ended_shift",
+];
+
 export type WorkingSectionStepsController = {
   steps: TaskStepCardViewModel[];
   nonTerminalCounts: NonTerminalStepCounts;
@@ -52,12 +62,15 @@ export type WorkingSectionStepsController = {
   hasMore: boolean;
   search: string;
   setSearch: (value: string) => void;
+  stateFilters: StepState[];
+  activeFilterCount: number;
   refetch: () => Promise<void>;
   handleTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
     nextState: StepState,
   ) => void;
+  handleOpenStateFilter: () => void;
   handleOpenTaskActions: (stepId: TaskStepId, taskId: TaskId) => void;
   handleOpenTaskDetail: (stepId: TaskStepId, taskId: TaskId) => void;
   handleOpenImageViewer: (stepId: TaskStepId) => void;
@@ -69,11 +82,14 @@ export function useWorkingSectionStepsController(
   sectionId: WorkingSectionId,
 ): WorkingSectionStepsController {
   const [search, setSearch] = useState("");
+  const [stateFilters, setStateFilters] =
+    useState<StepState[]>(DEFAULT_STATE_FILTERS);
   const debouncedSearch = useDebounced(search, 300);
 
   const query = useWorkingSectionStepsQuery({
     working_section_id: sectionId,
     q: debouncedSearch || undefined,
+    record_step_state: stateFilters.join(","),
     limit: 50,
     offset: 0,
   });
@@ -109,9 +125,25 @@ export function useWorkingSectionStepsController(
     () => computeNonTerminalCounts(query.data?.items ?? []),
     [query.data?.items],
   );
+  const activeFilterCount = useMemo(() => {
+    const isDefaultFilter =
+      stateFilters.length === DEFAULT_STATE_FILTERS.length &&
+      DEFAULT_STATE_FILTERS.every((state) => stateFilters.includes(state));
+
+    return isDefaultFilter ? 0 : stateFilters.length;
+  }, [stateFilters]);
 
   const handleTransition = useCallback(
     (stepId: TaskStepId, taskId: TaskId, nextState: StepState) => {
+      if (nextState === "paused") {
+        openSurface(PAUSE_REASON_SHEET_SURFACE_ID, {
+          stepId,
+          taskId,
+          workingSectionId: sectionId,
+        } as PauseReasonSheetSurfaceProps);
+        return;
+      }
+
       transitionStepState({
         task_id: taskId,
         step_id: stepId,
@@ -119,8 +151,17 @@ export function useWorkingSectionStepsController(
         working_section_id: sectionId,
       });
     },
-    [transitionStepState, sectionId],
+    [transitionStepState, sectionId, openSurface],
   );
+
+  const handleOpenStateFilter = useCallback(() => {
+    openSurface(STEP_STATE_FILTER_SHEET_SURFACE_ID, {
+      selectedStates: stateFilters,
+      onApply: (newFilters: StepState[]) => {
+        setStateFilters(newFilters);
+      },
+    } as StepStateFilterSheetSurfaceProps);
+  }, [openSurface, stateFilters]);
 
   const handleOpenTaskActions = useCallback(
     (stepId: TaskStepId, taskId: TaskId) => {
@@ -207,8 +248,11 @@ export function useWorkingSectionStepsController(
     hasMore: query.data?.has_more ?? false,
     search,
     setSearch,
+    stateFilters,
+    activeFilterCount,
     refetch,
     handleTransition,
+    handleOpenStateFilter,
     handleOpenTaskActions,
     handleOpenTaskDetail,
     handleOpenImageViewer,

@@ -1,21 +1,50 @@
+import { useMemo } from "react";
 import { Pencil } from "lucide-react";
+import {
+  useItemUpholsteryQuery,
+  type UpholsteryRequirementEntry,
+} from "@beyo/tasks";
 
 import { DashedInfoSection, SectionLabel } from '@/components/primitives';
+import { generateClientId } from "@/lib/client-id";
 import { ItemUpholsteryField } from "@/features/items";
 
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
 
 export function TaskUpholsterySection(): React.JSX.Element | null {
   const {
-    activeUpholstery,
+    createItemUpholstery,
     openUpholsteryAmountSheet,
     taskDetail,
     updateItemUpholstery,
   } = useTaskDetailContext();
 
+  const queryItemId = taskDetail?.item?.client_id ?? null;
+  const upholsteryQuery = useItemUpholsteryQuery(queryItemId);
+
+  const requirementsById = useMemo(() => {
+    const entries = upholsteryQuery.data?.requirements ?? [];
+    return new Map<string, UpholsteryRequirementEntry>(
+      entries.map((entry) => [entry.client_id, entry]),
+    );
+  }, [upholsteryQuery.data?.requirements]);
+
+  const activeUpholstery = useMemo(
+    () =>
+      (upholsteryQuery.data?.upholstery ?? []).map((entry) => ({
+        ...entry,
+        activeRequirement: entry.active_requirement_id
+          ? (requirementsById.get(entry.active_requirement_id) ?? null)
+          : null,
+      })),
+    [requirementsById, upholsteryQuery.data?.upholstery],
+  );
+
   if (!taskDetail?.item) {
     return null;
   }
+
+  const itemId = taskDetail.item.client_id;
 
   return (
     <DashedInfoSection
@@ -27,7 +56,27 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
       </SectionLabel>
 
       {activeUpholstery.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No upholstery linked.</p>
+        <div className="flex flex-col gap-3">
+          <p className="text-sm text-muted-foreground">
+            No upholstery linked yet.
+          </p>
+          <ItemUpholsteryField
+            description="Attach upholstery to this item"
+            disabled={createItemUpholstery.isPending}
+            onChange={(newUpholsteryId) => {
+              createItemUpholstery.mutate({
+                client_id: generateClientId("ItemUpholstery"),
+                item_id: itemId,
+                upholstery_id: newUpholsteryId,
+                source: "internal",
+              });
+            }}
+            placeholder="Select upholstery"
+            testId="upholstery-field-empty"
+            title="Upholstery"
+            value={null}
+          />
+        </div>
       ) : (
         <div className="flex flex-col gap-3">
           {activeUpholstery.map((entry) => (
@@ -48,7 +97,11 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
                     upholstery_id: newUpholsteryId,
                   });
                 }}
-                requirementState={entry.activeRequirement?.state ?? null}
+                requirementState={
+                  (entry.activeRequirement?.state as
+                    import("@/features/items/types").ItemUpholsteryRequirementState | null
+                    | undefined) ?? null
+                }
                 testId={`upholstery-field-${entry.client_id}`}
                 title="Upholstery"
                 value={entry.upholstery_id}

@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
+import { usePreloadSurface } from "@beyo/hooks";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import type { WorkingSectionViewModel } from "../../working_sections/types";
+import { preloadStepStateFilterSheetSurface } from "../surfaces";
 import { useWorkingSectionStepsContext } from "../providers/WorkingSectionStepsProvider";
 import { TaskStepCard } from "./TaskStepCard";
 
@@ -15,6 +17,8 @@ export function WorkingSectionStepsView({
   section,
   onBack,
 }: WorkingSectionStepsViewProps): React.JSX.Element {
+  usePreloadSurface(preloadStepStateFilterSheetSurface);
+
   const {
     steps,
     nonTerminalCounts,
@@ -22,8 +26,10 @@ export function WorkingSectionStepsView({
     isError,
     search,
     setSearch,
+    activeFilterCount,
     refetch,
     handleTransition,
+    handleOpenStateFilter,
     handleOpenTaskActions,
     handleOpenTaskDetail,
     handleOpenImageViewer,
@@ -99,13 +105,13 @@ export function WorkingSectionStepsView({
         ) : null}
 
         <SearchBar
-          activeFilterCount={0}
+          showSortButton={false}
+          activeFilterCount={activeFilterCount}
           data-testid="working-section-steps-search"
           placeholder="Search by article, SKU…"
           value={search}
           onChange={setSearch}
-          onFilterPress={() => {}}
-          onSortPress={() => {}}
+          onFilterPress={handleOpenStateFilter}
         />
       </header>
 
@@ -137,7 +143,8 @@ export function WorkingSectionStepsView({
             data-testid="working-section-steps-empty"
           >
             No steps found
-            {search ? ` matching "${search}"` : ""}.
+            {search ? ` matching "${search}"` : ""}
+            {activeFilterCount > 0 && !search ? " with the active filter" : ""}.
           </div>
         ) : (
           <div

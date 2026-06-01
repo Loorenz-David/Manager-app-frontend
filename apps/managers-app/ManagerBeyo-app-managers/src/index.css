@@ -96,3 +96,37 @@
   display: inline-block;
   transform-origin: center;
 }
+
+@keyframes case-message-row-enter {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--case-message-enter-x, 0), 10px, 0)
+      scale(0.985);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+.case-message-row-enter-own,
+.case-message-row-enter-other {
+  will-change: transform, opacity;
+  animation: case-message-row-enter 320ms cubic-bezier(0.24, 0.8, 0.24, 1) 1;
+}
+
+.case-message-row-enter-own {
+  --case-message-enter-x: 14px;
+}
+
+.case-message-row-enter-other {
+  --case-message-enter-x: -14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .case-message-row-enter-own,
+  .case-message-row-enter-other {
+    animation: none;
+  }
+}

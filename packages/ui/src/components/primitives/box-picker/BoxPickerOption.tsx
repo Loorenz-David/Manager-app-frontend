@@ -1,6 +1,6 @@
 import type { KeyboardEvent, ReactNode } from "react";
 
-import { cn } from '@beyo/lib';
+import { cn } from "@beyo/lib";
 
 import { boxOptionVariants } from "./box-picker.variants";
 import type {
@@ -43,6 +43,9 @@ export function BoxPickerOption<Value extends string>({
   renderSelectedAction,
 }: BoxPickerOptionProps<Value>) {
   const Icon = option.icon;
+  const hasCustomImageSize =
+    option.imageClassName !== undefined &&
+    /(?:^|\s)(?:size-[^\s]+|h-[^\s]+|w-[^\s]+)/.test(option.imageClassName);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if ((event.key === "Enter" || event.key === " ") && !option.disabled) {
@@ -83,7 +86,8 @@ export function BoxPickerOption<Value extends string>({
             alt=""
             aria-hidden="true"
             className={cn(
-              "size-8 shrink-0 rounded object-contain",
+              "shrink-0 rounded object-contain",
+              !hasCustomImageSize && "size-8",
               option.imageClassName,
             )}
           />

@@ -101,7 +101,22 @@ test.describe('Task detail upholstery swap', () => {
               item_major_category_snapshot: 'Seat',
             },
             item_images: [],
-            item_issues: [],
+            task_steps: [],
+            task_notes: [],
+            unread_message_count: 0,
+          },
+        }),
+      });
+    });
+
+    await page.route('**/api/v1/items/item_1/upholstery', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          warnings: [],
+          data: {
             item_upholstery: [
               {
                 client_id: 'item_upholstery_1',
@@ -109,6 +124,7 @@ test.describe('Task detail upholstery swap', () => {
                 upholstery_id: currentUpholsteryId,
                 name: currentUpholsteryId === 'upholstery_old' ? 'Velvet Blue' : 'Linen Sand',
                 code: currentUpholsteryId === 'upholstery_old' ? 'VB-01' : 'LS-02',
+                image_url: null,
                 amount_meters: 2.5,
                 source: 'internal',
                 time_to_fix_in_seconds: null,
@@ -127,9 +143,6 @@ test.describe('Task detail upholstery swap', () => {
                 state: 'available',
               },
             ],
-            task_steps: [],
-            task_notes: [],
-            unread_message_count: 0,
           },
         }),
       });

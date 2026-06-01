@@ -1,6 +1,8 @@
 import { Pause, Play } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
+import { usePreloadSurface } from "@beyo/hooks";
+import { preloadPauseReasonSheetSurface } from "../../surfaces";
 import {
   STEP_QUICK_TRANSITION,
   type LastStateRecord,
@@ -41,6 +43,7 @@ export function TaskStepCircularActionButton({
   isTransitioning,
 }: TaskStepCircularActionButtonProps): React.JSX.Element | null {
   const nextState = STEP_QUICK_TRANSITION[state];
+  usePreloadSurface(preloadPauseReasonSheetSurface);
 
   if (nextState === undefined) {
     return null;

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FormProvider, useForm } from "react-hook-form";
 import { useSurfaceHeader } from "@beyo/hooks";
@@ -17,6 +17,7 @@ import {
   hasMeaningfulCaseMessageContent,
   trimCaseMessageContent,
 } from "../lib/case-lexical-serialization";
+import { useParticipantAutoSelect } from "../lib/use-participant-auto-select";
 import {
   toBackendMessageContent,
   toBackendPlainText,
@@ -35,11 +36,13 @@ export function CaseCreationFormContent(): React.JSX.Element {
     regenerateId,
     entityTypes,
     entityClientId,
+    selectedCaseType,
     setSelectedCaseType,
     composerContent,
     setComposerContent,
     setSelectedParticipants,
     setParticipantsTotalCount,
+    surfaceOpeners,
   } = useCaseCreationFormContext();
   const { createCaseAsync, isPending } = useCreateCase();
 
@@ -71,6 +74,74 @@ export function CaseCreationFormContent(): React.JSX.Element {
       skip_participants: undefined,
     },
   });
+
+  const autoSelectResult = useParticipantAutoSelect();
+  const caseTypeAutoOpenApplied = useRef(false);
+  const participantAutoSelectApplied = useRef(false);
+
+  useEffect(() => {
+    if (caseTypeAutoOpenApplied.current || selectedCaseType !== null) {
+      return;
+    }
+
+    caseTypeAutoOpenApplied.current = true;
+
+    surfaceOpeners.openCaseTypePicker?.({
+      entityTypes,
+      currentCaseTypeId: null,
+      onSelect: (selection) => {
+        setSelectedCaseType(selection);
+        form.setValue("case_type_id", selection.clientId, {
+          shouldDirty: true,
+        });
+        form.setValue("type_label", selection.name, { shouldDirty: true });
+      },
+    });
+  }, [
+    surfaceOpeners,
+    entityTypes,
+    selectedCaseType,
+    setSelectedCaseType,
+    form,
+  ]);
+
+  useEffect(() => {
+    if (autoSelectResult === null || participantAutoSelectApplied.current) {
+      return;
+    }
+
+    participantAutoSelectApplied.current = true;
+
+    form.setValue(
+      "participants",
+      autoSelectResult.participants.length > 0
+        ? autoSelectResult.participants
+        : undefined,
+      { shouldDirty: false },
+    );
+    form.setValue(
+      "selected_all",
+      autoSelectResult.selectedAll ? true : undefined,
+      {
+        shouldDirty: false,
+      },
+    );
+    form.setValue(
+      "skip_participants",
+      autoSelectResult.skipParticipants.length > 0
+        ? autoSelectResult.skipParticipants
+        : undefined,
+      { shouldDirty: false },
+    );
+
+    setSelectedParticipants(autoSelectResult.selectedUsers);
+    setParticipantsTotalCount(autoSelectResult.totalCount);
+  }, [
+    autoSelectResult,
+    form,
+    setSelectedParticipants,
+    setParticipantsTotalCount,
+  ]);
 
   const handleSubmit = form.handleSubmit(async (values) => {
     try {

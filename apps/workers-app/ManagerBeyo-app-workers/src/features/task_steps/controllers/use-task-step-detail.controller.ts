@@ -2,6 +2,10 @@ import { useCallback, useMemo } from "react";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import {
+  ITEM_FAST_ISSUE_SHEET_SURFACE_ID,
+  type TaskIssueSurfaceOpeners,
+} from "@beyo/tasks";
+import {
   useItemCategoryByIdFlow,
   type ItemCategoryId,
   type ItemCategoryViewModel,
@@ -28,8 +32,10 @@ import {
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import {
+  PAUSE_REASON_SHEET_SURFACE_ID,
   TASK_CASES_SLIDE_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
+  type PauseReasonSheetSurfaceProps,
   type TaskCasesSlideSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
@@ -75,6 +81,7 @@ export type TaskStepDetailController = {
   handleOpenActionsSheet: () => void;
   handleOpenCasesForTask: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
+  issuesSurfaceOpeners: TaskIssueSurfaceOpeners;
   isTransitioning: boolean;
   transitioningStepId: TaskStepId | null;
   refetch: () => Promise<void>;
@@ -168,6 +175,15 @@ export function useTaskStepDetailController(): TaskStepDetailController {
 
   const handleTransition = useCallback(
     (targetStepId: TaskStepId, targetTaskId: TaskId, nextState: StepState) => {
+      if (nextState === "paused") {
+        openSurface(PAUSE_REASON_SHEET_SURFACE_ID, {
+          stepId: targetStepId,
+          taskId: targetTaskId,
+          workingSectionId: resolvedWorkingSectionId,
+        } as PauseReasonSheetSurfaceProps);
+        return;
+      }
+
       transitionStepState({
         task_id: targetTaskId,
         step_id: targetStepId,
@@ -175,7 +191,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         working_section_id: resolvedWorkingSectionId,
       });
     },
-    [transitionStepState, resolvedWorkingSectionId],
+    [transitionStepState, resolvedWorkingSectionId, openSurface],
   );
 
   const handleComplete = useCallback(() => {
@@ -258,6 +274,24 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     } as TaskStepActionsSheetSurfaceProps);
   }, [openSurface, resolvedStepId, resolvedTaskId]);
 
+  const issuesSurfaceOpeners = useMemo<TaskIssueSurfaceOpeners>(() => {
+    const itemId = step?.item?.client_id;
+    const itemCategoryId = step?.item?.item_category_id ?? null;
+
+    if (!itemId) {
+      return {};
+    }
+
+    return {
+      openFastIssueSheet: () =>
+        openSurface(ITEM_FAST_ISSUE_SHEET_SURFACE_ID, {
+          taskId: resolvedTaskId,
+          itemId,
+          itemCategoryId,
+        }),
+    };
+  }, [step, openSurface, resolvedTaskId]);
+
   const handleOpenCasesForTask = useCallback(() => {
     if (liveCasesSummary.openResolvingCount === 0) {
       const surfaceOpeners: CaseCreationSurfaceOpeners = {
@@ -315,6 +349,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     handleOpenActionsSheet,
     handleOpenCasesForTask,
     handleOpenFlowRecord,
+    issuesSurfaceOpeners,
     isTransitioning,
     transitioningStepId: pendingStepId ?? null,
     refetch,
