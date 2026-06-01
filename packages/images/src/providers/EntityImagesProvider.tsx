@@ -1,4 +1,10 @@
-import { createContext, useContext, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 
 import {
   type ImageDeleteMode,
@@ -50,6 +56,15 @@ export function EntityImagesProvider({
     deleteMode,
     onImagesChanged,
   });
+  const stopCameraNowRef = useRef(controller.stopCameraNow);
+
+  stopCameraNowRef.current = controller.stopCameraNow;
+
+  useEffect(() => {
+    return () => {
+      stopCameraNowRef.current();
+    };
+  }, []);
 
   return (
     <EntityImagesContext.Provider value={controller}>

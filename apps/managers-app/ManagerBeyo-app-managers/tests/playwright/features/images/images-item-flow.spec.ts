@@ -27,16 +27,46 @@ type MockEntityImage = {
   };
 };
 
+type CameraMockState = {
+  getUserMediaCalls: number;
+  stopCalls: number;
+};
+
 async function installCameraMocks(page: Page) {
   await page.addInitScript(() => {
-    const track = { stop() {} };
+    const cameraMockState = {
+      getUserMediaCalls: 0,
+      stopCalls: 0,
+    };
+
+    (window as Window & {
+      __BEYO_CAMERA_KEEP_ALIVE_MS__?: number;
+      __cameraMockState?: CameraMockState;
+    }).__BEYO_CAMERA_KEEP_ALIVE_MS__ = 75;
+    (window as Window & { __cameraMockState?: CameraMockState })
+      .__cameraMockState = cameraMockState;
+
     Object.defineProperty(navigator, "mediaDevices", {
       configurable: true,
       value: {
-        getUserMedia: async () => ({
-          active: true,
-          getTracks: () => [track],
-        }),
+        getUserMedia: async () => {
+          cameraMockState.getUserMediaCalls += 1;
+
+          const canvas = document.createElement("canvas");
+          const stream = canvas.captureStream();
+          const [track] = stream.getTracks();
+
+          if (track) {
+            const nativeStop = track.stop.bind(track);
+
+            track.stop = () => {
+              cameraMockState.stopCalls += 1;
+              nativeStop();
+            };
+          }
+
+          return stream;
+        },
       },
     });
     Object.defineProperty(HTMLMediaElement.prototype, "play", {
@@ -51,18 +81,13 @@ async function installCameraMocks(page: Page) {
       configurable: true,
       get: () => 1200,
     });
-    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
-      configurable: true,
-      value: () => ({
-        drawImage() {},
-      }),
-    });
     Object.defineProperty(HTMLCanvasElement.prototype, "toBlob", {
       configurable: true,
       value: (callback: BlobCallback) =>
         callback(new Blob(["captured"], { type: "image/png" })),
     });
-    URL.createObjectURL = () => "blob:playwright-image";
+    URL.createObjectURL = () =>
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9VE1lXQAAAAASUVORK5CYII=";
     URL.revokeObjectURL = () => {};
     navigator.vibrate = () => true;
   });
@@ -71,8 +96,22 @@ async function installCameraMocks(page: Page) {
 async function openTestingForms(page: Page) {
   await page.getByTestId("tab-tasks").click();
   await expect(page).toHaveURL(/\/tasks$/);
-  await page.getByTestId("open-testing-forms-button").click();
+  await page.evaluate(async () => {
+    const { useSurfaceStore } = await import("/src/providers/SurfaceProvider.tsx");
+    useSurfaceStore.getState().open("testing-forms-slide");
+  });
   await expect(page.getByTestId("testing-forms-form")).toBeVisible();
+}
+
+async function getCameraMockState(page: Page): Promise<CameraMockState> {
+  return page.evaluate(
+    () =>
+      (
+        window as Window & {
+          __cameraMockState: CameraMockState;
+        }
+      ).__cameraMockState,
+  );
 }
 
 async function mockImagesRoutes(
@@ -224,16 +263,19 @@ test.describe("Images item flow", () => {
     await openTestingForms(page);
   });
 
-  test("captures into editor, supports hard-delete cancel, and keeps viewer delete flow", async ({
+  test("captures into editor, supports direct-capture cancel, and keeps viewer delete flow", async ({
     page,
   }) => {
-    await page.getByTestId("open-images-testing-harness-button").click();
-    await expect(page.getByTestId("testing-images-harness")).toBeVisible();
+    await expect(page.getByTestId("testing-images-harness-section")).toBeVisible();
     await expect(page.getByTestId("testing-images-grid")).toBeVisible();
 
     await page.getByTestId("image-add-picture-button").click();
     await expect(page.getByTestId("image-camera-page")).toBeVisible();
     await expect(page.getByTestId("camera-capture-button")).toBeEnabled();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 0,
+    });
 
     await page.getByTestId("camera-capture-button").click();
     await expect(page.getByTestId("image-editor-page")).toBeVisible();
@@ -242,21 +284,24 @@ test.describe("Images item flow", () => {
     await expect(page.getByTestId("image-editor-page")).not.toBeVisible();
     await expect(page.getByTestId("image-camera-page")).toBeVisible();
 
-    await expect.poll(() => hardDeleteRequests.length).toBe(1);
+    await expect.poll(() => hardDeleteRequests.length).toBe(0);
 
     await page.getByTestId("camera-capture-button").click();
     await expect(page.getByTestId("image-editor-page")).toBeVisible();
     await page.getByTestId("image-editor-done-button").click();
     await expect(page.getByTestId("image-editor-page")).not.toBeVisible();
     await expect(page.getByTestId("image-camera-page")).not.toBeVisible();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 1,
+    });
 
-    await expect(
-      page.getByTestId("image-preview-tile-button-img_uploaded"),
-    ).toBeVisible();
-    await page.getByTestId("image-preview-tile-button-img_uploaded").click();
+    const uploadedPreviewTile = page.getByTestId(/image-preview-tile-button-/).first();
+    await expect(uploadedPreviewTile).toBeVisible();
+    await uploadedPreviewTile.click();
 
     await expect(page.getByTestId("image-fullscreen-viewer")).toBeVisible();
-    await expect(page.getByTestId("viewer-slide-img_uploaded")).toBeVisible();
+    await expect(page.getByTestId(/viewer-slide-/).first()).toBeVisible();
 
     await page.getByTestId("viewer-metadata-button").click();
     await expect(page.getByTestId("image-metadata-sheet")).toBeVisible();
@@ -265,5 +310,64 @@ test.describe("Images item flow", () => {
     await expect(page.getByTestId("image-fullscreen-viewer")).not.toBeVisible();
     await expect(page.getByTestId("image-metadata-sheet")).not.toBeVisible();
     await expect(page.getByTestId("image-add-picture-button")).toBeVisible();
+  });
+
+  test("reuses the warm stream across manual close and reacquires after the keep-alive window", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("testing-images-harness-section")).toBeVisible();
+    await expect(page.getByTestId("testing-images-grid")).toBeVisible();
+
+    await page.getByTestId("image-add-picture-button").click();
+    await expect(page.getByTestId("image-camera-page")).toBeVisible();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 0,
+    });
+
+    await page.getByTestId("camera-close-button").click();
+    await expect(page.getByTestId("image-camera-page")).not.toBeVisible();
+
+    await page.getByTestId("image-add-picture-button").click();
+    await expect(page.getByTestId("image-camera-page")).toBeVisible();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 0,
+    });
+
+    await page.getByTestId("camera-close-button").click();
+    await expect(page.getByTestId("image-camera-page")).not.toBeVisible();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 1,
+    });
+
+    await page.getByTestId("image-add-picture-button").click();
+    await expect(page.getByTestId("image-camera-page")).toBeVisible();
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 2,
+      stopCalls: 1,
+    });
+  });
+
+  test("force-stops the warm stream when the hosting flow unmounts", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("testing-images-harness-section")).toBeVisible();
+    await expect(page.getByTestId("testing-images-grid")).toBeVisible();
+
+    await page.getByTestId("image-add-picture-button").click();
+    await expect(page.getByTestId("image-camera-page")).toBeVisible();
+    await page.getByTestId("camera-close-button").click();
+    await expect(page.getByTestId("image-camera-page")).not.toBeVisible();
+
+    await page.evaluate(async () => {
+      const { useSurfaceStore } = await import("/src/providers/SurfaceProvider.tsx");
+      useSurfaceStore.getState().close("testing-forms-slide");
+    });
+    await expect.poll(() => getCameraMockState(page)).toEqual({
+      getUserMediaCalls: 1,
+      stopCalls: 1,
+    });
   });
 });

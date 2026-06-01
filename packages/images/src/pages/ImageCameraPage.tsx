@@ -9,14 +9,17 @@ import { useSurfaceProps } from "@beyo/hooks";
 export function ImageCameraPage(): React.JSX.Element {
   const {
     onCapture,
+    cameraSessionId: rawCameraSessionId,
     captureFlow,
     latestImageUrl,
     onViewLatest,
     onEditCapturedImage,
+    onCloseCamera,
   } = useSurfaceProps<ImageCameraSurfaceProps>();
+  const cameraSessionId = rawCameraSessionId ?? "missing-image-camera-session";
   const header = useSurfaceHeader();
   const { videoRef, isReady, hasError, startStream, captureFrame } =
-    useCameraStream();
+    useCameraStream(cameraSessionId);
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [localLatestUrl, setLocalLatestUrl] = useState<string | null>(null);
@@ -45,8 +48,9 @@ export function ImageCameraPage(): React.JSX.Element {
       if (flashTimeoutRef.current !== null) {
         window.clearTimeout(flashTimeoutRef.current);
       }
+      onCloseCamera?.();
     },
-    [],
+    [onCloseCamera],
   );
 
   const triggerFlash = useCallback(() => {

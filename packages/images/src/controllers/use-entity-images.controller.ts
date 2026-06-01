@@ -38,6 +38,12 @@ import {
   IMAGE_VIEWER_SURFACE_ID,
 } from "../surfaces";
 import { useSurfaceStore } from "@beyo/ui";
+import {
+  cancelCameraStreamStop,
+  forceStopCameraStream,
+  keepCameraStreamWarm,
+  scheduleCameraStreamStop,
+} from "../lib/camera-session-manager";
 
 type DeleteImageOptions = {
   hardDelete?: boolean;
@@ -66,11 +72,13 @@ export type UseEntityImagesControllerInput = {
 export type ImageCameraSurfaceProps = {
   entityType: ImageLinkEntityType;
   entityClientId: string;
+  cameraSessionId: string;
   captureFlow: ImageCaptureFlow;
   latestImageUrl?: string;
   onCapture: (rawBlob: Blob) => ImageViewModel;
   onEditCapturedImage?: (capturedImage: ImageViewModel) => void;
   onViewLatest?: () => void;
+  onCloseCamera?: () => void;
 };
 
 export type ImageViewerSurfaceProps = {
@@ -173,6 +181,9 @@ export function useEntityImagesController(
   const preUploadResultsRef = useRef(new Map<string, ImagePreUploadResult>());
   const capturedAnnotationsRef = useRef(
     new Map<string, ImageAnnotationItemData[]>(),
+  );
+  const cameraSessionIdRef = useRef(
+    `${generateClientId("Image")}_camera_session`,
   );
 
   const {
@@ -800,6 +811,19 @@ export function useEntityImagesController(
   const openViewerRef = useRef(openViewer);
   openViewerRef.current = openViewer;
 
+  const keepCameraWarm = useCallback(() => {
+    keepCameraStreamWarm(cameraSessionIdRef.current);
+    cancelCameraStreamStop(cameraSessionIdRef.current);
+  }, []);
+
+  const scheduleCameraStop = useCallback(() => {
+    scheduleCameraStreamStop(cameraSessionIdRef.current);
+  }, []);
+
+  const stopCameraNow = useCallback(() => {
+    forceStopCameraStream(cameraSessionIdRef.current);
+  }, []);
+
   const openEditorForCapturedImage = useCallback(
     (capturedImage: ImageViewModel) => {
       surface.open(IMAGE_EDITOR_SURFACE_ID, {
@@ -808,6 +832,7 @@ export function useEntityImagesController(
         entityClientId,
         isDirectCaptureSession: true,
         onSaveComplete: () => {
+          scheduleCameraStop();
           useSurfaceStore
             .getState()
             .closeMany([IMAGE_EDITOR_SURFACE_ID, IMAGE_CAMERA_SURFACE_ID]);
@@ -826,14 +851,17 @@ export function useEntityImagesController(
       deleteImage,
       entityClientId,
       entityType,
+      scheduleCameraStop,
       surface,
     ],
   );
 
   const openCamera = useCallback(() => {
+    keepCameraWarm();
     surface.open(IMAGE_CAMERA_SURFACE_ID, {
       entityType,
       entityClientId,
+      cameraSessionId: cameraSessionIdRef.current,
       captureFlow,
       latestImageUrl: imagesRef.current.at(-1)?.imageUrl,
       onCapture: uploadImage,
@@ -841,6 +869,7 @@ export function useEntityImagesController(
         captureFlow === "camera-to-editor"
           ? openEditorForCapturedImage
           : undefined,
+      onCloseCamera: scheduleCameraStop,
       onViewLatest: () => {
         const latest = imagesRef.current.at(-1);
         if (!latest) return;
@@ -851,7 +880,9 @@ export function useEntityImagesController(
     captureFlow,
     entityClientId,
     entityType,
+    keepCameraWarm,
     openEditorForCapturedImage,
+    scheduleCameraStop,
     surface,
     uploadImage,
   ]);
@@ -883,6 +914,9 @@ export function useEntityImagesController(
     deleteImage,
     reorderImages,
     openCamera,
+    keepCameraWarm,
+    scheduleCameraStop,
+    stopCameraNow,
     openViewer,
     openMetadataSheet,
     isUploading: optimisticImages.some((image) =>
