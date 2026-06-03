@@ -2,13 +2,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { taskKeys } from '@/features/tasks/api/task-keys';
 import type { TaskDetailRaw } from '@/features/tasks/types';
-import { generateClientId } from '@/lib/client-id';
 
 import { addTaskStep } from '../api/add-task-step';
 
 export type AddTaskStepVariables = {
   working_section_id: string;
   worker_id?: string;
+  client_id?: string;
+  sequence_order?: number;
   working_section_name_snapshot?: string | null;
   assigned_worker_display_name_snapshot?: string | null;
 };
@@ -21,41 +22,14 @@ export function useAddTaskStep(taskId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ working_section_name_snapshot: _sectionName, assigned_worker_display_name_snapshot: _workerName, ...input }: AddTaskStepVariables) =>
-      addTaskStep({ ...input, task_id: taskId }),
-    onMutate: async (input): Promise<AddTaskStepContext> => {
+    mutationFn: ({
+      working_section_name_snapshot: _sectionName,
+      assigned_worker_display_name_snapshot: _workerName,
+      ...input
+    }: AddTaskStepVariables) => addTaskStep({ task_id: taskId, steps: [input] }),
+    onMutate: async (): Promise<AddTaskStepContext> => {
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(taskId as never) });
       const snapshot = queryClient.getQueryData<TaskDetailRaw>(taskKeys.detail(taskId as never));
-
-      queryClient.setQueryData<TaskDetailRaw>(taskKeys.detail(taskId as never), (old) => {
-        if (!old) {
-          return old;
-        }
-
-        return {
-          ...old,
-          task_steps: [
-            ...old.task_steps,
-            {
-              client_id: generateClientId('TaskStep'),
-              task_id: taskId,
-              state: 'pending',
-              readiness_status: 'ready',
-              sequence_order: null,
-              working_section_id: input.working_section_id,
-              assigned_worker_id: input.worker_id ?? null,
-              total_dependencies: 0,
-              completed_dependencies: 0,
-              working_section_name_snapshot: input.working_section_name_snapshot ?? null,
-              assigned_worker_display_name_snapshot:
-                input.assigned_worker_display_name_snapshot ?? null,
-              created_at: new Date().toISOString(),
-              closed_at: null,
-              latest_state_records: null,
-            },
-          ],
-        };
-      });
 
       return { snapshot };
     },

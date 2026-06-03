@@ -19,7 +19,7 @@ export {
 export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
 export { LastActiveStepCard } from "./components/LastActiveStepCard";
 export {
-  preloadItemFastIssueSheetSurface,
+  preloadItemIssueSelectionSheetSurface,
   preloadPauseReasonSheetSurface,
   preloadStepStateFilterSheetSurface,
   taskStepSurfaces,

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
+import { ClientIdSchema } from '@beyo/lib';
 import type { BoxPickerOption } from '@/components/primitives/box-picker/box-picker.types';
-import { ClientIdSchema } from '@/lib/client-id';
 import type { UpholsteryId, UpholsteryInventoryId } from '@/types/common';
 
 export const UPHOLSTERY_CURRENCY = ['swedish_krona', 'danish_krona', 'euro'] as const;

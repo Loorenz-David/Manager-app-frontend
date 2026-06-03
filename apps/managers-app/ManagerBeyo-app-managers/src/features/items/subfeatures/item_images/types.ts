@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ClientIdSchema } from '@/lib/client-id';
+import { ClientIdSchema } from '@beyo/lib';
 import type { ItemId, ItemImageId } from '@/types/common';
 
 export const IMAGE_SOURCE_TYPE = ['uploaded', 'shopify_sync', 'generated'] as const;

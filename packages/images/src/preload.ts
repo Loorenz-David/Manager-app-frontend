@@ -1,1 +1,5 @@
-export { preloadImageCameraSurface, preloadImageViewerSurface } from './surfaces';
+export {
+  preloadImageCameraSurface,
+  preloadImageEditorSurface,
+  preloadImageViewerSurface,
+} from './surfaces';

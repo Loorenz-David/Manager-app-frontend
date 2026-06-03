@@ -1,10 +1,12 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
-import { ITEM_FAST_ISSUE_SHEET_SURFACE_ID } from "@beyo/tasks";
+import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import {
   PAUSE_REASON_SHEET_SURFACE_ID,
+  STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
 } from "./surface-ids";
 
 function loadTaskStepActionsSheetPage() {
@@ -27,6 +29,22 @@ function loadPauseReasonSheetPage() {
   }));
 }
 
+function loadStepDependencyWarningSheetPage() {
+  return import("@/pages/task_steps/StepDependencyWarningSheetPage").then(
+    (module) => ({
+      default: module.StepDependencyWarningSheetPage,
+    }),
+  );
+}
+
+function loadUpholsteryWarningSheetPage() {
+  return import("@/pages/task_steps/UpholsteryWarningSheetPage").then(
+    (module) => ({
+      default: module.UpholsteryWarningSheetPage,
+    }),
+  );
+}
+
 function loadStepStateFilterSheetPage() {
   return import("@/pages/task_steps/StepStateFilterSheetPage").then(
     (module) => ({
@@ -35,24 +53,37 @@ function loadStepStateFilterSheetPage() {
   );
 }
 
-function loadItemFastIssueSheetPage() {
-  return import("@beyo/tasks").then((module) => ({
-    default: module.ItemFastIssueSheetPage,
+function loadItemIssueSelectionSheetPage() {
+  return import("@beyo/item-issues").then((module) => ({
+    default: module.ItemIssueSelectionSheet,
   }));
 }
 
 const taskStepActionsSheet = lazyWithPreload(loadTaskStepActionsSheetPage);
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const pauseReasonSheet = lazyWithPreload(loadPauseReasonSheetPage);
+const stepDependencyWarningSheet = lazyWithPreload(
+  loadStepDependencyWarningSheetPage,
+);
+const upholsteryWarningSheet = lazyWithPreload(
+  loadUpholsteryWarningSheetPage,
+);
 const stepStateFilterSheet = lazyWithPreload(loadStepStateFilterSheetPage);
-const itemFastIssueSheet = lazyWithPreload(loadItemFastIssueSheetPage);
+const itemIssueSelectionSheet = lazyWithPreload(
+  loadItemIssueSelectionSheetPage,
+);
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
 export const preloadPauseReasonSheetSurface = pauseReasonSheet.preload;
+export const preloadStepDependencyWarningSheetSurface =
+  stepDependencyWarningSheet.preload;
+export const preloadUpholsteryWarningSheetSurface =
+  upholsteryWarningSheet.preload;
 export const preloadStepStateFilterSheetSurface =
   stepStateFilterSheet.preload;
-export const preloadItemFastIssueSheetSurface = itemFastIssueSheet.preload;
+export const preloadItemIssueSelectionSheetSurface =
+  itemIssueSelectionSheet.preload;
 
 export const taskStepSurfaces: SurfaceRegistrations = {
   [TASK_STEP_ACTIONS_SHEET_SURFACE_ID]: {
@@ -63,6 +94,14 @@ export const taskStepSurfaces: SurfaceRegistrations = {
     surface: "sheet",
     component: pauseReasonSheet.Component,
   },
+  [STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: stepDependencyWarningSheet.Component,
+  },
+  [UPHOLSTERY_WARNING_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: upholsteryWarningSheet.Component,
+  },
   [STEP_STATE_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: stepStateFilterSheet.Component,
@@ -71,8 +110,8 @@ export const taskStepSurfaces: SurfaceRegistrations = {
     surface: "slide",
     component: taskDetailSlide.Component,
   },
-  [ITEM_FAST_ISSUE_SHEET_SURFACE_ID]: {
+  [ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID]: {
     surface: "sheet",
-    component: itemFastIssueSheet.Component,
+    component: itemIssueSelectionSheet.Component,
   },
 };

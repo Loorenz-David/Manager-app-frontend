@@ -43,6 +43,7 @@ export function CaseCreationFormContent(): React.JSX.Element {
     setSelectedParticipants,
     setParticipantsTotalCount,
     surfaceOpeners,
+    onCaseCreated,
   } = useCaseCreationFormContext();
   const { createCaseAsync, isPending } = useCreateCase();
 
@@ -67,8 +68,8 @@ export function CaseCreationFormContent(): React.JSX.Element {
   const form = useForm<CaseCreationFormValues>({
     resolver: zodResolver(CaseCreationFormSchema),
     defaultValues: {
-      case_type_id: undefined,
-      type_label: undefined,
+      case_type_id: selectedCaseType?.clientId || undefined,
+      type_label: selectedCaseType?.name || undefined,
       participants: undefined,
       selected_all: undefined,
       skip_participants: undefined,
@@ -80,11 +81,15 @@ export function CaseCreationFormContent(): React.JSX.Element {
   const participantAutoSelectApplied = useRef(false);
 
   useEffect(() => {
-    if (caseTypeAutoOpenApplied.current || selectedCaseType !== null) {
+    if (caseTypeAutoOpenApplied.current) {
       return;
     }
 
     caseTypeAutoOpenApplied.current = true;
+
+    if (selectedCaseType !== null) {
+      return;
+    }
 
     surfaceOpeners.openCaseTypePicker?.({
       entityTypes,
@@ -164,6 +169,11 @@ export function CaseCreationFormContent(): React.JSX.Element {
             }
           : {}),
       });
+
+      onCaseCreated?.(
+        hasInitialMessage ? toBackendPlainText(trimmedContent) : undefined,
+      );
+
       form.reset();
       setSelectedCaseType(null);
       setComposerContent({ parts: [] }, "");

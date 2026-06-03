@@ -13,6 +13,16 @@ const WorkingSectionIdSchema = z
   .transform((value) => value as WorkingSectionId);
 const UserIdSchema = z.string().transform((value) => value as UserId);
 
+export const DependencyWorkingSectionRefSchema = z.object({
+  client_id: WorkingSectionIdSchema,
+  name: z.string(),
+  image: z.string().nullable(),
+  order_list: z.number(),
+});
+export type DependencyWorkingSectionRef = z.infer<
+  typeof DependencyWorkingSectionRefSchema
+>;
+
 export const StepStateSchema = z.enum([
   "pending",
   "working",
@@ -23,7 +33,7 @@ export const StepStateSchema = z.enum([
   "skipped",
   "failed",
   "cancelled",
-]);
+]) satisfies z.ZodType<import("@beyo/tasks").StepState>;
 export type StepState = z.infer<typeof StepStateSchema>;
 
 export const STEP_TERMINAL_STATES = new Set<StepState>([
@@ -45,6 +55,12 @@ export const UserRefSchema = z.object({
   username: z.string(),
   profile_picture: z.string().nullable(),
 });
+
+export const StepDependencyEntrySchema = z.object({
+  working_section: DependencyWorkingSectionRefSchema,
+  prerequisite_step_state: StepStateSchema,
+});
+export type StepDependencyEntry = z.infer<typeof StepDependencyEntrySchema>;
 
 export const LastStateRecordSchema = z.object({
   state: StepStateSchema,
@@ -142,6 +158,7 @@ export const TaskStepSchema = z.object({
   item: ItemSnapshotSchema,
   item_images: z.array(ItemImageSchema),
   cases_summary: CasesSummarySchema.nullable().optional(),
+  dependency_working_sections: z.array(StepDependencyEntrySchema),
 });
 export type TaskStep = z.infer<typeof TaskStepSchema>;
 
@@ -160,6 +177,7 @@ export const StepTransitionReasonSchema = z.enum([
   "pause_ended_shift",
   "pause_meeting",
   "pause_other_task_priority",
+  "pause_case_created",
 ]);
 export type StepTransitionReason = z.infer<typeof StepTransitionReasonSchema>;
 
@@ -172,11 +190,27 @@ export type TransitionStepStateInput = {
   description?: string;
 };
 
-export type TransitionStepStateOutput = {
-  step_id: TaskStepId;
-  new_state: StepState;
-  last_state_record: LastStateRecord;
+export type PendingStepCompletion = {
+  pendingCompletionId: string;
+  expiresAt: string;
+  stepId: TaskStepId;
+  workingSectionId: WorkingSectionId;
 };
+
+export type TransitionStepStateOutput =
+  | {
+      kind: "immediate";
+      step_id: TaskStepId;
+      new_state: StepState;
+      last_state_record: LastStateRecord;
+    }
+  | {
+      kind: "pending_completion";
+      pending_completion_id: string;
+      expires_at: string;
+    };
+
+export type CancelPendingCompletionOutput = { cancelled: true };
 
 export type ListWorkingSectionStepsParams = {
   working_section_id: WorkingSectionId;
@@ -203,6 +237,13 @@ export type TaskStepCardViewModel = {
   quantityPillLabel: string | null;
   lastStateRecord: LastStateRecord | null;
   casesSummary: CasesSummary | null;
+};
+
+export type IncompleteDependencyViewModel = {
+  workingSectionClientId: WorkingSectionId;
+  name: string;
+  imageUrl: string | null;
+  prerequisiteStepState: StepState;
 };
 
 export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
@@ -252,6 +293,19 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     lastStateRecord: step.last_state_record,
     casesSummary: step.cases_summary ?? null,
   };
+}
+
+export function toIncompleteDependencyViewModels(
+  entries: StepDependencyEntry[],
+): IncompleteDependencyViewModel[] {
+  return entries
+    .filter((entry) => !STEP_TERMINAL_STATES.has(entry.prerequisite_step_state))
+    .map((entry) => ({
+      workingSectionClientId: entry.working_section.client_id,
+      name: entry.working_section.name,
+      imageUrl: entry.working_section.image,
+      prerequisiteStepState: entry.prerequisite_step_state,
+    }));
 }
 
 export type NonTerminalStepCounts = {

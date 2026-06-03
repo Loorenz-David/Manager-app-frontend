@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ClientIdSchema } from '@/lib/client-id';
+import { ClientIdSchema } from '@beyo/lib';
 import type {
   ItemId,
   ItemUpholsteryId,

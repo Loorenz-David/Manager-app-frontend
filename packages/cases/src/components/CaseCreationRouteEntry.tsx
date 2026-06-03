@@ -8,8 +8,15 @@ import { CaseCreationFormContent } from "./CaseCreationFormContent";
 
 export function CaseCreationRouteEntry(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { entityTypes, entityClientId, title, surfaceOpeners } =
-    useSurfaceProps<CaseCreationSlideSurfaceProps>();
+  const {
+    entityTypes,
+    entityClientId,
+    title,
+    surfaceOpeners,
+    onCaseCreated,
+    initialCaseType,
+    initialComposerContent,
+  } = useSurfaceProps<CaseCreationSlideSurfaceProps>();
 
   useEffect(() => {
     header?.setTitle(title ? `Case for ${title}` : "New case");
@@ -20,6 +27,9 @@ export function CaseCreationRouteEntry(): React.JSX.Element {
       entityTypes={entityTypes}
       entityClientId={entityClientId}
       surfaceOpeners={surfaceOpeners}
+      onCaseCreated={onCaseCreated}
+      initialCaseType={initialCaseType}
+      initialComposerContent={initialComposerContent}
     >
       <CaseCreationFormContent />
     </CaseCreationFormProvider>

@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { Pencil } from "lucide-react";
+import { generateClientId } from "@beyo/lib";
 import {
   useItemUpholsteryQuery,
   type UpholsteryRequirementEntry,
 } from "@beyo/tasks";
 
-import { DashedInfoSection, SectionLabel } from '@/components/primitives';
-import { generateClientId } from "@/lib/client-id";
+import { DashedInfoSection, SectionLabel } from "@/components/primitives";
 import { ItemUpholsteryField } from "@/features/items";
 
 import { useTaskDetailContext } from "../../providers/TaskDetailProvider";
@@ -99,7 +99,8 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
                 }}
                 requirementState={
                   (entry.activeRequirement?.state as
-                    import("@/features/items/types").ItemUpholsteryRequirementState | null
+                    | import("@/features/items/types").ItemUpholsteryRequirementState
+                    | null
                     | undefined) ?? null
                 }
                 testId={`upholstery-field-${entry.client_id}`}

@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { ClientIdSchema } from "@/lib/client-id";
+import { ClientIdSchema } from "@beyo/lib";
 import type { ItemId, UpholsteryRequirementId } from "@/types/common";
 
 export const ITEM_STATE = ["pending", "stalled", "fixing", "ready"] as const;

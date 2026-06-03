@@ -9,11 +9,25 @@ import {
   type TransitionStepStateOutput,
 } from "../types";
 
-const TransitionResponseDataSchema = z.object({
-  step_id: z.string().transform((value) => value as TaskStepId),
-  new_state: StepStateSchema,
-  last_state_record: LastStateRecordSchema,
-});
+const PendingCompletionDataSchema = z
+  .object({
+    pending_completion_id: z.string(),
+    expires_at: z.string(),
+  })
+  .transform((data) => ({ kind: "pending_completion" as const, ...data }));
+
+const ImmediateTransitionDataSchema = z
+  .object({
+    step_id: z.string().transform((value) => value as TaskStepId),
+    new_state: StepStateSchema,
+    last_state_record: LastStateRecordSchema,
+  })
+  .transform((data) => ({ kind: "immediate" as const, ...data }));
+
+const TransitionResponseDataSchema = z.union([
+  PendingCompletionDataSchema,
+  ImmediateTransitionDataSchema,
+]);
 
 export async function transitionStepState(
   input: TransitionStepStateInput,

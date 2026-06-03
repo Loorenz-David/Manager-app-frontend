@@ -5,6 +5,7 @@
 @source "../../../../packages/images/src";
 @source "../../../../packages/cases/src";
 @source "../../../../packages/tasks/src";
+@source "../../../../packages/item-issues/src";
 
 .task-step-unread-badge {
   transform-origin: 50% 50%;

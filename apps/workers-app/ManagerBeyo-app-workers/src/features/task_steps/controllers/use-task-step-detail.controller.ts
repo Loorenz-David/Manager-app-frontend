@@ -1,10 +1,13 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo } from "react";
+import { useAuth } from "@beyo/auth";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
-import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import {
-  ITEM_FAST_ISSUE_SHEET_SURFACE_ID,
-  type TaskIssueSurfaceOpeners,
-} from "@beyo/tasks";
+  ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID,
+  type ItemIssueSelectionSheetSurfaceProps,
+  type ItemIssueSurfaceOpeners,
+} from "@beyo/item-issues";
+import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import {
   useItemCategoryByIdFlow,
   type ItemCategoryId,
@@ -29,19 +32,33 @@ import {
   type ImageUploadState,
   type ImageViewModel,
 } from "@beyo/images";
+import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
+import { useCancelPendingStepCompletion } from "../actions/use-cancel-pending-step-completion";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
+import { taskStepKeys } from "../api/task-step-keys";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
+import { buildProceedToStart } from "../lib/build-proceed-to-start";
+import {
+  hasNoAvailableUpholstery,
+  isUpholsteryWarningSection,
+} from "../lib/step-transition-guards";
 import {
   PAUSE_REASON_SHEET_SURFACE_ID,
+  STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   TASK_CASES_SLIDE_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
+  UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
   type PauseReasonSheetSurfaceProps,
+  type StepDependencyWarningSheetSurfaceProps,
   type TaskCasesSlideSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
+  type UpholsteryWarningSheetSurfaceProps,
 } from "../surface-ids";
 import {
+  type PendingStepCompletion,
   STEP_TERMINAL_STATES,
+  toIncompleteDependencyViewModels,
   toTaskStepCardViewModel,
   type CasesSummary,
   type StepState,
@@ -71,18 +88,22 @@ export type TaskStepDetailController = {
   isStepTerminal: boolean;
   casesSummary: CasesSummary | null;
   liveCasesSummary: LiveCasesSummary;
+  pendingCompletion: PendingStepCompletion | null;
   handleTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
     nextState: StepState,
   ) => void;
   handleComplete: () => void;
+  handleCancelCompletion: () => void;
+  handleCompletionExpired: () => void;
   handleOpenImageViewer: (initialImageClientId: string) => void;
   handleOpenActionsSheet: () => void;
   handleOpenCasesForTask: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
-  issuesSurfaceOpeners: TaskIssueSurfaceOpeners;
+  issuesSurfaceOpeners: ItemIssueSurfaceOpeners;
   isTransitioning: boolean;
+  isCancellingCompletion: boolean;
   transitioningStepId: TaskStepId | null;
   refetch: () => Promise<void>;
 };
@@ -94,6 +115,8 @@ export function useTaskStepDetailController(): TaskStepDetailController {
   const resolvedStepId = stepId ?? ("" as TaskStepId);
   const resolvedTaskId = taskId ?? ("" as TaskId);
   const resolvedWorkingSectionId = workingSectionId ?? ("" as WorkingSectionId);
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const query = useWorkingSectionStepsQuery({
     working_section_id: resolvedWorkingSectionId,
@@ -128,7 +151,13 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     transitionStepState,
     isPending: isTransitioning,
     pendingStepId,
+    pendingCompletion,
+    clearPendingCompletion,
   } = useTransitionStepState();
+  const {
+    cancelCompletion,
+    isPending: isCancellingCompletion,
+  } = useCancelPendingStepCompletion();
   const { open: openSurface } = useSurface();
 
   const taskCasesQuery = useListCasesQuery({
@@ -184,6 +213,59 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         return;
       }
 
+      if (
+        step &&
+        step.client_id === targetStepId &&
+        step.state === "pending" &&
+        nextState === "working"
+      ) {
+        const proceedToStart = buildProceedToStart({
+          stepId: targetStepId,
+          taskId: targetTaskId,
+          workingSectionId: resolvedWorkingSectionId,
+          itemId: step.item?.client_id,
+          itemCategoryId: step.item?.item_category_id ?? null,
+          workerId: user?.id ?? null,
+          queryClient,
+          openSurface,
+          transitionStepState,
+        });
+
+        if (
+          step.item?.client_id &&
+          isUpholsteryWarningSection(step.working_section_name_snapshot) &&
+          hasNoAvailableUpholstery(step)
+        ) {
+          openSurface(UPHOLSTERY_WARNING_SHEET_SURFACE_ID, {
+            stepId: targetStepId,
+            taskId: targetTaskId,
+            workingSectionId: resolvedWorkingSectionId,
+            itemId: step.item.client_id,
+          } as UpholsteryWarningSheetSurfaceProps);
+          return;
+        }
+
+        if (step.readiness_status !== "ready") {
+          const incompleteDependencies = toIncompleteDependencyViewModels(
+            step.dependency_working_sections,
+          );
+
+          if (incompleteDependencies.length > 0) {
+            openSurface(STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID, {
+              stepId: targetStepId,
+              taskId: targetTaskId,
+              workingSectionId: resolvedWorkingSectionId,
+              incompleteDependencies,
+              onConfirm: proceedToStart,
+            } as StepDependencyWarningSheetSurfaceProps);
+            return;
+          }
+        }
+
+        proceedToStart();
+        return;
+      }
+
       transitionStepState({
         task_id: targetTaskId,
         step_id: targetStepId,
@@ -191,7 +273,14 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         working_section_id: resolvedWorkingSectionId,
       });
     },
-    [transitionStepState, resolvedWorkingSectionId, openSurface],
+    [
+      openSurface,
+      queryClient,
+      resolvedWorkingSectionId,
+      step,
+      transitionStepState,
+      user?.id,
+    ],
   );
 
   const handleComplete = useCallback(() => {
@@ -208,6 +297,48 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     resolvedStepId,
     resolvedWorkingSectionId,
     transitionStepState,
+  ]);
+
+  const handleCancelCompletion = useCallback(() => {
+    if (!pendingCompletion) {
+      return;
+    }
+
+    clearPendingCompletion();
+    cancelCompletion({
+      task_id: resolvedTaskId,
+      step_id: resolvedStepId,
+      working_section_id: resolvedWorkingSectionId,
+    });
+  }, [
+    pendingCompletion,
+    clearPendingCompletion,
+    cancelCompletion,
+    resolvedTaskId,
+    resolvedStepId,
+    resolvedWorkingSectionId,
+  ]);
+
+  const handleCompletionExpired = useCallback(() => {
+    if (!pendingCompletion) {
+      return;
+    }
+
+    clearPendingCompletion();
+    void queryClient.invalidateQueries({
+      queryKey: taskStepKeys.sectionListsBySection(resolvedWorkingSectionId),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: workerWorkingSectionKeys.mine(),
+    });
+    void queryClient.invalidateQueries({
+      queryKey: taskStepKeys.userLastActive(),
+    });
+  }, [
+    pendingCompletion,
+    clearPendingCompletion,
+    queryClient,
+    resolvedWorkingSectionId,
   ]);
 
   const handleOpenImageViewer = useCallback(
@@ -274,23 +405,30 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     } as TaskStepActionsSheetSurfaceProps);
   }, [openSurface, resolvedStepId, resolvedTaskId]);
 
-  const issuesSurfaceOpeners = useMemo<TaskIssueSurfaceOpeners>(() => {
+  const issuesSurfaceOpeners = useMemo<ItemIssueSurfaceOpeners>(() => {
     const itemId = step?.item?.client_id;
-    const itemCategoryId = step?.item?.item_category_id ?? null;
 
-    if (!itemId) {
+    if (!itemId || !step?.item?.item_category_id) {
       return {};
     }
 
     return {
-      openFastIssueSheet: () =>
-        openSurface(ITEM_FAST_ISSUE_SHEET_SURFACE_ID, {
-          taskId: resolvedTaskId,
+      openIssueSelection: () =>
+        openSurface(ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID, {
           itemId,
-          itemCategoryId,
-        }),
+          workingSectionId: resolvedWorkingSectionId,
+          itemCategoryId: step?.item?.item_category_id ?? null,
+          stepId: resolvedStepId,
+          workerId: user?.id ?? null,
+        } satisfies ItemIssueSelectionSheetSurfaceProps),
     };
-  }, [step, openSurface, resolvedTaskId]);
+  }, [
+    openSurface,
+    resolvedStepId,
+    resolvedWorkingSectionId,
+    step,
+    user?.id,
+  ]);
 
   const handleOpenCasesForTask = useCallback(() => {
     if (liveCasesSummary.openResolvingCount === 0) {
@@ -306,6 +444,20 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         entityClientId: resolvedTaskId,
         title: vm?.articleLabel,
         surfaceOpeners,
+        onCaseCreated: (plainText: string | undefined) => {
+          if (step?.state !== "working") {
+            return;
+          }
+
+          transitionStepState({
+            task_id: resolvedTaskId,
+            step_id: resolvedStepId,
+            new_state: "paused",
+            working_section_id: resolvedWorkingSectionId,
+            reason: "pause_case_created",
+            ...(plainText ? { description: plainText } : {}),
+          });
+        },
       });
       return;
     }
@@ -323,7 +475,16 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     openSurface(TASK_CASES_SLIDE_SURFACE_ID, {
       taskId: resolvedTaskId,
     } as TaskCasesSlideSurfaceProps);
-  }, [liveCasesSummary, openSurface, resolvedTaskId, vm]);
+  }, [
+    liveCasesSummary,
+    openSurface,
+    resolvedTaskId,
+    vm,
+    step,
+    transitionStepState,
+    resolvedStepId,
+    resolvedWorkingSectionId,
+  ]);
 
   // Flow record detail surface not yet registered in workers app.
   const handleOpenFlowRecord = useCallback((_entityClientId: string) => {}, []);
@@ -343,14 +504,18 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     isStepTerminal: vm ? STEP_TERMINAL_STATES.has(vm.state) : false,
     casesSummary: step?.cases_summary ?? null,
     liveCasesSummary,
+    pendingCompletion,
     handleTransition,
     handleComplete,
+    handleCancelCompletion,
+    handleCompletionExpired,
     handleOpenImageViewer,
     handleOpenActionsSheet,
     handleOpenCasesForTask,
     handleOpenFlowRecord,
     issuesSurfaceOpeners,
     isTransitioning,
+    isCancellingCompletion,
     transitioningStepId: pendingStepId ?? null,
     refetch,
   };

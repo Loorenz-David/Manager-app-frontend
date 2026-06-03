@@ -14,8 +14,7 @@ export function useTaskDetailController(taskId: string) {
   const taskQuery = useGetTaskQuery(taskId);
 
   const itemId = taskQuery.data?.item?.client_id ?? null;
-  const itemCategoryId = taskQuery.data?.item?.item_category_id ?? null;
-  const flow = useTaskDetailFlow(taskId, itemId, itemCategoryId);
+  const flow = useTaskDetailFlow(taskId, itemId);
 
   const updateTask = useUpdateTask();
   const deleteTask = useDeleteTask();

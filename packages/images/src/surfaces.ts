@@ -92,6 +92,15 @@ export function preloadImageViewerSurface(): Promise<unknown> {
   return loadImageFullscreenViewerPage();
 }
 
+export function preloadImageEditorSurface(): Promise<unknown> {
+  if (preloadedImageSurfaces.has(IMAGE_EDITOR_SURFACE_ID)) {
+    return Promise.resolve();
+  }
+
+  preloadedImageSurfaces.add(IMAGE_EDITOR_SURFACE_ID);
+  return loadImageEditorPage();
+}
+
 export const imageSurfaces: SurfaceRegistrations = {
   [IMAGE_CAMERA_SURFACE_ID]: {
     surface: 'slide',

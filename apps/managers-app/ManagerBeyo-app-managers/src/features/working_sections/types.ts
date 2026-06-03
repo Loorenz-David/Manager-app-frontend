@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { ClientIdSchema } from '@/lib/client-id';
+import { ClientIdSchema } from '@beyo/lib';
 import type { UserId, WorkingSectionId } from '@/types/common';
 
 export const WorkingSectionSchema = z.object({

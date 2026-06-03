@@ -18,7 +18,6 @@ import {
   ItemCategorySelectionField,
   ItemDetailsFieldGroup,
   ItemDetailsFieldsSchema,
-  ItemIssuesField,
   ItemIssuesFieldsSchema,
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
@@ -215,7 +214,6 @@ export function TestingFormsContent(): React.JSX.Element {
                   )}
                 />
                 <ItemUpholsteryAmountField />
-                <ItemIssuesField />
                 <NeedsCleaningPickerField />
                 <OilingTreatmentPickerField />
                 <section

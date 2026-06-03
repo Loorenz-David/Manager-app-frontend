@@ -1,10 +1,14 @@
 import { useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { fetchIssueTypes, issueTypeKeys } from "@beyo/item-issues";
 import { usePrefetchOnCondition } from "@beyo/ui";
 
 import { fetchWorkingSectionSteps } from "../../task_steps/api/fetch-working-section-steps";
 import { taskStepKeys } from "../../task_steps/api/task-step-keys";
-import { preloadTaskDetailSlideSurface } from "../../task_steps/surfaces";
+import {
+  preloadItemIssueSelectionSheetSurface,
+  preloadTaskDetailSlideSurface,
+} from "../../task_steps/surfaces";
 import { useWorkerWorkingSectionsQuery } from "../api/use-worker-working-sections";
 import {
   toWorkingSectionViewModel,
@@ -42,10 +46,13 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
       ),
     [query.data],
   );
+  const allSections = query.data ?? [];
+  const allSectionIds = allSections.map((section) => section.client_id);
 
-  usePrefetchOnCondition(activeSections.length > 0, () =>
+  usePrefetchOnCondition(allSections.length > 0, () =>
     Promise.all([
       preloadTaskDetailSlideSurface(),
+      preloadItemIssueSelectionSheetSurface(),
       ...activeSections.map((section) =>
         queryClient.prefetchQuery({
           queryKey: taskStepKeys.sectionList({
@@ -62,6 +69,17 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
           staleTime: 30_000,
         }),
       ),
+      queryClient.prefetchQuery({
+        queryKey: issueTypeKeys.list({
+          working_section_ids: allSectionIds,
+        }),
+        queryFn: () =>
+          fetchIssueTypes({
+            working_section_ids: allSectionIds,
+            limit: 200,
+          }),
+        staleTime: 5 * 60 * 1000,
+      }),
     ]),
   );
 

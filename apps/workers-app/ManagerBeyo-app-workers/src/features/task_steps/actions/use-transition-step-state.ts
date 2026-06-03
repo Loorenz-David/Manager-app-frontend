@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify, type WorkingSectionId } from "@beyo/lib";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { transitionStepState } from "../api/transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
 import {
+  type PendingStepCompletion,
   STEP_TERMINAL_STATES,
   type LastStateRecord,
   type StepState,
@@ -15,12 +17,6 @@ import {
 type TransitionInput = TransitionStepStateInput & {
   working_section_id: WorkingSectionId;
 };
-
-const LAST_ACTIVE_STATES = new Set<StepState>([
-  "working",
-  "paused",
-  "ended_shift",
-]);
 
 function buildOptimisticStateRecord(
   newState: StepState,
@@ -108,10 +104,6 @@ function patchOptimisticLastActiveStep(
     return current ?? null;
   }
 
-  if (!LAST_ACTIVE_STATES.has(newState)) {
-    return current ?? null;
-  }
-
   return {
     ...current,
     state: newState,
@@ -132,6 +124,8 @@ function patchOptimisticLastActiveStep(
 
 export function useTransitionStepState() {
   const queryClient = useQueryClient();
+  const [pendingCompletion, setPendingCompletion] =
+    useState<PendingStepCompletion | null>(null);
 
   const mutation = useMutation({
     mutationFn: ({
@@ -140,6 +134,10 @@ export function useTransitionStepState() {
     }: TransitionInput) => transitionStepState(input),
 
     onMutate: async ({ step_id, new_state, working_section_id }) => {
+      if (new_state !== "completed") {
+        setPendingCompletion(null);
+      }
+
       await queryClient.cancelQueries({
         queryKey: taskStepKeys.sectionListsBySection(working_section_id),
       });
@@ -204,6 +202,18 @@ export function useTransitionStepState() {
     },
 
     onSuccess: (data, variables) => {
+      if (data.kind === "pending_completion") {
+        setPendingCompletion({
+          pendingCompletionId: data.pending_completion_id,
+          expiresAt: data.expires_at,
+          stepId: variables.step_id,
+          workingSectionId: variables.working_section_id,
+        });
+        return;
+      }
+
+      setPendingCompletion(null);
+
       patchStepStateInSectionCache(
         queryClient,
         variables.working_section_id,
@@ -238,6 +248,7 @@ export function useTransitionStepState() {
     },
 
     onError: (_err, _input, context) => {
+      setPendingCompletion(null);
       context?.previousSectionLists.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
@@ -253,6 +264,10 @@ export function useTransitionStepState() {
     },
 
     onSettled: (_data, _err, { working_section_id, new_state }) => {
+      if (new_state === "completed") {
+        return;
+      }
+
       void queryClient.invalidateQueries({
         queryKey: taskStepKeys.sectionListsBySection(working_section_id),
       });
@@ -276,6 +291,8 @@ export function useTransitionStepState() {
     isPending: mutation.isPending,
     pendingStepId: mutation.isPending ? mutation.variables?.step_id : null,
     error: mutation.error,
+    pendingCompletion,
+    clearPendingCompletion: () => setPendingCompletion(null),
   };
 }
 

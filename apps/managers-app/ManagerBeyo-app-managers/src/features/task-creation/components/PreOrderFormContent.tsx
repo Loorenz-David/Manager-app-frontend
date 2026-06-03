@@ -31,7 +31,6 @@ import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import {
   ItemCategorySelectionField,
   ItemIdentityField,
-  ItemIssuesField,
   ItemPositionField,
   ItemQuantityField,
   ItemUpholsteryAmountField,
@@ -314,9 +313,6 @@ export function PreOrderFormContent(): React.JSX.Element {
                     testId="pre-order-form-images-grid"
                   />
                 </EntityImagesProvider>
-              </ContentCard>
-              <ContentCard>
-                <ItemIssuesField />
               </ContentCard>
               <ContentCard>
                 <TaskAdditionalDetailsField />

@@ -1,9 +1,8 @@
 import { m } from "framer-motion";
 import { Calendar, RotateCcw, ShoppingBag, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { STEP_STATE_VARIANT, humanizeStepState } from "@beyo/tasks";
 import { StatePill } from "@beyo/ui";
-import type { StatePillVariant } from "@beyo/ui";
-import type { StepState } from "../../types";
 import { useTaskStepDetailContext } from "../../providers/TaskStepDetailProvider";
 
 const TYPE_ICON: Record<string, LucideIcon> = {
@@ -24,26 +23,6 @@ const RETURN_SOURCE_LABEL: Record<string, string> = {
   store_return: "Store return",
 };
 
-const STEP_STATE_VARIANT: Record<StepState, StatePillVariant> = {
-  pending: "neutral",
-  working: "active",
-  paused: "warning",
-  ended_shift: "warning",
-  blocked: "danger",
-  completed: "success",
-  skipped: "neutral",
-  failed: "danger",
-  cancelled: "neutral",
-};
-
-function humanizeSnakeCase(value: string | null | undefined): string {
-  if (!value) {
-    return "";
-  }
-
-  const withSpaces = value.replace(/_/g, " ");
-  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
-}
 
 function formatDateDDMMYY(value: string | null): string | null {
   if (!value) {
@@ -157,7 +136,7 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
         </span>
 
         <StatePill
-          label={humanizeSnakeCase(vm.state) || vm.state}
+          label={humanizeStepState(vm.state) || vm.state}
           variant={STEP_STATE_VARIANT[vm.state]}
         />
         <button

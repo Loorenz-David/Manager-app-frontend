@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
 import { isSameImagePath } from "@beyo/lib";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
@@ -13,18 +15,28 @@ import {
 } from "@beyo/images";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
+import { buildProceedToStart } from "../lib/build-proceed-to-start";
+import {
+  hasNoAvailableUpholstery,
+  isUpholsteryWarningSection,
+} from "../lib/step-transition-guards";
 import {
   PAUSE_REASON_SHEET_SURFACE_ID,
+  STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
   type PauseReasonSheetSurfaceProps,
+  type StepDependencyWarningSheetSurfaceProps,
   type StepStateFilterSheetSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
+  type UpholsteryWarningSheetSurfaceProps,
 } from "../surface-ids";
 import {
   computeNonTerminalCounts,
+  toIncompleteDependencyViewModels,
   toTaskStepCardViewModel,
   type NonTerminalStepCounts,
   type StepState,
@@ -85,6 +97,8 @@ export function useWorkingSectionStepsController(
   const [stateFilters, setStateFilters] =
     useState<StepState[]>(DEFAULT_STATE_FILTERS);
   const debouncedSearch = useDebounced(search, 300);
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const query = useWorkingSectionStepsQuery({
     working_section_id: sectionId,
@@ -144,6 +158,55 @@ export function useWorkingSectionStepsController(
         return;
       }
 
+      const step = query.data?.items.find((item) => item.client_id === stepId);
+      if (step && step.state === "pending" && nextState === "working") {
+        const proceedToStart = buildProceedToStart({
+          stepId,
+          taskId,
+          workingSectionId: sectionId,
+          itemId: step.item?.client_id,
+          itemCategoryId: step.item?.item_category_id ?? null,
+          workerId: user?.id ?? null,
+          queryClient,
+          openSurface,
+          transitionStepState,
+        });
+
+        if (
+          step.item?.client_id &&
+          isUpholsteryWarningSection(step.working_section_name_snapshot) &&
+          hasNoAvailableUpholstery(step)
+        ) {
+          openSurface(UPHOLSTERY_WARNING_SHEET_SURFACE_ID, {
+            stepId,
+            taskId,
+            workingSectionId: sectionId,
+            itemId: step.item.client_id,
+          } as UpholsteryWarningSheetSurfaceProps);
+          return;
+        }
+
+        if (step.readiness_status !== "ready") {
+          const incompleteDependencies = toIncompleteDependencyViewModels(
+            step.dependency_working_sections,
+          );
+
+          if (incompleteDependencies.length > 0) {
+            openSurface(STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID, {
+              stepId,
+              taskId,
+              workingSectionId: sectionId,
+              incompleteDependencies,
+              onConfirm: proceedToStart,
+            } as StepDependencyWarningSheetSurfaceProps);
+            return;
+          }
+        }
+
+        proceedToStart();
+        return;
+      }
+
       transitionStepState({
         task_id: taskId,
         step_id: stepId,
@@ -151,7 +214,14 @@ export function useWorkingSectionStepsController(
         working_section_id: sectionId,
       });
     },
-    [transitionStepState, sectionId, openSurface],
+    [
+      openSurface,
+      queryClient,
+      query.data?.items,
+      sectionId,
+      transitionStepState,
+      user?.id,
+    ],
   );
 
   const handleOpenStateFilter = useCallback(() => {

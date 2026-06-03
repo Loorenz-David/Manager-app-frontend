@@ -1,7 +1,7 @@
 import { z } from "zod";
 
+import { ClientIdSchema } from "@beyo/lib";
 import type { ImageViewModel } from "@beyo/images";
-import { ClientIdSchema } from "@/lib/client-id";
 import {
   type Item,
 } from "@/features/items/types";

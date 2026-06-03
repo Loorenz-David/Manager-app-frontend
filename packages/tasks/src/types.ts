@@ -31,46 +31,6 @@ export type ListTaskFlowRecordsResponse = z.infer<
   typeof ListTaskFlowRecordsResponseSchema
 >;
 
-export const ItemIssueSchema = z.object({
-  client_id: z.string(),
-  item_id: z.string(),
-  issue_type_id: z.string(),
-  issue_severity_id: z.string().nullable(),
-  state: z.string(),
-  base_time_seconds: z.number().int().nullable(),
-  time_multiplier: z.number().nullable(),
-  issue_name_snapshot: z.string().nullable(),
-  severity_name_snapshot: z.string().nullable(),
-  created_by_id: z.string().nullable(),
-  created_at: z.string().nullable(),
-  started_at: z.string().nullable(),
-  resolved_at: z.string().nullable(),
-  updated_at: z.string().nullable(),
-});
-export type ItemIssue = z.infer<typeof ItemIssueSchema>;
-
-export const IssueCategoryConfigSchema = z.object({
-  client_id: z.string(),
-  item_category_id: z.string(),
-  issue_type_id: z.string(),
-  base_time_seconds: z.number().int(),
-  issue_type_name: z.string(),
-});
-export type IssueCategoryConfig = z.infer<typeof IssueCategoryConfigSchema>;
-
-export type ListIssueCategoryConfigsParams = {
-  item_category_id?: string;
-  q?: string;
-  limit?: number;
-  offset?: number;
-};
-
-export const ItemIssueFieldEntrySchema = z.object({
-  issue_id: z.string().min(1),
-  issue_severity_id: z.string().optional().or(z.literal("")),
-});
-export type ItemIssueFieldEntry = z.infer<typeof ItemIssueFieldEntrySchema>;
-
 export const ItemUpholsteryEntrySchema = z.object({
   client_id: z.string(),
   item_id: z.string(),

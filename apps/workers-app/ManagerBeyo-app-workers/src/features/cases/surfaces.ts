@@ -6,6 +6,7 @@ import {
   PARTICIPANT_PICKER_SLIDE_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_FILTER_SHEET_SURFACE_ID,
+  CASE_TASK_INFO_SHEET_SURFACE_ID,
   type CaseConversationSurfaceProps,
 } from "@beyo/cases";
 
@@ -54,6 +55,12 @@ function loadTaskCasesSlidePage() {
   }));
 }
 
+function loadCaseTaskInfoSheetPage() {
+  return import("@/pages/cases/CaseTaskInfoSheetPage").then((module) => ({
+    default: module.CaseTaskInfoSheetPage,
+  }));
+}
+
 const caseConversationSlide = lazyWithPreload(loadCaseConversationSlidePage);
 const caseMessageActionsSheet = lazyWithPreload(
   loadCaseMessageActionsSheetPage,
@@ -63,6 +70,7 @@ const caseCreationSlide = lazyWithPreload(loadCaseCreationSlidePage);
 const caseTypePickerSheet = lazyWithPreload(loadCaseTypePickerSheetPage);
 const participantPickerSlide = lazyWithPreload(loadParticipantPickerSlidePage);
 const taskCasesSlide = lazyWithPreload(loadTaskCasesSlidePage);
+const caseTaskInfoSheet = lazyWithPreload(loadCaseTaskInfoSheetPage);
 
 export const preloadCaseConversationSlideSurface =
   caseConversationSlide.preload;
@@ -88,6 +96,10 @@ export const caseSurfaces: SurfaceRegistrations = {
   [CASE_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: caseFilterSheet.Component,
+  },
+  [CASE_TASK_INFO_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: caseTaskInfoSheet.Component,
   },
   [CASE_CREATION_SLIDE_SURFACE_ID]: {
     surface: "slide",

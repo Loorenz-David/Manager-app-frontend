@@ -31,7 +31,6 @@ import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import {
   ItemCategorySelectionField,
   ItemIdentityField,
-  ItemIssuesField,
   ItemPositionField,
   ItemQuantityField,
   ItemUpholsteryAmountField,
@@ -330,9 +329,6 @@ export function ReturnFormContent(): React.JSX.Element {
                     testId="return-form-images-grid"
                   />
                 </EntityImagesProvider>
-              </ContentCard>
-              <ContentCard>
-                <ItemIssuesField />
               </ContentCard>
               <ContentCard>
                 <TaskAdditionalDetailsField />

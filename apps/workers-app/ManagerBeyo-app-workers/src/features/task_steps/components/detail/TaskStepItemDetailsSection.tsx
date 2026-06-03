@@ -1,4 +1,4 @@
-import { TaskIssuesSection } from "@beyo/tasks";
+import { ItemIssuePreviewSection } from "@beyo/item-issues";
 import type { ItemCategoryViewModel } from "@beyo/item-categories";
 import {
   DashedInfoGroup,
@@ -57,6 +57,7 @@ export function TaskStepItemDetailsSection(): React.JSX.Element | null {
     isItemCategoryPending,
     isItemCategoryError,
     isSeatCategory,
+    workingSectionId,
     issuesSurfaceOpeners,
   } = useTaskStepDetailContext();
 
@@ -72,8 +73,10 @@ export function TaskStepItemDetailsSection(): React.JSX.Element | null {
 
   if (!shouldRenderDetails) {
     return (
-      <TaskIssuesSection
+      <ItemIssuePreviewSection
         itemId={step.item.client_id}
+        itemCategoryId={step.item.item_category_id ?? null}
+        workingSectionId={workingSectionId}
         surfaceOpeners={issuesSurfaceOpeners}
         data-testid="task-step-item-issues-section"
       />
@@ -119,8 +122,10 @@ export function TaskStepItemDetailsSection(): React.JSX.Element | null {
         </div>
       </DashedInfoSection>
 
-      <TaskIssuesSection
+      <ItemIssuePreviewSection
         itemId={step.item.client_id}
+        itemCategoryId={step.item.item_category_id ?? null}
+        workingSectionId={workingSectionId}
         surfaceOpeners={issuesSurfaceOpeners}
         data-testid="task-step-item-issues-section"
       />

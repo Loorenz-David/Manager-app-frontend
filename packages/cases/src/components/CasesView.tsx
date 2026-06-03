@@ -1,5 +1,4 @@
 import { useRef } from "react";
-import { History } from "lucide-react";
 
 import { PullToRefresh, SearchBar } from "@beyo/ui";
 
@@ -56,13 +55,6 @@ export function CasesView(): React.JSX.Element {
               Cases
             </h1>
           </div>
-          <button
-            className="inline-flex items-center gap-2 rounded-full bg-card px-4 py-2 text-sm font-medium text-foreground shadow-sm border-[color:var(--color-light-border)]"
-            type="button"
-          >
-            <History className="size-4" />
-            <span>History</span>
-          </button>
         </div>
 
         <p className="mt-1 text-sm text-muted-foreground">{todayLabel}</p>

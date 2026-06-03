@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 
+import { generateClientId } from '@beyo/lib';
 import { useAddTaskStep } from '@/features/tasks/actions/use-add-task-step';
 import { useRemoveTaskStep } from '@/features/tasks/actions/use-remove-task-step';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
@@ -19,7 +20,6 @@ import type {
   WorkingSectionOption,
 } from '@/features/working-sections/types';
 import { useSurface } from '@/hooks/use-surface';
-import { generateClientId } from '@/lib/client-id';
 import { useSurfaceStore } from '@/providers/SurfaceProvider';
 
 type TaskStep = TaskDetailRaw['task_steps'][number];
@@ -330,8 +330,10 @@ export function useTaskWorkingSectionsController(
     closeSlide();
 
     try {
-      for (const stepId of recoverySnapshot.recoveredPendingRemoveIds ?? []) {
-        await removeTaskStep.mutateAsync({ step_id: stepId });
+      const pendingRemoveIds = recoverySnapshot.recoveredPendingRemoveIds ?? [];
+
+      if (pendingRemoveIds.length > 0) {
+        await removeTaskStep.mutateAsync({ step_ids: pendingRemoveIds });
       }
 
       for (const pendingAdd of recoverySnapshot.recoveredPendingAdds ?? []) {

@@ -124,9 +124,6 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
 
     const existingIndex = stack.findIndex((surface) => surface.id === id);
     if (existingIndex >= 0) {
-      const nextStack = [...stack];
-      nextStack[existingIndex] = { id, ...registration, props };
-      set({ stack: nextStack });
       return;
     }
 

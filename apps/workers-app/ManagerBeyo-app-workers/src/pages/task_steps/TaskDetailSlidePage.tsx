@@ -5,6 +5,7 @@ import { ContentCard, PullToRefresh, useScrollVisibility } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
+  TaskStepCompletionUndoButton,
   TaskStepDetailFooter,
   TaskStepDetailHeader,
   TaskStepImagesPreview,
@@ -44,7 +45,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const isStepTransitioning =
     controller.isTransitioning &&
     controller.transitioningStepId === controller.vm.stepId;
-  const canTransitionToCompleted = controller.vm.state === "working";
+  const pendingCompletion =
+    controller.pendingCompletion?.stepId === controller.vm.stepId
+      ? controller.pendingCompletion
+      : null;
+  const canShowCompletionAction =
+    controller.vm.state === "working" || pendingCompletion !== null;
 
   return (
     <div className="relative flex h-full flex-col bg-background">
@@ -82,6 +88,8 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                 <TaskFlowTimeline
                   taskId={controller.taskId}
                   onRecordPress={controller.handleOpenFlowRecord}
+                  initialLimit={3}
+                  loadMoreSize={5}
                 />
               </div>
             </ContentCard>
@@ -89,7 +97,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         </div>
       </PullToRefresh>
 
-      {!controller.isStepTerminal && canTransitionToCompleted ? (
+      {canShowCompletionAction ? (
         <div
           className={cn(
             "absolute inset-x-0 bottom-0 z-0 transition-transform duration-300",
@@ -97,15 +105,24 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           )}
         >
           <div className="px-4 pb-[calc(var(--safe-bottom,0)+5.25rem)] pt-3">
-            <button
-              type="button"
-              className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
-              data-testid="task-step-complete-button"
-              disabled={isStepTransitioning}
-              onClick={controller.handleComplete}
-            >
-              Complete task
-            </button>
+            {pendingCompletion ? (
+              <TaskStepCompletionUndoButton
+                expiresAt={pendingCompletion.expiresAt}
+                isCancelling={controller.isCancellingCompletion}
+                onExpired={controller.handleCompletionExpired}
+                onUndo={controller.handleCancelCompletion}
+              />
+            ) : (
+              <button
+                type="button"
+                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
+                data-testid="task-step-complete-button"
+                disabled={isStepTransitioning}
+                onClick={controller.handleComplete}
+              >
+                Complete task
+              </button>
+            )}
           </div>
         </div>
       ) : null}

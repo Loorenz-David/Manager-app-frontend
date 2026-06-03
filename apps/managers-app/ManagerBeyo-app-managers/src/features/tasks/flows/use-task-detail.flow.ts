@@ -1,8 +1,4 @@
 import { useSurface } from "@/hooks/use-surface";
-import {
-  ITEM_FAST_ISSUE_SHEET_SURFACE_ID,
-  type TaskIssueSurfaceOpeners,
-} from "@beyo/tasks";
 
 import {
   ITEM_POSITION_SHEET_SURFACE_ID,
@@ -18,19 +14,8 @@ import {
 export function useTaskDetailFlow(
   taskId: string,
   itemId: string | null,
-  itemCategoryId: string | null,
 ) {
   const surface = useSurface();
-  const issuesSurfaceOpeners: TaskIssueSurfaceOpeners = itemId
-    ? {
-        openFastIssueSheet: () =>
-          surface.open(ITEM_FAST_ISSUE_SHEET_SURFACE_ID, {
-            taskId,
-            itemId,
-            itemCategoryId,
-          }),
-      }
-    : {};
 
   return {
     openMenu: () => surface.open(TASK_ACTIONS_SHEET_SURFACE_ID, { taskId }),
@@ -63,6 +48,5 @@ export function useTaskDetailFlow(
         taskId,
         flowRecordId,
       }),
-    issuesSurfaceOpeners,
   };
 }

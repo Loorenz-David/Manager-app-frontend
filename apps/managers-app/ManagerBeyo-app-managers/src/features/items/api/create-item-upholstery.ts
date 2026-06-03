@@ -1,7 +1,7 @@
 import { z } from "zod";
 
+import { ClientIdSchema } from "@beyo/lib";
 import { apiClient } from "@/lib/api-client";
-import { ClientIdSchema } from "@/lib/client-id";
 import { ApiEnvelopeSchema } from "@/types/api";
 
 const CreateItemUpholsteryInputSchema = z.object({

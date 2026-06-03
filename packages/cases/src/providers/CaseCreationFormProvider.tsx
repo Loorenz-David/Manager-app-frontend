@@ -2,12 +2,13 @@ import { createContext, useContext, useState } from "react";
 
 import { generateClientId } from "@beyo/lib";
 import type { CaseId } from "@beyo/lib";
+import { toBackendPlainText } from "../lib/message-content-adapter";
+import type { CaseMessageContent } from "../message-content";
 import type { CaseCreationSurfaceOpeners } from "../surface-ids";
 import type {
   CaseTypeSelectedDisplay,
   ParticipantSelectedDisplay,
 } from "../types";
-import type { CaseMessageContent } from "../message-content";
 
 type CaseCreationFormContextValue = {
   caseClientId: CaseId;
@@ -24,6 +25,7 @@ type CaseCreationFormContextValue = {
   composerContent: CaseMessageContent;
   composerPlainText: string;
   setComposerContent: (content: CaseMessageContent, plainText: string) => void;
+  onCaseCreated: ((plainText: string | undefined) => void) | undefined;
 };
 
 const CaseCreationFormContext =
@@ -34,17 +36,23 @@ export function CaseCreationFormProvider({
   entityTypes,
   entityClientId,
   surfaceOpeners,
+  onCaseCreated,
+  initialCaseType,
+  initialComposerContent,
 }: {
   children: React.ReactNode;
   entityTypes?: string[];
   entityClientId?: string;
   surfaceOpeners?: CaseCreationSurfaceOpeners;
+  onCaseCreated?: (plainText: string | undefined) => void;
+  initialCaseType?: CaseTypeSelectedDisplay;
+  initialComposerContent?: CaseMessageContent;
 }): React.JSX.Element {
   const [caseClientId, setCaseClientId] = useState<CaseId>(
     () => generateClientId("Case") as CaseId,
   );
   const [selectedCaseType, setSelectedCaseType] =
-    useState<CaseTypeSelectedDisplay | null>(null);
+    useState<CaseTypeSelectedDisplay | null>(() => initialCaseType ?? null);
   const [selectedParticipants, setSelectedParticipants] = useState<
     ParticipantSelectedDisplay[]
   >([]);
@@ -52,8 +60,10 @@ export function CaseCreationFormProvider({
     number | null
   >(null);
   const [composerContent, setComposerContentState] =
-    useState<CaseMessageContent>(() => ({ parts: [] }));
-  const [composerPlainText, setComposerPlainText] = useState<string>("");
+    useState<CaseMessageContent>(() => initialComposerContent ?? { parts: [] });
+  const [composerPlainText, setComposerPlainText] = useState<string>(() =>
+    initialComposerContent ? toBackendPlainText(initialComposerContent) : "",
+  );
 
   function regenerateId(): void {
     setCaseClientId(generateClientId("Case") as CaseId);
@@ -84,6 +94,7 @@ export function CaseCreationFormProvider({
         composerContent,
         composerPlainText,
         setComposerContent,
+        onCaseCreated,
       }}
     >
       {children}

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 
-import { generateClientId } from '@/lib/client-id';
+import { generateClientId } from '@beyo/lib';
 
 type TaskCreationFormContextValue = {
   taskClientId: string;

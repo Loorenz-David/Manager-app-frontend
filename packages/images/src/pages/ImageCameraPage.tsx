@@ -2,6 +2,7 @@ import { Camera, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCameraStream } from "../hooks/use-camera-stream";
+import { preloadImageEditorSurface } from "../surfaces";
 import type { ImageCameraSurfaceProps } from "../controllers/use-entity-images.controller";
 import { useSurfaceHeader } from "@beyo/hooks";
 import { useSurfaceProps } from "@beyo/hooks";
@@ -42,6 +43,12 @@ export function ImageCameraPage(): React.JSX.Element {
   useEffect(() => {
     void startStream();
   }, [startStream]);
+
+  useEffect(() => {
+    if (captureFlow === "camera-to-editor") {
+      void preloadImageEditorSurface();
+    }
+  }, [captureFlow]);
 
   useEffect(
     () => () => {

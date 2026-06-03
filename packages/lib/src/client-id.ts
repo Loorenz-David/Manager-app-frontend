@@ -23,7 +23,7 @@ export const CLIENT_ID_PREFIXES = {
   ImageLink: 'iml',
   Item: 'itm',
   ItemCategory: 'itc',
-  ItemIssue: 'iis',
+  ItemIssue: 'iti',
   ItemUpholstery: 'iup',
   ItemUpholsteryRequirement: 'iur',
   Notification: 'not',

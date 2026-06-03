@@ -8,6 +8,7 @@ export {
   IMAGE_ANNOTATION_ACTIONS_SURFACE_ID,
   imageSurfaces,
   preloadImageCameraSurface,
+  preloadImageEditorSurface,
   preloadImageViewerSurface,
 } from "./surfaces";
 export type {
@@ -60,5 +61,6 @@ export { useDeleteImage } from "./actions/use-delete-image";
 
 export {
   preloadImageCameraSurface as preloadImageCamera,
+  preloadImageEditorSurface as preloadImageEditor,
   preloadImageViewerSurface as preloadImageViewer,
 } from "./preload";

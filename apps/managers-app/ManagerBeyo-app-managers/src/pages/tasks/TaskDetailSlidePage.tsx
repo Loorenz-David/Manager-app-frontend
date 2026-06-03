@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { TaskFlowTimeline, TaskIssuesSection } from "@beyo/tasks";
+import { TaskFlowTimeline } from "@beyo/tasks";
 import { PullToRefresh } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
@@ -68,10 +68,6 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             <DashedInfoGroup>
               <TaskCustomerSection />
               <TaskWorkingSectionsField />
-              <TaskIssuesSection
-                itemId={controller.taskDetail.item?.client_id}
-                surfaceOpeners={controller.issuesSurfaceOpeners}
-              />
               <TaskScheduledDeliverySection />
             </DashedInfoGroup>
             <TaskImagesSection />
@@ -80,6 +76,8 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             <TaskFlowTimeline
               taskId={controller.taskId}
               onRecordPress={controller.openFlowRecord}
+              initialLimit={3}
+              loadMoreSize={5}
             />
           </ContentCard>
         </div>

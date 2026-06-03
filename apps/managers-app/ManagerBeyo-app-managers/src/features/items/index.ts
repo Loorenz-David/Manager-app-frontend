@@ -12,7 +12,6 @@ export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity'
 export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
 export { useUpdateItem } from './actions/use-update-item';
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
-export { ItemIssuesField } from '@beyo/tasks';
 export { itemSurfaces, preloadItemCategoryPickerSurface } from './surfaces';
 export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 
@@ -33,8 +32,9 @@ export type {
   ItemUpholsteryFields,
   ItemViewModel,
   ListItemCategoriesPickerParams,
+  ListIssueCategoryConfigsParams,
   ListItemsParams,
   UpdateItemInput,
 } from './types';
-export type { ItemIssueFieldEntry, ListIssueCategoryConfigsParams } from '@beyo/tasks';
+export type { ItemIssueFieldEntry } from './types';
 export type { ItemId } from '@/types/common';

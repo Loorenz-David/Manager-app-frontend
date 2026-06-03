@@ -5,6 +5,7 @@ import type {
   CaseTypeSelectedDisplay,
   ParticipantSelectionResult,
 } from "./types";
+import type { CaseMessageContent } from "./message-content";
 
 export const CASE_CONVERSATION_SURFACE_ID = "case-conversation-slide";
 export const CASE_CREATION_SLIDE_SURFACE_ID = "case-creation-slide";
@@ -47,6 +48,9 @@ export type CaseCreationSlideSurfaceProps = {
   entityClientId?: string;
   title?: string;
   surfaceOpeners: CaseCreationSurfaceOpeners;
+  onCaseCreated?: (plainText: string | undefined) => void;
+  initialCaseType?: CaseTypeSelectedDisplay;
+  initialComposerContent?: CaseMessageContent;
 };
 
 export type CaseTaskInfoSheetSurfaceProps = {
