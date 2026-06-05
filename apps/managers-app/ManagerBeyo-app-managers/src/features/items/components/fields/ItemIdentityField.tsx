@@ -15,6 +15,9 @@ const STORAGE_KEY = "item-identity-field-active-tab";
 
 const IDENTITY_TABS = ["article_number", "sku"] as const;
 type IdentityTab = (typeof IDENTITY_TABS)[number];
+type ItemIdentityFieldProps = {
+  onOpenScanner?: (tab: IdentityTab) => void;
+};
 
 const TAB_OPTIONS: readonly BoxSlidePickerOptionType<IdentityTab>[] = [
   {
@@ -54,7 +57,9 @@ function readStoredTab(): IdentityTab {
   return "article_number";
 }
 
-export function ItemIdentityField(): React.JSX.Element {
+export function ItemIdentityField({
+  onOpenScanner,
+}: ItemIdentityFieldProps): React.JSX.Element {
   const {
     register,
     formState: { errors },
@@ -117,7 +122,7 @@ export function ItemIdentityField(): React.JSX.Element {
                     data-testid="item-article-number-scan-button"
                     type="button"
                     onClick={() => {
-                      console.log("opening scanner...");
+                      onOpenScanner?.(activeTab);
                     }}
                   >
                     <ScanLine className="size-4" />
@@ -140,7 +145,7 @@ export function ItemIdentityField(): React.JSX.Element {
                     data-testid="item-sku-scan-button"
                     type="button"
                     onClick={() => {
-                      console.log("opening scanner...");
+                      onOpenScanner?.(activeTab);
                     }}
                   >
                     <ScanLine className="size-4" />

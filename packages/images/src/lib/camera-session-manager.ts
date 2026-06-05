@@ -168,6 +168,10 @@ export function forceStopCameraStream(sessionId: string): void {
   releaseCameraStream();
 }
 
+export function forceReleaseAnyCameraStream(): void {
+  releaseCameraStream();
+}
+
 export async function prewarmCameraStream(): Promise<void> {
   keepCameraStreamWarm(PREWARM_CAMERA_SESSION_ID);
   await getOrCreateCameraStream();

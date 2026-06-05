@@ -2,7 +2,6 @@ import {
   createContext,
   useContext,
   useEffect,
-  useRef,
   type ReactNode,
 } from "react";
 
@@ -13,6 +12,7 @@ import {
   type ImageCaptureFlow,
   type ImageViewerMode,
 } from "../controllers/use-entity-images.controller";
+import { forceReleaseAnyCameraStream } from "../lib/camera-session-manager";
 import type { ImageLinkEntityType } from "../types";
 
 const EntityImagesContext = createContext<EntityImagesController | null>(null);
@@ -56,13 +56,9 @@ export function EntityImagesProvider({
     deleteMode,
     onImagesChanged,
   });
-  const stopCameraNowRef = useRef(controller.stopCameraNow);
-
-  stopCameraNowRef.current = controller.stopCameraNow;
-
   useEffect(() => {
     return () => {
-      stopCameraNowRef.current();
+      forceReleaseAnyCameraStream();
     };
   }, []);
 

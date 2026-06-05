@@ -1,5 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  SCANNER_SESSION_ID,
+  SCANNER_SLIDE_SURFACE_ID,
+  useCameraPrewarm,
+  type ScanFormat,
+  type ScannerSlideSurfaceProps,
+} from "@beyo/scanner";
 import { usePrefetchOnCondition } from "@beyo/ui";
 import {
   Controller,
@@ -36,6 +43,7 @@ import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
+  preloadScannerSlideSurface,
 } from "@/features/items";
 import { preloadPhoneCountryPickerSurface } from "@/features/phone-input";
 import {
@@ -106,6 +114,7 @@ export function PreOrderFormContent(): React.JSX.Element {
   usePreloadSurface(preloadCalendarRangePickerSurface);
   usePreloadSurface(preloadCalendarSinglePickerSurface);
   usePreloadSurface(preloadItemCategoryPickerSurface);
+  usePreloadSurface(preloadScannerSlideSurface);
   usePreloadSurface(preloadPhoneCountryPickerSurface);
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
@@ -114,6 +123,7 @@ export function PreOrderFormContent(): React.JSX.Element {
     useTaskCreationFormContext();
   const createTask = useCreateTask();
   const surface = useSurface();
+  useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
     defaultValues: {
@@ -161,6 +171,24 @@ export function PreOrderFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.quantity",
   });
+
+  function handleOpenScanner(tab: "article_number" | "sku"): void {
+    const scanFormat: ScanFormat =
+      tab === "article_number" ? "barcode" : "qr";
+
+    surface.open(SCANNER_SLIDE_SURFACE_ID, {
+      sessionId: SCANNER_SESSION_ID,
+      scanFormat,
+      onScan: (value: string) => {
+        form.setValue(
+          tab === "article_number" ? "item.article_number" : "item.sku",
+          value,
+          { shouldDirty: true },
+        );
+        surface.close(SCANNER_SLIDE_SURFACE_ID);
+      },
+    } satisfies ScannerSlideSurfaceProps);
+  }
 
   const staged = useStagedForm({
     steps: [
@@ -254,7 +282,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           <StagedFormStep id="task" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
-                <ItemIdentityField />
+                <ItemIdentityField onOpenScanner={handleOpenScanner} />
                 <ItemPositionField />
               </ContentCard>
               <ContentCard>

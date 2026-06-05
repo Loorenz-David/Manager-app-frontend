@@ -12,7 +12,11 @@ export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity'
 export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
 export { useUpdateItem } from './actions/use-update-item';
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
-export { itemSurfaces, preloadItemCategoryPickerSurface } from './surfaces';
+export {
+  itemSurfaces,
+  preloadItemCategoryPickerSurface,
+  preloadScannerSlideSurface,
+} from './surfaces';
 export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 
 export { ItemDetailsFieldsSchema } from './types';

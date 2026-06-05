@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { Plus, RotateCcw, ShoppingBag, Wrench, X } from "lucide-react";
 import { useState } from "react";
 
+import { SCANNER_SESSION_ID, useCameraPrewarm } from "@beyo/scanner";
+
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { cn } from "@/lib/utils";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
@@ -56,6 +58,7 @@ export function TaskCreationFab(): React.JSX.Element {
   usePreloadSurface(preloadReturnTaskSlideSurface);
   usePreloadSurface(preloadPreOrderTaskSlideSurface);
   usePreloadSurface(preloadInternalTaskSlideSurface);
+  useCameraPrewarm(SCANNER_SESSION_ID, 0, isOpen);
 
   function handleActionPress(surfaceId: string): void {
     useSurfaceStore.getState().open(surfaceId);

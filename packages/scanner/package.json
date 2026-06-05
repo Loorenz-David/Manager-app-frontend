@@ -1,0 +1,16 @@
+{
+  "name": "@beyo/scanner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@beyo/hooks": "*",
+    "@zxing/browser": ">=0.0.0",
+    "@zxing/library": ">=0.0.0",
+    "framer-motion": ">=12.0.0",
+    "react": ">=19.0.0"
+  }
+}

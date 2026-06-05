@@ -1,6 +1,13 @@
 import { useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import {
+  SCANNER_SESSION_ID,
+  SCANNER_SLIDE_SURFACE_ID,
+  useCameraPrewarm,
+  type ScanFormat,
+  type ScannerSlideSurfaceProps,
+} from "@beyo/scanner";
 import { usePrefetchOnCondition } from "@beyo/ui";
 import {
   Controller,
@@ -22,6 +29,7 @@ import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
+  preloadScannerSlideSurface,
 } from "@/features/items";
 import {
   TaskAdditionalDetailsField,
@@ -32,6 +40,7 @@ import {
   WorkingSectionPickerField,
   preloadWorkingSectionWorkerPickerSurface,
 } from "@/features/working-sections";
+import { useSurface } from "@/hooks/use-surface";
 import { useStagedForm } from "@/hooks/use-staged-form";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 
@@ -80,14 +89,17 @@ export function InternalFormContent(): React.JSX.Element {
 
   usePreloadSurface(preloadCalendarSinglePickerSurface);
   usePreloadSurface(preloadItemCategoryPickerSurface);
+  usePreloadSurface(preloadScannerSlideSurface);
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
 
+  const surface = useSurface();
   const { taskClientId, itemClientId, customerClientId, regenerateIds } =
     useTaskCreationFormContext();
   const createTask = useCreateTask();
+  useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
     defaultValues: {
@@ -119,6 +131,24 @@ export function InternalFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.quantity",
   });
+
+  function handleOpenScanner(tab: "article_number" | "sku"): void {
+    const scanFormat: ScanFormat =
+      tab === "article_number" ? "barcode" : "qr";
+
+    surface.open(SCANNER_SLIDE_SURFACE_ID, {
+      sessionId: SCANNER_SESSION_ID,
+      scanFormat,
+      onScan: (value: string) => {
+        form.setValue(
+          tab === "article_number" ? "item.article_number" : "item.sku",
+          value,
+          { shouldDirty: true },
+        );
+        surface.close(SCANNER_SLIDE_SURFACE_ID);
+      },
+    } satisfies ScannerSlideSurfaceProps);
+  }
 
   const staged = useStagedForm({
     steps: [
@@ -229,7 +259,7 @@ export function InternalFormContent(): React.JSX.Element {
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
-                <ItemIdentityField />
+                <ItemIdentityField onOpenScanner={handleOpenScanner} />
                 <ItemPositionField />
               </ContentCard>
               <ContentCard>
