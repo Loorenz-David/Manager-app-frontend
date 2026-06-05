@@ -7,6 +7,8 @@ export type ItemIssueSelectionSheetSurfaceProps = {
   itemCategoryId: string | null;
   stepId?: string | null;
   workerId?: string | null;
+  /** Each tuple merges its placements into one tab. Unlisted placements remain as individual tabs. */
+  placementGroups?: [string, ...string[]][];
   onSaved?: () => void;
 };
 

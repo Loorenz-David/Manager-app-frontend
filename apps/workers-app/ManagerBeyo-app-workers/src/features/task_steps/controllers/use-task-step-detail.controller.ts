@@ -223,6 +223,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
           stepId: targetStepId,
           taskId: targetTaskId,
           workingSectionId: resolvedWorkingSectionId,
+          workingSectionName: step.working_section_name_snapshot,
           itemId: step.item?.client_id,
           itemCategoryId: step.item?.item_category_id ?? null,
           workerId: user?.id ?? null,

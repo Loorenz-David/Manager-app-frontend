@@ -164,6 +164,7 @@ export function useWorkingSectionStepsController(
           stepId,
           taskId,
           workingSectionId: sectionId,
+          workingSectionName: step.working_section_name_snapshot,
           itemId: step.item?.client_id,
           itemCategoryId: step.item?.item_category_id ?? null,
           workerId: user?.id ?? null,

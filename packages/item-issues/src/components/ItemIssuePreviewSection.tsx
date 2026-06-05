@@ -39,11 +39,7 @@ export function ItemIssuePreviewSection({
       <EyebrowLabel>Issues Found</EyebrowLabel>
       <div className="flex flex-wrap gap-2">
         {issues.map((issue) => (
-          <InfoPill
-            key={issue.client_id}
-            className="border-amber-400 bg-amber-50 text-amber-500"
-            data-testid="item-issue-pill"
-          >
+          <InfoPill key={issue.client_id} data-testid="item-issue-pill">
             <span>{issue.issue_type_snapshot}</span>
             {issue.issue_mode_snapshot !== "switch" ? (
               <span className="ml-1 text-xs opacity-70">

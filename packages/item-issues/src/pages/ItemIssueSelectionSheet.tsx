@@ -28,12 +28,12 @@ function renderIssueBox(
     <button
       key={issueType.client_id}
       className={cn(
-        "relative min-h-15 overflow-hidden rounded-2xl border border-dashed border-amber-800 p-4 text-left transition-colors duration-200 ease-out",
+        "relative min-h-15 overflow-hidden rounded-2xl border border-dashed border-border shadow-xs p-4 text-left transition-colors duration-200 ease-out",
         isSwitchMode
           ? intensity > 0
-            ? "bg-amber-200 text-amber-800"
-            : "bg-card text-amber-800"
-          : "bg-card",
+            ? "bg-primary text-card"
+            : "bg-card text-primary"
+          : "bg-card text-primary",
       )}
       data-intensity={intensity}
       data-issue-type-id={issueType.client_id}
@@ -45,7 +45,7 @@ function renderIssueBox(
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none relative z-10 text-sm font-medium transition-colors text-amber-800",
+            "pointer-events-none relative z-10 text-sm font-medium transition-colors",
           )}
         >
           {issueType.name}
@@ -54,19 +54,19 @@ function renderIssueBox(
         <>
           <div
             aria-hidden="true"
-            className="absolute inset-y-0 left-0 bg-amber-200 transition-all duration-200 ease-out"
+            className="absolute inset-y-0 left-0 bg-primary transition-all duration-200 ease-out"
             style={{ width: `${fillPercent}%` }}
           />
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-center p-4 text-sm font-medium text-amber-800"
+            className="pointer-events-none absolute inset-0 flex items-center p-4 text-sm font-medium text-primary"
             style={{ clipPath: `inset(0 0 0 ${fillPercent}%)` }}
           >
             {issueType.name}
           </span>
           <span
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 flex items-center p-4 text-sm font-medium text-amber-800"
+            className="pointer-events-none absolute inset-0 flex items-center p-4 text-sm font-medium text-card"
             style={{ clipPath: `inset(0 ${100 - fillPercent}% 0 0)` }}
           >
             {issueType.name}
@@ -106,6 +106,7 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
     itemCategoryId,
     stepId,
     workerId,
+    placementGroups,
     onSaved,
   } = useSurfaceProps<ItemIssueSelectionSheetSurfaceProps>();
 
@@ -160,9 +161,14 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
         ? groupIssueTypesByPlacement(
             issueTypesQuery.data?.issue_types ?? [],
             resolvedItemCategoryId,
+            placementGroups,
           )
         : [],
-    [issueTypesQuery.data?.issue_types, resolvedItemCategoryId],
+    [
+      issueTypesQuery.data?.issue_types,
+      resolvedItemCategoryId,
+      placementGroups,
+    ],
   );
 
   useEffect(() => {
@@ -296,7 +302,7 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
       className="flex max-h-[85vh] flex-col bg-background"
       data-testid="item-issue-selection-sheet"
     >
-      <h2 className="px-4 pb-1 pt-5 text-base font-semibold text-amber-800">
+      <h2 className="px-4 pb-1 pt-5 text-base font-semibold text-primary">
         Item issues
       </h2>
 
@@ -308,8 +314,8 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
               className={cn(
                 "shrink-0 rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
                 index === activeTabIndex
-                  ? "bg-amber-500 text-card"
-                  : "bg-secondary text-amber-800",
+                  ? "bg-primary text-card"
+                  : "bg-secondary text-primary",
               )}
               data-active={String(index === activeTabIndex)}
               data-testid="issue-placement-tab"
@@ -415,7 +421,7 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
 
       <div className="flex gap-3 px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3">
         <button
-          className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground disabled:opacity-50"
+          className="flex-1 rounded-xl border border-light-border bg-card px-4 py-3 text-sm font-semibold shadow-sm text-foreground disabled:opacity-50"
           data-testid="cancel-issues-button"
           disabled={isSaving}
           type="button"
@@ -424,7 +430,7 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
           Cancel
         </button>
         <button
-          className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-card disabled:opacity-50"
+          className="flex-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold shadow-sm text-card disabled:opacity-50"
           data-testid="save-issues-button"
           disabled={isSaving}
           type="button"

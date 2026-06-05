@@ -31,6 +31,7 @@ export function cycleIntensity(current: IssueIntensity): IssueIntensity {
 export function groupIssueTypesByPlacement(
   issueTypes: IssueType[],
   itemCategoryId: string,
+  placementGroups?: [string, ...string[]][],
 ): IssueTypeGroup[] {
   const groupMap = new Map<string, IssueType[]>();
 
@@ -47,10 +48,34 @@ export function groupIssueTypesByPlacement(
     groupMap.set(link.placement_of_issue, current);
   }
 
-  return Array.from(groupMap.entries()).map(([placement, issueTypes]) => ({
-    placement,
-    issueTypes,
-  }));
+  if (!placementGroups || placementGroups.length === 0) {
+    return Array.from(groupMap.entries()).map(([placement, types]) => ({
+      placement,
+      issueTypes: types,
+    }));
+  }
+
+  const result: IssueTypeGroup[] = [];
+  const consumed = new Set<string>();
+
+  for (const group of placementGroups) {
+    const merged: IssueType[] = [];
+    for (const placement of group) {
+      merged.push(...(groupMap.get(placement) ?? []));
+      consumed.add(placement);
+    }
+    if (merged.length > 0) {
+      result.push({ placement: group.join(" + "), issueTypes: merged });
+    }
+  }
+
+  for (const [placement, types] of groupMap.entries()) {
+    if (!consumed.has(placement)) {
+      result.push({ placement, issueTypes: types });
+    }
+  }
+
+  return result;
 }
 
 export function hasIssueTypesForContext(

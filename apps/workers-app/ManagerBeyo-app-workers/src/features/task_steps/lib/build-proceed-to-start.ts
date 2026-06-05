@@ -11,6 +11,7 @@ import {
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 
 import type { TransitionStepStateAction } from "../actions/use-transition-step-state";
+import { getIssuePlacementGroups } from "./issue-placement-groups";
 
 type OpenSurface = ReturnType<typeof useSurface>["open"];
 
@@ -18,6 +19,7 @@ type ProceedToStartArgs = {
   stepId: TaskStepId;
   taskId: TaskId;
   workingSectionId: WorkingSectionId;
+  workingSectionName: string | null | undefined;
   itemId: string | null | undefined;
   itemCategoryId: string | null | undefined;
   workerId: string | null | undefined;
@@ -47,6 +49,7 @@ export function buildProceedToStart(args: ProceedToStartArgs): () => void {
       stepId,
       taskId,
       workingSectionId,
+      workingSectionName,
       itemId,
       itemCategoryId,
       workerId,
@@ -68,6 +71,7 @@ export function buildProceedToStart(args: ProceedToStartArgs): () => void {
         itemCategoryId: itemCategoryId ?? null,
         stepId,
         workerId: workerId ?? null,
+        placementGroups: getIssuePlacementGroups(workingSectionName),
         onSaved: () => {
           transitionStepState({
             task_id: taskId,
