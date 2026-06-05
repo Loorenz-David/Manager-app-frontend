@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { ClientIdSchema } from '@beyo/lib';
 import type { ItemId, ItemImageId } from '@/types/common';
 
-export const IMAGE_SOURCE_TYPE = ['uploaded', 'shopify_sync', 'generated'] as const;
+export const IMAGE_SOURCE_TYPE = [
+  'uploaded',
+  'shopify_sync',
+  'generated',
+  'external_url',
+] as const;
 export const IMAGE_SOURCE_REFERENCE = ['s3_image_url', 'shopify_image_url'] as const;
 
 export const ItemImageSchema = z.object({
@@ -50,6 +55,21 @@ export const UnlinkItemImageInputSchema = z.object({
   entity_client_id: z.string().transform((v) => v as ItemId),
 });
 export type UnlinkItemImageInput = z.infer<typeof UnlinkItemImageInputSchema>;
+
+export const CreateImageFromUrlInputSchema = z.object({
+  image_url: z.string().url(),
+  entity_type: z.literal('item'),
+  entity_client_id: z.string().transform((v) => v as ItemId),
+  image_client_id: z.string().optional(),
+  width_px: z.number().int().positive().nullable().optional(),
+  height_px: z.number().int().positive().nullable().optional(),
+});
+export type CreateImageFromUrlInput = z.infer<typeof CreateImageFromUrlInputSchema>;
+
+export const CreateImageFromUrlBatchSchema = z
+  .array(CreateImageFromUrlInputSchema)
+  .min(1);
+export type CreateImageFromUrlBatch = z.infer<typeof CreateImageFromUrlBatchSchema>;
 
 export type ListItemImagesParams = {
   entity_type: 'item';

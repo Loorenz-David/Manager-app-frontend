@@ -1,3 +1,4 @@
+import { useEffectEvent, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -44,6 +45,7 @@ import {
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
   preloadScannerSlideSurface,
+  type ItemLookupResult,
 } from "@/features/items";
 import { preloadPhoneCountryPickerSurface } from "@/features/phone-input";
 import {
@@ -63,6 +65,11 @@ import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurface } from "@/hooks/use-surface";
 import type { StepStatus } from "@/types/staged-form";
 
+import {
+  createLookupResultSignature,
+  findCachedItemCategoryOption,
+  selectInternalLookupResult,
+} from "../lib/item-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
@@ -108,6 +115,7 @@ function UpholsteryField({
 
 export function ReturnFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
+  const lastAppliedLookupSignatureRef = useRef<string | null>(null);
 
   usePreloadSurface(preloadCalendarRangePickerSurface);
   usePreloadSurface(preloadCalendarSinglePickerSurface);
@@ -172,6 +180,42 @@ export function ReturnFormContent(): React.JSX.Element {
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
+  });
+  const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
+    const selectedItem = selectInternalLookupResult(items);
+
+    if (!selectedItem) {
+      return false;
+    }
+
+    const signature = createLookupResultSignature(selectedItem);
+    if (
+      signature &&
+      signature === lastAppliedLookupSignatureRef.current
+    ) {
+      return false;
+    }
+
+    const matchedCategory = findCachedItemCategoryOption(
+      queryClient,
+      selectedItem.item_category_id,
+    );
+
+    form.setValue("item.item_category_id", selectedItem.item_category_id ?? undefined, {
+      shouldDirty: true,
+    });
+    form.setValue("item.article_number", selectedItem.article_number, {
+      shouldDirty: true,
+    });
+    form.setValue("item.major_category", matchedCategory?.major_category, {
+      shouldDirty: true,
+    });
+    form.setValue("item.quantity", selectedItem.quantity, {
+      shouldDirty: true,
+    });
+
+    lastAppliedLookupSignatureRef.current = signature;
+    return true;
   });
   const hasAssignmentStep = returnSource === "before_purchase";
   const shouldShowTaskQuantity = majorCategory === "seat";
@@ -292,7 +336,10 @@ export function ReturnFormContent(): React.JSX.Element {
             <div className="flex flex-col gap-4">
               <ContentCard>
                 <TaskReturnSourceField />
-                <ItemIdentityField onOpenScanner={handleOpenScanner} />
+                <ItemIdentityField
+                  onLookupResult={handleLookupResult}
+                  onOpenScanner={handleOpenScanner}
+                />
                 <ItemPositionField />
               </ContentCard>
               <ContentCard>

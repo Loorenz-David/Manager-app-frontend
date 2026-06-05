@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
-import { ScanLine } from "lucide-react";
-import { useState } from "react";
-import { useFormContext } from "react-hook-form";
+import { Check, Loader2, ScanLine } from "lucide-react";
+import { useEffect, useEffectEvent, useState } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
 
 import {
   BoxSlidePicker,
@@ -9,7 +9,10 @@ import {
   TextInput,
 } from "@/components/primitives";
 import type { BoxSlidePickerOptionType } from "@/components/primitives";
+import { useItemLookupQuery } from "@/features/items/api/use-item-lookup-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import { transitions } from "@/lib/animation";
+import type { ItemLookupResult } from "../../types";
 
 const STORAGE_KEY = "item-identity-field-active-tab";
 
@@ -17,7 +20,14 @@ const IDENTITY_TABS = ["article_number", "sku"] as const;
 type IdentityTab = (typeof IDENTITY_TABS)[number];
 type ItemIdentityFieldProps = {
   onOpenScanner?: (tab: IdentityTab) => void;
+  onLookupResult?: (items: ItemLookupResult[]) => boolean;
 };
+
+const ARTICLE_NUMBER_MIN_LENGTH = 7;
+const PADDED_ARTICLE_NUMBER_MIN_RAW_LENGTH = 3;
+const SKU_MIN_LENGTH = 4;
+const LOOKUP_DEBOUNCE_MS = 400;
+const LOOKUP_SUCCESS_FLASH_MS = 2000;
 
 const TAB_OPTIONS: readonly BoxSlidePickerOptionType<IdentityTab>[] = [
   {
@@ -57,11 +67,25 @@ function readStoredTab(): IdentityTab {
   return "article_number";
 }
 
+function normalizeArticleNumberForLookup(articleNumber: string): string {
+  if (!/^\d+$/.test(articleNumber)) {
+    return articleNumber;
+  }
+
+  if (articleNumber.startsWith("0")) {
+    return articleNumber;
+  }
+
+  return articleNumber.padStart(ARTICLE_NUMBER_MIN_LENGTH, "0");
+}
+
 export function ItemIdentityField({
   onOpenScanner,
+  onLookupResult,
 }: ItemIdentityFieldProps): React.JSX.Element {
   const {
     register,
+    control,
     formState: { errors },
   } = useFormContext();
   const itemErrors = errors as { item?: Record<string, { message?: string }> };
@@ -70,6 +94,68 @@ export function ItemIdentityField({
 
   const [activeTab, setActiveTab] = useState<IdentityTab>(readStoredTab);
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [showLookupSuccess, setShowLookupSuccess] = useState(false);
+  const articleNumber = useWatch({
+    control,
+    name: "item.article_number",
+  });
+  const sku = useWatch({
+    control,
+    name: "item.sku",
+  });
+  const debouncedArticleNumber = useDebounce(
+    articleNumber?.trim() ?? "",
+    LOOKUP_DEBOUNCE_MS,
+  );
+  const debouncedSku = useDebounce(sku?.trim() ?? "", LOOKUP_DEBOUNCE_MS);
+  const normalizedDebouncedArticleNumber = normalizeArticleNumberForLookup(
+    debouncedArticleNumber,
+  );
+
+  const lookupParams =
+    activeTab === "article_number"
+      ? { article_number: normalizedDebouncedArticleNumber }
+      : { sku: debouncedSku };
+  const isLookupEnabled =
+    activeTab === "article_number"
+      ? /^\d+$/.test(debouncedArticleNumber)
+        ? debouncedArticleNumber.length >= PADDED_ARTICLE_NUMBER_MIN_RAW_LENGTH
+        : debouncedArticleNumber.length >= ARTICLE_NUMBER_MIN_LENGTH
+      : debouncedSku.length >= SKU_MIN_LENGTH;
+  const lookupQuery = useItemLookupQuery(lookupParams, {
+    enabled: isLookupEnabled,
+  });
+  const emitLookupResult = useEffectEvent(
+    (items: ItemLookupResult[]) => onLookupResult?.(items) ?? false,
+  );
+
+  useEffect(() => {
+    if (!isLookupEnabled || lookupQuery.status !== "success") {
+      return;
+    }
+
+    if (emitLookupResult(lookupQuery.data.items)) {
+      setShowLookupSuccess(true);
+    }
+  }, [emitLookupResult, isLookupEnabled, lookupQuery.data, lookupQuery.status]);
+
+  useEffect(() => {
+    if (!showLookupSuccess) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowLookupSuccess(false);
+    }, LOOKUP_SUCCESS_FLASH_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [showLookupSuccess]);
+
+  useEffect(() => {
+    setShowLookupSuccess(false);
+  }, [activeTab]);
 
   function handleTabChange(nextTab: IdentityTab) {
     const currentIndex = IDENTITY_TABS.indexOf(activeTab);
@@ -85,6 +171,63 @@ export function ItemIdentityField({
 
   const activeError =
     activeTab === "article_number" ? articleNumberError : skuError;
+  const isLookupLoading = isLookupEnabled && lookupQuery.isFetching;
+  const showSuccessIcon = showLookupSuccess && !isLookupLoading;
+
+  function handleScannerPress(): void {
+    onOpenScanner?.(activeTab);
+  }
+
+  const scannerButtonClassName =
+    "pointer-events-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground";
+  const successButtonClassName =
+    "pointer-events-auto flex size-8 items-center justify-center rounded-full bg-green-600 text-white transition-transform hover:scale-[1.02]";
+
+  const rightIcon = isLookupLoading ? (
+    <span
+      aria-label="Looking up item"
+      className="flex size-8 items-center justify-center text-muted-foreground"
+      data-testid={
+        activeTab === "article_number"
+          ? "item-article-number-loading-indicator"
+          : "item-sku-loading-indicator"
+      }
+    >
+      <Loader2 className="size-4 animate-spin" />
+    </span>
+  ) : showSuccessIcon ? (
+    <button
+      aria-label={
+        activeTab === "article_number" ? "Scan article number" : "Scan SKU"
+      }
+      className={successButtonClassName}
+      data-testid={
+        activeTab === "article_number"
+          ? "item-article-number-success-button"
+          : "item-sku-success-button"
+      }
+      type="button"
+      onClick={handleScannerPress}
+    >
+      <Check className="size-4" />
+    </button>
+  ) : (
+    <button
+      aria-label={
+        activeTab === "article_number" ? "Scan article number" : "Scan SKU"
+      }
+      className={scannerButtonClassName}
+      data-testid={
+        activeTab === "article_number"
+          ? "item-article-number-scan-button"
+          : "item-sku-scan-button"
+      }
+      type="button"
+      onClick={handleScannerPress}
+    >
+      <ScanLine className="size-4" />
+    </button>
+  );
 
   return (
     <div className="flex flex-col gap-2" data-testid="item-identity-field">
@@ -115,19 +258,7 @@ export function ItemIdentityField({
                 id="item-article-number"
                 invalid={Boolean(articleNumberError)}
                 placeholder="e.g. KN-123"
-                rightIcon={
-                  <button
-                    aria-label="Scan article number"
-                    className="pointer-events-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-                    data-testid="item-article-number-scan-button"
-                    type="button"
-                    onClick={() => {
-                      onOpenScanner?.(activeTab);
-                    }}
-                  >
-                    <ScanLine className="size-4" />
-                  </button>
-                }
+                rightIcon={rightIcon}
                 type="text"
                 {...register("item.article_number")}
               />
@@ -138,19 +269,7 @@ export function ItemIdentityField({
                 id="item-sku"
                 invalid={Boolean(skuError)}
                 placeholder="e.g. SKU-456"
-                rightIcon={
-                  <button
-                    aria-label="Scan SKU"
-                    className="pointer-events-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-                    data-testid="item-sku-scan-button"
-                    type="button"
-                    onClick={() => {
-                      onOpenScanner?.(activeTab);
-                    }}
-                  >
-                    <ScanLine className="size-4" />
-                  </button>
-                }
+                rightIcon={rightIcon}
                 type="text"
                 {...register("item.sku")}
               />

@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffectEvent, useRef } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,6 +30,8 @@ import {
   ItemUpholsteryField,
   preloadItemCategoryPickerSurface,
   preloadScannerSlideSurface,
+  useCreateImagesFromUrl,
+  type ItemLookupResult,
 } from "@/features/items";
 import {
   TaskAdditionalDetailsField,
@@ -45,6 +47,12 @@ import { useStagedForm } from "@/hooks/use-staged-form";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 
 import { ContentCard, FieldLabelRow } from "@/components/primitives";
+import {
+  buildCreateImagesFromUrlBatch,
+  createLookupResultSignature,
+  findCachedItemCategoryOption,
+  selectPurchaseApiLookupResult,
+} from "../lib/item-lookup-prefill";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
@@ -94,11 +102,13 @@ export function InternalFormContent(): React.JSX.Element {
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
+  const lastAppliedLookupSignatureRef = useRef<string | null>(null);
 
   const surface = useSurface();
   const { taskClientId, itemClientId, customerClientId, regenerateIds } =
     useTaskCreationFormContext();
   const createTask = useCreateTask();
+  const createImagesFromUrl = useCreateImagesFromUrl();
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
@@ -130,6 +140,50 @@ export function InternalFormContent(): React.JSX.Element {
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
+  });
+  const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
+    const selectedItem = selectPurchaseApiLookupResult(items);
+
+    if (!selectedItem) {
+      return false;
+    }
+
+    const signature = createLookupResultSignature(selectedItem);
+    if (
+      signature &&
+      signature === lastAppliedLookupSignatureRef.current
+    ) {
+      return false;
+    }
+
+    const matchedCategory = findCachedItemCategoryOption(
+      queryClient,
+      selectedItem.item_category_id,
+    );
+
+    form.setValue("item.item_category_id", selectedItem.item_category_id ?? undefined, {
+      shouldDirty: true,
+    });
+    form.setValue("item.article_number", selectedItem.article_number, {
+      shouldDirty: true,
+    });
+    form.setValue("item.major_category", matchedCategory?.major_category, {
+      shouldDirty: true,
+    });
+    form.setValue("item.quantity", selectedItem.quantity, {
+      shouldDirty: true,
+    });
+
+    if (selectedItem.images.length > 0) {
+      void createImagesFromUrl
+        .mutateAsync(
+          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
+        )
+        .catch(() => {});
+    }
+
+    lastAppliedLookupSignatureRef.current = signature;
+    return true;
   });
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {
@@ -221,6 +275,7 @@ export function InternalFormContent(): React.JSX.Element {
           additional_details: "",
         });
         regenerateIds();
+        lastAppliedLookupSignatureRef.current = null;
         staged.navigateTo("item");
       })(),
   });
@@ -259,7 +314,10 @@ export function InternalFormContent(): React.JSX.Element {
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
-                <ItemIdentityField onOpenScanner={handleOpenScanner} />
+                <ItemIdentityField
+                  onLookupResult={handleLookupResult}
+                  onOpenScanner={handleOpenScanner}
+                />
                 <ItemPositionField />
               </ContentCard>
               <ContentCard>

@@ -335,3 +335,20 @@ export type ListIssueCategoryConfigsParams = {
   limit?: number;
   offset?: number;
 };
+
+export const ITEM_LOOKUP_EXTERNAL_SOURCE = ["purchase_api"] as const;
+
+export const ItemLookupResultSchema = z.object({
+  article_number: z.string(),
+  sku: z.string().nullable(),
+  item_category_id: z.string().nullable(),
+  quantity: z.number().int(),
+  external_id: z.string().nullable(),
+  external_source: z.enum(ITEM_LOOKUP_EXTERNAL_SOURCE).nullable(),
+  images: z.array(z.string()),
+});
+export type ItemLookupResult = z.infer<typeof ItemLookupResultSchema>;
+
+export type LookupItemsParams =
+  | { article_number: string; sku?: never }
+  | { sku: string; article_number?: never };

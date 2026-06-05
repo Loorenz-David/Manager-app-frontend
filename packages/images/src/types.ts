@@ -5,7 +5,12 @@ import { ApiEnvelopeSchema } from '@beyo/lib';
 export const IMAGE_STORAGE_PROVIDER = ['s3', 'shopify', 'external'] as const;
 export type ImageStorageProvider = (typeof IMAGE_STORAGE_PROVIDER)[number];
 
-export const IMAGE_SOURCE_TYPE = ['uploaded', 'shopify_sync', 'generated'] as const;
+export const IMAGE_SOURCE_TYPE = [
+  'uploaded',
+  'shopify_sync',
+  'generated',
+  'external_url',
+] as const;
 export type ImageSourceType = (typeof IMAGE_SOURCE_TYPE)[number];
 
 export const IMAGE_SOURCE_REFERENCE = ['s3_image_url', 'shopify_image_url'] as const;
@@ -15,6 +20,7 @@ export const IMAGE_EVENT_TYPE = [
   'upload_item_image',
   'upload_case_image',
   'upload_message_image',
+  'link_external_image',
 ] as const;
 export type ImageEventType = (typeof IMAGE_EVENT_TYPE)[number];
 

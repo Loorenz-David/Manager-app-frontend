@@ -11,6 +11,7 @@ export { useCreateItemUpholstery } from './actions/use-create-item-upholstery';
 export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity';
 export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
 export { useUpdateItem } from './actions/use-update-item';
+export { useCreateImagesFromUrl } from "./subfeatures/item_images";
 export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
 export {
   itemSurfaces,
@@ -20,7 +21,11 @@ export {
 export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 
 export { ItemDetailsFieldsSchema } from './types';
-export { IssueCategoryConfigSchema, ItemCategoryPickerOptionSchema } from './types';
+export {
+  IssueCategoryConfigSchema,
+  ItemCategoryPickerOptionSchema,
+  ItemLookupResultSchema,
+} from "./types";
 export { ItemIssuesFieldSchema, ItemIssuesFieldsSchema } from './types';
 export { ItemUpholsteryFieldsSchema } from './types';
 export type {
@@ -30,6 +35,7 @@ export type {
   ItemCategoryPickerOption,
   ItemCurrency,
   ItemDetailsFields,
+  ItemLookupResult,
   ItemUpholsteryRequirement,
   ItemUpholsteryRequirementState,
   ItemIssuesFields,
@@ -38,7 +44,12 @@ export type {
   ListItemCategoriesPickerParams,
   ListIssueCategoryConfigsParams,
   ListItemsParams,
+  LookupItemsParams,
   UpdateItemInput,
 } from './types';
 export type { ItemIssueFieldEntry } from './types';
+export type {
+  CreateImageFromUrlBatch,
+  CreateImageFromUrlInput,
+} from "./subfeatures/item_images";
 export type { ItemId } from '@/types/common';
