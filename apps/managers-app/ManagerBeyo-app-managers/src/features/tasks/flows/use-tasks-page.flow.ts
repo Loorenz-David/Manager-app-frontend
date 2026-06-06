@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Item } from "@/features/items/types";
 import { toTaskViewModel } from "@/features/tasks/types";
@@ -28,6 +28,28 @@ export type TasksPageFlow = {
   loadMore: () => void;
   refetch: () => Promise<void>;
 };
+
+function useDelayedTrue(value: boolean, delayMs: number): boolean {
+  const [delayed, setDelayed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (value) {
+      timerRef.current = setTimeout(() => setDelayed(true), delayMs);
+    } else {
+      setDelayed(false);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [value, delayMs]);
+
+  return delayed;
+}
 
 export function useTasksPageFlow(): TasksPageFlow {
   const { taskType, taskStates, q } = useTasksPageStore();
@@ -121,9 +143,11 @@ export function useTasksPageFlow(): TasksPageFlow {
     });
   }, [imagesByItemId, itemsById, orderedTaskIds, taskIdToItemId, tasksById]);
 
+  const isLoading = useDelayedTrue(query.isLoading, 200);
+
   return {
     cards,
-    isLoading: query.isLoading,
+    isLoading,
     isFetchingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage ?? false,
     loadMore,

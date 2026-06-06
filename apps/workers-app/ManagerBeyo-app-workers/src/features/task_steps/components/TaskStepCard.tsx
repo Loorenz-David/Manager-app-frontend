@@ -19,6 +19,7 @@ type StepThumbnailProps = {
   annotations: TaskStepCardViewModel["firstImageAnnotations"];
   widthPx: number | null;
   heightPx: number | null;
+  itemPositionPillLabel: string | null;
   quantityPillLabel: string | null;
   onTap: (stepId: TaskStepId) => void;
 };
@@ -29,6 +30,7 @@ const StepThumbnail = memo(function StepThumbnail({
   annotations,
   widthPx,
   heightPx,
+  itemPositionPillLabel,
   quantityPillLabel,
   onTap,
 }: StepThumbnailProps): React.JSX.Element {
@@ -58,6 +60,11 @@ const StepThumbnail = memo(function StepThumbnail({
         heightPx={heightPx}
         widthPx={widthPx}
       />
+      {itemPositionPillLabel ? (
+        <span className="absolute left-2 top-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
+          {itemPositionPillLabel}
+        </span>
+      ) : null}
       {quantityPillLabel ? (
         <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
           {quantityPillLabel}
@@ -104,6 +111,7 @@ export const TaskStepCard = memo(function TaskStepCard({
     task,
     firstImageUrl,
     articleLabel,
+    itemPositionPillLabel,
     quantityPillLabel,
     lastStateRecord,
   } = card;
@@ -131,6 +139,7 @@ export const TaskStepCard = memo(function TaskStepCard({
         <StepThumbnail
           annotations={card.firstImageAnnotations}
           heightPx={card.firstImageHeightPx}
+          itemPositionPillLabel={itemPositionPillLabel}
           quantityPillLabel={quantityPillLabel}
           src={firstImageUrl}
           stepId={stepId}

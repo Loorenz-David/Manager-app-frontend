@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 
 import { toImageAnnotationViewModel, type ImageViewModel } from "@beyo/images";
 
@@ -102,6 +102,7 @@ export function useListTasksQuery(
     initialPageParam: 0,
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? lastPage.offset + lastPage.items.length : undefined,
+    placeholderData: keepPreviousData,
   });
 
   return {

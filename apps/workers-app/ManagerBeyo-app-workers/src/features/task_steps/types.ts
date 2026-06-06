@@ -36,6 +36,8 @@ export const StepStateSchema = z.enum([
 ]) satisfies z.ZodType<import("@beyo/tasks").StepState>;
 export type StepState = z.infer<typeof StepStateSchema>;
 
+export type MajorCategory = "seat" | "wood";
+
 export const STEP_TERMINAL_STATES = new Set<StepState>([
   "completed",
   "skipped",
@@ -219,6 +221,7 @@ export type ListWorkingSectionStepsParams = {
   limit?: number;
   offset?: number;
   record_step_state?: string;
+  major_category?: string;
 };
 
 export type TaskStepCardViewModel = {
@@ -234,6 +237,7 @@ export type TaskStepCardViewModel = {
   firstImageAnnotations: ImageAnnotationViewModel[];
   firstImageWidthPx: number | null;
   firstImageHeightPx: number | null;
+  itemPositionPillLabel: string | null;
   quantityPillLabel: string | null;
   lastStateRecord: LastStateRecord | null;
   casesSummary: CasesSummary | null;
@@ -256,6 +260,9 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
 
   const quantityPillLabel =
     item && item.quantity > 1 ? `#${item.quantity}` : null;
+  const itemPositionPillLabel = item?.item_position
+    ? `W-${item.item_position}`
+    : null;
 
   const firstImage = step.item_images[0] ?? null;
   const firstImageUrl = firstImage ? firstImage.image_url : null;
@@ -289,6 +296,7 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     firstImageAnnotations,
     firstImageWidthPx,
     firstImageHeightPx,
+    itemPositionPillLabel,
     quantityPillLabel,
     lastStateRecord: step.last_state_record,
     casesSummary: step.cases_summary ?? null,

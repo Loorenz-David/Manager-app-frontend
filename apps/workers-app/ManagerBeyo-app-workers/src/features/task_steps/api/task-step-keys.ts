@@ -13,6 +13,7 @@ export const taskStepKeys = {
         limit: params.limit,
         offset: params.offset,
         record_step_state: params.record_step_state,
+        major_category: params.major_category,
       },
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>

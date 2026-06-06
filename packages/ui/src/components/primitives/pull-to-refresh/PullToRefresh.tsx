@@ -23,6 +23,7 @@ export type PullToRefreshProps = {
   scrollClassName?: string;
   className?: string;
   scrollRef?: RefObject<HTMLDivElement | null>;
+  indicatorOffset?: number;
 };
 
 export function PullToRefresh({
@@ -32,6 +33,7 @@ export function PullToRefresh({
   scrollClassName,
   className,
   scrollRef: externalScrollRef,
+  indicatorOffset = 0,
 }: PullToRefreshProps): JSX.Element {
   const internalScrollRef = useRef<HTMLDivElement>(null);
   const activeRef = externalScrollRef ?? internalScrollRef;
@@ -144,8 +146,9 @@ export function PullToRefresh({
     >
       <m.div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-center"
+        className="pointer-events-none absolute inset-x-0 flex items-center justify-center"
         style={{
+          top: indicatorOffset,
           height: INDICATOR_HEIGHT,
           opacity: indicatorOpacity,
           scale: indicatorScale,

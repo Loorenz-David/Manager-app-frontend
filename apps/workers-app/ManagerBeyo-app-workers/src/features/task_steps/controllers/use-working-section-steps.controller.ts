@@ -38,6 +38,7 @@ import {
   computeNonTerminalCounts,
   toIncompleteDependencyViewModels,
   toTaskStepCardViewModel,
+  type MajorCategory,
   type NonTerminalStepCounts,
   type StepState,
   type TaskStepCardViewModel,
@@ -59,6 +60,29 @@ function useDebounced<T>(value: T, delayMs: number): T {
   return debounced;
 }
 
+// Returns true only after `delayMs` of `value` being true; resets immediately when false.
+function useDelayedTrue(value: boolean, delayMs: number): boolean {
+  const [delayed, setDelayed] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (value) {
+      timerRef.current = setTimeout(() => setDelayed(true), delayMs);
+    } else {
+      setDelayed(false);
+    }
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [value, delayMs]);
+
+  return delayed;
+}
+
 export const DEFAULT_STATE_FILTERS: StepState[] = [
   "pending",
   "working",
@@ -75,6 +99,7 @@ export type WorkingSectionStepsController = {
   search: string;
   setSearch: (value: string) => void;
   stateFilters: StepState[];
+  majorCategoryFilters: MajorCategory[];
   activeFilterCount: number;
   refetch: () => Promise<void>;
   handleTransition: (
@@ -96,6 +121,9 @@ export function useWorkingSectionStepsController(
   const [search, setSearch] = useState("");
   const [stateFilters, setStateFilters] =
     useState<StepState[]>(DEFAULT_STATE_FILTERS);
+  const [majorCategoryFilters, setMajorCategoryFilters] = useState<
+    MajorCategory[]
+  >([]);
   const debouncedSearch = useDebounced(search, 300);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -104,6 +132,10 @@ export function useWorkingSectionStepsController(
     working_section_id: sectionId,
     q: debouncedSearch || undefined,
     record_step_state: stateFilters.join(","),
+    major_category:
+      majorCategoryFilters.length > 0
+        ? majorCategoryFilters.join(",")
+        : undefined,
     limit: 50,
     offset: 0,
   });
@@ -144,8 +176,9 @@ export function useWorkingSectionStepsController(
       stateFilters.length === DEFAULT_STATE_FILTERS.length &&
       DEFAULT_STATE_FILTERS.every((state) => stateFilters.includes(state));
 
-    return isDefaultFilter ? 0 : stateFilters.length;
-  }, [stateFilters]);
+    const stateCount = isDefaultFilter ? 0 : stateFilters.length;
+    return stateCount + majorCategoryFilters.length;
+  }, [majorCategoryFilters, stateFilters]);
 
   const handleTransition = useCallback(
     (stepId: TaskStepId, taskId: TaskId, nextState: StepState) => {
@@ -228,11 +261,16 @@ export function useWorkingSectionStepsController(
   const handleOpenStateFilter = useCallback(() => {
     openSurface(STEP_STATE_FILTER_SHEET_SURFACE_ID, {
       selectedStates: stateFilters,
-      onApply: (newFilters: StepState[]) => {
+      selectedMajorCategories: majorCategoryFilters,
+      onApply: (
+        newFilters: StepState[],
+        newMajorCategories: MajorCategory[],
+      ) => {
         setStateFilters(newFilters);
+        setMajorCategoryFilters(newMajorCategories);
       },
     } as StepStateFilterSheetSurfaceProps);
-  }, [openSurface, stateFilters]);
+  }, [majorCategoryFilters, openSurface, stateFilters]);
 
   const handleOpenTaskActions = useCallback(
     (stepId: TaskStepId, taskId: TaskId) => {
@@ -311,15 +349,18 @@ export function useWorkingSectionStepsController(
     [query.data?.items, openSurface],
   );
 
+  const isPending = useDelayedTrue(query.isPending, 200);
+
   return {
     steps,
     nonTerminalCounts,
-    isPending: query.isPending,
+    isPending,
     isError: query.isError,
     hasMore: query.data?.has_more ?? false,
     search,
     setSearch,
     stateFilters,
+    majorCategoryFilters,
     activeFilterCount,
     refetch,
     handleTransition,

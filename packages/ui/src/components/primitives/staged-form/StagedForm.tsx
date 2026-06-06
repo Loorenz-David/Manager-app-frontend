@@ -1,5 +1,12 @@
 import { AnimatePresence, m } from "framer-motion";
-import { Children, isValidElement, useEffect, useRef, useState } from "react";
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollVisibility } from "../scroll-visibility";
@@ -42,6 +49,7 @@ export function StagedForm({
   "data-testid": testId,
 }: StagedFormProps): React.JSX.Element {
   const timelineRef = useRef<HTMLDivElement>(null);
+  const [timelineHeight, setTimelineHeight] = useState(0);
   const {
     scrollRef,
     isHidden: isCompact,
@@ -87,35 +95,13 @@ export function StagedForm({
     reset();
   }, [activeStepId, reset, scrollRef]);
 
-  // Compensate scrollTop frame-by-frame as the timeline animates in/out.
-  // Without this, the scroll container's top edge shifts when the timeline height
-  // changes, making content appear to "push" up or down.
-  useEffect(() => {
-    const scrollEl = scrollRef.current;
-    const timelineEl = timelineRef.current;
-    if (!scrollEl || !timelineEl) return;
+  useLayoutEffect(() => {
+    if (!timelineRef.current) {
+      return;
+    }
 
-    let prevHeight = -1;
-
-    const observer = new ResizeObserver(([entry]) => {
-      const newHeight = entry.contentRect.height;
-      if (prevHeight === -1) {
-        prevHeight = newHeight;
-        return;
-      }
-      const delta = prevHeight - newHeight;
-      prevHeight = newHeight;
-      // Only compensate when the user has scrolled; at scrollTop=0 there is
-      // nothing to anchor and compensation would fight the navigation reset.
-      if (delta !== 0 && scrollEl.scrollTop > 0) {
-        suspend();
-        scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - delta);
-      }
-    });
-
-    observer.observe(timelineEl);
-    return () => observer.disconnect();
-  }, [scrollRef, suspend]);
+    setTimelineHeight(timelineRef.current.getBoundingClientRect().height);
+  }, []);
 
   const contextValue = {
     steps,
@@ -135,10 +121,10 @@ export function StagedForm({
   return (
     <StagedFormContext.Provider value={contextValue}>
       <div
-        className={cn("flex h-full flex-col", className)}
+        className={cn("relative flex h-full flex-col", className)}
         data-testid={testId}
       >
-        <div ref={timelineRef}>
+        <div ref={timelineRef} className="absolute inset-x-0 top-0 z-10">
           <StagedFormTimeline />
         </div>
 
@@ -158,9 +144,11 @@ export function StagedForm({
               transition={{ duration: 0.15, ease: "easeOut" }}
             />
 
-            <AnimatePresence custom={direction} mode="wait">
-              {getActiveStepChild(children, activeStepId)}
-            </AnimatePresence>
+            <div style={{ paddingTop: timelineHeight }}>
+              <AnimatePresence custom={direction} mode="wait">
+                {getActiveStepChild(children, activeStepId)}
+              </AnimatePresence>
+            </div>
           </div>
 
           {footer ? (

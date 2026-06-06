@@ -4,6 +4,8 @@ import { useAuth } from "@beyo/auth";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
 import {
   ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID,
+  hasIssueTypesForContext,
+  useIssueTypesQuery,
   type ItemIssueSelectionSheetSurfaceProps,
   type ItemIssueSurfaceOpeners,
 } from "@beyo/item-issues";
@@ -133,6 +135,29 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     step?.item?.item_category_id != null
       ? (step.item.item_category_id as ItemCategoryId)
       : null;
+
+  const issueTypesQuery = useIssueTypesQuery({
+    working_section_ids: resolvedWorkingSectionId
+      ? [resolvedWorkingSectionId]
+      : [],
+    item_category_ids: itemCategoryId ? [itemCategoryId] : [],
+  });
+
+  const canOpenIssueSelectionForStep = useMemo(() => {
+    if (!resolvedWorkingSectionId || !itemCategoryId) {
+      return false;
+    }
+
+    return hasIssueTypesForContext(
+      issueTypesQuery.data?.issue_types,
+      resolvedWorkingSectionId,
+      itemCategoryId,
+    );
+  }, [
+    issueTypesQuery.data?.issue_types,
+    itemCategoryId,
+    resolvedWorkingSectionId,
+  ]);
 
   const {
     category: itemCategory,
@@ -409,7 +434,11 @@ export function useTaskStepDetailController(): TaskStepDetailController {
   const issuesSurfaceOpeners = useMemo<ItemIssueSurfaceOpeners>(() => {
     const itemId = step?.item?.client_id;
 
-    if (!itemId || !step?.item?.item_category_id) {
+    if (
+      !itemId ||
+      !step?.item?.item_category_id ||
+      !canOpenIssueSelectionForStep
+    ) {
       return {};
     }
 
@@ -424,6 +453,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         } satisfies ItemIssueSelectionSheetSurfaceProps),
     };
   }, [
+    canOpenIssueSelectionForStep,
     openSurface,
     resolvedStepId,
     resolvedWorkingSectionId,

@@ -3,7 +3,7 @@ import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
 import { DEFAULT_STATE_FILTERS } from "@/features/task_steps/controllers/use-working-section-steps.controller";
 import type { StepStateFilterSheetSurfaceProps } from "@/features/task_steps/surface-ids";
-import type { StepState } from "@/features/task_steps/types";
+import type { MajorCategory, StepState } from "@/features/task_steps/types";
 
 const FILTER_OPTIONS: BoxPickerOptionType<StepState>[] = [
   {
@@ -33,14 +33,36 @@ const FILTER_OPTIONS: BoxPickerOptionType<StepState>[] = [
   },
 ];
 
+const MAJOR_CATEGORY_OPTIONS: BoxPickerOptionType<MajorCategory>[] = [
+  {
+    value: "wood",
+    label: "Wood",
+    image:
+      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/wood_category.webp",
+    imageClassName: "size-[2.4rem]",
+    testId: "filter-major-category-wood",
+  },
+  {
+    value: "seat",
+    label: "Seat",
+    image:
+      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/seating_category.webp",
+    imageClassName: "size-[2.4rem]",
+    testId: "filter-major-category-seat",
+  },
+];
+
 export function StepStateFilterSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
-  const { selectedStates, onApply } =
+  const { selectedStates, selectedMajorCategories, onApply } =
     useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
     selectedStates?.length ? selectedStates : DEFAULT_STATE_FILTERS,
   );
+  const [localMajorCategories, setLocalMajorCategories] = useState<
+    MajorCategory[]
+  >(selectedMajorCategories ?? []);
 
   useEffect(() => {
     header?.setTitle("Filter by state");
@@ -77,7 +99,7 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   }
 
   function handleApply() {
-    onApply?.(localFilters);
+    onApply?.(localFilters, localMajorCategories);
     closeSheet();
   }
 
@@ -94,6 +116,18 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
         options={FILTER_OPTIONS}
         value={localFilters}
       />
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-muted-foreground">Category</p>
+        <BoxPicker
+          columns={2}
+          data-testid="step-major-category-filter-picker"
+          mode="multiple"
+          onValueChange={setLocalMajorCategories}
+          options={MAJOR_CATEGORY_OPTIONS}
+          value={localMajorCategories}
+        />
+      </div>
 
       <button
         type="button"

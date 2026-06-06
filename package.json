@@ -1,5 +1,8 @@
 {
   "private": true,
+  "scripts": {
+    "typecheck": "npm run typecheck --workspace managerbeyo-app-managers"
+  },
   "workspaces": [
     "apps/managers-app/*",
     "apps/workers-app/*",
