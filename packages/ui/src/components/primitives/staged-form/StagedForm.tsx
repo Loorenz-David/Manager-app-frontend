@@ -1,17 +1,11 @@
-import { AnimatePresence, m } from "framer-motion";
-import {
-  Children,
-  isValidElement,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react";
+import { AnimatePresence } from "framer-motion";
+import { Children, isValidElement, useEffect, useRef } from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollVisibility } from "../scroll-visibility";
 import { cn } from "@beyo/lib";
 
+import { KeyboardAccessoryBar } from "../keyboard-accessory-bar";
 import { StagedFormContext } from "./StagedFormContext";
 import { StagedFormNavigation } from "./StagedFormNavigation";
 import { StagedFormTimeline } from "./StagedFormTimeline";
@@ -40,6 +34,7 @@ export function StagedForm({
   isLastStep,
   isAdvancing = false,
   showNavigation = true,
+  enableKeyboardAccessory = false,
   footer,
   navigationMode = "sequential",
   stepStatusMap = {},
@@ -49,7 +44,6 @@ export function StagedForm({
   "data-testid": testId,
 }: StagedFormProps): React.JSX.Element {
   const timelineRef = useRef<HTMLDivElement>(null);
-  const [timelineHeight, setTimelineHeight] = useState(0);
   const {
     scrollRef,
     isHidden: isCompact,
@@ -59,49 +53,44 @@ export function StagedForm({
     threshold: 56,
     hysteresis: 8,
   });
-  const [isScrolled, setIsScrolled] = useState(false);
-  const isScrolledRef = useRef(false);
-
-  useEffect(() => {
-    const element = scrollRef.current;
-
-    if (!element) {
-      return;
-    }
-
-    const onScroll = () => {
-      const nextIsScrolled = element.scrollTop > 0;
-
-      if (isScrolledRef.current === nextIsScrolled) {
-        return;
-      }
-
-      isScrolledRef.current = nextIsScrolled;
-      setIsScrolled(nextIsScrolled);
-    };
-
-    element.addEventListener("scroll", onScroll, { passive: true });
-
-    return () => element.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = 0;
     }
 
-    isScrolledRef.current = false;
-    setIsScrolled(false);
     reset();
   }, [activeStepId, reset, scrollRef]);
 
-  useLayoutEffect(() => {
-    if (!timelineRef.current) {
-      return;
-    }
+  // Compensate scrollTop frame-by-frame as the timeline animates in/out.
+  // Without this, the scroll container's top edge shifts when the timeline height
+  // changes, making content appear to "push" up or down.
+  useEffect(() => {
+    const scrollEl = scrollRef.current;
+    const timelineEl = timelineRef.current;
+    if (!scrollEl || !timelineEl) return;
 
-    setTimelineHeight(timelineRef.current.getBoundingClientRect().height);
-  }, []);
+    let prevHeight = -1;
+
+    const observer = new ResizeObserver(([entry]) => {
+      const newHeight = entry.contentRect.height;
+      if (prevHeight === -1) {
+        prevHeight = newHeight;
+        return;
+      }
+      const delta = prevHeight - newHeight;
+      prevHeight = newHeight;
+      // Only compensate when the user has scrolled; at scrollTop=0 there is
+      // nothing to anchor and compensation would fight the navigation reset.
+      if (delta !== 0 && scrollEl.scrollTop > 0) {
+        suspend();
+        scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - delta);
+      }
+    });
+
+    observer.observe(timelineEl);
+    return () => observer.disconnect();
+  }, [scrollRef, suspend]);
 
   const contextValue = {
     steps,
@@ -118,13 +107,19 @@ export function StagedForm({
     onNavigate,
   } as const;
 
+  const stepContent = (
+    <AnimatePresence custom={direction} mode="wait">
+      {getActiveStepChild(children, activeStepId)}
+    </AnimatePresence>
+  );
+
   return (
     <StagedFormContext.Provider value={contextValue}>
       <div
-        className={cn("relative flex h-full flex-col", className)}
+        className={cn("flex h-full flex-col", className)}
         data-testid={testId}
       >
-        <div ref={timelineRef} className="absolute inset-x-0 top-0 z-10">
+        <div ref={timelineRef}>
           <StagedFormTimeline />
         </div>
 
@@ -133,22 +128,14 @@ export function StagedForm({
         >
           <div
             ref={scrollRef}
-            className="relative flex-1 overflow-x-hidden overflow-y-auto"
+            className="relative flex-1 overflow-x-hidden overflow-y-auto pb-[calc(var(--safe-bottom)+var(--keyboard-inset))]"
             data-testid="staged-form-scroll-container"
           >
-            {/* h-10 -mb-10 keeps the sticky fade inside the scroll container without pushing content down. */}
-            <m.div
-              animate={{ opacity: isScrolled ? 1 : 0 }}
-              className="pointer-events-none sticky top-0 z-20 h-10 -mb-10 bg-gradient-to-b from-background to-transparent [mask-image:linear-gradient(to_bottom,black,transparent)] [-webkit-mask-image:linear-gradient(to_bottom,black,transparent)]"
-              initial={false}
-              transition={{ duration: 0.15, ease: "easeOut" }}
-            />
-
-            <div style={{ paddingTop: timelineHeight }}>
-              <AnimatePresence custom={direction} mode="wait">
-                {getActiveStepChild(children, activeStepId)}
-              </AnimatePresence>
-            </div>
+            {enableKeyboardAccessory ? (
+              <KeyboardAccessoryBar>{stepContent}</KeyboardAccessoryBar>
+            ) : (
+              stepContent
+            )}
           </div>
 
           {footer ? (

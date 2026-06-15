@@ -1,0 +1,1182 @@
+Intention: Pending Seat Upholstery Management
+
+1. Purpose
+
+Implement a manager-facing workflow for finding and resolving seat tasks whose primary item is blocked by incomplete upholstery data.
+
+The workflow must allow an authenticated user of the manager application to:
+
+1. See seat tasks whose primary item has no upholstery selected.
+2. See seat tasks whose selected upholstery has no required quantity in meters.
+3. Search and filter those tasks.
+4. Open the existing task-detail page.
+5. Resolve the missing upholstery information directly from the pending list.
+6. Keep the pending list, counts, home-screen badge, item-upholstery data, and task-detail state synchronized after mutations.
+
+This feature is a frontend integration of the backend contract documented in:
+
+frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_seat_tasks_pending_upholstery_20260615.md
+
+The implementation must reuse the existing task, upholstery, surface, query, pull-to-refresh, image-viewer, and scroll-visibility architecture. It must not introduce duplicate upholstery-selection or quantity-editing flows.
+
+⸻
+
+2. Primary user flow
+
+The user enters the pending upholstery page from the manager home screen.
+
+The page initially displays tasks in the missing_selection bucket.
+
+From the page, the user can:
+
+* search using the backend q parameter;
+* switch between missing_selection and missing_quantity;
+* activate both filters to display the union of both buckets;
+* pull down to refresh the current data;
+* load additional pages;
+* tap the task-card body to open task details;
+* tap the task image to open the existing full-image preview;
+* tap the three-dot action to open a temporary bottom-sheet menu containing Coming soon;
+* tap a direct action below the task card to resolve the missing upholstery information;
+* close the page using either the header back button or the footer Close & Back button.
+
+The direct action depends on the row’s backend-provided classification:
+
+* pending_upholstery_reason === "missing_selection" opens the existing upholstery picker slide page;
+* pending_upholstery_reason === "missing_quantity" opens the existing upholstery amount bottom sheet.
+
+The frontend must use pending_upholstery_reason as the source of truth. It must not infer the pending condition from the selected filter, the existence of an item, or other row properties.
+
+After a successful mutation, a task that no longer matches the active pending condition should disappear immediately where that transition can be determined safely. All affected queries must then reconcile with the backend.
+
+⸻
+
+3. Existing implementation references
+
+Backend handoff
+
+Pending list and count contract:
+
+frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_seat_tasks_pending_upholstery_20260615.md
+
+Existing upholstery picker
+
+Picker page:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/pages/UpholsteryPickerSlidePage.tsx
+
+Surface registration:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/surfaces.ts
+
+Existing field that opens the picker:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/items/components/fields/ItemUpholsteryField.tsx
+
+Existing task-detail upholstery flow
+
+Task-detail slide page:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+Task upholstery section and mutation usage:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/detail/TaskUpholsterySection.tsx
+
+Task-detail surface-opening flow, including the upholstery amount sheet:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/flows/use-task-detail.flow.ts
+
+Existing list, card, header, scrolling, and refresh patterns
+
+Task-card visual and interaction reference:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TaskListCard.tsx
+
+Task header and filter-pill reference:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksHeader.tsx
+
+Absolute header, pull-to-refresh, pagination, and scroll-visibility reference:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx
+
+Shared search-bar primitive:
+
+frontend/packages/ui/src/components/primitives/search-bar/SearchBar.tsx
+
+Shared scroll-visibility primitive:
+
+frontend/packages/ui/src/components/primitives/scroll-visibility
+
+Home-screen entry point
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/home/components/HomeView.tsx
+
+Claude must inspect the existing feature-folder conventions, API clients, query keys, providers/controllers, surface registrations, image-viewer flow, task-detail surface contract, and item-upholstery mutation hooks before deciding the exact new files.
+
+⸻
+
+4. Backend contract
+
+Pending task list
+
+Endpoint:
+
+GET /api/v1/item-upholsteries/pending-seat-tasks
+
+Supported query parameters:
+
+* limit: optional, default 50, maximum 200;
+* offset: optional, default 0;
+* q: optional, maximum length 200;
+* missing_selection: optional boolean, default false;
+* missing_quantity: optional boolean, default false.
+
+Filter semantics:
+
+* missing_selection=true returns tasks whose primary seat item has no active ItemUpholstery record.
+* missing_quantity=true returns tasks whose primary seat item has an active upholstery record whose amount_meters is null or 0.
+* Both filters false, or both filters true, return the union of both buckets.
+
+The initial page request must explicitly send:
+
+missing_selection=true
+missing_quantity=false
+
+Do not depend on the backend’s default combined result for the initial view.
+
+List response data is located at:
+
+data.tasks_pagination.items
+data.tasks_pagination.limit
+data.tasks_pagination.offset
+data.tasks_pagination.has_more
+
+Each tasks_pagination.items[] row contains:
+
+task
+primary_item
+pending_upholstery_reason
+item_images
+
+pending_upholstery_reason has one of the following values:
+
+missing_selection
+missing_quantity
+
+Meaning:
+
+* missing_selection means the primary seat item has no active ItemUpholstery record.
+* missing_quantity means the primary seat item has an active ItemUpholstery record, but its amount_meters is null or 0.
+
+The frontend must use this field directly for:
+
+* selecting the card’s direct action;
+* action labels;
+* reason-specific rendering;
+* combined-filter results;
+* optimistic list transitions;
+* any future reason badge or grouping.
+
+The frontend must not infer the reason from the currently active filter. This is especially important when both filters are active and the endpoint returns the union of both buckets.
+
+primary_item must be handled as nullable.
+
+The first image may use the complete serialized image shape while later images may use a lighter shape. Shared UI code may safely depend only on:
+
+client_id
+image_url
+width_px
+height_px
+file_size_bytes
+
+Pending counts
+
+Endpoint:
+
+GET /api/v1/item-upholsteries/pending-seat-tasks/counts
+
+Response values:
+
+data.missing_selection_total
+data.missing_quantity_total
+
+The counts are workspace-wide and independent of:
+
+* search;
+* pagination;
+* the current list filters.
+
+Use the counts endpoint for:
+
+* filter-pill labels;
+* the manager home-screen entry count;
+* inexpensive reconciliation after upholstery mutations.
+
+The home-screen total is:
+
+missing_selection_total + missing_quantity_total
+
+The backend contract defines these as mutually exclusive buckets, so summing them is valid.
+
+Authentication and authorization
+
+The endpoints require authentication.
+
+Allowed roles:
+
+ADMIN
+MANAGER
+WORKER
+
+Other roles receive 403.
+
+The frontend should follow the manager application’s existing authorization behavior rather than creating a feature-specific authorization mechanism.
+
+⸻
+
+5. Remaining backend contract question for the quantity action
+
+The backend now provides pending_upholstery_reason, so the frontend can correctly classify every row, including rows returned from the combined union view.
+
+The classification problem is therefore resolved.
+
+However, a missing_quantity direct action still needs to identify the existing ItemUpholstery record that must be updated.
+
+The existing amount-sheet flow appears to require:
+
+itemUpholsteryId
+
+The documented pending-list row currently exposes:
+
+task
+primary_item
+pending_upholstery_reason
+item_images
+
+It does not document the existing active ItemUpholstery.client_id.
+
+Claude must inspect:
+
+* the actual backend serializer;
+* generated or handwritten frontend API types;
+* existing item-upholstery queries;
+* the current upholstery amount-sheet contract;
+* the current task-detail data already available to the amount flow.
+
+The implementation plan must determine how the pending page obtains the existing item-upholstery identifier without introducing an N+1 request pattern.
+
+Preferred backend contract, if the identifier is not already available elsewhere in the row:
+
+type PendingSeatTaskItem = {
+  task: Task;
+  primary_item: Item | null;
+  pending_upholstery_reason:
+    | "missing_selection"
+    | "missing_quantity";
+  item_upholstery_id: string | null;
+  item_images: PendingTaskImage[];
+};
+
+Expected rules:
+
+missing_selection:
+  item_upholstery_id = null
+missing_quantity:
+  item_upholstery_id = non-null
+
+A nested equivalent is also acceptable:
+
+type PendingSeatTaskItem = {
+  task: Task;
+  primary_item: Item | null;
+  pending_upholstery_reason:
+    | "missing_selection"
+    | "missing_quantity";
+  pending_upholstery: {
+    item_upholstery_id: string | null;
+    upholstery_id: string | null;
+    amount_meters: number | null;
+  };
+  item_images: PendingTaskImage[];
+};
+
+The exact shape should follow existing backend serializer conventions.
+
+Do not perform an item-upholstery request for every rendered card. That would create an N+1 request pattern and make direct actions dependent on secondary loading.
+
+Acceptable solutions, in preferred order:
+
+1. The pending-list response includes the active item_upholstery_id.
+2. The pending-list response includes an existing item-upholstery summary object containing its client_id.
+3. The amount update contract can validly identify the relation by item ID instead of relation ID, if such an existing backend contract already exists.
+4. A single batched request provides the required relations for all visible rows.
+
+A separate request per card is not acceptable.
+
+If the actual backend response has already been extended with the identifier, consume the existing field and document its exact location in the implementation plan.
+
+⸻
+
+6. Feature architecture
+
+Create a dedicated feature area for pending seat upholstery management, following the application’s existing feature conventions.
+
+Claude must inspect nearby feature folders before selecting exact paths, but the architecture should separate:
+
+* API request functions;
+* transport and domain types;
+* React Query keys;
+* list query;
+* counts query;
+* controller or provider;
+* response-to-view-model mapping;
+* page layout;
+* page header;
+* pending task card;
+* empty, loading, and error states;
+* surface registration;
+* mutation and cache-reconciliation helpers where existing item-upholstery hooks cannot own the behavior cleanly.
+
+Register the page as a full slide-page surface.
+
+Requirements:
+
+* The page renders and controls its own header.
+* The generic slide-page header must be hidden for this surface.
+* The page fills the available surface height.
+* The page contains one central vertical scroll container.
+* The header and footer are positioned over that scroll container.
+* Task details, image preview, task actions, upholstery picker, and upholstery amount editing must use the existing surface architecture.
+* Do not create a second upholstery picker.
+* Do not create a second upholstery amount editor.
+
+⸻
+
+7. Page layout
+
+Root structure
+
+Use a root structure equivalent to:
+
+relative
+h-full
+min-h-0
+flex
+flex-col
+bg-background
+
+The list body must be the only vertical scrolling region.
+
+Header
+
+The absolute header contains two sections.
+
+First row:
+
+* back arrow;
+* search bar.
+
+Second row:
+
+* horizontally scrollable pending-condition filter pills.
+
+The back arrow closes the current pending upholstery surface.
+
+It must use the same closing mechanism as the footer button.
+
+Search bar
+
+Reuse the existing SearchBar primitive.
+
+Configuration:
+
+showSortButton={false}
+showFilterButton={false}
+
+Behavior:
+
+* Bind the visible input to local immediate search state.
+* Debounce the backend query separately.
+* Follow the repository’s existing debounce convention, approximately 300 ms.
+* Reset pagination when the debounced value changes.
+* Trim the query before sending it.
+* Omit q when the trimmed value is empty if that matches current API-client conventions.
+* Display background loading through the search bar without clearing existing rendered results.
+
+Filter pills
+
+Reuse the visual language used in TasksHeader.tsx, preferably through the existing:
+
+* BoxPicker;
+* HorizontalScrollArea;
+* pill configuration.
+
+Provide two filter options:
+
+Missing selection
+Missing quantity
+
+Each label displays its independent count.
+
+Default state:
+
+Missing selection: active
+Missing quantity: inactive
+
+The filters should support both active simultaneously, producing the union request.
+
+Avoid an ambiguous zero-filter frontend state.
+
+Preferred behavior:
+
+* at least one filter must remain active;
+* selecting the only active filter again should not leave both filters inactive.
+
+This makes the visible UI state correspond explicitly to the backend query.
+
+The row’s action must still be based on pending_upholstery_reason, not on which filters are active.
+
+Count formatting
+
+Create a small pure formatter for compact counts.
+
+Expected examples:
+
+0      → 0
+999    → 999
+1000   → 1k
+1100   → 1.1k
+1500   → 1.5k
+9900   → 9.9k
+10000  → 10k
+
+Use locale-aware compact formatting when practical, but ensure the displayed format remains predictable.
+
+The formatter should have unit tests.
+
+Compact-on-scroll behavior
+
+Reuse:
+
+useScrollVisibility({ mode: "relative" })
+
+Expected behavior while scrolling down:
+
+* the filter-pill row collapses behind the search row;
+* the footer slides below the viewport;
+* the search row remains visible.
+
+When the user scrolls upward at any list position:
+
+* the pill row returns;
+* the footer returns.
+
+Reuse the same transition duration and grid-collapse pattern used by TasksHeader.tsx where practical.
+
+Do not add a second competing scroll listener.
+
+⸻
+
+8. Scroll body, pull-to-refresh, and pagination
+
+Render the list within the shared PullToRefresh primitive.
+
+Requirements:
+
+* Pass the same scroll ref to PullToRefresh and useScrollVisibility.
+* Use the active list query’s refetch behavior for refreshing.
+* Refresh the independent counts query during manual refresh as well.
+* Set the refresh indicator offset so it appears below the expanded absolute header.
+* Add top spacing matching the expanded header height.
+* Add bottom spacing matching the footer and safe-area inset.
+* Use the same horizontal overflow and vertical overscroll behavior as TasksView.tsx.
+
+The scroll region should be structurally similar to the existing task view:
+
+<PullToRefresh
+  className="absolute inset-0"
+  scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
+  scrollRef={scrollRef}
+  indicatorOffset={...}
+  onRefresh={...}
+>
+  ...
+</PullToRefresh>
+
+Pagination
+
+Follow the backend limit and offset contract.
+
+Prefer the application’s existing offset-pagination convention unless a suitable infinite-query abstraction already exists.
+
+Required behavior:
+
+* Show Load more only when has_more is true.
+* Preserve loaded cards while requesting another page.
+* Keep a separate isFetchingMore state.
+* Reset accumulated pages when search or filters change.
+* De-duplicate accumulated rows defensively using the task client ID.
+* Keep existing rows visible if loading another page fails.
+* Replace the load-more state with a retry action when pagination fails.
+
+⸻
+
+9. Footer
+
+The absolute footer contains one full-width button.
+
+Label:
+
+Close & Back
+
+Styling intention:
+
+py-3.5
+bg-card
+text-primary
+safe-area-aware bottom padding
+
+Behavior:
+
+* closes the current pending upholstery slide surface;
+* uses the same close mechanism as the header back button;
+* slides below the viewport when the page enters compact scrolling mode;
+* returns when the user scrolls upward.
+
+⸻
+
+10. Pending task card
+
+The pending task card must preserve the existing task-card visual layout and interaction model from:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TaskListCard.tsx
+
+The feature adds a direct upholstery action below the existing card content.
+
+Conceptually:
+
+┌──────────────────────────────┐
+│                              │
+│ Existing task-card content   │
+│                              │
+├──────────────────────────────┤
+│ Direct upholstery action     │
+└──────────────────────────────┘
+
+Avoid copying and permanently forking the complete TaskListCard markup.
+
+Preferred approaches, in order:
+
+1. Extract reusable task-card content from TaskListCard and compose it in both list contexts.
+2. Extend TaskListCard with a clearly named optional bottom-action slot.
+3. Create a thin pending-card wrapper only if the current component cannot be extended cleanly.
+
+Do not put pending-upholstery domain behavior directly inside the generic task-card visual component.
+
+Card interactions
+
+Image area
+
+* Open the existing image-viewer surface.
+* Use all available task-item images.
+* Stop propagation so task detail does not also open.
+
+Main task-card body
+
+* Open TaskDetailSlidePage.
+* Reuse the existing task-detail surface ID and prop contract.
+* Preserve keyboard activation with Enter and Space.
+
+Three-dot task action
+
+* Stop propagation.
+* Open a bottom-sheet surface.
+* For this phase, the bottom sheet renders only:
+
+Coming soon
+
+Direct upholstery action
+
+* Stop propagation.
+* Select the action from pending_upholstery_reason.
+* Disable only the affected row while its mutation is pending.
+* Provide an accessible label and visible focus state.
+
+Labels:
+
+missing_selection → Select upholstery
+missing_quantity  → Set upholstery amount
+
+Do not remove a card simply because a picker or sheet was opened. Removal happens only after a successful mutation or a safe optimistic mutation transition.
+
+Defensive rendering
+
+* Handle primary_item === null without crashing.
+* Disable the direct action if the required item identifier is unavailable.
+* For a missing_quantity row, disable the direct action and surface a development-time contract error if the required item_upholstery_id is unexpectedly absent.
+* Display the first image when available.
+* Use ImagePlaceholder when no image exists.
+* Depend only on the image fields shared by both full and light image serialization.
+
+⸻
+
+11. Missing-selection direct action
+
+For a row where:
+
+pending_upholstery_reason === "missing_selection"
+
+Open the existing upholstery picker surface:
+
+UPHOLSTERY_PICKER_SLIDE_ID
+
+It is registered in:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/surfaces.ts
+
+Pass equivalent props:
+
+{
+  currentClientId: null,
+  title: "Select upholstery",
+  description: "...",
+  onSelect: (upholsteryId) => ...
+}
+
+The onSelect callback must create the ItemUpholstery relation using the existing mutation contract used by TaskUpholsterySection.tsx.
+
+The creation payload should follow the existing behavior, including generation of an ItemUpholstery client ID when required.
+
+Important ownership boundary:
+
+* UpholsteryPickerSlidePage remains a generic selector.
+* It does not know about pending-seat query keys.
+* It does not know about task-detail queries.
+* It does not know about home-screen counts.
+* The caller owns the domain mutation through onSelect.
+* Shared item-upholstery mutation behavior owns cache reconciliation.
+
+Mutation failures must use the existing application feedback pattern.
+
+A failed creation must restore or preserve the pending row.
+
+⸻
+
+12. Missing-quantity direct action
+
+For a row where:
+
+pending_upholstery_reason === "missing_quantity"
+
+Open the existing upholstery amount sheet.
+
+The current task-detail flow opens it through:
+
+openUpholsteryAmountSheet(itemUpholsteryId)
+
+which passes data equivalent to:
+
+{
+  taskId,
+  itemUpholsteryId
+}
+
+The pending page should reuse this existing surface when its contract supports the required behavior.
+
+The amount sheet must display:
+
+* upholstery quantity input;
+* Cancel button;
+* Save button.
+
+Behavior:
+
+* Cancel closes the sheet without mutation.
+* Save calls the existing amount update API.
+* The sheet remains reusable from task detail and the pending page.
+
+Reference files:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/detail/TaskUpholsterySection.tsx
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/flows/use-task-detail.flow.ts
+
+Do not create a pending-page-specific amount endpoint or duplicate the amount form.
+
+If the current sheet incorrectly depends on task-detail provider state, refactor its surface props so it receives the exact identifiers and optional completion behavior it needs.
+
+Do not make it read pending-page state through global coupling.
+
+The implementation cannot complete this direct action until the existing active ItemUpholstery.client_id is available without a per-card request.
+
+⸻
+
+13. Mutation ownership and query invalidation
+
+Do not pass arbitrary query invalidator functions through picker or sheet surface props.
+
+Avoid props such as:
+
+onInvalidatePendingPage
+onInvalidateTaskDetail
+onInvalidateHomeCount
+
+This would tightly couple reusable upholstery surfaces to each page that opens them.
+
+Instead:
+
+* define canonical React Query keys;
+* keep the picker and amount sheet generic;
+* place cache reconciliation in the item-upholstery mutation layer or a shared domain-level mutation helper.
+
+Queries that may be affected include:
+
+* pending-seat list root;
+* pending-seat list variants;
+* pending-seat counts;
+* item upholstery by item ID;
+* task detail by task ID;
+* any existing task list/detail keys whose upholstery requirement state changes after backend calculation.
+
+Recommended key structure should be equivalent to:
+
+pendingSeatUpholsteryKeys.all
+pendingSeatUpholsteryKeys.lists()
+pendingSeatUpholsteryKeys.list(params)
+pendingSeatUpholsteryKeys.counts()
+
+Use the repository’s existing key-factory conventions.
+
+List keys must include the relevant request parameters, including:
+
+q
+missing_selection
+missing_quantity
+limit
+
+Pagination state may be represented according to the chosen query architecture.
+
+⸻
+
+14. Optimistic update strategy
+
+Optimistic behavior should be used only where the resulting transition is deterministic.
+
+Backend calculations remain authoritative, especially because selecting upholstery may cause the task to transition from missing_selection to missing_quantity.
+
+Use pending_upholstery_reason to determine the row’s pre-mutation bucket.
+
+Mutation: create first item upholstery
+
+This mutation resolves the missing_selection condition.
+
+However, the item may immediately enter the missing_quantity bucket if the newly created relation has no amount.
+
+Therefore:
+
+* remove the row optimistically from missing_selection-only cached lists;
+* decrement missing_selection_total, clamped at zero;
+* do not blindly remove the row from every combined pending cache;
+* do not assume the task has left all pending states;
+* invalidate counts and pending lists after the mutation settles so the backend can report the cross-bucket transition.
+
+For the first implementation, the safest behavior is:
+
+optimistically update the exact active single-bucket list;
+invalidate all pending list variants and counts after settlement.
+
+Mutation: save positive upholstery amount
+
+This mutation resolves missing_quantity.
+
+It can optimistically:
+
+* remove the row from missing_quantity-only lists;
+* remove the row from combined pending lists;
+* decrement missing_quantity_total, clamped at zero.
+
+The task-detail and item-upholstery queries must still be invalidated because the backend may recalculate requirement state.
+
+onMutate
+
+For pending-page mutations:
+
+* cancel active pending-list queries;
+* cancel the counts query;
+* snapshot affected list and count caches;
+* mark only the affected row as pending;
+* perform the safe optimistic list update;
+* perform the safe optimistic count update.
+
+onError
+
+* restore all saved cache snapshots;
+* restore the task row;
+* restore counts;
+* clear the row-level pending state;
+* display mutation failure feedback.
+
+onSuccess or onSettled
+
+Invalidate canonical keys for:
+
+* all pending-seat list variants;
+* pending-seat counts;
+* item upholstery for the affected item;
+* task detail for the affected task;
+* any existing task queries affected by upholstery requirement recalculation.
+
+The implementation must not depend exclusively on optimistic cache writes. Backend-calculated requirement state must be reconciled through invalidation.
+
+⸻
+
+15. List-query behavior
+
+Use the repository’s standard API client and response-envelope conventions.
+
+Required behavior:
+
+* Do not request until the application’s authentication and workspace prerequisites are available.
+* Always send missing_selection and missing_quantity explicitly.
+* Separate immediate search input from debounced server search.
+* Reset pagination when search or filter values change.
+* Preserve existing results during a background refetch when supported by the installed React Query version.
+* Manual refresh refreshes both the active list and independent counts.
+* List failure must not erase successfully loaded counts.
+* Counts failure must not prevent the list from rendering.
+* Preserve pending_upholstery_reason when mapping transport rows to card view models.
+* Do not normalize away or recompute the backend reason.
+
+Keep these states separate:
+
+initial loading
+background refetching
+loading more
+empty result
+initial request error
+pagination error
+successful populated result
+
+Do not use one generic isLoading flag to represent all of them.
+
+⸻
+
+16. Loading, empty, and error states
+
+Initial loading
+
+* Render card-shaped skeletons matching the dimensions of the pending card.
+* Keep the header and footer rendered.
+* Do not display an empty state while the initial request is pending.
+
+Empty state
+
+Use filter-aware text.
+
+Missing selection:
+
+No seat tasks are missing an upholstery selection.
+
+Missing quantity:
+
+No seat tasks are missing an upholstery amount.
+
+Both filters:
+
+No seat tasks have pending upholstery information.
+
+When search is active:
+
+No matching pending upholstery tasks were found.
+
+Initial list error
+
+* Show an inline error state inside the body.
+* Provide a Try again action.
+* Keep the page open.
+* Preserve independently loaded counts.
+
+Pagination error
+
+* Preserve all previously loaded cards.
+* Replace or accompany the load-more control with a retry action.
+
+Counts error
+
+* Render the pill labels without count suffixes, or use the repository’s neutral placeholder convention.
+* Do not display a fabricated 0.
+* The home entry may render without a count until the query succeeds, following existing home-screen conventions.
+
+⸻
+
+17. Home-screen entry point
+
+Update:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/home/components/HomeView.tsx
+
+Add a button with the label:
+
+Select upholstery (<total>)
+
+Where:
+
+total = missing_selection_total + missing_quantity_total
+
+Use the same compact-count formatter as the pending-page filter pills.
+
+Styling intention:
+
+bg-card
+text-primary
+
+Prefer an existing home action or button primitive instead of creating a new visual pattern.
+
+Behavior:
+
+* Query only the counts endpoint from the home screen.
+* Do not load the full pending list from the home screen.
+* Open the new pending upholstery slide surface.
+* Apply existing authorization rules for roles that cannot use the endpoint.
+* Keep the home count synchronized through shared pending-count query invalidation.
+* Do not pass a home-specific refresh callback into picker or sheet surfaces.
+
+The requested product label is Select upholstery, even though the destination page also resolves missing quantity. Preserve that label unless product design explicitly changes it.
+
+⸻
+
+18. Surface navigation rules
+
+* The header back arrow closes only the pending page.
+* The footer closes only the pending page.
+* Task detail opens through the existing task-detail surface.
+* The image viewer opens through the existing image-viewer surface.
+* The temporary actions menu opens as a sheet.
+* The upholstery picker opens through UPHOLSTERY_PICKER_SLIDE_ID.
+* The upholstery amount editor opens through its existing sheet surface.
+* Nested surfaces must not imperatively call parent refresh functions.
+* Data reconciliation must happen through shared query keys and mutation ownership.
+
+When returning from task detail, picker, or amount sheet, preserve where supported:
+
+* active search;
+* active filters;
+* loaded pages;
+* current scroll position.
+
+The pending page must not require the task-detail provider in order to open the picker or amount sheet.
+
+⸻
+
+19. Accessibility and interaction requirements
+
+* Every icon-only button must have an aria-label.
+* Card-body keyboard activation must support Enter and Space.
+* Image, three-dot, and direct-action controls must stop event propagation.
+* Filter pills must expose selected state through the shared picker primitive.
+* Disable only the affected row while its mutation is pending.
+* Ensure nested surfaces return focus according to the current surface architecture.
+* Respect safe-area variables in the header and footer.
+* Use existing design tokens instead of hard-coded colors where tokens exist.
+* Provide visible focus states for the footer, filter pills, card controls, and direct upholstery action.
+
+⸻
+
+20. Suggested implementation units
+
+Claude must inspect the repository before fixing exact names, but the implementation plan should account for units equivalent to:
+
+* pending-seat API request functions;
+* pending-seat response and parameter types;
+* a PendingUpholsteryReason union type;
+* pending-seat query-key factory;
+* pending-seat paginated list query;
+* pending-seat counts query;
+* compact count formatter;
+* pending-seat page controller or provider;
+* pending-seat full slide page;
+* pending-seat custom header;
+* pending-seat card composition;
+* pending task actions sheet with Coming soon;
+* pending-seat surface registration;
+* home-screen entry action;
+* item-upholstery mutation cache-reconciliation changes;
+* tests for query parameters, backend reason handling, filters, card actions, mutations, formatting, and invalidation.
+
+Prefer colocating feature-specific code inside the new feature folder.
+
+Only place code in shared packages when it is genuinely reusable outside this feature.
+
+⸻
+
+21. Validation requirements
+
+API and query tests
+
+Verify:
+
+* the default list request sends missing_selection=true;
+* the default list request sends missing_quantity=false;
+* the quantity filter sends the correct booleans;
+* both active filters send both values as true;
+* debounced search sends q;
+* empty search omits or clears q according to client conventions;
+* search changes reset pagination;
+* filter changes reset pagination;
+* limit, offset, and has_more work correctly;
+* counts use the independent counts endpoint;
+* the counts request contains no list filters;
+* mixed full/light image objects map safely;
+* duplicate task IDs are not rendered twice when accumulating pages;
+* pending_upholstery_reason is parsed and preserved;
+* both supported reason values map to the correct card action;
+* an unsupported reason is handled defensively rather than silently treated as another state.
+
+UI tests
+
+Verify:
+
+* the header back button closes the surface;
+* the footer closes the surface;
+* the search bar hides sort and filter buttons;
+* filter labels display compact counts;
+* the initial missing-selection filter is active;
+* the page prevents or intentionally handles zero active filters;
+* both active filters display the union;
+* combined results use each row’s pending_upholstery_reason;
+* the initial loading state renders skeletons;
+* filter-aware empty states render correctly;
+* the initial error state retries;
+* pagination failure preserves existing cards;
+* tapping the image opens image preview only;
+* tapping the task-card body opens task detail;
+* tapping the three-dot button opens the Coming soon sheet;
+* a missing_selection row opens the upholstery picker;
+* a missing_quantity row opens the amount sheet;
+* a null primary_item does not crash;
+* a missing_quantity row without the required relation ID fails safely;
+* scrolling down hides the filter row and footer;
+* scrolling upward reveals them;
+* pull-to-refresh refreshes list and counts;
+* loading more preserves existing rows.
+
+Mutation and cache tests
+
+Verify:
+
+* successful upholstery creation removes a missing_selection row immediately from a missing-selection-only list;
+* upholstery creation does not incorrectly assume the task has left the combined pending state;
+* successful amount save removes a missing_quantity row from missing-quantity and combined lists;
+* optimistic count changes never go below zero;
+* mutation failure restores list and count snapshots;
+* settlement invalidates the pending-list root;
+* settlement invalidates pending counts;
+* settlement invalidates item upholstery;
+* settlement invalidates task detail;
+* the home count updates without a home-specific callback;
+* task detail receives the backend-recalculated upholstery requirement state.
+
+Manual validation
+
+Test with:
+
+* only missing_selection records;
+* only missing_quantity records;
+* both filters active;
+* mixed reason rows in the combined response;
+* no pending records;
+* an active search with no results;
+* more than one page;
+* count values around 999, 1000, 1100, and 10000;
+* slow network during upholstery creation;
+* slow network during amount save;
+* failed mutation rollback;
+* a row with a null primary item;
+* returning from task detail;
+* returning from the upholstery picker;
+* returning from the quantity sheet;
+* scrolling from different list positions.
+
+⸻
+
+22. Out of scope
+
+Do not include in this phase:
+
+* a general backend write-endpoint redesign;
+* new upholstery catalog management;
+* sorting;
+* advanced filter sheets;
+* functional three-dot task actions beyond Coming soon;
+* bulk upholstery assignment;
+* a separate desktop redesign;
+* a generic callback-based invalidation framework;
+* per-card item-upholstery requests;
+* replacement of the existing task-detail page;
+* replacement of the existing image viewer;
+* replacement of the existing upholstery picker;
+* replacement of the existing upholstery amount sheet.
+
+A narrow backend response adjustment remains in scope only if the active ItemUpholstery.client_id required by the missing-quantity direct action is not currently available through the list response or another non-N+1 contract.
+
+The pending-reason classification itself is no longer a backend gap because pending_upholstery_reason is now implemented.
+
+⸻
+
+23. Acceptance criteria
+
+The feature is complete when:
+
+1. The manager home screen displays Select upholstery (<total>) using the counts endpoint.
+2. The home action opens a full slide page with a custom absolute header, scrollable body, and absolute footer.
+3. The page defaults explicitly to the missing-selection filter.
+4. Search, both pending filters, union filtering, refresh, and pagination use the backend contract correctly.
+5. Every pending row uses the backend-provided pending_upholstery_reason as its classification source.
+6. Combined-filter results correctly support mixed missing_selection and missing_quantity rows.
+7. Cards preserve the existing task-card visual and interaction behavior.
+8. Each pending card includes a direct action below the task content.
+9. missing_selection actions reuse the existing upholstery picker and create the item-upholstery relation.
+10. missing_quantity actions reuse the existing amount sheet and save the amount.
+11. The quantity action obtains the active item-upholstery identifier without per-card API requests.
+12. Safe optimistic updates remove resolved rows immediately.
+13. Mutation failures restore optimistic state.
+14. Pending lists and counts reconcile with the server after mutations.
+15. Item-upholstery and task-detail queries are invalidated after relevant mutations.
+16. The manager home count updates through shared query invalidation.
+17. Reusable picker and amount surfaces remain independent of the pending page.
+18. The implementation does not pass arbitrary query invalidators through surface props.
+19. The implementation does not issue per-card item-upholstery requests.
+20. Automated tests cover the principal query, reason classification, interaction, cache, formatting, and navigation behavior.
+
+⸻
+
+24. Required output from Claude’s planning pass
+
+Claude should produce an implementation plan, not implementation code.
+
+The plan must include:
+
+1. A verified description of the current relevant architecture.
+2. The exact reusable hooks, queries, mutations, components, and surfaces.
+3. Verification of the updated pending-list response containing pending_upholstery_reason.
+4. The exact current source of the ItemUpholstery.client_id required for missing_quantity, or the narrow backend handoff required to expose it.
+5. Exact existing files to modify.
+6. Exact new files to create.
+7. API and TypeScript type changes.
+8. Query-key design.
+9. List and counts query behavior.
+10. Surface registration and prop changes.
+11. Task-card composition strategy that avoids a markup fork.
+12. Picker and quantity-sheet integration.
+13. Mutation ownership.
+14. Optimistic-update and rollback behavior.
+15. Query invalidation behavior.
+16. Header, footer, scrolling, and pull-to-refresh mechanics.
+17. Home-screen integration.
+18. Automated test files and concrete test cases.
+19. Repository validation commands.
+20. Any remaining backend handoff required before frontend implementation can be completed.
+
+The plan must remain narrowly scoped, implementation-ready, and grounded in the actual repository rather than relying only on the intention document.

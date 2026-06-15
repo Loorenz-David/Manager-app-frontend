@@ -207,8 +207,6 @@ export function TestingFormsContent(): React.JSX.Element {
                       <ItemUpholsteryField
                         value={field.value}
                         onChange={field.onChange}
-                        title="Select upholstery"
-                        description="Choose the upholstery assigned to this item."
                       />
                     </div>
                   )}

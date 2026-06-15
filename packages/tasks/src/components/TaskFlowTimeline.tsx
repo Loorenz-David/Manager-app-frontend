@@ -97,10 +97,10 @@ export function TaskFlowTimeline({
           </div>
 
           {query.hasNextPage ? (
-            <div className="flex justify-center">
+            <div className="flex justify-center pt-3">
               <button
                 type="button"
-                className="rounded-full border border-border bg-card px-4 py-1.5 text-xs font-medium text-muted-foreground shadow-sm disabled:opacity-50"
+                className="rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium text-muted-foreground shadow-sm disabled:opacity-50"
                 data-testid="task-flow-timeline-show-more"
                 disabled={query.isFetchingNextPage}
                 onClick={() => query.fetchNextPage()}

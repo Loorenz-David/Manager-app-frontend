@@ -106,7 +106,7 @@ export function WorkingSectionShortcutBar({
       data-testid={testId}
     >
       <HorizontalScrollArea trackClassName={trackClassName}>
-        <div className="flex min-w-max items-center gap-2">
+        <div className="flex min-w-max items-center gap-2 py-1">
           {pillEntries.map(({ label, matchedIds }) => {
             const isActive = activePillLabel === label;
 
@@ -116,7 +116,7 @@ export function WorkingSectionShortcutBar({
                 type="button"
                 aria-pressed={isActive}
                 className={cn(
-                  "min-h-11 shrink-0 rounded-full border px-4 py-2 text-sm font-medium leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+                  "min-h-11 shrink-0 rounded-full border px-4 py-2 text-md shadow-xs font-medium leading-none transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
                   isActive
                     ? "border-primary bg-primary text-card"
                     : "border-border border-dashed bg-card text-muted-foreground hover:bg-muted/20 active:bg-card/80",

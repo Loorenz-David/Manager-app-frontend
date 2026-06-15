@@ -14,6 +14,7 @@ export type StagedFormProps = {
   isLastStep: boolean;
   isAdvancing?: boolean;
   showNavigation?: boolean;
+  enableKeyboardAccessory?: boolean;
   footer?: ReactNode;
   navigationMode?: 'sequential' | 'free';
   stepStatusMap?: StepStatusMap;

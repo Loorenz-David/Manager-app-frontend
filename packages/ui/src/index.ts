@@ -38,6 +38,7 @@ export * from "./components/primitives/floating-keyboard-bar";
 export * from "./components/primitives/horizontal-scroll-area";
 export * from "./components/primitives/image-placeholder";
 export * from "./components/primitives/input";
+export * from "./components/primitives/keyboard-accessory-bar";
 export * from "./components/primitives/number-input";
 export * from "./components/primitives/nav-tab-badge";
 export * from "./components/primitives/phone-input";

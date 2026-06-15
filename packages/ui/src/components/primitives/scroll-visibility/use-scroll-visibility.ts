@@ -20,14 +20,21 @@ function getScrollValue(element: HTMLElement, inverted: boolean): number {
 
 export function useScrollVisibility({
   threshold = 56,
+  hideThreshold,
+  showThreshold,
   hysteresis = 8,
   inverted = false,
   mode = "absolute",
 }: ScrollVisibilityOptions = {}): UseScrollVisibilityResult {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { isHidden, suspend, onScroll, resetState, initialize } = useScrollState(
-    { threshold, hysteresis, mode },
-  );
+  const { isHidden, suspend, onScroll, resetState, initialize } =
+    useScrollState({
+      threshold,
+      hideThreshold,
+      showThreshold,
+      hysteresis,
+      mode,
+    });
 
   useEffect(() => {
     const element = scrollRef.current;

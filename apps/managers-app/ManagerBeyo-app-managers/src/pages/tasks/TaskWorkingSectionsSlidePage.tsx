@@ -72,7 +72,7 @@ function TaskWorkingSectionsFooter({
       ) : null}
 
       <button
-        className="w-full rounded-2xl bg-(--color-primary) px-5 py-3.5 text-sm font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+        className="w-full rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
         data-testid="task-working-sections-save-button"
         disabled={isSaving || !hasUnsavedChanges}
         type="button"

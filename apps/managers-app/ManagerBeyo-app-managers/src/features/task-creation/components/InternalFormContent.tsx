@@ -80,12 +80,7 @@ function UpholsteryField({
       render={({ field }) => (
         <div className="flex flex-col gap-1.5">
           <FieldLabelRow label="Upholstery" />
-          <ItemUpholsteryField
-            value={field.value}
-            onChange={field.onChange}
-            title="Select upholstery"
-            description="Choose the upholstery for this item."
-          />
+          <ItemUpholsteryField value={field.value} onChange={field.onChange} />
         </div>
       )}
     />
@@ -149,10 +144,7 @@ export function InternalFormContent(): React.JSX.Element {
     }
 
     const signature = createLookupResultSignature(selectedItem);
-    if (
-      signature &&
-      signature === lastAppliedLookupSignatureRef.current
-    ) {
+    if (signature && signature === lastAppliedLookupSignatureRef.current) {
       return false;
     }
 
@@ -161,9 +153,13 @@ export function InternalFormContent(): React.JSX.Element {
       selectedItem.item_category_id,
     );
 
-    form.setValue("item.item_category_id", selectedItem.item_category_id ?? undefined, {
-      shouldDirty: true,
-    });
+    form.setValue(
+      "item.item_category_id",
+      selectedItem.item_category_id ?? undefined,
+      {
+        shouldDirty: true,
+      },
+    );
     form.setValue("item.article_number", selectedItem.article_number, {
       shouldDirty: true,
     });
@@ -187,8 +183,7 @@ export function InternalFormContent(): React.JSX.Element {
   });
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {
-    const scanFormat: ScanFormat =
-      tab === "article_number" ? "barcode" : "qr";
+    const scanFormat: ScanFormat = tab === "article_number" ? "barcode" : "qr";
 
     surface.open(SCANNER_SLIDE_SURFACE_ID, {
       sessionId: SCANNER_SESSION_ID,

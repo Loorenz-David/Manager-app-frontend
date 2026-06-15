@@ -2,6 +2,8 @@ import { useCallback, useRef, useState } from "react";
 
 type ScrollStateOptions = {
   threshold: number;
+  hideThreshold?: number;
+  showThreshold?: number;
   hysteresis: number;
   mode: "absolute" | "relative";
 };
@@ -16,6 +18,8 @@ type ScrollStateResult = {
 
 export function useScrollState({
   threshold,
+  hideThreshold,
+  showThreshold,
   hysteresis,
   mode,
 }: ScrollStateOptions): ScrollStateResult {
@@ -69,16 +73,24 @@ export function useScrollState({
       }
 
       const distanceFromAnchor = value - directionAnchorRef.current;
+      const effectiveHideThreshold = hideThreshold ?? threshold;
+      const effectiveShowThreshold = showThreshold ?? threshold;
 
       // distanceFromAnchor > 0  → moved forward (down / up-from-bottom) since anchor
       // distanceFromAnchor < 0  → moved backward (up / down-from-bottom) since anchor
-      if (!hiddenTargetRef.current && distanceFromAnchor > threshold) {
+      if (
+        !hiddenTargetRef.current &&
+        distanceFromAnchor > effectiveHideThreshold
+      ) {
         applyHidden(true);
-      } else if (hiddenTargetRef.current && distanceFromAnchor < -threshold) {
+      } else if (
+        hiddenTargetRef.current &&
+        distanceFromAnchor < -effectiveShowThreshold
+      ) {
         applyHidden(false);
       }
     },
-    [applyHidden, threshold, hysteresis, mode],
+    [applyHidden, threshold, hideThreshold, showThreshold, hysteresis, mode],
   );
 
   const resetState = useCallback(

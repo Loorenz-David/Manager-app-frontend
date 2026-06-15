@@ -49,7 +49,7 @@ export function ItemQuantitySheetPage(): React.JSX.Element {
       </div>
       <button
         type="button"
-        className="rounded-2xl bg-foreground px-4 py-3 text-sm font-medium text-background disabled:opacity-50"
+        className="rounded-2xl bg-foreground px-4 py-3.5 text-md font-medium text-background disabled:opacity-50"
         disabled={updateItem.isPending || !item || !itemId}
         onClick={() => {
           if (!item || !itemId) return;

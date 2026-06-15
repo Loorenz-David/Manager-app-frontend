@@ -56,6 +56,7 @@
 ### File read intent — pattern vs. relational
 
 Permitted reads completed:
+
 - `src/features/images/pages/ImageEditorPage.tsx` — existing close-guard pattern (open discard sheet on `handleClose`, `handleSaveAndCloseRef` pattern)
 - `src/features/images/pages/ImageEditorDiscardChangesSheetPage.tsx` — discard sheet layout
 - `src/features/images/surfaces.ts` — discard surface type and registration pattern
@@ -88,25 +89,27 @@ Destructure `footer` from props.
 Replace the existing navigation block:
 
 ```tsx
-{showNavigation ? (
-  <div className="relative z-10 shrink-0">
-    <StagedFormNavigation />
-  </div>
-) : null}
+{
+  showNavigation ? (
+    <div className="relative z-10 shrink-0">
+      <StagedFormNavigation />
+    </div>
+  ) : null;
+}
 ```
 
 With:
 
 ```tsx
-{footer ? (
-  <div className="relative z-10 shrink-0">
-    {footer}
-  </div>
-) : showNavigation ? (
-  <div className="relative z-10 shrink-0">
-    <StagedFormNavigation />
-  </div>
-) : null}
+{
+  footer ? (
+    <div className="relative z-10 shrink-0">{footer}</div>
+  ) : showNavigation ? (
+    <div className="relative z-10 shrink-0">
+      <StagedFormNavigation />
+    </div>
+  ) : null;
+}
 ```
 
 All existing pages that use `showNavigation={false}` and pass no `footer` are unchanged. All pages that use `showNavigation={true}` (default) are unchanged. `footer` takes precedence over `showNavigation` only when truthy.
@@ -211,6 +214,7 @@ export function SlidePageSurface({
 ```
 
 Key changes:
+
 - `closeInterceptor` state (using functional setter to avoid React treating `fn` as a state-updater function)
 - `setCloseInterceptor(fn)` wraps it in `() => fn` pattern for `setState`
 - `handleClose` calls interceptor or fallback
@@ -254,7 +258,7 @@ Add constant and props type after `TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID`:
 
 ```ts
 export const TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID =
-  'task-working-sections-discard-changes';
+  "task-working-sections-discard-changes";
 
 export type TaskWorkingSectionsDiscardChangesSurfaceProps = {
   onDiscardAndClose: () => void;
@@ -266,8 +270,10 @@ Add loader function:
 
 ```ts
 function loadTaskWorkingSectionsDiscardChangesSheetPage() {
-  return import('@/pages/tasks/TaskWorkingSectionsDiscardChangesSheetPage').then(
-    (module) => ({ default: module.TaskWorkingSectionsDiscardChangesSheetPage }),
+  return import("@/pages/tasks/TaskWorkingSectionsDiscardChangesSheetPage").then(
+    (module) => ({
+      default: module.TaskWorkingSectionsDiscardChangesSheetPage,
+    }),
   );
 }
 ```
@@ -291,7 +297,7 @@ Update provider props to accept the three optional recovery arrays and forward t
 import type {
   RecoveredPendingAdd,
   RecoveredPendingReassignment,
-} from '../surfaces';
+} from "../surfaces";
 
 type TaskWorkingSectionsProviderProps = {
   taskId: string;
@@ -329,8 +335,8 @@ export function TaskWorkingSectionsProvider({
 Create `src/pages/tasks/TaskWorkingSectionsDiscardChangesSheetPage.tsx`:
 
 ```tsx
-import { useSurfaceProps } from '@/hooks/use-surface-props';
-import type { TaskWorkingSectionsDiscardChangesSurfaceProps } from '@/features/tasks/surfaces';
+import { useSurfaceProps } from "@/hooks/use-surface-props";
+import type { TaskWorkingSectionsDiscardChangesSurfaceProps } from "@/features/tasks/surfaces";
 
 export function TaskWorkingSectionsDiscardChangesSheetPage(): React.JSX.Element {
   const { onDiscardAndClose, onSaveAndClose } =
@@ -347,25 +353,23 @@ export function TaskWorkingSectionsDiscardChangesSheetPage(): React.JSX.Element 
       >
         You have unsaved changes. If you close now, your selection will be lost.
       </p>
-
-      <button
-        aria-label="Save changes and close"
-        className="mb-2 flex h-12 w-full items-center justify-center rounded-2xl bg-foreground text-sm font-medium text-background transition-opacity duration-150 hover:opacity-90"
-        data-testid="working-sections-discard-sheet-save"
-        type="button"
-        onClick={onSaveAndClose}
-      >
-        Save & Close
-      </button>
-
       <button
         aria-label="Discard changes and close"
-        className="flex h-12 w-full items-center justify-center rounded-2xl border border-border text-sm text-destructive transition-colors duration-150 hover:bg-destructive/10"
+        className="mb-3 flex h-12 w-full items-center justify-center rounded-2xl border border-border text-md text-destructive transition-colors duration-150 hover:bg-destructive/10"
         data-testid="working-sections-discard-sheet-discard"
         type="button"
         onClick={onDiscardAndClose}
       >
         Discard changes
+      </button>
+      <button
+        aria-label="Save changes and close"
+        className=" flex h-12 w-full items-center justify-center rounded-2xl bg-foreground text-md font-medium text-background transition-opacity duration-150 hover:opacity-90"
+        data-testid="working-sections-discard-sheet-save"
+        type="button"
+        onClick={onSaveAndClose}
+      >
+        Save & Close
       </button>
     </div>
   );
@@ -379,13 +383,15 @@ This is the largest change. Replace the entire file.
 #### Bug fix 1: local `StepStateVariant` type (replaces `@/components/primitives` import)
 
 Remove:
+
 ```ts
-import type { StatePillVariant } from '@/components/primitives';
+import type { StatePillVariant } from "@/components/primitives";
 ```
 
 Add local type (same string union — TypeScript structural typing means this is assignable to `StatePillVariant`):
+
 ```ts
-type StepStateVariant = 'neutral' | 'active' | 'warning' | 'success' | 'danger';
+type StepStateVariant = "neutral" | "active" | "warning" | "success" | "danger";
 ```
 
 In `TaskWorkingSectionEntry`, replace `stateVariant: StatePillVariant` with `stateVariant: StepStateVariant`.
@@ -394,10 +400,16 @@ In `TASK_STEP_STATE_VARIANT`, change type from `Record<string, StatePillVariant>
 #### Bug fix 2: `getLatestStepForSection` — exclude skipped steps
 
 ```ts
-function getLatestStepForSection(taskSteps: TaskStep[], sectionId: string): TaskStep | null {
+function getLatestStepForSection(
+  taskSteps: TaskStep[],
+  sectionId: string,
+): TaskStep | null {
   // Exclude skipped steps: the backend sets state='skipped' when a step is soft-deleted.
   const visibleSteps = [...taskSteps]
-    .filter((step) => step.working_section_id === sectionId && step.state !== 'skipped')
+    .filter(
+      (step) =>
+        step.working_section_id === sectionId && step.state !== "skipped",
+    )
     .reverse();
 
   const activeStep = visibleSteps.find((step) => !isCompletedStep(step));
@@ -459,13 +471,15 @@ const [pendingAdds, setPendingAdds] = useState<PendingAdd[]>(
 const [pendingRemoveIds, setPendingRemoveIds] = useState<string[]>(
   initialState?.initialPendingRemoveIds ?? [],
 );
-const [pendingReassignments, setPendingReassignments] = useState<PendingReassignment[]>(
-  initialState?.initialPendingReassignments ?? [],
-);
+const [pendingReassignments, setPendingReassignments] = useState<
+  PendingReassignment[]
+>(initialState?.initialPendingReassignments ?? []);
 const [isSaving, setIsSaving] = useState(false);
 
 const hasUnsavedChanges =
-  pendingAdds.length > 0 || pendingRemoveIds.length > 0 || pendingReassignments.length > 0;
+  pendingAdds.length > 0 ||
+  pendingRemoveIds.length > 0 ||
+  pendingReassignments.length > 0;
 ```
 
 #### `effectiveTaskSteps` — server state + pending delta
@@ -481,7 +495,9 @@ const effectiveTaskSteps = useMemo((): TaskStep[] => {
 
   // 2. Apply pending reassignments
   const withReassignments = withRemovals.map((s) => {
-    const reassignment = pendingReassignments.find((r) => r.step_id === s.client_id);
+    const reassignment = pendingReassignments.find(
+      (r) => r.step_id === s.client_id,
+    );
     return reassignment
       ? {
           ...s,
@@ -495,34 +511,45 @@ const effectiveTaskSteps = useMemo((): TaskStep[] => {
   const syntheticSteps: TaskStep[] = pendingAdds.map((add) => ({
     client_id: add._pendingId,
     task_id: taskId,
-    state: 'pending',
-    readiness_status: 'ready',
+    state: "pending",
+    readiness_status: "ready",
     sequence_order: null,
     working_section_id: add.working_section_id,
     assigned_worker_id: add.worker_id,
     total_dependencies: 0,
     completed_dependencies: 0,
     working_section_name_snapshot: add.working_section_name_snapshot,
-    assigned_worker_display_name_snapshot: add.assigned_worker_display_name_snapshot,
+    assigned_worker_display_name_snapshot:
+      add.assigned_worker_display_name_snapshot,
     created_at: new Date().toISOString(),
     closed_at: null,
     latest_state_records: null,
   }));
 
   return [...withReassignments, ...syntheticSteps];
-}, [serverTaskSteps, pendingAdds, pendingRemoveIds, pendingReassignments, taskId]);
+}, [
+  serverTaskSteps,
+  pendingAdds,
+  pendingRemoveIds,
+  pendingReassignments,
+  taskId,
+]);
 ```
 
 #### `sectionEntries` — use `effectiveTaskSteps`
 
 Change line 89 from:
+
 ```ts
 const taskSteps = taskQuery.data?.task_steps ?? [];
 ```
+
 to:
+
 ```ts
 // effectiveTaskSteps already declared above
 ```
+
 And pass `effectiveTaskSteps` into `getLatestStepForSection` calls.
 
 The `sectionEntries` `useMemo` deps must include `effectiveTaskSteps` instead of `taskQuery.data?.task_steps`.
@@ -530,7 +557,10 @@ The `sectionEntries` `useMemo` deps must include `effectiveTaskSteps` instead of
 #### `startStep` — deferred (was immediate mutation)
 
 ```ts
-function startStep(section: WorkingSectionOption, member?: WorkingSectionMember) {
+function startStep(
+  section: WorkingSectionOption,
+  member?: WorkingSectionMember,
+) {
   const _pendingId = `__pending__${Date.now()}__${Math.random().toString(36).slice(2)}`;
   setPendingAdds((prev) => [
     ...prev,
@@ -549,7 +579,7 @@ function startStep(section: WorkingSectionOption, member?: WorkingSectionMember)
 
 ```ts
 function handleRemoveStep(stepId: string) {
-  if (stepId.startsWith('__pending__')) {
+  if (stepId.startsWith("__pending__")) {
     // Remove a pending add that hasn't been saved yet
     setPendingAdds((prev) => prev.filter((a) => a._pendingId !== stepId));
   } else {
@@ -562,6 +592,7 @@ function handleRemoveStep(stepId: string) {
 #### Reassignment in `handleSectionPress` — deferred for server steps, update-in-place for pending adds
 
 In the `entry.activeStep` (reassignment) branch:
+
 ```ts
 onSelect: (workerId: string) => {
   const member =
@@ -638,7 +669,8 @@ const handleSaveAndClose = useCallback(async () => {
         working_section_id: add.working_section_id,
         worker_id: add.worker_id ?? undefined,
         working_section_name_snapshot: add.working_section_name_snapshot,
-        assigned_worker_display_name_snapshot: add.assigned_worker_display_name_snapshot,
+        assigned_worker_display_name_snapshot:
+          add.assigned_worker_display_name_snapshot,
       });
     }
     // Success — cache already up-to-date via each mutation's onSettled invalidation
@@ -682,18 +714,18 @@ const handleCloseWithGuard = useCallback(() => {
 
   surface.open(TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID, {
     onDiscardAndClose: () => {
-      useSurfaceStore.getState().close(
-        TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
-      );
+      useSurfaceStore
+        .getState()
+        .close(TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID);
       setPendingAdds([]);
       setPendingRemoveIds([]);
       setPendingReassignments([]);
       surface.closeTop();
     },
     onSaveAndClose: () => {
-      useSurfaceStore.getState().close(
-        TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
-      );
+      useSurfaceStore
+        .getState()
+        .close(TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID);
       void handleSaveAndCloseRef.current();
     },
   } satisfies TaskWorkingSectionsDiscardChangesSurfaceProps);
@@ -796,7 +828,7 @@ const saveBarNode = controller.hasUnsavedChanges ? (
       disabled={controller.isSaving}
       onClick={() => void controller.handleSaveAndClose()}
     >
-      {controller.isSaving ? 'Saving…' : 'Save & Close'}
+      {controller.isSaving ? "Saving…" : "Save & Close"}
     </button>
   </div>
 ) : undefined;
@@ -858,7 +890,7 @@ Pass to `StagedForm`:
 
 ## Review log
 
-*(none yet)*
+_(none yet)_
 
 ## Lifecycle transition
 

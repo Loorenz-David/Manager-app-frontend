@@ -130,8 +130,6 @@ describe("ItemUpholsteryField", () => {
         <ItemUpholsteryField
           value="uph_linen_natural"
           onChange={handleChange}
-          title="Select upholstery"
-          description="Choose a fabric"
         />
       </QueryClientProvider>,
     );
@@ -141,8 +139,6 @@ describe("ItemUpholsteryField", () => {
     expect(openMock).toHaveBeenCalledWith("upholstery-picker", {
       currentClientId: "uph_linen_natural",
       onSelect: handleChange,
-      title: "Select upholstery",
-      description: "Choose a fabric",
     });
   });
 });

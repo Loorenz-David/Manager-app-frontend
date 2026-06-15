@@ -24,8 +24,6 @@ type ItemUpholsteryFieldProps = {
   value?: string | null;
   onChange: (value: string) => void;
   placeholder?: string;
-  title?: string;
-  description?: string;
   requirementState?: ItemUpholsteryRequirementState | null;
   disabled?: boolean;
   testId?: string;
@@ -48,8 +46,6 @@ export function ItemUpholsteryField({
   value,
   onChange,
   placeholder = "Select upholstery",
-  title,
-  description,
   requirementState = null,
   disabled = false,
   testId,
@@ -93,8 +89,6 @@ export function ItemUpholsteryField({
     surface.open(UPHOLSTERY_PICKER_SLIDE_ID, {
       currentClientId: value,
       onSelect: onChange,
-      title,
-      description,
     });
   }
 

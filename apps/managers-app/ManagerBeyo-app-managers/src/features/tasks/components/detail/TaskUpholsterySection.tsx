@@ -61,7 +61,6 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
             No upholstery linked yet.
           </p>
           <ItemUpholsteryField
-            description="Attach upholstery to this item"
             disabled={createItemUpholstery.isPending}
             onChange={(newUpholsteryId) => {
               createItemUpholstery.mutate({
@@ -73,7 +72,6 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
             }}
             placeholder="Select upholstery"
             testId="upholstery-field-empty"
-            title="Upholstery"
             value={null}
           />
         </div>
@@ -82,7 +80,6 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
           {activeUpholstery.map((entry) => (
             <div key={entry.client_id} className="flex flex-col gap-3">
               <ItemUpholsteryField
-                description="Linked upholstery"
                 disabled={
                   entry.activeRequirement?.state === "completed" ||
                   updateItemUpholstery.isPending
@@ -104,7 +101,6 @@ export function TaskUpholsterySection(): React.JSX.Element | null {
                     | undefined) ?? null
                 }
                 testId={`upholstery-field-${entry.client_id}`}
-                title="Upholstery"
                 value={entry.upholstery_id}
               />
               <div className="flex items-center justify-between gap-3 text-sm px-2">

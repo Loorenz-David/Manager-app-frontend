@@ -1,5 +1,15 @@
 export type ScrollVisibilityOptions = {
   threshold?: number;
+  /**
+   * Relative mode only: distance required in the hide direction before hiding.
+   * Falls back to `threshold` when omitted.
+   */
+  hideThreshold?: number;
+  /**
+   * Relative mode only: distance required in the show direction before showing.
+   * Falls back to `threshold` when omitted.
+   */
+  showThreshold?: number;
   hysteresis?: number;
   /**
    * When true, measures distance from the bottom instead of scrollTop.

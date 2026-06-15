@@ -1,10 +1,14 @@
 export { ScrollVisibilityProvider } from "./ScrollVisibilityProvider";
-export { useScrollVisibilityContext } from "./ScrollVisibilityContext";
+export {
+  ScrollVisibilityContext,
+  useScrollVisibilityContext,
+} from "./ScrollVisibilityContext";
 export { useScrollVisibility } from "./use-scroll-visibility";
 export {
   ScrollElementRegistrationContext,
   useScrollElementRegistration,
 } from "./ScrollElementRegistrationContext";
+export { useScrollState } from "./use-scroll-state";
 export type {
   ScrollVisibilityContextValue,
   ScrollVisibilityOptions,

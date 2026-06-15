@@ -71,7 +71,7 @@ the footer of this page will render so far a single button called "Close & Back 
 this page will be registered and be used on the slide page surface as it is a full page, this page will render and controll it's own header, so we will not use the slide page header surface. 
 
 
-the endpoint used for quering this items is documented at: 
+the endpoint used for quering this items  and the endpoint for the counts is documented at: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_seat_tasks_pending_upholstery_20260615.md
 
 as default we will have the query param active for missing selection.
 
@@ -80,3 +80,7 @@ there is an endpoint which returns totals for how many instances of missing quan
 this count will be placed in the quick pills we render bellow the searchbar, we make the display value have a labels like >999 then it renders 1k ( 1.1k = 1100 ). 
 this are separate router calls so that the updates on this items can invalidate cheap queries while updating the list optimistically cheaply than loading full list every time some update happens. 
  
+
+at the home page of the manager app, we will make a button that reads "select upholstery (*)" where "*" is the total count of items pending for some selection in this page, this button has styling of  bg-card text color of primary css var. 
+the home page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/home/components/HomeView.tsx
+that button will trigger this new page through the slide surface page. this button on render makes the query to get the counts of missing quantity or missing selection, it renders the total of boths on the "*" label.

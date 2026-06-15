@@ -1,15 +1,15 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 
-import { useSurfaceStore } from '@/providers/SurfaceProvider';
+import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
-import { useToggleUpholsteryFavorite } from '../actions/use-toggle-upholstery-favorite';
-import { useUpdateUpholsteryListOrder } from '../actions/use-update-upholstery-list-order';
-import { useUpholsteryPickerOptionsQuery } from '../api/use-upholstery-picker-options';
-import { UPHOLSTERY_PICKER_REORDER_SHEET_ID } from '../surfaces';
+import { useToggleUpholsteryFavorite } from "../actions/use-toggle-upholstery-favorite";
+import { useUpdateUpholsteryListOrder } from "../actions/use-update-upholstery-list-order";
+import { useUpholsteryPickerOptionsQuery } from "../api/use-upholstery-picker-options";
+import { UPHOLSTERY_PICKER_REORDER_SHEET_ID } from "../surfaces";
 import {
   type UpholsteryQuickFilter,
   UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS,
-} from '../types';
+} from "../types";
 
 const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
   in_stock: 0,
@@ -18,7 +18,8 @@ const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
 };
 
 export function useUpholsteryPickerController(searchQuery: string) {
-  const [activeFilter, setActiveFilter] = useState<UpholsteryQuickFilter>('in_stock');
+  const [activeFilter, setActiveFilter] =
+    useState<UpholsteryQuickFilter>("in_stock");
   const previousFilterIndexRef = useRef(FILTER_INDEXES.in_stock);
   const [direction, setDirection] = useState<1 | -1>(1);
 
@@ -54,17 +55,17 @@ export function useUpholsteryPickerController(searchQuery: string) {
     }
 
     switch (activeFilter) {
-      case 'out_of_stock':
+      case "out_of_stock":
         return {
           upholsteries: outOfStockQuery.data?.upholsteries ?? [],
           isLoading: outOfStockQuery.isPending,
         };
-      case 'favorite':
+      case "favorite":
         return {
           upholsteries: favoritesQuery.data?.upholsteries ?? [],
           isLoading: favoritesQuery.isPending,
         };
-      case 'in_stock':
+      case "in_stock":
       default:
         return {
           upholsteries: inStockQuery.data?.upholsteries ?? [],
@@ -75,8 +76,30 @@ export function useUpholsteryPickerController(searchQuery: string) {
 
   const { upholsteries, isLoading } = getActiveQueryResult();
 
+  async function refetch() {
+    if (searchQuery.trim().length > 0) {
+      await searchResultsQuery.refetch();
+      return;
+    }
+
+    switch (activeFilter) {
+      case "out_of_stock":
+        await outOfStockQuery.refetch();
+        return;
+      case "favorite":
+        await favoritesQuery.refetch();
+        return;
+      case "in_stock":
+      default:
+        await inStockQuery.refetch();
+        return;
+    }
+  }
+
   function openReorderSheet(clientId: string) {
-    useSurfaceStore.getState().open(UPHOLSTERY_PICKER_REORDER_SHEET_ID, { clientId });
+    useSurfaceStore
+      .getState()
+      .open(UPHOLSTERY_PICKER_REORDER_SHEET_ID, { clientId });
   }
 
   return {
@@ -88,6 +111,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
     isReorderPending: updateListOrderAction.isPending,
     onFilterChange: handleFilterChange,
     openReorderSheet,
+    refetch,
     toggleFavorite: (clientId: string, currentFavorite: boolean) =>
       toggleFavoriteAction.toggleFavorite({
         client_id: clientId,
@@ -96,4 +120,6 @@ export function useUpholsteryPickerController(searchQuery: string) {
   };
 }
 
-export type UpholsteryPickerController = ReturnType<typeof useUpholsteryPickerController>;
+export type UpholsteryPickerController = ReturnType<
+  typeof useUpholsteryPickerController
+>;

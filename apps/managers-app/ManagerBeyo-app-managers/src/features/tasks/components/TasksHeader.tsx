@@ -1,9 +1,14 @@
-import { cn } from '@beyo/lib';
+import { cn } from "@beyo/lib";
 
-import { BoxPicker, BoxSlidePicker, HorizontalScrollArea, SearchBar } from '@/components/primitives';
+import {
+  BoxPicker,
+  BoxSlidePicker,
+  HorizontalScrollArea,
+  SearchBar,
+} from "@/components/primitives";
 
-import { TASK_STATE_FILTER_OPTIONS, TASK_TYPE_PICKER_OPTIONS } from '../types';
-import type { TaskState, TaskTypeFilter } from '../types';
+import { TASK_STATE_FILTER_OPTIONS, TASK_TYPE_PICKER_OPTIONS } from "../types";
+import type { TaskState, TaskTypeFilter } from "../types";
 
 type TasksHeaderProps = {
   isCompact: boolean;
@@ -19,7 +24,8 @@ type TasksHeaderProps = {
   onFilterPress: () => void;
 };
 
-const COLLAPSE = "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]";
+const COLLAPSE =
+  "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]";
 
 export function TasksHeader({
   isCompact,
@@ -36,7 +42,14 @@ export function TasksHeader({
 }: TasksHeaderProps): React.JSX.Element {
   return (
     <div className="flex flex-col bg-background" data-testid="tasks-header">
-      <div className={cn(COLLAPSE, isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+      <div
+        className={cn(
+          COLLAPSE,
+          isCompact
+            ? "grid-rows-[0fr] opacity-0"
+            : "grid-rows-[1fr] opacity-100",
+        )}
+      >
         <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-2 pt-3">
             <BoxSlidePicker
@@ -64,16 +77,23 @@ export function TasksHeader({
         />
       </div>
 
-      <div className={cn(COLLAPSE, isCompact ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100")}>
+      <div
+        className={cn(
+          COLLAPSE,
+          isCompact
+            ? "grid-rows-[0fr] opacity-0"
+            : "grid-rows-[1fr] opacity-100",
+        )}
+      >
         <div className="min-h-0 overflow-hidden">
-          <HorizontalScrollArea className="pb-2">
+          <HorizontalScrollArea className="pb-1">
             <BoxPicker
               className="flex flex-nowrap flex-row gap-1.5 px-4"
               data-testid="tasks-state-filter"
               layout="stack"
               mode="multiple"
               options={[...TASK_STATE_FILTER_OPTIONS]}
-              size="xs"
+              size="sm"
               showDescription={false}
               showIcon={false}
               value={taskStates}

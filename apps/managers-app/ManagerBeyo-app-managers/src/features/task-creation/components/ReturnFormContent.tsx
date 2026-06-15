@@ -101,12 +101,7 @@ function UpholsteryField({
       render={({ field }) => (
         <div className="flex flex-col gap-1.5">
           <FieldLabelRow label="Upholstery" />
-          <ItemUpholsteryField
-            value={field.value}
-            onChange={field.onChange}
-            title="Select upholstery"
-            description="Choose the upholstery for this item."
-          />
+          <ItemUpholsteryField value={field.value} onChange={field.onChange} />
         </div>
       )}
     />

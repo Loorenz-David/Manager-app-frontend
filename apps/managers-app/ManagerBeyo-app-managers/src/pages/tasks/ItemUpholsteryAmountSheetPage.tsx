@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
-import {
-  FloatingKeyboardBar,
-} from "@beyo/ui";
+import { FloatingKeyboardBar } from "@beyo/ui";
 import {
   useItemUpholsteryQuery,
   type UpholsteryRequirementEntry,
@@ -166,7 +164,7 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
       ) : null}
       <button
         type="button"
-        className="rounded-2xl bg-foreground px-4 py-3 text-sm font-medium text-background disabled:opacity-50"
+        className="rounded-2xl bg-foreground px-4 py-3.5 text-md font-medium text-background disabled:opacity-50"
         disabled={setUpholsteryQuantity.isPending || !upholstery}
         onClick={() => {
           if (!upholstery) return;

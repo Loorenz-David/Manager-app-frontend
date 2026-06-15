@@ -33,10 +33,14 @@ Position-based. Compares absolute scroll position against a fixed threshold from
 
 Direction-based. Tracks the scroll position at each direction reversal (the anchor). Compares current position against that anchor.
 
-- Hides after scrolling `threshold` px in the hide direction from the last reversal point.
-- Shows after scrolling `threshold` px in the show direction from the last reversal point.
+- Hides after scrolling `hideThreshold` px in the hide direction from the last reversal point.
+- Shows after scrolling `showThreshold` px in the show direction from the last reversal point.
 - The user never needs to return to the top or bottom edge to trigger show.
-- `hysteresis` is unused in this mode — the threshold itself is symmetric and acts as the dead band.
+- `hideThreshold` and `showThreshold` each fall back to `threshold` when omitted, so passing only
+  `threshold` keeps the dead band symmetric. Provide them separately for asymmetric feel — e.g. a
+  larger `hideThreshold` so the element is harder to dismiss than to reveal (`TaskDetailSlidePage`
+  uses `hideThreshold: 16`, `showThreshold: 8`).
+- `hysteresis` is unused in this mode.
 - Use for elements that should respond fluidly to mid-page scroll gestures.
 
 ### `inverted` flag — composes with both modes
@@ -47,8 +51,8 @@ Direction-based. Tracks the scroll position at each direction reversal (the anch
 |---|---|---|---|
 | `"absolute"` | `false` | scrolled past `threshold` from top | back within `hysteresis` of top |
 | `"absolute"` | `true` | scrolled past `threshold` from bottom | back within `hysteresis` of bottom |
-| `"relative"` | `false` | scrolled down `threshold` px from last reversal | scrolled up `threshold` px from last reversal |
-| `"relative"` | `true` | scrolled up `threshold` px from last reversal | scrolled down `threshold` px from last reversal |
+| `"relative"` | `false` | scrolled down `hideThreshold` px from last reversal | scrolled up `showThreshold` px from last reversal |
+| `"relative"` | `true` | scrolled up `hideThreshold` px from last reversal | scrolled down `showThreshold` px from last reversal |
 
 ### App defaults
 
@@ -224,10 +228,12 @@ Because `scrollRef` is an external ref passed to `PullToRefresh`, PTR does not a
 
 ```tsx
 const { scrollRef, isHidden } = useScrollVisibility({
-  mode: "relative",  // "absolute" | "relative" — default "absolute"
-  threshold: 56,     // px before hiding/showing (default 56)
-  hysteresis: 8,     // dead band for absolute mode only (default 8)
-  inverted: false,   // true for bottom-anchored scroll containers
+  mode: "relative",   // "absolute" | "relative" — default "absolute"
+  threshold: 56,      // px before hiding/showing (default 56)
+  hideThreshold: 16,  // relative mode: hide distance; falls back to `threshold`
+  showThreshold: 8,   // relative mode: show distance; falls back to `threshold`
+  hysteresis: 8,      // dead band for absolute mode only (default 8)
+  inverted: false,    // true for bottom-anchored scroll containers
 });
 ```
 
@@ -301,4 +307,4 @@ Which mode to use?
 - **Never combine `flex flex-col` with `overflow-y-auto` on the same scroll container element.** Flex shrinks children — they will not overflow. Separate the scroll container from the layout div.
 - **Never call `useRegisterScrollElement()` inside a package (`@beyo/*`).** Packages cannot depend on app-level providers. Use PTR without an external ref (mechanism A) instead.
 - **Never add a new shell-level element above `z-[50]` without also raising surface z-indices.** Surfaces must always be above the nav bar.
-- **Never pass `hysteresis` when using `mode: "relative"`** — it has no effect. The threshold is symmetric in relative mode and acts as the dead band in both directions.
+- **Never pass `hysteresis` when using `mode: "relative"`** — it has no effect. Control the dead band with `threshold` (symmetric) or `hideThreshold` / `showThreshold` (asymmetric) instead.

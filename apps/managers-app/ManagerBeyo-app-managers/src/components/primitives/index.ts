@@ -73,6 +73,7 @@ export { ImagePlaceholder } from './image-placeholder';
 export type { ImagePlaceholderProps } from './image-placeholder';
 export { ConfirmActionButton } from './confirm-action-button';
 export type { ConfirmActionButtonProps } from './confirm-action-button';
+export { KeyboardAccessoryBar } from '@beyo/ui';
 
 export {
   ScrollVisibilityProvider,

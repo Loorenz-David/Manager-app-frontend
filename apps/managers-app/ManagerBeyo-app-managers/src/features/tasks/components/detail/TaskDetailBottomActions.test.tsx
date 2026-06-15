@@ -1,23 +1,23 @@
-import { act, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TaskDetailBottomActions } from './TaskDetailBottomActions';
+import { TaskDetailBottomActions } from "./TaskDetailBottomActions";
 
-const closeTopMock = vi.fn();
+const requestCloseMock = vi.fn();
 const useTaskDetailContextMock = vi.fn();
 
-vi.mock('@/hooks/use-surface', () => ({
-  useSurface: () => ({
-    closeTop: closeTopMock,
+vi.mock("@/hooks/use-surface-header", () => ({
+  useSurfaceHeader: () => ({
+    requestClose: requestCloseMock,
   }),
 }));
 
-vi.mock('../../providers/TaskDetailProvider', () => ({
+vi.mock("../../providers/TaskDetailProvider", () => ({
   useTaskDetailContext: () => useTaskDetailContextMock(),
 }));
 
 function buildContext({
-  state = 'pending',
+  state = "pending",
   taskSteps = [],
 }: {
   state?: string;
@@ -35,10 +35,10 @@ function buildContext({
   };
 }
 
-describe('TaskDetailBottomActions', () => {
+describe("TaskDetailBottomActions", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    closeTopMock.mockReset();
+    requestCloseMock.mockReset();
     useTaskDetailContextMock.mockReset();
   });
 
@@ -47,61 +47,69 @@ describe('TaskDetailBottomActions', () => {
     vi.useRealTimers();
   });
 
-  it('shows Assign Stages for pending tasks with no steps after the reveal delay', () => {
+  it("shows Assign Stages for pending tasks with no steps after the reveal delay", () => {
     useTaskDetailContextMock.mockReturnValue(buildContext());
 
     render(<TaskDetailBottomActions />);
 
-    const ctaLayer = screen.getByTestId('task-detail-assign-stages-layer');
-    expect(ctaLayer).toHaveAttribute('data-visible', 'false');
-    expect(screen.getByTestId('task-detail-assign-stages-button')).toBeInTheDocument();
+    const ctaLayer = screen.getByTestId("task-detail-assign-stages-layer");
+    expect(ctaLayer).toHaveAttribute("data-visible", "false");
+    expect(
+      screen.getByTestId("task-detail-assign-stages-button"),
+    ).toBeInTheDocument();
 
     act(() => {
       vi.advanceTimersByTime(240);
     });
 
-    expect(ctaLayer).toHaveAttribute('data-visible', 'true');
+    expect(ctaLayer).toHaveAttribute("data-visible", "true");
   });
 
-  it('does not show Assign Stages when pending tasks already have steps', () => {
+  it("does not show Assign Stages when pending tasks already have steps", () => {
     useTaskDetailContextMock.mockReturnValue(
-      buildContext({ taskSteps: [{ client_id: 'step_1' }] }),
+      buildContext({ taskSteps: [{ client_id: "step_1" }] }),
     );
 
     render(<TaskDetailBottomActions />);
 
-    expect(screen.queryByTestId('task-detail-assign-stages-button')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("task-detail-assign-stages-button"),
+    ).not.toBeInTheDocument();
   });
 
-  it('does not show Assign Stages for non-pending tasks', () => {
-    useTaskDetailContextMock.mockReturnValue(buildContext({ state: 'working' }));
+  it("does not show Assign Stages for non-pending tasks", () => {
+    useTaskDetailContextMock.mockReturnValue(
+      buildContext({ state: "working" }),
+    );
 
     render(<TaskDetailBottomActions />);
 
-    expect(screen.queryByTestId('task-detail-assign-stages-button')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("task-detail-assign-stages-button"),
+    ).not.toBeInTheDocument();
   });
 
-  it('opens the working sections slide when Assign Stages is tapped', () => {
+  it("opens the working sections slide when Assign Stages is tapped", () => {
     const context = buildContext();
     useTaskDetailContextMock.mockReturnValue(context);
 
     render(<TaskDetailBottomActions />);
 
-    screen.getByTestId('task-detail-assign-stages-button').click();
+    screen.getByTestId("task-detail-assign-stages-button").click();
 
     expect(context.openWorkingSectionsSlide).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps Edit and Close & Back working', () => {
-    const context = buildContext({ state: 'working' });
+  it("keeps Edit and Close & Back working", () => {
+    const context = buildContext({ state: "working" });
     useTaskDetailContextMock.mockReturnValue(context);
 
     render(<TaskDetailBottomActions />);
 
-    screen.getByRole('button', { name: 'Edit' }).click();
-    screen.getByRole('button', { name: 'Close & Back' }).click();
+    screen.getByRole("button", { name: "Edit" }).click();
+    screen.getByRole("button", { name: "Close & Back" }).click();
 
     expect(context.openEditTask).toHaveBeenCalledTimes(1);
-    expect(closeTopMock).toHaveBeenCalledTimes(1);
+    expect(requestCloseMock).toHaveBeenCalledTimes(1);
   });
 });

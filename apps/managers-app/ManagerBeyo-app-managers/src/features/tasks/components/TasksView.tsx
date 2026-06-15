@@ -6,7 +6,9 @@ import { TasksHeader } from "./TasksHeader";
 
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
-  const { scrollRef, isHidden: isCompact } = useScrollVisibility({ mode: "relative" });
+  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
+    mode: "relative",
+  });
 
   return (
     <div className="relative flex-1 min-h-0" data-testid="tasks-view">
@@ -31,9 +33,9 @@ export function TasksView(): React.JSX.Element {
         scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
-        indicatorOffset={160}
+        indicatorOffset={176}
       >
-        <div className="pt-40" data-testid="tasks-list-scroll">
+        <div className="pt-44" data-testid="tasks-list-scroll">
           <div
             className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2"
             data-testid="tasks-list"

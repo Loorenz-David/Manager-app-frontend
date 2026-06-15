@@ -1,7 +1,12 @@
-export { ScrollVisibilityProvider } from "./ScrollVisibilityProvider";
-export { useScrollVisibilityContext } from "./ScrollVisibilityContext";
-export { useScrollVisibility } from "./use-scroll-visibility";
+export {
+  ScrollElementRegistrationContext,
+  ScrollVisibilityContext,
+  ScrollVisibilityProvider,
+  useScrollElementRegistration,
+  useScrollVisibility,
+  useScrollVisibilityContext,
+} from "@beyo/ui";
 export type {
   ScrollVisibilityContextValue,
   ScrollVisibilityOptions,
-} from "./scroll-visibility.types";
+} from "@beyo/ui";

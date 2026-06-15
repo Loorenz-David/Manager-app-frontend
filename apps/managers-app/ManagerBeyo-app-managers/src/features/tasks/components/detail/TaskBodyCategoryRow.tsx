@@ -21,8 +21,11 @@ export function TaskBodyCategoryRow(): React.JSX.Element | null {
     category?.name ??
     item.item_category_snapshot ??
     (isLoading ? "Loading…" : null);
+  const isSeatItem =
+    item.item_major_category_snapshot?.toLowerCase() === "seat";
+  const positionLabel = item.item_position?.trim() ? item.item_position : "?";
 
-  if (!categoryLabel && !item.item_position) {
+  if (!categoryLabel && !item.item_position && !isSeatItem) {
     return null;
   }
 
@@ -48,7 +51,7 @@ export function TaskBodyCategoryRow(): React.JSX.Element | null {
         ) : null}
         <SectionLabel tone="muted">{categoryLabel ?? "—"}</SectionLabel>
       </div>
-      {item.item_position ? (
+      {isSeatItem ? (
         <button
           data-testid="task-body-position-button"
           className="inline-flex items-center gap-1 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
@@ -56,7 +59,7 @@ export function TaskBodyCategoryRow(): React.JSX.Element | null {
           onClick={openPositionSheet}
         >
           <TrainFront className="size-3.5 shrink-0 text-muted-foreground" />
-          <SectionLabel tone="muted">Wagon : #{item.item_position}</SectionLabel>
+          <SectionLabel tone="muted">Wagon : #{positionLabel}</SectionLabel>
         </button>
       ) : null}
     </div>

@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { TaskFlowTimeline } from "@beyo/tasks";
-import { PullToRefresh } from "@beyo/ui";
+import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
 import {
@@ -24,6 +24,11 @@ import type { TaskDetailSurfaceProps } from "@/features/tasks/surfaces";
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
+  const { scrollRef, isHidden } = useScrollVisibility({
+    mode: "relative",
+    hideThreshold: 16,
+    showThreshold: 8,
+  });
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -59,6 +64,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       <PullToRefresh
         className="min-h-0 flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
         <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
@@ -82,7 +88,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           </ContentCard>
         </div>
       </PullToRefresh>
-      <TaskDetailBottomActions />
+      <TaskDetailBottomActions isHidden={isHidden} />
     </div>
   );
 }
