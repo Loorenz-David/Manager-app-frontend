@@ -30,7 +30,7 @@ export function TabOutlet(): React.JSX.Element {
         transition={tabTransition}
         variants={tabVariants}
       >
-        <div className="h-full overflow-y-auto">
+        <div className="h-full overflow-y-auto pb-[var(--keyboard-inset)]">
           <Outlet />
         </div>
       </m.div>

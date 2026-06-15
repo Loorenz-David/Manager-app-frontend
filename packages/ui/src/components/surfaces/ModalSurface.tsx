@@ -98,7 +98,7 @@ export function ModalSurface({
                 </div>
               </header>
             ) : null}
-            <div className="max-h-[80dvh] overflow-y-auto p-5 [scrollbar-gutter:stable]">
+            <div className="max-h-[80dvh] overflow-y-auto p-5 pb-[calc(var(--safe-bottom)_+_var(--keyboard-inset)_+_1.25rem)] [scrollbar-gutter:stable]">
               {children}
             </div>
           </m.div>

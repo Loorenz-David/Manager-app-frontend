@@ -4,4 +4,5 @@ export type { StagedFormConfig, StagedFormReturn } from './use-staged-form';
 export { useSurface } from './use-surface';
 export { useSurfaceHeader } from './use-surface-header';
 export { useSurfaceProps } from './use-surface-props';
+export { useVisualViewport } from './use-visual-viewport';
 export { BreakpointProvider, BreakpointContext, useBreakpoint } from './BreakpointProvider';

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import {
+  FloatingKeyboardBar,
+} from "@beyo/ui";
+import {
   useItemUpholsteryQuery,
   type UpholsteryRequirementEntry,
 } from "@beyo/tasks";
@@ -106,6 +109,46 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-4 p-6">
+      <FloatingKeyboardBar
+        renderControls={({ inputRef, preventFocusSteal }) => (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-muted-foreground">
+              Amount <span className="font-normal">(optional)</span>
+            </label>
+            <NumberInput
+              ref={inputRef}
+              allowDecimal
+              min={0}
+              placeholder="e.g. 2.5"
+              step={0.25}
+              unitLabel="m"
+              value={amountMeters}
+              onValueChange={(next) => {
+                setSelectedFactor(null);
+                setAmountMeters(next ?? null);
+              }}
+            />
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onMouseDown={preventFocusSteal}
+                className="inline-flex w-full items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted"
+                onClick={() => applyMultiplier(0.25)}
+              >
+                × 0.25
+              </button>
+              <button
+                type="button"
+                onMouseDown={preventFocusSteal}
+                className="inline-flex w-full items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted"
+                onClick={() => applyMultiplier(0.5)}
+              >
+                × 0.5
+              </button>
+            </div>
+          </div>
+        )}
+      />
       {showQuantityChangedWarning ? (
         <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/60 bg-amber-50 px-3 py-2.5 text-amber-900">
           <AlertTriangle
@@ -121,39 +164,6 @@ export function ItemUpholsteryAmountSheetPage(): React.JSX.Element {
           </p>
         </div>
       ) : null}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-sm font-medium text-muted-foreground">
-          Amount <span className="font-normal">(optional)</span>
-        </label>
-        <NumberInput
-          allowDecimal
-          min={0}
-          placeholder="e.g. 2.5"
-          step={0.25}
-          unitLabel="m"
-          value={amountMeters}
-          onValueChange={(next) => {
-            setSelectedFactor(null);
-            setAmountMeters(next ?? null);
-          }}
-        />
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            type="button"
-            className="inline-flex w-full items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted"
-            onClick={() => applyMultiplier(0.25)}
-          >
-            × 0.25
-          </button>
-          <button
-            type="button"
-            className="inline-flex w-full items-center justify-center rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors duration-150 hover:bg-muted"
-            onClick={() => applyMultiplier(0.5)}
-          >
-            × 0.5
-          </button>
-        </div>
-      </div>
       <button
         type="button"
         className="rounded-2xl bg-foreground px-4 py-3 text-sm font-medium text-background disabled:opacity-50"

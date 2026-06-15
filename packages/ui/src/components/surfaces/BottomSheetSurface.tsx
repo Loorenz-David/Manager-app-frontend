@@ -14,6 +14,21 @@ type Props = {
   children: ReactNode;
 };
 
+function isEditableElement(element: Element | null): element is HTMLElement {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (element.isContentEditable) {
+    return true;
+  }
+
+  return (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement
+  );
+}
+
 export function BottomSheetSurface({
   onClose,
   onStartClose,
@@ -33,6 +48,10 @@ export function BottomSheetSurface({
 
     if (closeTimeoutRef.current !== null) {
       window.clearTimeout(closeTimeoutRef.current);
+    }
+
+    if (isEditableElement(document.activeElement)) {
+      document.activeElement.blur();
     }
 
     setIsOpen(false);
@@ -56,6 +75,7 @@ export function BottomSheetSurface({
         direction="bottom"
         handleOnly
         modal={false}
+        repositionInputs={false}
         onOpenChange={(open) => {
           if (!open) {
             handleClose();
@@ -96,9 +116,10 @@ export function BottomSheetSurface({
           )}
           <Drawer.Content
             className={cn(
-              "fixed inset-x-0 bottom-0 max-h-[90dvh] rounded-t-2xl",
-              "flex flex-col bg-background shadow-xl focus:outline-none",
+              "fixed inset-x-0 bottom-[var(--keyboard-inset)] max-h-[90dvh] rounded-t-2xl",
+              "flex flex-col bg-background shadow-xl transition-[bottom] duration-200 ease-out focus:outline-none",
             )}
+            onCloseAutoFocus={(event) => event.preventDefault()}
             style={{ zIndex: zIndex + 1 }}
           >
             <Drawer.Title className="sr-only">{title || "Sheet"}</Drawer.Title>

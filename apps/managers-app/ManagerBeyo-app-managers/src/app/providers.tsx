@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { KeyboardInsetProvider } from '@beyo/ui';
 import { useCameraAppLifecycleFlow } from '@beyo/scanner';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { LazyMotion, MotionConfig, domAnimation } from 'framer-motion';
@@ -26,11 +27,13 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
     <MotionConfig reducedMotion="user">
       <LazyMotion features={domAnimation}>
         <BreakpointProvider>
-          <QueryClientProvider client={queryClient}>
-            <CameraLifecycleHandler />
-            {children}
-            <Toaster position="top-center" richColors />
-          </QueryClientProvider>
+          <KeyboardInsetProvider>
+            <QueryClientProvider client={queryClient}>
+              <CameraLifecycleHandler />
+              {children}
+              <Toaster position="top-center" richColors />
+            </QueryClientProvider>
+          </KeyboardInsetProvider>
         </BreakpointProvider>
       </LazyMotion>
     </MotionConfig>

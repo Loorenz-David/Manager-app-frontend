@@ -1,0 +1,82 @@
+we will develop the pages and interactions for managing the upholstery of items with major category of seat
+
+we will develop the page that will allow a user in the manager application to see the items  with major category 
+of "seat" which have no upholstery selected or the item upholstery quantity is not set.
+
+this page will render item cards which will allow the user to enter to the details of that item and select
+the upholstery or upholstery quantity. the item cards will also have a quick action button which will allow the 
+user to open the page for selecting the upholstery directly.
+
+the page for selecting upholstery is the already existing page / surface this is the page: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/pages/UpholsteryPickerSlidePage.tsx
+
+surface load is at: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/surfaces.ts
+
+The current task detail page uses a component to render the state and allow to trigger the page, this could be an example for how it works:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+
+the selection of upholstery or selection of item upholstery quantity  for an item should invalidate the query for the page where the user was looking at the items with upholstery missing or upholstery quantity missing.
+the selection of upholstery or selection of item upholstery quantity should act optimistically, so perhaps the query invalidation is not even need it if we handle it correctly.
+
+this page will be compose of a header ( absolutelty possitioned ),
+a body ( where the items cards  will render )  and a footer ( also absolute).
+
+the header is compose of  an arrow back ( which closes this page ), 
+and a search bar ( which allows the user to query items using the endpoint param "q"), for that searchbar primitive we will pass the param to hide the filters and sorting for the time being.
+bellow that searchbar is a filer pill selector, this allows the user to quickly select some query params like: missing selection, missing quantity .
+for the searchbar we use the search bar primitive: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/search-bar 
+
+for the quick pill selection we use same design as the main task page header uses: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksHeader.tsx
+
+the reason why we have made this header absolute is so that we can make use of the scroll utility correctly.
+when the user scrolls we will hide the quick selection pills row behind the searchbar. the absolute footer will also hide ( sliding bellow out of view ). 
+this allows to have a clean list with more space for visualization with out having to conflict nor interfeer with the list scroll behaviour .
+we will use the scroll utility for this on the mode that allows for the user to scroll up to display this components again at any scroll height the user is at.
+scroll utitily: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/scroll-visibility
+
+the user should be also able to dragging down the page for manually reloading the query list, like we do on TaskView page: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx
+
+
+the body renders the list of item cards, this item cards have exactly the same layout as a task card:/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TaskListCard.tsx
+but we add a quick action button bellow that card ( the quick action button which allows to open the upholstery selection page directly without having to open the task deatil page ).
+so at the end the card looks like:
+________________________________
+|                              |
+|       normal task card       |
+|                              |
+|          quick action        |
+|______________________________|
+
+taping on the upper part of the item card ( basically not the action button ), opens the task detail page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+the upper part of the card should continue to have the same functionality as the task card, which is allow for full image page preview when image is tap, and display a bottom sheet surface menu when three dot is tap ( for now that menu will display comming soon only ).
+
+now that the upholstery selection page can be entered from different places and main pages, we need to somehow pass the correct query invalidators to the page.
+so that when updating an item upholstery it knows what to refresh because it's main page is different.
+on the item upholstery selection main page it will no longer display that item as missing to select upholstery for that item
+on the task detail page it will display the state of the item upholstery requirement as when selecting the upholstery for an item there is calculations the backend must do to correctly asses the state of an upholstery requirement.
+how can we achive this optimally with out overengineering ?
+
+on that item card we will have couple of differnt rules for what the quick action does based on some states.
+If the item has no upholstery selected, then it opens the upholstery selection page.
+If the item has upholstery selected but no item upholstery quantity selected then it opens the bottom sheet for selecting the uphosltery quantity, the component TaskUpholsterySection is a good example that displays what page to open with the bottom sheet surface when it comes to displaying the selection input for upholstery quantity selection: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/detail/TaskUpholsterySection.tsx
+that page should display a save and cancel button bellow the upholstery quantity input, on save we trigger the api directly that allows for storing the quantity of item upholstery. on cancel it simply closed the bottom sheet surface. 
+
+
+the footer of this page will render so far a single button called "Close & Back ", this button will perform the same functionality as the back arrow at the header, this button will have a py of 3.5 and have a bg color of card css var, with letter color of primary css var 
+
+this page will be registered and be used on the slide page surface as it is a full page, this page will render and controll it's own header, so we will not use the slide page header surface. 
+
+
+the endpoint used for quering this items is documented at: 
+
+as default we will have the query param active for missing selection.
+
+
+there is an endpoint which returns totals for how many instances of missing quantity and misssing selection there is.
+this count will be placed in the quick pills we render bellow the searchbar, we make the display value have a labels like >999 then it renders 1k ( 1.1k = 1100 ). 
+this are separate router calls so that the updates on this items can invalidate cheap queries while updating the list optimistically cheaply than loading full list every time some update happens. 
+ 

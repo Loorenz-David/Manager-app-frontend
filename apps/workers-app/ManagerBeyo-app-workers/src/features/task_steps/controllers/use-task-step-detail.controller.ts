@@ -179,10 +179,8 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     pendingCompletion,
     clearPendingCompletion,
   } = useTransitionStepState();
-  const {
-    cancelCompletion,
-    isPending: isCancellingCompletion,
-  } = useCancelPendingStepCompletion();
+  const { cancelCompletion, isPending: isCancellingCompletion } =
+    useCancelPendingStepCompletion();
   const { open: openSurface } = useSurface();
 
   const taskCasesQuery = useListCasesQuery({

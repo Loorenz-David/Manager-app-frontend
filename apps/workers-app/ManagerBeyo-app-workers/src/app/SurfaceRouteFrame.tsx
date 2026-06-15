@@ -1,7 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { BottomSheetSurface } from '@/components/surfaces/BottomSheetSurface';
-import { ModalSurface } from '@/components/surfaces/ModalSurface';
-import { SlidePageSurface } from '@/components/surfaces/SlidePageSurface';
+import { BottomSheetSurface, ModalSurface, SlidePageSurface } from '@beyo/ui';
 import type { SurfaceType } from '@/providers/SurfaceProvider';
 
 type SurfaceLocationState = {
