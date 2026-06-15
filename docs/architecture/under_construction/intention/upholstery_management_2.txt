@@ -19,6 +19,18 @@ frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_seat_tasks_pending_uphols
 
 The implementation must reuse the existing task, upholstery, surface, query, pull-to-refresh, image-viewer, and scroll-visibility architecture. It must not introduce duplicate upholstery-selection or quantity-editing flows.
 
+Lifecycle trace
+
+Linked implementation plans:
+
+| Plan | Status | Summary |
+| --- | --- | --- |
+| docs/architecture/archives/implementation/PLAN_pending_seat_upholstery_management_20260615.md | archived | docs/architecture/implemented_summaries/SUMMARY_PLAN_pending_seat_upholstery_management_20260615.md |
+
+Progress notes:
+
+* 2026-06-15T15:54:05Z — Managers pending seat upholstery workflow implemented and archived.
+
 ⸻
 
 2. Primary user flow

@@ -10,6 +10,10 @@ type UseScrollVisibilityResult = ScrollVisibilityContextValue & {
   scrollRef: React.RefObject<HTMLDivElement | null>;
 };
 
+function shouldDebugScroll(): boolean {
+  return typeof window !== "undefined" && Boolean(window.__BEYO_SCROLL_DEBUG__);
+}
+
 function getScrollValue(element: HTMLElement, inverted: boolean): number {
   if (!inverted) {
     return element.scrollTop;
@@ -47,8 +51,21 @@ export function useScrollVisibility({
 
     initialize(getScrollValue(element, inverted));
 
+    if (shouldDebugScroll()) {
+      console.log("[scroll-debug][visibility] init", {
+        value: getScrollValue(element, inverted),
+      });
+    }
+
     const handler = () => {
-      onScroll(getScrollValue(element, inverted));
+      const value = getScrollValue(element, inverted);
+      if (shouldDebugScroll()) {
+        console.log("[scroll-debug][visibility] scroll", {
+          value,
+          scrollTop: element.scrollTop,
+        });
+      }
+      onScroll(value);
     };
 
     element.addEventListener("scroll", handler, { passive: true });
@@ -60,6 +77,11 @@ export function useScrollVisibility({
 
   const reset = useCallback(() => {
     const element = scrollRef.current;
+    if (shouldDebugScroll()) {
+      console.log("[scroll-debug][visibility] reset", {
+        value: element ? getScrollValue(element, inverted) : 0,
+      });
+    }
     resetState(element ? getScrollValue(element, inverted) : 0);
   }, [inverted, resetState]);
 

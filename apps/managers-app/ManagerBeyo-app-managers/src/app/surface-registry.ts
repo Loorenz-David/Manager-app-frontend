@@ -3,6 +3,7 @@ import { caseSurfaces } from "@/features/cases/surfaces";
 import { imageSurfaces } from "@beyo/images";
 import { itemSurfaces } from "@/features/items";
 import { phoneInputSurfaces } from "@/features/phone-input";
+import { pendingUpholsterySurfaces } from "@/features/pending-upholstery";
 import { pwaSurfaces } from "@/features/pwa/surfaces";
 import { taskSurfaces } from "@/features/tasks";
 import { taskCreationSurfaces } from "@/features/task-creation";
@@ -20,6 +21,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...taskCreationSurfaces,
   ...taskSurfaces,
   ...itemSurfaces,
+  ...pendingUpholsterySurfaces,
   ...imageSurfaces,
   ...phoneInputSurfaces,
   ...pwaSurfaces,

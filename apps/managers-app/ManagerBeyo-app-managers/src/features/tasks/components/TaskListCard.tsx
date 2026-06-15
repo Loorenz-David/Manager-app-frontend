@@ -67,6 +67,7 @@ type TaskListCardProps = {
   onTapImage: (taskId: string) => void;
   onTapActions: (taskId: string) => void;
   onTapCard: (taskId: string) => void;
+  bottomAction?: React.ReactNode;
 };
 
 export const TaskListCard = memo(function TaskListCard({
@@ -74,6 +75,7 @@ export const TaskListCard = memo(function TaskListCard({
   onTapImage,
   onTapActions,
   onTapCard,
+  bottomAction,
 }: TaskListCardProps): React.JSX.Element {
   const { taskId, task, item, firstImage } = card;
   const TypeIcon = TYPE_ICON[task.task_type];
@@ -94,102 +96,110 @@ export const TaskListCard = memo(function TaskListCard({
 
   return (
     <div
-      className="mx-4 flex overflow-hidden rounded-xl bg-card shadow-sm"
+      className="mx-4 flex flex-col overflow-hidden rounded-xl bg-card shadow-sm"
       data-testid={`tasks-card-${taskId}`}
     >
-      <button
-        aria-label="View item image"
-        className="relative aspect-square w-28 shrink-0 overflow-hidden bg-muted"
-        data-testid={`tasks-card-image-${taskId}`}
-        type="button"
-        onClick={() => onTapImage(taskId)}
-      >
-        {imageUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={imageUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+      <div className="flex">
+        <button
+          aria-label="View item image"
+          className="relative aspect-square w-28 shrink-0 overflow-hidden bg-muted"
+          data-testid={`tasks-card-image-${taskId}`}
+          type="button"
+          onClick={() => onTapImage(taskId)}
+        >
+          {imageUrl ? (
+            <img
+              alt=""
+              className="size-full object-cover"
+              decoding="async"
+              draggable={false}
+              loading="lazy"
+              src={imageUrl}
+            />
+          ) : (
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          )}
 
-        {quantityPillLabel ? (
-          <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
-            {quantityPillLabel}
-          </span>
-        ) : null}
-      </button>
-
-      <div
-        className="flex min-w-0 flex-1 cursor-pointer flex-col justify-start px-3 py-2.5"
-        data-testid={`tasks-card-body-${taskId}`}
-        role="button"
-        tabIndex={0}
-        onClick={() => onTapCard(taskId)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onTapCard(taskId);
-          }
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="min-w-0 flex-1 basis-0 truncate text-sm font-medium text-foreground">
-            {articleLabel}
-          </span>
-
-          <StatePill
-            label={toTitleCaseLabel(task.state)}
-            variant={STATE_VARIANT[task.state]}
-          />
-
-          <button
-            aria-label="Task actions"
-            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
-            data-testid={`tasks-card-actions-${taskId}`}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onTapActions(taskId);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.stopPropagation();
-              }
-            }}
-          >
-            <span className="flex flex-col items-center gap-0.5">
-              {[0, 1, 2].map((index) => (
-                <span key={index} className="size-1 rounded-full bg-current" />
-              ))}
+          {quantityPillLabel ? (
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
+              {quantityPillLabel}
             </span>
-          </button>
-        </div>
+          ) : null}
+        </button>
 
-        <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-          <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
-          <span className="min-w-0 flex-1 truncate">
-            {typeLabel}
-            {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
-          </span>
-        </div>
+        <div
+          className="flex min-w-0 flex-1 cursor-pointer flex-col justify-start px-3 py-2.5"
+          data-testid={`tasks-card-body-${taskId}`}
+          role="button"
+          tabIndex={0}
+          onClick={() => onTapCard(taskId)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onTapCard(taskId);
+            }
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="min-w-0 flex-1 basis-0 truncate text-sm font-medium text-foreground">
+              {articleLabel}
+            </span>
 
-        {readyByLabel ? (
-          <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
-            <span>{readyByLabel}</span>
-            {task.is_overdue ? (
-              <span className="ml-1 inline-flex items-center rounded-md bg-[#8f3a33] px-2 py-0.5 text-[11px] font-medium text-white">
-                Overdue
+            <StatePill
+              label={toTitleCaseLabel(task.state)}
+              variant={STATE_VARIANT[task.state]}
+            />
+
+            <button
+              aria-label="Task actions"
+              className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+              data-testid={`tasks-card-actions-${taskId}`}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onTapActions(taskId);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.stopPropagation();
+                }
+              }}
+            >
+              <span className="flex flex-col items-center gap-0.5">
+                {[0, 1, 2].map((index) => (
+                  <span
+                    key={index}
+                    className="size-1 rounded-full bg-current"
+                  />
+                ))}
               </span>
-            ) : null}
+            </button>
           </div>
-        ) : null}
+
+          <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+            <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
+            <span className="min-w-0 flex-1 truncate">
+              {typeLabel}
+              {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
+            </span>
+          </div>
+
+          {readyByLabel ? (
+            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
+              <span>{readyByLabel}</span>
+              {task.is_overdue ? (
+                <span className="ml-1 inline-flex items-center rounded-md bg-[#8f3a33] px-2 py-0.5 text-[11px] font-medium text-white">
+                  Overdue
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
+      {bottomAction ? (
+        <div className="border-t border-border">{bottomAction}</div>
+      ) : null}
     </div>
   );
 });

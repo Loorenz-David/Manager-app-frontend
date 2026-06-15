@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
+import svgr from "vite-plugin-svgr";
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -10,6 +11,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      svgr(),
       react(),
       tailwindcss(),
       VitePWA({

@@ -38,9 +38,15 @@ export function TaskDetailBottomActions({
   }, [shouldRenderAssignStages]);
 
   return (
-    <>
+    <div
+      className={cn(
+        "fixed bottom-0 left-0 right-0 z-20",
+        "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        isHidden ? "pointer-events-none translate-y-full" : "translate-y-0",
+      )}
+    >
       {shouldRenderAssignStages ? (
-        <div className="pointer-events-none fixed bottom-[calc(var(--safe-bottom,0)+5.75rem)] left-0 right-0 z-10 px-4">
+        <div className="pointer-events-none px-4 pb-3">
           <m.div
             animate={
               showAssignStagesCta ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }
@@ -64,11 +70,8 @@ export function TaskDetailBottomActions({
       ) : null}
 
       <div
-        className={cn(
-          "fixed bottom-0 left-0 right-0 z-20 flex gap-3 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]",
-          "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          isHidden ? "pointer-events-none translate-y-full" : "translate-y-0",
-        )}
+        className="flex gap-3 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]"
+        data-testid="task-detail-bottom-actions"
       >
         <button
           className="flex-1 rounded-xl bg-(--color-primary) py-3.5 text-md font-semibold text-white shadow-sm"
@@ -85,6 +88,6 @@ export function TaskDetailBottomActions({
           Edit
         </button>
       </div>
-    </>
+    </div>
   );
 }

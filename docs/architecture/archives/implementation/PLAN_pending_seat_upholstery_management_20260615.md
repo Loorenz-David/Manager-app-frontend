@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_pending_seat_upholstery_management_20260615`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `planner-architect`
 - Created at (UTC): `2026-06-15T14:00:00Z`
-- Last updated at (UTC): `2026-06-15T15:00:00Z`
+- Last updated at (UTC): `2026-06-15T15:54:05Z`
 - Related issue/ticket: `N/A`
 - Intention plan: `docs/architecture/under_construction/intention/upholstery_management_2.txt`
 - Backend handoff: `docs/handoff/from_backend/HANDOFF_TO_FRONTEND_seat_tasks_pending_upholstery_20260615.md`
@@ -1258,14 +1258,15 @@ If a more specific "home action primitive" exists in the codebase, Codex should 
 
 - `2026-06-15` planner-architect: initial plan written from full codebase read
 - `2026-06-15` david: confirmed `item_upholstery_id` added to backend response; plan updated, all clarifications resolved
+- `2026-06-15` Codex: implemented managers pending upholstery surface, home launcher, mutation invalidation, formatter test, summary, and archive record.
 
 ---
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `user / david`
+- Current state: `archived`
+- Next state: `complete`
+- Transition owner: `Codex`
 
 ---
 

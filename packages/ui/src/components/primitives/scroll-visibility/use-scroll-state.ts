@@ -1,5 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 
+declare global {
+  interface Window {
+    __BEYO_SCROLL_DEBUG__?: boolean;
+  }
+}
+
 type ScrollStateOptions = {
   threshold: number;
   topOffset: number;
@@ -16,6 +22,10 @@ type ScrollStateResult = {
   resetState: (value: number) => void;
   initialize: (value: number) => void;
 };
+
+function shouldDebugScroll(): boolean {
+  return typeof window !== "undefined" && Boolean(window.__BEYO_SCROLL_DEBUG__);
+}
 
 export function useScrollState({
   threshold,
@@ -38,6 +48,13 @@ export function useScrollState({
     if (hiddenTargetRef.current === hidden) {
       return;
     }
+
+    if (shouldDebugScroll()) {
+      console.log("[scroll-debug][state] applyHidden", {
+        hidden,
+      });
+    }
+
     hiddenTargetRef.current = hidden;
     setIsHidden(hidden);
   }, []);
@@ -52,19 +69,37 @@ export function useScrollState({
         return;
       }
 
+      const delta = value - lastScrollValueRef.current;
+      lastScrollValueRef.current = value;
+
+      if (shouldDebugScroll()) {
+        console.log("[scroll-debug][state] onScroll", {
+          mode,
+          value,
+          delta,
+          hidden: hiddenTargetRef.current,
+          threshold,
+          hysteresis,
+          topOffset,
+          hideThreshold,
+          showThreshold,
+        });
+      }
+
       if (mode === "absolute") {
         if (!hiddenTargetRef.current && value > topOffset + threshold) {
           applyHidden(true);
-        } else if (hiddenTargetRef.current && value < topOffset + hysteresis) {
+        } else if (
+          hiddenTargetRef.current &&
+          delta < 0 &&
+          value < topOffset + hysteresis
+        ) {
           applyHidden(false);
         }
         return;
       }
 
       // Relative mode: delta from the last direction-change anchor.
-      const delta = value - lastScrollValueRef.current;
-      lastScrollValueRef.current = value;
-
       if (delta === 0) return;
 
       const movingForward = delta > 0;
@@ -105,6 +140,16 @@ export function useScrollState({
 
   const resetState = useCallback(
     (value: number) => {
+      lastScrollValueRef.current = value;
+
+      if (shouldDebugScroll()) {
+        console.log("[scroll-debug][state] resetState", {
+          mode,
+          value,
+          hidden: hiddenTargetRef.current,
+        });
+      }
+
       if (mode === "absolute") {
         if (value < topOffset + hysteresis) {
           applyHidden(false);
@@ -117,13 +162,26 @@ export function useScrollState({
         applyHidden(false);
       }
     },
-    [applyHidden, hysteresis, mode],
+    [applyHidden, topOffset, hysteresis, mode],
   );
 
   const initialize = useCallback(
     (value: number) => {
       hiddenTargetRef.current = false;
       suppressedUntilRef.current = performance.now() + 120;
+      lastScrollValueRef.current = value;
+
+      if (shouldDebugScroll()) {
+        console.log("[scroll-debug][state] initialize", {
+          mode,
+          value,
+          threshold,
+          hysteresis,
+          topOffset,
+          hideThreshold,
+          showThreshold,
+        });
+      }
 
       if (mode === "absolute") {
         const shouldHide = value > topOffset + threshold;

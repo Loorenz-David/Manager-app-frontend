@@ -26,22 +26,34 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const controller = useTaskDetailContext();
   const { scrollRef, isHidden } = useScrollVisibility({
     mode: "relative",
-    hideThreshold: 16,
-    showThreshold: 8,
+    hideThreshold: 40,
+    showThreshold: 24,
   });
 
   useEffect(() => {
     header?.setHeaderHidden(true);
   }, [header]);
 
+  useEffect(() => {
+    if (
+      typeof window === "undefined" ||
+      !(window as Window & { __BEYO_SCROLL_DEBUG__?: boolean })
+        .__BEYO_SCROLL_DEBUG__
+    ) {
+      return;
+    }
+
+    console.log("[scroll-debug][task-detail] isHidden", { isHidden });
+  }, [isHidden]);
+
+  let scrollContent: React.ReactNode;
+
   if (controller.isPending) {
-    return (
+    scrollContent = (
       <div className="p-6 text-sm text-muted-foreground">Loading task…</div>
     );
-  }
-
-  if (controller.isError || !controller.taskDetail) {
-    return (
+  } else if (controller.isError || !controller.taskDetail) {
+    scrollContent = (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-6 text-center">
         <p className="text-sm text-muted-foreground">
           Task details could not be loaded.
@@ -57,6 +69,29 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         </button>
       </div>
     );
+  } else {
+    scrollContent = (
+      <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
+        <TaskDetailHeader />
+        <ContentCard>
+          <TaskBodyCategoryRow />
+          <DashedInfoGroup>
+            <TaskCustomerSection />
+            <TaskWorkingSectionsField />
+            <TaskScheduledDeliverySection />
+          </DashedInfoGroup>
+          <TaskImagesSection />
+          {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
+            "seat" && <TaskUpholsterySection />}
+          <TaskFlowTimeline
+            taskId={controller.taskId}
+            onRecordPress={controller.openFlowRecord}
+            initialLimit={3}
+            loadMoreSize={5}
+          />
+        </ContentCard>
+      </div>
+    );
   }
 
   return (
@@ -67,26 +102,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
-          <TaskDetailHeader />
-          <ContentCard>
-            <TaskBodyCategoryRow />
-            <DashedInfoGroup>
-              <TaskCustomerSection />
-              <TaskWorkingSectionsField />
-              <TaskScheduledDeliverySection />
-            </DashedInfoGroup>
-            <TaskImagesSection />
-            {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
-              "seat" && <TaskUpholsterySection />}
-            <TaskFlowTimeline
-              taskId={controller.taskId}
-              onRecordPress={controller.openFlowRecord}
-              initialLimit={3}
-              loadMoreSize={5}
-            />
-          </ContentCard>
-        </div>
+        {scrollContent}
       </PullToRefresh>
       <TaskDetailBottomActions isHidden={isHidden} />
     </div>
