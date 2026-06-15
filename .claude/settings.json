@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cd /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend *)",
       "Bash(sort -t_ -k1 -n)",
-      "Bash(awk -F_ '$1>=33')"
+      "Bash(awk -F_ '$1>=33')",
+      "Bash(grep -v '^$')"
     ],
     "additionalDirectories": [
       "/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/node_modules/vaul/dist"

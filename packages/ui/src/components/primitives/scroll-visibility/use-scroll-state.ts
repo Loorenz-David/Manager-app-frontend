@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 type ScrollStateOptions = {
   threshold: number;
+  topOffset: number;
   hideThreshold?: number;
   showThreshold?: number;
   hysteresis: number;
@@ -18,6 +19,7 @@ type ScrollStateResult = {
 
 export function useScrollState({
   threshold,
+  topOffset,
   hideThreshold,
   showThreshold,
   hysteresis,
@@ -51,9 +53,9 @@ export function useScrollState({
       }
 
       if (mode === "absolute") {
-        if (!hiddenTargetRef.current && value > threshold) {
+        if (!hiddenTargetRef.current && value > topOffset + threshold) {
           applyHidden(true);
-        } else if (hiddenTargetRef.current && value < hysteresis) {
+        } else if (hiddenTargetRef.current && value < topOffset + hysteresis) {
           applyHidden(false);
         }
         return;
@@ -90,13 +92,21 @@ export function useScrollState({
         applyHidden(false);
       }
     },
-    [applyHidden, threshold, hideThreshold, showThreshold, hysteresis, mode],
+    [
+      applyHidden,
+      threshold,
+      topOffset,
+      hideThreshold,
+      showThreshold,
+      hysteresis,
+      mode,
+    ],
   );
 
   const resetState = useCallback(
     (value: number) => {
       if (mode === "absolute") {
-        if (value < hysteresis) {
+        if (value < topOffset + hysteresis) {
           applyHidden(false);
         }
       } else {
@@ -116,7 +126,7 @@ export function useScrollState({
       suppressedUntilRef.current = performance.now() + 120;
 
       if (mode === "absolute") {
-        const shouldHide = value > threshold;
+        const shouldHide = value > topOffset + threshold;
         setIsHidden(shouldHide);
         hiddenTargetRef.current = shouldHide;
       } else {
@@ -127,7 +137,7 @@ export function useScrollState({
         movingForwardRef.current = false;
       }
     },
-    [threshold, mode],
+    [threshold, topOffset, mode],
   );
 
   return { isHidden, suspend, onScroll, resetState, initialize };

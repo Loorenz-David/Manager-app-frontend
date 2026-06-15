@@ -20,6 +20,7 @@ function getScrollValue(element: HTMLElement, inverted: boolean): number {
 
 export function useScrollVisibility({
   threshold = 56,
+  topOffset = 0,
   hideThreshold,
   showThreshold,
   hysteresis = 8,
@@ -30,6 +31,7 @@ export function useScrollVisibility({
   const { isHidden, suspend, onScroll, resetState, initialize } =
     useScrollState({
       threshold,
+      topOffset,
       hideThreshold,
       showThreshold,
       hysteresis,

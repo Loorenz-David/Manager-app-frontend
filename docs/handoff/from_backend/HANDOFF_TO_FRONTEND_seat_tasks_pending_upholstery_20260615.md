@@ -33,11 +33,13 @@
    - `task`
    - `primary_item`
    - `pending_upholstery_reason`
+   - `item_upholstery_id`
    - `item_images`
 5. Expect `primary_item` to be nullable in defensive UI code, even though the query is built around primary seat items.
 6. Use `pending_upholstery_reason` as the source of truth for badge text, grouping, or row styling:
    - `missing_selection`
    - `missing_quantity`
+7. Use `item_upholstery_id` as the direct reference for edit/view flows when the reason is `missing_quantity`. When the reason is `missing_selection`, this field is `null`.
 
 ## Interface details
 
@@ -137,6 +139,7 @@
             "item_major_category_snapshot": "seat"
           },
           "pending_upholstery_reason": "missing_selection",
+          "item_upholstery_id": null,
           "item_images": [
             {
               "client_id": "img_...",
@@ -175,6 +178,12 @@
   - `missing_selection` means the primary seat item has no active `ItemUpholstery` record at all.
   - `missing_quantity` means the primary seat item has an active `ItemUpholstery` record, but its `amount_meters` is `null` or `0`.
   - Frontend should use this field directly instead of inferring the reason from `primary_item` or from the currently selected filter.
+
+- Notes on `item_upholstery_id`:
+  - This field is always present in the payload.
+  - It is `null` when `pending_upholstery_reason = "missing_selection"`.
+  - It contains the relevant `ItemUpholstery.client_id` when `pending_upholstery_reason = "missing_quantity"`.
+  - Frontend can treat this as `string | null`.
 
 - Notes on `item_images`:
   - First image is the full `serialize_image(...)` shape.

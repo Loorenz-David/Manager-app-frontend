@@ -1,6 +1,14 @@
 export type ScrollVisibilityOptions = {
   threshold?: number;
   /**
+   * Absolute mode only: shifts the anchor point so that "top" is evaluated at this
+   * scroll position rather than 0. Useful when a fixed/absolute header reserves space
+   * and the logical content start is at a known offset (e.g. `topOffset: 56` means
+   * "hide after threshold px past 56, show when back within hysteresis of 56").
+   * Defaults to 0. Has no effect in relative mode.
+   */
+  topOffset?: number;
+  /**
    * Relative mode only: distance required in the hide direction before hiding.
    * Falls back to `threshold` when omitted.
    */

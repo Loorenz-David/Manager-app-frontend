@@ -1,5 +1,5 @@
 import { AnimatePresence } from "framer-motion";
-import { Children, isValidElement, useEffect, useRef } from "react";
+import { Children, isValidElement, useEffect } from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollVisibility } from "../scroll-visibility";
@@ -24,6 +24,8 @@ function getActiveStepChild(
   );
 }
 
+const STAGED_FORM_TIMELINE_OFFSET_CLASS = "pt-14";
+
 export function StagedForm({
   steps,
   activeStepId,
@@ -43,15 +45,14 @@ export function StagedForm({
   children,
   "data-testid": testId,
 }: StagedFormProps): React.JSX.Element {
-  const timelineRef = useRef<HTMLDivElement>(null);
   const {
     scrollRef,
     isHidden: isCompact,
     reset,
     suspend,
   } = useScrollVisibility({
-    threshold: 56,
-    hysteresis: 8,
+    threshold: 50,
+    hysteresis: 55,
   });
 
   useEffect(() => {
@@ -61,36 +62,6 @@ export function StagedForm({
 
     reset();
   }, [activeStepId, reset, scrollRef]);
-
-  // Compensate scrollTop frame-by-frame as the timeline animates in/out.
-  // Without this, the scroll container's top edge shifts when the timeline height
-  // changes, making content appear to "push" up or down.
-  useEffect(() => {
-    const scrollEl = scrollRef.current;
-    const timelineEl = timelineRef.current;
-    if (!scrollEl || !timelineEl) return;
-
-    let prevHeight = -1;
-
-    const observer = new ResizeObserver(([entry]) => {
-      const newHeight = entry.contentRect.height;
-      if (prevHeight === -1) {
-        prevHeight = newHeight;
-        return;
-      }
-      const delta = prevHeight - newHeight;
-      prevHeight = newHeight;
-      // Only compensate when the user has scrolled; at scrollTop=0 there is
-      // nothing to anchor and compensation would fight the navigation reset.
-      if (delta !== 0 && scrollEl.scrollTop > 0) {
-        suspend();
-        scrollEl.scrollTop = Math.max(0, scrollEl.scrollTop - delta);
-      }
-    });
-
-    observer.observe(timelineEl);
-    return () => observer.disconnect();
-  }, [scrollRef, suspend]);
 
   const contextValue = {
     steps,
@@ -116,10 +87,10 @@ export function StagedForm({
   return (
     <StagedFormContext.Provider value={contextValue}>
       <div
-        className={cn("flex h-full flex-col", className)}
+        className={cn("relative flex h-full flex-col", className)}
         data-testid={testId}
       >
-        <div ref={timelineRef}>
+        <div className="absolute inset-x-0 top-0 z-10">
           <StagedFormTimeline />
         </div>
 
@@ -128,7 +99,11 @@ export function StagedForm({
         >
           <div
             ref={scrollRef}
-            className="relative flex-1 overflow-x-hidden overflow-y-auto pb-[calc(var(--safe-bottom)+var(--keyboard-inset))]"
+            className={cn(
+              "relative flex-1 overflow-x-hidden overflow-y-auto",
+              STAGED_FORM_TIMELINE_OFFSET_CLASS,
+              "pb-[calc(var(--safe-bottom)+var(--keyboard-inset))]",
+            )}
             data-testid="staged-form-scroll-container"
           >
             {enableKeyboardAccessory ? (
