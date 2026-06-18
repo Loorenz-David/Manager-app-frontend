@@ -1,6 +1,7 @@
 import { env } from './env';
 
 let _accessToken: string | null = null;
+let _authScope: string | null = null;
 
 export function getAccessToken(): string | null {
   return _accessToken;
@@ -8,6 +9,10 @@ export function getAccessToken(): string | null {
 
 export function setAccessToken(token: string | null): void {
   _accessToken = token;
+}
+
+export function setAuthScope(scope: string): void {
+  _authScope = scope;
 }
 
 type TokenClaims = {
@@ -38,20 +43,29 @@ export function decodeTokenClaims(): TokenClaims | null {
 
 let _refreshPromise: Promise<boolean> | null = null;
 
-export function refreshAccessToken(): Promise<boolean> {
+export function refreshAccessToken(scope?: string): Promise<boolean> {
+  if (scope) {
+    setAuthScope(scope);
+  }
   if (_refreshPromise) return _refreshPromise;
 
-  _refreshPromise = _executeRefresh().finally(() => {
+  if (!_authScope) {
+    return Promise.resolve(false);
+  }
+
+  _refreshPromise = _executeRefresh(_authScope).finally(() => {
     _refreshPromise = null;
   });
 
   return _refreshPromise;
 }
 
-async function _executeRefresh(): Promise<boolean> {
+async function _executeRefresh(scope: string): Promise<boolean> {
   try {
     const base = env.VITE_API_URL || window.location.origin;
-    const response = await fetch(`${base}/api/v1/auth/refresh`, {
+    const refreshUrl = new URL('/api/v1/auth/refresh', base);
+    refreshUrl.searchParams.set('scope', scope);
+    const response = await fetch(refreshUrl.toString(), {
       method: 'POST',
       credentials: 'include',
     });
@@ -74,6 +88,6 @@ async function _executeRefresh(): Promise<boolean> {
   }
 }
 
-export async function initSession(): Promise<boolean> {
-  return refreshAccessToken();
+export async function initSession(scope: string): Promise<boolean> {
+  return refreshAccessToken(scope);
 }

@@ -5,6 +5,7 @@ import ThreadIcon from "@/assets/icons/thread-svgrepo-com.svg?react";
 import { TaskListCard } from "@/features/tasks/components/TaskListCard";
 
 import { usePendingUpholsteryCreate } from "../actions/use-pending-upholstery-create";
+import { usePendingUpholsteryUpdate } from "../actions/use-pending-upholstery-update";
 import type { PendingSeatCardViewModel } from "../types";
 
 type PendingUpholsteryCardProps = {
@@ -29,9 +30,12 @@ export function PendingUpholsteryCard({
   const createUpholstery = usePendingUpholsteryCreate(
     card.primaryItem?.id ?? null,
   );
+  const updateUpholstery = usePendingUpholsteryUpdate(
+    card.primaryItem?.id ?? null,
+  );
   const isMissingQuantityContractViolation =
     card.pendingReason === "missing_quantity" && !card.itemUpholsteryId;
-  const isPending = createUpholstery.isPending;
+  const isPending = createUpholstery.isPending || updateUpholstery.isPending;
   const actionLabel =
     card.pendingReason === "missing_selection"
       ? "Select upholstery"
@@ -55,6 +59,19 @@ export function PendingUpholsteryCard({
 
     const primaryItem = card.primaryItem;
     if (!primaryItem) return;
+
+    if (card.itemUpholsteryId) {
+      const existingId = card.itemUpholsteryId;
+      onOpenUpholsteryPicker((upholsteryClientId) => {
+        updateUpholstery.mutate({
+          taskId: card.taskId,
+          itemUpholsteryId: existingId,
+          upholstery_id: upholsteryClientId,
+        });
+      });
+      return;
+    }
+
     onOpenUpholsteryPicker((upholsteryClientId) => {
       createUpholstery.mutate({
         taskId: card.taskId,

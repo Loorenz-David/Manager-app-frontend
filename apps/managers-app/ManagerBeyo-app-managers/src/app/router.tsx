@@ -11,6 +11,7 @@ import {
   settingsPageRoute,
   statsPageRoute,
   tasksPageRoute,
+  upholsteryInventoryPageRoute,
 } from "@/lib/primary-tab-preload";
 import { ROUTES } from "@/lib/routes";
 
@@ -72,6 +73,10 @@ export const router = createBrowserRouter([
               {
                 path: ROUTES.stats,
                 element: tabRoute(statsPageRoute.Component),
+              },
+              {
+                path: ROUTES.upholsteryInventory,
+                element: tabRoute(upholsteryInventoryPageRoute.Component),
               },
               {
                 path: ROUTES.settings,

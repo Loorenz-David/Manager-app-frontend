@@ -12,15 +12,15 @@ import {
 } from "../types";
 
 const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
-  in_stock: 0,
-  out_of_stock: 1,
-  favorite: 2,
+  favorite: 0,
+  in_stock: 1,
+  out_of_stock: 2,
 };
 
 export function useUpholsteryPickerController(searchQuery: string) {
   const [activeFilter, setActiveFilter] =
-    useState<UpholsteryQuickFilter>("in_stock");
-  const previousFilterIndexRef = useRef(FILTER_INDEXES.in_stock);
+    useState<UpholsteryQuickFilter>("favorite");
+  const previousFilterIndexRef = useRef(FILTER_INDEXES.favorite);
   const [direction, setDirection] = useState<1 | -1>(1);
 
   const inStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: true });

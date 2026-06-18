@@ -10,6 +10,8 @@ export const STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID =
   "task-step-dependency-warning-sheet";
 export const UPHOLSTERY_WARNING_SHEET_SURFACE_ID =
   "task-step-upholstery-warning-sheet";
+export const UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID =
+  "task-step-upholstery-selection-missing-sheet";
 export const STEP_STATE_FILTER_SHEET_SURFACE_ID =
   "task-step-state-filter-sheet";
 
@@ -43,6 +45,13 @@ export type StepDependencyWarningSheetSurfaceProps = {
 };
 
 export type UpholsteryWarningSheetSurfaceProps = {
+  stepId: TaskStepId;
+  taskId: TaskId;
+  workingSectionId: WorkingSectionId;
+  itemId: string;
+};
+
+export type UpholsterySelectionMissingSheetSurfaceProps = {
   stepId: TaskStepId;
   taskId: TaskId;
   workingSectionId: WorkingSectionId;

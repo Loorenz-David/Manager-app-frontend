@@ -76,12 +76,19 @@ function buildIssueFields(issues: ReturnFormValues["item_issues"]) {
 function buildUpholsteryFields(
   upholstery: ReturnFormValues["item_upholstery"],
 ) {
-  if (!upholstery.upholstery_client_id) {
+  if (
+    !upholstery.upholstery_client_id &&
+    upholstery.upholstery_amount_meters == null
+  ) {
     return undefined;
   }
 
+  const upholsteryId = upholstery.upholstery_client_id
+    ? { upholstery_id: upholstery.upholstery_client_id }
+    : {};
+
   return {
-    upholstery_id: upholstery.upholstery_client_id,
+    ...upholsteryId,
     source: "internal" as const,
     amount_meters: upholstery.upholstery_amount_meters ?? undefined,
   };

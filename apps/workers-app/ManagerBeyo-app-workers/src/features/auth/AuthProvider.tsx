@@ -10,6 +10,8 @@ export function AuthProvider({
   children,
 }: AuthProviderProps): React.JSX.Element {
   return (
-    <BaseAuthProvider signInRoute={ROUTES.signIn}>{children}</BaseAuthProvider>
+    <BaseAuthProvider appScope="worker" signInRoute={ROUTES.signIn}>
+      {children}
+    </BaseAuthProvider>
   );
 }

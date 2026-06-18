@@ -43,6 +43,7 @@ This document lists all `CLIENT_ID_PREFIX` abbreviations used for client_id gene
 | TaskStepDependency | tsd | tsd_xxxxxxx |
 | Upholstery | uph | uph_xxxxxxx |
 | UpholsteryInventory | uphi | uphi_xxxxxxx |
+| UpholsteryOrder | uor | uor_xxxxxxx |
 | User | usr | usr_xxxxxxx |
 | UserAppViewRecord | uavr | uavr_xxxxxxx |
 | UserDailyWorkStats | udwr | udwr_xxxxxxx |

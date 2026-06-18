@@ -21,11 +21,13 @@ const SelfProfileResponseSchema = ApiEnvelopeSchema(
 type AuthProviderProps = {
   children: ReactNode;
   signInRoute: string;
+  appScope: string;
 };
 
 export function AuthProvider({
   children,
   signInRoute,
+  appScope,
 }: AuthProviderProps): React.JSX.Element {
   const [ready, setReady] = useState(false);
   const setUser = useAuthStore((state) => state.setUser);
@@ -34,7 +36,7 @@ export function AuthProvider({
   const navigate = useNavigate();
 
   useEffect(() => {
-    initSession()
+    initSession(appScope)
       .then(async (ok) => {
         if (!ok) return;
 
@@ -63,7 +65,7 @@ export function AuthProvider({
         }
       })
       .finally(() => setReady(true));
-  }, []);
+  }, [appScope]);
 
   useEffect(() => {
     const handleExpired = () => {

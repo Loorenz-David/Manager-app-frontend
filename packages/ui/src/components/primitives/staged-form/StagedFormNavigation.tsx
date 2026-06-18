@@ -1,6 +1,6 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-import { cn } from '@beyo/lib';
+import { cn } from "@beyo/lib";
 
 import { useStagedFormContext } from "./StagedFormContext";
 

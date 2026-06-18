@@ -1,0 +1,15 @@
+the current nav menu of the manager application and worker application only allows for 5 buttons.
+which is correct in terms of comfortability for users. we will upgrade the ui for this nav menu to allow 
+more tabs keeping the max amount of visual tabs as 5 .
+
+currently the middle tab is the home tab, on the right side is the stats and then the settings.
+What we will do is to change the settings tab to be a more tabs tab.
+when that more tabs tab gets pressed a vertical row appears on top of this tab ( this vertial line has the same width as a tab on the nav menu ).
+that vertical line is where we can place more tabs that couldn't fit because of the limit of tabs. 
+each tab rendering as a nav tab, having the same styling and sizing, the line has a limit to how much it can grow. 
+after that limit it becomes scrollabel ( to keep the scroll really thing, we can use the scroll primitive: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/horizontal-scroll-area we might need to change aspects of this so that it allows verticall scrolling  ).
+
+The current stats tabs will be replace also, beacuse now this tab will represent the last selected tab from the more tabs. 
+we will keep local storage memory so that the selection survives refreshement of app. 
+
+I will

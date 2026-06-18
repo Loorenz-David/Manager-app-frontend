@@ -6,7 +6,9 @@ import {
 } from "@tanstack/react-query";
 
 import type { ImageViewModel } from "@beyo/images";
-import { upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { pendingSeatUpholsteryKeys } from "@/features/pending-upholstery/api/pending-seat-keys";
+import { upholsteryOrderingKeys } from "@/features/upholstery-ordering/api/upholstery-ordering-keys";
 
 import { createTask } from "../api/create-task";
 import type { ListTasksResult } from "../api/list-tasks";
@@ -242,6 +244,15 @@ export function useCreateTask() {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       void queryClient.invalidateQueries({
         queryKey: upholsteryKeys.pickerLists(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: pendingSeatUpholsteryKeys.all,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: upholsteryOrderingKeys.all,
+      });
+      void queryClient.invalidateQueries({
+        queryKey: upholsteryInventoryKeys.lists(),
       });
     },
   });

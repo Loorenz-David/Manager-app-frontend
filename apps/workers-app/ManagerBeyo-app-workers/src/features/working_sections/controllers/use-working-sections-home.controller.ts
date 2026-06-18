@@ -8,6 +8,8 @@ import { taskStepKeys } from "../../task_steps/api/task-step-keys";
 import {
   preloadItemIssueSelectionSheetSurface,
   preloadTaskDetailSlideSurface,
+  preloadUpholsterySelectionMissingSheetSurface,
+  preloadUpholsteryWarningSheetSurface,
 } from "../../task_steps/surfaces";
 import { useWorkerWorkingSectionsQuery } from "../api/use-worker-working-sections";
 import {
@@ -53,6 +55,8 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
     Promise.all([
       preloadTaskDetailSlideSurface(),
       preloadItemIssueSelectionSheetSurface(),
+      preloadUpholsteryWarningSheetSurface(),
+      preloadUpholsterySelectionMissingSheetSurface(),
       ...activeSections.map((section) =>
         queryClient.prefetchQuery({
           queryKey: taskStepKeys.sectionList({

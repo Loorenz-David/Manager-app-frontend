@@ -6,6 +6,7 @@ import {
   STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID,
   UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
 } from "./surface-ids";
 
@@ -45,6 +46,14 @@ function loadUpholsteryWarningSheetPage() {
   );
 }
 
+function loadUpholsterySelectionMissingSheetPage() {
+  return import(
+    "@/pages/task_steps/UpholsterySelectionMissingSheetPage"
+  ).then((module) => ({
+    default: module.UpholsterySelectionMissingSheetPage,
+  }));
+}
+
 function loadStepStateFilterSheetPage() {
   return import("@/pages/task_steps/StepStateFilterSheetPage").then(
     (module) => ({
@@ -68,6 +77,9 @@ const stepDependencyWarningSheet = lazyWithPreload(
 const upholsteryWarningSheet = lazyWithPreload(
   loadUpholsteryWarningSheetPage,
 );
+const upholsterySelectionMissingSheet = lazyWithPreload(
+  loadUpholsterySelectionMissingSheetPage,
+);
 const stepStateFilterSheet = lazyWithPreload(loadStepStateFilterSheetPage);
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
@@ -80,6 +92,8 @@ export const preloadStepDependencyWarningSheetSurface =
   stepDependencyWarningSheet.preload;
 export const preloadUpholsteryWarningSheetSurface =
   upholsteryWarningSheet.preload;
+export const preloadUpholsterySelectionMissingSheetSurface =
+  upholsterySelectionMissingSheet.preload;
 export const preloadStepStateFilterSheetSurface =
   stepStateFilterSheet.preload;
 export const preloadItemIssueSelectionSheetSurface =
@@ -101,6 +115,10 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [UPHOLSTERY_WARNING_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: upholsteryWarningSheet.Component,
+  },
+  [UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: upholsterySelectionMissingSheet.Component,
   },
   [STEP_STATE_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",

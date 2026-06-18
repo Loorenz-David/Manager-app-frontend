@@ -1,14 +1,18 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { ClientIdSchema } from '@beyo/lib';
-import type { BoxPickerOption } from '@/components/primitives/box-picker/box-picker.types';
-import type { UpholsteryId, UpholsteryInventoryId } from '@/types/common';
+import { ClientIdSchema } from "@beyo/lib";
+import type { BoxPickerOption } from "@/components/primitives/box-picker/box-picker.types";
+import type { UpholsteryId, UpholsteryInventoryId } from "@/types/common";
 
-export const UPHOLSTERY_CURRENCY = ['swedish_krona', 'danish_krona', 'euro'] as const;
+export const UPHOLSTERY_CURRENCY = [
+  "swedish_krona",
+  "danish_krona",
+  "euro",
+] as const;
 export const UPHOLSTERY_INVENTORY_CONDITION = [
-  'available',
-  'low_stock',
-  'out_of_stock',
+  "available",
+  "low_stock",
+  "out_of_stock",
 ] as const;
 
 export const UpholsterySchema = z.object({
@@ -66,7 +70,12 @@ export const UpdateUpholsteryInventoryInputSchema = z.object({
   planning_position: z.string().nullable().optional(),
   currency: z.enum(UPHOLSTERY_CURRENCY).nullable().optional(),
   low_stock_threshold_meters: z.string().nullable().optional(),
-  projected_inventory_value_minor: z.number().int().nonnegative().nullable().optional(),
+  projected_inventory_value_minor: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .optional(),
 });
 export type UpdateUpholsteryInventoryInput = z.infer<
   typeof UpdateUpholsteryInventoryInputSchema
@@ -74,9 +83,11 @@ export type UpdateUpholsteryInventoryInput = z.infer<
 
 export const AddOrderedInventoryInputSchema = z.object({
   id: z.string().transform((v) => v as UpholsteryInventoryId),
-  amount_meters: z.string().min(1, 'Amount is required.'),
+  amount_meters: z.string().min(1, "Amount is required."),
 });
-export type AddOrderedInventoryInput = z.infer<typeof AddOrderedInventoryInputSchema>;
+export type AddOrderedInventoryInput = z.infer<
+  typeof AddOrderedInventoryInputSchema
+>;
 
 export type ListUpholsteriesParams = {
   limit?: number;
@@ -86,6 +97,8 @@ export type ListUpholsteriesParams = {
 export type ListUpholsteryInventoriesParams = {
   limit?: number;
   offset?: number;
+  q?: string;
+  inventory_condition?: string;
 };
 
 export const UpholsteryPickerOptionSchema = z.object({
@@ -98,7 +111,9 @@ export const UpholsteryPickerOptionSchema = z.object({
   current_stored_amount_meters: z.string().nullable(),
   inventory_condition: z.enum(UPHOLSTERY_INVENTORY_CONDITION).nullable(),
 });
-export type UpholsteryPickerOption = z.infer<typeof UpholsteryPickerOptionSchema>;
+export type UpholsteryPickerOption = z.infer<
+  typeof UpholsteryPickerOptionSchema
+>;
 
 export type ListUpholsteryPickerParams = {
   q?: string;
@@ -108,12 +123,14 @@ export type ListUpholsteryPickerParams = {
   favorite?: boolean;
 };
 
-export type UpholsteryQuickFilter = 'in_stock' | 'out_of_stock' | 'favorite';
+export type UpholsteryQuickFilter = "in_stock" | "out_of_stock" | "favorite";
 
-export const UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS: Array<BoxPickerOption<UpholsteryQuickFilter>> = [
-  { value: 'in_stock', label: 'In Stock' },
-  { value: 'out_of_stock', label: 'Out of Stock' },
-  { value: 'favorite', label: 'Favorites' },
+export const UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS: Array<
+  BoxPickerOption<UpholsteryQuickFilter>
+> = [
+  { value: "favorite", label: "Favorites" },
+  { value: "in_stock", label: "In Stock" },
+  { value: "out_of_stock", label: "Out of Stock" },
 ];
 
 export type UpholsteryInventoryViewModel = UpholsteryInventory & {

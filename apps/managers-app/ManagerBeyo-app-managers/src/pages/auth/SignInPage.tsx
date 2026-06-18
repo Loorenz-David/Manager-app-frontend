@@ -22,7 +22,7 @@ export function SignInPage(): React.JSX.Element {
 
           <div className="w-full rounded-2xl border border-border bg-white p-6 shadow-sm">
             <SignInForm
-              appScope="managers"
+              appScope="manager"
               onSuccess={() => navigate(ROUTES.home, { replace: true })}
             />
           </div>

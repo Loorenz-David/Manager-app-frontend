@@ -42,6 +42,7 @@ import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import {
   hasNoAvailableUpholstery,
+  hasNoUpholsterySelected,
   isUpholsteryWarningSection,
 } from "../lib/step-transition-guards";
 import {
@@ -49,12 +50,14 @@ import {
   STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   TASK_CASES_SLIDE_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
+  UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID,
   UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
   type PauseReasonSheetSurfaceProps,
   type StepDependencyWarningSheetSurfaceProps,
   type TaskCasesSlideSurfaceProps,
   type TaskStepActionsSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
+  type UpholsterySelectionMissingSheetSurfaceProps,
   type UpholsteryWarningSheetSurfaceProps,
 } from "../surface-ids";
 import {
@@ -254,6 +257,20 @@ export function useTaskStepDetailController(): TaskStepDetailController {
           openSurface,
           transitionStepState,
         });
+
+        if (
+          step.item?.client_id &&
+          isUpholsteryWarningSection(step.working_section_name_snapshot) &&
+          hasNoUpholsterySelected(step)
+        ) {
+          openSurface(UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID, {
+            stepId: targetStepId,
+            taskId: targetTaskId,
+            workingSectionId: resolvedWorkingSectionId,
+            itemId: step.item.client_id,
+          } as UpholsterySelectionMissingSheetSurfaceProps);
+          return;
+        }
 
         if (
           step.item?.client_id &&

@@ -21,7 +21,7 @@ export function RootRoute(): React.JSX.Element {
   return (
     <SurfaceProvider>
       <PwaProvider surfaceOpeners={pwaSurfaceOpeners}>
-        <AuthProvider signInRoute={ROUTES.signIn}>
+        <AuthProvider appScope="manager" signInRoute={ROUTES.signIn}>
           <Outlet />
         </AuthProvider>
       </PwaProvider>

@@ -74,7 +74,7 @@ export function TaskDetailBottomActions({
         data-testid="task-detail-bottom-actions"
       >
         <button
-          className="flex-1 rounded-xl bg-(--color-primary) py-3.5 text-md font-semibold text-white shadow-sm"
+          className="flex-1 rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
           type="button"
           onClick={() => header?.requestClose()}
         >
@@ -82,7 +82,7 @@ export function TaskDetailBottomActions({
         </button>
         <button
           type="button"
-          className="flex-1 rounded-xl bg-card py-3.5 text-md font-semibold text-foreground shadow-sm"
+          className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
           onClick={openEditTask}
         >
           Edit

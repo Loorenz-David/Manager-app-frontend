@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { apiClient, setAccessToken } from "@beyo/api-client";
+import { apiClient, setAccessToken, setAuthScope } from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import type { UserId, WorkspaceId } from "@beyo/lib";
@@ -36,6 +36,7 @@ type SignInCredentials = {
 
 async function signIn(credentials: SignInCredentials) {
   const { appScope, ...rest } = credentials;
+  setAuthScope(appScope);
 
   const result = await apiClient.post(
     "/api/v1/auth/sign-in",

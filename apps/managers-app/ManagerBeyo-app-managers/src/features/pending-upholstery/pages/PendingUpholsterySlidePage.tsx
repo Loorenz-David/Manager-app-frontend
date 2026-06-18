@@ -130,9 +130,9 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
           isCompact ? "translate-y-full" : "translate-y-0",
         )}
       >
-        <div className="bg-card px-4 py-3.5 pb-[max(var(--safe-bottom,0),0.875rem)]">
+        <div className="bg-background border-t border-border px-4 py-3.5 pb-[max(var(--safe-bottom,0),0.875rem)]">
           <button
-            className="w-full rounded-2xl bg-foreground px-4 py-3.5 text-md font-medium text-background"
+            className="w-full rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
             type="button"
             onClick={controller.close}
           >

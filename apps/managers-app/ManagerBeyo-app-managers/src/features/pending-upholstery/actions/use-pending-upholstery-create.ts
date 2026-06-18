@@ -6,7 +6,7 @@ import {
   type CreateItemUpholsteryInput,
 } from "@/features/items/api/create-item-upholstery";
 import { taskKeys } from "@/features/tasks/api/task-keys";
-import { upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
 
 import type { PendingSeatTasksPage } from "../api/fetch-pending-seat-tasks";
 import { pendingSeatUpholsteryKeys } from "../api/pending-seat-keys";
@@ -94,6 +94,9 @@ export function usePendingUpholsteryCreate(itemId: string | null) {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       void queryClient.invalidateQueries({
         queryKey: upholsteryKeys.pickerLists(),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: upholsteryInventoryKeys.lists(),
       });
       if (itemId) {
         void queryClient.invalidateQueries({

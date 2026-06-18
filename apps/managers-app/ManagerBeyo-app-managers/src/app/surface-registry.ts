@@ -10,6 +10,8 @@ import { taskCreationSurfaces } from "@/features/task-creation";
 import { testingFormsSurfaces } from "@/features/testing_forms";
 import { testSurfaces } from "@/features/test_feature";
 import { upholsterySurfaces } from "@/features/upholstery";
+import { upholsteryInventorySurfaces } from "@/features/upholstery-inventory";
+import { upholsteryOrderingSurfaces } from "@/features/upholstery-ordering";
 import { workingSectionSurfaces } from "@/features/working-sections";
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 
@@ -22,6 +24,8 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...taskSurfaces,
   ...itemSurfaces,
   ...pendingUpholsterySurfaces,
+  ...upholsteryOrderingSurfaces,
+  ...upholsteryInventorySurfaces,
   ...imageSurfaces,
   ...phoneInputSurfaces,
   ...pwaSurfaces,

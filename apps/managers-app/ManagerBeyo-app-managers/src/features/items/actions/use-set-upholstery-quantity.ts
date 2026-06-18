@@ -4,6 +4,7 @@ import { itemUpholsteryKeys } from '@beyo/tasks';
 import { taskKeys } from '@/features/tasks/api/task-keys';
 import { upholsteryKeys } from '@/features/upholstery/api/upholstery-keys';
 import { pendingSeatUpholsteryKeys } from '@/features/pending-upholstery/api/pending-seat-keys';
+import { invalidateAfterInventoryMutation } from '@/features/upholstery-inventory/lib/invalidate-inventory';
 import type { PendingSeatTasksPage } from '@/features/pending-upholstery/api/fetch-pending-seat-tasks';
 import type { PendingSeatCounts } from '@/features/pending-upholstery/types';
 
@@ -76,6 +77,7 @@ export function useSetUpholsteryQuantity(
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: upholsteryKeys.pickerLists() });
       void queryClient.invalidateQueries({ queryKey: pendingSeatUpholsteryKeys.all });
+      invalidateAfterInventoryMutation(queryClient);
       if (itemId) {
         void queryClient.invalidateQueries({
           queryKey: itemUpholsteryKeys.byItem(itemId),

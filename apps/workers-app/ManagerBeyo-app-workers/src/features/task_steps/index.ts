@@ -22,6 +22,8 @@ export {
   preloadItemIssueSelectionSheetSurface,
   preloadPauseReasonSheetSurface,
   preloadStepStateFilterSheetSurface,
+  preloadUpholsterySelectionMissingSheetSurface,
+  preloadUpholsteryWarningSheetSurface,
   taskStepSurfaces,
 } from "./surfaces";
 export {

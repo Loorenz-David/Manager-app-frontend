@@ -17,3 +17,8 @@ export function hasNoAvailableUpholstery(step: TaskStep): boolean {
 
   return !requirements.some((requirement) => requirement.state === "available");
 }
+
+export function hasNoUpholsterySelected(step: TaskStep): boolean {
+  const requirements = step.item?.upholstery_requirement ?? [];
+  return requirements.length === 0;
+}

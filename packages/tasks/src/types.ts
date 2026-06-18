@@ -34,7 +34,7 @@ export type ListTaskFlowRecordsResponse = z.infer<
 export const ItemUpholsteryEntrySchema = z.object({
   client_id: z.string(),
   item_id: z.string(),
-  upholstery_id: z.string(),
+  upholstery_id: z.string().nullable(),
   name: z.string().nullable(),
   code: z.string().nullable(),
   image_url: z.string().nullable(),

@@ -31,3 +31,16 @@ export const TAB_ORDER: TabPath[] = [
   ROUTES.stats,
   ROUTES.settings,
 ];
+
+export const PRIMARY_TABS = [
+  ROUTES.tasks,
+  ROUTES.cases,
+  ROUTES.home,
+] as const satisfies TabPath[];
+
+export const MORE_TABS = [ROUTES.stats, ROUTES.settings] as const satisfies
+  TabPath[];
+
+export type MoreTabPath = (typeof MORE_TABS)[number];
+
+export const DEFAULT_MORE_TAB: MoreTabPath = ROUTES.stats;

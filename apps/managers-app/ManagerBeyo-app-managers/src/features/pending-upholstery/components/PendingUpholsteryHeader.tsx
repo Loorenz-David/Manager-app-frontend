@@ -112,6 +112,8 @@ export function PendingUpholsteryHeader({
                 value={activeFilter}
                 visualVariant="pill"
                 onValueChange={handleFilterChange}
+                selectedOptionClassName="bg-blue-100 border-blue-400 text-blue-500"
+                unselectedOptionClassName="bg-white border-slate-300 text-slate-700"
               />
             </HorizontalScrollArea>
           </div>

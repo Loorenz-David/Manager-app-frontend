@@ -1,3 +1,6 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { itemUpholsteryKeys, taskFlowRecordKeys } from "@beyo/tasks";
+
 import { useCreateItemUpholstery } from "@/features/items/actions/use-create-item-upholstery";
 import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
 import { useUpdateItemUpholstery } from "@/features/items/actions/use-update-item-upholstery";
@@ -11,6 +14,7 @@ import { useTaskDetailFlow } from "../flows/use-task-detail.flow";
 import { getTaskTitle } from "../lib/task-detail";
 
 export function useTaskDetailController(taskId: string) {
+  const queryClient = useQueryClient();
   const taskQuery = useGetTaskQuery(taskId);
 
   const itemId = taskQuery.data?.item?.client_id ?? null;
@@ -25,7 +29,17 @@ export function useTaskDetailController(taskId: string) {
   const updateItemUpholstery = useUpdateItemUpholstery(taskId, itemId);
 
   async function refetch(): Promise<void> {
-    await taskQuery.refetch();
+    await Promise.all([
+      taskQuery.refetch(),
+      itemId
+        ? queryClient.invalidateQueries({
+            queryKey: itemUpholsteryKeys.byItem(itemId),
+          })
+        : Promise.resolve(),
+      queryClient.invalidateQueries({
+        queryKey: taskFlowRecordKeys.byTask(taskId),
+      }),
+    ]);
   }
 
   return {
