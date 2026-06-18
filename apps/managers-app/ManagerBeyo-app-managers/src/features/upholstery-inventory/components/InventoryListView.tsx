@@ -39,7 +39,6 @@ export function InventoryListView(): React.JSX.Element {
         <InventoryListHeader
           activeFilter={controller.activeFilter}
           isCompact={isCompact}
-          isFilterDisabled={controller.isFilterDisabled}
           isLoading={controller.isLoading}
           q={controller.q}
           onFilterChange={controller.onFilterChange}

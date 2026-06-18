@@ -33,16 +33,19 @@ export function useInventoryListController() {
   }, [q]);
 
   const isSearchActive = debouncedQ.trim().length > 0;
-  const isFilterDisabled = q.trim().length > 0;
+  const activeQ = debouncedQ.trim() || undefined;
 
-  const inStockQuery = useListUpholsteryInventoriesQuery({ in_stock: true });
-  const outOfStockQuery = useListUpholsteryInventoriesQuery({
-    in_stock: false,
-  });
-  const favoritesQuery = useListUpholsteryInventoriesQuery({ favorite: true });
-  const searchQuery = useListUpholsteryInventoriesQuery(
-    { q: debouncedQ || undefined },
-    { enabled: isSearchActive },
+  const inStockQuery = useListUpholsteryInventoriesQuery(
+    { in_stock: true, ...(activeQ ? { q: activeQ } : {}) },
+    { enabled: !isSearchActive || activeFilter === "in_stock" },
+  );
+  const outOfStockQuery = useListUpholsteryInventoriesQuery(
+    { in_stock: false, ...(activeQ ? { q: activeQ } : {}) },
+    { enabled: !isSearchActive || activeFilter === "out_of_stock" },
+  );
+  const favoritesQuery = useListUpholsteryInventoriesQuery(
+    { favorite: true, ...(activeQ ? { q: activeQ } : {}) },
+    { enabled: !isSearchActive || activeFilter === "favorite" },
   );
 
   function handleFilterChange(nextFilter: InventoryQuickFilter): void {
@@ -58,14 +61,6 @@ export function useInventoryListController() {
   }
 
   function getActiveQueryResult() {
-    if (isSearchActive) {
-      return {
-        items: searchQuery.data?.items ?? [],
-        isLoading: searchQuery.isPending,
-        isFetched: searchQuery.isFetched,
-      };
-    }
-
     switch (activeFilter) {
       case "out_of_stock":
         return {
@@ -93,11 +88,6 @@ export function useInventoryListController() {
   const cards = items.map(toInventoryListCardViewModel);
 
   async function refetch(): Promise<void> {
-    if (isSearchActive) {
-      await searchQuery.refetch();
-      return;
-    }
-
     switch (activeFilter) {
       case "out_of_stock":
         await outOfStockQuery.refetch();
@@ -130,7 +120,6 @@ export function useInventoryListController() {
     direction,
     filterOptions: INVENTORY_QUICK_FILTER_OPTIONS,
     isSearchActive,
-    isFilterDisabled,
     cards,
     isLoading,
     isFetched,

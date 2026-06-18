@@ -20,5 +20,6 @@ export function useListUpholsteryInventoriesQuery(
         offset: 0,
       }),
     enabled: options.enabled ?? true,
+    placeholderData: (previousData) => previousData,
   });
 }

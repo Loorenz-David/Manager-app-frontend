@@ -19,7 +19,6 @@ type InventoryListHeaderProps = {
   isLoading: boolean;
   q: string;
   activeFilter: InventoryQuickFilter;
-  isFilterDisabled: boolean;
   onQChange: (value: string) => void;
   onFilterChange: (filter: InventoryQuickFilter) => void;
 };
@@ -29,12 +28,9 @@ export function InventoryListHeader({
   isLoading,
   q,
   activeFilter,
-  isFilterDisabled,
   onQChange,
   onFilterChange,
 }: InventoryListHeaderProps): React.JSX.Element {
-  const filterOptions = INVENTORY_QUICK_FILTER_OPTIONS;
-
   return (
     <div
       className="flex flex-col bg-background"
@@ -65,15 +61,11 @@ export function InventoryListHeader({
         <div className="min-h-0 overflow-hidden">
           <HorizontalScrollArea className="pb-1">
             <BoxPicker
-              className={cn(
-                "flex flex-nowrap flex-row gap-1.5 px-4 transition-opacity duration-150",
-                isFilterDisabled && "pointer-events-none opacity-60",
-              )}
+              className="flex flex-nowrap flex-row gap-1.5 px-4"
               data-testid="upholstery-inventory-quick-filter-pills"
-              disabledOptionClassName="opacity-60"
               layout="stack"
               mode="single"
-              options={filterOptions}
+              options={INVENTORY_QUICK_FILTER_OPTIONS}
               size="sm"
               showDescription={false}
               showIcon={false}
