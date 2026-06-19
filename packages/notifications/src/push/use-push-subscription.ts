@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchVapidPublicKey } from "../api/push/fetch-vapid-public-key";
 import { registerPushSubscription } from "../api/push/register-push-subscription";
 import { unregisterPushSubscription } from "../api/push/unregister-push-subscription";
 import { arrayBufferToBase64url, urlBase64ToUint8Array } from "./push-crypto";
