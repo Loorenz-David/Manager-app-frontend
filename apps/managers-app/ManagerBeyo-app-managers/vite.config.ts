@@ -15,6 +15,9 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       VitePWA({
+        strategies: "injectManifest",
+        srcDir: "src",
+        filename: "sw.ts",
         registerType: "prompt",
         injectRegister: "auto",
         includeAssets: [
@@ -50,11 +53,8 @@ export default defineConfig(({ mode }) => {
             },
           ],
         },
-        workbox: {
+        injectManifest: {
           globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-          cleanupOutdatedCaches: true,
-          skipWaiting: false,
-          clientsClaim: true,
         },
       }),
     ],
@@ -64,12 +64,17 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts: ["f949-155-4-95-121.ngrok-free.app"],
+      allowedHosts: ["7aa9-155-4-95-121.ngrok-free.app"],
       proxy: env.API_TARGET_URL
         ? {
             "/api": {
               target: env.API_TARGET_URL,
               changeOrigin: true,
+            },
+            "/socket.io": {
+              target: env.API_TARGET_URL,
+              changeOrigin: true,
+              ws: true,
             },
           }
         : undefined,

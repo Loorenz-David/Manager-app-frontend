@@ -1,6 +1,7 @@
 import { createContext, useContext, useRef, type ReactNode } from "react";
 
 import type { CaseId } from "@beyo/lib";
+import { useEntityView } from "@beyo/realtime";
 
 import {
   useCaseConversationController,
@@ -35,6 +36,11 @@ export function CaseConversationProvider({
     },
     surfaceOpeners,
   });
+
+  const conversationClientId =
+    controller.caseDetail?.case.conversation_client_id ?? null;
+  useEntityView("conversation", conversationClientId);
+
   const messagesController = useCaseConversationMessagesController({
     caseClientId,
     lastReadMessageSeq: controller.lastReadMessageSeq,

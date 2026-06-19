@@ -9,7 +9,7 @@ Event payload IDs are public client-facing IDs, matching API responses, route pa
 ```
 Backend worker
       ↓  emits
-Socket.io event  ('invoice:updated', { id })
+Socket.io event  ('invoice:updated', { client_id })
       ↓  received by
 SocketProvider   (one connection, all handlers registered here)
       ↓  calls
@@ -31,31 +31,39 @@ All events are defined in one file. This is the contract between the backend and
 
 ```ts
 // src/lib/socket-types.ts
-import type { InvoiceId, WorkspaceId, UserId } from '@/types/common';
 
-// Events the server (workers + API) emits to the client
+// Events the server (workers + API) emits to the client.
+// All single-entity payloads carry { client_id } as the entity identifier.
+// Room targeting is handled server-side; workspace_id is never in the payload.
 export type ServerToClientEvents = {
-  // Single-entity events — one change, one ID
-  'invoice:created': (payload: { id: InvoiceId; workspace_id: WorkspaceId }) => void;
-  'invoice:updated': (payload: { id: InvoiceId; workspace_id: WorkspaceId }) => void;
-  'invoice:deleted': (payload: { id: InvoiceId; workspace_id: WorkspaceId }) => void;
-  'payment:processed': (payload: { invoice_id: InvoiceId; status: string })  => void;
+  // Single-entity events — one change, one client_id
+  'invoice:created': (payload: { client_id: string }) => void;
+  'invoice:updated': (payload: { client_id: string }) => void;
+  'invoice:deleted': (payload: { client_id: string }) => void;
+  'payment:processed': (payload: { client_id: string; status: string }) => void;
 
   // Batch events — worker processed many entities at once, one event with N ids
-  'invoice:batch-updated': (payload: { ids: InvoiceId[] }) => void;
-  'invoice:batch-deleted': (payload: { ids: InvoiceId[] }) => void;
+  'invoice:batch-updated': (payload: { ids: string[] }) => void;
+  'invoice:batch-deleted': (payload: { ids: string[] }) => void;
 
-  // Notification events — emitted by workers to surface alerts
-  'notification:new': (payload: { id: string; type: string; title: string; message?: string }) => void;
+  // Notification events — pointer only; fetch content from the API
+  'notification:new': (payload: { client_id: string }) => void;
 
-  // System events — connection and session management
-  'auth:session-expired': (payload: Record<string, never>) => void;
+  // NOTE: 'auth:session-expired' is NOT a server-emitted socket event.
+  // The backend rejects an invalid JWT at handshake time via connect_error.
+  // The SocketProvider dispatches a client-generated 'auth:session-expired'
+  // DOM CustomEvent in its connect_error handler — it is never received from the server.
 };
 
-// Events the client emits to the server
+// Events the client emits to the server.
+// Room joining is server-managed on connect; clients never emit room:join / room:leave.
 export type ClientToServerEvents = {
-  'room:join':  (payload: { room: string }, ack: (ok: boolean) => void) => void;
-  'room:leave': (payload: { room: string }) => void;
+  // Signals the user has opened an entity surface.
+  // Backend writes a Redis presence key (TTL 90s) for all entity types.
+  // For entity_type === "conversation": also joins the conversation Socket.IO room.
+  'view_entity':  (payload: { entity_type: string; entity_client_id: string }) => void;
+  // Signals the user has closed the entity surface.
+  'leave_entity': (payload: { entity_type: string; entity_client_id: string }) => void;
 };
 
 export type AppSocket = import('socket.io-client').Socket<
@@ -94,9 +102,8 @@ export type SocketEventHandlers = {
 
 ```ts
 // features/invoices/socket-events.ts
-import { invoiceKeys }         from './api/invoice-keys';
+import { invoiceKeys }              from './api/invoice-keys';
 import type { SocketEventHandlers } from '@/lib/socket-registry-types';
-import type { InvoiceId }      from '@/types/common';
 
 export const invoiceSocketEvents: SocketEventHandlers = {
   'invoice:created': (_payload, { queryClient }) => {
@@ -107,10 +114,10 @@ export const invoiceSocketEvents: SocketEventHandlers = {
     });
   },
 
-  'invoice:updated': ({ id }, { queryClient }) => {
+  'invoice:updated': ({ client_id }, { queryClient }) => {
     // Invalidate detail + lists — refetches only the ones currently observed
     queryClient.invalidateQueries({
-      queryKey:    invoiceKeys.detail(id as InvoiceId),
+      queryKey:    invoiceKeys.detail(client_id),
       refetchType: 'active',
     });
     queryClient.invalidateQueries({
@@ -119,20 +126,20 @@ export const invoiceSocketEvents: SocketEventHandlers = {
     });
   },
 
-  'invoice:deleted': ({ id }, { queryClient }) => {
+  'invoice:deleted': ({ client_id }, { queryClient }) => {
     // Remove the detail cache entirely — no point keeping deleted data
-    queryClient.removeQueries({ queryKey: invoiceKeys.detail(id as InvoiceId) });
+    queryClient.removeQueries({ queryKey: invoiceKeys.detail(client_id) });
     queryClient.invalidateQueries({
       queryKey:    invoiceKeys.lists(),
       refetchType: 'active',
     });
   },
 
-  'payment:processed': ({ invoice_id }, { queryClient, notify }) => {
+  'payment:processed': ({ client_id }, { queryClient, notify }) => {
     // Payment is a critical state change — notify the user regardless of their position
-    notify.success('Payment processed', `Invoice ${invoice_id} has been paid.`);
+    notify.success('Payment processed', `Invoice ${client_id} has been paid.`);
     queryClient.invalidateQueries({
-      queryKey:    invoiceKeys.detail(invoice_id as InvoiceId),
+      queryKey:    invoiceKeys.detail(client_id),
       refetchType: 'active',
     });
   },
@@ -153,16 +160,22 @@ export const socketRegistry: SocketEventHandlers = {
   ...settingsSocketEvents,
   ...clientSocketEvents,
 
-  // System-level handlers defined at the app level, not in any feature
-  'notification:new': ({ type, title, message }, { notify }) => {
-    if (type === 'success' || type === 'error' || type === 'info' || type === 'warning') {
-      notify[type](title, message);
-    }
+  // notification:new carries only a client_id pointer — fetch the content from the API.
+  // Do NOT call notify() here; you don't have the title or message yet.
+  // The notification UI component reacts when the list query refetches.
+  'notification:new': ({ client_id: _client_id }, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey:    notificationKeys.list(),
+      refetchType: 'active',
+    });
+    queryClient.invalidateQueries({
+      queryKey:    notificationKeys.unreadCount(),
+      refetchType: 'active',
+    });
   },
 
-  'auth:session-expired': (_payload, _ctx) => {
-    window.dispatchEvent(new CustomEvent('auth:session-expired'));
-  },
+  // NOTE: 'auth:session-expired' is NOT registered here — the backend never emits it.
+  // The SocketProvider dispatches a client-generated DOM CustomEvent in connect_error.
 };
 ```
 
@@ -216,6 +229,10 @@ export function useSocketStatus(): SocketStatus {
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  // workspaceId / userId kept as effect dependencies so the connection
+  // is torn down and re-created if the session identity changes.
+  // They are NOT used to emit room-join requests — the backend joins
+  // workspace:{id} and user:{id} rooms automatically on connect.
   const workspaceId     = useAuthStore((s) => s.workspaceId);
   const userId          = useAuthStore((s) => s.user?.id);
   const queryClient     = useQueryClient();
@@ -263,16 +280,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     s.on('connect', () => {
       setStatus({ connected: true, reconnecting: false });
 
-      // Global rooms — joined on every connect, including after reconnect.
-      // Rooms are server-side and lost on disconnect.
-      if (workspaceId) {
-        s.emit('room:join', { room: `workspace:${workspaceId}` }, (ok) => {
-          if (!ok && import.meta.env.DEV) console.warn('[Socket] Failed to join workspace room');
-        });
-      }
-      if (userId) {
-        s.emit('room:join', { room: `user:${userId}` }, () => {});
-      }
+      // workspace:{id} and user:{id} rooms are joined server-side automatically
+      // when the backend validates the JWT on connect. No client emit needed.
 
       // Missed events: events emitted by the server while the client was disconnected
       // are lost — Socket.io has no replay mechanism. Invalidating active queries on
@@ -401,7 +410,7 @@ This means event handlers never need to check "is the user currently on this pag
 ```ts
 // This is all you need in a handler — TanStack Query does the rest
 queryClient.invalidateQueries({
-  queryKey:    invoiceKeys.detail(id),
+  queryKey:    invoiceKeys.detail(client_id),
   refetchType: 'active',   // refetch now if observed, mark stale if not
 });
 ```
@@ -409,9 +418,9 @@ queryClient.invalidateQueries({
 For critical state changes where the user needs to know regardless of their position (payment confirmed, task assigned to them), combine invalidation with a notification:
 
 ```ts
-'payment:processed': ({ invoice_id }, { queryClient, notify }) => {
+'payment:processed': ({ client_id }, { queryClient, notify }) => {
   notify.success('Payment confirmed');                          // always shown
-  queryClient.invalidateQueries({ queryKey: ..., refetchType: 'active' });  // refetch if viewing
+  queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(client_id), refetchType: 'active' });
 },
 ```
 
@@ -444,10 +453,10 @@ export function debouncedInvalidation(
 Use it in handlers for entity types that bulk operations target:
 
 ```ts
-'invoice:updated': ({ id }, { queryClient }) => {
+'invoice:updated': ({ client_id }, { queryClient }) => {
   // Detail is always immediate — only one thing changes at a time
   queryClient.invalidateQueries({
-    queryKey:    invoiceKeys.detail(id as InvoiceId),
+    queryKey:    invoiceKeys.detail(client_id),
     refetchType: 'active',
   });
 
@@ -475,8 +484,8 @@ import type { QueryClient, QueryKey } from '@tanstack/react-query';
 type BatchInvalidationOptions = {
   queryClient: QueryClient;
   ids:         string[];
-  toQueryKey:  (id: string) => QueryKey;   // maps an ID to its detail query key
-  listKey:     QueryKey;                   // the list key to always invalidate
+  toQueryKey:  (clientId: string) => QueryKey;   // maps a client_id to its detail query key
+  listKey:     QueryKey;                          // the list key to always invalidate
 };
 
 export function batchInvalidation({
@@ -487,8 +496,8 @@ export function batchInvalidation({
 }: BatchInvalidationOptions): void {
   const cache = queryClient.getQueryCache();
 
-  ids.forEach((id) => {
-    const queryKey = toQueryKey(id);
+  ids.forEach((clientId) => {
+    const queryKey = toQueryKey(clientId);
     const query    = cache.find({ queryKey, exact: true });
 
     if (!query) return;  // not in cache — nothing to do, will fetch fresh on access
@@ -511,10 +520,9 @@ Usage in the invoice socket events:
 
 ```ts
 // features/invoices/socket-events.ts
-import { batchInvalidation }   from '@/lib/socket-batch';
-import { invoiceKeys }         from './api/invoice-keys';
+import { batchInvalidation }        from '@/lib/socket-batch';
+import { invoiceKeys }              from './api/invoice-keys';
 import type { SocketEventHandlers } from '@/lib/socket-registry-types';
-import type { InvoiceId }      from '@/types/common';
 
 export const invoiceSocketEvents: SocketEventHandlers = {
   // ... single-entity handlers ...
@@ -523,15 +531,15 @@ export const invoiceSocketEvents: SocketEventHandlers = {
     batchInvalidation({
       queryClient,
       ids,
-      toQueryKey: (id) => invoiceKeys.detail(id as InvoiceId),
+      toQueryKey: (clientId) => invoiceKeys.detail(clientId),
       listKey:    invoiceKeys.lists(),
     });
   },
 
   'invoice:batch-deleted': ({ ids }, { queryClient }) => {
     // Remove deleted entries from cache entirely — no point marking them stale
-    ids.forEach((id) => {
-      queryClient.removeQueries({ queryKey: invoiceKeys.detail(id as InvoiceId) });
+    ids.forEach((clientId) => {
+      queryClient.removeQueries({ queryKey: invoiceKeys.detail(clientId) });
     });
     queryClient.invalidateQueries({ queryKey: invoiceKeys.lists(), refetchType: 'active' });
   },
@@ -551,7 +559,7 @@ For very broad worker operations, the backend can emit a signal without IDs:
 
 ```ts
 // In ServerToClientEvents — for operations too broad to enumerate
-'invoice:invalidate-all': (payload: { workspace_id: WorkspaceId }) => void;
+'invoice:invalidate-all': (payload: Record<string, never>) => void;
 ```
 
 ```ts
@@ -563,60 +571,71 @@ For very broad worker operations, the backend can emit a signal without IDs:
 
 ---
 
-## Feature room subscription
+## Feature entity view / presence
 
-Global rooms (`workspace:*`, `user:*`) are joined by the SocketProvider automatically. Feature-specific rooms (collaborative editing on a single entity) are joined by a hook in the controller — they're only relevant when a specific surface is open.
+Global rooms (`workspace:*`, `user:*`) are joined **server-side** by the backend the moment a valid JWT is received — the client never requests this. Feature-specific rooms and presence signals are handled by the `useEntityView` hook, which emits `view_entity` / `leave_entity` to the server while a surface is open.
+
+**What the backend does with these events:**
+- Writes a Redis presence key (`presence:{entity_type}:{entity_client_id}` → SET of user_ids, 90 s TTL) for **all** entity types. The notification system reads this to skip push-notifying a user who is currently viewing an entity.
+- For `entity_type === "conversation"` specifically: also joins the `conversation:{entity_client_id}` Socket.IO room so the client receives `conversation:message-*` events.
 
 ```ts
-// src/hooks/use-socket-room.ts
+// src/hooks/use-entity-view.ts
 import { useEffect } from 'react';
 import { useSocket } from '@/providers/SocketProvider';
 
-export function useSocketRoom(room: string | null) {
+export function useEntityView(entityType: string, entityClientId: string | null) {
   const socket = useSocket();
 
   useEffect(() => {
-    if (!socket || !room) return;
+    if (!socket || !entityClientId) return;
 
-    socket.emit('room:join', { room }, () => {});
+    socket.emit('view_entity', { entity_type: entityType, entity_client_id: entityClientId });
 
     return () => {
-      socket.emit('room:leave', { room });
+      socket.emit('leave_entity', { entity_type: entityType, entity_client_id: entityClientId });
     };
-  }, [socket, room]);
+  }, [socket, entityType, entityClientId]);
 }
 ```
 
-Usage in a controller when the user opens a collaborative document:
+Usage in feature controllers:
 
 ```ts
-// features/invoices/controllers/use-invoice-detail.controller.ts
-export function useInvoiceDetailController(id: InvoiceId) {
-  // Join the invoice-specific room while this controller is mounted
-  useSocketRoom(`invoice:${id}`);
+// features/cases/controllers/use-conversation-detail.controller.ts
+export function useConversationDetailController(conversationId: string) {
+  // Joins the conversation Socket.IO room AND sets presence — both handled server-side
+  useEntityView('conversation', conversationId);
+  // ... rest of controller
+}
 
+// features/cases/controllers/use-case-detail.controller.ts
+export function useCaseDetailController(caseId: string) {
+  // Sets presence only (no socket room join) — suppresses notifications while viewing
+  useEntityView('case', caseId);
   // ... rest of controller
 }
 ```
 
-When the surface closes, the controller unmounts and the hook cleanup leaves the room automatically.
+When the surface closes, the controller unmounts and the hook cleanup emits `leave_entity` automatically.
 
 ---
 
 ## Using `useSocket()` to emit events
 
-`useSocket()` is for emitting client events only — presence announcements, typing indicators, explicit room joins. Features never attach `socket.on()` listeners via this hook.
+`useSocket()` is for emitting client events only — ad-hoc presence announcements, typing indicators. Features never attach `socket.on()` listeners via this hook. For the standard view/leave presence pattern, use `useEntityView` instead.
 
 ```ts
-// Usage — emitting a client event (presence, typing indicator)
-export function useInvoicePresence(id: InvoiceId) {
+// Usage — emitting a client event for a typing indicator
+export function useInvoiceTypingIndicator(id: string) {
   const socket = useSocket();
 
-  const announceViewing = useCallback(() => {
-    socket?.emit('room:join', { room: `invoice:${id}:presence` }, () => {});
+  const announceTyping = useCallback(() => {
+    // view_entity / leave_entity are the correct client-emitted presence events
+    socket?.emit('view_entity', { entity_type: 'invoice', entity_client_id: id });
   }, [socket, id]);
 
-  return { announceViewing };
+  return { announceTyping };
 }
 ```
 
@@ -644,12 +663,12 @@ Mount this in the app shell (`TopBar`, `Sidebar`) where it is always visible.
 Socket events are a natural trace of application state changes. For agent control, the registry handlers can optionally record events to the surface trace system:
 
 ```ts
-'invoice:updated': ({ id }, { queryClient }) => {
-  queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(id as InvoiceId), refetchType: 'active' });
+'invoice:updated': ({ client_id }, { queryClient }) => {
+  queryClient.invalidateQueries({ queryKey: invoiceKeys.detail(client_id), refetchType: 'active' });
 
   // Optional: record for agent replay/debugging
   if (import.meta.env.DEV) {
-    surfaceTrace.record('socket:invoice:updated', { id });
+    surfaceTrace.record('socket:invoice:updated', { client_id });
   }
 },
 ```
@@ -661,11 +680,14 @@ Socket events are a natural trace of application state changes. For agent contro
 - **Never attach `socket.on()` listeners inside a component or hook.** All incoming event handling is declared in `features/<f>/socket-events.ts` and applied by the SocketProvider once. Components never touch listeners.
 - **Never call `useSocket()` to subscribe to events.** `useSocket()` is for emitting only. Subscriptions are the registry's job.
 - **Never pass `auth: { token: getAccessToken() }` as a plain object.** Use the function form so every reconnect gets the current token, not a stale snapshot captured at creation time.
-- **Never ignore `connect_error`.** A rejected handshake means the token may be expired — attempt a refresh or dispatch `auth:session-expired`.
+- **Never ignore `connect_error`.** A rejected handshake means the token may be expired — attempt a refresh or dispatch the `auth:session-expired` DOM CustomEvent.
 - **Never use socket events as the sole source of truth for UI state.** Socket events trigger cache invalidations. TanStack Query holds the truth — the socket only signals that the truth may have changed.
 - **Never invalidate without `refetchType: 'active'`** unless you explicitly want to wake up all cached data regardless of whether the user can see it.
-- **Never emit socket events without acknowledgment callbacks** for operations requiring server confirmation.
 - **Never connect to the socket before the user is authenticated.** The SocketProvider checks `isAuthenticated` before creating the connection.
 - **Never handle the same event in two different registry files.** Each event has exactly one handler. If two features care about the same event, merge the handlers into the app-level registry entry.
 - **Never iterate batch IDs and call `invalidateQueries` with the default `refetchType`** for all of them. Use `batchInvalidation()` — it checks observer count and uses `refetchType: 'none'` for unobserved cache entries, preventing unnecessary network requests.
 - **Never enumerate IDs in a batch event for very large worker operations.** If a job touches hundreds of entities, emit a broad signal (`invoice:invalidate-all`) instead. Enumerating 500 IDs in a socket payload is wasteful — the frontend will only be observing one or two of them.
+- **Never emit `room:join` or `room:leave`.** These events are not registered on the backend. Use `view_entity` / `leave_entity` for feature presence, or rely on server-automatic room joining for workspace/user rooms.
+- **Never call `notify()` inside the `notification:new` handler.** The payload is a pointer (`{ client_id }`) only — no title or message is included. Invalidate the notifications query and let the UI react when the list refetches.
+- **Never add `auth:session-expired` to `ServerToClientEvents`.** The backend never emits this event. It is a client-generated DOM CustomEvent dispatched inside the `connect_error` handler when a token refresh fails.
+- **Never read `payload.id` from a socket event payload.** All single-entity payloads use `client_id` as the entity identifier. There is no `id` field and no `workspace_id` field — room targeting is handled server-side.

@@ -9,6 +9,7 @@
   "peerDependencies": {
     "@beyo/api-client": "*",
     "@beyo/lib": "*",
+    "@beyo/notifications": "*",
     "@beyo/ui": "*",
     "@hookform/resolvers": ">=5.0.0",
     "@tanstack/react-query": ">=5.0.0",

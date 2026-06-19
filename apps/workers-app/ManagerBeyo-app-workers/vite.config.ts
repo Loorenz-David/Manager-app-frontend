@@ -9,6 +9,9 @@ export default defineConfig({
     tailwindcss() as PluginOption,
     react(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "prompt",
       injectRegister: "auto",
       includeAssets: [
@@ -44,11 +47,8 @@ export default defineConfig({
           },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        cleanupOutdatedCaches: true,
-        skipWaiting: false,
-        clientsClaim: true,
       },
     }),
   ] as PluginOption[],

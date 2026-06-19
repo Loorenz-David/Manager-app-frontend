@@ -112,6 +112,8 @@ export { useSendCaseMessage } from "./actions/use-send-case-message";
 export { useUpdateCaseState } from "./actions/use-update-case-state";
 export type { CreateCaseAction } from "./actions/use-create-case";
 
+export { caseSocketEvents } from "./socket-events";
+
 export type { CaseConversationController } from "./controllers/use-case-conversation.controller";
 export type {
   CasesViewController,

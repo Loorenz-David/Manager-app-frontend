@@ -12,6 +12,7 @@
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/lib": "*",
+    "@beyo/realtime": "*",
     "@beyo/ui": "*",
     "@hookform/resolvers": ">=5.0.0",
     "@lexical/react": ">=0.44.0",

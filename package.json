@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "typecheck": "npm run typecheck --workspace managerbeyo-app-managers --workspace managerbeyo-app-workers --workspace managerbeyo-app-sellers && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p packages/hooks/tsconfig.json --noEmit"
+    "typecheck": "npm run typecheck --workspace managerbeyo-app-managers --workspace managerbeyo-app-workers --workspace managerbeyo-app-sellers && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p packages/hooks/tsconfig.json --noEmit && tsc -p packages/realtime/tsconfig.json --noEmit && tsc -p packages/notifications/tsconfig.json --noEmit"
   },
   "workspaces": [
     "apps/managers-app/*",
@@ -10,6 +10,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "socket.io-client": "^4.8.3",
     "ulid": "^3.0.2"
   }
 }

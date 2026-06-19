@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useSurface } from "@beyo/hooks";
+import { useEntityView } from "@beyo/realtime";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { isSameImagePath } from "@beyo/lib";
 import {
@@ -24,6 +25,8 @@ import { toTaskStepCardViewModel, type StepState } from "../types";
 export function useLastActiveStepCardController() {
   const query = useUserLastActiveStepQuery();
   const step = query.data ?? null;
+
+  useEntityView("task_step", step?.client_id ?? null);
 
   // Ref so that handleOpenImageViewer can read the latest step without
   // needing step in its useCallback deps (which would make onTap unstable

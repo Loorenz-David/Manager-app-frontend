@@ -1,11 +1,15 @@
 import { useEffect } from "react";
 import { useSurfaceHeader } from "@beyo/hooks";
 import { TaskFlowTimeline } from "@beyo/tasks";
-import { ContentCard, PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import {
+  ConfirmActionButton,
+  ContentCard,
+  PullToRefresh,
+  useScrollVisibility,
+} from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
-  TaskStepCompletionUndoButton,
   TaskStepDetailFooter,
   TaskStepDetailHeader,
   TaskStepImagesPreview,
@@ -45,12 +49,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const isStepTransitioning =
     controller.isTransitioning &&
     controller.transitioningStepId === controller.vm.stepId;
-  const pendingCompletion =
-    controller.pendingCompletion?.stepId === controller.vm.stepId
-      ? controller.pendingCompletion
-      : null;
-  const canShowCompletionAction =
-    controller.vm.state === "working" || pendingCompletion !== null;
+  const canShowCompletionAction = controller.vm.state === "working";
 
   return (
     <div className="relative flex h-full flex-col bg-background">
@@ -105,24 +104,20 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           )}
         >
           <div className="px-4 pb-[calc(var(--safe-bottom,0)+5.25rem)] pt-3">
-            {pendingCompletion ? (
-              <TaskStepCompletionUndoButton
-                expiresAt={pendingCompletion.expiresAt}
-                isCancelling={controller.isCancellingCompletion}
-                onExpired={controller.handleCompletionExpired}
-                onUndo={controller.handleCancelCompletion}
-              />
-            ) : (
-              <button
-                type="button"
-                className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
-                data-testid="task-step-complete-button"
-                disabled={isStepTransitioning}
-                onClick={controller.handleComplete}
-              >
-                Complete task
-              </button>
-            )}
+            {/* Undo scheduling remains implemented, but this page now uses direct confirmation-only completion. */}
+            <ConfirmActionButton
+              backgroundColor="#eaf8ef"
+              borderColor="#9ed9b5"
+              className="w-full font-semibold"
+              confirmLabel="Tap again to complete"
+              confirmTextColor="white"
+              data-testid="task-step-complete-button"
+              fillColor="var(--color-dark-pearl-green)"
+              label="Complete task"
+              onConfirm={controller.handleComplete}
+              textColor="#1e7a46"
+              disabled={isStepTransitioning}
+            />
           </div>
         </div>
       ) : null}

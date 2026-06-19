@@ -1,6 +1,10 @@
 import { Outlet } from "react-router-dom";
 import { PwaProvider, type PwaSurfaceOpeners } from "@beyo/pwa";
+import { RealtimeProvider } from "@beyo/realtime";
 import { AuthProvider } from "@/features/auth";
+import { NotificationRealtimeMount } from "@/app/NotificationRealtimeMount";
+import { PushMount } from "@/app/PushMount";
+import { socketRegistry } from "@/app/socket-registry";
 import {
   PWA_INSTALL_SURFACE_ID,
   PWA_UPDATE_SURFACE_ID,
@@ -18,12 +22,16 @@ const pwaSurfaceOpeners: PwaSurfaceOpeners = {
 
 export function RootRoute(): React.JSX.Element {
   return (
-    <SurfaceProvider>
-      <PwaProvider surfaceOpeners={pwaSurfaceOpeners}>
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
-      </PwaProvider>
-    </SurfaceProvider>
+    <RealtimeProvider registry={socketRegistry}>
+      <SurfaceProvider>
+        <PwaProvider surfaceOpeners={pwaSurfaceOpeners}>
+          <AuthProvider>
+            <NotificationRealtimeMount />
+            <PushMount />
+            <Outlet />
+          </AuthProvider>
+        </PwaProvider>
+      </SurfaceProvider>
+    </RealtimeProvider>
   );
 }

@@ -6,9 +6,11 @@ export type ConfirmActionButtonProps = {
   label: string;
   confirmLabel: string;
   confirmDurationMs?: number;
+  backgroundColor?: string;
   fillColor?: string;
   textColor?: string;
   confirmTextColor?: string;
+  borderColor?: string;
   className?: string;
   onConfirm: () => void;
   disabled?: boolean;
@@ -19,22 +21,31 @@ export function ConfirmActionButton({
   label,
   confirmLabel,
   confirmDurationMs = 3000,
+  backgroundColor = 'var(--color-card)',
   fillColor = 'var(--color-destructive)',
   textColor,
   confirmTextColor = 'white',
+  borderColor,
   className,
   onConfirm,
   disabled = false,
   'data-testid': testId,
 }: ConfirmActionButtonProps): React.JSX.Element {
   const [isPending, setIsPending] = useState(false);
+  const [fillWidth, setFillWidth] = useState('0%');
   const timerRef = useRef<number | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const reset = useCallback(() => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    setFillWidth('0%');
     setIsPending(false);
   }, []);
 
@@ -44,7 +55,12 @@ export function ConfirmActionButton({
     }
 
     if (!isPending) {
+      setFillWidth('0%');
       setIsPending(true);
+      animationFrameRef.current = window.requestAnimationFrame(() => {
+        setFillWidth('100%');
+        animationFrameRef.current = null;
+      });
       timerRef.current = window.setTimeout(() => {
         reset();
       }, confirmDurationMs);
@@ -60,8 +76,13 @@ export function ConfirmActionButton({
       if (timerRef.current !== null) {
         window.clearTimeout(timerRef.current);
       }
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
     };
   }, []);
+
+  const currentLabel = isPending ? confirmLabel : label;
 
   return (
     <button
@@ -71,23 +92,39 @@ export function ConfirmActionButton({
       )}
       data-testid={testId}
       disabled={disabled}
-      style={{ color: isPending ? confirmTextColor : textColor }}
+      style={{
+        backgroundColor,
+        borderColor,
+        color: textColor,
+      }}
       type="button"
       onClick={handleClick}
     >
       {isPending ? (
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-0 left-0"
-          style={{
-            width: '100%',
-            backgroundColor: fillColor,
-            animation: `confirm-action-fill ${confirmDurationMs}ms linear forwards`,
-            transformOrigin: 'left center',
-          }}
-        />
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute inset-y-0 left-0"
+            style={{
+              width: fillWidth,
+              backgroundColor: fillColor,
+              transition: `width ${confirmDurationMs}ms linear`,
+            }}
+          />
+          <span
+            aria-hidden="true"
+            className="absolute inset-0 z-10 flex items-center justify-center px-4 py-3 text-sm font-medium"
+            style={{
+              color: confirmTextColor,
+              clipPath: fillWidth === '100%' ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)',
+              transition: `clip-path ${confirmDurationMs}ms linear`,
+            }}
+          >
+            {currentLabel}
+          </span>
+        </>
       ) : null}
-      <span className="relative z-10">{isPending ? confirmLabel : label}</span>
+      <span className="relative z-0">{currentLabel}</span>
     </button>
   );
 }

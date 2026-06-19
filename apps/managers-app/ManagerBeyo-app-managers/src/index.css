@@ -6,6 +6,7 @@
 @source "../../../../packages/cases/src";
 @source "../../../../packages/images/src";
 @source "../../../../packages/scanner/src";
+@source "../../../../packages/notifications/src";
 
 .test-colors {
   background: #d0d3d9;
