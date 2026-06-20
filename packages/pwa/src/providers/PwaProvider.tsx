@@ -99,6 +99,29 @@ export function PwaProvider({
       onUpdate: async () => {
         setNeedRefresh(false);
         await new Promise<void>((resolve) => setTimeout(resolve, 300));
+
+        // Fallback: if the SW doesn't take control within 5s, unregister all
+        // SWs, clear all caches, and hard-reload. This recovers from any
+        // previously deployed broken SW that ignored SKIP_WAITING.
+        const fallbackTimer = setTimeout(async () => {
+          try {
+            const registrations =
+              await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map((r) => r.unregister()));
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+          } catch {
+            // ignore — best-effort cleanup
+          }
+          window.location.reload();
+        }, 5000);
+
+        navigator.serviceWorker.addEventListener(
+          "controllerchange",
+          () => clearTimeout(fallbackTimer),
+          { once: true },
+        );
+
         await updateServiceWorker(true);
       },
     };

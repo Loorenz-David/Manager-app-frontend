@@ -25,6 +25,9 @@ this application follow the same architectural principles as the manager applica
 
 this application should be wire to run on port 5175 for dev mode, and it should have the same app architecture and config as the manager app as that is proven to have work for dev and for deployment.
 
+I will like you to first explore the relevant architecture and propose me an optimal alternative for making this features packages.
+
+
 I will like you to create an implementation plan for codex using the template: 
 
 

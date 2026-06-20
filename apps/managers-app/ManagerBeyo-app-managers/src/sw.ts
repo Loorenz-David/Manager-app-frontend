@@ -8,6 +8,12 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Parameters<typeof precacheAndRoute>[0];
 };
 
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
