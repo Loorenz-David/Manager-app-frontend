@@ -15,7 +15,7 @@ export function AppShell(): React.JSX.Element {
   return (
     <TabBadgeCountsProvider>
       <div
-        className="flex h-dvh flex-col overflow-hidden bg-background pt-[var(--safe-top)]"
+        className="flex h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
         data-testid="app-shell"
       >
         <main className="relative flex-1 overflow-hidden" id="main-content">

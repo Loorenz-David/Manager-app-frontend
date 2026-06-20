@@ -48,7 +48,7 @@ export function PwaProvider({
     updateServiceWorker,
   } = useRegisterSW({
     onNeedReload() {
-      window.location.href = "/";
+      location.reload();
     },
     onRegisteredSW(
       _swScriptUrl: string,
