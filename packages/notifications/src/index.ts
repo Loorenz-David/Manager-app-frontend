@@ -1,10 +1,21 @@
 export { notificationKeys } from "./api/notification-keys";
+export { pinKeys } from "./api/pins/pin-keys";
 export { fetchNotifications } from "./api/fetch-notifications";
 export { fetchUnreadCount } from "./api/fetch-unread-count";
+export { fetchPins } from "./api/pins/fetch-pins";
+export { createPins } from "./api/pins/create-pins";
+export { deletePins } from "./api/pins/delete-pins";
+export { updatePins } from "./api/pins/update-pins";
 export { markNotificationsRead } from "./api/mark-notifications-read";
 export { useNotificationsQuery } from "./api/use-notifications-query";
 export { useUnreadCountQuery } from "./api/use-unread-count-query";
+export { usePinsByMajorQuery } from "./api/pins/use-pins-by-major-query";
 export { useMarkNotificationsRead } from "./api/use-mark-read";
+export { useSavePins, buildPinSaveDiff } from "./actions/use-save-pins";
+export type {
+  DesiredPinSelection,
+  SavePinsInput,
+} from "./actions/use-save-pins";
 export { notificationSocketEvents } from "./socket-events";
 export {
   useNotificationToasts,
@@ -47,6 +58,38 @@ export {
   MarkNotificationsReadInputSchema,
   toNotificationViewModel,
 } from "./types";
+export {
+  CreatePinInputSchema,
+  DeletePinTargetSchema,
+  ItemUpholsteryPinStateSchema,
+  ListPinsParamsSchema,
+  ListPinsResponseSchema,
+  NotificationPinDtoSchema,
+  NotificationPinIdSchema,
+  PinConditionSchema,
+  PinEntityTypeSchema,
+  TaskPinStateSchema,
+  TaskStepPinStateSchema,
+  UpdatePinInputSchema,
+  generateNotificationPinId,
+  parseConditionsToStates,
+  serializeStatesToConditions,
+} from "./pins/pin-types";
+export type {
+  CreatePinInput,
+  DeletePinTarget,
+  ItemUpholsteryPinState,
+  ListPinsParams,
+  ListPinsResponse,
+  NotificationPinDto,
+  NotificationPinId,
+  PinCondition,
+  PinEntityType,
+  PinState,
+  TaskPinState,
+  TaskStepPinState,
+  UpdatePinInput,
+} from "./pins/pin-types";
 export type {
   NotificationId,
   NotificationDto,

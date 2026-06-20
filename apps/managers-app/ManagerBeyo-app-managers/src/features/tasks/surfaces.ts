@@ -16,6 +16,10 @@ export const TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID =
   "task-working-sections-slide";
 export const TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID =
   "task-working-sections-discard-changes";
+export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
+  "task-pin-notifications-slide";
+export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
+  "task-pin-step-states-sheet";
 
 export type TaskDetailSurfaceProps = {
   taskId: string;
@@ -23,6 +27,7 @@ export type TaskDetailSurfaceProps = {
 
 export type TaskActionsSurfaceProps = {
   taskId: string;
+  itemId?: string | null;
 };
 
 export type TaskScheduledDateSurfaceProps = {
@@ -92,6 +97,20 @@ export type TaskWorkingSectionsSurfaceProps = {
 export type TaskWorkingSectionsDiscardChangesSurfaceProps = {
   onDiscardAndClose: () => void;
   onSaveAndClose: () => void;
+};
+
+export type PinNotificationsSlideSurfaceProps = {
+  taskId: string;
+  itemId?: string | null;
+};
+
+export type PinTaskStepStatesSheetSurfaceProps = {
+  stepId: string;
+  label: string;
+  imageUrl?: string | null;
+  currentState: string;
+  selectedStates: string[];
+  onApply: (states: string[]) => void;
 };
 
 function loadTaskDetailSlidePage() {
@@ -168,6 +187,18 @@ function loadTaskWorkingSectionsDiscardChangesSheetPage() {
   );
 }
 
+function loadPinNotificationsSlidePage() {
+  return import("@/pages/tasks/PinNotificationsSlidePage").then((module) => ({
+    default: module.PinNotificationsSlidePage,
+  }));
+}
+
+function loadPinTaskStepStatesSheetPage() {
+  return import("@/pages/tasks/PinTaskStepStatesSheetPage").then((module) => ({
+    default: module.PinTaskStepStatesSheetPage,
+  }));
+}
+
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
 const taskFilterSheet = lazyWithPreload(loadTaskFilterSheetPage);
@@ -187,9 +218,17 @@ const taskWorkingSectionsSlide = lazyWithPreload(
 const taskWorkingSectionsDiscardChangesSheet = lazyWithPreload(
   loadTaskWorkingSectionsDiscardChangesSheetPage,
 );
+const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
+const pinTaskStepStatesSheet = lazyWithPreload(
+  loadPinTaskStepStatesSheetPage,
+);
 
 export const preloadTaskWorkingSectionsSurface =
   taskWorkingSectionsSlide.preload;
+export const preloadPinNotificationsSlideSurface =
+  pinNotificationsSlide.preload;
+export const preloadPinTaskStepStatesSheetSurface =
+  pinTaskStepStatesSheet.preload;
 
 export const taskSurfaces: SurfaceRegistrations = {
   [TASK_DETAIL_SURFACE_ID]: {
@@ -235,5 +274,13 @@ export const taskSurfaces: SurfaceRegistrations = {
   [TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID]: {
     surface: "sheet",
     component: taskWorkingSectionsDiscardChangesSheet.Component,
+  },
+  [PIN_NOTIFICATIONS_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: pinNotificationsSlide.Component,
+  },
+  [PIN_TASK_STEP_STATES_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: pinTaskStepStatesSheet.Component,
   },
 };

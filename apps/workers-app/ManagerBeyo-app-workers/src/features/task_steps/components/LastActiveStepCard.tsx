@@ -118,143 +118,141 @@ function CardActionButton({
         onTransition(stepId, taskId, nextState);
       }}
     >
-      <Icon aria-hidden="true" className="size-6 shrink-0" />
+      <Icon
+        aria-hidden="true"
+        className="size-6 shrink-0 fill-current stroke-none"
+      />
     </button>
   );
 }
 
-export const LastActiveStepCard = memo(
-  function LastActiveStepCard({
-    forceHidden = false,
-  }: {
-    forceHidden?: boolean;
-  }): React.JSX.Element {
-    const {
-      step,
-      vm,
-      isTransitioning,
-      handleTransition,
-      handleOpenDetail,
-      handleOpenImageViewer,
-    } = useLastActiveStepCardContext();
-    const { isHidden } = useScrollVisibilityContext();
+export const LastActiveStepCard = memo(function LastActiveStepCard({
+  forceHidden = false,
+}: {
+  forceHidden?: boolean;
+}): React.JSX.Element {
+  const {
+    step,
+    vm,
+    isTransitioning,
+    handleTransition,
+    handleOpenDetail,
+    handleOpenImageViewer,
+  } = useLastActiveStepCardContext();
+  const { isHidden } = useScrollVisibilityContext();
 
-    const hasCard = Boolean(step && vm);
-    const isCardHidden = isHidden || forceHidden;
-    const isWorking = vm?.state === "working";
-    const TypeIcon = vm ? getTaskTypeIcon(vm.task.task_type) : null;
-    const taskTypeLabel = vm ? getTaskTypeLabel(vm.task.task_type) : "";
-    const cardToneClass =
-      vm?.state === "working"
-        ? "bg-[var(--color-soft-container)] text-[var(--color-primary)]"
-        : vm?.state === "paused"
-          ? "bg-primary text-[var(--color-card)]"
-          : vm?.state === "completed"
-            ? "bg-[var(--color-dark-pearl-green)] text-[var(--color-card)]"
-            : "bg-primary text-[var(--color-card)]";
-    const cardBorderClass =
-      vm?.state === "working" ? "border-border" : "border-light-border";
+  const hasCard = Boolean(step && vm);
+  const isCardHidden = isHidden || forceHidden;
+  const isWorking = vm?.state === "working";
+  const TypeIcon = vm ? getTaskTypeIcon(vm.task.task_type) : null;
+  const taskTypeLabel = vm ? getTaskTypeLabel(vm.task.task_type) : "";
+  const cardToneClass =
+    vm?.state === "working"
+      ? "bg-[var(--color-soft-container)] text-[var(--color-primary)]"
+      : vm?.state === "paused"
+        ? "bg-primary text-[var(--color-card)]"
+        : vm?.state === "completed"
+          ? "bg-[var(--color-dark-pearl-green)] text-[var(--color-card)]"
+          : "bg-primary text-[var(--color-card)]";
+  const cardBorderClass =
+    vm?.state === "working" ? "border-border" : "border-light-border";
 
-    // Annotations are tied to the image, not to step state. Keying on
-    // firstImageUrl keeps the array reference stable across state transitions
-    // and server refetches that return the same image, preventing CardThumbnail
-    // from re-rendering and ImageAnnotationSvgLayer from flickering.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    const stableAnnotations = useMemo(
-      () => vm?.firstImageAnnotations ?? [],
-      [vm?.firstImageUrl],
-    );
+  // Annotations are tied to the image, not to step state. Keying on
+  // firstImageUrl keeps the array reference stable across state transitions
+  // and server refetches that return the same image, preventing CardThumbnail
+  // from re-rendering and ImageAnnotationSvgLayer from flickering.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const stableAnnotations = useMemo(
+    () => vm?.firstImageAnnotations ?? [],
+    [vm?.firstImageUrl],
+  );
 
-    return (
-      <AnimatePresence initial={false}>
-        {hasCard && step && vm ? (
-          <m.div
-            key="last-active-step-card"
-            className={cn(
-              "fixed bottom-15 left-0 right-0 z-49",
-              "flex items-stretch overflow-hidden",
-              "rounded-tl-2xl rounded-tr-2xl border shadow-md",
-              "transition-transform duration-200 ease-out",
-              cardToneClass,
-              cardBorderClass,
-              isCardHidden && "translate-y-full",
+  return (
+    <AnimatePresence initial={false}>
+      {hasCard && step && vm ? (
+        <m.div
+          key="last-active-step-card"
+          className={cn(
+            "fixed bottom-15 left-0 right-0 z-49",
+            "flex items-stretch overflow-hidden",
+            "rounded-tl-2xl rounded-tr-2xl border shadow-md",
+            "transition-transform duration-200 ease-out",
+            cardToneClass,
+            cardBorderClass,
+            isCardHidden && "translate-y-full",
+          )}
+          animate={{ opacity: 1, y: 0 }}
+          data-testid="last-active-step-card"
+          exit={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 24 }}
+          role="button"
+          tabIndex={0}
+          transition={transitions.base}
+          onClick={handleOpenDetail}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              handleOpenDetail();
+            }
+          }}
+        >
+          <CardThumbnail
+            annotations={stableAnnotations}
+            heightPx={vm.firstImageHeightPx}
+            quantityPillLabel={vm.quantityPillLabel}
+            src={vm.firstImageUrl}
+            stepId={vm.stepId}
+            widthPx={vm.firstImageWidthPx}
+            onTap={handleOpenImageViewer}
+          />
+
+          <div className="flex min-w-0 flex-1 flex-col justify-start  px-3 py-3">
+            <span
+              className="truncate text-md font-semibold text-current"
+              data-testid="last-active-card-label"
+            >
+              {vm.articleLabel}
+            </span>
+            <span
+              className="truncate text-sm capitalize text-current opacity-80"
+              data-testid="last-active-card-task-type"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {TypeIcon ? (
+                  <TypeIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                ) : null}
+                <span className="truncate">{taskTypeLabel}</span>
+              </span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 pr-6">
+            {isWorking && vm.lastStateRecord ? (
+              <TickingTimer
+                className="font-mono text-sm text-current opacity-80"
+                data-testid="last-active-card-timer"
+                startedAtIso={vm.lastStateRecord.entered_at}
+              />
+            ) : null}
+            {vm.state === "completed" ? (
+              <span
+                className="inline-flex h-12 items-center justify-center rounded-full border border-card/30 bg-card/20 px-4 text-sm font-semibold text-card"
+                data-testid="last-active-card-completed-pill"
+              >
+                Completed
+              </span>
+            ) : (
+              <CardActionButton
+                isTransitioning={isTransitioning}
+                state={vm.state}
+                stepId={vm.stepId}
+                taskId={vm.taskId}
+                onTransition={handleTransition}
+              />
             )}
-            animate={{ opacity: 1, y: 0 }}
-            data-testid="last-active-step-card"
-            exit={{ opacity: 0, y: 24 }}
-            initial={{ opacity: 0, y: 24 }}
-            role="button"
-            tabIndex={0}
-            transition={transitions.base}
-            onClick={handleOpenDetail}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                handleOpenDetail();
-              }
-            }}
-          >
-            <CardThumbnail
-              annotations={stableAnnotations}
-              heightPx={vm.firstImageHeightPx}
-              quantityPillLabel={vm.quantityPillLabel}
-              src={vm.firstImageUrl}
-              stepId={vm.stepId}
-              widthPx={vm.firstImageWidthPx}
-              onTap={handleOpenImageViewer}
-            />
-
-            <div className="flex min-w-0 flex-1 flex-col justify-start  px-3 py-3">
-              <span
-                className="truncate text-md font-semibold text-current"
-                data-testid="last-active-card-label"
-              >
-                {vm.articleLabel}
-              </span>
-              <span
-                className="truncate text-sm capitalize text-current opacity-80"
-                data-testid="last-active-card-task-type"
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  {TypeIcon ? (
-                    <TypeIcon
-                      aria-hidden="true"
-                      className="size-3.5 shrink-0"
-                    />
-                  ) : null}
-                  <span className="truncate">{taskTypeLabel}</span>
-                </span>
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 pr-6">
-              {isWorking && vm.lastStateRecord ? (
-                <TickingTimer
-                  className="font-mono text-sm text-current opacity-80"
-                  data-testid="last-active-card-timer"
-                  startedAtIso={vm.lastStateRecord.entered_at}
-                />
-              ) : null}
-              {vm.state === "completed" ? (
-                <span
-                  className="inline-flex h-12 items-center justify-center rounded-full border border-card/30 bg-card/20 px-4 text-sm font-semibold text-card"
-                  data-testid="last-active-card-completed-pill"
-                >
-                  Completed
-                </span>
-              ) : (
-                <CardActionButton
-                  isTransitioning={isTransitioning}
-                  state={vm.state}
-                  stepId={vm.stepId}
-                  taskId={vm.taskId}
-                  onTransition={handleTransition}
-                />
-              )}
-            </div>
-          </m.div>
-        ) : null}
-      </AnimatePresence>
-    );
-  },
-);
+          </div>
+        </m.div>
+      ) : null}
+    </AnimatePresence>
+  );
+});

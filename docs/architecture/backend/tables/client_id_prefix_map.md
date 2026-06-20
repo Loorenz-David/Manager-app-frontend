@@ -28,7 +28,7 @@ This document lists all `CLIENT_ID_PREFIX` abbreviations used for client_id gene
 | ItemUpholstery | iup | iup_xxxxxxx |
 | ItemUpholsteryRequirement | iur | iur_xxxxxxx |
 | Notification | not | not_xxxxxxx |
-| NotificationPin | npn | npn_xxxxxxx |
+| NotificationPin | npin | npin_xxxxxxx |
 | PendingUpload | upl | upl_xxxxxxx |
 | PushSubscription | psu | psu_xxxxxxx |
 | RecurringScheduler | rsch | rsch_xxxxxxx |

@@ -15,6 +15,7 @@ import {
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_FILTER_SHEET_SURFACE_ID,
+  preloadPinNotificationsSlideSurface,
   type TaskActionsSurfaceProps,
   type TaskDetailSurfaceProps,
 } from "../surfaces";
@@ -29,7 +30,7 @@ export type TasksViewController = TasksPageFlow & {
   setTaskStates: (value: TaskState[]) => void;
   setQ: (value: string) => void;
   openTaskDetail: (taskId: string) => void;
-  openTaskActions: (taskId: string) => void;
+  openTaskActions: (taskId: string, itemId: string | null) => void;
   openFilterSheet: () => void;
   openSortSheet: () => void;
   openImageViewer: (taskId: string) => void;
@@ -51,9 +52,11 @@ export function useTasksViewController(): TasksViewController {
     } satisfies TaskDetailSurfaceProps);
   }
 
-  function openTaskActions(taskId: string): void {
+  function openTaskActions(taskId: string, itemId: string | null): void {
+    preloadPinNotificationsSlideSurface();
     useSurfaceStore.getState().open(TASK_ACTIONS_SHEET_SURFACE_ID, {
       taskId,
+      itemId,
     } satisfies TaskActionsSurfaceProps);
   }
 

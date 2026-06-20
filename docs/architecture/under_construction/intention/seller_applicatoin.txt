@@ -1,0 +1,59 @@
+
+
+we will start developing the seller application: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers
+
+this application will follow the same styling and principles as the manager application:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app
+
+this seller application will consume mostly from packages, something i will work on after the core foundation of the seller app is build.
+
+this seller application will have the same login page as the manager application ( but with the seller name instead of manager application ).
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/auth
+
+this seller application will have the same nav menu as the manager application, we will render the same tabs with icons, but we will leave those pages empty for now ( only title of the page ).
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/components/shell/BottomTabBar.tsx
+
+the ui interaction is the same for the main pages, and we use the same strategy with the sheet surfaces as the manager application.
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/app
+
+settings page will be the same as the manager application: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/settings
+
+this application follow the same architectural principles as the manager application, which are the same principles described on the architectural contracts that we use to build that manager application. guide can be found at: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/task_system/frontend_contract_goal_mapping_guide.md
+
+this application should be wire to run on port 5175 for dev mode, and it should have the same app architecture and config as the manager app as that is proven to have work for dev and for deployment.
+
+I will like you to create an implementation plan for codex using the template: 
+
+
+-----
+
+we will now abstract some features and domain logic from the manager application to be part of the packages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages
+
+at the manager appliation a user can visualize the tasks there is, it can create task, and it can edit task .
+
+task feature:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks
+
+task creation feature:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation
+
+task pages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks
+
+task creation pages: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/task-creation
+
+I will like to make all of this features to be part of packages so that other apps can use the same functionality. 
+
+some of the task componenets use other feature components and logic, those should be made packages also to respect the boundery of apps consume from packages and not packages from apps, but packages can consume with in packages.
+
+while making this features and logic part of the packages we will leave the current manager application feature intact, we will wire package features on the seller application, that's how we will test if the task features and the features arround it have been sucessfully been made indepenedt packages, and only until the seller application can operate on the task like the manager application does we will make the manager application to consume from this packages.
+the seller application already exist and is ready to start using the packages from this new feature packages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers
+
+
+I will like you to create an implementation plan for this using the 

@@ -2,6 +2,8 @@ import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import {
   PAUSE_REASON_SHEET_SURFACE_ID,
+  PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
+  PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
   STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   STEP_STATE_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
@@ -62,6 +64,22 @@ function loadStepStateFilterSheetPage() {
   );
 }
 
+function loadPinNotificationsSlidePage() {
+  return import("@/pages/task_steps/PinNotificationsSlidePage").then(
+    (module) => ({
+      default: module.PinNotificationsSlidePage,
+    }),
+  );
+}
+
+function loadPinTaskStepStatesSheetPage() {
+  return import("@/pages/task_steps/PinTaskStepStatesSheetPage").then(
+    (module) => ({
+      default: module.PinTaskStepStatesSheetPage,
+    }),
+  );
+}
+
 function loadItemIssueSelectionSheetPage() {
   return import("@beyo/item-issues").then((module) => ({
     default: module.ItemIssueSelectionSheet,
@@ -81,6 +99,10 @@ const upholsterySelectionMissingSheet = lazyWithPreload(
   loadUpholsterySelectionMissingSheetPage,
 );
 const stepStateFilterSheet = lazyWithPreload(loadStepStateFilterSheetPage);
+const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
+const pinTaskStepStatesSheet = lazyWithPreload(
+  loadPinTaskStepStatesSheetPage,
+);
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
 );
@@ -96,6 +118,10 @@ export const preloadUpholsterySelectionMissingSheetSurface =
   upholsterySelectionMissingSheet.preload;
 export const preloadStepStateFilterSheetSurface =
   stepStateFilterSheet.preload;
+export const preloadPinNotificationsSlideSurface =
+  pinNotificationsSlide.preload;
+export const preloadPinTaskStepStatesSheetSurface =
+  pinTaskStepStatesSheet.preload;
 export const preloadItemIssueSelectionSheetSurface =
   itemIssueSelectionSheet.preload;
 
@@ -123,6 +149,14 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [STEP_STATE_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: stepStateFilterSheet.Component,
+  },
+  [PIN_NOTIFICATIONS_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: pinNotificationsSlide.Component,
+  },
+  [PIN_TASK_STEP_STATES_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: pinTaskStepStatesSheet.Component,
   },
   [TASK_STEP_DETAIL_SURFACE_ID]: {
     surface: "slide",

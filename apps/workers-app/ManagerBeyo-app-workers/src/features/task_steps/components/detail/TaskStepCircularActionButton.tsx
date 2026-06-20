@@ -67,7 +67,10 @@ export function TaskStepCircularActionButton({
         disabled={isTransitioning}
         onClick={() => onTransition(stepId, taskId, nextState)}
       >
-        <Icon aria-hidden="true" className="size-8 shrink-0" />
+        <Icon
+          aria-hidden="true"
+          className="size-8 shrink-0 fill-current stroke-none"
+        />
       </button>
 
       <div className="h-5">

@@ -54,15 +54,18 @@ export function TaskStepActionButton({
   return (
     <button
       aria-label={label}
-      className={`flex w-full items-center justify-between border-t border-border/50 px-4 py-3 transition-opacity ${bgClass} disabled:opacity-60`}
+      className={`flex w-full items-center justify-between border-t border-border/50 px-4 py-3.5 transition-opacity ${bgClass} disabled:opacity-60`}
       data-testid={`task-step-action-button-${stepId}`}
       disabled={isTransitioning}
       type="button"
       onClick={() => onTransition(stepId, taskId, nextState)}
     >
-      <span className="flex items-center gap-2">
-        <Icon aria-hidden="true" className="size-4 shrink-0" />
-        <span className="text-sm font-medium">{label}</span>
+      <span className="flex items-center gap-3">
+        <Icon
+          aria-hidden="true"
+          className="size-5 shrink-0 fill-current stroke-none"
+        />
+        <span className="text-md font-medium">{label}</span>
       </span>
       {showTimer ? (
         <TickingTimer

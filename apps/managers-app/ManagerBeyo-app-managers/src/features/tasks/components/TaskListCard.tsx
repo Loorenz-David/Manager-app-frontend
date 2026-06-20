@@ -65,7 +65,7 @@ function getQuantityPillLabel(item: Item | null): string | null {
 type TaskListCardProps = {
   card: TaskCardViewModel;
   onTapImage: (taskId: string) => void;
-  onTapActions: (taskId: string) => void;
+  onTapActions: (taskId: string, itemId: string | null) => void;
   onTapCard: (taskId: string) => void;
   bottomAction?: React.ReactNode;
 };
@@ -157,7 +157,7 @@ export const TaskListCard = memo(function TaskListCard({
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                onTapActions(taskId);
+                onTapActions(taskId, item?.id ?? null);
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {

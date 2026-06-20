@@ -11,13 +11,13 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:updated": ({ client_id }, { queryClient }) => {
-    const taskId = client_id as TaskId;
-
-    queryClient.invalidateQueries({
-      queryKey: taskKeys.detail(taskId),
-      refetchType: "active",
-    });
+  "task:updated": (payloads, { queryClient }) => {
+    for (const { client_id } of payloads) {
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(client_id as TaskId),
+        refetchType: "active",
+      });
+    }
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
       refetchType: "active",
@@ -34,13 +34,13 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:state-changed": ({ client_id }, { queryClient }) => {
-    const taskId = client_id as TaskId;
-
-    queryClient.invalidateQueries({
-      queryKey: taskKeys.detail(taskId),
-      refetchType: "active",
-    });
+  "task:state-changed": (payloads, { queryClient }) => {
+    for (const { client_id } of payloads) {
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(client_id as TaskId),
+        refetchType: "active",
+      });
+    }
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
       refetchType: "active",
@@ -58,18 +58,20 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:step-state-changed": ({ client_id }, { queryClient }) => {
-    queryClient.invalidateQueries({
-      queryKey: taskStepKeys.detail(client_id as TaskStepId),
-      refetchType: "active",
-    });
+  "task:step-state-changed": (payloads, { queryClient }) => {
+    for (const { client_id } of payloads) {
+      queryClient.invalidateQueries({
+        queryKey: taskStepKeys.detail(client_id as TaskStepId),
+        refetchType: "active",
+      });
+    }
     queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",
     });
   },
 
-  "task:step-created": (_payload, { queryClient }) => {
+  "task:step-created": (_payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",
@@ -80,10 +82,12 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:step-deleted": ({ client_id }, { queryClient }) => {
-    queryClient.removeQueries({
-      queryKey: taskStepKeys.detail(client_id as TaskStepId),
-    });
+  "task:step-deleted": (payloads, { queryClient }) => {
+    for (const { client_id } of payloads) {
+      queryClient.removeQueries({
+        queryKey: taskStepKeys.detail(client_id as TaskStepId),
+      });
+    }
     queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",

@@ -160,7 +160,7 @@ export const TaskStepSchema = z.object({
   item: ItemSnapshotSchema,
   item_images: z.array(ItemImageSchema),
   cases_summary: CasesSummarySchema.nullable().optional(),
-  dependency_working_sections: z.array(StepDependencyEntrySchema),
+  dependency_working_sections: z.array(StepDependencyEntrySchema).default([]),
 });
 export type TaskStep = z.infer<typeof TaskStepSchema>;
 
@@ -227,6 +227,7 @@ export type ListWorkingSectionStepsParams = {
 export type TaskStepCardViewModel = {
   stepId: TaskStepId;
   taskId: TaskId;
+  itemId: string | null;
   state: StepState;
   isTerminal: boolean;
   hasQuickAction: boolean;
@@ -286,6 +287,7 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
   return {
     stepId: step.client_id,
     taskId: step.task_id,
+    itemId: item?.client_id ?? null,
     state: step.state,
     isTerminal,
     hasQuickAction: nextState !== undefined,

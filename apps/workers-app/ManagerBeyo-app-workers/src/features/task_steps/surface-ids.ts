@@ -14,10 +14,15 @@ export const UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID =
   "task-step-upholstery-selection-missing-sheet";
 export const STEP_STATE_FILTER_SHEET_SURFACE_ID =
   "task-step-state-filter-sheet";
+export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
+  "task-step-pin-notifications-slide";
+export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
+  "task-step-pin-states-sheet";
 
 export type TaskStepActionsSheetSurfaceProps = {
   stepId: TaskStepId;
   taskId: TaskId;
+  itemId?: string | null;
 };
 
 export type TaskCasesSlideSurfaceProps = {
@@ -65,4 +70,19 @@ export type StepStateFilterSheetSurfaceProps = {
     states: StepState[],
     majorCategories: MajorCategory[],
   ) => void;
+};
+
+export type PinNotificationsSlideSurfaceProps = {
+  taskId: TaskId;
+  itemId?: string | null;
+  originStepId?: TaskStepId;
+};
+
+export type PinTaskStepStatesSheetSurfaceProps = {
+  stepId: string;
+  label: string;
+  imageUrl?: string | null;
+  currentState: StepState;
+  selectedStates: StepState[];
+  onApply: (states: StepState[]) => void;
 };

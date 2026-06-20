@@ -16,6 +16,7 @@ import {
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
+import { preloadPinNotificationsSlideSurface } from "../surfaces";
 import {
   hasNoAvailableUpholstery,
   hasNoUpholsterySelected,
@@ -111,7 +112,11 @@ export type WorkingSectionStepsController = {
     nextState: StepState,
   ) => void;
   handleOpenStateFilter: () => void;
-  handleOpenTaskActions: (stepId: TaskStepId, taskId: TaskId) => void;
+  handleOpenTaskActions: (
+    stepId: TaskStepId,
+    taskId: TaskId,
+    itemId: string | null,
+  ) => void;
   handleOpenTaskDetail: (stepId: TaskStepId, taskId: TaskId) => void;
   handleOpenImageViewer: (stepId: TaskStepId) => void;
   isTransitioning: boolean;
@@ -290,10 +295,12 @@ export function useWorkingSectionStepsController(
   }, [majorCategoryFilters, openSurface, stateFilters]);
 
   const handleOpenTaskActions = useCallback(
-    (stepId: TaskStepId, taskId: TaskId) => {
+    (stepId: TaskStepId, taskId: TaskId, itemId: string | null) => {
+      preloadPinNotificationsSlideSurface();
       openSurface(TASK_STEP_ACTIONS_SHEET_SURFACE_ID, {
         stepId,
         taskId,
+        itemId,
       } as TaskStepActionsSheetSurfaceProps);
     },
     [openSurface],

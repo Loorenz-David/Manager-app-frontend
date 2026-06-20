@@ -58,3 +58,24 @@ export const UpholsteryRequirementEntrySchema = z.object({
 export type UpholsteryRequirementEntry = z.infer<
   typeof UpholsteryRequirementEntrySchema
 >;
+
+export const StepStateSchema = z.enum([
+  "pending",
+  "working",
+  "paused",
+  "ended_shift",
+  "blocked",
+  "completed",
+  "skipped",
+  "failed",
+  "cancelled",
+]);
+
+export const TaskStepForPinSchema = z.object({
+  client_id: z.string(),
+  task_id: z.string(),
+  state: StepStateSchema,
+  working_section_name: z.string().nullable(),
+  working_section_image: z.string().nullable().optional(),
+});
+export type TaskStepForPin = z.infer<typeof TaskStepForPinSchema>;

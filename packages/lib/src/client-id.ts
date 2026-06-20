@@ -27,7 +27,7 @@ export const CLIENT_ID_PREFIXES = {
   ItemUpholstery: 'iup',
   ItemUpholsteryRequirement: 'iur',
   Notification: 'not',
-  NotificationPin: 'npn',
+  NotificationPin: 'npin',
   PendingUpload: 'upl',
   PushSubscription: 'psu',
   RecurringScheduler: 'rsch',

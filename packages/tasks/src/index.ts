@@ -1,14 +1,17 @@
 export {
   ItemUpholsteryEntrySchema,
   ListTaskFlowRecordsResponseSchema,
+  StepStateSchema,
   TaskFlowRecordActorSchema,
   TaskFlowRecordSchema,
   TaskFlowRecordsPaginationSchema,
+  TaskStepForPinSchema,
   UpholsteryRequirementEntrySchema,
 } from "./types";
 export type {
   ItemUpholsteryEntry,
   ListTaskFlowRecordsResponse,
+  TaskStepForPin,
   TaskFlowRecord,
   TaskFlowRecordActor,
   UpholsteryRequirementEntry,
@@ -20,6 +23,9 @@ export { taskFlowRecordKeys } from "./api/task-flow-record-keys";
 export { listTaskFlowRecords } from "./api/list-task-flow-records";
 export { useTaskFlowRecordsQuery } from "./api/use-task-flow-records-query";
 export { useTaskFlowRecordsInfiniteQuery } from "./api/use-task-flow-records-infinite-query";
+export { taskStepKeys } from "./api/task-step-keys";
+export { listTaskStepsByTask } from "./api/list-task-steps-by-task";
+export { useTaskStepsByTaskQuery } from "./api/use-task-steps-by-task-query";
 
 export { formatDateTime, getFlowActorLabel } from "./lib/task-flow-record";
 export {

@@ -5,22 +5,21 @@ export type ServerToClientEvents = {
     client_id: string;
     working_section_ids: string[];
   }) => void;
-  "task:updated": (payload: { client_id: string }) => void;
+  "task:updated": (payload: Array<{ client_id: string }>) => void;
   "task:deleted": (payload: { client_id: string }) => void;
-  "task:state-changed": (payload: { client_id: string; new_state: string }) => void;
+  "task:state-changed": (
+    payload: Array<{ client_id: string; new_state: string }>,
+  ) => void;
   "task:step-assigned": (payload: { client_id: string; user_id: string }) => void;
-  "task:step-state-changed": (payload: {
-    client_id: string;
-    new_state: string;
-  }) => void;
-  "task:step-created": (payload: {
-    client_id: string;
-    working_section_id: string;
-  }) => void;
-  "task:step-deleted": (payload: {
-    client_id: string;
-    working_section_id: string;
-  }) => void;
+  "task:step-state-changed": (
+    payload: Array<{ client_id: string; new_state: string }>,
+  ) => void;
+  "task:step-created": (
+    payload: Array<{ client_id: string; working_section_id: string }>,
+  ) => void;
+  "task:step-deleted": (
+    payload: Array<{ client_id: string; working_section_id: string }>,
+  ) => void;
   "case:created": (payload: { client_id: string }) => void;
   "case:updated": (payload: { client_id: string }) => void;
   "case:state-changed": (payload: { client_id: string; new_state: string }) => void;

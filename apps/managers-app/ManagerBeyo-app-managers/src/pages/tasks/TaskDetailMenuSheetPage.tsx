@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { Pin } from 'lucide-react';
 
 import { ConfirmActionButton } from '@/components/primitives';
 import { useDeleteTask } from '@/features/tasks/actions/use-delete-task';
@@ -6,6 +7,8 @@ import { useResolveTask } from '@/features/tasks/actions/use-resolve-task';
 import {
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
+  PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
+  type PinNotificationsSlideSurfaceProps,
   type TaskActionsSurfaceProps,
 } from '@/features/tasks/surfaces';
 import { useSurface } from '@/hooks/use-surface';
@@ -15,7 +18,7 @@ import { useSurfaceProps } from '@/hooks/use-surface-props';
 export function TaskDetailMenuSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
-  const { taskId } = useSurfaceProps<TaskActionsSurfaceProps>();
+  const { taskId, itemId } = useSurfaceProps<TaskActionsSurfaceProps>();
   const deleteTask = useDeleteTask();
   const resolveTask = useResolveTask();
 
@@ -26,6 +29,23 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-3 p-6">
+      <button
+        type="button"
+        className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground"
+        data-testid="task-actions-pin-notifications"
+        disabled={!taskId}
+        onClick={() => {
+          if (!taskId) return;
+
+          surface.open(PIN_NOTIFICATIONS_SLIDE_SURFACE_ID, {
+            taskId,
+            itemId: itemId ?? null,
+          } satisfies PinNotificationsSlideSurfaceProps);
+        }}
+      >
+        <Pin className="size-4" />
+        Pin notifications
+      </button>
       <ConfirmActionButton
         className="w-full"
         confirmLabel="Tap again to resolve"

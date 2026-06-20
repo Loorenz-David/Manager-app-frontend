@@ -87,7 +87,11 @@ function ThreeDotIcon(): React.JSX.Element {
 type TaskStepCardProps = {
   card: TaskStepCardViewModel;
   onTapImage: (stepId: TaskStepId) => void;
-  onTapActions: (stepId: TaskStepId, taskId: TaskId) => void;
+  onTapActions: (
+    stepId: TaskStepId,
+    taskId: TaskId,
+    itemId: string | null,
+  ) => void;
   onTapCard: (stepId: TaskStepId, taskId: TaskId) => void;
   onTransition: (
     stepId: TaskStepId,
@@ -110,6 +114,7 @@ export const TaskStepCard = memo(function TaskStepCard({
     taskId,
     task,
     firstImageUrl,
+    itemId,
     articleLabel,
     itemPositionPillLabel,
     quantityPillLabel,
@@ -179,7 +184,7 @@ export const TaskStepCard = memo(function TaskStepCard({
               type="button"
               onClick={(event) => {
                 event.stopPropagation();
-                onTapActions(stepId, taskId);
+                onTapActions(stepId, taskId, itemId);
               }}
               onKeyDown={(event) => {
                 if (event.key === "Enter" || event.key === " ") {

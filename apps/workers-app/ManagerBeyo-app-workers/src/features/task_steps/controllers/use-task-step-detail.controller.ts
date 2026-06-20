@@ -443,8 +443,9 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     openSurface(TASK_STEP_ACTIONS_SHEET_SURFACE_ID, {
       stepId: resolvedStepId,
       taskId: resolvedTaskId,
+      itemId: step?.item?.client_id ?? null,
     } as TaskStepActionsSheetSurfaceProps);
-  }, [openSurface, resolvedStepId, resolvedTaskId]);
+  }, [openSurface, resolvedStepId, resolvedTaskId, step?.item?.client_id]);
 
   const issuesSurfaceOpeners = useMemo<ItemIssueSurfaceOpeners>(() => {
     const itemId = step?.item?.client_id;
