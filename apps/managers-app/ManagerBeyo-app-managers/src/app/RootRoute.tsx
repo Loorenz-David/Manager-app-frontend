@@ -2,6 +2,7 @@ import { Outlet } from "react-router-dom";
 import { PwaProvider, type PwaSurfaceOpeners } from "@beyo/pwa";
 import { RealtimeProvider } from "@beyo/realtime";
 import { AuthProvider } from "@beyo/auth";
+import { NotificationDeepLinkMount } from "@/app/NotificationDeepLinkMount";
 import { NotificationRealtimeMount } from "@/app/NotificationRealtimeMount";
 import { PushMount } from "@/app/PushMount";
 import { socketRegistry } from "@/app/socket-registry";
@@ -29,6 +30,7 @@ export function RootRoute(): React.JSX.Element {
           <AuthProvider appScope="manager" signInRoute={ROUTES.signIn}>
             <NotificationRealtimeMount />
             <PushMount />
+            <NotificationDeepLinkMount />
             <Outlet />
           </AuthProvider>
         </PwaProvider>

@@ -2,6 +2,7 @@ import { Pause, Play } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
+import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import { preloadPauseReasonSheetSurface } from "../surfaces";
 import {
   STEP_QUICK_TRANSITION,
@@ -14,6 +15,7 @@ type TaskStepActionButtonProps = {
   taskId: TaskId;
   state: StepState;
   lastStateRecord: LastStateRecord | null;
+  totalWorkingSeconds: number;
   onTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
@@ -27,6 +29,7 @@ export function TaskStepActionButton({
   taskId,
   state,
   lastStateRecord,
+  totalWorkingSeconds,
   onTransition,
   isTransitioning,
 }: TaskStepActionButtonProps): React.JSX.Element | null {
@@ -49,8 +52,6 @@ export function TaskStepActionButton({
     ? "bg-[var(--color-soft-container)] text-foreground"
     : "bg-primary text-card";
 
-  const showTimer = isWorking && lastStateRecord !== null;
-
   return (
     <button
       aria-label={label}
@@ -67,12 +68,19 @@ export function TaskStepActionButton({
         />
         <span className="text-md font-medium">{label}</span>
       </span>
-      {showTimer ? (
+      {isWorking && lastStateRecord ? (
         <TickingTimer
           className="font-mono text-xs opacity-90"
           data-testid={`task-step-timer-${stepId}`}
+          offsetSeconds={totalWorkingSeconds}
           startedAtIso={lastStateRecord.entered_at}
         />
+      ) : state === "paused" || state === "ended_shift" ? (
+        <span className="font-mono text-xs opacity-90" data-testid={`task-step-timer-${stepId}`}>
+          {totalWorkingSeconds > 0
+            ? formatSecondsHHMMSS(totalWorkingSeconds)
+            : "—"}
+        </span>
       ) : null}
     </button>
   );

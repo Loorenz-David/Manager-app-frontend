@@ -219,6 +219,7 @@ export const TaskStepCard = memo(function TaskStepCard({
         state={card.state}
         stepId={stepId}
         taskId={taskId}
+        totalWorkingSeconds={card.totalWorkingSeconds}
         onTransition={onTransition}
       />
     </div>

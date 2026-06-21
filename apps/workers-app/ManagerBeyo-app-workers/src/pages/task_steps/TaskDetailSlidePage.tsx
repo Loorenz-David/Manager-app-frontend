@@ -70,6 +70,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                 state={controller.vm.state}
                 stepId={controller.vm.stepId}
                 taskId={controller.vm.taskId}
+                totalWorkingSeconds={controller.vm.totalWorkingSeconds}
                 onTransition={controller.handleTransition}
               />
             </div>

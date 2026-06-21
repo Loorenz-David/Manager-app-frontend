@@ -15,6 +15,7 @@ import { usePreloadSurface } from "@beyo/hooks";
 import { preloadPauseReasonSheetSurface } from "../surfaces";
 import { transitions } from "@/lib/animation";
 import { cn } from "@beyo/lib";
+import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import { useLastActiveStepCardContext } from "../providers/LastActiveStepCardProvider";
 import { STEP_QUICK_TRANSITION, type StepState } from "../types";
@@ -231,8 +232,18 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
               <TickingTimer
                 className="font-mono text-sm text-current opacity-80"
                 data-testid="last-active-card-timer"
+                offsetSeconds={vm.totalWorkingSeconds}
                 startedAtIso={vm.lastStateRecord.entered_at}
               />
+            ) : vm.state === "paused" || vm.state === "ended_shift" ? (
+              <span
+                className="font-mono text-sm text-current opacity-80"
+                data-testid="last-active-card-timer"
+              >
+                {vm.totalWorkingSeconds > 0
+                  ? formatSecondsHHMMSS(vm.totalWorkingSeconds)
+                  : "—"}
+              </span>
             ) : null}
             {vm.state === "completed" ? (
               <span

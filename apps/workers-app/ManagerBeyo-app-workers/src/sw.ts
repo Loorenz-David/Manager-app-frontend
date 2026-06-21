@@ -18,11 +18,43 @@ clientsClaim();
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-function resolveRoute(entityType: string | undefined): string {
+function withParams(pathname: string, params: Record<string, string>): string {
+  const search = new URLSearchParams(params);
+  return `${pathname}?${search.toString()}`;
+}
+
+function resolveRoute(
+  entityType: string | null | undefined,
+  entityClientId: string | null | undefined,
+  notificationClientId: string | null | undefined,
+  taskClientId: string | null | undefined,
+): string {
+  const notificationId = notificationClientId ?? "";
+
   switch (entityType) {
-    case "task":
     case "task_step":
-      return "/tasks";
+      return entityClientId && taskClientId
+        ? withParams("/", {
+            notif_type: "task_step",
+            notif_id: entityClientId,
+            notif_task_id: taskClientId,
+            notif_cid: notificationId,
+          })
+        : "/";
+    case "case":
+      return entityClientId
+        ? withParams("/cases", {
+            notif_type: "case",
+            notif_id: entityClientId,
+            notif_cid: notificationId,
+          })
+        : "/cases";
+    case "item_upholstery":
+    case null:
+      return withParams("/", {
+        notif_type: "upholstery",
+        notif_cid: notificationId,
+      });
     default:
       return "/";
   }
@@ -66,7 +98,12 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
   const data = event.notification.data as PushPayload["data"] | undefined;
-  const route = resolveRoute(data?.entity_type);
+  const route = resolveRoute(
+    data?.entity_type,
+    data?.entity_client_id,
+    data?.notification_client_id,
+    data?.task_client_id,
+  );
 
   event.waitUntil(
     (async () => {

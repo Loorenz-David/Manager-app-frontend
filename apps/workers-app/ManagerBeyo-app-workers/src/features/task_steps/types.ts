@@ -152,6 +152,15 @@ export const TaskStepSchema = z.object({
   assigned_worker_display_name_snapshot: z.string().nullable(),
   created_at: z.string(),
   closed_at: z.string().nullable(),
+  total_working_seconds: z.number().int(),
+  total_pause_seconds: z.number().int(),
+  total_ended_shift_seconds: z.number().int(),
+  total_working_count: z.number().int(),
+  total_pause_count: z.number().int(),
+  total_ended_shift_count: z.number().int(),
+  total_issues_count: z.number().int(),
+  total_issues_resolved_count: z.number().int(),
+  total_cost_minor: z.number().int().nullable(),
   updated_at: z.string(),
   created_by: UserRefSchema,
   updated_by: UserRefSchema.nullable(),
@@ -241,6 +250,7 @@ export type TaskStepCardViewModel = {
   itemPositionPillLabel: string | null;
   quantityPillLabel: string | null;
   lastStateRecord: LastStateRecord | null;
+  totalWorkingSeconds: number;
   casesSummary: CasesSummary | null;
 };
 
@@ -301,6 +311,7 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     itemPositionPillLabel,
     quantityPillLabel,
     lastStateRecord: step.last_state_record,
+    totalWorkingSeconds: step.total_working_seconds,
     casesSummary: step.cases_summary ?? null,
   };
 }

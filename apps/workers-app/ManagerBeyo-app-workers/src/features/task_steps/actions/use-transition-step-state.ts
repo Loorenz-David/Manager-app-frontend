@@ -52,10 +52,26 @@ function patchStepStateInSectionCache(
             return step;
           }
 
+          const additionalWorkingSeconds =
+            step.state === "working" &&
+            (newState === "paused" || newState === "ended_shift") &&
+            step.last_state_record?.entered_at
+              ? Math.max(
+                  0,
+                  Math.floor(
+                    (new Date(stateRecord.entered_at).getTime() -
+                      new Date(step.last_state_record.entered_at).getTime()) /
+                      1000,
+                  ),
+                )
+              : 0;
+
           return {
             ...step,
             state: newState,
             last_state_record: stateRecord,
+            total_working_seconds:
+              step.total_working_seconds + additionalWorkingSeconds,
             closed_at: STEP_TERMINAL_STATES.has(newState)
               ? new Date().toISOString()
               : null,
@@ -104,9 +120,25 @@ function patchOptimisticLastActiveStep(
     return current ?? null;
   }
 
+  const additionalWorkingSeconds =
+    current.state === "working" &&
+    (newState === "paused" || newState === "ended_shift") &&
+    current.last_state_record?.entered_at
+      ? Math.max(
+          0,
+          Math.floor(
+            (new Date(now).getTime() -
+              new Date(current.last_state_record.entered_at).getTime()) /
+              1000,
+          ),
+        )
+      : 0;
+
   return {
     ...current,
     state: newState,
+    total_working_seconds:
+      current.total_working_seconds + additionalWorkingSeconds,
     last_state_record: current.last_state_record
       ? {
           ...current.last_state_record,
@@ -274,14 +306,9 @@ export function useTransitionStepState() {
       void queryClient.invalidateQueries({
         queryKey: workerWorkingSectionKeys.mine(),
       });
-      // paused / ended_shift: onSuccess already patched the cache — no refetch needed.
-      // working: refetch to confirm the new active step (backend may have auto-paused another).
-      // terminal: refetch to discover the fallback last active step.
-      if (new_state === "working" || STEP_TERMINAL_STATES.has(new_state)) {
-        void queryClient.invalidateQueries({
-          queryKey: taskStepKeys.userLastActive(),
-        });
-      }
+      void queryClient.invalidateQueries({
+        queryKey: taskStepKeys.userLastActive(),
+      });
     },
   });
 

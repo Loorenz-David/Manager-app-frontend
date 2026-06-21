@@ -1,0 +1,23 @@
+the working application has a ticking timmer that displays the time started from the last working record, this happens at : 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/TaskStepCard.tsx , /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/LastActiveStepCard.tsx , /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx 
+
+we will change this strategy, now the routers for this endpoints bring the columns:  
+// — NEW aggregate metric fields —
+    "total_working_seconds": 3600,      // sum of all WORKING intervals in seconds; 0 until worker is live
+    "total_pause_seconds": 300,         // sum of all PAUSED intervals in seconds; 0 until worker is live
+    "total_ended_shift_seconds": 0,     // sum of all ENDED_SHIFT intervals in seconds; 0 until worker is live
+    "total_working_count": 2,           // number of times step entered WORKING state
+    "total_pause_count": 1,             // number of times step entered PAUSED state
+    "total_ended_shift_count": 0,       // number of times step entered ENDED_SHIFT state
+    "total_issues_count": 3,            // total issues linked to this step at completion time
+    "total_issues_resolved_count": 3,   // resolved issues at completion time
+    "total_cost_minor": 4500,           // labour cost in minor currency units (cents); null if no salary profile
+
+    we should update the schemas for this new columns, the routers on this change and the changes are documented at: 
+
+    /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_step_aggregate_metrics_20260621.md
+
+    what we will render as ticking timmer is the total_working_seconds + ticking time .
+    when paused it pauses at that moment, of fetch and on last record paused we should also render total_working_seconds frozen, that way the user can understand the total time a step has been taking and the total time is at. 
+
+    I will like you to create a implementation plan for codex using the template 
