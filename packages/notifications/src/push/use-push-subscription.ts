@@ -113,18 +113,32 @@ export function usePushSubscription(): UsePushSubscriptionResult {
   const enable = useCallback(async () => {
     if (!isPushSupported() || isIosOutsideStandalone()) return;
 
+    // iOS WebKit requires requestPermission to be called before any await or
+    // React state update — state flushes go through the microtask queue and
+    // consume the user activation token, causing the permission dialog to never
+    // appear and the call to silently fail.
+    let permission: NotificationPermission;
+    try {
+      permission = await Notification.requestPermission();
+    } catch {
+      setStatus("error");
+      return;
+    }
+
     setIsLoading(true);
     setStatus("registering");
 
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setStatus(permission === "denied" ? "denied" : "not_requested");
-        return;
-      }
+    if (permission !== "granted") {
+      setStatus(permission === "denied" ? "denied" : "not_requested");
+      setIsLoading(false);
+      return;
+    }
 
-      const reg = await getSwRegistration();
-      if (!reg) throw new Error("No service worker registration");
+    try {
+      // navigator.serviceWorker.ready waits until the SW is fully active.
+      // getRegistration() can return a registration still in "installing" state,
+      // and calling pushManager.subscribe() on it fails on iOS.
+      const reg = await navigator.serviceWorker.ready;
 
       const vapidPublicKey = await fetchVapidPublicKey();
       const sub = await reg.pushManager.subscribe({
