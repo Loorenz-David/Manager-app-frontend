@@ -1,14 +1,12 @@
-import { useState } from 'react';
-import { usePushDebugLogs, clearPushLogs } from '@beyo/notifications';
+import { useState } from "react";
+import { usePushDebugLogs, clearPushLogs } from "@beyo/notifications";
 
 export function PushDebugLog(): React.JSX.Element {
   const logs = usePushDebugLogs();
   const [copied, setCopied] = useState(false);
 
   function handleCopy() {
-    const text = logs
-      .map((e) => `[${e.ts}] ${e.msg}`)
-      .join('\n');
+    const text = logs.map((e) => `[${e.ts}] ${e.msg}`).join("\n");
     void navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -31,10 +29,10 @@ export function PushDebugLog(): React.JSX.Element {
           </button>
           <button
             type="button"
-            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground"
+            className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-card"
             onClick={handleCopy}
           >
-            {copied ? 'Copied!' : 'Copy all'}
+            {copied ? "Copied!" : "Copy all"}
           </button>
         </div>
       </div>
@@ -46,7 +44,10 @@ export function PushDebugLog(): React.JSX.Element {
       ) : (
         <div className="flex max-h-64 flex-col gap-0.5 overflow-y-auto">
           {logs.map((entry, i) => (
-            <div key={i} className="flex gap-2 font-mono text-xs leading-relaxed">
+            <div
+              key={i}
+              className="flex gap-2 font-mono text-xs leading-relaxed"
+            >
               <span className="shrink-0 text-muted-foreground">{entry.ts}</span>
               <span className="break-all">{entry.msg}</span>
             </div>
