@@ -1,0 +1,80 @@
+I have made crucial changes to the upholstery architecture in the backend.
+
+now there is upholstery category linkage as a parent.
+
+this will change the way a user searches and selects upholstery, so as how and upholstery is created.
+
+we will first allow for the creation of an ulpholstery category, this will be done through the upholstery inventory page, using the fab button of that page, we will add one more option to the "+" options, which is the ability to open the upholstery cateogry form page.
+This creation page will follow the same architecture and design as the creation of upholstery page, this page will be rendered on the slide page surface, the user can add the name, image_url ( with preview ), mark it as favorite .
+the endpoint that can be used for creating an upholstery category is documented at the handoff guide.
+
+when creating an upholstery instance the upholstery creation form will now have a field where the user can select the upholstery category.
+for this we will make the current upholstery creation form to be a staged form, using the primitive stage form component.
+
+The first staged step for the creation of the upholstery instance is the selection of upholstery category.
+The second staged step is the current form of upholstery instance creation.
+
+For the selection of upholstery category we will create a component like the internal form working section picker.
+this component will fetch and handle it's own query cycle ( endpoint documented in the handoff ).
+that component is made out of a header and a body. The header will have the searchbar ( we use the primitive searchbar with no filter nor sorting icon activated ), the input changes the query param "q". The body renders a list of upholstery category cards, this upholstery cateogry cards render the upholstery_category.image_url, upholstery_category.name, count of upholstery linkages under it. the upholstery image renders in a circular avatar.
+the user can only select one upholstery category instance, this selection marks the card with the bg-primary ( text turns into text-card ). the selection of an upholstery category will automatically take the user to the next upholstery staged form step. the upholstery_category.image_url will auto fill the upholstery.image_url, the user can change it but as default it does that. 
+submiting the creation closed the slide page.
+
+For the update of an upholstery instance we will keep the same pattern as creation, with the staged form and the filled information, it first opens on the step two, but if the user goes to step 1 it will see the selected upholstery category, this is because the component got the upholstery_category with the get call with the upholstery category id and filled up the searchbar with the name of the upholstery category ( that mode should not trigger the searchbar query when filling up the searchbar after the fetch of the upholstery, as it will be unecessary double fetch ). 
+
+
+
+
+upholstery creation form:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/UpholsteryInventoryCreationSlidePage.tsx
+
+staged form:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/staged-form
+
+example usage of staged form:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation/components/InternalFormContent.tsx
+
+internal form working section picker :
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/components/fields/WorkingSectionPickerField.tsx
+
+searchbar primitive:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/search-bar
+
+
+
+-----
+
+we will make changes to the way a user acess to an upholstery in the inventory page.
+
+currently the user uses the straighforward upholstery query and cards, this query will change to the upholstery category search, using the "q" param, that list query searches on upholstery instances also. 
+the body will now render the upholstery categories return using the already existing upholstery category card, which renders the upholstery_category.image_url, upholstery_category.name, count of upholstery instances as children.
+the user can tap the card and this will slide the current body to the right, making the upholstery cards to slide in from the right ( slide fade in ).
+the previous uphostery category searchbar slides up when that happens, hidding away. and the selection of upholstery category takes over that space, that header now renders the upholstery_category.image_url, upholstery_category.name,
+
+bellow that is the body which renders the currently used upholstery inventory cards.
+
+the handoff documentation provides with the upholstery query list param for passing the upholstery category id as query param. that endpoint still supports a "q" param search but we will not yet integrate that capability on this upholstery category list detail yet .
+
+upholstery inventory page search:  /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListView.tsx
+
+----
+We will make changes to the current upholstery inventory detail page,
+currently there is an input that displays the stored amount, the user can tap edit to display the edit stored amount page.
+we will change this so that taping that edit stored amount now acts as a direct input, where the user can change the quanitty direclty from there, meaning the keyboard opens in that page and the stored amount is editable from there.
+
+for the slide page for stored amount, we will keep this page, but it will not be used as edit the total stored amount, but as a add amount on top of the stored amount, meaning the input will be empty, the user can add some quantity, and when saving it sends the stored amount + the extra inputed amount .
+that page should naturally now render the stored amount at the header to give a reference to the user. 
+that page should render at the header the upholstery image_url, the name and the stored amount, that way the user is well informed of the modification that is doing . 
+
+upholstery inventory detail page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/UpholsteryInventoryDetailSlidePage.tsx
+
+stored upholstery inventory page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/StoredAmountSheetPage.tsx
+
+----
+we will make changes to the current upholstery inventory cards,
+This card will now only render the stored amount, no longer the available nor the ordered amount.
+And at the right side of that amount we will render a "+" button  which will allow the user to open directly the add upholstery slide page . 
+
+upholstery inventory card: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListCard.tsx
+
+stored upholstery inventory page:  /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/StoredAmountSheetPage.tsx

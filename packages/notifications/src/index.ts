@@ -49,6 +49,8 @@ export type {
   UsePushSubscriptionResult,
 } from "./push/use-push-subscription";
 export { unregisterCurrentDevicePush } from "./push/unregister-current-device-push";
+export { usePushDebugLogs, clearPushLogs } from "./push/push-debug-log";
+export type { PushLogEntry } from "./push/push-debug-log";
 export {
   NotificationIdSchema,
   NotificationDtoSchema,
