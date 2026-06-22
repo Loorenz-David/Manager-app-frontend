@@ -22,8 +22,10 @@ export function CasesPage(): React.JSX.Element {
   };
 
   return (
-    <Suspense fallback={<PageSkeleton />}>
-      <CasesRouteEntry viewSurfaceOpeners={viewSurfaceOpeners} />
-    </Suspense>
+    <div className="flex h-full min-h-0 flex-col">
+      <Suspense fallback={<PageSkeleton />}>
+        <CasesRouteEntry viewSurfaceOpeners={viewSurfaceOpeners} />
+      </Suspense>
+    </div>
   );
 }
