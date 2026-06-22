@@ -49,6 +49,7 @@ searchbar primitive:
 
 
 -----
+✅
 
 we will make changes to the way a user acess to an upholstery in the inventory page.
 
@@ -66,7 +67,10 @@ upholstery inventory page search:  /Users/davidloorenz/Desktop/Developer/BeyoApp
 the current search bar for upholstery listing will be muted, so as the upholstery quick filter pills ( in-stock, out-stock, favorite ), we will use the endpoint straightforward with out any of those filtrations, only the upholstery category id as param.
 the upholstery cateogry search bar will be plain and straight forward, only allowing for input ( we can hide the sort and filter buttons from that searchbar primitive ).
 
+the header where the upholstery category image an name is shown should have a arrow back on the left that allows going back to the upholstery category search page container. when that happnes the animation is current page slides right, the main container page for upholstery category slides from the left to the right . 
+
 ----
+✅
 We will make changes to the current upholstery inventory detail page,
 currently there is an input that displays the stored amount, the user can tap edit to display the edit stored amount page.
 we will change this so that taping that edit stored amount now acts as a direct input, where the user can change the quanitty direclty from there, meaning the keyboard opens in that page and the stored amount is editable from there.
@@ -80,6 +84,9 @@ upholstery inventory detail page: /Users/davidloorenz/Desktop/Developer/BeyoApps
 stored upholstery inventory page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/StoredAmountSheetPage.tsx
 
 ----
+✅
+create an implemenation plan for codex using the template: 
+
 we will make changes to the current upholstery inventory cards,
 This card will now only render the stored amount, no longer the available nor the ordered amount.
 And at the right side of that amount we will render a "+" button  which will allow the user to open directly the add upholstery slide page . 
@@ -87,3 +94,99 @@ And at the right side of that amount we will render a "+" button  which will all
 upholstery inventory card: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListCard.tsx
 
 stored upholstery inventory page:  /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/pages/StoredAmountSheetPage.tsx
+
+
+
+----
+✅
+Cases:
+
+we will make some modificaitons to the case main page package page. I will like you to create an impelmentation plan for codex using the template: 
+
+the main case page currently has three containers in the body which are new, active resolving.
+We will change that so that the body renders the case list, and bellow the searchbar the user will have quick pills for toggling this filters, so the user can go from new, to actvite to tapping resolving. only one pill is allowed to be selected at the time.
+This pill styling follows the same pattern as other pages where there is a searchbar and a quick pill selection bellow it, like the task page. this pill selection and searchbar will be positioned absolutely and the body will have the correct offset so that we can use the scroll visibility uility and the pull to refresh utitlity. like the task page uses it.
+
+case main page: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/cases/src/components/CasesView.tsx
+
+task page example: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx
+
+task header example: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksHeader.tsx
+
+
+we will change visually the current state called resolving to be in-progress for the pill. the same goes for the button for changing the state to resolving, it should read in-progress
+
+case conversation header rendering that state button: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/cases/src/components/CaseConversationHeader.tsx
+
+
+at the main case page we will remove the current unecessary labels, like the page title. the date remain on top of the search bar but it also reacts to the scroll utitiliy, meaning that on scroll it will hide like the quick pill filters do .
+
+the quick pill for new will change for "unread" , that render list on the body will render cases where there is unread notifications ( messages ).
+on case page load the first page container that is opened is the "unread" but that page load simultaniosly made two calls, for open ( active ) and resolving ( in-progress ), so that when the user  taps on active pill or in in-progress the list is already loaded .
+
+so the search bar always searches with the filters for open and resolving.
+
+the filtration page will change so that now it doesn't provide the filter boxes for open and resolving, it only allows for the state resolved selection and the for me selection .
+when the resolved selection is selected the param logic is that it removes the state params for open and resolving, and leaves only resolved, if resolved is deselected then it goes back to default, having the state selection of open and resolving.
+when the resolved filter is selected we don't render the pill filter row, only the body list of cases resolved .
+
+selecting filter pills has an animation on the body list, which is the slide based on the current position of the pill in the row. this is the same animation placed at the upholstery selection page :
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/pages/UpholsteryPickerSlidePage.tsx
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery/components/UpholsteryPickerHeader.tsx
+
+
+the "unread" pill is just a shortcut to place cases cards which are from both active and in-progress queries which have unread messages from the current user, so it doesn't make any api call, it reflects that result from both queries.
+
+
+----
+☑️
+we will make some changes to the worker application: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers
+
+when a worker marks a task step as completed it sends the request to change the state to completed.
+we will add an extra step when taping complete task step. When tapping the complete task step button, we will display a page ( render through the slide sheet surface ). this page will display the total amount that was recorded as working, and a summary of the total paused time in modern stat boxes.
+
+bellow that is two check boxed one with accurate time and another with inacurrate time, after that selection the user can tap save, this will finally send the state transition to completed.
+
+if the user selected inacurrate time then we send in the state transition payload mark_closing_record_inaccurate:true .
+
+if the user marks accurate time then it simply sends the complete state transition no need to add the key "mark_closing_record_inaccurate", but the user must select one of those to perform the transition.
+
+the footer renders the complete step button with bg-primary text-card py-3.5 width full . 
+
+the current response payload for task steps holds already the  "total_working_seconds" and the "total_pause_seconds" when rendering this value because the user is comming from working state we must add the current transition time to the stored amount in "total_working_seconds" 
+
+paused time box renders in a modern light yellow bg styling and the working time in a bluish color style, this colors are derive from the same colors we use to represent states on the task step cards for working and paused states
+
+because this extra page serves as a extra confirmation button, we no longer require the complete step button on the task detail page to be a confrimation button, this can be a button with the light green styling the button currently has. 
+
+task detail page holds the button for complete task: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
+
+task step card: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/TaskStepCard.tsx
+
+
+---
+
+we will add some nice  interaction and animations  on the worker application for when a worker completes a task step . 
+
+I will like to create an overlay which will render confety animation, this overlay will be able to render other animation not only confeti, like fire or other frame animation, it will also render text in the middle, like duolingo style when one completes something. 
+I wonder how can we create this overlay animation scalably and optimally ? how do we pass this animations optimally ? 
+in the future i will place animations from avatars where they play different actions in different scenarios depending on random selection or depending on level of achivement. today we start simple but making the foundation for the future. 
+
+
+sound corrections:
+The primary issue is the sound file itself, not your visual changes.
+What I verified:
+The celebration preset is trying to play /sounds/celebration.mp3.
+The overlay does call play(config.soundUrl) when the animation opens.
+The actual file at [celebration.mp3](/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/public/sounds/celebration.mp3) is 0 bytes and file reports it as empty.
+That means the browser is being asked to play an empty MP3, so there is no audible sound to play.
+Why you don’t see an error:
+[use-celebration-sound.ts](/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/celebration/src/hooks/use-celebration-sound.ts) intentionally swallows audio.play() failures.
+So missing/invalid audio fails silently by design.
+There is also a secondary risk, but it is not the main issue here:
+The sound is triggered after the completion mutation succeeds, so on some mobile browsers autoplay could be blocked because it is no longer in the original tap gesture.
+But in your current setup, the concrete, confirmed problem is simpler: the target sound file is empty.
+I did not change any code or revert any of your visual animation work.
+
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/celebration/src/hooks/use-celebration-sound.ts

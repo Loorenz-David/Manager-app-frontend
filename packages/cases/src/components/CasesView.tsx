@@ -1,119 +1,106 @@
-import { useRef } from "react";
+import { AnimatePresence, m } from "framer-motion";
 
-import { PullToRefresh, SearchBar } from "@beyo/ui";
+import { transitions } from "@beyo/lib";
+import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { useCasesViewContext } from "../providers/CasesViewProvider";
-import { CasesSectionGroup } from "./CasesSectionGroup";
+import { CaseCard } from "./CaseCard";
+import { CasesHeader } from "./CasesHeader";
 
-function getOrdinalSuffix(day: number): string {
-  const remainder = day % 100;
-  if (remainder >= 11 && remainder <= 13) {
-    return "th";
-  }
-
-  switch (day % 10) {
-    case 1:
-      return "st";
-    case 2:
-      return "nd";
-    case 3:
-      return "rd";
-    default:
-      return "th";
-  }
-}
-
-function formatHeaderDate(date: Date): string {
-  const day = date.getDate();
-  const month = new Intl.DateTimeFormat(undefined, { month: "long" }).format(
-    date,
-  );
-  const weekday = new Intl.DateTimeFormat(undefined, {
-    weekday: "long",
-  }).format(date);
-
-  return `${day}${getOrdinalSuffix(day)} ${month}, ${weekday}`;
-}
+const bodyVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    transition: transitions.slide,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? "-100%" : "100%",
+    opacity: 0,
+    transition: transitions.slide,
+  }),
+} as const;
 
 export function CasesView(): React.JSX.Element {
   const controller = useCasesViewContext();
-  const todayLabel = formatHeaderDate(new Date());
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
+    mode: "relative",
+  });
 
   return (
-    <div
-      className="flex h-full flex-col bg-background"
-      data-testid="cases-page"
-    >
-      <div
-        className="border-b border-border/70 bg-background px-4 pb-4 pt-5"
-        data-testid="cases-header"
-      >
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-semibold tracking-[-0.02em] text-foreground">
-              Cases
-            </h1>
-          </div>
-        </div>
-
-        <p className="mt-1 text-sm text-muted-foreground">{todayLabel}</p>
-
-        <div className="mt-4">
-          <SearchBar
-            activeFilterCount={controller.activeFilterCount}
-            data-testid="cases-search-bar"
-            isLoading={controller.isLoading}
-            placeholder="Search cases, articles, or people"
-            value={controller.searchQuery}
-            onChange={controller.setSearchQuery}
-            onFilterPress={controller.openFilters}
-            onSortPress={() => {}}
-          />
-        </div>
+    <div className="relative flex-1 min-h-0 bg-background" data-testid="cases-page">
+      <div className="absolute inset-x-0 top-0 z-10">
+        <CasesHeader
+          activeFilter={controller.activeFilter}
+          activeFilterCount={controller.activeFilterCount}
+          isCompact={isCompact}
+          isLoading={controller.isLoading}
+          pillCounts={controller.pillCounts}
+          q={controller.searchQuery}
+          showPills={controller.showPills}
+          onFilterChange={controller.onFilterChange}
+          onFilterPress={controller.openFilters}
+          onQChange={controller.setSearchQuery}
+          onSortPress={() => {}}
+        />
       </div>
 
       <PullToRefresh
-        className="flex-1"
-        scrollClassName="overflow-y-auto overscroll-y-none px-4 pb-[calc(var(--safe-bottom,0)+5rem)] pt-4"
+        className="absolute inset-0"
+        indicatorOffset={176}
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        <div className="flex flex-col gap-6">
-          <CasesSectionGroup
-            group={controller.newGroup}
-            sectionTestId="cases-section-new"
-            unreadCounts={controller.unreadCounts}
-            typingByCaseId={controller.typingByCaseId}
-            onOpenCase={controller.openCase}
-          />
-          {controller.showActiveGroup ? (
-            <CasesSectionGroup
-              group={controller.activeGroup}
-              sectionTestId="cases-section-active"
-              unreadCounts={controller.unreadCounts}
-              typingByCaseId={controller.typingByCaseId}
-              onOpenCase={controller.openCase}
-            />
-          ) : null}
-          {controller.showResolvingGroup ? (
-            <CasesSectionGroup
-              group={controller.resolvingGroup}
-              sectionTestId="cases-section-resolving"
-              unreadCounts={controller.unreadCounts}
-              typingByCaseId={controller.typingByCaseId}
-              onOpenCase={controller.openCase}
-            />
-          ) : null}
-          {controller.showResolvedGroup ? (
-            <CasesSectionGroup
-              group={controller.resolvedGroup}
-              sectionTestId="cases-section-resolved"
-              unreadCounts={controller.unreadCounts}
-              typingByCaseId={controller.typingByCaseId}
-              onOpenCase={controller.openCase}
-            />
-          ) : null}
+        <div className={controller.showPills ? "pt-44" : "pt-32"} data-testid="cases-list-scroll">
+          <div className="relative min-h-[calc(100dvh-11rem)] overflow-hidden">
+            <AnimatePresence
+              custom={controller.direction}
+              initial={false}
+              mode="wait"
+            >
+              <m.div
+                key={controller.showPills ? controller.activeFilter : "resolved"}
+                animate="center"
+                className="flex min-h-[calc(100dvh-11rem)] flex-col gap-3 px-4 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2"
+                custom={controller.direction}
+                data-testid={`cases-list-body-${controller.showPills ? controller.activeFilter : "resolved"}`}
+                exit="exit"
+                initial="enter"
+                variants={bodyVariants}
+              >
+                {controller.cases.map((card) => (
+                  <CaseCard
+                    key={card.client_id}
+                    card={card}
+                    typingText={controller.typingByCaseId[card.client_id] ?? null}
+                    unreadCount={controller.unreadCounts[card.client_id] ?? 0}
+                    onOpen={controller.openCase}
+                  />
+                ))}
+
+                {controller.isLoading && controller.cases.length === 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <div
+                        key={index}
+                        className="h-16 animate-pulse rounded-2xl bg-muted"
+                      />
+                    ))}
+                  </div>
+                ) : null}
+
+                {!controller.isLoading && controller.cases.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border/80 bg-card/40 px-4 py-5 text-sm text-muted-foreground">
+                    No cases in this view.
+                  </div>
+                ) : null}
+              </m.div>
+            </AnimatePresence>
+          </div>
         </div>
       </PullToRefresh>
     </div>

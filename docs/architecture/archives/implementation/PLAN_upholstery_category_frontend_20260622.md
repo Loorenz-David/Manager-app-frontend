@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_upholstery_category_frontend_20260622`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-06-22T12:00:00Z`
-- Last updated at (UTC): `2026-06-22T12:00:00Z`
+- Last updated at (UTC): `2026-06-22T10:18:59Z`
 - Related issue/ticket: `HANDOFF_TO_FRONTEND_upholstery_category_20260622`
 - Intention plan: `docs/architecture/under_construction/intention/` _(none — derived directly from handoff)_
 

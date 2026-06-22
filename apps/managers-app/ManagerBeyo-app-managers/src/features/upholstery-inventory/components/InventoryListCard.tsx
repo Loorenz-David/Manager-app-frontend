@@ -1,18 +1,20 @@
 import { memo } from "react";
+import { Plus } from "lucide-react";
 
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
-import { cn } from "@/lib/utils";
 
 import type { InventoryListCardViewModel } from "../types";
 
 type InventoryListCardProps = {
   card: InventoryListCardViewModel;
+  onTapAdd: (card: InventoryListCardViewModel) => void;
   onTapActions: (inventoryId: InventoryListCardViewModel["inventoryId"]) => void;
   onTapCard: (inventoryId: InventoryListCardViewModel["inventoryId"]) => void;
 };
 
 export const InventoryListCard = memo(function InventoryListCard({
   card,
+  onTapAdd,
   onTapActions,
   onTapCard,
 }: InventoryListCardProps): React.JSX.Element {
@@ -80,40 +82,28 @@ export const InventoryListCard = memo(function InventoryListCard({
         <span className="mt-2 truncate text-sm text-muted-foreground">
           {card.code}
         </span>
-        <div className="mt-auto flex items-end gap-3 pt-3">
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-muted-foreground">
-              Available
-            </span>
-            <span
-              className={cn(
-                "text-lg font-semibold",
-                card.availableIsNegative
-                  ? "text-destructive"
-                  : "text-foreground",
-              )}
-            >
-              {card.availableDisplay}
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-muted-foreground">
-              Stored
-            </span>
-            <span className="text-sm font-medium text-foreground/60">
-              {card.storedDisplay}
-            </span>
-          </div>
-          {card.orderedDisplay ? (
-            <div className="flex flex-col">
+        <div className="mt-auto flex justify-end pt-3">
+          <button
+            aria-label="Add amount"
+            className="flex items-stretch overflow-hidden rounded-2xl"
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onTapAdd(card);
+            }}
+          >
+            <div className="flex flex-col justify-center rounded-l-2xl border-y border-l border-border px-3 py-2">
               <span className="text-xs font-medium text-muted-foreground">
-                Ordered
+                Stored
               </span>
-              <span className="text-sm font-medium text-foreground/60">
-                {card.orderedDisplay}
+              <span className="text-sm font-semibold text-foreground">
+                {card.storedDisplay}
               </span>
             </div>
-          ) : null}
+            <div className="flex items-center rounded-r-2xl bg-primary px-3 text-card">
+              <Plus className="size-4" />
+            </div>
+          </button>
         </div>
       </div>
     </div>

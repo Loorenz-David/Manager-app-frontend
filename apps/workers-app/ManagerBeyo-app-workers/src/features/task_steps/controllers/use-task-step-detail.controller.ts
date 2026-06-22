@@ -1,6 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, createElement } from "react";
+import { decodeTokenClaims } from "@beyo/api-client";
 import { useAuth } from "@beyo/auth";
+import {
+  celebrationPresets,
+  useCelebration,
+  YouDidItCelebrationIcon,
+} from "@beyo/celebration";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
 import {
   ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID,
@@ -46,12 +52,14 @@ import {
   isUpholsteryWarningSection,
 } from "../lib/step-transition-guards";
 import {
+  COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
   STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   TASK_CASES_SLIDE_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID,
   UPHOLSTERY_WARNING_SHEET_SURFACE_ID,
+  type CompleteTaskStepConfirmationSlideSurfaceProps,
   type PauseReasonSheetSurfaceProps,
   type StepDependencyWarningSheetSurfaceProps,
   type TaskCasesSlideSurfaceProps,
@@ -185,6 +193,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
   const { cancelCompletion, isPending: isCancellingCompletion } =
     useCancelPendingStepCompletion();
   const { open: openSurface } = useSurface();
+  const { trigger: triggerCelebration } = useCelebration();
 
   const taskCasesQuery = useListCasesQuery({
     case_state: "open,resolving",
@@ -326,18 +335,56 @@ export function useTaskStepDetailController(): TaskStepDetailController {
 
   const handleComplete = useCallback(() => {
     if (!vm || STEP_TERMINAL_STATES.has(vm.state)) return;
-    transitionStepState({
-      task_id: resolvedTaskId,
-      step_id: resolvedStepId,
-      new_state: "completed",
-      working_section_id: resolvedWorkingSectionId,
-    });
+
+    openSurface(COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID, {
+      stepId: resolvedStepId,
+      taskId: resolvedTaskId,
+      workingSectionId: resolvedWorkingSectionId,
+      totalWorkingSeconds: vm.totalWorkingSeconds,
+      totalPauseSeconds: vm.totalPauseSeconds,
+      lastStateRecordEnteredAt: vm.lastStateRecord?.entered_at ?? null,
+      onConfirm: (markInaccurate: boolean) => {
+        transitionStepState(
+          {
+            task_id: resolvedTaskId,
+            step_id: resolvedStepId,
+            new_state: "completed",
+            working_section_id: resolvedWorkingSectionId,
+            ...(markInaccurate
+              ? { mark_closing_record_inaccurate: true }
+              : {}),
+          },
+          {
+            onSuccess: (data) => {
+              if (markInaccurate || data.kind !== "immediate") {
+                return;
+              }
+
+              const claims = decodeTokenClaims();
+
+              triggerCelebration(
+                celebrationPresets.TASK_COMPLETE(
+                  claims?.username ?? "",
+                  createElement(YouDidItCelebrationIcon, {
+                    className: "h-48 w-auto text-white",
+                    animated: true,
+                    decorative: true,
+                  }),
+                ),
+              );
+            },
+          },
+        );
+      },
+    } satisfies CompleteTaskStepConfirmationSlideSurfaceProps);
   }, [
+    openSurface,
     vm,
     resolvedTaskId,
     resolvedStepId,
     resolvedWorkingSectionId,
     transitionStepState,
+    triggerCelebration,
   ]);
 
   const handleCancelCompletion = useCallback(() => {

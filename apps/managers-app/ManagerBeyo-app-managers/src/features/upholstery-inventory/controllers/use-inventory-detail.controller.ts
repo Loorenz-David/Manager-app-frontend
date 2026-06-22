@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { useUpholsteryPickerOptionQuery } from "@/features/upholstery/api/use-upholstery-picker-option";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 import type { UpholsteryInventoryId } from "@/types/common";
 
@@ -18,6 +19,9 @@ export function useInventoryDetailController(
   inventoryId: UpholsteryInventoryId,
 ) {
   const query = useGetUpholsteryInventoryQuery(inventoryId);
+  const upholsteryQuery = useUpholsteryPickerOptionQuery(
+    query.data?.upholstery_id ?? null,
+  );
   const detail = useMemo(
     () => (query.data ? toInventoryDetailViewModel(query.data) : null),
     [query.data],
@@ -33,6 +37,9 @@ export function useInventoryDetailController(
       prefill: {
         currentStoredAmountMeters:
           detail?.raw.current_stored_amount_meters ?? null,
+        imageUrl: detail?.imageUrl ?? null,
+        upholsteryName: detail?.name ?? "",
+        storedDisplay: detail?.storedDisplay ?? "0 m",
       },
     } satisfies StoredAmountSurfaceProps);
   }
@@ -53,6 +60,8 @@ export function useInventoryDetailController(
       upholsteryId: detail.raw.upholstery_id,
       inventoryId: detail.raw.client_id,
       prefill: {
+        upholstery_category_id:
+          upholsteryQuery.data?.upholstery_category?.id ?? null,
         name: detail.raw.upholstery_name ?? "",
         code: detail.raw.upholstery_code ?? "",
         image_url: detail.raw.image_url,

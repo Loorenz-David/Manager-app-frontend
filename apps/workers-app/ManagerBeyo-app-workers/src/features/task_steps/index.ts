@@ -19,6 +19,7 @@ export {
 export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
 export { LastActiveStepCard } from "./components/LastActiveStepCard";
 export {
+  preloadCompleteTaskStepConfirmationSlideSurface,
   preloadItemIssueSelectionSheetSurface,
   preloadPinNotificationsSlideSurface,
   preloadPinTaskStepStatesSheetSurface,
@@ -29,6 +30,7 @@ export {
   taskStepSurfaces,
 } from "./surfaces";
 export {
+  COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,

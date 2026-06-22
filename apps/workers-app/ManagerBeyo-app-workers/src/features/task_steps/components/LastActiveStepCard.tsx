@@ -174,7 +174,7 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
         <m.div
           key="last-active-step-card"
           className={cn(
-            "fixed bottom-15 left-0 right-0 z-49",
+            "fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)]",
             "flex items-stretch overflow-hidden",
             "rounded-tl-2xl rounded-tr-2xl border shadow-md",
             "transition-transform duration-200 ease-out",

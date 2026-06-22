@@ -103,6 +103,7 @@ export type ListUpholsteryInventoriesParams = {
   q?: string;
   in_stock?: boolean;
   favorite?: boolean;
+  upholstery_category_ids?: string;
 };
 
 export type InventoryListCardViewModel = {
@@ -110,6 +111,7 @@ export type InventoryListCardViewModel = {
   name: string;
   code: string;
   imageUrl: string | null;
+  currentStoredAmountMeters: string | null;
   availableDisplay: string;
   availableIsPositive: boolean;
   availableIsNegative: boolean;
@@ -136,6 +138,7 @@ export type InventoryDetailViewModel = {
 };
 
 export const CreateInventoryFormSchema = z.object({
+  upholstery_category_id: z.string().nullable(),
   name: z.string().min(1, "Name is required"),
   code: z.string(),
   image_url: z.string().nullable(),
@@ -175,6 +178,7 @@ export type CreateInventoryFormValues = z.infer<
 >;
 
 export type CreateInventoryPayload = {
+  upholstery_category_id: string | null;
   name: string;
   code: string | null;
   image_url: string | null;
@@ -184,6 +188,7 @@ export type CreateInventoryPayload = {
 };
 
 export type EditInventoryPrefill = {
+  upholstery_category_id: string | null;
   name: string;
   code: string;
   image_url: string | null;
@@ -208,6 +213,7 @@ export function toInventoryListCardViewModel(
     name: item.upholstery_name ?? fallbackIdentity(item.client_id),
     code: item.upholstery_code ?? "No code",
     imageUrl: item.image_url,
+    currentStoredAmountMeters: item.current_stored_amount_meters,
     availableDisplay: available.display,
     availableIsPositive: available.isPositive,
     availableIsNegative: available.isNegative,

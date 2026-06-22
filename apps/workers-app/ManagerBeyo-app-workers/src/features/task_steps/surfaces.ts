@@ -1,6 +1,7 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import {
+  COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
@@ -23,6 +24,14 @@ function loadTaskStepActionsSheetPage() {
 function loadTaskDetailSlidePage() {
   return import("@/pages/task_steps/TaskDetailSlidePage").then((module) => ({
     default: module.TaskDetailSlidePage,
+  }));
+}
+
+function loadCompleteTaskStepConfirmationSlidePage() {
+  return import(
+    "@/pages/task_steps/CompleteTaskStepConfirmationSlidePage"
+  ).then((module) => ({
+    default: module.CompleteTaskStepConfirmationSlidePage,
   }));
 }
 
@@ -88,6 +97,9 @@ function loadItemIssueSelectionSheetPage() {
 
 const taskStepActionsSheet = lazyWithPreload(loadTaskStepActionsSheetPage);
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
+const completeTaskStepConfirmationSlide = lazyWithPreload(
+  loadCompleteTaskStepConfirmationSlidePage,
+);
 const pauseReasonSheet = lazyWithPreload(loadPauseReasonSheetPage);
 const stepDependencyWarningSheet = lazyWithPreload(
   loadStepDependencyWarningSheetPage,
@@ -109,6 +121,8 @@ const itemIssueSelectionSheet = lazyWithPreload(
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
+export const preloadCompleteTaskStepConfirmationSlideSurface =
+  completeTaskStepConfirmationSlide.preload;
 export const preloadPauseReasonSheetSurface = pauseReasonSheet.preload;
 export const preloadStepDependencyWarningSheetSurface =
   stepDependencyWarningSheet.preload;
@@ -129,6 +143,10 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [TASK_STEP_ACTIONS_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: taskStepActionsSheet.Component,
+  },
+  [COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: completeTaskStepConfirmationSlide.Component,
   },
   [PAUSE_REASON_SHEET_SURFACE_ID]: {
     surface: "sheet",

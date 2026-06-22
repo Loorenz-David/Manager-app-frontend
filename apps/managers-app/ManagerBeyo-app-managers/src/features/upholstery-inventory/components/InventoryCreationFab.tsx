@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Plus, Spool, X } from "lucide-react";
+import { Circle, FolderPlus, Plus, Spool, X } from "lucide-react";
 import { useState } from "react";
 
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
@@ -10,6 +10,10 @@ import {
   INVENTORY_CREATION_SLIDE_ID,
   preloadInventoryCreationSurface,
 } from "../surfaces";
+import {
+  UPHOLSTERY_CATEGORY_CREATION_SLIDE_ID,
+  preloadUpholsteryCategoryCreationSurface,
+} from "@/features/upholstery-category";
 
 const FAB_TRANSITION = {
   duration: 0.3,
@@ -19,46 +23,85 @@ const FAB_TRANSITION = {
 const FAB_POSITION_CLASS =
   "bottom-[calc(var(--safe-bottom,0px)+0.75rem)] right-4";
 
-const ACTION_BUTTON = {
-  id: "inventory",
-  surfaceId: INVENTORY_CREATION_SLIDE_ID,
-  icon: Spool,
-  label: "New inventory",
-  x: 0,
-  y: -72,
-} as const;
+const ACTION_BUTTONS = [
+  {
+    id: "future",
+    surfaceId: null,
+    icon: Circle,
+    label: "Future action",
+    x: -72,
+    y: 0,
+    testId: "inventory-creation-fab-action-future",
+    disabled: true,
+  },
+  {
+    id: "inventory",
+    surfaceId: INVENTORY_CREATION_SLIDE_ID,
+    icon: Spool,
+    label: "New inventory",
+    x: 0,
+    y: -72,
+    testId: "inventory-creation-fab-action-inventory",
+    disabled: false,
+  },
+  {
+    id: "category",
+    surfaceId: UPHOLSTERY_CATEGORY_CREATION_SLIDE_ID,
+    icon: FolderPlus,
+    label: "New category",
+    x: -51,
+    y: -51,
+    testId: "inventory-creation-fab-action-category",
+    disabled: false,
+  },
+] as const;
 
 export function InventoryCreationFab(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
 
   usePreloadSurface(preloadInventoryCreationSurface);
+  usePreloadSurface(preloadUpholsteryCategoryCreationSurface);
 
-  function handleActionPress(): void {
-    useSurfaceStore.getState().open(ACTION_BUTTON.surfaceId);
+  function handleActionPress(surfaceId: string | null): void {
+    if (!surfaceId) {
+      return;
+    }
+
+    useSurfaceStore.getState().open(surfaceId);
     setIsOpen(false);
   }
 
   return (
     <>
-      <motion.button
-        aria-label={ACTION_BUTTON.label}
-        className={cn(
-          `fixed ${FAB_POSITION_CLASS} z-40 flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md`,
-          !isOpen && "pointer-events-none",
-        )}
-        data-testid="inventory-creation-fab-action-inventory"
-        initial={false}
-        transition={FAB_TRANSITION}
-        animate={
-          isOpen
-            ? { scale: 0.75, x: ACTION_BUTTON.x, y: ACTION_BUTTON.y }
-            : { scale: 0, x: 0, y: 0 }
-        }
-        type="button"
-        onClick={handleActionPress}
-      >
-        <ACTION_BUTTON.icon aria-hidden="true" className="size-5" />
-      </motion.button>
+      {ACTION_BUTTONS.map((action, index) => (
+        <motion.button
+          key={action.id}
+          aria-label={action.label}
+          className={cn(
+            `fixed ${FAB_POSITION_CLASS} z-40 flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md`,
+            !isOpen && "pointer-events-none",
+            action.disabled && "opacity-55",
+          )}
+          data-testid={action.testId}
+          initial={false}
+          transition={{
+            ...FAB_TRANSITION,
+            delay: isOpen
+              ? index * 0.03
+              : (ACTION_BUTTONS.length - 1 - index) * 0.03,
+          }}
+          animate={
+            isOpen
+              ? { scale: 0.75, x: action.x, y: action.y }
+              : { scale: 0, x: 0, y: 0 }
+          }
+          disabled={action.disabled}
+          type="button"
+          onClick={() => handleActionPress(action.surfaceId)}
+        >
+          <action.icon aria-hidden="true" className="size-5" />
+        </motion.button>
+      ))}
 
       <motion.button
         aria-label={

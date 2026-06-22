@@ -54,8 +54,16 @@ export function TaskStepDetailFooter({
   }, []);
 
   return (
-    <div className="relative z-10 shrink-0 border-t border-border bg-background px-4 pb-[calc(var(--safe-bottom,0)+0.75rem)] pt-3">
+    <div className="border-t border-border bg-background px-4 pb-[calc(var(--safe-bottom,0)+0.75rem)] pt-3">
       <div className="flex gap-3">
+        <button
+          type="button"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-card shadow-sm text-primary border border-between-border px-4 py-3.5 text-sm font-semibold  transition"
+          data-testid="task-detail-footer-close-button"
+          onClick={onClose}
+        >
+          Close &amp; Back
+        </button>
         <div className="relative flex-1">
           <NavTabBadge
             items={[{ icon: MessageCircle, count: unreadCount }]}
@@ -64,7 +72,7 @@ export function TaskStepDetailFooter({
 
           <button
             type="button"
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground transition"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl  bg-primary px-4 py-3.5 text-sm font-semibold text-card transition"
             data-testid="task-detail-footer-help-button"
             onClick={onOpenCases}
           >
@@ -72,15 +80,6 @@ export function TaskStepDetailFooter({
             Help
           </button>
         </div>
-
-        <button
-          type="button"
-          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-card transition"
-          data-testid="task-detail-footer-close-button"
-          onClick={onClose}
-        >
-          Close &amp; Back
-        </button>
       </div>
     </div>
   );

@@ -845,6 +845,17 @@ async function installCasesMocks(
   });
 
   await page.route("**/api/v1/cases?**", async (route) => {
+    const url = new URL(route.request().url());
+    const caseState = url.searchParams.get("case_state");
+    const filteredCases =
+      caseState === "open"
+        ? cases.filter((entry) => entry.state === "open")
+        : caseState === "resolving"
+          ? cases.filter((entry) => entry.state === "resolving")
+          : caseState === "resolved"
+            ? cases.filter((entry) => entry.state === "resolved")
+            : cases;
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -852,7 +863,7 @@ async function installCasesMocks(
         ok: true,
         warnings: [],
         data: {
-          cases,
+          cases: filteredCases,
         },
       }),
     });
@@ -904,6 +915,24 @@ async function installCasesMocks(
 async function installCasesListWithoutTaskMocks(page: Page) {
   await page.route("**/api/v1/cases*", async (route) => {
     const url = new URL(route.request().url());
+    const baseCases = [
+      {
+        client_id: "case_live_shape_without_task",
+        created_at: new Date(Date.now() - 3 * DAY_MS).toISOString(),
+        state: "open",
+        case_type_id: null,
+        type_label: "ClientId Case",
+        participant_count: 0,
+        messages_count: 1,
+        created_by: {
+          client_id: "usr_user_test",
+          username: "user_test",
+          profile_picture: "https://example.com/users/me_1778870851.png",
+        },
+        entity_type: null,
+        last_message_seq: 1,
+      },
+    ];
 
     if (url.pathname === "/api/v1/cases/unread-counts") {
       await route.fulfill({
@@ -920,32 +949,38 @@ async function installCasesListWithoutTaskMocks(page: Page) {
       return;
     }
 
+    if (url.pathname === "/api/v1/cases") {
+      const caseState = url.searchParams.get("case_state");
+      const filteredCases =
+        caseState === "open"
+          ? baseCases.filter((entry) => entry.state === "open")
+          : caseState === "resolving"
+            ? baseCases.filter((entry) => entry.state === "resolving")
+            : caseState === "resolved"
+              ? baseCases.filter((entry) => entry.state === "resolved")
+              : baseCases;
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          ok: true,
+          warnings: [],
+          data: {
+            cases: filteredCases,
+          },
+        }),
+      });
+      return;
+    }
+
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({
         ok: true,
         warnings: [],
-        data: {
-          cases: [
-            {
-              client_id: "case_live_shape_without_task",
-              created_at: new Date(Date.now() - 3 * DAY_MS).toISOString(),
-              state: "open",
-              case_type_id: null,
-              type_label: "ClientId Case",
-              participant_count: 0,
-              messages_count: 1,
-              created_by: {
-                client_id: "usr_user_test",
-                username: "user_test",
-                profile_picture: "https://example.com/users/me_1778870851.png",
-              },
-              entity_type: null,
-              last_message_seq: 1,
-            },
-          ],
-        },
+        data: {},
       }),
     });
   });
@@ -961,43 +996,59 @@ test.describe("cases page", () => {
     await auth.signIn();
   });
 
-  test("renders groups, filters client-side, shows unread badge, and opens the conversation shell", async ({
-    page,
-  }) => {
-    await installCasesMocks(page);
+test("renders pill-filtered lists, search, unread badge, and opens the conversation shell", async ({
+  page,
+}) => {
+  await installCasesMocks(page);
 
-    await page.goto("/cases");
+  await page.goto("/cases");
 
-    await expect(page.getByTestId("cases-page")).toBeVisible();
-    await expect(
-      page
-        .getByTestId("cases-section-new")
-        .getByTestId("case-card-case_new_open"),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByTestId("cases-section-active")
-        .getByTestId("case-card-case_active_open"),
-    ).toBeVisible();
-    await expect(
-      page
-        .getByTestId("cases-section-resolving")
-        .getByTestId("case-card-case_resolving"),
-    ).toBeVisible();
-
-    await expect(
-      page
-        .getByTestId("cases-section-active")
-        .getByTestId("case-card-case_new_open"),
+  await expect(page.getByTestId("cases-page")).toBeVisible();
+  await expect(
+    page
+      .getByTestId("cases-list-body-unread")
+      .getByTestId("case-card-case_new_open"),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByTestId("cases-list-body-unread")
+      .getByTestId("case-card-case_resolving"),
+  ).toBeVisible();
+  await expect(
+    page
+      .getByTestId("cases-list-body-unread")
+      .getByTestId("case-card-case_active_open"),
     ).toHaveCount(0);
     await expect(page.getByTestId("case-card-unread-case_new_open")).toHaveText(
       "3",
     );
 
+    await page.getByTestId("cases-filter-active").click();
+    await expect(page.getByTestId("cases-list-body-active")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-active")
+        .getByTestId("case-card-case_new_open"),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-active")
+        .getByTestId("case-card-case_active_open"),
+    ).toBeVisible();
+
+    await page.getByTestId("cases-filter-in-progress").click();
+    await expect(page.getByTestId("cases-list-body-in-progress")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-in-progress")
+        .getByTestId("case-card-case_resolving"),
+    ).toBeVisible();
+
+    await page.getByTestId("cases-filter-active").click();
     await page.getByTestId("cases-search-bar-input").fill("bob");
     await expect(
       page
-        .getByTestId("cases-section-active")
+        .getByTestId("cases-list-body-active")
         .getByTestId("case-card-case_active_open"),
     ).toBeVisible();
     await expect(page.getByTestId("case-card-case_new_open")).toHaveCount(0);
@@ -1031,8 +1082,49 @@ test.describe("cases page", () => {
       page.getByTestId("case-conversation-info-button"),
     ).toBeEnabled();
     await expect(page.getByTestId("case-conversation-state-button")).toHaveText(
-      "Process",
+      "In-Progress",
     );
+  });
+
+  test("pill filter switches the visible case list and defaults to unread", async ({
+    page,
+  }) => {
+    await installCasesMocks(page);
+
+    await page.goto("/cases");
+
+    await expect(page.getByTestId("cases-list-body-unread")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-unread")
+        .getByTestId("case-card-case_new_open"),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-unread")
+        .getByTestId("case-card-case_active_open"),
+    ).toHaveCount(0);
+
+    await page.getByTestId("cases-filter-active").click();
+    await expect(page.getByTestId("cases-list-body-active")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-active")
+        .getByTestId("case-card-case_new_open"),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-active")
+        .getByTestId("case-card-case_active_open"),
+    ).toBeVisible();
+
+    await page.getByTestId("cases-filter-in-progress").click();
+    await expect(page.getByTestId("cases-list-body-in-progress")).toBeVisible();
+    await expect(
+      page
+        .getByTestId("cases-list-body-in-progress")
+        .getByTestId("case-card-case_resolving"),
+    ).toBeVisible();
   });
 
   test("refreshing a case conversation keeps the same case route and reloads the thread", async ({
@@ -1087,10 +1179,10 @@ test.describe("cases page", () => {
     await expect(page.getByTestId("cases-page")).toBeVisible();
     await expect(
       page
-        .getByTestId("cases-section-active")
+        .getByTestId("cases-list-body-unread")
         .getByTestId("case-card-case_live_shape_without_task"),
     ).toBeVisible();
-    await expect(page.getByTestId("cases-section-active")).toContainText(
+    await expect(page.getByTestId("cases-list-body-unread")).toContainText(
       "ClientId Case",
     );
   });
@@ -1542,7 +1634,7 @@ test.describe("cases page", () => {
 
     await openCase(page, "case_new_open");
     await expect(page.getByTestId("case-conversation-state-button")).toHaveText(
-      "Process",
+      "In-Progress",
     );
     await page.getByTestId("case-conversation-state-button").click();
     await expect(page.getByTestId("case-conversation-slide")).not.toBeVisible();

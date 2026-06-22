@@ -1,5 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
+import {
+  useListUpholsteryCategoriesQuery,
+  type UpholsteryCategory,
+} from "@/features/upholstery-category";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 import type { UpholsteryInventoryId } from "@/types/common";
 
@@ -7,99 +11,62 @@ import { useListUpholsteryInventoriesQuery } from "../api/use-list-upholstery-in
 import {
   INVENTORY_CARD_ACTIONS_SHEET_ID,
   INVENTORY_DETAIL_SLIDE_ID,
+  STORED_AMOUNT_SHEET_ID,
   type InventoryCardActionsSurfaceProps,
   type InventoryDetailSurfaceProps,
+  type StoredAmountSurfaceProps,
 } from "../surfaces";
 import {
-  INVENTORY_FILTER_INDEXES,
-  INVENTORY_QUICK_FILTER_OPTIONS,
   toInventoryListCardViewModel,
-  type InventoryQuickFilter,
+  type InventoryListCardViewModel,
 } from "../types";
 
-const FILTER_INDEXES = INVENTORY_FILTER_INDEXES;
+export type InventoryPanelId = "categories" | "inventory";
 
 export function useInventoryListController() {
-  const [q, setQ] = useState("");
-  const [debouncedQ, setDebouncedQ] = useState("");
-  const [activeFilter, setActiveFilter] =
-    useState<InventoryQuickFilter>("in_stock");
-  const previousFilterIndexRef = useRef(FILTER_INDEXES.in_stock);
+  const [activePanelId, setActivePanelId] =
+    useState<InventoryPanelId>("categories");
   const [direction, setDirection] = useState<1 | -1>(1);
+  const [selectedCategory, setSelectedCategory] =
+    useState<UpholsteryCategory | null>(null);
+  const [categoryQ, setCategoryQ] = useState("");
+  const [debouncedCategoryQ, setDebouncedCategoryQ] = useState("");
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedQ(q), 300);
+    const timeout = window.setTimeout(
+      () => setDebouncedCategoryQ(categoryQ),
+      300,
+    );
+
     return () => window.clearTimeout(timeout);
-  }, [q]);
+  }, [categoryQ]);
 
-  const isSearchActive = debouncedQ.trim().length > 0;
-  const activeQ = debouncedQ.trim() || undefined;
-
-  const inStockQuery = useListUpholsteryInventoriesQuery(
-    { in_stock: true, ...(activeQ ? { q: activeQ } : {}) },
-    { enabled: !isSearchActive || activeFilter === "in_stock" },
-  );
-  const outOfStockQuery = useListUpholsteryInventoriesQuery(
-    { in_stock: false, ...(activeQ ? { q: activeQ } : {}) },
-    { enabled: !isSearchActive || activeFilter === "out_of_stock" },
-  );
-  const favoritesQuery = useListUpholsteryInventoriesQuery(
-    { favorite: true, ...(activeQ ? { q: activeQ } : {}) },
-    { enabled: !isSearchActive || activeFilter === "favorite" },
+  const categoriesQuery = useListUpholsteryCategoriesQuery({
+    q: debouncedCategoryQ.trim() || undefined,
+  });
+  const inventoriesQuery = useListUpholsteryInventoriesQuery(
+    { upholstery_category_ids: selectedCategory?.client_id ?? "" },
+    { enabled: activePanelId === "inventory" && Boolean(selectedCategory) },
   );
 
-  function handleFilterChange(nextFilter: InventoryQuickFilter): void {
-    const nextIndex = FILTER_INDEXES[nextFilter];
-    const previousIndex = previousFilterIndexRef.current;
-
-    if (nextIndex !== previousIndex) {
-      setDirection(nextIndex > previousIndex ? 1 : -1);
-      previousFilterIndexRef.current = nextIndex;
-    }
-
-    setActiveFilter(nextFilter);
+  function selectCategory(category: UpholsteryCategory): void {
+    setDirection(1);
+    setSelectedCategory(category);
+    setActivePanelId("inventory");
   }
 
-  function getActiveQueryResult() {
-    switch (activeFilter) {
-      case "out_of_stock":
-        return {
-          items: outOfStockQuery.data?.items ?? [],
-          isLoading: outOfStockQuery.isPending,
-          isFetched: outOfStockQuery.isFetched,
-        };
-      case "favorite":
-        return {
-          items: favoritesQuery.data?.items ?? [],
-          isLoading: favoritesQuery.isPending,
-          isFetched: favoritesQuery.isFetched,
-        };
-      case "in_stock":
-      default:
-        return {
-          items: inStockQuery.data?.items ?? [],
-          isLoading: inStockQuery.isPending,
-          isFetched: inStockQuery.isFetched,
-        };
-    }
+  function goBack(): void {
+    setDirection(-1);
+    setActivePanelId("categories");
   }
-
-  const { items, isLoading, isFetched } = getActiveQueryResult();
-  const cards = items.map(toInventoryListCardViewModel);
 
   async function refetch(): Promise<void> {
-    switch (activeFilter) {
-      case "out_of_stock":
-        await outOfStockQuery.refetch();
-        return;
-      case "favorite":
-        await favoritesQuery.refetch();
-        return;
-      case "in_stock":
-      default:
-        await inStockQuery.refetch();
-        return;
+    if (activePanelId === "inventory") {
+      await inventoriesQuery.refetch();
+      return;
     }
+
+    await categoriesQuery.refetch();
   }
 
   function openDetail(inventoryId: UpholsteryInventoryId): void {
@@ -114,20 +81,39 @@ export function useInventoryListController() {
     } satisfies InventoryCardActionsSurfaceProps);
   }
 
+  function openAddAmount(card: InventoryListCardViewModel): void {
+    useSurfaceStore.getState().open(STORED_AMOUNT_SHEET_ID, {
+      inventoryId: card.inventoryId,
+      prefill: {
+        currentStoredAmountMeters: card.currentStoredAmountMeters,
+        imageUrl: card.imageUrl,
+        upholsteryName: card.name,
+        storedDisplay: card.storedDisplay,
+      },
+    } satisfies StoredAmountSurfaceProps);
+  }
+
   return {
-    q,
-    activeFilter,
+    activePanelId,
     direction,
-    filterOptions: INVENTORY_QUICK_FILTER_OPTIONS,
-    isSearchActive,
-    cards,
-    isLoading,
-    isFetched,
-    setQ,
-    onFilterChange: handleFilterChange,
+    selectedCategory,
+    categoryQ,
+    setCategoryQ,
+    categoryCards: categoriesQuery.data?.items ?? [],
+    isCategoriesLoading: categoriesQuery.isPending,
+    isCategoriesFetched: categoriesQuery.isFetched,
+    isCategoriesFetching: categoriesQuery.isFetching,
+    inventoryCards: (inventoriesQuery.data?.items ?? []).map(
+      toInventoryListCardViewModel,
+    ),
+    isInventoryLoading: inventoriesQuery.isPending,
+    isInventoryFetched: inventoriesQuery.isFetched,
+    selectCategory,
+    goBack,
     refetch,
     openDetail,
     openCardActions,
+    openAddAmount,
   };
 }
 

@@ -5,6 +5,8 @@ import type { MajorCategory, StepState } from "./types";
 export const TASK_STEP_ACTIONS_SHEET_SURFACE_ID = "task-step-actions-sheet";
 export const TASK_CASES_SLIDE_SURFACE_ID = "task-cases-slide";
 export const TASK_STEP_DETAIL_SURFACE_ID = "task-step-detail-slide";
+export const COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID =
+  "task-step-complete-confirmation-slide";
 export const PAUSE_REASON_SHEET_SURFACE_ID = "task-step-pause-reason-sheet";
 export const STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID =
   "task-step-dependency-warning-sheet";
@@ -33,6 +35,16 @@ export type TaskStepDetailSurfaceProps = {
   stepId: TaskStepId;
   taskId: TaskId;
   workingSectionId: WorkingSectionId;
+};
+
+export type CompleteTaskStepConfirmationSlideSurfaceProps = {
+  stepId: TaskStepId;
+  taskId: TaskId;
+  workingSectionId: WorkingSectionId;
+  totalWorkingSeconds: number;
+  totalPauseSeconds: number;
+  lastStateRecordEnteredAt: string | null;
+  onConfirm: (markInaccurate: boolean) => void;
 };
 
 export type PauseReasonSheetSurfaceProps = {

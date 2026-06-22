@@ -1,0 +1,30 @@
+.ydi-animated {
+  animation: ydi-dance 1.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+}
+
+@keyframes ydi-dance {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  20% {
+    transform: translateY(-10px) rotate(-4deg) scale(1.02);
+  }
+  40% {
+    transform: translateY(-7px) rotate(0deg) scale(1.01);
+  }
+  60% {
+    transform: translateY(-10px) rotate(4deg) scale(1.02);
+  }
+  80% {
+    transform: translateY(-4px) rotate(0deg) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ydi-animated {
+    animation: none;
+  }
+}

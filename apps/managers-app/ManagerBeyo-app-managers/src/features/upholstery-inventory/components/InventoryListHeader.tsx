@@ -1,83 +1,108 @@
-import { cn } from "@beyo/lib";
+import { AnimatePresence, m } from "framer-motion";
+import { ChevronLeft } from "lucide-react";
 
-import {
-  BoxPicker,
-  HorizontalScrollArea,
-  SearchBar,
-} from "@/components/primitives";
+import { SearchBar } from "@/components/primitives";
+import type { UpholsteryCategory } from "@/features/upholstery-category";
+import { transitions } from "@/lib/animation";
 
-import {
-  INVENTORY_QUICK_FILTER_OPTIONS,
-  type InventoryQuickFilter,
-} from "../types";
+import type { InventoryPanelId } from "../controllers/use-inventory-list.controller";
 
-const COLLAPSE =
-  "grid transition-[grid-template-rows,opacity] duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]";
+const headerVariants = {
+  enter: (direction: number) => ({
+    y: direction > 0 ? "100%" : "-100%",
+    opacity: 0,
+  }),
+  center: {
+    y: 0,
+    opacity: 1,
+    transition: transitions.slide,
+  },
+  exit: (direction: number) => ({
+    y: direction > 0 ? "-100%" : "100%",
+    opacity: 0,
+    transition: transitions.slide,
+  }),
+} as const;
 
 type InventoryListHeaderProps = {
-  isCompact: boolean;
-  isLoading: boolean;
-  q: string;
-  activeFilter: InventoryQuickFilter;
-  onQChange: (value: string) => void;
-  onFilterChange: (filter: InventoryQuickFilter) => void;
+  activePanelId: InventoryPanelId;
+  direction: 1 | -1;
+  selectedCategory: UpholsteryCategory | null;
+  categoryQ: string;
+  isCategoriesFetching: boolean;
+  onCategoryQChange: (value: string) => void;
+  onBack: () => void;
 };
 
 export function InventoryListHeader({
-  isCompact,
-  isLoading,
-  q,
-  activeFilter,
-  onQChange,
-  onFilterChange,
+  activePanelId,
+  direction,
+  selectedCategory,
+  categoryQ,
+  isCategoriesFetching,
+  onCategoryQChange,
+  onBack,
 }: InventoryListHeaderProps): React.JSX.Element {
   return (
     <div
-      className="flex flex-col bg-background"
+      className="relative h-20 overflow-hidden bg-background"
       data-testid="upholstery-inventory-header"
     >
-      <div className="px-4 py-2">
-        <SearchBar
-          activeFilterCount={0}
-          data-testid="upholstery-inventory-search-bar"
-          isLoading={isLoading}
-          placeholder="Search upholstery..."
-          value={q}
-          wrapperClassName="bg-[var(--color-card)]"
-          onChange={onQChange}
-          onFilterPress={() => undefined}
-          onSortPress={() => undefined}
-        />
-      </div>
-
-      <div
-        className={cn(
-          COLLAPSE,
-          isCompact
-            ? "grid-rows-[0fr] opacity-0"
-            : "grid-rows-[1fr] opacity-100",
-        )}
-      >
-        <div className="min-h-0 overflow-hidden">
-          <HorizontalScrollArea className="pb-1">
-            <BoxPicker
-              className="flex flex-nowrap flex-row gap-1.5 px-4"
-              data-testid="upholstery-inventory-quick-filter-pills"
-              layout="stack"
-              mode="single"
-              options={INVENTORY_QUICK_FILTER_OPTIONS}
-              size="sm"
-              showDescription={false}
-              showIcon={false}
-              value={activeFilter}
-              visualVariant="pill"
-              selectedOptionClassName="bg-blue-100 border-blue-400 text-blue-500"
-              unselectedOptionClassName="bg-white border-slate-300 text-slate-700"
-              onValueChange={onFilterChange}
+      <AnimatePresence custom={direction} initial={false} mode="sync">
+        {activePanelId === "categories" ? (
+          <m.div
+            key="category-browse-header"
+            animate="center"
+            className="absolute inset-x-0 bottom-0 top-6 flex flex-col justify-center px-4"
+            custom={direction}
+            exit="exit"
+            initial="enter"
+            variants={headerVariants}
+          >
+            <SearchBar
+              data-testid="upholstery-inventory-category-search-bar"
+              isLoading={isCategoriesFetching}
+              placeholder="Search categories..."
+              value={categoryQ}
+              wrapperClassName="bg-[var(--color-card)]"
+              onChange={onCategoryQChange}
             />
-          </HorizontalScrollArea>
-        </div>
-      </div>
+          </m.div>
+        ) : selectedCategory ? (
+          <m.div
+            key="inventory-category-detail-header"
+            animate="center"
+            className="absolute inset-x-0 bottom-0 top-6 flex items-center gap-3 px-4"
+            custom={direction}
+            exit="exit"
+            initial="enter"
+            variants={headerVariants}
+          >
+            <button
+              aria-label="Go back to categories"
+              className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground"
+              type="button"
+              onClick={onBack}
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+
+            {selectedCategory.image_url ? (
+              <img
+                alt=""
+                className="size-9 shrink-0 rounded-full object-cover"
+                src={selectedCategory.image_url}
+              />
+            ) : (
+              <div className="size-9 shrink-0 rounded-full bg-muted" />
+            )}
+
+            <p className="min-w-0 flex-1 truncate font-medium text-foreground">
+              {selectedCategory.name}
+            </p>
+          </m.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

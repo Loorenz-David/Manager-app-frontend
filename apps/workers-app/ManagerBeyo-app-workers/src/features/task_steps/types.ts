@@ -199,6 +199,7 @@ export type TransitionStepStateInput = {
   credited_user_id?: UserId;
   reason?: StepTransitionReason;
   description?: string;
+  mark_closing_record_inaccurate?: boolean;
 };
 
 export type PendingStepCompletion = {
@@ -251,6 +252,7 @@ export type TaskStepCardViewModel = {
   quantityPillLabel: string | null;
   lastStateRecord: LastStateRecord | null;
   totalWorkingSeconds: number;
+  totalPauseSeconds: number;
   casesSummary: CasesSummary | null;
 };
 
@@ -312,6 +314,7 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     quantityPillLabel,
     lastStateRecord: step.last_state_record,
     totalWorkingSeconds: step.total_working_seconds,
+    totalPauseSeconds: step.total_pause_seconds,
     casesSummary: step.cases_summary ?? null,
   };
 }

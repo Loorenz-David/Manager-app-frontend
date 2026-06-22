@@ -39,6 +39,7 @@ export async function listUpholsteryInventories(
       q: params.q || undefined,
       in_stock: params.in_stock,
       favorite: params.favorite,
+      upholstery_category_ids: params.upholstery_category_ids || undefined,
     },
   );
 

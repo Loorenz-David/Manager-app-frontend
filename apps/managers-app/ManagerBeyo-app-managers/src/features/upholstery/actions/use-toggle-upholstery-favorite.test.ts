@@ -28,6 +28,7 @@ const TEST_ITEM: UpholsteryPickerOption = {
   list_order: 1,
   current_stored_amount_meters: "8.0",
   inventory_condition: "available",
+  upholstery_category: null,
 };
 
 describe("useToggleUpholsteryFavorite", () => {

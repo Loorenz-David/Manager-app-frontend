@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
-import { ApiRequestError } from "@/lib/api-client";
 import {
   ContentCard,
   FieldLabelRow,
+  StagedForm,
+  StagedFormStep,
   SwitchCheckbox,
   TextInput,
 } from "@/components/primitives";
+import { UpholsteryCategoryPickerField } from "@/features/upholstery-category";
+import { useUpholsteryPickerOptionQuery } from "@/features/upholstery/api/use-upholstery-picker-option";
+import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
+import { ApiRequestError } from "@/lib/api-client";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
 import { useCreateInventory } from "../actions/use-create-inventory";
@@ -27,6 +32,7 @@ import {
 
 function defaultCreateValues(): CreateInventoryFormValues {
   return {
+    upholstery_category_id: null,
     name: "",
     code: "",
     image_url: null,
@@ -51,6 +57,50 @@ function isEditInventorySurfaceProps(
   );
 }
 
+type FooterProps = {
+  activeStepId: string;
+  isPending: boolean;
+  onClose: () => void;
+  onBack: () => void;
+  onContinue: () => void;
+  onSubmit: () => void;
+  submitLabel: string;
+};
+
+function InventoryCreationFooter({
+  activeStepId,
+  isPending,
+  onClose,
+  onBack,
+  onContinue,
+  onSubmit,
+  submitLabel,
+}: FooterProps): React.JSX.Element {
+  const isCategoryStep = activeStepId === "category";
+
+  return (
+    <div className="bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
+      <div className="flex gap-3">
+        <button
+          className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
+          type="button"
+          onClick={isCategoryStep ? onClose : onBack}
+        >
+          {isCategoryStep ? "Close & Back" : "Back"}
+        </button>
+        <button
+          className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm disabled:opacity-50"
+          disabled={isPending}
+          type="button"
+          onClick={isCategoryStep ? onContinue : onSubmit}
+        >
+          {isCategoryStep ? "Continue" : submitLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const props = useSurfaceProps<InventoryCreationSurfaceProps>();
@@ -60,6 +110,10 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
   const updateInventory = useUpdateInventory();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(true);
+  const editCategoryPrefillApplied = useRef(false);
+  const upholsteryQuery = useUpholsteryPickerOptionQuery(
+    editProps?.upholsteryId ?? null,
+  );
 
   useEffect(() => {
     header?.setTitle(isEditMode ? "Edit inventory" : "New inventory");
@@ -71,6 +125,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
     defaultValues:
       editProps
         ? {
+            upholstery_category_id: editProps.prefill.upholstery_category_id,
             name: editProps.prefill.name,
             code: editProps.prefill.code,
             image_url: editProps.prefill.image_url,
@@ -81,12 +136,65 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
           }
         : defaultCreateValues(),
   });
-
+  const selectedCategoryId = useWatch({
+    control: form.control,
+    name: "upholstery_category_id",
+  });
   const imageUrl = useWatch({ control: form.control, name: "image_url" });
+
+  const staged = useStagedForm({
+    steps: [
+      { id: "category", title: "Category" },
+      { id: "details", title: "Details" },
+    ],
+    mode: "free",
+  });
 
   useEffect(() => {
     setIsImagePreviewVisible(true);
   }, [imageUrl]);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    if (isEditMode) {
+      staged.setStepStatus("category", "completed");
+      staged.navigateTo("details");
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isEditMode || editCategoryPrefillApplied.current || !upholsteryQuery.data) {
+      return;
+    }
+
+    editCategoryPrefillApplied.current = true;
+    form.setValue(
+      "upholstery_category_id",
+      upholsteryQuery.data.upholstery_category?.id ?? null,
+      { shouldDirty: false },
+    );
+  }, [form, isEditMode, upholsteryQuery.data]);
+
+  function handleCategoryChange(
+    categoryId: string | null,
+    category: {
+      image_url: string | null;
+    } | null,
+  ): void {
+    form.setValue("upholstery_category_id", categoryId, { shouldDirty: true });
+
+    if (category) {
+      const currentImageUrl = normalizeOptionalText(form.getValues("image_url"));
+      const shouldAutoFillImage =
+        !isEditMode || currentImageUrl === null || currentImageUrl === "";
+
+      if (shouldAutoFillImage) {
+        form.setValue("image_url", category.image_url, { shouldDirty: true });
+      }
+      staged.setStepStatus("category", "completed");
+      staged.navigateTo("details");
+    }
+  }
 
   function handleSubmit(values: CreateInventoryFormValues): void {
     setSubmitError(null);
@@ -95,7 +203,11 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
       const normalizedName = values.name.trim();
       const normalizedCode = normalizeOptionalText(values.code);
       const normalizedImageUrl = normalizeOptionalText(values.image_url);
+      const originalCategoryId =
+        upholsteryQuery.data?.upholstery_category?.id ??
+        editProps.prefill.upholstery_category_id;
       const isUnchanged =
+        values.upholstery_category_id === originalCategoryId &&
         normalizedName === editProps.prefill.name &&
         normalizedCode === normalizeOptionalText(editProps.prefill.code) &&
         normalizedImageUrl ===
@@ -118,7 +230,10 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
           upholsteryId: editProps.upholsteryId,
           inventoryId: editProps.inventoryId,
           values,
-          original: editProps.prefill,
+          original: {
+            ...editProps.prefill,
+            upholstery_category_id: originalCategoryId,
+          },
         },
         {
           onSuccess: () => {
@@ -136,157 +251,237 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
       return;
     }
 
-    const payload = {
-      name: values.name.trim(),
-      code: normalizeOptionalText(values.code),
-      image_url: normalizeOptionalText(values.image_url),
-      current_stored_amount_meters:
-        normalizeNonNegativeDecimalString(
-          values.current_stored_amount_meters ?? "",
-        ) ?? null,
-      low_stock_threshold_meters: values.low_stock_threshold_meters
-        ? (normalizeNonNegativeDecimalString(values.low_stock_threshold_meters) ??
-          null)
-        : null,
-      favorite: values.favorite,
-    };
-
-    createInventory.mutate(payload, {
-      onSuccess: () => {
-        useSurfaceStore.getState().close(INVENTORY_CREATION_SLIDE_ID);
+    createInventory.mutate(
+      {
+        upholstery_category_id: values.upholstery_category_id,
+        name: values.name.trim(),
+        code: normalizeOptionalText(values.code),
+        image_url: normalizeOptionalText(values.image_url),
+        current_stored_amount_meters:
+          normalizeNonNegativeDecimalString(
+            values.current_stored_amount_meters ?? "",
+          ) ?? null,
+        low_stock_threshold_meters: values.low_stock_threshold_meters
+          ? (normalizeNonNegativeDecimalString(values.low_stock_threshold_meters) ??
+            null)
+          : null,
+        favorite: values.favorite,
       },
-      onError: (error) => {
-        setSubmitError(
-          error instanceof ApiRequestError
-            ? error.message
-            : "Could not create inventory. Please try again.",
-        );
+      {
+        onSuccess: () => {
+          useSurfaceStore.getState().close(INVENTORY_CREATION_SLIDE_ID);
+        },
+        onError: (error) => {
+          setSubmitError(
+            error instanceof ApiRequestError
+              ? error.message
+              : "Could not create inventory. Please try again.",
+          );
+        },
       },
-    });
+    );
   }
 
   const isPending = isEditMode
-    ? updateInventory.isPending
+    ? updateInventory.isPending || upholsteryQuery.isPending
     : createInventory.isPending;
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-none">
-        <form
-          className="flex flex-col gap-4 px-4 pb-[calc(var(--safe-bottom,0)+8rem)] pt-4"
-          noValidate
-          onSubmit={form.handleSubmit(handleSubmit)}
-        >
-          <ContentCard>
-            <Controller
-              control={form.control}
-              name="name"
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabelRow htmlFor="inventory-name" label="Name" />
-                  <TextInput
-                    ref={field.ref}
-                    id="inventory-name"
-                    invalid={Boolean(fieldState.error)}
-                    value={field.value}
-                    wrapperClassName="bg-card"
-                    onBlur={field.onBlur}
-                    onChange={(event) => field.onChange(event.target.value)}
-                  />
-                  {fieldState.error ? (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  ) : null}
-                </div>
-              )}
+    <form
+      className="flex h-full flex-col bg-background"
+      noValidate
+      onSubmit={(event) => event.preventDefault()}
+    >
+      <StagedForm
+        activeStepId={staged.activeStepId}
+        direction={staged.direction}
+        footer={
+          <InventoryCreationFooter
+            activeStepId={staged.activeStepId}
+            isPending={isPending}
+            onBack={staged.back}
+            onClose={() => header?.requestClose()}
+            onContinue={() => {
+              staged.setStepStatus("category", "completed");
+              staged.navigateTo("details");
+            }}
+            onSubmit={form.handleSubmit(handleSubmit)}
+            submitLabel={isEditMode ? "Save" : "Create"}
+          />
+        }
+        isAdvancing={staged.isAdvancing}
+        isFirstStep={staged.isFirstStep}
+        isLastStep={staged.isLastStep}
+        navigationMode={staged.navigationMode}
+        showNavigation={false}
+        stepStatusMap={staged.stepStatusMap}
+        steps={staged.steps}
+        onAdvance={staged.advance}
+        onBack={staged.back}
+        onNavigate={staged.navigateTo}
+      >
+        <StagedFormStep id="category" className="px-0">
+          <div className="flex flex-col gap-4 px-4 pb-4 pt-4">
+            <UpholsteryCategoryPickerField
+              prefillCategoryId={
+                isEditMode
+                  ? upholsteryQuery.data?.upholstery_category?.id ??
+                    editProps?.prefill.upholstery_category_id
+                  : null
+              }
+              value={selectedCategoryId}
+              onChange={handleCategoryChange}
             />
+          </div>
+        </StagedFormStep>
 
-            <Controller
-              control={form.control}
-              name="code"
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabelRow
-                    htmlFor="inventory-code"
-                    label="Code"
-                    optional
-                  />
-                  <TextInput
-                    ref={field.ref}
-                    id="inventory-code"
-                    invalid={Boolean(fieldState.error)}
-                    value={field.value}
-                    wrapperClassName="bg-card"
-                    onBlur={field.onBlur}
-                    onChange={(event) => field.onChange(event.target.value)}
-                  />
-                  {fieldState.error ? (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  ) : null}
-                </div>
-              )}
-            />
-          </ContentCard>
-
-          <ContentCard>
-            <Controller
-              control={form.control}
-              name="image_url"
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabelRow
-                    htmlFor="inventory-image-url"
-                    label="Image URL"
-                    optional
-                  />
-                  <TextInput
-                    ref={field.ref}
-                    id="inventory-image-url"
-                    invalid={Boolean(fieldState.error)}
-                    value={field.value ?? ""}
-                    wrapperClassName="bg-card"
-                    onBlur={field.onBlur}
-                    onChange={(event) =>
-                      field.onChange(event.target.value || null)
-                    }
-                  />
-                  {fieldState.error ? (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  ) : null}
-                </div>
-              )}
-            />
-
-            {imageUrl && isImagePreviewVisible ? (
-              <img
-                alt=""
-                className="mt-1 h-44 w-full rounded-xl object-cover"
-                src={imageUrl}
-                onError={() => setIsImagePreviewVisible(false)}
-              />
-            ) : null}
-          </ContentCard>
-
-          {!isEditMode ? (
+        <StagedFormStep id="details" className="px-0">
+          <div className="flex flex-col gap-4 px-4 pb-4 pt-4">
             <ContentCard>
               <Controller
                 control={form.control}
-                name="current_stored_amount_meters"
+                name="name"
+                render={({ field, fieldState }) => (
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabelRow htmlFor="inventory-name" label="Name" />
+                    <TextInput
+                      ref={field.ref}
+                      id="inventory-name"
+                      invalid={Boolean(fieldState.error)}
+                      value={field.value}
+                      wrapperClassName="bg-card"
+                      onBlur={field.onBlur}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                    {fieldState.error ? (
+                      <p className="text-sm text-destructive">
+                        {fieldState.error.message}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="code"
                 render={({ field, fieldState }) => (
                   <div className="flex flex-col gap-1.5">
                     <FieldLabelRow
-                      htmlFor="inventory-stored-amount"
-                      label="Stored amount"
+                      htmlFor="inventory-code"
+                      label="Code"
                       optional
                     />
                     <TextInput
                       ref={field.ref}
-                      id="inventory-stored-amount"
+                      id="inventory-code"
+                      invalid={Boolean(fieldState.error)}
+                      value={field.value}
+                      wrapperClassName="bg-card"
+                      onBlur={field.onBlur}
+                      onChange={(event) => field.onChange(event.target.value)}
+                    />
+                    {fieldState.error ? (
+                      <p className="text-sm text-destructive">
+                        {fieldState.error.message}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              />
+            </ContentCard>
+
+            <ContentCard>
+              <Controller
+                control={form.control}
+                name="image_url"
+                render={({ field, fieldState }) => (
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabelRow
+                      htmlFor="inventory-image-url"
+                      label="Image URL"
+                      optional
+                    />
+                    <TextInput
+                      ref={field.ref}
+                      id="inventory-image-url"
+                      invalid={Boolean(fieldState.error)}
+                      value={field.value ?? ""}
+                      wrapperClassName="bg-card"
+                      onBlur={field.onBlur}
+                      onChange={(event) =>
+                        field.onChange(event.target.value || null)
+                      }
+                    />
+                    {fieldState.error ? (
+                      <p className="text-sm text-destructive">
+                        {fieldState.error.message}
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              />
+
+              {imageUrl && isImagePreviewVisible ? (
+                <img
+                  alt=""
+                  className="mt-1 h-44 w-full rounded-xl object-cover"
+                  src={imageUrl}
+                  onError={() => setIsImagePreviewVisible(false)}
+                />
+              ) : null}
+            </ContentCard>
+
+            {!isEditMode ? (
+              <ContentCard>
+                <Controller
+                  control={form.control}
+                  name="current_stored_amount_meters"
+                  render={({ field, fieldState }) => (
+                    <div className="flex flex-col gap-1.5">
+                      <FieldLabelRow
+                        htmlFor="inventory-stored-amount"
+                        label="Stored amount"
+                        optional
+                      />
+                      <TextInput
+                        ref={field.ref}
+                        id="inventory-stored-amount"
+                        inputMode="decimal"
+                        invalid={Boolean(fieldState.error)}
+                        placeholder="0.000"
+                        value={field.value ?? ""}
+                        wrapperClassName="bg-card"
+                        onBlur={field.onBlur}
+                        onChange={(event) =>
+                          field.onChange(event.target.value || null)
+                        }
+                      />
+                      {fieldState.error ? (
+                        <p className="text-sm text-destructive">
+                          {fieldState.error.message}
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                />
+              </ContentCard>
+            ) : null}
+
+            <ContentCard>
+              <Controller
+                control={form.control}
+                name="low_stock_threshold_meters"
+                render={({ field, fieldState }) => (
+                  <div className="flex flex-col gap-1.5">
+                    <FieldLabelRow
+                      htmlFor="inventory-low-stock-threshold"
+                      label="Low stock threshold"
+                      optional
+                    />
+                    <TextInput
+                      ref={field.ref}
+                      id="inventory-low-stock-threshold"
                       inputMode="decimal"
                       invalid={Boolean(fieldState.error)}
                       placeholder="0.000"
@@ -306,84 +501,30 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
                 )}
               />
             </ContentCard>
-          ) : null}
 
-          <ContentCard>
-            <Controller
-              control={form.control}
-              name="low_stock_threshold_meters"
-              render={({ field, fieldState }) => (
-                <div className="flex flex-col gap-1.5">
-                  <FieldLabelRow
-                    htmlFor="inventory-low-stock-threshold"
-                    label="Low stock threshold"
-                    optional
-                  />
-                  <TextInput
-                    ref={field.ref}
-                    id="inventory-low-stock-threshold"
-                    inputMode="decimal"
-                    invalid={Boolean(fieldState.error)}
-                    placeholder="0.000"
-                    value={field.value ?? ""}
-                    wrapperClassName="bg-card"
-                    onBlur={field.onBlur}
-                    onChange={(event) =>
-                      field.onChange(event.target.value || null)
-                    }
-                  />
-                  {fieldState.error ? (
-                    <p className="text-sm text-destructive">
-                      {fieldState.error.message}
-                    </p>
-                  ) : null}
-                </div>
-              )}
-            />
-          </ContentCard>
+            <ContentCard>
+              <div className="flex items-center justify-between gap-4">
+                <FieldLabelRow label="Favorite" optional />
+                <Controller
+                  control={form.control}
+                  name="favorite"
+                  render={({ field }) => (
+                    <SwitchCheckbox
+                      checked={field.value}
+                      onBlur={field.onBlur}
+                      onChange={(event) => field.onChange(event.target.checked)}
+                    />
+                  )}
+                />
+              </div>
+            </ContentCard>
 
-          <ContentCard>
-            <div className="flex items-center justify-between gap-4">
-              <FieldLabelRow label="Favorite" optional />
-              <Controller
-                control={form.control}
-                name="favorite"
-                render={({ field }) => (
-                  <SwitchCheckbox
-                    checked={field.value}
-                    onBlur={field.onBlur}
-                    onChange={(event) => field.onChange(event.target.checked)}
-                  />
-                )}
-              />
-            </div>
-          </ContentCard>
-
-          {submitError ? (
-            <p className="px-1 text-sm text-destructive">{submitError}</p>
-          ) : null}
-        </form>
-      </div>
-
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
-        <div className="flex gap-3">
-          <button
-            className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
-            type="button"
-            onClick={() => header?.requestClose()}
-          >
-            Close & Back
-          </button>
-          <button
-            className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm disabled:opacity-50"
-            disabled={isPending}
-            type="button"
-            onClick={form.handleSubmit(handleSubmit)}
-          >
-            {isEditMode ? "Save" : "Create"}
-          </button>
-        </div>
-      </div>
-    </div>
+            {submitError ? (
+              <p className="px-1 text-sm text-destructive">{submitError}</p>
+            ) : null}
+          </div>
+        </StagedFormStep>
+      </StagedForm>
+    </form>
   );
 }

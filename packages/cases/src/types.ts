@@ -374,6 +374,8 @@ export type CasesFilterState = {
   onlyForMe: boolean;
 };
 
+export type CaseFilterPill = "unread" | "active" | "in-progress";
+
 export const DEFAULT_CASES_FILTER: CasesFilterState = {
   caseStates: ["open", "resolving"],
   onlyForMe: true,
@@ -401,7 +403,7 @@ export function toCaseListCardViewModel(
 ): CaseListCardViewModel {
   const stateLabels: Record<(typeof CASE_STATE)[number], string> = {
     open: "Open",
-    resolving: "Resolving",
+    resolving: "In-Progress",
     resolved: "Resolved",
   };
 

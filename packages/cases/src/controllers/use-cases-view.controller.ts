@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { selectUser, useAuthStore } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
@@ -16,38 +16,29 @@ import {
   CASE_LINK_ENTITY_TYPE,
   DEFAULT_CASES_FILTER,
   toCaseListCardViewModel,
+  type CaseFilterPill,
   type CaseListCardViewModel,
   type CasesFilterState,
 } from "../types";
 
-function getLocalDateKey(value: Date): string {
-  return `${value.getFullYear()}-${value.getMonth()}-${value.getDate()}`;
-}
-
-function isCreatedToday(isoString: string): boolean {
-  return getLocalDateKey(new Date(isoString)) === getLocalDateKey(new Date());
-}
-
-export type CasesGroup = {
-  label: string;
-  count: number;
-  cases: CaseListCardViewModel[];
-};
+const FILTER_ORDER: CaseFilterPill[] = ["unread", "active", "in-progress"];
+const FILTER_INDEX = new Map<CaseFilterPill, number>(
+  FILTER_ORDER.map((filter, index) => [filter, index]),
+);
 
 export type CasesViewController = {
-  newGroup: CasesGroup;
-  activeGroup: CasesGroup;
-  resolvingGroup: CasesGroup;
-  resolvedGroup: CasesGroup;
-  showActiveGroup: boolean;
-  showResolvingGroup: boolean;
-  showResolvedGroup: boolean;
+  activeFilter: CaseFilterPill;
+  direction: 1 | -1;
+  cases: CaseListCardViewModel[];
+  showPills: boolean;
   isLoading: boolean;
   searchQuery: string;
   setSearchQuery: (value: string) => void;
+  onFilterChange: (filter: CaseFilterPill) => void;
   openCase: (caseClientId: CaseId) => void;
   openFilters: () => void;
   activeFilterCount: number;
+  pillCounts: { unread: number; active: number; inProgress: number };
   unreadCounts: Record<string, number>;
   typingByCaseId: Record<string, string>;
   refetch: () => Promise<void>;
@@ -67,12 +58,22 @@ export function useCasesViewController(
   const currentUserId = (useAuthStore(selectUser)?.id ?? null) as UserId | null;
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
+  const [activeFilter, setActiveFilter] = useState<CaseFilterPill>("unread");
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const previousFilterIndexRef = useRef(FILTER_INDEX.get("unread") ?? 0);
   const [activeFilters, setActiveFilters] =
     useState<CasesFilterState>(DEFAULT_CASES_FILTER);
-  const effectiveCaseStates =
-    activeFilters.caseStates.length > 0
-      ? activeFilters.caseStates
-      : DEFAULT_CASES_FILTER.caseStates;
+  const isResolvedFilterActive =
+    activeFilters.caseStates.length === 1 &&
+    activeFilters.caseStates[0] === "resolved";
+  const participantFilter =
+    activeFilters.onlyForMe && currentUserId ? currentUserId : undefined;
+  const scopedEntityParams = {
+    ...(params.entityClientId
+      ? { entity_client_id: params.entityClientId }
+      : {}),
+    ...(params.entityType ? { entity_type: params.entityType } : {}),
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -82,65 +83,92 @@ export function useCasesViewController(
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const listQuery = useListCasesQuery({
-    case_state: effectiveCaseStates.join(","),
+  const activeCasesQuery = useListCasesQuery({
+    case_state: "open",
     q: debouncedQ || undefined,
-    includes_participants:
-      activeFilters.onlyForMe && currentUserId ? currentUserId : undefined,
-    ...(params.entityClientId
-      ? { entity_client_id: params.entityClientId }
-      : {}),
-    ...(params.entityType ? { entity_type: params.entityType } : {}),
+    includes_participants: participantFilter,
+    ...scopedEntityParams,
   });
 
-  const selectedCaseStates = useMemo(
-    () => new Set(effectiveCaseStates),
-    [effectiveCaseStates],
-  );
+  const inProgressCasesQuery = useListCasesQuery({
+    case_state: "resolving",
+    q: debouncedQ || undefined,
+    includes_participants: participantFilter,
+    ...scopedEntityParams,
+  });
 
-  const viewModels = useMemo(
+  const resolvedCasesQuery = useListCasesQuery({
+    case_state: "resolved",
+    q: debouncedQ || undefined,
+    includes_participants: participantFilter,
+    ...scopedEntityParams,
+  });
+
+  const activeCases = useMemo(
     () =>
-      (listQuery.data ?? [])
+      (activeCasesQuery.data ?? [])
         .map(toCaseListCardViewModel)
         .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [listQuery.data],
+    [activeCasesQuery.data],
+  );
+
+  const inProgressCases = useMemo(
+    () =>
+      (inProgressCasesQuery.data ?? [])
+        .map(toCaseListCardViewModel)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [inProgressCasesQuery.data],
+  );
+
+  const resolvedCases = useMemo(
+    () =>
+      (resolvedCasesQuery.data ?? [])
+        .map(toCaseListCardViewModel)
+        .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+    [resolvedCasesQuery.data],
+  );
+
+  const unreadCountSourceCases = useMemo(
+    () => [...activeCases, ...inProgressCases],
+    [activeCases, inProgressCases],
   );
 
   const caseClientIds = useMemo(
-    () => viewModels.map((item) => item.client_id),
-    [viewModels],
+    () => unreadCountSourceCases.map((item) => item.client_id),
+    [unreadCountSourceCases],
   );
   const unreadCountsQuery = useUnreadCountsQuery(caseClientIds);
 
-  const groupedCases = useMemo(() => {
-    const newCases: CaseListCardViewModel[] = [];
-    const activeCases: CaseListCardViewModel[] = [];
-    const resolvingCases: CaseListCardViewModel[] = [];
-    const resolvedCases: CaseListCardViewModel[] = [];
+  const unreadCases = useMemo(
+    () =>
+      [...activeCases, ...inProgressCases].filter(
+        (card) => (unreadCountsQuery.data?.[card.client_id] ?? 0) > 0,
+      ),
+    [activeCases, inProgressCases, unreadCountsQuery.data],
+  );
 
-    for (const card of viewModels) {
-      if (card.state === "resolved") {
-        resolvedCases.push(card);
-        continue;
-      }
-
-      if (card.state === "resolving") {
-        resolvingCases.push(card);
-        continue;
-      }
-
-      if (card.state === "open" && isCreatedToday(card.created_at)) {
-        newCases.push(card);
-        continue;
-      }
-
-      if (card.state === "open") {
-        activeCases.push(card);
-      }
+  const cases = useMemo(() => {
+    if (isResolvedFilterActive) {
+      return resolvedCases;
     }
 
-    return { newCases, activeCases, resolvingCases, resolvedCases };
-  }, [viewModels]);
+    if (activeFilter === "active") {
+      return activeCases;
+    }
+
+    if (activeFilter === "in-progress") {
+      return inProgressCases;
+    }
+
+    return unreadCases;
+  }, [
+    activeCases,
+    activeFilter,
+    inProgressCases,
+    isResolvedFilterActive,
+    resolvedCases,
+    unreadCases,
+  ]);
 
   const activeFilterCount = useMemo(() => {
     const defaultSet = new Set(DEFAULT_CASES_FILTER.caseStates);
@@ -161,6 +189,18 @@ export function useCasesViewController(
     });
   }
 
+  function onFilterChange(filter: CaseFilterPill): void {
+    const nextIndex = FILTER_INDEX.get(filter) ?? 0;
+    const previousIndex = previousFilterIndexRef.current;
+
+    if (nextIndex !== previousIndex) {
+      setDirection(nextIndex > previousIndex ? 1 : -1);
+      previousFilterIndexRef.current = nextIndex;
+    }
+
+    setActiveFilter(filter);
+  }
+
   function openFilters(): void {
     params.viewSurfaceOpeners?.openCaseFilters?.({
       currentFilters: activeFilters,
@@ -169,7 +209,12 @@ export function useCasesViewController(
   }
 
   async function refetch(): Promise<void> {
-    await Promise.all([listQuery.refetch(), unreadCountsQuery.refetch()]);
+    await Promise.all([
+      activeCasesQuery.refetch(),
+      inProgressCasesQuery.refetch(),
+      resolvedCasesQuery.refetch(),
+      unreadCountsQuery.refetch(),
+    ]);
   }
 
   const typingByCaseId = useMemo<Record<string, string>>(() => {
@@ -178,7 +223,7 @@ export function useCasesViewController(
     }
 
     // Temporary local stub until realtime presence/typing signals are connected.
-    const firstOpenCase = viewModels.find((card) => card.state === "open");
+    const firstOpenCase = activeCases.find((card) => card.state === "open");
 
     if (!firstOpenCase) {
       return {};
@@ -187,38 +232,34 @@ export function useCasesViewController(
     return {
       [firstOpenCase.client_id]: "Writing",
     };
-  }, [viewModels]);
+  }, [activeCases]);
+
+  const isLoading =
+    activeFilter === "active"
+      ? activeCasesQuery.isPending
+      : activeFilter === "in-progress"
+        ? inProgressCasesQuery.isPending
+        : activeCasesQuery.isPending ||
+          inProgressCasesQuery.isPending ||
+          (caseClientIds.length > 0 && unreadCountsQuery.isPending);
 
   return {
-    newGroup: {
-      label: "New",
-      count: groupedCases.newCases.length,
-      cases: groupedCases.newCases,
-    },
-    activeGroup: {
-      label: "Active",
-      count: groupedCases.activeCases.length,
-      cases: groupedCases.activeCases,
-    },
-    resolvingGroup: {
-      label: "Resolving",
-      count: groupedCases.resolvingCases.length,
-      cases: groupedCases.resolvingCases,
-    },
-    resolvedGroup: {
-      label: "Resolved",
-      count: groupedCases.resolvedCases.length,
-      cases: groupedCases.resolvedCases,
-    },
-    showActiveGroup: selectedCaseStates.has("open"),
-    showResolvingGroup: selectedCaseStates.has("resolving"),
-    showResolvedGroup: selectedCaseStates.has("resolved"),
-    isLoading: listQuery.isPending,
+    activeFilter,
+    direction,
+    cases,
+    showPills: !isResolvedFilterActive,
+    isLoading: isResolvedFilterActive ? resolvedCasesQuery.isPending : isLoading,
     searchQuery,
     setSearchQuery,
+    onFilterChange,
     openCase,
     openFilters,
     activeFilterCount,
+    pillCounts: {
+      unread: unreadCases.length,
+      active: activeCases.length,
+      inProgress: inProgressCases.length,
+    },
     unreadCounts: unreadCountsQuery.data ?? {},
     typingByCaseId,
     refetch,

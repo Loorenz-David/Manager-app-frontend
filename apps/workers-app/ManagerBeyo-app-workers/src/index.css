@@ -7,6 +7,11 @@
 @source "../../../../packages/tasks/src";
 @source "../../../../packages/item-issues/src";
 @source "../../../../packages/notifications/src";
+@source "../../../../packages/celebration/src";
+
+@theme {
+  --font-celebration: "Fredoka", sans-serif;
+}
 
 .task-step-unread-badge {
   transform-origin: 50% 50%;

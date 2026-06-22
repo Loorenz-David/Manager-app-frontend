@@ -150,7 +150,7 @@ function getStateTransition(
 ): StateTransition | null {
   if (state === "open") {
     return {
-      label: "Process",
+      label: "In-Progress",
       nextState: "resolving",
     };
   }

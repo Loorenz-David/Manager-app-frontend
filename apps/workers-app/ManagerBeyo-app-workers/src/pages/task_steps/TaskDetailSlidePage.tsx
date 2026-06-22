@@ -1,12 +1,7 @@
 import { useEffect } from "react";
-import { useSurfaceHeader } from "@beyo/hooks";
+import { usePreloadSurface, useSurfaceHeader } from "@beyo/hooks";
 import { TaskFlowTimeline } from "@beyo/tasks";
-import {
-  ConfirmActionButton,
-  ContentCard,
-  PullToRefresh,
-  useScrollVisibility,
-} from "@beyo/ui";
+import { ContentCard, PullToRefresh, useScrollVisibility } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
@@ -20,6 +15,7 @@ import {
   TaskStepDetailProvider,
   useTaskStepDetailContext,
 } from "@/features/task_steps/providers/TaskStepDetailProvider";
+import { preloadCompleteTaskStepConfirmationSlideSurface } from "@/features/task_steps/surfaces";
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
@@ -29,6 +25,8 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   useEffect(() => {
     header?.setHeaderHidden(true);
   }, [header]);
+
+  usePreloadSurface(preloadCompleteTaskStepConfirmationSlideSurface);
 
   if (controller.isPending) {
     return (
@@ -105,30 +103,37 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           )}
         >
           <div className="px-4 pb-[calc(var(--safe-bottom,0)+5.25rem)] pt-3">
-            {/* Undo scheduling remains implemented, but this page now uses direct confirmation-only completion. */}
-            <ConfirmActionButton
-              backgroundColor="#eaf8ef"
-              borderColor="#9ed9b5"
-              className="w-full font-semibold"
-              confirmLabel="Tap again to complete"
-              confirmTextColor="white"
+            <button
+              className="w-full rounded-xl py-3 text-center font-semibold transition-opacity disabled:opacity-60"
               data-testid="task-step-complete-button"
-              fillColor="var(--color-dark-pearl-green)"
-              label="Complete task"
-              onConfirm={controller.handleComplete}
-              textColor="#1e7a46"
               disabled={isStepTransitioning}
-            />
+              style={{
+                backgroundColor: "#eaf8ef",
+                color: "#1e7a46",
+                border: "1px solid #9ed9b5",
+              }}
+              type="button"
+              onClick={controller.handleComplete}
+            >
+              Complete task
+            </button>
           </div>
         </div>
       ) : null}
 
-      <TaskStepDetailFooter
-        unreadCount={controller.liveCasesSummary.totalUnread}
-        isScrollHidden={isHidden}
-        onOpenCases={controller.handleOpenCasesForTask}
-        onClose={() => header?.requestClose()}
-      />
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-10 transition-transform duration-300",
+          isHidden ? "translate-y-full" : "translate-y-0",
+        )}
+      >
+        <TaskStepDetailFooter
+          unreadCount={controller.liveCasesSummary.totalUnread}
+          isScrollHidden={isHidden}
+          onOpenCases={controller.handleOpenCasesForTask}
+          onClose={() => header?.requestClose()}
+        />
+      </div>
     </div>
   );
 }

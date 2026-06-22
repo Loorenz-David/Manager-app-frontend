@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ClientIdSchema } from "@beyo/lib";
 import type { BoxPickerOption } from "@/components/primitives/box-picker/box-picker.types";
 import type { UpholsteryId, UpholsteryInventoryId } from "@/types/common";
+import { UpholsteryCategoryInlineSchema } from "@/features/upholstery-category/types";
 
 export const UPHOLSTERY_CURRENCY = [
   "swedish_krona",
@@ -110,6 +111,7 @@ export const UpholsteryPickerOptionSchema = z.object({
   list_order: z.number().nullable(),
   current_stored_amount_meters: z.string().nullable(),
   inventory_condition: z.enum(UPHOLSTERY_INVENTORY_CONDITION).nullable(),
+  upholstery_category: UpholsteryCategoryInlineSchema.nullable(),
 });
 export type UpholsteryPickerOption = z.infer<
   typeof UpholsteryPickerOptionSchema

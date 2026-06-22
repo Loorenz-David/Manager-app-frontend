@@ -30,6 +30,9 @@ export type StoredAmountSurfaceProps = {
   inventoryId: UpholsteryInventoryId;
   prefill?: {
     currentStoredAmountMeters: string | null;
+    imageUrl?: string | null;
+    upholsteryName?: string;
+    storedDisplay?: string;
   };
 };
 

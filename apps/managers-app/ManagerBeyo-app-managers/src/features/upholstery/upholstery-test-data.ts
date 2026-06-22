@@ -10,6 +10,7 @@ export const TEST_UPHOLSTERIES: UpholsteryPickerRecord[] = [
     list_order: 1,
     current_stored_amount_meters: '12.5',
     inventory_condition: 'available',
+    upholstery_category: null,
   },
   {
     client_id: 'uph_velvet_midnight',
@@ -20,6 +21,7 @@ export const TEST_UPHOLSTERIES: UpholsteryPickerRecord[] = [
     list_order: 2,
     current_stored_amount_meters: '3.2',
     inventory_condition: 'low_stock',
+    upholstery_category: null,
   },
   {
     client_id: 'uph_cotton_offwhite',
@@ -30,6 +32,7 @@ export const TEST_UPHOLSTERIES: UpholsteryPickerRecord[] = [
     list_order: 3,
     current_stored_amount_meters: '8',
     inventory_condition: 'available',
+    upholstery_category: null,
   },
   {
     client_id: 'uph_leather_tan',
@@ -40,6 +43,7 @@ export const TEST_UPHOLSTERIES: UpholsteryPickerRecord[] = [
     list_order: null,
     current_stored_amount_meters: '20.75',
     inventory_condition: 'available',
+    upholstery_category: null,
   },
   {
     client_id: 'uph_wool_charcoal',
@@ -50,5 +54,6 @@ export const TEST_UPHOLSTERIES: UpholsteryPickerRecord[] = [
     list_order: 4,
     current_stored_amount_meters: '0.4',
     inventory_condition: 'out_of_stock',
+    upholstery_category: null,
   },
 ];

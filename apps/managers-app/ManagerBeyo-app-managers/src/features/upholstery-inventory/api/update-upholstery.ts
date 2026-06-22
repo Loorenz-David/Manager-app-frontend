@@ -8,6 +8,7 @@ export type UpdateUpholsteryPayload = {
   code?: string | null;
   image_url?: string | null;
   favorite?: boolean;
+  upholstery_category_id?: string | null;
 };
 
 const UpdateUpholsteryResponseSchema = z.object({}).passthrough();

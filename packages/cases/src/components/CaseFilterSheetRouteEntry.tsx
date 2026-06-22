@@ -1,24 +1,13 @@
 import { useState } from "react";
-import { Circle, CircleCheck, RefreshCw, User } from "lucide-react";
+import { CircleCheck, User } from "lucide-react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
 
 import type { CaseFilterSheetSurfaceProps } from "../surface-ids";
-import {
-  CASE_STATE,
-  DEFAULT_CASES_FILTER,
-  type CasesFilterState,
-} from "../types";
+import { DEFAULT_CASES_FILTER, type CasesFilterState } from "../types";
 
-const STATE_OPTIONS: BoxPickerOptionType<(typeof CASE_STATE)[number]>[] = [
-  { value: "open", label: "Open", icon: Circle, testId: "filter-state-open" },
-  {
-    value: "resolving",
-    label: "Resolving",
-    icon: RefreshCw,
-    testId: "filter-state-resolving",
-  },
+const RESOLVED_OPTIONS: BoxPickerOptionType<"resolved">[] = [
   {
     value: "resolved",
     label: "Resolved",
@@ -54,6 +43,9 @@ export function CaseFilterSheetRouteEntry(): React.JSX.Element {
     setDraft(DEFAULT_CASES_FILTER);
   }
 
+  const resolvedValue: "resolved"[] = draft.caseStates.includes("resolved")
+    ? ["resolved"]
+    : [];
   const onlyForMeValue: "only_for_me"[] = draft.onlyForMe
     ? ["only_for_me"]
     : [];
@@ -78,15 +70,20 @@ export function CaseFilterSheetRouteEntry(): React.JSX.Element {
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium text-muted-foreground">Case state</p>
         <BoxPicker
-          columns={3}
+          columns={2}
           data-testid="case-filter-state-picker"
           mode="multiple"
-          options={STATE_OPTIONS}
+          options={RESOLVED_OPTIONS}
           showDescription={false}
           size="xs"
-          value={draft.caseStates}
+          value={resolvedValue}
           onValueChange={(caseStates) =>
-            setDraft((prev) => ({ ...prev, caseStates }))
+            setDraft((prev) => ({
+              ...prev,
+              caseStates: caseStates.includes("resolved")
+                ? ["resolved"]
+                : DEFAULT_CASES_FILTER.caseStates,
+            }))
           }
         />
       </div>

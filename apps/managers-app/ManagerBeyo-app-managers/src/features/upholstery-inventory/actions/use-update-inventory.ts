@@ -39,7 +39,8 @@ export function useUpdateInventory() {
         normalizedName !== original.name ||
         normalizedCode !== normalizeOptionalText(original.code) ||
         normalizedImageUrl !== normalizeOptionalText(original.image_url) ||
-        values.favorite !== original.favorite;
+        values.favorite !== original.favorite ||
+        values.upholstery_category_id !== original.upholstery_category_id;
 
       if (upholsteryChanged) {
         promises.push(
@@ -48,6 +49,10 @@ export function useUpdateInventory() {
             code: normalizedCode,
             image_url: normalizedImageUrl,
             favorite: values.favorite,
+            upholstery_category_id:
+              values.upholstery_category_id !== original.upholstery_category_id
+                ? values.upholstery_category_id
+                : undefined,
           }),
         );
       }
