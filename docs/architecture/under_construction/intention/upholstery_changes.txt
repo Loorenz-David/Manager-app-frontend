@@ -1,4 +1,10 @@
+✅
+I will like you to create an implementation plan for codex using the template 
+
 I have made crucial changes to the upholstery architecture in the backend.
+
+the endpoint handoff documentation can be found at: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_upholstery_category_20260622.md
 
 now there is upholstery category linkage as a parent.
 
@@ -56,6 +62,9 @@ bellow that is the body which renders the currently used upholstery inventory ca
 the handoff documentation provides with the upholstery query list param for passing the upholstery category id as query param. that endpoint still supports a "q" param search but we will not yet integrate that capability on this upholstery category list detail yet .
 
 upholstery inventory page search:  /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListView.tsx
+
+the current search bar for upholstery listing will be muted, so as the upholstery quick filter pills ( in-stock, out-stock, favorite ), we will use the endpoint straightforward with out any of those filtrations, only the upholstery category id as param.
+the upholstery cateogry search bar will be plain and straight forward, only allowing for input ( we can hide the sort and filter buttons from that searchbar primitive ).
 
 ----
 We will make changes to the current upholstery inventory detail page,

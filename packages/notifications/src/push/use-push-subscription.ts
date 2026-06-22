@@ -113,13 +113,17 @@ export function usePushSubscription(): UsePushSubscriptionResult {
       setIsLoading(true);
 
       try {
-        const reg = await getSwRegistration();
-        if (!reg) {
-          pushLog("reconcile: no SW registration found → unregistered");
+        if (!("serviceWorker" in navigator)) {
+          pushLog("reconcile: no SW support → unregistered");
           setStatus("unregistered");
           return;
         }
-        pushLog(`reconcile: SW state = ${reg.active?.state ?? "no active worker"}`);
+
+        // Wait for the SW to be fully activated before calling getKey() on the
+        // push subscription. iOS throws "An unexpected internal error occurred."
+        // if getKey() is called while the SW is still in "activating" state.
+        const reg = await navigator.serviceWorker.ready;
+        pushLog(`reconcile: SW ready — active state = ${reg.active?.state ?? "null"}`);
         if (cancelled) return;
 
         const existing = await reg.pushManager.getSubscription();
