@@ -20,7 +20,7 @@ export const InventoryListCard = memo(function InventoryListCard({
 }: InventoryListCardProps): React.JSX.Element {
   return (
     <div
-      className="mx-4 flex overflow-hidden rounded-xl bg-card shadow-sm"
+      className="mx-4 flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm"
       data-testid={`upholstery-inventory-card-${card.inventoryId}`}
     >
       <button

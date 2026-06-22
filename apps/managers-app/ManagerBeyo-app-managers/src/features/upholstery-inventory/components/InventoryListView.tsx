@@ -87,7 +87,7 @@ export function InventoryListView(): React.JSX.Element {
                       {Array.from({ length: 5 }).map((_, index) => (
                         <div
                           key={index}
-                          className="h-16 animate-pulse rounded-2xl bg-muted"
+                          className="h-16 shrink-0 animate-pulse rounded-2xl bg-muted"
                         />
                       ))}
                     </div>
@@ -127,7 +127,7 @@ export function InventoryListView(): React.JSX.Element {
                       {Array.from({ length: 5 }).map((_, index) => (
                         <div
                           key={index}
-                          className="mx-4 h-30 animate-pulse rounded-xl bg-muted"
+                          className="mx-4 h-30 shrink-0 animate-pulse rounded-xl bg-muted"
                         />
                       ))}
                     </div>
