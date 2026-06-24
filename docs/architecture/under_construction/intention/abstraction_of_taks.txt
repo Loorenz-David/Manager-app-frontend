@@ -6,9 +6,22 @@ The objective is to make the task creation forms package features and to make th
 once we have made this form abastraction into packages, we will hooked the create interanl task from to the worker application, this form will be display on the worker application when tapping the button "+ new interanl task" at: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/WoodWorkerHomeView.tsx
 the form renders on the slide page surace.
 
+relevant files:
 
+task creation feature: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation
 
+task creation pages: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/task-creation
+
+remember that this forms use components and logic from other features, some of this come from packages, other from the manager app it self . 
+packages that import with in packages is allowed but not pakages consuming apps features or functionaly.
+
+because of this we will also make the components and logic used on the forms which is part of the manager app, part of the packages also.
+
+align this implementation with the architectural principles, use the contract guide for selecting the correct contracts to follow: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/task_system/frontend_contract_goal_mapping_guide.md
+
+You will create an implementation plan using the plan template ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md , plan is also stored in here ). 
+After revision and corrections you will be implementing it, so make it easy for you to use it as usable context also. 
 
 ---
 
-we will make modifciations to the current query request the searchbar at /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx sends on query params api ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/api/fetch-working-section-steps.ts )  . the backend now accepts a query param "readiness_statuses" the backend accepts a list of strings ( coma separated "val1,val2") as values. The allowed values are the possible readiness statuses which can be found at /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/types.ts . as default we will make the query request to have  the readines_statuses: ready . and we will add this filtration capability on the filtration page ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/StepStateFilterSheetPage.tsx ) we will allow the user to select other readiness statuses, this filter field appears 
+

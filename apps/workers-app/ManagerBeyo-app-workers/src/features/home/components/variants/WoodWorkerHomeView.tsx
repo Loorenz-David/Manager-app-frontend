@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { tabVariants, transitions } from "@beyo/lib";
 import { PullToRefresh } from "@beyo/ui";
@@ -13,9 +13,6 @@ import {
   WorkingSectionStepsProvider,
   WorkingSectionStepsView,
 } from "../../../task_steps";
-
-const WOOD_FIX_SECTION_NAME = "wood fix";
-const OIL_SECTION_NAMES = ["ground oil", "hardwax oil"];
 
 export function WoodWorkerHomeView(): React.JSX.Element {
   const [selectedSection, setSelectedSection] =
@@ -103,24 +100,6 @@ function WoodWorkerSectionsView({
     return registerScrollElement(el);
   }, [registerScrollElement]);
 
-  const { woodFixSection, oilSections, remainderSections } = useMemo(() => {
-    const woodFix =
-      sections.find(
-        (section) => section.name.toLowerCase() === WOOD_FIX_SECTION_NAME,
-      ) ?? null;
-    const oils = sections.filter((section) =>
-      OIL_SECTION_NAMES.includes(section.name.toLowerCase()),
-    );
-    const remainder = sections.filter((section) => {
-      const sectionName = section.name.toLowerCase();
-      return (
-        sectionName !== WOOD_FIX_SECTION_NAME &&
-        !OIL_SECTION_NAMES.includes(sectionName)
-      );
-    });
-    return { woodFixSection: woodFix, oilSections: oils, remainderSections: remainder };
-  }, [sections]);
-
   return (
     <div
       className="flex h-full flex-col"
@@ -174,36 +153,7 @@ function WoodWorkerSectionsView({
             className="flex flex-col gap-3 py-2"
             data-testid="working-sections-list"
           >
-            {woodFixSection ? (
-              <WorkingSectionCard
-                section={woodFixSection}
-                onTap={onSelectSection}
-              />
-            ) : null}
-
-            {oilSections.length === 2 ? (
-              <div className="flex gap-3 px-4">
-                {oilSections.map((section) => (
-                  <div key={section.sectionId} className="min-w-0 flex-1">
-                    <div className="-mx-4">
-                      <WorkingSectionCard
-                        section={section}
-                        onTap={onSelectSection}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
-
-            {oilSections.length === 1 ? (
-              <WorkingSectionCard
-                section={oilSections[0]}
-                onTap={onSelectSection}
-              />
-            ) : null}
-
-            {remainderSections.map((section) => (
+            {sections.map((section) => (
               <WorkingSectionCard
                 key={section.sectionId}
                 section={section}

@@ -138,11 +138,14 @@ export const CasesSummarySchema = z.object({
 });
 export type CasesSummary = z.infer<typeof CasesSummarySchema>;
 
+export const ReadinessStatusSchema = z.enum(["ready", "blocked", "partial"]);
+export type ReadinessStatus = z.infer<typeof ReadinessStatusSchema>;
+
 export const TaskStepSchema = z.object({
   client_id: TaskStepIdSchema,
   task_id: TaskIdSchema,
   state: StepStateSchema,
-  readiness_status: z.enum(["ready", "blocked", "pending"]),
+  readiness_status: ReadinessStatusSchema,
   sequence_order: z.number().nullable(),
   working_section_id: WorkingSectionIdSchema,
   assigned_worker_id: z.string().nullable(),
@@ -232,6 +235,7 @@ export type ListWorkingSectionStepsParams = {
   offset?: number;
   record_step_state?: string;
   major_category?: string;
+  readiness_statuses?: string;
 };
 
 export type TaskStepCardViewModel = {

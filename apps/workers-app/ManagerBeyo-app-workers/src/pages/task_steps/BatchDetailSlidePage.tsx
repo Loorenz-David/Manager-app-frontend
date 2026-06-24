@@ -26,15 +26,18 @@ import {
 import { TaskStepCard } from "@/features/task_steps/components/TaskStepCard";
 import {
   getBatchTransitionItems,
+  toTaskStepCardViewModel,
   type TaskStep,
+  type TaskStepCardViewModel,
 } from "@/features/task_steps/types";
 
-// Inner component that reads the step context for individual card actions
-function BatchStepList(): React.JSX.Element {
+// Inner component that reads action handlers from context but renders only the live batch vms
+function BatchStepList({
+  batchVms,
+}: {
+  batchVms: TaskStepCardViewModel[];
+}): React.JSX.Element {
   const {
-    steps,
-    isPending,
-    isError,
     handleTransition,
     handleOpenTaskActions,
     handleOpenTaskDetail,
@@ -42,25 +45,7 @@ function BatchStepList(): React.JSX.Element {
     transitioningStepId,
   } = useWorkingSectionStepsContext();
 
-  if (isPending) {
-    return (
-      <div className="flex flex-col gap-3 py-2">
-        {[0, 1, 2].map((i) => (
-          <div key={i} className="mx-4 h-32 animate-pulse rounded-xl bg-muted" />
-        ))}
-      </div>
-    );
-  }
-
-  if (isError) {
-    return (
-      <div className="px-4 py-6 text-center text-sm text-muted-foreground">
-        Could not load steps. Pull to refresh.
-      </div>
-    );
-  }
-
-  if (steps.length === 0) {
+  if (batchVms.length === 0) {
     return (
       <div className="px-4 py-6 text-center text-sm text-muted-foreground">
         No active steps.
@@ -70,7 +55,7 @@ function BatchStepList(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-4 py-2 pb-24" data-testid="batch-detail-steps-list">
-      {steps.map((card) => (
+      {batchVms.map((card) => (
         <TaskStepCard
           key={card.stepId}
           card={card}
@@ -122,6 +107,11 @@ export function BatchDetailSlidePage(): React.JSX.Element {
     transitionBatchAsync,
     isPending: isBatchTransitioning,
   } = useTransitionBatchStepStates();
+
+  const batchVms = useMemo(
+    () => liveBatchSteps.map(toTaskStepCardViewModel),
+    [liveBatchSteps],
+  );
 
   const batchHasWorking = liveBatchSteps.some((s) => s.state === "working");
   const targetState: "working" | "paused" = batchHasWorking ? "paused" : "working";
@@ -265,7 +255,7 @@ export function BatchDetailSlidePage(): React.JSX.Element {
       {/* Step list — individual card actions work via WorkingSectionStepsProvider */}
       <div className="flex-1 overflow-y-auto">
         <WorkingSectionStepsProvider sectionId={workingSectionId}>
-          <BatchStepList />
+          <BatchStepList batchVms={batchVms} />
         </WorkingSectionStepsProvider>
       </div>
 

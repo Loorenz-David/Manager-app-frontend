@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
-import { DEFAULT_STATE_FILTERS } from "@/features/task_steps/controllers/use-working-section-steps.controller";
+import {
+  DEFAULT_READINESS_STATUS_FILTERS,
+  DEFAULT_STATE_FILTERS,
+} from "@/features/task_steps/controllers/use-working-section-steps.controller";
 import type { StepStateFilterSheetSurfaceProps } from "@/features/task_steps/surface-ids";
-import type { MajorCategory, StepState } from "@/features/task_steps/types";
+import type { MajorCategory, ReadinessStatus, StepState } from "@/features/task_steps/types";
 
 const FILTER_OPTIONS: BoxPickerOptionType<StepState>[] = [
   {
@@ -33,6 +36,24 @@ const FILTER_OPTIONS: BoxPickerOptionType<StepState>[] = [
   },
 ];
 
+const READINESS_STATUS_OPTIONS: BoxPickerOptionType<ReadinessStatus>[] = [
+  {
+    value: "ready",
+    label: "Ready",
+    testId: "filter-readiness-ready",
+  },
+  {
+    value: "blocked",
+    label: "Blocked",
+    testId: "filter-readiness-blocked",
+  },
+  {
+    value: "partial",
+    label: "Partial",
+    testId: "filter-readiness-partial",
+  },
+];
+
 const MAJOR_CATEGORY_OPTIONS: BoxPickerOptionType<MajorCategory>[] = [
   {
     value: "wood",
@@ -55,7 +76,7 @@ const MAJOR_CATEGORY_OPTIONS: BoxPickerOptionType<MajorCategory>[] = [
 export function StepStateFilterSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
-  const { selectedStates, selectedMajorCategories, onApply } =
+  const { selectedStates, selectedMajorCategories, selectedReadinessStatuses, onApply } =
     useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
     selectedStates?.length ? selectedStates : DEFAULT_STATE_FILTERS,
@@ -63,6 +84,9 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   const [localMajorCategories, setLocalMajorCategories] = useState<
     MajorCategory[]
   >(selectedMajorCategories ?? []);
+  const [localReadinessStatuses, setLocalReadinessStatuses] = useState<
+    ReadinessStatus[]
+  >(selectedReadinessStatuses?.length ? selectedReadinessStatuses : DEFAULT_READINESS_STATUS_FILTERS);
 
   useEffect(() => {
     header?.setTitle("Filter by state");
@@ -99,7 +123,7 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   }
 
   function handleApply() {
-    onApply?.(localFilters, localMajorCategories);
+    onApply?.(localFilters, localMajorCategories, localReadinessStatuses);
     closeSheet();
   }
 
@@ -116,6 +140,18 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
         options={FILTER_OPTIONS}
         value={localFilters}
       />
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-muted-foreground">Readiness</p>
+        <BoxPicker
+          columns={3}
+          data-testid="step-readiness-status-filter-picker"
+          mode="multiple"
+          onValueChange={setLocalReadinessStatuses}
+          options={READINESS_STATUS_OPTIONS}
+          value={localReadinessStatuses}
+        />
+      </div>
 
       <div className="flex flex-col gap-3">
         <p className="text-sm font-medium text-muted-foreground">Category</p>

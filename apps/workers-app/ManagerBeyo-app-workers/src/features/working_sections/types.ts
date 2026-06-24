@@ -23,6 +23,7 @@ export const WorkerWorkingSectionSchema = z.object({
   image: z.string().nullable(),
   allows_batch_working: z.boolean(),
   task_steps_counts: TaskStepStateCountsSchema,
+  ready_and_pending_count: z.number(),
 });
 export type WorkerWorkingSection = z.infer<typeof WorkerWorkingSectionSchema>;
 
@@ -37,6 +38,7 @@ export type WorkingSectionViewModel = {
   allowsBatchWorking: boolean;
   counts: TaskStepStateCounts;
   activeCount: number;
+  readyAndPendingCount: number;
   todayDoneCount: number;
 };
 
@@ -52,6 +54,7 @@ export function toWorkingSectionViewModel(
     allowsBatchWorking: section.allows_batch_working,
     counts: c,
     activeCount: c.pending + c.working + c.paused + c.ended_shift + c.blocked,
+    readyAndPendingCount: section.ready_and_pending_count,
     todayDoneCount: c.completed + c.skipped + c.failed,
   };
 }

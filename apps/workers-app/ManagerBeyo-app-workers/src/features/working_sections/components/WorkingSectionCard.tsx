@@ -45,17 +45,21 @@ export const WorkingSectionCard = memo(function WorkingSectionCard({
           {section.name}
         </span>
         <div className="flex items-center gap-2">
-          {section.activeCount > 0 ? (
+          {section.readyAndPendingCount > 0 ? (
             <span
               className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
               data-testid={`working-section-card-active-count-${section.sectionId}`}
             >
-              {section.activeCount} active
+              {section.readyAndPendingCount} active
+            </span>
+          ) : section.todayDoneCount > 0 ? (
+            <span aria-hidden="true" className="invisible inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              0 active
             </span>
           ) : null}
           {section.todayDoneCount > 0 ? (
             <span
-              className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+              className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600"
               data-testid={`working-section-card-done-count-${section.sectionId}`}
             >
               {section.todayDoneCount} done today
