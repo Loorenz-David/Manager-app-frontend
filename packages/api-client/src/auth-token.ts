@@ -19,7 +19,11 @@ type TokenClaims = {
   user_id: string;
   username: string;
   workspace_id: string;
-  role_name: string;
+  workspace_role_id: string;
+  role_name: "admin" | "manager" | "worker" | "seller";
+  workspace_role_name: "wood_worker" | null;
+  app_scope: "admin" | "manager" | "worker" | "seller";
+  time_zone: string;
   backend_permissions: string[];
   ui: {
     apps: string[];
@@ -28,6 +32,8 @@ type TokenClaims = {
     actions: string[];
     query_filters: string[];
   };
+  jti: string;
+  exp: number;
 };
 
 export function decodeTokenClaims(): TokenClaims | null {

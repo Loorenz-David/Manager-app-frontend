@@ -12,6 +12,7 @@ import {
   type TaskStep,
   type TaskStepsPagination,
   type TransitionStepStateInput,
+  type UserLastActivePayload,
 } from "../types";
 
 type TransitionInput = TransitionStepStateInput & {
@@ -82,6 +83,8 @@ function patchStepStateInSectionCache(
   );
 }
 
+// Patches the `step` field within a UserLastActivePayload.
+// Leaves `batchSteps` unchanged — critical invariant (correction 8).
 function patchOptimisticLastActiveStep(
   current: TaskStep | null | undefined,
   sectionListLookup: (stepId: string) => TaskStep | undefined,
@@ -181,9 +184,12 @@ export function useTransitionStepState() {
         queryClient.getQueriesData<TaskStepsPagination>({
           queryKey: taskStepKeys.sectionListsBySection(working_section_id),
         });
-      const previousLastActive = queryClient.getQueryData<TaskStep | null>(
-        taskStepKeys.userLastActive(),
-      );
+
+      // Snapshot entire payload — includes batchSteps for rollback (correction 8)
+      const previousLastActive =
+        queryClient.getQueryData<UserLastActivePayload>(
+          taskStepKeys.userLastActive(),
+        );
 
       const now = new Date().toISOString();
 
@@ -194,6 +200,7 @@ export function useTransitionStepState() {
         new_state,
         buildOptimisticStateRecord(new_state, now),
       );
+
       const sectionListLookup = (
         targetStepId: string,
       ): TaskStep | undefined => {
@@ -219,15 +226,22 @@ export function useTransitionStepState() {
         return undefined;
       };
 
-      queryClient.setQueryData<TaskStep | null>(
+      // Patch only `step` inside the payload — never overwrite `batchSteps` (correction 8)
+      queryClient.setQueryData<UserLastActivePayload>(
         taskStepKeys.userLastActive(),
-        patchOptimisticLastActiveStep(
-          previousLastActive,
-          sectionListLookup,
-          step_id,
-          new_state,
-          now,
-        ),
+        (current) => {
+          if (!current) return { step: null, batchSteps: null };
+          return {
+            ...current,
+            step: patchOptimisticLastActiveStep(
+              current.step,
+              sectionListLookup,
+              step_id,
+              new_state,
+              now,
+            ),
+          };
+        },
       );
 
       return { previousSectionLists, previousLastActive };
@@ -254,25 +268,27 @@ export function useTransitionStepState() {
         data.last_state_record,
       );
 
-      // For paused / ended_shift transitions, patch userLastActive in-place with the
-      // server-confirmed state and record — no network round-trip, no new object, no flicker.
-      // working and terminal transitions still refetch (see onSettled) because they may
-      // change which step is the last active entirely.
+      // For paused / ended_shift transitions, patch userLastActive in-place with
+      // the server-confirmed state — no network round-trip, no flicker.
+      // Only patches `step`; `batchSteps` is left unchanged (correction 8).
       if (data.new_state === "paused" || data.new_state === "ended_shift") {
-        queryClient.setQueryData<TaskStep | null>(
+        queryClient.setQueryData<UserLastActivePayload>(
           taskStepKeys.userLastActive(),
-          (currentLastActive) => {
+          (currentPayload) => {
+            if (!currentPayload) return { step: null, batchSteps: null };
             if (
-              !currentLastActive ||
-              currentLastActive.client_id !== data.step_id
+              !currentPayload.step ||
+              currentPayload.step.client_id !== data.step_id
             ) {
-              return currentLastActive;
+              return currentPayload;
             }
-
             return {
-              ...currentLastActive,
-              state: data.new_state,
-              last_state_record: data.last_state_record,
+              ...currentPayload,
+              step: {
+                ...currentPayload.step,
+                state: data.new_state,
+                last_state_record: data.last_state_record,
+              },
             };
           },
         );
@@ -284,9 +300,10 @@ export function useTransitionStepState() {
       context?.previousSectionLists.forEach(([key, data]) => {
         queryClient.setQueryData(key, data);
       });
-      queryClient.setQueryData(
+      // Restore full UserLastActivePayload snapshot (including batchSteps)
+      queryClient.setQueryData<UserLastActivePayload>(
         taskStepKeys.userLastActive(),
-        context?.previousLastActive ?? null,
+        context?.previousLastActive ?? { step: null, batchSteps: null },
       );
 
       notify.error(

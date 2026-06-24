@@ -3,7 +3,11 @@ import type { SocketEventHandlers } from "@beyo/realtime";
 import { itemUpholsteryKeys as tasksItemUpholsteryKeys } from "@beyo/tasks";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import { taskStepKeys } from "./api/task-step-keys";
-import { STEP_TERMINAL_STATES, type StepState, type TaskStep } from "./types";
+import {
+  STEP_TERMINAL_STATES,
+  type StepState,
+  type UserLastActivePayload,
+} from "./types";
 
 export const taskStepSocketEvents: SocketEventHandlers = {
   "task:step-assigned": (_payload, { queryClient }) => {
@@ -27,25 +31,53 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       refetchType: "active",
     });
 
-    // Optimisation: if the active step is already in cache and its new state is
-    // terminal, clear immediately so the card disappears without a network round
-    // trip. The server would return null for this step anyway.
-    const activeStep = queryClient.getQueryData<TaskStep | null>(
+    // Extract all changed IDs from the coalesced event (one entry per changed step)
+    const changedClientIds = new Set(
+      payloads.map((p: { client_id: string }) => p.client_id),
+    );
+
+    const cachedPayload = queryClient.getQueryData<UserLastActivePayload>(
       taskStepKeys.userLastActive(),
     );
-    if (activeStep) {
-      const terminalMatch = payloads.find(
-        (p) =>
-          p.client_id === activeStep.client_id &&
-          STEP_TERMINAL_STATES.has(p.new_state as StepState),
-      );
-      if (terminalMatch) {
-        queryClient.setQueryData(taskStepKeys.userLastActive(), null);
+
+    // Single mode: if the active step hit terminal, clear immediately without a network round-trip
+    if (!cachedPayload?.batchSteps?.length && cachedPayload?.step) {
+      if (
+        changedClientIds.has(cachedPayload.step.client_id) &&
+        payloads.some(
+          (p: { client_id: string; new_state: string }) =>
+            p.client_id === cachedPayload.step!.client_id &&
+            STEP_TERMINAL_STATES.has(p.new_state as StepState),
+        )
+      ) {
+        queryClient.setQueryData<UserLastActivePayload>(
+          taskStepKeys.userLastActive(),
+          { step: null, batchSteps: null },
+        );
         return;
       }
     }
 
-    queryClient.invalidateQueries({
+    // Batch mode: if ALL batch steps hit terminal, clear immediately
+    if (cachedPayload?.batchSteps?.length) {
+      const allTerminal = cachedPayload.batchSteps.every((bs) =>
+        payloads.some(
+          (p: { client_id: string; new_state: string }) =>
+            p.client_id === bs.client_id &&
+            STEP_TERMINAL_STATES.has(p.new_state as StepState),
+        ),
+      );
+      if (allTerminal) {
+        queryClient.setQueryData<UserLastActivePayload>(
+          taskStepKeys.userLastActive(),
+          { step: null, batchSteps: null },
+        );
+        return;
+      }
+    }
+
+    // Single invalidate — not one per changed item
+    void queryClient.invalidateQueries({
       queryKey: taskStepKeys.userLastActive(),
       refetchType: "active",
     });
@@ -112,15 +144,21 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       refetchType: "active",
     });
 
-    // Try to clear immediately if the deleted step is the one displayed.
-    // Fall back to a refetch when the cache is cold — server will return null.
-    const activeStep = queryClient.getQueryData<TaskStep | null>(
+    const cachedPayload = queryClient.getQueryData<UserLastActivePayload>(
       taskStepKeys.userLastActive(),
     );
-    if (activeStep && payloads.some((p) => p.client_id === activeStep.client_id)) {
-      queryClient.setQueryData(taskStepKeys.userLastActive(), null);
+    const activeStepId = cachedPayload?.step?.client_id;
+    const deletedIds = new Set(
+      payloads.map((p: { client_id: string }) => p.client_id),
+    );
+
+    if (activeStepId && deletedIds.has(activeStepId)) {
+      queryClient.setQueryData<UserLastActivePayload>(
+        taskStepKeys.userLastActive(),
+        { step: null, batchSteps: null },
+      );
     } else {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: taskStepKeys.userLastActive(),
         refetchType: "active",
       });
@@ -128,14 +166,20 @@ export const taskStepSocketEvents: SocketEventHandlers = {
   },
 
   "task:updated": (payloads, { queryClient }) => {
-    const activeStep = queryClient.getQueryData<TaskStep | null>(
+    const cachedPayload = queryClient.getQueryData<UserLastActivePayload>(
       taskStepKeys.userLastActive(),
     );
+    const activeTaskId =
+      cachedPayload?.step?.task.client_id ??
+      cachedPayload?.batchSteps?.[0]?.task.client_id;
+
     if (
-      activeStep &&
-      payloads.some((payload) => payload.client_id === activeStep.task.client_id)
+      activeTaskId &&
+      payloads.some(
+        (payload: { client_id: string }) => payload.client_id === activeTaskId,
+      )
     ) {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: taskStepKeys.userLastActive(),
         refetchType: "active",
       });
@@ -143,14 +187,20 @@ export const taskStepSocketEvents: SocketEventHandlers = {
   },
 
   "task:state-changed": (payloads, { queryClient }) => {
-    const activeStep = queryClient.getQueryData<TaskStep | null>(
+    const cachedPayload = queryClient.getQueryData<UserLastActivePayload>(
       taskStepKeys.userLastActive(),
     );
+    const activeTaskId =
+      cachedPayload?.step?.task.client_id ??
+      cachedPayload?.batchSteps?.[0]?.task.client_id;
+
     if (
-      activeStep &&
-      payloads.some((payload) => payload.client_id === activeStep.task.client_id)
+      activeTaskId &&
+      payloads.some(
+        (payload: { client_id: string }) => payload.client_id === activeTaskId,
+      )
     ) {
-      queryClient.invalidateQueries({
+      void queryClient.invalidateQueries({
         queryKey: taskStepKeys.userLastActive(),
         refetchType: "active",
       });

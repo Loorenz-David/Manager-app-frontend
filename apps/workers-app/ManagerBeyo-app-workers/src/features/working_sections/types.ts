@@ -21,6 +21,7 @@ export const WorkerWorkingSectionSchema = z.object({
   client_id: WorkingSectionIdSchema,
   name: z.string(),
   image: z.string().nullable(),
+  allows_batch_working: z.boolean(),
   task_steps_counts: TaskStepStateCountsSchema,
 });
 export type WorkerWorkingSection = z.infer<typeof WorkerWorkingSectionSchema>;
@@ -33,6 +34,7 @@ export type WorkingSectionViewModel = {
   sectionId: WorkingSectionId;
   name: string;
   imageUrl: string | null;
+  allowsBatchWorking: boolean;
   counts: TaskStepStateCounts;
   activeCount: number;
   todayDoneCount: number;
@@ -47,6 +49,7 @@ export function toWorkingSectionViewModel(
     sectionId: section.client_id,
     name: section.name,
     imageUrl: section.image,
+    allowsBatchWorking: section.allows_batch_working,
     counts: c,
     activeCount: c.pending + c.working + c.paused + c.ended_shift + c.blocked,
     todayDoneCount: c.completed + c.skipped + c.failed,

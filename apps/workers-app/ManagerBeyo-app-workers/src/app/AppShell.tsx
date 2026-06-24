@@ -11,6 +11,10 @@ import {
 import { preloadPrimaryTabRoutes } from "@/lib/primary-tab-preload";
 import { ROUTES } from "@/lib/routes";
 import { AppScrollElementProvider } from "@/providers/AppScrollElementProvider";
+import {
+  BatchSelectionOverlayProvider,
+  useBatchSelectionOverlay,
+} from "@/providers/BatchSelectionOverlayProvider";
 import { TabBadgeCountsProvider } from "@/providers/TabBadgeCountsProvider";
 
 const LAST_ACTIVE_STEP_CARD_HIDDEN_ROUTE_ROOTS = [
@@ -25,16 +29,16 @@ function isPathInHiddenCardSection(pathname: string): boolean {
   );
 }
 
-export function AppShell(): React.JSX.Element {
+function AppShellInner(): React.JSX.Element {
   const location = useLocation();
+  const { isSelecting } = useBatchSelectionOverlay();
 
   useEffect(() => {
     preloadPrimaryTabRoutes();
   }, []);
 
-  const shouldHideLastActiveStepCard = isPathInHiddenCardSection(
-    location.pathname,
-  );
+  const shouldHideLastActiveStepCard =
+    isSelecting || isPathInHiddenCardSection(location.pathname);
 
   return (
     <AppScrollElementProvider>
@@ -60,5 +64,13 @@ export function AppShell(): React.JSX.Element {
         </LastActiveStepCardProvider>
       </TabBadgeCountsProvider>
     </AppScrollElementProvider>
+  );
+}
+
+export function AppShell(): React.JSX.Element {
+  return (
+    <BatchSelectionOverlayProvider>
+      <AppShellInner />
+    </BatchSelectionOverlayProvider>
   );
 }

@@ -14,7 +14,11 @@ type AuthUser = {
   id:                  UserId;
   email:               string;
   username:            string;         // backend field name — not "name"
-  role:                string;         // single string — not "roles: Role[]"
+  role:                AuthRole;       // single role — not "roles: Role[]"
+  workspaceRoleId:     string;
+  workspaceRoleName:   WorkspaceRoleName;
+  appScope:            AuthAppScope;
+  timeZone:            string;
   backend_permissions: string[];       // not "permissions"
   ui: {
     apps:          string[];
@@ -23,10 +27,14 @@ type AuthUser = {
     actions:       string[];
     query_filters: string[];
   };
+  jti:                 string;
+  exp:                 number;
 };
 ```
 
 `WorkspaceId` comes from the JWT claims, not from the profile endpoint.
+Role, workspace-role, and app-scope enum objects are sourced from
+`@beyo/auth/src/roles.ts`; see [19_permissions_local.md](19_permissions_local.md).
 
 ---
 
@@ -73,8 +81,14 @@ useEffect(() => {
           email:               profile.data.user.email,
           username:            profile.data.user.username,
           role:                claims.role_name,
+          workspaceRoleId:     claims.workspace_role_id,
+          workspaceRoleName:   claims.workspace_role_name,
+          appScope:            claims.app_scope,
+          timeZone:            claims.time_zone,
           backend_permissions: claims.backend_permissions,
           ui:                  claims.ui,
+          jti:                 claims.jti,
+          exp:                 claims.exp,
         },
         claims.workspace_id as WorkspaceId,
       );

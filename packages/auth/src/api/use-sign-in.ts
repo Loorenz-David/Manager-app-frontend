@@ -1,9 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { apiClient, setAccessToken, setAuthScope } from "@beyo/api-client";
+import {
+  apiClient,
+  decodeTokenClaims,
+  setAccessToken,
+  setAuthScope,
+} from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import type { UserId, WorkspaceId } from "@beyo/lib";
+import type { AuthAppScope, AuthRole } from "../roles";
 
 const AuthUISchema = z.object({
   apps: z.array(z.string()),
@@ -48,14 +54,22 @@ async function signIn(credentials: SignInCredentials) {
   );
 
   setAccessToken(result.data.access_token);
+  const claims = decodeTokenClaims();
+
   useAuthStore.getState().setUser(
     {
       id: result.data.user.client_id,
       email: result.data.user.email,
       username: result.data.user.username,
-      role: result.data.user.role,
+      role: result.data.user.role as AuthRole,
+      workspaceRoleId: claims?.workspace_role_id ?? "",
+      workspaceRoleName: claims?.workspace_role_name ?? null,
+      appScope: claims?.app_scope ?? (appScope as AuthAppScope),
+      timeZone: claims?.time_zone ?? "UTC",
       backend_permissions: result.data.user.backend_permissions,
       ui: result.data.user.ui,
+      jti: claims?.jti ?? "",
+      exp: claims?.exp ?? 0,
     },
     result.data.workspace_id,
   );

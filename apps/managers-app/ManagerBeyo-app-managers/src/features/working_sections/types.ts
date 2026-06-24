@@ -7,6 +7,7 @@ export const WorkingSectionSchema = z.object({
   id: z.string().transform((v) => v as WorkingSectionId),
   name: z.string(),
   image: z.string().nullable(),
+  allows_batch_working: z.boolean(),
   created_at: z.string().datetime({ offset: true }),
   created_by_id: z.string().transform((v) => v as UserId).nullable(),
   updated_at: z.string().datetime({ offset: true }).nullable(),
@@ -28,6 +29,7 @@ export const CreateWorkingSectionInputSchema = z.object({
   client_id: ClientIdSchema,
   name: z.string().min(1, 'Section name is required.').max(255),
   image: z.string().optional(),
+  allows_batch_working: z.boolean().default(false),
 });
 export type CreateWorkingSectionInput = z.infer<typeof CreateWorkingSectionInputSchema>;
 
@@ -35,6 +37,7 @@ export const UpdateWorkingSectionInputSchema = z.object({
   id: z.string().transform((v) => v as WorkingSectionId),
   name: z.string().min(1, 'Section name is required.').max(255).optional(),
   image: z.string().nullable().optional(),
+  allows_batch_working: z.boolean().optional(),
 });
 export type UpdateWorkingSectionInput = z.infer<typeof UpdateWorkingSectionInputSchema>;
 
@@ -45,6 +48,7 @@ export type ListWorkingSectionsParams = {
 
 export type WorkingSectionViewModel = WorkingSection & {
   has_image: boolean;
+  allowsBatchWorking: boolean;
 };
 
 export function toWorkingSectionViewModel(
@@ -53,6 +57,7 @@ export function toWorkingSectionViewModel(
   return {
     ...section,
     has_image: Boolean(section.image),
+    allowsBatchWorking: section.allows_batch_working,
   };
 }
 
@@ -63,6 +68,7 @@ export function toOptimisticWorkingSection(
     id: input.client_id,
     name: input.name,
     image: input.image ?? null,
+    allows_batch_working: input.allows_batch_working ?? false,
     created_at: new Date().toISOString(),
     created_by_id: null,
     updated_at: null,

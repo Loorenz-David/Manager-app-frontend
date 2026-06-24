@@ -96,6 +96,7 @@ export const DEFAULT_STATE_FILTERS: StepState[] = [
 
 export type WorkingSectionStepsController = {
   steps: TaskStepCardViewModel[];
+  rawSteps: import("../types").TaskStep[];
   nonTerminalCounts: NonTerminalStepCounts;
   isPending: boolean;
   isError: boolean;
@@ -377,6 +378,7 @@ export function useWorkingSectionStepsController(
 
   return {
     steps,
+    rawSteps: query.data?.items ?? [],
     nonTerminalCounts,
     isPending,
     isError: query.isError,

@@ -11,14 +11,22 @@ import {
   useScrollVisibilityContext,
 } from "@beyo/ui";
 import type { TaskId, TaskStepId } from "@beyo/lib";
+import { cn } from "@beyo/lib";
 import { usePreloadSurface } from "@beyo/hooks";
 import { preloadPauseReasonSheetSurface } from "../surfaces";
 import { transitions } from "@/lib/animation";
-import { cn } from "@beyo/lib";
 import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import { useLastActiveStepCardContext } from "../providers/LastActiveStepCardProvider";
-import { STEP_QUICK_TRANSITION, type StepState } from "../types";
+import {
+  getBatchTransitionItems,
+  STEP_QUICK_TRANSITION,
+  type StepState,
+  type TaskStepCardViewModel,
+  type TaskStep,
+} from "../types";
+
+// ─── Single-step card subcomponents ──────────────────────────────────────────
 
 type CardThumbnailProps = {
   stepId: TaskStepId;
@@ -127,6 +135,140 @@ function CardActionButton({
   );
 }
 
+// ─── Batch card subcomponent ──────────────────────────────────────────────────
+
+function buildBatchSubline(vms: TaskStepCardViewModel[]): string {
+  const counts: Partial<Record<string, number>> = {};
+  for (const vm of vms) {
+    counts[vm.state] = (counts[vm.state] ?? 0) + 1;
+  }
+  const parts = Object.entries(counts).map(
+    ([state, count]) => `${count} ${state.replace("_", " ")}`,
+  );
+  return parts.join(" · ");
+}
+
+type BatchCardProps = {
+  batchSteps: TaskStep[];
+  batchVms: TaskStepCardViewModel[];
+  isBatchTransitioning: boolean;
+  onTransition: (targetState: "working" | "paused") => void;
+  onOpenDetail: () => void;
+};
+
+function BatchCard({
+  batchSteps,
+  batchVms,
+  isBatchTransitioning,
+  onTransition,
+  onOpenDetail,
+}: BatchCardProps): React.JSX.Element {
+  const firstVm = batchVms[0];
+  const sectionName = batchSteps[0]?.working_section_name_snapshot ?? "Active batch";
+
+  const batchHasWorking = batchVms.some((vm) => vm.state === "working");
+  const batchNextState: "working" | "paused" = batchHasWorking
+    ? "paused"
+    : "working";
+  const BatchActionIcon = batchHasWorking ? Pause : Play;
+  const batchActionLabel = batchHasWorking ? "Pause all" : "Resume all";
+
+  const batchActionItems = getBatchTransitionItems(batchSteps, batchNextState);
+  const isBatchActionDisabled =
+    batchActionItems.length === 0 || isBatchTransitioning;
+
+  const subline = useMemo(() => buildBatchSubline(batchVms), [batchVms]);
+
+  const cardToneClass = batchHasWorking
+    ? "bg-[var(--color-soft-container)] text-[var(--color-primary)]"
+    : "bg-primary text-[var(--color-card)]";
+  const cardBorderClass = batchHasWorking ? "border-border" : "border-light-border";
+
+  return (
+    <m.div
+      key="last-active-batch-card"
+      className={cn(
+        "fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)]",
+        "flex items-stretch overflow-hidden",
+        "rounded-tl-2xl rounded-tr-2xl border shadow-md",
+        "transition-transform duration-200 ease-out",
+        cardToneClass,
+        cardBorderClass,
+      )}
+      animate={{ opacity: 1, y: 0 }}
+      data-testid="last-active-batch-card"
+      exit={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 24 }}
+      role="button"
+      tabIndex={0}
+      transition={transitions.base}
+      onClick={onOpenDetail}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenDetail();
+        }
+      }}
+    >
+      {/* Thumbnail of first batch step */}
+      {firstVm ? (
+        <div className="relative aspect-square w-18 shrink-0 overflow-hidden rounded-tl-2xl bg-primary-foreground/10">
+          {firstVm.firstImageUrl ? (
+            <img
+              alt=""
+              className="size-full object-cover"
+              decoding="async"
+              draggable={false}
+              loading="eager"
+              src={firstVm.firstImageUrl}
+            />
+          ) : (
+            <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
+          )}
+        </div>
+      ) : null}
+
+      {/* Body */}
+      <div className="flex min-w-0 flex-1 flex-col justify-start px-3 py-3">
+        <span
+          className="truncate text-md font-semibold text-current"
+          data-testid="last-active-batch-card-label"
+        >
+          {sectionName}
+        </span>
+        <span
+          className="truncate text-sm capitalize text-current opacity-80"
+          data-testid="last-active-batch-card-subline"
+        >
+          {subline}
+        </span>
+      </div>
+
+      {/* Batch pause/resume action */}
+      <div className="flex items-center gap-2 pr-6">
+        <button
+          aria-label={batchActionLabel}
+          className="flex size-12 shrink-0 items-center justify-center rounded-full bg-card text-foreground shadow-md transition-opacity disabled:opacity-60"
+          data-testid="last-active-batch-card-action"
+          disabled={isBatchActionDisabled}
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onTransition(batchNextState);
+          }}
+        >
+          <BatchActionIcon
+            aria-hidden="true"
+            className="size-6 shrink-0 fill-current stroke-none"
+          />
+        </button>
+      </div>
+    </m.div>
+  );
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
 export const LastActiveStepCard = memo(function LastActiveStepCard({
   forceHidden = false,
 }: {
@@ -135,14 +277,22 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
   const {
     step,
     vm,
+    batchSteps,
+    batchVms,
+    isBatchCard,
+    isBatchTransitioning,
     isTransitioning,
     handleTransition,
+    handleBatchTransition,
     handleOpenDetail,
+    handleOpenBatchDetail,
     handleOpenImageViewer,
   } = useLastActiveStepCardContext();
   const { isHidden } = useScrollVisibilityContext();
 
-  const hasCard = Boolean(step && vm);
+  const hasCard = isBatchCard
+    ? batchVms.length > 0
+    : Boolean(step && vm);
   const isCardHidden = isHidden || forceHidden;
   const isWorking = vm?.state === "working";
   const TypeIcon = vm ? getTaskTypeIcon(vm.task.task_type) : null;
@@ -158,19 +308,28 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
   const cardBorderClass =
     vm?.state === "working" ? "border-border" : "border-light-border";
 
-  // Annotations are tied to the image, not to step state. Keying on
-  // firstImageUrl keeps the array reference stable across state transitions
-  // and server refetches that return the same image, preventing CardThumbnail
-  // from re-rendering and ImageAnnotationSvgLayer from flickering.
+  // Stable annotations ref to prevent CardThumbnail flicker on refetch
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const stableAnnotations = useMemo(
     () => vm?.firstImageAnnotations ?? [],
     [vm?.firstImageUrl],
   );
 
+  if (isCardHidden) {
+    return <AnimatePresence initial={false} />;
+  }
+
   return (
     <AnimatePresence initial={false}>
-      {hasCard && step && vm ? (
+      {hasCard && isBatchCard && batchSteps && batchVms.length > 0 ? (
+        <BatchCard
+          batchSteps={batchSteps}
+          batchVms={batchVms}
+          isBatchTransitioning={isBatchTransitioning}
+          onOpenDetail={handleOpenBatchDetail}
+          onTransition={handleBatchTransition}
+        />
+      ) : hasCard && step && vm ? (
         <m.div
           key="last-active-step-card"
           className={cn(
@@ -180,7 +339,6 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
             "transition-transform duration-200 ease-out",
             cardToneClass,
             cardBorderClass,
-            isCardHidden && "translate-y-full",
           )}
           animate={{ opacity: 1, y: 0 }}
           data-testid="last-active-step-card"

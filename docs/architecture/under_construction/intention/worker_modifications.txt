@@ -1,0 +1,863 @@
+Here is a cleaned and organized intention text you can pass directly to Claude:
+
+# Worker Batch Task-Step Functionality — Implementation Intention
+## Goal
+Implement frontend support for batch-capable working sections in the worker app.
+The backend now supports:
+1. Marking a working section as batch-capable using `allows_batch_working`.
+2. Returning an active batch group for the worker resume card through `active_batch_steps`.
+3. Transitioning multiple batch-capable task steps atomically through the new batch transition endpoint.
+The frontend should use these backend changes to allow workers to select, start, pause/resume, and complete multiple task steps as a batch while still preserving individual task-step interaction where needed.
+This implementation should be clean, scalable, and aligned with the existing worker app architecture.
+---
+## Backend handoff documents to follow
+Use these handoffs as the source of truth:
+1. Batch-capable working section flag and active batch resume payload:
+`frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_batch_working_section_20260623.md`
+Important terminology from this handoff:
+- `allows_batch_working`
+- `active_batch_steps`
+- `user_last_active_step_record`
+- `GET /api/v1/working-sections/me`
+- `GET /api/v1/working-sections/{working_section_id}`
+- `GET /api/v1/working-sections/steps/user-last-active`
+2. Atomic batch task-step transition endpoint:
+`frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_batch_step_transition_20260623.md`
+Important terminology from this handoff:
+- `POST /api/v1/tasks/steps/transition-batch`
+- atomic all-or-nothing behavior
+- batch-capable steps only
+- one target `new_state` for all items
+- `items: [{ task_id, step_id }]`
+- `task:step-state-changed` coalesced realtime event
+- single realtime event carrying all changed steps
+- per-step validation error message
+- frontend must refetch after failure
+---
+## API/schema updates required
+### Worker app working-section API
+Update the worker app schemas/types/API mapping under:
+`frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/working_sections/api`
+The worker working-section list payload now includes:
+```ts
+allows_batch_working: boolean
+
+This field appears on:
+
+* GET /api/v1/working-sections/me
+
+The worker section view model should expose this field clearly, probably as:
+
+allowsBatchWorking: boolean
+
+or whatever naming convention is already used in this feature.
+
+Manager app working-section API
+
+Also update the manager app working-section schemas/types/API mapping under:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/api
+
+The manager create/edit flows must support persisting:
+
+allows_batch_working: boolean
+
+This affects:
+
+* PUT /api/v1/working-sections
+* PATCH /api/v1/working-sections/{working_section_id}
+* GET /api/v1/working-sections/{working_section_id}
+
+The manager UI should expose a boolean control for this setting in working-section create/edit screens.
+
+Important backend behavior:
+
+* allows_batch_working defaults to false.
+* Updating it affects future step creation only.
+* This field is intentionally not exposed on task-step payloads.
+
+⸻
+
+Worker home section selection behavior
+
+Relevant files currently identified:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/StandardWorkerHomeView.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/WoodWorkerHomeView.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx
+
+When the worker taps a working section from the home screen, the app already opens:
+
+<WorkingSectionStepsView section={selectedSection} onBack={handleBack} />
+
+The selected section should now carry allowsBatchWorking.
+
+WorkingSectionStepsView should detect whether the current working section is batch-capable.
+
+Expected behavior:
+
+const isBatchMode = section.allowsBatchWorking === true;
+
+If isBatchMode is false, the existing behavior should remain unchanged.
+
+If isBatchMode is true, WorkingSectionStepsView should render the list in batch-selection mode.
+
+⸻
+
+Batch mode in WorkingSectionStepsView
+
+Relevant file:
+
+frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx
+
+When the selected section is batch-capable:
+
+* Task-step cards should render in a batch-selectable variant.
+* The card should preserve normal image interaction.
+* The card should preserve normal card/body tap interaction to open the task detail page.
+* The card should not show the three-dot actions button.
+* The card should not show the normal bottom TaskStepActionButton.
+* The right side of the card should show a selection button, similar in interaction style to:
+
+frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-ordering/components/OrderingItemCard.tsx
+
+The selectable card should be based on the existing worker task-step card visual structure:
+
+frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/TaskStepCard.tsx
+
+The implementation should avoid duplicating too much markup. Prefer extracting shared card primitives if appropriate.
+
+Suggested concept:
+
+* Existing card: TaskStepCard
+* New batch variant: BatchSelectableTaskStepCard
+* Shared internal pieces if useful:
+    * thumbnail
+    * article/task metadata body
+    * image annotation rendering
+    * quantity/item-position pills
+
+The batch-selectable card selection state should be keyed by stepId.
+
+⸻
+
+Batch selection state
+
+In batch mode, WorkingSectionStepsView or its provider should maintain selected task-step IDs.
+
+Behavior:
+
+* Selecting a task-step adds it to the current batch selection.
+* Deselecting removes it.
+* Selection mode is active when selectedStepIds.size > 0.
+* When selection mode is active, show a bottom batch action button for the currently selected steps.
+* When selection mode is active, hide the global LastActiveStepCard.
+
+The selected steps used for the batch start action should be converted into the backend batch payload shape:
+
+{
+  "items": [
+    { "task_id": "...", "step_id": "..." }
+  ],
+  "new_state": "working",
+  "reason": null,
+  "description": null
+}
+
+⸻
+
+Hiding LastActiveStepCard while batch selection is active
+
+Relevant files:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/LastActiveStepCard.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/app/AppShell.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx
+
+Current global placement:
+
+<LastActiveStepCard forceHidden={shouldHideLastActiveStepCard} />
+
+When the worker is inside a batch-capable WorkingSectionStepsView and has selected one or more task steps, the global last active card should hide.
+
+This probably needs a small shared UI state or provider because LastActiveStepCard lives in AppShell, while selection state lives inside the working-section steps view.
+
+Implementation should choose the cleanest architecture, for example:
+
+* a worker UI state provider,
+* a task-step batch selection visibility context,
+* or a dedicated app-shell overlay state.
+
+Avoid prop drilling through unrelated layers.
+
+⸻
+
+Bottom batch start button in WorkingSectionStepsView
+
+When the worker selects one or more task steps in a batch-capable section, render an absolute/floating bottom action button above the bottom nav area.
+
+This button should:
+
+* appear only when selectedStepIds.size > 0;
+* be positioned similarly to the existing bottom floating UI;
+* use the scroll visibility utility in relative mode where appropriate:
+
+frontend/packages/ui/src/components/primitives/scroll-visibility
+
+Purpose:
+
+* It should be responsive to scroll.
+* It should not conflict visually with the bottom tab bar.
+* It should replace/hide the last active card while selection is active.
+
+Initial action label can be:
+
+Start Tasks
+
+When tapped, it should call:
+
+POST /api/v1/tasks/steps/transition-batch
+
+with:
+
+{
+  "items": [
+    { "task_id": "...", "step_id": "..." }
+  ],
+  "new_state": "working",
+  "reason": null,
+  "description": null
+}
+
+Only send steps whose current state can legally transition to working.
+
+Relevant legal transitions from backend handoff:
+
+* pending → working
+* paused → working
+* ended_shift → working
+
+Do not send terminal steps or invalid states.
+
+Important backend behavior:
+
+* The batch endpoint is atomic.
+* If one item cannot transition, the entire call fails.
+* The frontend must guard as much as possible before calling.
+* If the call fails, surface the error and refetch the list.
+
+After success:
+
+* Clear selected steps.
+* Refetch or update local state consistently.
+* The affected task-step cards should reflect their new state.
+* The global last active card may now show the active batch group depending on the resume-card refetch.
+
+⸻
+
+Batch transition endpoint integration
+
+Create a worker task-step API function for:
+
+POST /api/v1/tasks/steps/transition-batch
+
+Backend request shape:
+
+type BatchStepTransitionRequest = {
+  items: Array<{
+    task_id: string;
+    step_id: string;
+  }>;
+  new_state: "working" | "paused" | "ended_shift" | "completed" | "failed" | "cancelled";
+  reason?: string | null;
+  description?: string | null;
+};
+
+Backend success shape:
+
+type BatchStepTransitionResponse = {
+  items: Array<{
+    step_id: string;
+    new_state: StepState;
+    last_state_record: {
+      state: StepState;
+      entered_at: string;
+      exited_at: string | null;
+      last_action_by: string | null;
+      first_started_at: string | null;
+    };
+  }>;
+};
+
+Frontend should handle the common envelope:
+
+{ ok: true, data: ..., warnings: [] }
+{ ok: false, error: string }
+
+Do not use this endpoint for individual/non-batch steps.
+
+Keep the existing single-step endpoint for normal individual task-step cards.
+
+⸻
+
+Last active batch behavior
+
+Relevant files:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/LastActiveStepCard.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/providers/LastActiveStepCardProvider
+* frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_batch_working_section_20260623.md
+
+The resume-card endpoint now returns:
+
+{
+  "user_last_active_step_record": { "...": "..." },
+  "active_batch_steps": null
+}
+
+or:
+
+{
+  "user_last_active_step_record": { "...": "..." },
+  "active_batch_steps": [
+    { "...": "..." },
+    { "...": "..." }
+  ]
+}
+
+Important backend semantics:
+
+* user_last_active_step_record is unchanged.
+* active_batch_steps is array | null.
+* If active_batch_steps is a non-empty array, the primary step is included in that list.
+* Each item in active_batch_steps has the same shape as user_last_active_step_record.
+* Frontend rule:
+
+if (active_batch_steps?.length) {
+  renderBatchCard(active_batch_steps);
+} else {
+  renderSingleCard(user_last_active_step_record);
+}
+
+Update the provider and view model logic so that the last active card can represent either:
+
+1. a single active task step;
+2. an active batch group.
+
+⸻
+
+Last active card UI for active batch group
+
+When active_batch_steps is populated:
+
+* The global last active card should still appear.
+* It should represent the active batch group rather than only one step.
+* Tapping the card should open a batch detail/completion page.
+* The action button should pause or resume the batch group.
+* The action button should use the batch transition endpoint.
+* The card should not try to send invalid steps.
+
+Batch action behavior:
+
+* If the majority/current aggregate state indicates the group is working, show pause action.
+* If the majority/current aggregate state indicates the group is paused or ended shift, show play/resume action.
+* Only send task steps that can legally transition to the target state.
+* Do not include invalid steps, because the backend rejects the whole batch atomically.
+
+Legal transitions to use:
+
+For resume/play to working:
+
+* pending → working
+* paused → working
+* ended_shift → working
+
+For pause to paused:
+
+* working → paused
+
+For complete to completed:
+
+* working → completed
+
+If no steps are valid for the intended transition, disable the action or avoid calling the endpoint.
+
+⸻
+
+Batch detail/completion page
+
+Create a new batch detail page/surface that opens inside the existing slide page surface system.
+
+This page is opened by tapping the active batch last active card.
+
+Purpose:
+
+* Show the batch group.
+* Allow pausing/resuming the batch as a group.
+* Allow individual task-step interaction inside the batch.
+* Allow completing the currently working task steps in the batch.
+
+The page should render its own header.
+
+Header content:
+
+* back arrow
+* working section image
+* working section name
+
+Body content:
+
+1. Large circular batch action button
+
+Use the same design language as the task detail page button:
+
+frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
+
+Specifically, reuse or adapt:
+
+TaskStepCircularActionButton
+
+The button should control the batch group action:
+
+* pause working steps;
+* resume paused/ended-shift steps;
+* only include valid steps for the target transition.
+
+2. List of task steps in the batch
+
+Render the same batch/selectable-style task-step card used in the working-section detail list.
+
+Inside this batch detail page:
+
+* The cards should still allow image tap.
+* The cards should still allow opening individual task detail.
+* The user may pause/resume an individual task step if the existing individual flow supports it.
+* A manually paused single task step should remain visible in the batch list.
+* Pausing one item should not automatically pause the entire batch.
+
+This supports rare but valid cases where the worker needs to pause a specific task step inside the batch.
+
+⸻
+
+Batch detail footer: Complete Tasks
+
+At the bottom of the batch detail page, render an absolute/floating footer button.
+
+Use the scroll visibility utility in relative mode where appropriate:
+
+frontend/packages/ui/src/components/primitives/scroll-visibility
+
+Footer button styling:
+
+* background: bg-primary
+* text: text-card
+* label:
+
+Complete Tasks
+
+When tapped:
+
+* It should take the user to the existing complete task confirmation flow, or a batch-compatible adaptation of it.
+
+Existing single-step confirmation page:
+
+frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/CompleteTaskStepConfirmationSlidePage.tsx
+
+Only task steps currently in working state should be included in the batch completion request.
+
+Batch completion should call:
+
+POST /api/v1/tasks/steps/transition-batch
+
+with:
+
+{
+  "items": [
+    { "task_id": "...", "step_id": "..." }
+  ],
+  "new_state": "completed",
+  "reason": null,
+  "description": null
+}
+
+Important:
+
+* Do not send paused, ended-shift, terminal, or otherwise invalid task steps.
+* Backend will reject the whole batch if any step cannot transition.
+* Frontend must enforce the guard before calling.
+
+⸻
+
+Complete confirmation flow for batch completion
+
+The current confirmation page is single-step oriented:
+
+CompleteTaskStepConfirmationSlidePage.tsx
+
+Claude should investigate whether to:
+
+1. extend the existing confirmation page to support batch mode;
+2. create a separate batch completion confirmation surface;
+3. or wrap the existing page with batch-specific props.
+
+The batch completion confirmation should preserve the core UX intent:
+
+* Ask whether recorded time is accurate.
+* Allow user to confirm.
+* Then complete all eligible working steps in the active batch group.
+
+Important backend limitation from handoff:
+
+The batch endpoint does not support:
+
+* per-item credited_user_id
+* per-item state
+* mark_closing_record_inaccurate
+
+The handoff says:
+
+Not supported in v1: per-item credited_user_id, per-item state, and mark_closing_record_inaccurate — the batch credits the calling user.
+
+Therefore, Claude must verify how the current single-step completion uses mark_closing_record_inaccurate.
+
+If the single-step completion confirmation relies on mark_closing_record_inaccurate, then batch completion cannot perfectly preserve that behavior using the current backend batch endpoint.
+
+In that case, the implementation plan should explicitly decide one of:
+
+* For batch completion v1, do not support inaccurate-time marking.
+* Or complete batch steps one-by-one through the single-step endpoint only if product requirements require inaccurate-time support.
+* Or request a backend extension before implementing full batch inaccurate-time behavior.
+
+Do not silently ignore this contract difference.
+
+⸻
+
+Realtime behavior
+
+The batch transition handoff says:
+
+* The backend broadcasts one task:step-state-changed BatchWorkspaceEvent.
+* The event contains an items array of { client_id, new_state }.
+* Do not expect one event per changed step.
+* There may also be one task:state-changed event per distinct affected task.
+
+Frontend realtime handling must support this coalesced event shape.
+
+Claude should inspect the existing task-step realtime handlers and update them so that:
+
+* single-step events still work;
+* batch events update/refetch all affected steps;
+* the UI does not assume exactly one changed step per event.
+
+⸻
+
+Error handling
+
+Batch transition failures must be handled carefully because the backend is atomic.
+
+If the backend returns:
+
+{ "ok": false, "error": "Batch transition rejected — <step_id>: <reason>; ..." }
+
+Frontend should:
+
+* surface the error message to the worker;
+* refetch the affected working-section steps;
+* clear or preserve selection intentionally depending on UX;
+* avoid optimistic UI that assumes partial success.
+
+The backend guarantees:
+
+* if one step fails validation, no step is mutated.
+
+Therefore the UI should not show partial success after a failed batch call.
+
+⸻
+
+Important frontend guards
+
+Before calling the batch transition endpoint, filter the selected or active batch steps by legal state transition.
+
+Legal transitions from backend handoff:
+
+pending → working
+working → paused | ended_shift | completed | failed | cancelled
+paused → working | ended_shift | failed | cancelled
+ended_shift → working | failed | cancelled
+
+For this implementation, the required button flows are:
+
+pending → working
+working → paused
+paused → working
+working → completed
+
+Practical helpers should be added, for example:
+
+canTransitionToWorking(step)
+canTransitionToPaused(step)
+canTransitionToCompleted(step)
+getBatchTransitionItems(steps, targetState)
+
+The frontend should never intentionally send invalid steps to the batch endpoint.
+
+⸻
+
+Required UX scenarios
+
+Scenario 1 — Non-batch section
+
+Given a working section with:
+
+allowsBatchWorking === false
+
+The worker opens the section.
+
+Expected:
+
+* Existing WorkingSectionStepsView behavior remains unchanged.
+* Existing TaskStepCard behavior remains unchanged.
+* Individual state transitions use the existing single-step endpoint.
+
+⸻
+
+Scenario 2 — Batch-capable section selection
+
+Given a working section with:
+
+allowsBatchWorking === true
+
+The worker opens the section.
+
+Expected:
+
+* The section opens in batch mode.
+* Cards render in selectable batch-card mode.
+* Cards do not show three-dot actions or bottom action buttons.
+* Cards preserve image tap and task-detail tap.
+* Selecting one or more cards reveals the floating Start Tasks button.
+* Selecting one or more cards hides the global LastActiveStepCard.
+
+⸻
+
+Scenario 3 — Start selected tasks as batch
+
+Given the worker has selected multiple eligible task steps.
+
+When they tap:
+
+Start Tasks
+
+Expected:
+
+* Frontend sends valid items only.
+* Backend receives:
+
+{
+  "items": [{ "task_id": "...", "step_id": "..." }],
+  "new_state": "working"
+}
+
+* On success, all selected steps become working.
+* UI clears selection.
+* UI refetches or updates state.
+* Realtime handling supports one coalesced event.
+
+⸻
+
+Scenario 4 — Batch active resume card
+
+Given the resume endpoint returns non-empty:
+
+active_batch_steps
+
+Expected:
+
+* The global last active card renders as a batch card.
+* Tapping it opens the batch detail page.
+* The action button pauses/resumes all eligible steps in the active batch group.
+* It does not send invalid steps to the batch endpoint.
+
+⸻
+
+Scenario 5 — Batch detail page
+
+Given the worker opens the active batch detail page.
+
+Expected:
+
+* Page opens in the slide page/surface system.
+* Header shows back arrow, working section image, and working section name.
+* Body shows a large circular batch action button.
+* Body shows all task steps in the batch.
+* User can still interact with individual task steps.
+* Manually pausing one step does not pause all others.
+* Footer shows Complete Tasks.
+
+⸻
+
+Scenario 6 — Complete batch tasks
+
+Given the active batch contains some task steps in working state.
+
+When the worker taps:
+
+Complete Tasks
+
+Expected:
+
+* Only working steps are included.
+* Completion uses POST /api/v1/tasks/steps/transition-batch.
+* Target state is completed.
+* Invalid steps are filtered out.
+* If no steps can be completed, the button should be disabled or explain why.
+* The implementation must explicitly handle or document the limitation around mark_closing_record_inaccurate.
+
+⸻
+
+Scenario 7 — Batch failure
+
+Given one selected step cannot transition.
+
+Expected:
+
+* Frontend should prevent the invalid request where possible.
+* If backend still rejects, show the backend error.
+* Refetch steps.
+* Do not show partial success.
+
+⸻
+
+Implementation quality expectations
+
+The implementation plan should be clean and scalable.
+
+Important principles:
+
+* Preserve existing non-batch behavior.
+* Avoid duplicating large card markup unnecessarily.
+* Keep batch endpoint usage isolated in a dedicated API/client function.
+* Keep transition legality rules centralized.
+* Keep batch UI state explicit and easy to reason about.
+* Do not assume task-step payloads include allows_batch_working.
+* Use working-section payloads as the public source for allows_batch_working.
+* Handle the backend’s atomic all-or-nothing behavior honestly.
+* Handle coalesced realtime events correctly.
+* Be explicit about unsupported backend features, especially mark_closing_record_inaccurate.
+
+⸻
+
+Files already identified as relevant
+
+Worker home variants:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/StandardWorkerHomeView.tsx
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/WoodWorkerHomeView.tsx
+
+Worker working-section steps view:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/WorkingSectionStepsView.tsx
+
+Existing task-step card:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/TaskStepCard.tsx
+
+Existing global last active card:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/task_steps/components/LastActiveStepCard.tsx
+
+App shell placement of last active card:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/app/AppShell.tsx
+
+Existing task detail slide page:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
+
+Existing complete confirmation page:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/CompleteTaskStepConfirmationSlidePage.tsx
+
+Reference selectable card pattern:
+
+* frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-ordering/components/OrderingItemCard.tsx
+
+Worker working-section API:
+
+* frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/working_sections/api
+
+Manager working-section API:
+
+* frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/working-sections/api
+
+Scroll visibility primitive:
+
+* frontend/packages/ui/src/components/primitives/scroll-visibility
+
+Backend handoffs:
+
+* frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_batch_working_section_20260623.md
+* frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_batch_step_transition_20260623.md
+
+⸻
+
+What Claude should produce
+
+Create an implementation plan for you to implement, this plan can be placed at: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation using the template: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md .
+after corrections and improvements that we will do you will implement it
+
+The plan should include:
+
+1. Files to inspect.
+2. Exact frontend data model/schema changes.
+3. API client changes for the batch endpoint.
+4. UI state architecture for batch selection and hiding the last active card.
+5. Card component strategy for batch-selectable task-step cards.
+6. Last active card/provider changes for active_batch_steps.
+7. Batch detail page/surface design.
+8. Completion flow decision, especially around mark_closing_record_inaccurate.
+9. Realtime event handling changes for coalesced task:step-state-changed events.
+10. Error handling/refetch strategy.
+11. Manual QA checklist.
+12. Risks and contract mismatches that need backend clarification before implementation.
+
+
+---
+## Update: batch completion now supports inaccurate timing
+The backend handoff `HANDOFF_TO_FRONTEND_batch_step_transition_20260623.md` has been updated.
+The batch transition endpoint now supports inaccurate-time marking through a per-item field:
+```ts
+mark_closing_record_inaccurate?: boolean
+
+This means batch completion can preserve the same core timing-confirmation UX as the existing single-step completion flow.
+
+For batch completion:
+
+* The confirmation flow may still ask whether the recorded time is accurate.
+* If the worker marks the time as accurate, send each completed item without mark_closing_record_inaccurate, or with it set to false.
+* If the worker marks the batch timing as inaccurate, send mark_closing_record_inaccurate: true on each batch item being completed.
+* Only include steps currently in working state.
+* The batch endpoint still uses one shared new_state, usually completed.
+* The endpoint still does not support per-item credited_user_id or per-item new_state.
+
+Example batch completion request with inaccurate timing:
+
+{
+  "items": [
+    {
+      "task_id": "tsk_01",
+      "step_id": "tsp_07",
+      "mark_closing_record_inaccurate": true
+    },
+    {
+      "task_id": "tsk_02",
+      "step_id": "tsp_03",
+      "mark_closing_record_inaccurate": true
+    }
+  ],
+  "new_state": "completed",
+  "reason": null,
+  "description": null
+}
+
+

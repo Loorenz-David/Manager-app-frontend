@@ -1,11 +1,22 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { notify } from "@beyo/lib";
+import type { TaskStepId } from "@beyo/lib";
 import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
+import { useBatchSelectionOverlay } from "@/providers/BatchSelectionOverlayProvider";
 import type { WorkingSectionViewModel } from "../../working_sections/types";
 import { preloadStepStateFilterSheetSurface } from "../surfaces";
 import { useWorkingSectionStepsContext } from "../providers/WorkingSectionStepsProvider";
+import {
+  useTransitionBatchStepStates,
+} from "../actions/use-transition-batch-step-states";
+import {
+  canTransitionToWorking,
+  getBatchTransitionItems,
+} from "../types";
+import { BatchSelectableTaskStepCard } from "./BatchSelectableTaskStepCard";
 import { TaskStepCard } from "./TaskStepCard";
 
 type WorkingSectionStepsViewProps = {
@@ -21,6 +32,7 @@ export function WorkingSectionStepsView({
 
   const {
     steps,
+    rawSteps,
     nonTerminalCounts,
     isPending,
     isError,
@@ -35,6 +47,7 @@ export function WorkingSectionStepsView({
     handleOpenImageViewer,
     transitioningStepId,
   } = useWorkingSectionStepsContext();
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const registerScrollElement = useRegisterScrollElement();
 
@@ -44,13 +57,83 @@ export function WorkingSectionStepsView({
     return registerScrollElement(element);
   }, [registerScrollElement]);
 
+  // Batch selection state — only active when section.allowsBatchWorking
+  const [selectedStepIds, setSelectedStepIds] = useState<Set<TaskStepId>>(
+    () => new Set(),
+  );
+
+  // Sync selection visibility with AppShell overlay (hides LastActiveStepCard)
+  const { setIsSelecting } = useBatchSelectionOverlay();
+  useEffect(() => {
+    setIsSelecting(selectedStepIds.size > 0);
+    return () => setIsSelecting(false);
+  }, [selectedStepIds.size, setIsSelecting]);
+
+  // Prune stale selected IDs when rawSteps changes (refetch, socket events)
+  useEffect(() => {
+    if (rawSteps.length === 0) return;
+    const existingIds = new Set(rawSteps.map((s) => s.client_id));
+    setSelectedStepIds((prev) => {
+      const pruned = new Set([...prev].filter((id) => existingIds.has(id)));
+      return pruned.size === prev.size ? prev : pruned;
+    });
+  }, [rawSteps]);
+
+  // Steps that are selected AND can legally transition to working
+  const eligibleSelectedSteps = useMemo(
+    () => rawSteps.filter(
+      (s) => selectedStepIds.has(s.client_id) && canTransitionToWorking(s),
+    ),
+    [rawSteps, selectedStepIds],
+  );
+
+  function handleToggleSelect(stepId: TaskStepId) {
+    setSelectedStepIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(stepId)) {
+        next.delete(stepId);
+      } else {
+        next.add(stepId);
+      }
+      return next;
+    });
+  }
+
+  const { transitionBatch, isPending: isBatchTransitioning } =
+    useTransitionBatchStepStates();
+
+  function handleBatchStart() {
+    const items = getBatchTransitionItems(eligibleSelectedSteps, "working");
+
+    if (items.length === 0) return;
+
+    if (items.length > 100) {
+      notify.error(
+        "Too many tasks selected",
+        "Please select 100 or fewer tasks to start at once.",
+      );
+      return;
+    }
+
+    transitionBatch(
+      {
+        items,
+        new_state: "working",
+        reason: null,
+        description: null,
+        working_section_id: section.sectionId,
+      },
+      { onSuccess: () => setSelectedStepIds(new Set()) },
+    );
+  }
+
   const nonTerminalEntries = Object.entries(nonTerminalCounts).filter(
     ([, count]) => count > 0,
   );
 
   return (
     <div
-      className="flex h-full flex-col"
+      className="relative flex h-full flex-col"
       data-testid="working-section-steps-view"
     >
       <header className="flex flex-col gap-2 px-4 pb-2 pt-3">
@@ -146,6 +229,22 @@ export function WorkingSectionStepsView({
             {search ? ` matching "${search}"` : ""}
             {activeFilterCount > 0 && !search ? " with the active filter" : ""}.
           </div>
+        ) : section.allowsBatchWorking ? (
+          <div
+            className="flex flex-col gap-4 py-2 pb-24"
+            data-testid="batch-steps-list"
+          >
+            {steps.map((card) => (
+              <BatchSelectableTaskStepCard
+                key={card.stepId}
+                card={card}
+                selected={selectedStepIds.has(card.stepId)}
+                onTapCard={handleOpenTaskDetail}
+                onTapImage={handleOpenImageViewer}
+                onToggleSelect={handleToggleSelect}
+              />
+            ))}
+          </div>
         ) : (
           <div
             className="flex flex-col gap-4 py-2 pb-10"
@@ -165,6 +264,26 @@ export function WorkingSectionStepsView({
           </div>
         )}
       </PullToRefresh>
+
+      {/* Floating "Start Tasks" button — batch mode only, shown when items selected */}
+      {section.allowsBatchWorking && selectedStepIds.size > 0 ? (
+        <div
+          className="absolute bottom-[calc(var(--safe-bottom,0)+1rem)] left-0 right-0 z-20 px-4"
+          data-testid="batch-start-button-container"
+        >
+          <button
+            className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-card shadow-lg transition-opacity disabled:opacity-60"
+            data-testid="batch-start-button"
+            disabled={isBatchTransitioning || eligibleSelectedSteps.length === 0}
+            type="button"
+            onClick={handleBatchStart}
+          >
+            {isBatchTransitioning
+              ? "Starting…"
+              : `Start Tasks (${eligibleSelectedSteps.length})`}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }

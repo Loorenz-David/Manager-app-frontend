@@ -20,6 +20,9 @@ export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
   "task-step-pin-notifications-slide";
 export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
   "task-step-pin-states-sheet";
+export const BATCH_DETAIL_SLIDE_SURFACE_ID = "batch-detail-slide";
+export const COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID =
+  "batch-complete-confirmation-slide";
 
 export type TaskStepActionsSheetSurfaceProps = {
   stepId: TaskStepId;
@@ -88,6 +91,27 @@ export type PinNotificationsSlideSurfaceProps = {
   taskId: TaskId;
   itemId?: string | null;
   originStepId?: TaskStepId;
+};
+
+// batchStepIds is the stable identity list — BatchDetailSlidePage derives live
+// step data from useUserLastActiveStepQuery() using these IDs, never a stale snapshot.
+export type BatchDetailSlideSurfaceProps = {
+  workingSectionId: WorkingSectionId;
+  workingSectionNameSnapshot: string;
+  batchStepIds: TaskStepId[];
+};
+
+export type CompleteBatchTaskStepsConfirmationSlideSurfaceProps = {
+  workingSectionId: WorkingSectionId;
+  workingSteps: Array<{
+    taskId: TaskId;
+    stepId: TaskStepId;
+    totalWorkingSeconds: number;
+    totalPauseSeconds: number;
+    lastStateRecordEnteredAt: string | null;
+  }>;
+  onConfirm: (markInaccurate: boolean) => void;
+  isPending: boolean;
 };
 
 export type PinTaskStepStatesSheetSurfaceProps = {

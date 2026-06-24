@@ -357,3 +357,66 @@ export function computeNonTerminalCounts(
     { pending: 0, working: 0, paused: 0, ended_shift: 0, blocked: 0 },
   );
 }
+
+export type UserLastActivePayload = {
+  step: TaskStep | null;
+  batchSteps: TaskStep[] | null;
+};
+
+export type BatchStepTransitionItem = {
+  task_id: TaskId;
+  step_id: TaskStepId;
+  mark_closing_record_inaccurate?: boolean;
+};
+
+export type BatchStepTransitionRequest = {
+  items: BatchStepTransitionItem[];
+  new_state: StepState;
+  reason?: string | null;
+  description?: string | null;
+};
+
+export type BatchStepTransitionResponseItem = {
+  step_id: TaskStepId;
+  new_state: StepState;
+  last_state_record: LastStateRecord;
+};
+
+export type BatchStepTransitionResponse = {
+  items: BatchStepTransitionResponseItem[];
+};
+
+export function canTransitionToWorking(step: TaskStep): boolean {
+  return (
+    step.state === "pending" ||
+    step.state === "paused" ||
+    step.state === "ended_shift"
+  );
+}
+
+export function canTransitionToPaused(step: TaskStep): boolean {
+  return step.state === "working";
+}
+
+export function canTransitionToCompleted(step: TaskStep): boolean {
+  return step.state === "working";
+}
+
+export function getBatchTransitionItems(
+  steps: TaskStep[],
+  targetState: "working" | "paused" | "completed",
+  markInaccurate = false,
+): BatchStepTransitionItem[] {
+  const canTransition =
+    targetState === "working"
+      ? canTransitionToWorking
+      : targetState === "paused"
+        ? canTransitionToPaused
+        : canTransitionToCompleted;
+
+  return steps.filter(canTransition).map((step) => ({
+    task_id: step.task_id,
+    step_id: step.client_id,
+    ...(markInaccurate && { mark_closing_record_inaccurate: true }),
+  }));
+}

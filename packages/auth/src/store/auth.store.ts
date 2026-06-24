@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { UserId, WorkspaceId } from '@beyo/lib';
+import type { AuthAppScope, AuthRole, WorkspaceRoleName } from '../roles';
 
 type AuthUI = {
   apps: string[];
@@ -9,13 +10,19 @@ type AuthUI = {
   query_filters: string[];
 };
 
-type AuthUser = {
+export type AuthUser = {
   id: UserId;
   email: string;
   username: string;
-  role: string;
+  role: AuthRole;
+  workspaceRoleId: string;
+  workspaceRoleName: WorkspaceRoleName;
+  appScope: AuthAppScope;
+  timeZone: string;
   backend_permissions: string[];
   ui: AuthUI;
+  jti: string;
+  exp: number;
 };
 
 type AuthState = {
@@ -38,3 +45,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 export const selectUser = (state: AuthState) => state.user;
 export const selectWorkspaceId = (state: AuthState) => state.workspaceId;
 export const selectIsAuthenticated = (state: AuthState) => state.isAuthenticated;
+export const selectUserRole = (state: AuthState) => state.user?.role ?? null;
+export const selectWorkspaceRoleName = (state: AuthState) =>
+  state.user?.workspaceRoleName ?? null;
+export const selectAppScope = (state: AuthState) => state.user?.appScope ?? null;
+export const selectTimeZone = (state: AuthState) => state.user?.timeZone ?? null;

@@ -1,6 +1,8 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import {
+  BATCH_DETAIL_SLIDE_SURFACE_ID,
+  COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID,
   COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
@@ -89,6 +91,20 @@ function loadPinTaskStepStatesSheetPage() {
   );
 }
 
+function loadBatchDetailSlidePage() {
+  return import("@/pages/task_steps/BatchDetailSlidePage").then((module) => ({
+    default: module.BatchDetailSlidePage,
+  }));
+}
+
+function loadCompleteBatchTaskStepsConfirmationSlidePage() {
+  return import(
+    "@/pages/task_steps/CompleteBatchTaskStepsConfirmationSlidePage"
+  ).then((module) => ({
+    default: module.CompleteBatchTaskStepsConfirmationSlidePage,
+  }));
+}
+
 function loadItemIssueSelectionSheetPage() {
   return import("@beyo/item-issues").then((module) => ({
     default: module.ItemIssueSelectionSheet,
@@ -115,6 +131,10 @@ const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
+const batchDetailSlide = lazyWithPreload(loadBatchDetailSlidePage);
+const completeBatchTaskStepsConfirmationSlide = lazyWithPreload(
+  loadCompleteBatchTaskStepsConfirmationSlidePage,
+);
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
 );
@@ -136,6 +156,9 @@ export const preloadPinNotificationsSlideSurface =
   pinNotificationsSlide.preload;
 export const preloadPinTaskStepStatesSheetSurface =
   pinTaskStepStatesSheet.preload;
+export const preloadBatchDetailSlideSurface = batchDetailSlide.preload;
+export const preloadCompleteBatchTaskStepsConfirmationSlideSurface =
+  completeBatchTaskStepsConfirmationSlide.preload;
 export const preloadItemIssueSelectionSheetSurface =
   itemIssueSelectionSheet.preload;
 
@@ -183,5 +206,13 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: itemIssueSelectionSheet.Component,
+  },
+  [BATCH_DETAIL_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: batchDetailSlide.Component,
+  },
+  [COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: completeBatchTaskStepsConfirmationSlide.Component,
   },
 };

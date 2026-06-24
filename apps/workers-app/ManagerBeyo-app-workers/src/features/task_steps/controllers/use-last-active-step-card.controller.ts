@@ -12,32 +12,42 @@ import {
   type ImageUploadState,
   type ImageViewModel,
 } from "@beyo/images";
+import { useTransitionBatchStepStates } from "../actions/use-transition-batch-step-states";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useUserLastActiveStepQuery } from "../api/use-user-last-active-step";
 import {
+  BATCH_DETAIL_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
+  type BatchDetailSlideSurfaceProps,
   type PauseReasonSheetSurfaceProps,
   type TaskStepDetailSurfaceProps,
 } from "../surface-ids";
-import { toTaskStepCardViewModel, type StepState } from "../types";
+import {
+  getBatchTransitionItems,
+  toTaskStepCardViewModel,
+  type StepState,
+  type TaskStepCardViewModel,
+  type TaskStep,
+} from "../types";
 
 export function useLastActiveStepCardController() {
   const query = useUserLastActiveStepQuery();
-  const step = query.data ?? null;
 
-  useEntityView("task_step", step?.client_id ?? null);
+  const payload = query.data ?? { step: null, batchSteps: null };
+  const step = payload.step;
+  const batchSteps = payload.batchSteps ?? null;
+  const isBatchCard = Boolean(batchSteps?.length);
+
+  // Track single step for realtime entity view; batch relies on workspace-level events
+  useEntityView("task_step", isBatchCard ? null : (step?.client_id ?? null));
 
   // Ref so that handleOpenImageViewer can read the latest step without
-  // needing step in its useCallback deps (which would make onTap unstable
-  // and break memo on CardThumbnail, causing image flicker on refetch).
+  // needing step in its useCallback deps (prevents CardThumbnail flicker on refetch).
   const stepRef = useRef(step);
   stepRef.current = step;
 
-  // Keeps the previous signed URL alive when the refetch returns the same
-  // image with a different query string (e.g. a new expiry token). If the
-  // pathname matches we return the cached URL reference, so CardThumbnail's
-  // memo sees no prop change and the browser never reloads the image.
+  // Stable signed-URL ref — prevents CardThumbnail from reloading the same image
   const stableImageUrlRef = useRef<{ stepId: TaskStepId; url: string } | null>(
     null,
   );
@@ -66,11 +76,18 @@ export function useLastActiveStepCardController() {
     return rawVm;
   }, [step]);
 
+  const batchVms = useMemo<TaskStepCardViewModel[]>(
+    () => (batchSteps ?? []).map(toTaskStepCardViewModel),
+    [batchSteps],
+  );
+
   const {
     transitionStepState,
     isPending: isTransitioning,
     pendingStepId,
   } = useTransitionStepState();
+  const { transitionBatchAsync, isPending: isBatchTransitioning } =
+    useTransitionBatchStepStates();
   const { open: openSurface } = useSurface();
 
   const handleTransition = useCallback(
@@ -98,6 +115,24 @@ export function useLastActiveStepCardController() {
     [step, transitionStepState, openSurface],
   );
 
+  const handleBatchTransition = useCallback(
+    async (targetState: "working" | "paused") => {
+      if (!batchSteps?.length) return;
+      const items = getBatchTransitionItems(batchSteps, targetState);
+      if (items.length === 0) return;
+
+      const workingSectionId = batchSteps[0].working_section_id;
+      await transitionBatchAsync({
+        items,
+        new_state: targetState,
+        reason: null,
+        description: null,
+        working_section_id: workingSectionId,
+      });
+    },
+    [batchSteps, transitionBatchAsync],
+  );
+
   const handleOpenDetail = useCallback(() => {
     if (!step) {
       return;
@@ -109,6 +144,15 @@ export function useLastActiveStepCardController() {
       workingSectionId: step.working_section_id,
     } as TaskStepDetailSurfaceProps);
   }, [step, openSurface]);
+
+  const handleOpenBatchDetail = useCallback(() => {
+    if (!batchSteps?.length) return;
+    openSurface(BATCH_DETAIL_SLIDE_SURFACE_ID, {
+      workingSectionId: batchSteps[0].working_section_id,
+      workingSectionNameSnapshot: batchSteps[0].working_section_name_snapshot,
+      batchStepIds: batchSteps.map((s) => s.client_id),
+    } as BatchDetailSlideSurfaceProps);
+  }, [batchSteps, openSurface]);
 
   const handleOpenImageViewer = useCallback(() => {
     const s = stepRef.current;
@@ -162,15 +206,21 @@ export function useLastActiveStepCardController() {
       mode: "preview-only",
       enableOnDemandImageLoad: false,
     });
-  }, [openSurface]); // stepRef is a stable ref — step is read at call time via stepRef.current
+  }, [openSurface]);
 
   return {
     step,
     vm,
+    batchSteps: batchSteps as TaskStep[] | null,
+    batchVms,
+    isBatchCard,
+    isBatchTransitioning,
     isPending: query.isPending,
     isTransitioning: isTransitioning && pendingStepId === step?.client_id,
     handleTransition,
+    handleBatchTransition,
     handleOpenDetail,
+    handleOpenBatchDetail,
     handleOpenImageViewer,
   };
 }
