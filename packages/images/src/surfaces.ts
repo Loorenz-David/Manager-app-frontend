@@ -98,7 +98,10 @@ export function preloadImageEditorSurface(): Promise<unknown> {
   }
 
   preloadedImageSurfaces.add(IMAGE_EDITOR_SURFACE_ID);
-  return loadImageEditorPage();
+  return Promise.allSettled([
+    loadImageEditorPage(),
+    loadImageAnnotationToolPickerSheetPage(),
+  ]);
 }
 
 export const imageSurfaces: SurfaceRegistrations = {

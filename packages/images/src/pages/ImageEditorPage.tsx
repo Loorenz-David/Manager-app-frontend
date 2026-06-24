@@ -35,6 +35,29 @@ import {
 } from "../types";
 
 const DEFAULT_TEXT_SIZE = 0.04;
+const LAST_TOOL_STORAGE_KEY = "beyo:image-editor-last-tool";
+const VALID_ANNOTATION_TOOLS: readonly ImageAnnotationTool[] = [
+  "draw",
+  "arrow",
+  "circle",
+  "rectangle",
+  "text",
+  "highlight",
+];
+
+function readLastAnnotationTool(): ImageAnnotationTool {
+  try {
+    const stored = localStorage.getItem(LAST_TOOL_STORAGE_KEY);
+
+    if (stored && VALID_ANNOTATION_TOOLS.includes(stored as ImageAnnotationTool)) {
+      return stored as ImageAnnotationTool;
+    }
+  } catch {
+    // localStorage unavailable
+  }
+
+  return "draw";
+}
 
 type CanvasBox = {
   height: number;
@@ -164,7 +187,7 @@ export function ImageEditorPage(): React.JSX.Element {
     ((item: AnnotatedCanvasItem) => void) | null
   >(null);
   const previousToolBeforeEditRef = useRef<ImageAnnotationTool | null>(null);
-  const [activeTool, setActiveTool] = useState<ImageAnnotationTool>("draw");
+  const [activeTool, setActiveTool] = useState<ImageAnnotationTool>(readLastAnnotationTool);
   const [sessionItems, setSessionItems] = useState<ImageAnnotationItemData[]>(
     [],
   );
@@ -552,12 +575,35 @@ export function ImageEditorPage(): React.JSX.Element {
     setSessionItems((current) => current.slice(0, -1));
   }, [resetTextDraft, textAnchor]);
 
+  const handleToolSelect = useCallback((tool: ImageAnnotationTool) => {
+    setActiveTool(tool);
+    try {
+      localStorage.setItem(LAST_TOOL_STORAGE_KEY, tool);
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  const hasAutoOpenedToolPickerRef = useRef(false);
+
   const handleOpenToolPicker = useCallback(() => {
     useSurfaceStore.getState().open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
       activeTool,
-      onSelect: setActiveTool,
+      onSelect: handleToolSelect,
     } satisfies ImageAnnotationToolPickerSurfaceProps);
-  }, [activeTool]);
+  }, [activeTool, handleToolSelect]);
+
+  useEffect(() => {
+    if (hasAutoOpenedToolPickerRef.current || isAnnotationUnavailable) {
+      return;
+    }
+
+    hasAutoOpenedToolPickerRef.current = true;
+    useSurfaceStore.getState().open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
+      activeTool,
+      onSelect: handleToolSelect,
+    } satisfies ImageAnnotationToolPickerSurfaceProps);
+  }, [isAnnotationUnavailable, activeTool, handleToolSelect]);
 
   const handleEditText = useCallback(
     (item: AnnotatedCanvasItem) => {
