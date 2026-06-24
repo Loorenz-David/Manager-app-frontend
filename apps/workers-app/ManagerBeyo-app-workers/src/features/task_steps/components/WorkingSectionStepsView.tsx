@@ -37,7 +37,6 @@ export function WorkingSectionStepsView({
   const {
     steps,
     rawSteps,
-    nonTerminalCounts,
     isPending,
     isError,
     search,
