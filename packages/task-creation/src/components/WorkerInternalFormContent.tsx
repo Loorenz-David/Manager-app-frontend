@@ -222,7 +222,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     }
 
     lastAppliedLookupSignatureRef.current = signature;
-    return true;
+    return isWoodCategory ? true : "invalid";
   });
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {

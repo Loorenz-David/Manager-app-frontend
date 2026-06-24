@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
-import { Check, Loader2, ScanLine } from "lucide-react";
+import { Check, Loader2, ScanLine, X } from "lucide-react";
 import { useEffect, useEffectEvent, useState } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 
@@ -21,7 +21,7 @@ type IdentityTab = (typeof IDENTITY_TABS)[number];
 
 type ItemIdentityFieldProps = {
   onOpenScanner?: (tab: IdentityTab) => void;
-  onLookupResult?: (items: ItemLookupResult[]) => boolean;
+  onLookupResult?: (items: ItemLookupResult[]) => boolean | "invalid";
 };
 
 const ARTICLE_NUMBER_MIN_LENGTH = 7;
@@ -111,7 +111,7 @@ export function ItemIdentityField({
 
   const [activeTab, setActiveTab] = useState<IdentityTab>(readStoredTab);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [showLookupSuccess, setShowLookupSuccess] = useState(false);
+  const [lookupStatus, setLookupStatus] = useState<"valid" | "invalid" | null>(null);
   const articleNumber = useWatch({
     control,
     name: "item.article_number",
@@ -151,27 +151,30 @@ export function ItemIdentityField({
       return;
     }
 
-    if (emitLookupResult(lookupQuery.data.items)) {
-      setShowLookupSuccess(true);
+    const result = emitLookupResult(lookupQuery.data.items);
+    if (result === true) {
+      setLookupStatus("valid");
+    } else if (result === "invalid") {
+      setLookupStatus("invalid");
     }
   }, [emitLookupResult, isLookupEnabled, lookupQuery.data, lookupQuery.status]);
 
   useEffect(() => {
-    if (!showLookupSuccess) {
+    if (!lookupStatus) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setShowLookupSuccess(false);
+      setLookupStatus(null);
     }, LOOKUP_SUCCESS_FLASH_MS);
 
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [showLookupSuccess]);
+  }, [lookupStatus]);
 
   useEffect(() => {
-    setShowLookupSuccess(false);
+    setLookupStatus(null);
   }, [activeTab]);
 
   function handleTabChange(nextTab: IdentityTab) {
@@ -189,7 +192,7 @@ export function ItemIdentityField({
   const activeError =
     activeTab === "article_number" ? articleNumberError : skuError;
   const isLookupLoading = isLookupEnabled && lookupQuery.isFetching;
-  const showSuccessIcon = showLookupSuccess && !isLookupLoading;
+  const activeStatus = isLookupLoading ? null : lookupStatus;
 
   function handleScannerPress(): void {
     onOpenScanner?.(activeTab);
@@ -197,8 +200,10 @@ export function ItemIdentityField({
 
   const scannerButtonClassName =
     "pointer-events-auto flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground";
-  const successButtonClassName =
+  const validButtonClassName =
     "pointer-events-auto flex size-8 items-center justify-center rounded-full bg-green-600 text-white transition-transform hover:scale-[1.02]";
+  const invalidButtonClassName =
+    "pointer-events-auto flex size-8 items-center justify-center rounded-full bg-red-500 text-white transition-transform hover:scale-[1.02]";
 
   const rightIcon = isLookupLoading ? (
     <span
@@ -212,12 +217,12 @@ export function ItemIdentityField({
     >
       <Loader2 className="size-4 animate-spin" />
     </span>
-  ) : showSuccessIcon ? (
+  ) : activeStatus === "valid" ? (
     <button
       aria-label={
         activeTab === "article_number" ? "Scan article number" : "Scan SKU"
       }
-      className={successButtonClassName}
+      className={validButtonClassName}
       data-testid={
         activeTab === "article_number"
           ? "item-article-number-success-button"
@@ -227,6 +232,22 @@ export function ItemIdentityField({
       onClick={handleScannerPress}
     >
       <Check className="size-4" />
+    </button>
+  ) : activeStatus === "invalid" ? (
+    <button
+      aria-label={
+        activeTab === "article_number" ? "Scan article number" : "Scan SKU"
+      }
+      className={invalidButtonClassName}
+      data-testid={
+        activeTab === "article_number"
+          ? "item-article-number-invalid-button"
+          : "item-sku-invalid-button"
+      }
+      type="button"
+      onClick={handleScannerPress}
+    >
+      <X className="size-4" />
     </button>
   ) : (
     <button
