@@ -244,15 +244,18 @@ export function ParticipantPickerSlideContent(): React.JSX.Element {
       </div>
 
       {isDirty ? (
-        <div className="absolute bottom-0 left-0 right-0 px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3">
-          <button
-            type="button"
-            data-testid="participant-picker-save"
-            className="flex w-full items-center justify-center rounded-2xl bg-[var(--color-primary)] py-3.5 text-sm font-semibold text-[var(--color-card)]"
-            onClick={handleSave}
-          >
-            Save selection
-          </button>
+        <div className="absolute bottom-0 left-0 right-0 bg-background">
+          <div className="px-4 pb-4 pt-3">
+            <button
+              type="button"
+              data-testid="participant-picker-save"
+              className="flex w-full items-center justify-center rounded-2xl bg-(--color-primary) py-3.5 text-sm font-semibold text-card"
+              onClick={handleSave}
+            >
+              Save selection
+            </button>
+          </div>
+          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
         </div>
       ) : null}
     </div>

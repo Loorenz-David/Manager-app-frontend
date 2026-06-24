@@ -182,8 +182,8 @@ export function UpholsteryCategoryCreationSlidePage(): React.JSX.Element {
         </form>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-20 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
-        <div className="flex gap-3">
+      <div className="fixed bottom-0 left-0 right-0 z-20 bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+        <div className="flex gap-3 px-4 pb-4 pt-3">
           <button
             className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
             type="button"
@@ -200,6 +200,7 @@ export function UpholsteryCategoryCreationSlidePage(): React.JSX.Element {
             Create
           </button>
         </div>
+        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
       </div>
     </div>
   );

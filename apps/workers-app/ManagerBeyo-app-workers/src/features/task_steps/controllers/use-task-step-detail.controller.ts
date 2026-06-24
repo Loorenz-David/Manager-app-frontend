@@ -568,6 +568,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
 
     openSurface(TASK_CASES_SLIDE_SURFACE_ID, {
       taskId: resolvedTaskId,
+      articleLabel: vm?.articleLabel,
     } as TaskCasesSlideSurfaceProps);
   }, [
     liveCasesSummary,

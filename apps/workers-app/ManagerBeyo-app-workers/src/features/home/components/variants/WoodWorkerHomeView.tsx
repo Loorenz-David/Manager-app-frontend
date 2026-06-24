@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
+import { useQueryClient } from "@tanstack/react-query";
 import { tabVariants, transitions } from "@beyo/lib";
-import { PullToRefresh } from "@beyo/ui";
+import { PullToRefresh, usePrefetchOnCondition } from "@beyo/ui";
+import { usePreloadSurface, useSurface } from "@beyo/hooks";
+import {
+  TASK_CREATION_WORKER_INTERNAL_SURFACE_ID,
+  preloadWorkerInternalTaskSlideSurface,
+  prefetchTaskCreationFormData,
+} from "@beyo/task-creation";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import {
   WorkingSectionsHomeProvider,
@@ -48,9 +55,7 @@ export function WoodWorkerHomeView(): React.JSX.Element {
               variants={tabVariants}
             >
               <div className="h-full overflow-y-auto">
-                <WoodWorkerSectionsView
-                  onSelectSection={handleSelectSection}
-                />
+                <WoodWorkerSectionsView onSelectSection={handleSelectSection} />
               </div>
             </m.div>
           ) : (
@@ -89,10 +94,15 @@ type WoodWorkerSectionsViewProps = {
 function WoodWorkerSectionsView({
   onSelectSection,
 }: WoodWorkerSectionsViewProps): React.JSX.Element {
+  const queryClient = useQueryClient();
+  const { open: openSurface } = useSurface();
   const { sections, isPending, isError, refetch } =
     useWorkingSectionsHomeContext();
   const scrollRef = useRef<HTMLDivElement>(null);
   const registerScrollElement = useRegisterScrollElement();
+
+  usePreloadSurface(preloadWorkerInternalTaskSlideSurface);
+  usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
   useEffect(() => {
     const el = scrollRef.current;
@@ -115,16 +125,6 @@ function WoodWorkerSectionsView({
         scrollRef={scrollRef}
         onRefresh={refetch}
       >
-        <div className="px-4 pt-2">
-          <button
-            className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-card"
-            type="button"
-            onClick={() => {}}
-          >
-            + New Internal Task
-          </button>
-        </div>
-
         {isPending ? (
           <div className="flex flex-col gap-3 px-0 py-2">
             {[0, 1, 2].map((i) => (
@@ -162,6 +162,18 @@ function WoodWorkerSectionsView({
             ))}
           </div>
         )}
+
+        <div className="px-4 pt-2 mt-2">
+          <button
+            className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-card"
+            type="button"
+            onClick={() =>
+              openSurface(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID)
+            }
+          >
+            + New Internal Task
+          </button>
+        </div>
       </PullToRefresh>
     </div>
   );

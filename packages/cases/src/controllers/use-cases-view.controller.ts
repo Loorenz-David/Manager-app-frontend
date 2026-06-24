@@ -4,6 +4,8 @@ import { selectUser, useAuthStore } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
 import type { CaseId, UserId } from "@beyo/lib";
 
+import { buildCasesScope, useCasesStore } from "../store/cases.store";
+
 import { useListCasesQuery } from "../api/use-list-cases";
 import { useUnreadCountsQuery } from "../api/use-unread-counts";
 import { ENABLE_TYPING_STUB } from "../lib/typing-indicator-flags";
@@ -58,9 +60,14 @@ export function useCasesViewController(
   const currentUserId = (useAuthStore(selectUser)?.id ?? null) as UserId | null;
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [activeFilter, setActiveFilter] = useState<CaseFilterPill>("unread");
   const [direction, setDirection] = useState<1 | -1>(1);
-  const previousFilterIndexRef = useRef(FILTER_INDEX.get("unread") ?? 0);
+
+  const scope = buildCasesScope(params.entityType, params.entityClientId);
+  const activeFilter =
+    useCasesStore((s) => s.activePillByScope[scope]) ?? "unread";
+  const setActivePill = useCasesStore((s) => s.setActivePill);
+
+  const previousFilterIndexRef = useRef(FILTER_INDEX.get(activeFilter) ?? 0);
   const [activeFilters, setActiveFilters] =
     useState<CasesFilterState>(DEFAULT_CASES_FILTER);
   const isResolvedFilterActive =
@@ -198,7 +205,7 @@ export function useCasesViewController(
       previousFilterIndexRef.current = nextIndex;
     }
 
-    setActiveFilter(filter);
+    setActivePill(scope, filter);
   }
 
   function openFilters(): void {

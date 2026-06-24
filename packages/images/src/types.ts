@@ -148,6 +148,21 @@ export const UnlinkImageInputSchema = z.object({
 });
 export type UnlinkImageInput = z.infer<typeof UnlinkImageInputSchema>;
 
+export const CreateImageFromUrlInputSchema = z.object({
+  image_url: z.string().url(),
+  entity_type: z.enum(IMAGE_LINK_ENTITY_TYPE),
+  entity_client_id: z.string(),
+  image_client_id: z.string().optional(),
+  width_px: z.number().int().positive().nullable().optional(),
+  height_px: z.number().int().positive().nullable().optional(),
+});
+export type CreateImageFromUrlInput = z.infer<typeof CreateImageFromUrlInputSchema>;
+
+export const CreateImageFromUrlBatchSchema = z
+  .array(CreateImageFromUrlInputSchema)
+  .min(1);
+export type CreateImageFromUrlBatch = z.infer<typeof CreateImageFromUrlBatchSchema>;
+
 export const CreateImageAnnotationInputSchema = z.object({
   image_client_id: z.string(),
   annotation_type: z.enum(IMAGE_ANNOTATION_TYPE),

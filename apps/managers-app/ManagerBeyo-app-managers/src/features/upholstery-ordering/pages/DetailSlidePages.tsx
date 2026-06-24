@@ -250,7 +250,7 @@ function DetailPage({ mode }: { mode: DetailMode }): React.JSX.Element {
           isCompact ? "translate-y-full" : "translate-y-0",
         )}
       >
-        <div className="grid grid-cols-2 gap-3  px-4 py-3.5 pb-[max(var(--safe-bottom,0),0.875rem)]">
+        <div className="grid grid-cols-2 gap-3 px-4 py-3.5">
           <button
             className="rounded-2xl rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
             type="button"
@@ -269,6 +269,7 @@ function DetailPage({ mode }: { mode: DetailMode }): React.JSX.Element {
             {primaryLabel}
           </button>
         </div>
+        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
       </div>
     </div>
   );

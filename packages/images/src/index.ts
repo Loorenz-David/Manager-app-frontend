@@ -40,6 +40,8 @@ export type {
   ImageAnnotationViewModel,
   AnnotatedCanvasItem,
   ImageAnnotationTool,
+  CreateImageFromUrlInput,
+  CreateImageFromUrlBatch,
 } from "./types";
 
 export {
@@ -55,7 +57,9 @@ export { ImageAnnotationSvgLayer } from "./components/ImageAnnotationSvgLayer";
 export { ImageUploadOverlay } from "./components/ImageUploadOverlay";
 
 export { useEntityImagesQuery } from "./api/use-entity-images";
+export { imageKeys } from "./api/image-keys";
 export { useImageQuery } from "./api/use-image";
+export { useCreateImagesFromUrl } from "./actions/use-create-images-from-url";
 
 export { useDeleteImage } from "./actions/use-delete-image";
 

@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react";
 
 import { generateClientId } from "@beyo/lib";
-import type { CaseId } from "@beyo/lib";
+import type { CaseConversationMessageId, CaseId } from "@beyo/lib";
 import { toBackendPlainText } from "../lib/message-content-adapter";
 import type { CaseMessageContent } from "../message-content";
 import type { CaseCreationSurfaceOpeners } from "../surface-ids";
@@ -12,7 +12,9 @@ import type {
 
 type CaseCreationFormContextValue = {
   caseClientId: CaseId;
+  messageClientId: CaseConversationMessageId;
   regenerateId: () => void;
+  regenerateMessageId: () => void;
   entityTypes?: string[];
   entityClientId?: string;
   selectedCaseType: CaseTypeSelectedDisplay | null;
@@ -51,6 +53,11 @@ export function CaseCreationFormProvider({
   const [caseClientId, setCaseClientId] = useState<CaseId>(
     () => generateClientId("Case") as CaseId,
   );
+  const [messageClientId, setMessageClientId] =
+    useState<CaseConversationMessageId>(
+      () =>
+        generateClientId("CaseConversationMessage") as CaseConversationMessageId,
+    );
   const [selectedCaseType, setSelectedCaseType] =
     useState<CaseTypeSelectedDisplay | null>(() => initialCaseType ?? null);
   const [selectedParticipants, setSelectedParticipants] = useState<
@@ -69,6 +76,12 @@ export function CaseCreationFormProvider({
     setCaseClientId(generateClientId("Case") as CaseId);
   }
 
+  function regenerateMessageId(): void {
+    setMessageClientId(
+      generateClientId("CaseConversationMessage") as CaseConversationMessageId,
+    );
+  }
+
   function setComposerContent(
     content: CaseMessageContent,
     plainText: string,
@@ -81,7 +94,9 @@ export function CaseCreationFormProvider({
     <CaseCreationFormContext.Provider
       value={{
         caseClientId,
+        messageClientId,
         regenerateId,
+        regenerateMessageId,
         entityTypes,
         entityClientId,
         selectedCaseType,

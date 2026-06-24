@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  selectClearSearch,
+  selectSearch,
+  selectSetSearch,
+  useTaskStepsUiStore,
+} from "@/store/task-steps-ui.store";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
@@ -131,7 +137,14 @@ export type WorkingSectionStepsController = {
 export function useWorkingSectionStepsController(
   sectionId: WorkingSectionId,
 ): WorkingSectionStepsController {
-  const [search, setSearch] = useState("");
+  const search = useTaskStepsUiStore(selectSearch);
+  const setSearch = useTaskStepsUiStore(selectSetSearch);
+  const clearSearch = useTaskStepsUiStore(selectClearSearch);
+
+  useEffect(() => {
+    return () => clearSearch();
+  }, [sectionId, clearSearch]);
+
   const [stateFilters, setStateFilters] =
     useState<StepState[]>(DEFAULT_STATE_FILTERS);
   const [majorCategoryFilters, setMajorCategoryFilters] = useState<

@@ -23,10 +23,10 @@ const SignInResponseSchema = ApiEnvelopeSchema(
   z.object({
     access_token: z.string(),
     user: z.object({
-      client_id: z.string().transform((value) => value as UserId),
+      user_id: z.string().transform((value) => value as UserId),
       email: z.string(),
       username: z.string(),
-      role: z.string(),
+      role_name: z.string(),
       backend_permissions: z.array(z.string()),
       ui: AuthUISchema,
     }),
@@ -58,10 +58,10 @@ async function signIn(credentials: SignInCredentials) {
 
   useAuthStore.getState().setUser(
     {
-      id: result.data.user.client_id,
+      id: result.data.user.user_id,
       email: result.data.user.email,
       username: result.data.user.username,
-      role: result.data.user.role as AuthRole,
+      role: result.data.user.role_name as AuthRole,
       workspaceRoleId: claims?.workspace_role_id ?? "",
       workspaceRoleName: claims?.workspace_role_name ?? null,
       appScope: claims?.app_scope ?? (appScope as AuthAppScope),

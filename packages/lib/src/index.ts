@@ -70,7 +70,11 @@ export type { ParsedNumberDraft } from "./number/parse-number-draft";
 export { sanitizeNumberInput } from "./number/sanitize-number-input";
 export { stepNumber } from "./number/step-number";
 
-export { DEFAULT_PHONE_COUNTRY_ISO2 } from "./phone/countries";
+export {
+  DEFAULT_PHONE_COUNTRY_ISO2,
+  PHONE_COUNTRIES,
+  getPhoneCountryByIso2,
+} from "./phone/countries";
 export { getCountryFlagEmoji } from "./phone/flag";
 export {
   formatPhoneDisplay,

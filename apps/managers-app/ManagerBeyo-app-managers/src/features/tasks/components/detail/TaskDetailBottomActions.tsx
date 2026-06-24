@@ -70,23 +70,26 @@ export function TaskDetailBottomActions({
       ) : null}
 
       <div
-        className="flex gap-3 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]"
+        className="bg-background shadow-[0_-1px_0_0_var(--color-border)]"
         data-testid="task-detail-bottom-actions"
       >
-        <button
-          className="flex-1 rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
-          type="button"
-          onClick={() => header?.requestClose()}
-        >
-          Close & Back
-        </button>
-        <button
-          type="button"
-          className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
-          onClick={openEditTask}
-        >
-          Edit
-        </button>
+        <div className="flex gap-3 px-4 pb-4 pt-3">
+          <button
+            className="flex-1 rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
+            type="button"
+            onClick={() => header?.requestClose()}
+          >
+            Close & Back
+          </button>
+          <button
+            type="button"
+            className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
+            onClick={openEditTask}
+          >
+            Edit
+          </button>
+        </div>
+        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
       </div>
     </div>
   );

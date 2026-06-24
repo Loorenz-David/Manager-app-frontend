@@ -18,21 +18,24 @@ export function InventoryDetailFooter({
         isHidden ? "pointer-events-none translate-y-full" : "translate-y-0",
       )}
     >
-      <div className="flex gap-3 bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
-        <button
-          className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
-          type="button"
-          onClick={() => header?.requestClose()}
-        >
-          Close & Back
-        </button>
-        <button
-          className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
-          type="button"
-          onClick={onEdit}
-        >
-          Edit
-        </button>
+      <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+        <div className="flex gap-3 px-4 pb-4 pt-3">
+          <button
+            className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
+            type="button"
+            onClick={() => header?.requestClose()}
+          >
+            Close & Back
+          </button>
+          <button
+            className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
+            type="button"
+            onClick={onEdit}
+          >
+            Edit
+          </button>
+        </div>
+        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
       </div>
     </div>
   );

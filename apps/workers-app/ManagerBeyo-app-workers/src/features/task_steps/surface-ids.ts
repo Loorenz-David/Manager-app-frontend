@@ -32,6 +32,7 @@ export type TaskStepActionsSheetSurfaceProps = {
 
 export type TaskCasesSlideSurfaceProps = {
   taskId: TaskId;
+  articleLabel?: string;
 };
 
 export type TaskStepDetailSurfaceProps = {

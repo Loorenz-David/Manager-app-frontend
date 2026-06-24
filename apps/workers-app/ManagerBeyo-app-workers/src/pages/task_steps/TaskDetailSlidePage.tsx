@@ -102,7 +102,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             isHidden ? "translate-y-full" : "translate-y-0",
           )}
         >
-          <div className="px-4 pb-[calc(var(--safe-bottom,0)+5.25rem)] pt-3">
+          <div className="px-4 pb-21 pt-3">
             <button
               className="w-full rounded-xl py-3 text-center font-semibold transition-opacity disabled:opacity-60"
               data-testid="task-step-complete-button"

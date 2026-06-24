@@ -9,6 +9,10 @@ import {
   TASK_STEP_DETAIL_SURFACE_ID,
   type CompleteTaskStepConfirmationSlideSurfaceProps,
 } from "@/features/task_steps/surface-ids";
+import {
+  selectClearSearch,
+  useTaskStepsUiStore,
+} from "@/store/task-steps-ui.store";
 
 type TimeAccuracy = "accurate" | "inaccurate";
 
@@ -39,6 +43,7 @@ export function CompleteTaskStepConfirmationSlidePage(): React.JSX.Element {
     onConfirm,
   } = useSurfaceProps<CompleteTaskStepConfirmationSlideSurfaceProps>();
   const [selection, setSelection] = useState<TimeAccuracy | null>(null);
+  const clearSearch = useTaskStepsUiStore(selectClearSearch);
 
   useEffect(() => {
     header?.setTitle("Complete task");
@@ -50,6 +55,7 @@ export function CompleteTaskStepConfirmationSlidePage(): React.JSX.Element {
     }
 
     onConfirm(selection === "inaccurate");
+    clearSearch();
     close(TASK_STEP_DETAIL_SURFACE_ID);
 
     if (header) {

@@ -2,12 +2,20 @@
 @import "@beyo/styles";
 @source "../../../../packages/ui/src";
 @source "../../../../packages/auth/src";
+@source "../../../../packages/customers/src";
 @source "../../../../packages/images/src";
+@source "../../../../packages/item-categories/src";
+@source "../../../../packages/items/src";
 @source "../../../../packages/cases/src";
+@source "../../../../packages/phone-input/src";
+@source "../../../../packages/scanner/src";
+@source "../../../../packages/task-creation/src";
 @source "../../../../packages/tasks/src";
 @source "../../../../packages/item-issues/src";
 @source "../../../../packages/notifications/src";
 @source "../../../../packages/celebration/src";
+@source "../../../../packages/upholstery/src";
+@source "../../../../packages/working-sections/src";
 
 @theme {
   --font-celebration: "Fredoka", sans-serif;

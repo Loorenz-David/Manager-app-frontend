@@ -79,8 +79,8 @@ function InventoryCreationFooter({
   const isCategoryStep = activeStepId === "category";
 
   return (
-    <div className="bg-background px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3 shadow-[0_-1px_0_0_var(--color-border)]">
-      <div className="flex gap-3">
+    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+      <div className="flex gap-3 px-4 pb-4 pt-3">
         <button
           className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
           type="button"
@@ -97,6 +97,7 @@ function InventoryCreationFooter({
           {isCategoryStep ? "Continue" : submitLabel}
         </button>
       </div>
+      <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
     </div>
   );
 }

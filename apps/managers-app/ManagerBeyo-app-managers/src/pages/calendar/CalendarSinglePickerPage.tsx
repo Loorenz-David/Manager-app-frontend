@@ -91,8 +91,9 @@ export function CalendarSinglePickerPage() {
         selected={selectedDate}
       />
       {quickSelectPills.length ? (
+        <>
         <div
-          className="flex flex-wrap items-center gap-2 border-t border-border px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3"
+          className="flex flex-wrap items-center gap-2 border-t border-border px-4 pb-4 pt-3"
           data-testid="calendar-single-picker-quick-select"
         >
           {quickSelectPills.map((option) => (
@@ -114,6 +115,8 @@ export function CalendarSinglePickerPage() {
             </button>
           ))}
         </div>
+        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+        </>
       ) : null}
     </div>
   );

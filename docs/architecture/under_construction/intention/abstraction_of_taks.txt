@@ -1,27 +1,45 @@
-We will be moving the current task creation forms to be part of packages so that they can be used by other applications and eventually to be also consumed by the manager application.
 
-The current manager application holds all the forms and the logic behind the task creation, so as some  components which are part of the task creation.
-The objective is to make the task creation forms package features and to make the components which are locally owned ( part of manager features ) also part of package features, the manager will serve as the point for building the packages but it will not consume this until they are tested with other applications which have no task creation at all, that way we can truly know if the abstraction has been made fully.
+at the image editor, some tools which make annotation creation calls are making the wrong request call shape.
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/images/src/pages/ImageEditorPage.tsx
 
-once we have made this form abastraction into packages, we will hooked the create interanl task from to the worker application, this form will be display on the worker application when tapping the button "+ new interanl task" at: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/features/home/components/variants/WoodWorkerHomeView.tsx
-the form renders on the slide page surace.
+making this request after creating a circle on the image i get an error:
 
-relevant files:
+Request URL
+http://192.168.1.246:8000/api/v1/images/img_01KVWP69XFAPJTBRHNYJ3N49NA/annotations
+Request Method
+POST
+Status Code
+422 Unprocessable Content
 
-task creation feature: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/task-creation
+response: 
 
-task creation pages: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/task-creation
-
-remember that this forms use components and logic from other features, some of this come from packages, other from the manager app it self . 
-packages that import with in packages is allowed but not pakages consuming apps features or functionaly.
-
-because of this we will also make the components and logic used on the forms which is part of the manager app, part of the packages also.
-
-align this implementation with the architectural principles, use the contract guide for selecting the correct contracts to follow: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/task_system/frontend_contract_goal_mapping_guide.md
-
-You will create an implementation plan using the plan template ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md , plan is also stored in here ). 
-After revision and corrections you will be implementing it, so make it easy for you to use it as usable context also. 
-
----
+{
+    "error": "items[0] missing required keys for circle: ['cx', 'cy', 'r']",
+    "ok": false
+}
 
 
+rectange also has the issue:
+Request URL
+http://192.168.1.246:8000/api/v1/images/img_01KVWP69XFAPJTBRHNYJ3N49NA/annotations
+Request Method
+POST
+Status Code
+422 Unprocessable Content
+
+response:
+
+{"error":"items[0] missing required keys for rectangle: ['h', 'w']","ok":false}
+
+same for highlight:
+Request URL
+http://192.168.1.246:8000/api/v1/images/img_01KVWP69XFAPJTBRHNYJ3N49NA/annotations
+Request Method
+POST
+Status Code
+422 Unprocessable Content
+
+{"error":"items[0] missing required keys for highlight: ['h', 'w']","ok":false}
+
+
+after taking a picture (/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/images/src/pages/ImageCameraPage.tsx) the editor page opens, the editor page should already load the tool page option when open so that the user doesn't endup with a skeleton loading when first openeing. we should also implement a local storage memory of the last tool that was used so that next time the user opens the image editor that tool is the one selected.

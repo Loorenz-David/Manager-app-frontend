@@ -5,7 +5,6 @@ import { useSurfaceHeader } from "@beyo/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
-import { generateClientId } from "@beyo/lib";
 import type { CaseId } from "@beyo/lib";
 
 import { useCreateCase } from "../actions/use-create-case";
@@ -33,7 +32,9 @@ export function CaseCreationFormContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const {
     caseClientId,
+    messageClientId,
     regenerateId,
+    regenerateMessageId,
     entityTypes,
     entityClientId,
     selectedCaseType,
@@ -162,7 +163,7 @@ export function CaseCreationFormContent(): React.JSX.Element {
         ...(hasInitialMessage
           ? {
               initial_message: {
-                client_id: generateClientId("CaseConversationMessage"),
+                client_id: messageClientId,
                 content: toBackendMessageContent(trimmedContent),
                 plain_text: toBackendPlainText(trimmedContent),
               },
@@ -178,6 +179,7 @@ export function CaseCreationFormContent(): React.JSX.Element {
       setSelectedCaseType(null);
       setComposerContent({ parts: [] }, "");
       regenerateId();
+      regenerateMessageId();
       setSelectedParticipants([]);
       setParticipantsTotalCount(null);
       header?.requestClose();
@@ -205,8 +207,8 @@ export function CaseCreationFormContent(): React.JSX.Element {
             <EntityImagesProvider
               captureFlow="camera-to-editor"
               deleteMode="hard-delete"
-              entityClientId={caseClientId}
-              entityType="case"
+              entityClientId={messageClientId}
+              entityType="case_conversation_message"
             >
               <ImagePreviewGrid
                 maxImages={6}
@@ -217,16 +219,19 @@ export function CaseCreationFormContent(): React.JSX.Element {
           <ParticipantPickerTriggerField />
         </div>
 
-        <div className="shrink-0 border-t border-border/60 px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3">
-          <button
-            type="button"
-            disabled={isPending}
-            data-testid="case-creation-submit"
-            className="flex w-full items-center justify-center rounded-2xl bg-foreground py-3.5 text-sm font-semibold text-background disabled:opacity-50"
-            onClick={() => void handleSubmit()}
-          >
-            {isPending ? "Creating…" : "Create case"}
-          </button>
+        <div className="shrink-0 border-t border-border/60">
+          <div className="px-4 pb-4 pt-3">
+            <button
+              type="button"
+              disabled={isPending}
+              data-testid="case-creation-submit"
+              className="flex w-full items-center justify-center rounded-2xl bg-foreground py-3.5 text-sm font-semibold text-background disabled:opacity-50"
+              onClick={() => void handleSubmit()}
+            >
+              {isPending ? "Creating…" : "Create case"}
+            </button>
+          </div>
+          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
         </div>
       </form>
     </FormProvider>

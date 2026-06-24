@@ -1,5 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
-import { ArrowUpDown, Loader2, Search, SlidersHorizontal } from "lucide-react";
+import { ArrowUpDown, Loader2, ScanLine, Search, SlidersHorizontal } from "lucide-react";
 import { forwardRef } from "react";
 
 import { transitions } from "@beyo/lib";
@@ -34,8 +34,11 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
       onChange,
       onSortPress,
       onFilterPress,
+      onScanPress,
       showSortButton = true,
       showFilterButton = true,
+      showScanButton = false,
+      scanDisabled = true,
       placeholder,
       disabled = false,
       isLoading = false,
@@ -49,7 +52,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
   ) => {
     const isFilterActive = activeFilterCount > 0;
     const actionButtonsCount =
-      Number(showSortButton) + Number(showFilterButton);
+      Number(showSortButton) + Number(showScanButton) + Number(showFilterButton);
 
     const loadingMinWidthClassName =
       actionButtonsCount === 0
@@ -112,6 +115,18 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
                 onClick={onSortPress}
               >
                 <ArrowUpDown className="size-4" />
+              </button>
+            ) : null}
+            {showScanButton ? (
+              <button
+                aria-label="Scan barcode"
+                className={searchBarActionButtonVariants({ active: false })}
+                data-testid={testId ? `${testId}-scan` : undefined}
+                disabled={disabled || scanDisabled}
+                type="button"
+                onClick={onScanPress}
+              >
+                <ScanLine className="size-4" />
               </button>
             ) : null}
             {showFilterButton ? (

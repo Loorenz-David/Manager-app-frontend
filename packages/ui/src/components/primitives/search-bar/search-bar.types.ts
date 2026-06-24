@@ -8,8 +8,11 @@ export type SearchBarProps = Omit<
   onChange: (value: string) => void;
   onSortPress?: () => void;
   onFilterPress?: () => void;
+  onScanPress?: () => void;
   showSortButton?: boolean;
   showFilterButton?: boolean;
+  showScanButton?: boolean;
+  scanDisabled?: boolean;
   placeholder?: string;
   disabled?: boolean;
   isLoading?: boolean;

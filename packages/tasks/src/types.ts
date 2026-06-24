@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { DateOnlySchema } from "@beyo/lib";
+
 export const TaskFlowRecordActorSchema = z.object({
   client_id: z.string(),
   username: z.string().nullable(),
@@ -79,3 +81,50 @@ export const TaskStepForPinSchema = z.object({
   working_section_image: z.string().nullable().optional(),
 });
 export type TaskStepForPin = z.infer<typeof TaskStepForPinSchema>;
+
+export const TASK_RETURN_SOURCE = [
+  "after_purchase",
+  "before_purchase",
+  "store_return",
+] as const;
+export const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
+
+export type TaskReturnSource = (typeof TASK_RETURN_SOURCE)[number];
+export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
+
+export const TaskAdditionalDetailsFieldsSchema = z.object({
+  additional_details: z.string().max(4000).optional(),
+});
+export type TaskAdditionalDetailsFields = z.infer<
+  typeof TaskAdditionalDetailsFieldsSchema
+>;
+
+export const CreateTaskInputSchema = z.object({
+  client_id: z.string(),
+  task_type: z.string(),
+  priority: z.string(),
+  title: z.string().max(255).optional(),
+  summary: z.string().max(1024).optional(),
+  ready_by_at: DateOnlySchema.nullable().optional(),
+  scheduled_start_at: DateOnlySchema.nullable().optional(),
+  scheduled_end_at: DateOnlySchema.nullable().optional(),
+  return_method: z.string().optional(),
+  fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
+  return_source: z.enum(TASK_RETURN_SOURCE).optional(),
+  item_location: z.string().optional(),
+  customer_id: z.string().min(1).optional(),
+  primary_phone_number: z.string().optional(),
+  secondary_phone_number: z.string().optional(),
+  primary_email: z.string().email("Enter a valid email.").optional().or(z.literal("")),
+  secondary_email: z.string().email("Enter a valid email.").optional().or(z.literal("")),
+  address: z
+    .object({
+      street: z.string().optional(),
+      city: z.string().optional(),
+      postal_code: z.string().optional(),
+      country: z.string().optional(),
+    })
+    .nullable(),
+  additional_details: z.record(z.string(), z.unknown()).optional(),
+});
+export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;

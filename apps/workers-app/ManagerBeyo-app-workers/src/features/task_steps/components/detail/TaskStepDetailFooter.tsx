@@ -54,8 +54,9 @@ export function TaskStepDetailFooter({
   }, []);
 
   return (
-    <div className="border-t border-border bg-background px-4 pb-[calc(var(--safe-bottom,0)+0.75rem)] pt-3">
-      <div className="flex gap-3">
+    <div className="border-t border-border bg-background">
+      <div className="flex gap-3 px-4 pb-3 pt-3">
+
         <button
           type="button"
           className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-card shadow-sm text-primary border border-between-border px-4 py-3.5 text-sm font-semibold  transition"
@@ -81,6 +82,7 @@ export function TaskStepDetailFooter({
           </button>
         </div>
       </div>
+      <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
     </div>
   );
 }

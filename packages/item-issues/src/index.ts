@@ -9,12 +9,18 @@ export type {
   IssueTypeGroup,
   IssueTypeLink,
   ItemIssue,
+  ItemIssueFieldEntry,
+  ItemIssuesFields,
   ListIssueTypesParams,
   ListIssueTypesResponse,
   ListItemIssuesParams,
   ListItemIssuesResponse,
 } from "./types";
-export { IssueModeSchema } from "./types";
+export {
+  IssueModeSchema,
+  ItemIssueFieldEntrySchema,
+  ItemIssuesFieldsSchema,
+} from "./types";
 
 export { issueTypeKeys } from "./api/issue-type-keys";
 export { itemIssueKeys } from "./api/item-issue-keys";

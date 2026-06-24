@@ -3,19 +3,20 @@ import { ArrowLeft } from "lucide-react";
 import { notify } from "@beyo/lib";
 import type { TaskStepId } from "@beyo/lib";
 import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
-import { usePreloadSurface } from "@beyo/hooks";
+import { usePreloadSurface, useSurface } from "@beyo/hooks";
+import {
+  SCANNER_SESSION_ID,
+  SCANNER_SLIDE_SURFACE_ID,
+  type ScannerSlideSurfaceProps,
+} from "@beyo/scanner";
+import { preloadScannerSlideSurface } from "@beyo/task-creation";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import { useBatchSelectionOverlay } from "@/providers/BatchSelectionOverlayProvider";
 import type { WorkingSectionViewModel } from "../../working_sections/types";
 import { preloadStepStateFilterSheetSurface } from "../surfaces";
 import { useWorkingSectionStepsContext } from "../providers/WorkingSectionStepsProvider";
-import {
-  useTransitionBatchStepStates,
-} from "../actions/use-transition-batch-step-states";
-import {
-  canTransitionToWorking,
-  getBatchTransitionItems,
-} from "../types";
+import { useTransitionBatchStepStates } from "../actions/use-transition-batch-step-states";
+import { canTransitionToWorking, getBatchTransitionItems } from "../types";
 import { BatchSelectableTaskStepCard } from "./BatchSelectableTaskStepCard";
 import { TaskStepCard } from "./TaskStepCard";
 
@@ -29,6 +30,9 @@ export function WorkingSectionStepsView({
   onBack,
 }: WorkingSectionStepsViewProps): React.JSX.Element {
   usePreloadSurface(preloadStepStateFilterSheetSurface);
+  usePreloadSurface(preloadScannerSlideSurface);
+
+  const surface = useSurface();
 
   const {
     steps,
@@ -81,9 +85,10 @@ export function WorkingSectionStepsView({
 
   // Steps that are selected AND can legally transition to working
   const eligibleSelectedSteps = useMemo(
-    () => rawSteps.filter(
-      (s) => selectedStepIds.has(s.client_id) && canTransitionToWorking(s),
-    ),
+    () =>
+      rawSteps.filter(
+        (s) => selectedStepIds.has(s.client_id) && canTransitionToWorking(s),
+      ),
     [rawSteps, selectedStepIds],
   );
 
@@ -125,6 +130,17 @@ export function WorkingSectionStepsView({
       },
       { onSuccess: () => setSelectedStepIds(new Set()) },
     );
+  }
+
+  function handleOpenScanner(): void {
+    surface.open(SCANNER_SLIDE_SURFACE_ID, {
+      sessionId: SCANNER_SESSION_ID,
+      scanFormat: "barcode",
+      onScan: (value: string) => {
+        setSearch(value);
+        surface.close(SCANNER_SLIDE_SURFACE_ID);
+      },
+    } satisfies ScannerSlideSurfaceProps);
   }
 
   const nonTerminalEntries = Object.entries(nonTerminalCounts).filter(
@@ -171,7 +187,7 @@ export function WorkingSectionStepsView({
           </div>
         </div>
 
-        {nonTerminalEntries.length > 0 ? (
+        {/* {nonTerminalEntries.length > 0 ? (
           <div
             className="flex flex-wrap gap-1.5 pl-12"
             data-testid="working-section-steps-counts"
@@ -185,16 +201,19 @@ export function WorkingSectionStepsView({
               </span>
             ))}
           </div>
-        ) : null}
+        ) : null} */}
 
         <SearchBar
           showSortButton={false}
+          showScanButton
+          scanDisabled={false}
           activeFilterCount={activeFilterCount}
           data-testid="working-section-steps-search"
           placeholder="Search by article, SKU…"
           value={search}
           onChange={setSearch}
           onFilterPress={handleOpenStateFilter}
+          onScanPress={handleOpenScanner}
         />
       </header>
 
@@ -274,7 +293,9 @@ export function WorkingSectionStepsView({
           <button
             className="w-full rounded-xl bg-primary py-3.5 text-sm font-semibold text-card shadow-lg transition-opacity disabled:opacity-60"
             data-testid="batch-start-button"
-            disabled={isBatchTransitioning || eligibleSelectedSteps.length === 0}
+            disabled={
+              isBatchTransitioning || eligibleSelectedSteps.length === 0
+            }
             type="button"
             onClick={handleBatchStart}
           >

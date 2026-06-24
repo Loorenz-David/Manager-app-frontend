@@ -117,3 +117,14 @@ export type IssueTypeGroup = {
   placement: string;
   issueTypes: IssueType[];
 };
+
+export const ItemIssueFieldEntrySchema = z.object({
+  issue_id: z.string().min(1),
+  issue_severity_id: z.string().optional().or(z.literal("")),
+});
+export type ItemIssueFieldEntry = z.infer<typeof ItemIssueFieldEntrySchema>;
+
+export const ItemIssuesFieldsSchema = z.object({
+  item_issues: z.array(ItemIssueFieldEntrySchema).default([]),
+});
+export type ItemIssuesFields = z.infer<typeof ItemIssuesFieldsSchema>;

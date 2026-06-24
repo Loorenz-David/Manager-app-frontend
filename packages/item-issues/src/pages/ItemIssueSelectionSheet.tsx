@@ -419,7 +419,8 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
         </div>
       </div>
 
-      <div className="flex gap-3 px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-3">
+      <div className="bg-background">
+      <div className="flex gap-3 px-4 pb-4 pt-3">
         <button
           className="flex-1 rounded-xl border border-light-border bg-card px-4 py-3 text-sm font-semibold shadow-sm text-foreground disabled:opacity-50"
           data-testid="cancel-issues-button"
@@ -440,6 +441,8 @@ export function ItemIssueSelectionSheet(): React.JSX.Element | null {
         >
           {isSaving ? "Saving..." : "Save"}
         </button>
+      </div>
+      <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
       </div>
     </div>
   );
