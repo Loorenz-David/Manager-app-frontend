@@ -143,10 +143,6 @@ export function WorkingSectionStepsView({
     } satisfies ScannerSlideSurfaceProps);
   }
 
-  const nonTerminalEntries = Object.entries(nonTerminalCounts).filter(
-    ([, count]) => count > 0,
-  );
-
   return (
     <div
       className="relative flex h-full flex-col"
