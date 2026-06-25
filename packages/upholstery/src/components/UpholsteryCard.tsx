@@ -40,8 +40,8 @@ export function UpholsteryCard({
   testId,
 }: UpholsteryCardProps): React.JSX.Element {
   const thumbnailUrl = getUpholsteryImageUrl(record.image_url, {
-    width: 64,
-    height: 64,
+    width: 40,
+    height: 40,
     fillCanvas: true,
   });
   const conditionColors = {

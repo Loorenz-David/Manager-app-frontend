@@ -35,6 +35,7 @@ export function InventoryListView(): React.JSX.Element {
   const searchRecordById = new Map(
     controller.searchUpholsteries.map((record) => [record.client_id, record] as const),
   );
+  console.log("[InventoryListView] searchUpholsteries:", controller.searchUpholsteries.map((r) => ({ client_id: r.client_id, name: r.name, origin: r.origin })));
 
   return (
     <div
@@ -116,20 +117,23 @@ export function InventoryListView(): React.JSX.Element {
                             }}
                             onTapAdd={(card) => {
                               const searchRecord = searchRecordById.get(card.inventoryId);
+                              console.log("[InventoryListView] onTapAdd – inventoryId:", card.inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
-                                controller.openFromSearch(searchRecord);
+                                controller.openFromSearchAdd(searchRecord);
                               }
                             }}
                             onTapActions={(inventoryId) => {
                               const searchRecord = searchRecordById.get(inventoryId);
+                              console.log("[InventoryListView] onTapActions – inventoryId:", inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
-                                controller.openFromSearch(searchRecord);
+                                controller.openFromSearchDetail(searchRecord);
                               }
                             }}
                             onTapCard={(inventoryId) => {
                               const searchRecord = searchRecordById.get(inventoryId);
+                              console.log("[InventoryListView] onTapCard – inventoryId:", inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
-                                controller.openFromSearch(searchRecord);
+                                controller.openFromSearchDetail(searchRecord);
                               }
                             }}
                           />

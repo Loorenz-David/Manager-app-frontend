@@ -15,6 +15,7 @@ export const UpholsteryPickerOptionSchema = z.object({
   image_url: z.string().nullable(),
   favorite: z.boolean().nullable(),
   list_order: z.number().nullable(),
+  inventory_id: z.string().nullable().optional(),
   current_stored_amount_meters: z
     .union([z.string(), z.number()])
     .nullable()
@@ -80,9 +81,12 @@ export type UpholsteryPickerRecord = Omit<
 
 export type CreateUpholsteryInput = {
   client_id: string;
+  upholstery_inventory_id?: string | null;
   name: string;
   code: string | null;
   image_url: string | null;
+  upholstery_category_id?: string | null;
+  upholstery_category_name?: string | null;
 };
 
 export const ItemUpholsteryFieldsSchema = z.object({

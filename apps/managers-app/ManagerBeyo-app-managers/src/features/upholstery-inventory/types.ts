@@ -134,7 +134,7 @@ export type InventoryDetailViewModel = {
   inUseDisplay: string;
   totalUsedDisplay: string;
   condition: InventoryConditionPresentation;
-  raw: UpholsteryInventoryDetail;
+  raw: UpholsteryInventoryDetail | null;
 };
 
 export const CreateInventoryFormSchema = z.object({

@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
+import { useUpholsteryPickerController } from "@beyo/upholstery";
+
 import { UpholsteryCard } from "@/features/upholstery/components/UpholsteryCard";
 import { UpholsteryPickerHeader } from "@/features/upholstery/components/UpholsteryPickerHeader";
-import { useUpholsteryPickerController } from "@/features/upholstery/controllers/use-upholstery-picker.controller";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
 
@@ -58,6 +59,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
   }, [searchQuery]);
 
   function handleSelect(clientId: string): void {
+    controller.prepareSelect(clientId);
     onSelect?.(clientId);
     header?.requestClose();
   }

@@ -14,6 +14,7 @@ const TEST_RECORD = {
   current_stored_amount_meters: '1.05',
   inventory_condition: 'available' as const,
   upholstery_category: null,
+  origin: 'database' as const,
 };
 
 describe('UpholsteryCard', () => {

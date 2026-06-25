@@ -2,7 +2,7 @@ import { cva } from 'class-variance-authority';
 import { GripVertical, Heart } from 'lucide-react';
 
 import { ImagePlaceholder } from '@/components/primitives';
-import { formatMeters, type UpholsteryPickerRecord } from '@/features/upholstery/types';
+import { formatMeters, type UpholsteryPickerRecord } from '@beyo/upholstery';
 import { cn } from '@/lib/utils';
 
 const upholsteryCardVariants = cva(

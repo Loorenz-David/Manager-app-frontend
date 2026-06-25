@@ -1,0 +1,33 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            set -e
+
+            cd /var/www/managerbeyo-frontend-src
+
+            sudo git fetch origin
+            sudo git reset --hard origin/main
+            sudo chown -R ubuntu:ubuntu /var/www/managerbeyo-frontend-src
+
+            npm install --include=optional
+            npm install -D lightningcss-linux-x64-gnu @rolldown/binding-linux-x64-gnu
+
+            npm --workspace managerbeyo-app-managers run build
+            rsync -a --delete apps/managers-app/ManagerBeyo-app-managers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-managers/
+
+            npm --workspace managerbeyo-app-workers run build
+            rsync -a --delete apps/workers-app/ManagerBeyo-app-workers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-workers/

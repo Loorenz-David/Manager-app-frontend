@@ -37,7 +37,7 @@ function defaultCreateValues(
   prefill?: InventoryCreationPrefillData,
 ): CreateInventoryFormValues {
   return {
-    upholstery_category_id: null,
+    upholstery_category_id: prefill?.upholsteryCategoryId ?? null,
     name: prefill?.name ?? "",
     code: prefill?.code ?? "",
     image_url: prefill?.imageUrl ?? null,
@@ -325,7 +325,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
                 isEditMode
                   ? upholsteryQuery.data?.upholstery_category?.id ??
                     editProps?.prefill.upholstery_category_id
-                  : null
+                  : prefillProps?.prefill.upholsteryCategoryId ?? null
               }
               value={selectedCategoryId}
               onChange={handleCategoryChange}

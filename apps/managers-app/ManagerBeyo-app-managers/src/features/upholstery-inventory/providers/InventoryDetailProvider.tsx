@@ -4,6 +4,7 @@ import {
   useInventoryDetailController,
   type InventoryDetailController,
 } from "../controllers/use-inventory-detail.controller";
+import type { InventoryDetailPrefill } from "../surfaces";
 import type { UpholsteryInventoryId } from "@/types/common";
 
 const InventoryDetailContext =
@@ -22,11 +23,13 @@ export function useInventoryDetailContext(): InventoryDetailController {
 export function InventoryDetailProvider({
   children,
   inventoryId,
+  prefill,
 }: {
   children: ReactNode;
   inventoryId: UpholsteryInventoryId;
+  prefill?: InventoryDetailPrefill;
 }): React.JSX.Element {
-  const controller = useInventoryDetailController(inventoryId);
+  const controller = useInventoryDetailController(inventoryId, prefill);
   return (
     <InventoryDetailContext.Provider value={controller}>
       {children}

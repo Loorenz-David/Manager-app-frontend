@@ -1,32 +1,5 @@
 
-
-
-we will improve the current upholstery picker to support new capability in it's query and on selection.
-
-the upholstery picker: 
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/upholstery/src/pages/UpholsteryPickerSlidePage.tsx
-
-currently the query search on that page only uses the endpoint ( /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/upholstery/src/api/fetch-upholstery-picker-options.ts )
-
-we will now make two parallel calls, we still use that endpoint, but we also make the the call to the endpoint: GET /api/v1/upholsteries/external/nevotex
-this endpoint is docuemented at : /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_upholstery_nevotex_and_inline_category_20260625.md
-
-the response objects of this new endpoint call, bring the nevotex ( external upholstery service ) objects, normalized to the upholstery shape.
-
-because we will get objects from the db query and for the nevotex query , we will organize them on the list rendered as db query takes over as priority to render than the nevotex render.
-any duplicates on naming or in code the db query takes over that object. any show more call is for the db query, the nevotex objects are there to fill up the ones the db query did not bring.
-
-on the selection of an upholstery if the upholstery comes from db origin then it continues to do what it does, if not then it will make the call for creating the upholstery with the upholstery category also, using the endpoint: 
-endpoint documented at: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_upholstery_nevotex_and_inline_category_20260625.md
-
-because the frontend has control over the client id creation ids the frontend can react optimistically as if the instance was a db instance.
-
-the behaviour of selecting an upholstery that is not a db instance thus calling the creation endpoint, is a behaviour that is also used for the mark favorite.
-if the user marks favority an upholstery that is not part of the db query then we call the creation of upholstery and upholstery category endpoint then we call the favorite endpoint.
-this call has to be sequential because marking an upholstery as favorite requires for the upholstery to exist in the db. but the frontend can react optimistically to this call as the frontend has controll over the client ids that will be use to create the upholstery instances.
-
-
------
+now that the implementation of this double query for upholstery is in place and the correction plan ( PLAN_upholstery_picker_nevotex_corrections_20260625.md ) was already implement it, we will improve the manager applicaiton upholstery inventory query page.
 
 at the upholstery inventory pae we will make some changes to the values that render on the list when using the searchbar.
 
@@ -42,4 +15,6 @@ which is if the user taps on the button for adding stored amount to the upholste
 so by the time the user adds the quantity on the bottom sheet form, the upholstery is already created, ( the frontend has power over the client id creations so we can build the system around queues so the user sees a smooth transition of actions with out waiting, the frontend handles the queues base on response ).
 
 we will use the same interaction when the user taps on an upholstery that ins not part of the upholstery db query, it will open the upholstery detail page , of course ther ewill be no current_* values, so all reads on 0 but as the user opens the upholstery we make the call to create it.
+
+you can create an implementation plan for codex, using the template /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md
 

@@ -85,7 +85,7 @@ function DetailContent(): React.JSX.Element {
 }
 
 export function UpholsteryInventoryDetailSlidePage(): React.JSX.Element {
-  const { inventoryId } = useSurfaceProps<InventoryDetailSurfaceProps>();
+  const { inventoryId, prefill } = useSurfaceProps<InventoryDetailSurfaceProps>();
 
   if (!inventoryId) {
     return (
@@ -102,6 +102,7 @@ export function UpholsteryInventoryDetailSlidePage(): React.JSX.Element {
     >
       <InventoryDetailProvider
         inventoryId={inventoryId as UpholsteryInventoryId}
+        prefill={prefill}
       >
         <DetailContent />
       </InventoryDetailProvider>

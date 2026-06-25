@@ -41,7 +41,7 @@ export const CLIENT_ID_PREFIXES = {
   TaskStepAssignmentRecord: 'tsar',
   TaskStepDependency: 'tsd',
   Upholstery: 'uph',
-  UpholsteryInventory: 'uphi',
+  UpholsteryInventory: 'uin',
   UpholsteryOrder: 'uor',
   User: 'usr',
   UserAppViewRecord: 'uavr',

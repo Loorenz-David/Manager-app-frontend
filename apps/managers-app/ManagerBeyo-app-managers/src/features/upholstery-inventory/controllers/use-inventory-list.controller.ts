@@ -24,6 +24,7 @@ import {
   STORED_AMOUNT_SHEET_ID,
   type InventoryCardActionsSurfaceProps,
   type InventoryCreationSurfaceProps,
+  type InventoryDetailPrefill,
   type InventoryDetailSurfaceProps,
   type StoredAmountSurfaceProps,
 } from "../surfaces";
@@ -33,6 +34,17 @@ import {
 } from "../types";
 
 export type InventoryPanelId = "categories" | "inventory" | "search";
+
+// Derive the category name from a single Nevotex upholstery name by stripping
+// everything from the first numeric token onward.
+// "Tyg Ballroom Blitz 0408 Steel" → "Tyg Ballroom Blitz"
+// "Tyg Lazy 21 Rose"              → "Tyg Lazy"
+// Returns null when no numeric separator is found (pattern not recognised).
+function deriveItemCategoryName(name: string): string | null {
+  const words = name.trim().split(/\s+/);
+  const firstNumericIndex = words.findIndex((w) => /^\d/.test(w));
+  return firstNumericIndex > 0 ? words.slice(0, firstNumericIndex).join(" ") : null;
+}
 
 function mergePickerResults(
   dbItems: UpholsteryPickerOption[],
@@ -78,6 +90,7 @@ export function useInventoryListController() {
   const [upholsterySearchQ, setUpholsterySearchQState] = useState("");
   const [debouncedUpholsterySearchQ, setDebouncedUpholsterySearchQ] = useState("");
   const nevotexClientIdsRef = useRef(new Map<string, string>());
+  const nevotexInventoryClientIdsRef = useRef(new Map<string, string>());
   const isSearchActive = upholsterySearchQ.trim().length > 0;
   const activePanelId: InventoryPanelId = isSearchActive ? "search" : storedPanelId;
 
@@ -103,6 +116,7 @@ export function useInventoryListController() {
     { q: debouncedUpholsterySearchQ, limit: 7 },
     { enabled: isSearchActive },
   );
+
   const createUpholsteryAction = useCreateUpholstery();
 
   const getClientIdForNevotex = useCallback((record: UpholsteryPickerOption) => {
@@ -115,6 +129,18 @@ export function useInventoryListController() {
 
     const clientId = generateClientId("Upholstery");
     nevotexClientIdsRef.current.set(key, clientId);
+    return clientId;
+  }, []);
+
+  const getInventoryClientIdForNevotex = useCallback((upholsteryClientId: string) => {
+    const existing = nevotexInventoryClientIdsRef.current.get(upholsteryClientId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const clientId = generateClientId("UpholsteryInventory");
+    nevotexInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
     return clientId;
   }, []);
 
@@ -177,9 +203,10 @@ export function useInventoryListController() {
     await categoriesQuery.refetch();
   }
 
-  function openDetail(inventoryId: UpholsteryInventoryId): void {
+  function openDetail(inventoryId: UpholsteryInventoryId, prefill?: InventoryDetailPrefill): void {
     useSurfaceStore.getState().open(INVENTORY_DETAIL_SLIDE_ID, {
       inventoryId,
+      prefill,
     } satisfies InventoryDetailSurfaceProps);
   }
 
@@ -201,16 +228,21 @@ export function useInventoryListController() {
     } satisfies StoredAmountSurfaceProps);
   }
 
-  function prepareAndOpenFromSearch(record: UpholsteryPickerRecord): void {
-    if (record.origin === "nevotex") {
-      createUpholsteryAction.mutate({
-        client_id: record.client_id,
-        name: record.name,
-        code: record.code,
-        image_url: record.image_url,
-      });
-    }
+  function prepareNevotexCreate(record: UpholsteryPickerRecord): string {
+    const inventoryClientId = getInventoryClientIdForNevotex(record.client_id);
+    const categoryName = deriveItemCategoryName(record.name);
+    createUpholsteryAction.mutate({
+      client_id: record.client_id,
+      upholstery_inventory_id: inventoryClientId,
+      name: record.name,
+      code: record.code,
+      image_url: record.image_url,
+      upholstery_category_name: categoryName,
+    });
+    return inventoryClientId;
+  }
 
+  function openCreationFormFromSearch(record: UpholsteryPickerRecord): void {
     useSurfaceStore.getState().open(INVENTORY_CREATION_SLIDE_ID, {
       mode: "prefill",
       prefill: {
@@ -218,8 +250,55 @@ export function useInventoryListController() {
         code: record.code,
         imageUrl: record.image_url,
         upholsteryClientId: record.client_id,
+        upholsteryCategoryId: record.upholstery_category?.id ?? null,
       },
     } satisfies InventoryCreationSurfaceProps);
+  }
+
+  function openFromSearchDetail(record: UpholsteryPickerRecord): void {
+    if (record.origin === "nevotex") {
+      const inventoryClientId = prepareNevotexCreate(record);
+      openDetail(inventoryClientId as UpholsteryInventoryId, {
+        name: record.name,
+        code: record.code,
+        imageUrl: record.image_url,
+      });
+      return;
+    }
+    if (record.inventory_id) {
+      openDetail(record.inventory_id as UpholsteryInventoryId);
+      return;
+    }
+    openCreationFormFromSearch(record);
+  }
+
+  function openFromSearchAdd(record: UpholsteryPickerRecord): void {
+    if (record.origin === "nevotex") {
+      const inventoryClientId = prepareNevotexCreate(record);
+      useSurfaceStore.getState().open(STORED_AMOUNT_SHEET_ID, {
+        inventoryId: inventoryClientId as UpholsteryInventoryId,
+        prefill: {
+          currentStoredAmountMeters: null,
+          imageUrl: record.image_url,
+          upholsteryName: record.name,
+          storedDisplay: "0 m",
+        },
+      } satisfies StoredAmountSurfaceProps);
+      return;
+    }
+    if (record.inventory_id) {
+      useSurfaceStore.getState().open(STORED_AMOUNT_SHEET_ID, {
+        inventoryId: record.inventory_id as UpholsteryInventoryId,
+        prefill: {
+          currentStoredAmountMeters: record.current_stored_amount_meters,
+          imageUrl: record.image_url,
+          upholsteryName: record.name,
+          storedDisplay: record.current_stored_amount_meters ?? "0 m",
+        },
+      } satisfies StoredAmountSurfaceProps);
+      return;
+    }
+    openCreationFormFromSearch(record);
   }
 
   return {
@@ -245,7 +324,8 @@ export function useInventoryListController() {
     openDetail,
     openCardActions,
     openAddAmount,
-    openFromSearch: prepareAndOpenFromSearch,
+    openFromSearchDetail,
+    openFromSearchAdd,
   };
 }
 

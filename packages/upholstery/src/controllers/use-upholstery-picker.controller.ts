@@ -26,6 +26,12 @@ function getNevotexIdentity(record: UpholsteryPickerOption): string {
   return record.name.trim().toLowerCase();
 }
 
+function deriveItemCategoryName(name: string): string | null {
+  const words = name.trim().split(/\s+/);
+  const firstNumericIndex = words.findIndex((w) => /^\d/.test(w));
+  return firstNumericIndex > 0 ? words.slice(0, firstNumericIndex).join(" ") : null;
+}
+
 function mergePickerResults(
   dbItems: UpholsteryPickerOption[],
   nevotexItems: UpholsteryPickerOption[],
@@ -64,6 +70,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
     () => new Set(),
   );
   const nevotexClientIdsRef = useRef(new Map<string, string>());
+  const nevotexInventoryClientIdsRef = useRef(new Map<string, string>());
 
   const inStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: true });
   const outOfStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: false });
@@ -91,6 +98,18 @@ export function useUpholsteryPickerController(searchQuery: string) {
 
     const clientId = generateClientId("Upholstery");
     nevotexClientIdsRef.current.set(key, clientId);
+    return clientId;
+  }, []);
+
+  const getInventoryClientIdForNevotex = useCallback((upholsteryClientId: string): string => {
+    const existing = nevotexInventoryClientIdsRef.current.get(upholsteryClientId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const clientId = generateClientId("UpholsteryInventory");
+    nevotexInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
     return clientId;
   }, []);
 
@@ -226,9 +245,14 @@ export function useUpholsteryPickerController(searchQuery: string) {
 
     createUpholsteryAction.mutate({
       client_id: clientId,
+      upholstery_inventory_id: getInventoryClientIdForNevotex(clientId),
       name: record.name,
       code: record.code,
       image_url: record.image_url,
+      upholstery_category_id: record.upholstery_category?.id ?? null,
+      upholstery_category_name: record.upholstery_category?.id
+        ? null
+        : deriveItemCategoryName(record.name),
     });
   }
 
@@ -265,9 +289,14 @@ export function useUpholsteryPickerController(searchQuery: string) {
     try {
       await createUpholsteryAction.mutateAsync({
         client_id: clientId,
+        upholstery_inventory_id: getInventoryClientIdForNevotex(clientId),
         name: record.name,
         code: record.code,
         image_url: record.image_url,
+        upholstery_category_id: record.upholstery_category?.id ?? null,
+        upholstery_category_name: record.upholstery_category?.id
+          ? null
+          : deriveItemCategoryName(record.name),
       });
       await toggleFavoriteAction.toggleFavoriteAsync({
         client_id: clientId,

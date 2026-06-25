@@ -14,8 +14,15 @@ export const INVENTORY_CARD_ACTIONS_SHEET_ID =
 export const INVENTORY_DETAIL_ACTIONS_SHEET_ID =
   "upholstery-inventory-detail-actions";
 
+export type InventoryDetailPrefill = {
+  name: string;
+  code: string | null;
+  imageUrl: string | null;
+};
+
 export type InventoryDetailSurfaceProps = {
   inventoryId: UpholsteryInventoryId;
+  prefill?: InventoryDetailPrefill;
 };
 
 export type InventoryCardActionsSurfaceProps = {
@@ -41,6 +48,7 @@ export type InventoryCreationPrefillData = {
   code: string | null;
   imageUrl: string | null;
   upholsteryClientId: string;
+  upholsteryCategoryId?: string | null;
 };
 
 export type InventoryCreationSurfaceProps =

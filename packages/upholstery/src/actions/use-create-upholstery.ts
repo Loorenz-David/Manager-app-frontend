@@ -25,6 +25,8 @@ export function useCreateUpholstery() {
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: upholsteryKeys.pickerLists() });
+      void queryClient.invalidateQueries({ queryKey: ["upholstery-categories"] });
+      void queryClient.invalidateQueries({ queryKey: ["upholstery-inventories"] });
     },
   });
 
