@@ -56,7 +56,7 @@ export function InventoryQuantityOverview(): React.JSX.Element | null {
   const normalized = normalizeNonNegativeDecimalString(draft);
 
   function startEdit(): void {
-    setDraft(detail!.raw.current_stored_amount_meters ?? "");
+    setDraft(detail!.raw?.current_stored_amount_meters ?? "");
     setSaveError(null);
     setIsEditing(true);
   }
