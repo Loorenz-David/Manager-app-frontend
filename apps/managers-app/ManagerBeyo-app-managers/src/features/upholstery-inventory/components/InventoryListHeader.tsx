@@ -28,9 +28,10 @@ type InventoryListHeaderProps = {
   activePanelId: InventoryPanelId;
   direction: 1 | -1;
   selectedCategory: UpholsteryCategory | null;
-  categoryQ: string;
+  upholsterySearchQ: string;
+  isSearchLoading: boolean;
   isCategoriesFetching: boolean;
-  onCategoryQChange: (value: string) => void;
+  onUpholsterySearchQChange: (value: string) => void;
   onBack: () => void;
 };
 
@@ -38,18 +39,22 @@ export function InventoryListHeader({
   activePanelId,
   direction,
   selectedCategory,
-  categoryQ,
+  upholsterySearchQ,
+  isSearchLoading,
   isCategoriesFetching,
-  onCategoryQChange,
+  onUpholsterySearchQChange,
   onBack,
 }: InventoryListHeaderProps): React.JSX.Element {
+  const isSearchLikeBrowseHeader =
+    activePanelId === "categories" || activePanelId === "search";
+
   return (
     <div
       className="relative h-20 overflow-hidden bg-background"
       data-testid="upholstery-inventory-header"
     >
       <AnimatePresence custom={direction} initial={false} mode="sync">
-        {activePanelId === "categories" ? (
+        {isSearchLikeBrowseHeader ? (
           <m.div
             key="category-browse-header"
             animate="center"
@@ -61,11 +66,11 @@ export function InventoryListHeader({
           >
             <SearchBar
               data-testid="upholstery-inventory-category-search-bar"
-              isLoading={isCategoriesFetching}
-              placeholder="Search categories..."
-              value={categoryQ}
+              isLoading={activePanelId === "search" ? isSearchLoading : isCategoriesFetching}
+              placeholder="Search upholstery..."
+              value={upholsterySearchQ}
               wrapperClassName="bg-[var(--color-card)]"
-              onChange={onCategoryQChange}
+              onChange={onUpholsterySearchQChange}
             />
           </m.div>
         ) : selectedCategory ? (

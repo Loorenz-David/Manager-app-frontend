@@ -11,9 +11,17 @@ import { StagedForm, StagedFormStep } from "@/components/primitives";
 import {
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
-} from "@/components/primitives/date";
+} from "@beyo/task-creation";
 import { CustomerFieldGroup, CustomerFieldsSchema } from "@/features/customers";
 import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
+import {
+  TaskAdditionalDetailsField,
+  TaskAdditionalDetailsFieldsSchema,
+  TaskDeliveryDateField,
+  TaskFulfillmentMethodField,
+  TaskReadyByDateField,
+  TaskReturnSourceField,
+} from "@beyo/tasks";
 import {
   ItemCategorySelectionField,
   ItemDetailsFieldGroup,
@@ -23,14 +31,6 @@ import {
   ItemUpholsteryField,
   ItemUpholsteryFieldsSchema,
 } from "@/features/items";
-import {
-  TaskAdditionalDetailsField,
-  TaskAdditionalDetailsFieldsSchema,
-  TaskDeliveryDateField,
-  TaskFulfillmentMethodField,
-  TaskReadyByDateField,
-  TaskReturnSourceField,
-} from "@/features/tasks";
 import {
   NeedsCleaningPickerField,
   OilingTreatmentPickerField,

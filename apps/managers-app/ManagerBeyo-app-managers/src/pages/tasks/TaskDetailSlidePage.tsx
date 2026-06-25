@@ -1,18 +1,23 @@
 import { useEffect } from "react";
-import { TaskFlowTimeline } from "@beyo/tasks";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
-
-import { ContentCard, DashedInfoGroup } from "@/components/primitives";
+import { useQueryClient } from "@tanstack/react-query";
+import { generateClientId } from "@beyo/lib";
 import {
   TaskBodyCategoryRow,
   TaskCustomerSection,
   TaskDetailBottomActions,
   TaskDetailHeader,
+  TaskFlowTimeline,
   TaskImagesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
   TaskWorkingSectionsField,
-} from "@/features/tasks/components/detail";
+  taskKeys,
+} from "@beyo/tasks";
+import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+
+import { ContentCard, DashedInfoGroup } from "@/components/primitives";
+import { ItemUpholsteryField, useItemCategoryPickerFlow } from "@/features/items";
+import type { ItemUpholsteryRequirementState } from "@/features/items/types";
 import {
   TaskDetailProvider,
   useTaskDetailContext,
@@ -21,9 +26,37 @@ import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
 import type { TaskDetailSurfaceProps } from "@/features/tasks/surfaces";
 
+const ITEM_UPHOLSTERY_REQUIREMENT_STATES = new Set<
+  ItemUpholsteryRequirementState
+>([
+  "missing_quantity",
+  "available",
+  "needs_ordering",
+  "ordered",
+  "in_use",
+  "completed",
+  "failed",
+]);
+
+function toItemUpholsteryRequirementState(
+  value: string | null,
+): ItemUpholsteryRequirementState | null {
+  if (!value) {
+    return null;
+  }
+
+  return ITEM_UPHOLSTERY_REQUIREMENT_STATES.has(
+    value as ItemUpholsteryRequirementState,
+  )
+    ? (value as ItemUpholsteryRequirementState)
+    : null;
+}
+
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
+  const queryClient = useQueryClient();
+  const itemCategoryFlow = useItemCategoryPickerFlow();
   const { scrollRef, isHidden } = useScrollVisibility({
     mode: "relative",
     hideThreshold: 40,
@@ -45,6 +78,18 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 
     console.log("[scroll-debug][task-detail] isHidden", { isHidden });
   }, [isHidden]);
+
+  const itemId = controller.taskDetail?.item?.client_id ?? null;
+  const shouldRenderAssignStages =
+    controller.taskDetail?.task.state === "pending" &&
+    (controller.taskDetail.task_steps.length ?? 0) === 0;
+
+  function handleImagesChanged(): void {
+    void queryClient.invalidateQueries({
+      queryKey: taskKeys.detail(controller.taskId),
+    });
+    void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+  }
 
   let scrollContent: React.ReactNode;
 
@@ -72,17 +117,77 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   } else {
     scrollContent = (
       <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
-        <TaskDetailHeader />
+        <TaskDetailHeader
+          onOpenMenu={controller.openMenu}
+          taskDetail={controller.taskDetail}
+        />
         <ContentCard>
-          <TaskBodyCategoryRow />
+          <TaskBodyCategoryRow
+            isCategoryLoading={itemCategoryFlow.isLoading}
+            itemCategoryOptions={itemCategoryFlow.options}
+            onOpenPosition={controller.openPositionSheet}
+            taskDetail={controller.taskDetail}
+          />
           <DashedInfoGroup>
-            <TaskCustomerSection />
-            <TaskWorkingSectionsField />
-            <TaskScheduledDeliverySection />
+            <TaskCustomerSection taskDetail={controller.taskDetail} />
+            <TaskWorkingSectionsField
+              onOpenWorkingSections={controller.openWorkingSectionsSlide}
+              taskSteps={controller.taskDetail.task_steps}
+            />
+            <TaskScheduledDeliverySection
+              onOpenQuantity={controller.openQuantitySheet}
+              onOpenSchedule={controller.openScheduleSheet}
+              taskDetail={controller.taskDetail}
+            />
           </DashedInfoGroup>
-          <TaskImagesSection />
+          <TaskImagesSection
+            itemId={itemId}
+            onImagesChanged={handleImagesChanged}
+          />
           {controller.taskDetail?.item?.item_major_category_snapshot?.toLowerCase() ===
-            "seat" && <TaskUpholsterySection />}
+            "seat" && (
+            <TaskUpholsterySection
+              createPending={controller.createItemUpholstery.isPending}
+              itemId={itemId}
+              onCreate={(newUpholsteryId) => {
+                if (!itemId) {
+                  return;
+                }
+
+                controller.createItemUpholstery.mutate({
+                  client_id: generateClientId("ItemUpholstery"),
+                  item_id: itemId,
+                  upholstery_id: newUpholsteryId,
+                  source: "internal",
+                });
+              }}
+              onEditAmount={controller.openUpholsteryAmountSheet}
+              onUpdate={(itemUpholsteryId, newUpholsteryId) => {
+                controller.updateItemUpholstery.mutate({
+                  itemUpholsteryId,
+                  upholstery_id: newUpholsteryId,
+                });
+              }}
+              renderUpholsteryField={({
+                disabled,
+                onChange,
+                requirementState,
+                testId,
+                value,
+              }) => (
+                <ItemUpholsteryField
+                  disabled={disabled}
+                  onChange={onChange}
+                  requirementState={toItemUpholsteryRequirementState(
+                    requirementState,
+                  )}
+                  testId={testId}
+                  value={value}
+                />
+              )}
+              updatePending={controller.updateItemUpholstery.isPending}
+            />
+          )}
           <TaskFlowTimeline
             taskId={controller.taskId}
             onRecordPress={controller.openFlowRecord}
@@ -104,7 +209,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       >
         {scrollContent}
       </PullToRefresh>
-      <TaskDetailBottomActions isHidden={isHidden} />
+      <TaskDetailBottomActions
+        isHidden={isHidden}
+        onEdit={controller.openEditTask}
+        onOpenWorkingSections={controller.openWorkingSectionsSlide}
+        shouldRenderAssignStages={shouldRenderAssignStages}
+      />
     </div>
   );
 }

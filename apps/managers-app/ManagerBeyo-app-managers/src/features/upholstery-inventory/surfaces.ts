@@ -36,12 +36,41 @@ export type StoredAmountSurfaceProps = {
   };
 };
 
-export type InventoryCreationSurfaceProps = {
-  mode: "edit";
-  upholsteryId: UpholsteryId;
-  inventoryId: UpholsteryInventoryId;
-  prefill: EditInventoryPrefill;
+export type InventoryCreationPrefillData = {
+  name: string;
+  code: string | null;
+  imageUrl: string | null;
+  upholsteryClientId: string;
 };
+
+export type InventoryCreationSurfaceProps =
+  | {
+      mode: "edit";
+      upholsteryId: UpholsteryId;
+      inventoryId: UpholsteryInventoryId;
+      prefill: EditInventoryPrefill;
+    }
+  | {
+      mode: "prefill";
+      prefill: InventoryCreationPrefillData;
+    };
+
+export function isPrefillInventorySurfaceProps(
+  props: Partial<InventoryCreationSurfaceProps>,
+): props is Extract<InventoryCreationSurfaceProps, { mode: "prefill" }> {
+  return props.mode === "prefill" && Boolean(props.prefill);
+}
+
+export function isEditInventorySurfaceProps(
+  props: Partial<InventoryCreationSurfaceProps>,
+): props is Extract<InventoryCreationSurfaceProps, { mode: "edit" }> {
+  return (
+    props.mode === "edit" &&
+    Boolean(props.upholsteryId) &&
+    Boolean(props.inventoryId) &&
+    Boolean(props.prefill)
+  );
+}
 
 const detailSlide = lazyWithPreload(() =>
   import("./pages/UpholsteryInventoryDetailSlidePage").then((module) => ({

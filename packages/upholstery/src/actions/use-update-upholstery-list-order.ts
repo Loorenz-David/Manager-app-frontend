@@ -68,6 +68,10 @@ export function useUpdateUpholsteryListOrder() {
       );
     },
     onSuccess: (updatedUpholstery) => {
+      if (updatedUpholstery.client_id === null) {
+        return;
+      }
+
       const previousLists = queryClient.getQueriesData<PickerListData>({
         queryKey: upholsteryKeys.pickerLists(),
       });

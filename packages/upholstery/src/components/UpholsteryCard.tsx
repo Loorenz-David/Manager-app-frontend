@@ -4,6 +4,7 @@ import { GripVertical, Heart } from "lucide-react";
 import { ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
+import { getUpholsteryImageUrl } from "../image-url";
 import { formatMeters, type UpholsteryPickerRecord } from "../types";
 
 const upholsteryCardVariants = cva(
@@ -38,6 +39,11 @@ export function UpholsteryCard({
   onOpenReorder,
   testId,
 }: UpholsteryCardProps): React.JSX.Element {
+  const thumbnailUrl = getUpholsteryImageUrl(record.image_url, {
+    width: 64,
+    height: 64,
+    fillCanvas: true,
+  });
   const conditionColors = {
     available: "bg-emerald-500",
     low_stock: "bg-amber-500",
@@ -58,11 +64,13 @@ export function UpholsteryCard({
         type="button"
         onClick={() => onSelect(record.client_id)}
       >
-        {record.image_url ? (
+        {thumbnailUrl ? (
           <img
-            src={record.image_url}
+            src={thumbnailUrl}
             alt={record.name}
-            className="size-10 shrink-0 rounded-full object-cover"
+            className="size-10 shrink-0 rounded-full bg-muted object-contain"
+            decoding="async"
+            loading="lazy"
           />
         ) : (
           <div className="size-10 shrink-0 overflow-hidden rounded-full">

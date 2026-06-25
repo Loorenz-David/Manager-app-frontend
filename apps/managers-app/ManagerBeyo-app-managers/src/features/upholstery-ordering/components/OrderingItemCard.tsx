@@ -1,13 +1,13 @@
 import { Calendar, Check } from "lucide-react";
 import { cn } from "@beyo/lib";
-
-import { ImagePlaceholder } from "@/components/primitives";
-import type { Item } from "@/features/items/types";
 import {
   RETURN_SOURCE_LABEL,
   TASK_TYPE_ICON,
   TASK_TYPE_LABEL,
-} from "@/features/tasks/lib/task-detail";
+} from "@beyo/tasks";
+
+import { ImagePlaceholder } from "@/components/primitives";
+import type { Item } from "@/features/items/types";
 
 import type { OrderingItemCardViewModel } from "../types";
 

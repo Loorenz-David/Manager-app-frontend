@@ -1,23 +1,12 @@
 import { z } from "zod";
 
 import { apiClient } from "@beyo/api-client";
-import { ApiEnvelopeSchema } from "@beyo/lib";
 
 import {
   type ListUpholsteryPickerParams,
+  UpholsteryListResponseSchema,
   UpholsteryPickerOptionSchema,
 } from "../types";
-
-const ListUpholsteryPickerResponseSchema = ApiEnvelopeSchema(
-  z.object({
-    upholsteries: z.array(UpholsteryPickerOptionSchema),
-    upholsteries_pagination: z.object({
-      has_more: z.boolean(),
-      limit: z.number(),
-      offset: z.number(),
-    }),
-  }),
-);
 
 export async function fetchUpholsteryPickerOptions(
   params: ListUpholsteryPickerParams = {},
@@ -27,7 +16,7 @@ export async function fetchUpholsteryPickerOptions(
 }> {
   const envelope = await apiClient.get(
     "/api/v1/upholsteries",
-    ListUpholsteryPickerResponseSchema,
+    UpholsteryListResponseSchema,
     {
       limit: params.limit ?? 50,
       offset: params.offset ?? 0,

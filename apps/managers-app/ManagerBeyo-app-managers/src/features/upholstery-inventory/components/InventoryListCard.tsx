@@ -1,6 +1,8 @@
 import { memo } from "react";
 import { Plus } from "lucide-react";
 
+import { getUpholsteryImageUrl } from "@beyo/upholstery";
+
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
 
 import type { InventoryListCardViewModel } from "../types";
@@ -18,9 +20,18 @@ export const InventoryListCard = memo(function InventoryListCard({
   onTapActions,
   onTapCard,
 }: InventoryListCardProps): React.JSX.Element {
+  const thumbnailUrl = getUpholsteryImageUrl(card.imageUrl, {
+
+    width: 290,
+
+    height: 290,
+
+    fillCanvas: false,
+
+  });
   return (
     <div
-      className="mx-4 flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm"
+      className=" flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm"
       data-testid={`upholstery-inventory-card-${card.inventoryId}`}
     >
       <button
@@ -29,14 +40,14 @@ export const InventoryListCard = memo(function InventoryListCard({
         type="button"
         onClick={() => onTapCard(card.inventoryId)}
       >
-        {card.imageUrl ? (
+        {thumbnailUrl ? (
           <img
             alt=""
             className="size-full object-cover"
             decoding="async"
             draggable={false}
             loading="lazy"
-            src={card.imageUrl}
+            src={thumbnailUrl}
           />
         ) : (
           <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
@@ -59,10 +70,6 @@ export const InventoryListCard = memo(function InventoryListCard({
           <span className="min-w-0 flex-1 basis-0 truncate text-sm font-medium text-foreground">
             {card.name}
           </span>
-          <StatePill
-            label={card.condition.label}
-            variant={card.condition.variant}
-          />
           <button
             aria-label="Inventory actions"
             className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
@@ -82,6 +89,12 @@ export const InventoryListCard = memo(function InventoryListCard({
         <span className="mt-2 truncate text-sm text-muted-foreground">
           {card.code}
         </span>
+        <div className="mt-2">
+          <StatePill
+            label={card.condition.label}
+            variant={card.condition.variant}
+          />
+        </div>
         <div className="mt-auto flex justify-end pt-3">
           <button
             aria-label="Add amount"

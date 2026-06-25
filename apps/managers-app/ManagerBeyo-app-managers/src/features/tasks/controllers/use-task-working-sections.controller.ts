@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 
 import { generateClientId } from '@beyo/lib';
+import { humanizeSnakeCase } from "@beyo/tasks";
 import { useAddTaskStep } from '@/features/tasks/actions/use-add-task-step';
 import { useRemoveTaskStep } from '@/features/tasks/actions/use-remove-task-step';
 import { useGetTaskQuery } from '@/features/tasks/api/use-get-task-query';
-import { humanizeSnakeCase } from '@/features/tasks/lib/task-detail';
 import {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,

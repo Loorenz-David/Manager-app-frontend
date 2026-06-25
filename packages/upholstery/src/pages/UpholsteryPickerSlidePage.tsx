@@ -57,6 +57,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
   }, [searchQuery]);
 
   function handleSelect(clientId: string): void {
+    controller.prepareSelect(clientId);
     onSelect?.(clientId);
     header?.requestClose();
   }

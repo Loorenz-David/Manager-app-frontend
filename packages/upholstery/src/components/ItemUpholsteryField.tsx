@@ -10,6 +10,7 @@ import {
 } from "@beyo/ui";
 
 import { useUpholsteryPickerOptionQuery } from "../api/use-upholstery-picker-option";
+import { getUpholsteryImageUrl } from "../image-url";
 import { upholsteryKeys } from "../api/upholstery-keys";
 import { UPHOLSTERY_PICKER_SURFACE_ID } from "../surfaces";
 import type {
@@ -76,6 +77,10 @@ export function ItemUpholsteryField({
     cachedSelection === null ? value : null,
   );
   const selectedUpholstery = cachedSelection ?? fetchedOption ?? null;
+  const thumbnailUrl = getUpholsteryImageUrl(selectedUpholstery?.image_url, {
+    width: 64,
+    height: 64,
+  });
   const hasSelection = value !== null && value !== undefined;
   const isLoadingSelection =
     hasSelection && selectedUpholstery === null && isPending;
@@ -95,11 +100,13 @@ export function ItemUpholsteryField({
       disabled={disabled}
       onClick={handlePress}
     >
-      {selectedUpholstery?.image_url ? (
+      {thumbnailUrl ? (
         <img
-          src={selectedUpholstery.image_url}
-          alt={selectedUpholstery.name}
+          src={thumbnailUrl}
+          alt={selectedUpholstery?.name ?? "Selected upholstery"}
           className="size-10 shrink-0 rounded-full object-cover"
+          decoding="async"
+          loading="lazy"
         />
       ) : selectedUpholstery ? (
         <div className="size-10 shrink-0 overflow-hidden rounded-full">

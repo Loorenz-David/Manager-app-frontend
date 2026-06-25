@@ -1,5 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { itemUpholsteryKeys, taskFlowRecordKeys } from "@beyo/tasks";
+import {
+  getTaskTitle,
+  itemUpholsteryKeys,
+  taskFlowRecordKeys,
+} from "@beyo/tasks";
 
 import { useCreateItemUpholstery } from "@/features/items/actions/use-create-item-upholstery";
 import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
@@ -11,7 +15,6 @@ import { useUpdateTask } from "@/features/tasks/actions/use-update-task";
 
 import { useGetTaskQuery } from "../api/use-get-task-query";
 import { useTaskDetailFlow } from "../flows/use-task-detail.flow";
-import { getTaskTitle } from "../lib/task-detail";
 
 export function useTaskDetailController(taskId: string) {
   const queryClient = useQueryClient();

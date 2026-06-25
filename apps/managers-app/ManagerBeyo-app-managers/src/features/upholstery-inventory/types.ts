@@ -178,6 +178,7 @@ export type CreateInventoryFormValues = z.infer<
 >;
 
 export type CreateInventoryPayload = {
+  client_id?: string | null;
   upholstery_category_id: string | null;
   name: string;
   code: string | null;

@@ -25,14 +25,14 @@ import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { useUpdateUpholsteryListOrder } from "../actions/use-update-upholstery-list-order";
 import { useUpholsteryPickerOptionsQuery } from "../api/use-upholstery-picker-options";
 import { UpholsteryDnDCard } from "../components/UpholsteryDnDCard";
-import type { UpholsteryPickerOption } from "../types";
+import type { UpholsteryPickerOption, UpholsteryPickerRecord } from "../types";
 
 type UpholsteryReorderSheetSurfaceProps = {
   clientId: string;
 };
 
 type SortableDnDCardProps = {
-  record: UpholsteryPickerOption;
+  record: UpholsteryPickerRecord;
   displayOrder: number;
 };
 
@@ -83,9 +83,19 @@ function SortableUpholsteryDnDCard({
 function buildOrderedItems(
   upholsteries: UpholsteryPickerOption[],
   targetClientId: string,
-): UpholsteryPickerOption[] {
-  const target = upholsteries.find((item) => item.client_id === targetClientId) ?? null;
-  const ordered = upholsteries.filter((item) => item.list_order !== null);
+): UpholsteryPickerRecord[] {
+  const dbRecords = upholsteries
+    .filter(
+      (item): item is UpholsteryPickerOption & { client_id: string } =>
+        item.client_id !== null,
+    )
+    .map((item) => ({
+      ...item,
+      client_id: item.client_id,
+      favorite: item.favorite ?? false,
+    }));
+  const target = dbRecords.find((item) => item.client_id === targetClientId) ?? null;
+  const ordered = dbRecords.filter((item) => item.list_order !== null);
 
   if (target && target.list_order === null) {
     ordered.push(target);
@@ -110,7 +120,7 @@ export function UpholsteryReorderSheetPage(): React.JSX.Element {
   const { clientId } = useSurfaceProps<UpholsteryReorderSheetSurfaceProps>();
   const { data, isPending } = useUpholsteryPickerOptionsQuery({});
   const updateListOrder = useUpdateUpholsteryListOrder();
-  const [localOrder, setLocalOrder] = useState<UpholsteryPickerOption[]>([]);
+  const [localOrder, setLocalOrder] = useState<UpholsteryPickerRecord[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const autoCloseTimerRef = useRef<number | null>(null);
   const isDraggingRef = useRef(false);

@@ -3,11 +3,11 @@ import { z } from "zod";
 import { apiClient } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 
-import { UpholsteryPickerOptionSchema } from "../types";
+import { UpholsteryDbRecordSchema } from "../types";
 
 const FetchUpholsteryResponseSchema = ApiEnvelopeSchema(
   z.object({
-    upholstery: UpholsteryPickerOptionSchema,
+    upholstery: UpholsteryDbRecordSchema,
   }),
 );
 

@@ -23,6 +23,9 @@ import { useUpdateInventory } from "../actions/use-update-inventory";
 import { normalizeNonNegativeDecimalString } from "../lib/decimal";
 import {
   INVENTORY_CREATION_SLIDE_ID,
+  isEditInventorySurfaceProps,
+  isPrefillInventorySurfaceProps,
+  type InventoryCreationPrefillData,
   type InventoryCreationSurfaceProps,
 } from "../surfaces";
 import {
@@ -30,12 +33,14 @@ import {
   type CreateInventoryFormValues,
 } from "../types";
 
-function defaultCreateValues(): CreateInventoryFormValues {
+function defaultCreateValues(
+  prefill?: InventoryCreationPrefillData,
+): CreateInventoryFormValues {
   return {
     upholstery_category_id: null,
-    name: "",
-    code: "",
-    image_url: null,
+    name: prefill?.name ?? "",
+    code: prefill?.code ?? "",
+    image_url: prefill?.imageUrl ?? null,
     current_stored_amount_meters: null,
     low_stock_threshold_meters: null,
     favorite: false,
@@ -44,17 +49,6 @@ function defaultCreateValues(): CreateInventoryFormValues {
 
 function normalizeOptionalText(value: string | null | undefined): string | null {
   return value?.trim() || null;
-}
-
-function isEditInventorySurfaceProps(
-  props: Partial<InventoryCreationSurfaceProps>,
-): props is InventoryCreationSurfaceProps {
-  return (
-    props.mode === "edit" &&
-    Boolean(props.upholsteryId) &&
-    Boolean(props.inventoryId) &&
-    Boolean(props.prefill)
-  );
 }
 
 type FooterProps = {
@@ -106,7 +100,9 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const props = useSurfaceProps<InventoryCreationSurfaceProps>();
   const editProps = isEditInventorySurfaceProps(props) ? props : null;
+  const prefillProps = isPrefillInventorySurfaceProps(props) ? props : null;
   const isEditMode = Boolean(editProps);
+  const isPrefillMode = Boolean(prefillProps);
   const createInventory = useCreateInventory();
   const updateInventory = useUpdateInventory();
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -135,7 +131,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
               editProps.prefill.low_stock_threshold_meters,
             favorite: editProps.prefill.favorite,
           }
-        : defaultCreateValues(),
+        : defaultCreateValues(prefillProps?.prefill),
   });
   const selectedCategoryId = useWatch({
     control: form.control,
@@ -157,7 +153,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
-    if (isEditMode) {
+    if (isEditMode || isPrefillMode) {
       staged.setStepStatus("category", "completed");
       staged.navigateTo("details");
     }
@@ -254,6 +250,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
 
     createInventory.mutate(
       {
+        client_id: prefillProps?.prefill.upholsteryClientId ?? null,
         upholstery_category_id: values.upholstery_category_id,
         name: values.name.trim(),
         code: normalizeOptionalText(values.code),

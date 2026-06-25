@@ -4,6 +4,7 @@ import { GripVertical } from "lucide-react";
 import { ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
+import { getUpholsteryImageUrl } from "../image-url";
 import { formatMeters, type UpholsteryPickerRecord } from "../types";
 
 type UpholsteryDnDCardProps = {
@@ -21,6 +22,11 @@ export function UpholsteryDnDCard({
   dragHandleProps,
   dragHandleRef,
 }: UpholsteryDnDCardProps): React.JSX.Element {
+  const thumbnailUrl = getUpholsteryImageUrl(record.image_url, {
+    width: 64,
+    height: 64,
+    fillCanvas: true
+  });
   return (
     <div
       className={cn(
@@ -33,11 +39,13 @@ export function UpholsteryDnDCard({
         {displayOrder}
       </div>
 
-      {record.image_url ? (
+      {thumbnailUrl ? (
         <img
           alt={record.name}
-          className="size-10 shrink-0 rounded-full object-cover"
-          src={record.image_url}
+          className="size-10 shrink-0 rounded-full bg-muted object-contain"
+          decoding="async"
+          loading="lazy"
+          src={thumbnailUrl}
         />
       ) : (
         <div className="size-10 shrink-0 overflow-hidden rounded-full">

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
-import { TaskCreationFab } from '@/features/task-creation';
+import { TaskCreationFab } from '@/features/tasks/components/TaskCreationFab';
 
 const TasksRouteEntry = lazy(() =>
   import('@/features/tasks/route-entry').then((module) => ({

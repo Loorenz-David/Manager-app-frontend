@@ -4,13 +4,13 @@ import { ChevronRight } from "lucide-react";
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
 import { useSurface } from "@/hooks/use-surface";
 import { IMAGE_VIEWER_SURFACE_ID } from "@beyo/images";
-import type { GetTaskResult } from "@/features/tasks/api/get-task";
 import {
   RETURN_SOURCE_LABEL,
   TASK_STATE_VARIANT,
   TASK_TYPE_LABEL,
   humanizeSnakeCase,
-} from "@/features/tasks/lib/task-detail";
+} from "@beyo/tasks";
+import type { GetTaskResult } from "@/features/tasks/api/get-task";
 
 type CaseTaskInfoCardProps = {
   taskDetail: GetTaskResult;

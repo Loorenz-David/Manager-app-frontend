@@ -12,5 +12,6 @@ export function useUpholsteryPickerOptionsQuery(
     queryKey: upholsteryKeys.pickerList(params),
     queryFn: () => fetchUpholsteryPickerOptions(params),
     enabled: options.enabled ?? true,
+    placeholderData: (previous) => previous,
   });
 }

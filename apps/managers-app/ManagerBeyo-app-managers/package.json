@@ -20,6 +20,7 @@
   "dependencies": {
     "@beyo/api-client": "*",
     "@beyo/auth": "*",
+    "@beyo/task-creation": "*",
     "@beyo/cases": "*",
     "@beyo/hooks": "*",
     "@beyo/images": "*",

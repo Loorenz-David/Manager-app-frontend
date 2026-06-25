@@ -5,8 +5,8 @@ import type { LucideIcon } from "lucide-react";
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
 import type { StatePillVariant } from "@/components/primitives";
 import type { Item } from "@/features/items/types";
+import { formatLocalDateYYMMDD } from "@beyo/tasks";
 
-import { formatLocalDateYYMMDD } from "../lib/task-detail";
 import type {
   TaskCardViewModel,
   TaskReturnSource,
