@@ -1,0 +1,8 @@
+
+
+
+we will improve the current upholstery picker to support new capability in it's query and on selection.
+
+the upholstery picker: 
+
+the backend now holds an endpoint called GET /api/v1/upholsteries/external/nevotex

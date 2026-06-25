@@ -12,6 +12,7 @@ export type ConfirmActionButtonProps = {
   confirmTextColor?: string;
   borderColor?: string;
   className?: string;
+  icon?: React.ReactNode;
   onConfirm: () => void;
   disabled?: boolean;
   'data-testid'?: string;
@@ -27,6 +28,7 @@ export function ConfirmActionButton({
   confirmTextColor = 'white',
   borderColor,
   className,
+  icon,
   onConfirm,
   disabled = false,
   'data-testid': testId,
@@ -124,7 +126,10 @@ export function ConfirmActionButton({
           </span>
         </>
       ) : null}
-      <span className="relative z-0">{currentLabel}</span>
+      <span className={cn('relative z-0', icon && 'flex items-center gap-3')}>
+        {icon}
+        {currentLabel}
+      </span>
     </button>
   );
 }

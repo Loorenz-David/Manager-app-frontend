@@ -1,9 +1,8 @@
 import { useEffect } from "react";
-import { Pin } from "lucide-react";
+import { Pin, Trash2 } from "lucide-react";
 
 import { ConfirmActionButton } from "@/components/primitives";
 import { useDeleteTask } from "@/features/tasks/actions/use-delete-task";
-import { useResolveTask } from "@/features/tasks/actions/use-resolve-task";
 import {
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
@@ -20,7 +19,6 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
   const surface = useSurface();
   const { taskId, itemId } = useSurfaceProps<TaskActionsSurfaceProps>();
   const deleteTask = useDeleteTask();
-  const resolveTask = useResolveTask();
 
   useEffect(() => {
     header?.setTitle("Task actions");
@@ -47,33 +45,14 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
         Pin notifications
       </button>
       <ConfirmActionButton
-        backgroundColor="#eaf8ef"
-        borderColor="#9ed9b5"
-        className="w-full font-semibold py-3.5"
-        confirmLabel="Tap again to resolve"
-        confirmTextColor="white"
-        data-testid="task-step-complete-button"
-        fillColor="var(--color-dark-pearl-green)"
-        label="Resolve task"
-        textColor="#1e7a46"
-        onConfirm={() => {
-          if (!taskId) return;
-          resolveTask.mutate(taskId, {
-            onSuccess: () => {
-              surface.close(TASK_ACTIONS_SHEET_SURFACE_ID);
-            },
-          });
-        }}
-      />
-
-      <ConfirmActionButton
         backgroundColor="var(--color-card)"
         borderColor="var(--color-border)"
-        className="w-full font-semibold py-3.5"
+        className="w-full font-semibold py-3.5 text-left"
         confirmLabel="Tap again to delete"
         confirmTextColor="white"
         data-testid="task-delete-button"
         fillColor="var(--color-destructive)"
+        icon={<Trash2 className="size-4 shrink-0" />}
         label="Delete task"
         textColor="var(--color-primary)"
         onConfirm={() => {
