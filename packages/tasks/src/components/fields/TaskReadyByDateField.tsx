@@ -4,12 +4,33 @@ import {
   DateFieldTrigger,
   FieldErrorPill,
   formatDateDisplay,
-  useSurfaceStore,
 } from "@beyo/ui";
 
 import { TASK_READY_BY_QUICK_SELECT_OPTIONS } from "./task-ready-by-quick-select-options";
 
-export function TaskReadyByDateField(): React.JSX.Element {
+type CalendarQuickSelectOption = {
+  id: string;
+  label: string;
+  amount: number;
+  unit: "day" | "week" | "month";
+};
+
+type CalendarSinglePickerProps = {
+  currentValue: string | null;
+  onSelect: (isoString: string | null) => void;
+  title?: string;
+  minDate?: Date;
+  maxDate?: Date;
+  quickSelectOptions?: CalendarQuickSelectOption[];
+};
+
+type TaskReadyByDateFieldProps = {
+  onOpenCalendarSinglePicker?: (props: CalendarSinglePickerProps) => void;
+};
+
+export function TaskReadyByDateField({
+  onOpenCalendarSinglePicker,
+}: TaskReadyByDateFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
   const { field, fieldState } = useController({
     name: "ready_by_at",
@@ -18,7 +39,7 @@ export function TaskReadyByDateField(): React.JSX.Element {
   const invalid = Boolean(fieldState.error);
 
   function handlePress() {
-    useSurfaceStore.getState().open("calendar-single-picker", {
+    onOpenCalendarSinglePicker?.({
       currentValue: field.value ?? null,
       onSelect: (iso: string | null) => field.onChange(iso),
       quickSelectOptions: TASK_READY_BY_QUICK_SELECT_OPTIONS,

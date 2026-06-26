@@ -83,6 +83,8 @@ export const TaskSnapshotSchema = z.object({
     .nullable(),
   item_location: z.string().nullable(),
   ready_by_at: z.string().nullable(),
+  scheduled_start_at: z.string().nullable(),
+  scheduled_end_at: z.string().nullable(),
   return_method: z.string().nullable(),
 });
 export type TaskSnapshot = z.infer<typeof TaskSnapshotSchema>;

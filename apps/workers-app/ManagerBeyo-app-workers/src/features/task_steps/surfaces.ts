@@ -1,5 +1,7 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
+import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
+import { TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID } from "@beyo/tasks";
 import {
   BATCH_DETAIL_SLIDE_SURFACE_ID,
   COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID,
@@ -111,6 +113,16 @@ function loadItemIssueSelectionSheetPage() {
   }));
 }
 
+const itemPositionSheet = lazyWithPreload(() =>
+  import("@beyo/items").then((module) => ({
+    default: module.ItemPositionSheetPage,
+  })),
+);
+const taskScheduledDeliverySheet = lazyWithPreload(() =>
+  import("@beyo/tasks").then((module) => ({
+    default: module.TaskScheduledDeliverySheetPage,
+  })),
+);
 const taskStepActionsSheet = lazyWithPreload(loadTaskStepActionsSheetPage);
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const completeTaskStepConfirmationSlide = lazyWithPreload(
@@ -141,6 +153,8 @@ const itemIssueSelectionSheet = lazyWithPreload(
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
+export const preloadTaskScheduledDeliverySheetSurface =
+  taskScheduledDeliverySheet.preload;
 export const preloadCompleteTaskStepConfirmationSlideSurface =
   completeTaskStepConfirmationSlide.preload;
 export const preloadPauseReasonSheetSurface = pauseReasonSheet.preload;
@@ -163,6 +177,14 @@ export const preloadItemIssueSelectionSheetSurface =
   itemIssueSelectionSheet.preload;
 
 export const taskStepSurfaces: SurfaceRegistrations = {
+  [ITEM_POSITION_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: itemPositionSheet.Component,
+  },
+  [TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskScheduledDeliverySheet.Component,
+  },
   [TASK_STEP_ACTIONS_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: taskStepActionsSheet.Component,

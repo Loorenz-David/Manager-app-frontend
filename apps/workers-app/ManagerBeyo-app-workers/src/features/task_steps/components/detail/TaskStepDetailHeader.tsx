@@ -1,6 +1,7 @@
 import { m } from "framer-motion";
 import { Calendar, RotateCcw, ShoppingBag, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { daysUntil, formatShortDate } from "@beyo/lib";
 import { STEP_STATE_VARIANT, humanizeStepState } from "@beyo/tasks";
 import { StatePill } from "@beyo/ui";
 import { useTaskStepDetailContext } from "../../providers/TaskStepDetailProvider";
@@ -22,50 +23,6 @@ const RETURN_SOURCE_LABEL: Record<string, string> = {
   before_purchase: "Before purchase",
   store_return: "Store return",
 };
-
-
-function formatDateDDMMYY(value: string | null): string | null {
-  if (!value) {
-    return null;
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  return date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-  });
-}
-
-function daysUntil(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const targetDate = new Date(value);
-  if (Number.isNaN(targetDate.getTime())) {
-    return null;
-  }
-
-  const today = new Date();
-  const startOfToday = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    today.getDate(),
-  );
-  const startOfTarget = new Date(
-    targetDate.getFullYear(),
-    targetDate.getMonth(),
-    targetDate.getDate(),
-  );
-
-  const diffMs = startOfTarget.getTime() - startOfToday.getTime();
-  return Math.round(diffMs / 86_400_000);
-}
 
 function ThreeDotIcon(): React.JSX.Element {
   return (
@@ -122,7 +79,7 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
   const returnSourceLabel = vm.task.return_source
     ? RETURN_SOURCE_LABEL[vm.task.return_source]
     : null;
-  const readyByLabel = formatDateDDMMYY(vm.task.ready_by_at ?? null);
+  const readyByLabel = formatShortDate(vm.task.ready_by_at ?? null) ?? "--";
   const days = daysUntil(vm.task.ready_by_at ?? null);
 
   return (
@@ -157,13 +114,11 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
         </span>
       </div>
 
-      {readyByLabel ? (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>{readyByLabel}</span>
-          {days !== null ? <DaysLeftPill days={days} /> : null}
-        </div>
-      ) : null}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
+        <span>{readyByLabel}</span>
+        {days !== null ? <DaysLeftPill days={days} /> : null}
+      </div>
     </div>
   );
 }

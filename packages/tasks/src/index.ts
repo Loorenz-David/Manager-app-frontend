@@ -6,6 +6,7 @@ export {
   StepStateSchema,
   TASK_PRIORITY,
   TASK_RETURN_METHOD,
+  TASK_ITEM_LOCATION,
   TaskFlowRecordActorSchema,
   TaskFlowRecordSchema,
   TaskFlowRecordsPaginationSchema,
@@ -28,6 +29,7 @@ export type {
   TaskDetailRaw,
   TaskFulfillmentMethod,
   TaskPriority,
+  TaskItemLocation,
   TaskReturnMethod,
   TaskReturnSource,
   TaskState,
@@ -80,6 +82,8 @@ export {
   TaskDetailBottomActions,
   TaskDetailHeader,
   TaskImagesSection,
+  TaskReadyByAtPill,
+  TaskScheduledDeliveryDatePill,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
   TaskWorkingSectionsField,
@@ -94,3 +98,51 @@ export { TaskDeliveryDateField } from "./components/fields/TaskDeliveryDateField
 export { TaskFulfillmentMethodField } from "./components/fields/TaskFulfillmentMethodField";
 export { TaskReadyByDateField } from "./components/fields/TaskReadyByDateField";
 export { TaskReturnSourceField } from "./components/fields/TaskReturnSourceField";
+export {
+  TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
+  TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
+  TASK_READY_BY_AT_SHEET_SURFACE_ID,
+  TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+} from "./surface-ids";
+export type {
+  RecoveredPendingAdd,
+  RecoveredPendingReassignment,
+  TaskReadyByAtSheetSurfaceProps,
+  TaskScheduledDeliverySheetSurfaceProps,
+  TaskWorkingSectionsDiscardChangesSurfaceProps,
+  TaskWorkingSectionsSurfaceOpeners,
+  TaskWorkingSectionsSurfaceProps,
+} from "./surface-ids";
+
+export { getTask } from "./api/get-task";
+export type { GetTaskResult } from "./api/get-task";
+export { useGetTaskQuery } from "./api/use-get-task-query";
+export { addTaskStep } from "./api/add-task-step";
+export { removeTaskStep } from "./api/remove-task-step";
+
+export { useAddTaskStep } from "./actions/use-add-task-step";
+export type { AddTaskStepVariables } from "./actions/use-add-task-step";
+export { useRemoveTaskStep } from "./actions/use-remove-task-step";
+export { useUpdateTaskReadyByAt } from "./actions/use-update-task-ready-by-at";
+export { useUpdateTaskSchedule } from "./actions/use-update-task-schedule";
+export { updateTaskReadyByAt } from "./api/update-task-ready-by-at";
+export type { UpdateTaskReadyByAtInput } from "./api/update-task-ready-by-at";
+export { updateTaskSchedule } from "./api/update-task-schedule";
+export type { UpdateTaskScheduleInput } from "./api/update-task-schedule";
+
+export { useTaskWorkingSectionsController } from "./controllers/use-task-working-sections.controller";
+export type {
+  TaskWorkingSectionsController,
+  TaskWorkingSectionEntry,
+} from "./controllers/use-task-working-sections.controller";
+
+export {
+  TaskWorkingSectionsProvider,
+  useTaskWorkingSectionsContext,
+} from "./providers/TaskWorkingSectionsProvider";
+
+export { TaskWorkingSectionsStepList } from "./components/TaskWorkingSectionsStepList";
+export { TaskWorkingSectionsSlidePage } from "./pages/TaskWorkingSectionsSlidePage";
+export { TaskWorkingSectionsDiscardChangesSheetPage } from "./pages/TaskWorkingSectionsDiscardChangesSheetPage";
+export { TaskReadyByAtSheetPage } from "./pages/TaskReadyByAtSheetPage";
+export { TaskScheduledDeliverySheetPage } from "./pages/TaskScheduledDeliverySheetPage";

@@ -130,7 +130,7 @@ test.describe('Item position sheet', () => {
     await page.locator('[data-testid^="tasks-card-body-"]').first().click();
 
     await expect(page.getByTestId('task-body-position-button')).toBeVisible();
-    await expect(page.getByTestId('task-body-position-button')).toContainText('#5');
+    await expect(page.getByTestId('task-body-position-button')).toContainText('5');
 
     await page.getByTestId('task-body-position-button').click();
 

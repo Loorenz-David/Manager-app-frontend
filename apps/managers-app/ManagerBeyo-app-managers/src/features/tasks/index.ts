@@ -52,5 +52,6 @@ export type {
   TaskDetailSurfaceProps,
   TaskEditSurfaceProps,
   TaskFlowRecordDetailSurfaceProps,
-  TaskScheduledDateSurfaceProps,
+  TaskReadyByAtSheetSurfaceProps,
+  TaskScheduledDeliverySheetSurfaceProps,
 } from "./surfaces";

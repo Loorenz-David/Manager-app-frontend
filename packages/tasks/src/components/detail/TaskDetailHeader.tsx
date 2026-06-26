@@ -1,6 +1,7 @@
 import { m } from "framer-motion";
 import { Calendar } from "lucide-react";
 
+import { daysUntil, formatShortDate } from "@beyo/lib";
 import { StatePill } from "@beyo/ui";
 
 import {
@@ -8,8 +9,6 @@ import {
   TASK_STATE_VARIANT,
   TASK_TYPE_ICON,
   TASK_TYPE_LABEL,
-  daysUntil,
-  formatDateDDMMYY,
   humanizeSnakeCase,
 } from "../../lib/task-detail";
 import type { TaskDetailRaw } from "../../types";
@@ -49,11 +48,13 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 
 type TaskDetailHeaderProps = {
   onOpenMenu: () => void;
+  onOpenReadyByAt?: () => void;
   taskDetail: TaskDetailRaw | null;
 };
 
 export function TaskDetailHeader({
   onOpenMenu,
+  onOpenReadyByAt,
   taskDetail,
 }: TaskDetailHeaderProps): React.JSX.Element | null {
   if (!taskDetail) {
@@ -72,8 +73,15 @@ export function TaskDetailHeader({
   const returnSourceLabel = task.return_source
     ? RETURN_SOURCE_LABEL[task.return_source]
     : null;
-  const readyByLabel = formatDateDDMMYY(task.ready_by_at ?? null);
+  const readyByLabel = formatShortDate(task.ready_by_at ?? null) ?? "--";
   const days = daysUntil(task.ready_by_at ?? null);
+  const readyByContent = (
+    <>
+      <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
+      <span>{task.ready_by_at ? readyByLabel : "select"}</span>
+      {days !== null ? <DaysLeftPill days={days} /> : null}
+    </>
+  );
 
   return (
     <div className="flex flex-col gap-2 px-4 py-3">
@@ -107,13 +115,22 @@ export function TaskDetailHeader({
         </span>
       </div>
 
-      {readyByLabel ? (
+      {onOpenReadyByAt ? (
+        <button
+          className="flex items-center gap-1.5 text-left text-xs text-muted-foreground"
+          data-testid="task-detail-ready-by-trigger"
+          type="button"
+          onClick={onOpenReadyByAt}
+        >
+          {readyByContent}
+        </button>
+      ) : (
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
           <span>{readyByLabel}</span>
           {days !== null ? <DaysLeftPill days={days} /> : null}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

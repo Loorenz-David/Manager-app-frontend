@@ -1,0 +1,36 @@
+
+----
+we will make the current TaskWorkingSectionsField to be more self sufficient, meaning it will now call the flow const taskQuery = useGetTaskQuery(taskId)
+current use of this component is at /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+that flow 
+
+
+
+----
+Yes — the slide page is self-sufficient. Line 149 in the controller:
+
+
+const taskQuery = useGetTaskQuery(taskId);
+It receives only taskId from the surface props and fetches the full task detail (including task_steps) on its own. It doesn't rely on anything passed down from TaskDetailSlidePage.
+
+In practice no extra network request happens because TanStack Query serves the cached result from the task detail page's earlier fetch — but the slide is architecturally independent and would work even if opened cold.
+
+So the picture is:
+
+Component	Independent?	Why
+TaskWorkingSectionsField (the button)	No	Needs taskSteps + onOpenWorkingSections threaded from the host
+TaskWorkingSectionsSlidePage (the slide)	Yes	Calls useGetTaskQuery(taskId) internally; only needs taskId via surface props
+The field is essentially just a dumb display button that exposes the counts and fires a callback — the real intelligence lives in the slide and its controller.
+
+Exactly right. To close the loop completely:
+
+TaskWorkingSectionsField — dumb button; receives step counts and one callback; knows nothing about surfaces
+onOpenWorkingSections in use-task-detail.flow.ts — calls surface.open(TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID, { taskId, surfaceOpeners }); this is the app wiring
+The surface is registered in features/tasks/surfaces.ts and the page component it loads is:
+
+function loadTaskWorkingSectionsSlidePage() {
+  return import("@beyo/tasks").then((module) => ({
+    default: module.TaskWorkingSectionsSlidePage,
+  }));
+}
+So the page comes from the package. The app owns the surface ID and registration, but the actual UI is entirely in @beyo/tasks. This is the correct §13 pattern — and it's also exactly what the two new date sheet pages (TaskReadyByAtSheetPage, TaskScheduledDeliverySheetPage) will follow in the pending plan.

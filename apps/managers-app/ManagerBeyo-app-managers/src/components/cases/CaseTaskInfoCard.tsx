@@ -10,7 +10,7 @@ import {
   TASK_TYPE_LABEL,
   humanizeSnakeCase,
 } from "@beyo/tasks";
-import type { GetTaskResult } from "@/features/tasks/api/get-task";
+import type { GetTaskResult } from "@beyo/tasks";
 
 type CaseTaskInfoCardProps = {
   taskDetail: GetTaskResult;

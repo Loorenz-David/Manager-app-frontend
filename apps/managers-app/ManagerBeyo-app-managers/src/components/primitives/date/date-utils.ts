@@ -7,13 +7,32 @@ export type CalendarQuickSelectOption = {
   unit: RelativeDateUnit;
 };
 
+const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+function toUtcCalendarDate(date: Date): Date {
+  return new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+}
+
 export function parseISOToDate(
   dateString: string | null | undefined,
 ): Date | undefined {
   if (!dateString) return undefined;
 
+  const dateOnlyMatch = DATE_ONLY_PATTERN.exec(dateString);
+  if (dateOnlyMatch) {
+    return new Date(
+      Date.UTC(
+        Number(dateOnlyMatch[1]),
+        Number(dateOnlyMatch[2]) - 1,
+        Number(dateOnlyMatch[3]),
+      ),
+    );
+  }
+
   const date = new Date(dateString);
-  return Number.isNaN(date.getTime()) ? undefined : date;
+  return Number.isNaN(date.getTime()) ? undefined : toUtcCalendarDate(date);
 }
 
 export function serializeDateToISO(date: Date): string {
@@ -79,10 +98,8 @@ export function resolveRelativeDateOption(
 export function formatDateDisplay(
   dateString: string | null | undefined,
 ): string | undefined {
-  if (!dateString) return undefined;
-
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return undefined;
+  const date = parseISOToDate(dateString);
+  if (!date) return undefined;
 
   return new Intl.DateTimeFormat(undefined, {
     month: 'short',

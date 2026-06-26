@@ -54,3 +54,25 @@ export type ItemLookupResult = z.infer<typeof ItemLookupResultSchema>;
 export type LookupItemsParams =
   | { article_number: string; sku?: never }
   | { sku: string; article_number?: never };
+
+export type UpdateItemInput = {
+  id: string;
+  article_number?: string | null;
+  sku?: string | null;
+  item_category_id?: string | null;
+  quantity?: number;
+  designer?: string | null;
+  height_in_cm?: number | null;
+  width_in_cm?: number | null;
+  depth_in_cm?: number | null;
+  item_value_minor?: number | null;
+  item_cost_minor?: number | null;
+  item_currency?: ItemCurrency;
+  item_position?: string | null;
+  external_url?: string | null;
+};
+
+export type UpdateItemPositionEntryInput = {
+  client_id: string;
+  item_position: string | null;
+};

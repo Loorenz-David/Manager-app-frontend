@@ -4,10 +4,25 @@ import {
   DateRangeFieldTrigger,
   FieldErrorPill,
   formatDateDisplay,
-  useSurfaceStore,
 } from "@beyo/ui";
 
-export function TaskDeliveryDateField(): React.JSX.Element {
+type CalendarRangePickerProps = {
+  currentFrom: string | null;
+  currentTo: string | null;
+  initialTarget?: "from" | "to";
+  onFromSelect: (isoString: string | null) => void;
+  onToSelect: (isoString: string | null) => void;
+  fromLabel?: string;
+  toLabel?: string;
+};
+
+type TaskDeliveryDateFieldProps = {
+  onOpenCalendarRangePicker?: (props: CalendarRangePickerProps) => void;
+};
+
+export function TaskDeliveryDateField({
+  onOpenCalendarRangePicker,
+}: TaskDeliveryDateFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
   const { field: startField, fieldState: startState } = useController({
     name: "scheduled_start_at",
@@ -20,7 +35,7 @@ export function TaskDeliveryDateField(): React.JSX.Element {
   const invalid = Boolean(startState.error) || Boolean(endState.error);
 
   function handlePress(initialTarget: "from" | "to") {
-    useSurfaceStore.getState().open("calendar-range-picker", {
+    onOpenCalendarRangePicker?.({
       currentFrom: startField.value ?? null,
       currentTo: endField.value ?? null,
       initialTarget,

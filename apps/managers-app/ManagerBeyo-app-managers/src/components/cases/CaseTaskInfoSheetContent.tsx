@@ -1,5 +1,5 @@
 import { CaseTaskInfoCard } from "@/components/cases/CaseTaskInfoCard";
-import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
+import { useGetTaskQuery } from "@beyo/tasks";
 import { TASK_DETAIL_SURFACE_ID } from "@/features/tasks/surfaces";
 import { useSurface } from "@/hooks/use-surface";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";

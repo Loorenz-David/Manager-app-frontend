@@ -8,7 +8,7 @@ import {
 
 import { NumberInput } from "@/components/primitives";
 import { useSetUpholsteryQuantity } from "@/features/items/actions/use-set-upholstery-quantity";
-import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
+import { useGetTaskQuery } from "@beyo/tasks";
 import { ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID } from "@/features/tasks/surfaces";
 import type { ItemUpholsteryAmountSurfaceProps } from "@/features/tasks/surfaces";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";

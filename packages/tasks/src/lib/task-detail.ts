@@ -1,6 +1,7 @@
 import { RotateCcw, ShoppingBag, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { daysUntil } from "@beyo/lib";
 import type { Address } from "@beyo/lib";
 import type { StatePillVariant } from "@beyo/ui";
 
@@ -11,6 +12,7 @@ import type {
   TaskState,
   TaskType,
 } from "../types";
+export { isoWeek } from "@beyo/lib";
 
 export const TASK_STATE_VARIANT: Record<TaskState, StatePillVariant> = {
   pending: "neutral",
@@ -166,50 +168,4 @@ export function formatDateDDMMYY(dateString: string | null): string | null {
   return formatLocalDateYYMMDD(dateString);
 }
 
-export function daysUntil(dateString: string | null): number | null {
-  if (!dateString) {
-    return null;
-  }
-
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateString);
-  const target = dateOnlyMatch
-    ? new Date(
-        Number(dateOnlyMatch[1]),
-        Number(dateOnlyMatch[2]) - 1,
-        Number(dateOnlyMatch[3]),
-      )
-    : new Date(dateString);
-
-  if (Number.isNaN(target.getTime())) {
-    return null;
-  }
-
-  const now = new Date();
-  const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const targetLocal = new Date(
-    target.getFullYear(),
-    target.getMonth(),
-    target.getDate(),
-  );
-
-  return Math.round(
-    (targetLocal.getTime() - todayLocal.getTime()) / (1000 * 60 * 60 * 24),
-  );
-}
-
-export function isoWeek(dateString: string | null): number | null {
-  if (!dateString) {
-    return null;
-  }
-
-  const d = new Date(dateString);
-  if (Number.isNaN(d.getTime())) {
-    return null;
-  }
-
-  const dayOfWeek = (d.getUTCDay() + 6) % 7;
-  d.setUTCDate(d.getUTCDate() - dayOfWeek + 3);
-  const jan4 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-  const dayOfYear = (d.getTime() - jan4.getTime()) / 86400000;
-  return 1 + Math.round((dayOfYear - 3 + ((jan4.getUTCDay() + 6) % 7)) / 7);
-}
+export { daysUntil };

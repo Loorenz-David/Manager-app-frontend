@@ -1,14 +1,10 @@
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
+import {
+  itemCategoryPickerSurfaces,
+  preloadItemCategoryPickerSurface as preloadSharedItemCategoryPickerSurface,
+} from "@beyo/item-categories";
 import { SCANNER_SLIDE_SURFACE_ID } from "@beyo/scanner";
 import { lazyWithPreload } from "@beyo/ui";
-
-function loadItemCategoryPickerSheetPage() {
-  return import("@/features/items/pages/ItemCategoryPickerSheetPage").then(
-    (module) => ({
-      default: module.ItemCategoryPickerSheetPage,
-    }),
-  );
-}
 
 function loadScannerSlidePage() {
   return import("@beyo/scanner").then((module) => ({
@@ -16,17 +12,14 @@ function loadScannerSlidePage() {
   }));
 }
 
-const itemCategoryPicker = lazyWithPreload(loadItemCategoryPickerSheetPage);
 const scannerSlide = lazyWithPreload(loadScannerSlidePage);
 
-export const preloadItemCategoryPickerSurface = itemCategoryPicker.preload;
+export const preloadItemCategoryPickerSurface =
+  preloadSharedItemCategoryPickerSurface;
 export const preloadScannerSlideSurface = scannerSlide.preload;
 
 export const itemSurfaces: SurfaceRegistrations = {
-  "item-category-picker": {
-    surface: "sheet",
-    component: itemCategoryPicker.Component,
-  },
+  ...itemCategoryPickerSurfaces,
   [SCANNER_SLIDE_SURFACE_ID]: {
     surface: "slide",
     component: scannerSlide.Component,

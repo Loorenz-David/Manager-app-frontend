@@ -101,6 +101,7 @@ export const TASK_RETURN_SOURCE = [
   "before_purchase",
   "store_return",
 ] as const;
+export const TASK_ITEM_LOCATION = ["store", "customer"] as const;
 export const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
 
 export type TaskType = (typeof TASK_TYPE)[number];
@@ -108,6 +109,7 @@ export type TaskPriority = (typeof TASK_PRIORITY)[number];
 export type TaskState = (typeof TASK_STATE)[number];
 export type TaskReturnMethod = (typeof TASK_RETURN_METHOD)[number];
 export type TaskReturnSource = (typeof TASK_RETURN_SOURCE)[number];
+export type TaskItemLocation = (typeof TASK_ITEM_LOCATION)[number];
 export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
 
 export const ImageLightSchema = z.object({
@@ -129,7 +131,7 @@ export const TaskDetailRawSchema = z.object({
     title: z.string().nullable(),
     summary: z.string().nullable(),
     return_source: z.enum(TASK_RETURN_SOURCE).nullable(),
-    item_location: z.string().nullable(),
+    item_location: z.enum(TASK_ITEM_LOCATION).nullable(),
     return_method: z.enum(TASK_RETURN_METHOD).nullable(),
     fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).nullable(),
     additional_details: z.record(z.string(), z.unknown()).nullable(),

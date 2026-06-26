@@ -67,6 +67,8 @@ import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvide
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
 import {
+  CALENDAR_RANGE_PICKER_SURFACE_ID,
+  CALENDAR_SINGLE_PICKER_SURFACE_ID,
   TASK_CREATION_PRE_ORDER_SURFACE_ID,
   preloadCalendarRangePickerSurface,
   preloadCalendarSinglePickerSurface,
@@ -358,7 +360,11 @@ export function PreOrderFormContent(): React.JSX.Element {
               </ContentCard>
               <ContentCard>
                 <TaskFulfillmentMethodField />
-                <TaskDeliveryDateField />
+                <TaskDeliveryDateField
+                  onOpenCalendarRangePicker={(props) =>
+                    surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
+                  }
+                />
               </ContentCard>
             </div>
           </StagedFormStep>
@@ -391,7 +397,11 @@ export function PreOrderFormContent(): React.JSX.Element {
               </ContentCard>
               <ContentCard>
                 <TaskAdditionalDetailsField />
-                <TaskReadyByDateField />
+                <TaskReadyByDateField
+                  onOpenCalendarSinglePicker={(props) =>
+                    surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
+                  }
+                />
               </ContentCard>
             </div>
           </StagedFormStep>

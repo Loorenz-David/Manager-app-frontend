@@ -24,6 +24,7 @@
     "@beyo/cases": "*",
     "@beyo/hooks": "*",
     "@beyo/images": "*",
+    "@beyo/item-categories": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
     "@beyo/pwa": "*",

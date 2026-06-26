@@ -1,5 +1,4 @@
 export { ItemDetailsFieldGroup } from './components/ItemDetailsFieldGroup';
-export { ItemCategorySelectionField } from './components/fields/ItemCategorySelectionField';
 export { ItemCurrencyField } from './components/fields/ItemCurrencyField';
 export { ItemDesignerField } from './components/fields/ItemDesignerField';
 export { ItemIdentityField } from './components/fields/ItemIdentityField';
@@ -7,18 +6,21 @@ export { ItemPositionField } from './components/fields/ItemPositionField';
 export { ItemQuantityField } from './components/fields/ItemQuantityField';
 export { ItemUpholsteryAmountField } from './components/fields/ItemUpholsteryAmountField';
 export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
+export {
+  ItemCategorySelectionField,
+  useItemCategoryPickerFlow,
+  useItemCategorySelectionStore,
+} from "@beyo/item-categories";
 export { useCreateItemUpholstery } from './actions/use-create-item-upholstery';
 export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity';
 export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
 export { useUpdateItem } from './actions/use-update-item';
 export { useCreateImagesFromUrl } from "./subfeatures/item_images";
-export { useItemCategoryPickerFlow } from './flows/use-item-category-picker.flow';
 export {
   itemSurfaces,
   preloadItemCategoryPickerSurface,
   preloadScannerSlideSurface,
 } from './surfaces';
-export { useItemCategorySelectionStore } from './store/item-category-selection.store';
 
 export { ItemDetailsFieldsSchema } from './types';
 export {

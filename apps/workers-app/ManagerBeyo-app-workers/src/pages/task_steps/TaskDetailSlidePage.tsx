@@ -1,7 +1,14 @@
 import { useEffect } from "react";
 import { usePreloadSurface, useSurfaceHeader } from "@beyo/hooks";
+import { ItemCategoryDetailLabel } from "@beyo/item-categories";
+import { ItemPositionPill } from "@beyo/items";
 import { TaskFlowTimeline } from "@beyo/tasks";
-import { ContentCard, PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import {
+  ContentCard,
+  PullToRefresh,
+  SectionLabel,
+  useScrollVisibility,
+} from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
@@ -15,7 +22,61 @@ import {
   TaskStepDetailProvider,
   useTaskStepDetailContext,
 } from "@/features/task_steps/providers/TaskStepDetailProvider";
-import { preloadCompleteTaskStepConfirmationSlideSurface } from "@/features/task_steps/surfaces";
+import {
+  preloadCompleteTaskStepConfirmationSlideSurface,
+  preloadTaskScheduledDeliverySheetSurface,
+} from "@/features/task_steps/surfaces";
+
+function TaskStepCategoryPositionRow(): React.JSX.Element | null {
+  const { step, isSeatCategory, openPositionSheet } =
+    useTaskStepDetailContext();
+
+  if (!step?.item) {
+    return null;
+  }
+
+  const hasCategory = Boolean(step.item.item_category_id);
+  const hasPosition = Boolean(step.item.item_position);
+  const shouldRenderPosition = isSeatCategory || hasPosition;
+  const quantityLabel =
+    step.item.quantity > 0 ? `( ${step.item.quantity} )` : null;
+
+  if (!hasCategory && !quantityLabel && !shouldRenderPosition) {
+    return null;
+  }
+
+  const positionPill = (
+    <ItemPositionPill
+      position={step.item.item_position}
+      isSeat={isSeatCategory}
+    />
+  );
+
+  return (
+    <div className="flex items-center justify-between gap-2 px-1 py-0.5">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <ItemCategoryDetailLabel categoryId={step.item.item_category_id} />
+        {quantityLabel ? (
+          <SectionLabel tone="muted">{quantityLabel}</SectionLabel>
+        ) : null}
+      </div>
+      {shouldRenderPosition ? (
+        isSeatCategory ? (
+          <button
+            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            data-testid="task-step-position-button"
+            type="button"
+            onClick={openPositionSheet}
+          >
+            {positionPill}
+          </button>
+        ) : (
+          positionPill
+        )
+      ) : null}
+    </div>
+  );
+}
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
@@ -27,6 +88,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [header]);
 
   usePreloadSurface(preloadCompleteTaskStepConfirmationSlideSurface);
+  usePreloadSurface(preloadTaskScheduledDeliverySheetSurface);
 
   if (controller.isPending) {
     return (
@@ -76,6 +138,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 
           <div className=" mt-1">
             <ContentCard gapClassName="gap-4">
+              <TaskStepCategoryPositionRow />
               <TaskStepImagesPreview />
 
               <TaskStepItemDetailsSection />

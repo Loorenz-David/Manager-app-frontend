@@ -3,7 +3,7 @@ import { useItemUpholsteryQuery } from "@beyo/tasks";
 
 import { NumberInput } from "@/components/primitives";
 import { useUpdateItem } from "@/features/items/actions/use-update-item";
-import { useGetTaskQuery } from "@/features/tasks/api/use-get-task-query";
+import { useGetTaskQuery } from "@beyo/tasks";
 import {
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,

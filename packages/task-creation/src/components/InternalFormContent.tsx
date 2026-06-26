@@ -59,6 +59,7 @@ import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
 import {
+  CALENDAR_SINGLE_PICKER_SURFACE_ID,
   TASK_CREATION_INTERNAL_SURFACE_ID,
   preloadCalendarSinglePickerSurface,
   preloadItemCategoryPickerSurface,
@@ -374,7 +375,11 @@ export function InternalFormContent(): React.JSX.Element {
                 </EntityImagesProvider>
               </ContentCard>
               <ContentCard>
-                <TaskReadyByDateField />
+                <TaskReadyByDateField
+                  onOpenCalendarSinglePicker={(props) =>
+                    surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
+                  }
+                />
                 <TaskAdditionalDetailsField />
               </ContentCard>
             </div>

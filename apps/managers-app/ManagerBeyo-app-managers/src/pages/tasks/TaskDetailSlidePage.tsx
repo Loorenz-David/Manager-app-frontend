@@ -16,7 +16,7 @@ import {
 import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
-import { ItemUpholsteryField, useItemCategoryPickerFlow } from "@/features/items";
+import { ItemUpholsteryField } from "@/features/items";
 import type { ItemUpholsteryRequirementState } from "@/features/items/types";
 import {
   TaskDetailProvider,
@@ -56,7 +56,6 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
   const queryClient = useQueryClient();
-  const itemCategoryFlow = useItemCategoryPickerFlow();
   const { scrollRef, isHidden } = useScrollVisibility({
     mode: "relative",
     hideThreshold: 40,
@@ -119,13 +118,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
         <TaskDetailHeader
           onOpenMenu={controller.openMenu}
+          onOpenReadyByAt={controller.openReadyByAtSheet}
           taskDetail={controller.taskDetail}
         />
         <ContentCard>
           <TaskBodyCategoryRow
-            isCategoryLoading={itemCategoryFlow.isLoading}
-            itemCategoryOptions={itemCategoryFlow.options}
             onOpenPosition={controller.openPositionSheet}
+            onOpenQuantity={controller.openQuantitySheet}
             taskDetail={controller.taskDetail}
           />
           <DashedInfoGroup>
@@ -135,8 +134,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               taskSteps={controller.taskDetail.task_steps}
             />
             <TaskScheduledDeliverySection
-              onOpenQuantity={controller.openQuantitySheet}
-              onOpenSchedule={controller.openScheduleSheet}
+              onOpenDeliveryDate={controller.openDeliveryDateSheet}
               taskDetail={controller.taskDetail}
             />
           </DashedInfoGroup>

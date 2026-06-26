@@ -9,6 +9,10 @@ import {
 } from "@beyo/celebration";
 import { useSurface, useSurfaceProps } from "@beyo/hooks";
 import {
+  TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  type TaskScheduledDeliverySheetSurfaceProps,
+} from "@beyo/tasks";
+import {
   ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID,
   hasIssueTypesForContext,
   useIssueTypesQuery,
@@ -40,6 +44,11 @@ import {
   type ImageUploadState,
   type ImageViewModel,
 } from "@beyo/images";
+import {
+  ITEM_POSITION_SHEET_SURFACE_ID,
+  type ItemPositionSheetSurfaceProps,
+} from "@beyo/items";
+import { useUpdateItemPosition } from "../../items/actions/use-update-item-position";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { useCancelPendingStepCompletion } from "../actions/use-cancel-pending-step-completion";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
@@ -114,6 +123,8 @@ export type TaskStepDetailController = {
   handleOpenActionsSheet: () => void;
   handleOpenCasesForTask: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
+  openDeliveryDateSheet: () => void;
+  openPositionSheet: () => void;
   issuesSurfaceOpeners: ItemIssueSurfaceOpeners;
   isTransitioning: boolean;
   isCancellingCompletion: boolean;
@@ -190,6 +201,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     pendingCompletion,
     clearPendingCompletion,
   } = useTransitionStepState();
+  const updateItemPosition = useUpdateItemPosition(resolvedWorkingSectionId);
   const { cancelCompletion, isPending: isCancellingCompletion } =
     useCancelPendingStepCompletion();
   const { open: openSurface } = useSurface();
@@ -486,6 +498,49 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     [step, openSurface],
   );
 
+  const openPositionSheet = useCallback(() => {
+    if (!step?.item || !isSeatCategory) {
+      return;
+    }
+
+    const { client_id: itemId, item_position: initialPosition } = step.item;
+
+    function savePosition(position: string | null) {
+      updateItemPosition.mutate(
+        {
+          id: itemId,
+          item_position: position,
+        },
+        {
+          onError: () => {
+            openSurface(ITEM_POSITION_SHEET_SURFACE_ID, {
+              itemId,
+              initialPosition: position,
+              onSave: savePosition,
+            } satisfies ItemPositionSheetSurfaceProps);
+          },
+        },
+      );
+    }
+
+    openSurface(ITEM_POSITION_SHEET_SURFACE_ID, {
+      itemId,
+      initialPosition,
+      onSave: savePosition,
+    } satisfies ItemPositionSheetSurfaceProps);
+  }, [isSeatCategory, openSurface, step, updateItemPosition]);
+
+  const openDeliveryDateSheet = useCallback(() => {
+    if (!resolvedTaskId) {
+      return;
+    }
+
+    openSurface(TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID, {
+      taskId: resolvedTaskId,
+      mode: "view",
+    } satisfies TaskScheduledDeliverySheetSurfaceProps);
+  }, [openSurface, resolvedTaskId]);
+
   const handleOpenActionsSheet = useCallback(() => {
     openSurface(TASK_STEP_ACTIONS_SHEET_SURFACE_ID, {
       stepId: resolvedStepId,
@@ -608,6 +663,8 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     handleOpenActionsSheet,
     handleOpenCasesForTask,
     handleOpenFlowRecord,
+    openDeliveryDateSheet,
+    openPositionSheet,
     issuesSurfaceOpeners,
     isTransitioning,
     isCancellingCompletion,

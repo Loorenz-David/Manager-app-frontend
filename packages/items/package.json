@@ -8,6 +8,7 @@
   },
   "peerDependencies": {
     "@beyo/api-client": "*",
+    "@beyo/hooks": "*",
     "@beyo/lib": "*",
     "@beyo/ui": "*",
     "@tanstack/react-query": ">=5.0.0",

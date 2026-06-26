@@ -39,6 +39,7 @@ import {
 } from "@/features/working-sections";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { useStagedForm } from "@/hooks/use-staged-form";
+import { useSurface } from "@/hooks/use-surface";
 import { DateOnlySchema } from "@/types/common";
 
 const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
@@ -74,6 +75,7 @@ export function TestingFormsContent(): React.JSX.Element {
   usePreloadSurface(preloadCalendarSinglePickerSurface);
   usePreloadSurface(preloadCalendarRangePickerSurface);
 
+  const surface = useSurface();
   const form = useForm<TestingFormsValues>({
     resolver: zodResolver(TestingFormsSchema),
     defaultValues: {
@@ -264,8 +266,16 @@ export function TestingFormsContent(): React.JSX.Element {
                 <TaskFulfillmentMethodField />
                 <TaskReturnSourceField />
                 <TaskAdditionalDetailsField />
-                <TaskReadyByDateField />
-                <TaskDeliveryDateField />
+                <TaskReadyByDateField
+                  onOpenCalendarSinglePicker={(props) =>
+                    surface.open("calendar-single-picker", props)
+                  }
+                />
+                <TaskDeliveryDateField
+                  onOpenCalendarRangePicker={(props) =>
+                    surface.open("calendar-range-picker", props)
+                  }
+                />
                 <WorkingSectionPickerField />
               </div>
             </section>

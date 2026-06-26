@@ -62,6 +62,9 @@ export type {
 
 export { resolveRangeSelection } from "./date/resolve-range-selection";
 export type { RangeSelectionResolution } from "./date/resolve-range-selection";
+export { daysUntil } from "./date/days-until";
+export { formatShortDate } from "./date/format-short-date";
+export { isoWeek } from "./date/iso-week";
 
 export { clampNumber } from "./number/clamp-number";
 export { formatNumberDisplay } from "./number/format-number-display";

@@ -1,9 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { updateItem } from "@beyo/items";
 
 import { taskKeys } from '@/features/tasks/api/task-keys';
 import type { TaskDetailRaw } from '@/features/tasks/types';
-
-import { updateItem } from '../api/update-item';
 
 export function useUpdateItem(taskId: string) {
   const queryClient = useQueryClient();

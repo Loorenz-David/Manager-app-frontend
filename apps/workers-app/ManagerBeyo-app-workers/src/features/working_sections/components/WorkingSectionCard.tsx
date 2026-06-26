@@ -45,12 +45,12 @@ export const WorkingSectionCard = memo(function WorkingSectionCard({
           {section.name}
         </span>
         <div className="flex items-center gap-2">
-          {section.readyAndPendingCount > 0 ? (
+          {section.activeCount > 0 ? (
             <span
               className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
               data-testid={`working-section-card-active-count-${section.sectionId}`}
             >
-              {section.readyAndPendingCount} active
+              {section.activeCount} active
             </span>
           ) : section.todayDoneCount > 0 ? (
             <span aria-hidden="true" className="invisible inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">

@@ -64,7 +64,7 @@ export function TaskStepCircularActionButton({
       <button
         type="button"
         aria-label={label}
-        className={`flex size-24 items-center justify-center rounded-full transition-opacity ${bgClass} disabled:opacity-60`}
+        className={`flex size-24 items-center justify-center rounded-full transition-opacity border border-between-border ${bgClass} disabled:opacity-60`}
         data-testid={`task-step-circular-action-${stepId}`}
         disabled={isTransitioning}
         onClick={() => onTransition(stepId, taskId, nextState)}
@@ -95,7 +95,7 @@ export function TaskStepCircularActionButton({
         ) : null}
       </div>
 
-      <span className="text-sm text-muted-foreground">{label}</span>
+      {/* <span className="text-sm text-muted-foreground">{label}</span> */}
     </div>
   );
 }
