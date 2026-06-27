@@ -22,6 +22,7 @@
   - `POST /api/v1/tasks/{task_id}/notes`
   - `PATCH /api/v1/tasks/{task_id}/notes/{note_id}`
   - `POST /api/v1/tasks/{task_id}/notes/{note_id}/read-by`
+  - `DELETE /api/v1/tasks/{task_id}/notes/{note_id}`
 - Feature flags/toggles (if any):
   - None.
 - Explicitly excluded from this handoff:
@@ -273,6 +274,32 @@ Request body excerpt:
   - Appends only.
   - Duplicate values are ignored.
   - The backend does not interpret the strings; it only stores them.
+
+### 6. Delete task note
+
+- Endpoint:
+  - `DELETE /api/v1/tasks/{task_id}/notes/{note_id}`
+- Auth and role access:
+  - `ADMIN`, `MANAGER`, `WORKER`, `SELLER`
+- Path params:
+  - `task_id: string`
+  - `note_id: string`
+- Success payload:
+
+```json
+{
+  "ok": true,
+  "data": {
+    "client_id": "tno_01..."
+  },
+  "warnings": []
+}
+```
+
+- Semantics:
+  - Soft-deletes the note rather than hard-deleting it.
+  - Deleted notes are excluded from the default `GET /api/v1/tasks/{task_id}/notes` response.
+  - The frontend should treat this as a destructive action and remove the note from the active note list after success.
 
 ## Notes for rollout
 

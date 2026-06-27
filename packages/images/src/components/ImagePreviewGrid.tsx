@@ -8,11 +8,13 @@ import { ImageSortableGrid } from './ImageSortableGrid';
 const DEFAULT_MAX_VISIBLE_IMAGES = 6;
 
 type ImagePreviewGridProps = {
+  hideAddButton?: boolean;
   maxImages?: number;
   testId?: string;
 };
 
 export function ImagePreviewGrid({
+  hideAddButton = false,
   maxImages = DEFAULT_MAX_VISIBLE_IMAGES,
   testId = 'image-preview-grid',
 }: ImagePreviewGridProps): React.JSX.Element {
@@ -20,7 +22,9 @@ export function ImagePreviewGrid({
   const [isEditMode, setIsEditMode] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const visibleImages = images.slice(0, maxImages);
-  const showAddPictureButton = !isEditMode && visibleImages.length < maxImages;
+  const overflowCount = Math.max(images.length - visibleImages.length, 0);
+  const showAddPictureButton =
+    !hideAddButton && !isEditMode && visibleImages.length < maxImages;
 
   useEffect(() => {
     if (!isEditMode) {
@@ -70,6 +74,7 @@ export function ImagePreviewGrid({
 
             openViewer(imageClientId);
           }}
+          overflowCount={overflowCount}
         />
         {showAddPictureButton ? <ImageAddPictureButton /> : null}
       </div>

@@ -1,7 +1,13 @@
 import { z } from "zod";
 
 import { ImageAnnotationSchema } from "@beyo/images";
-import { ClientIdSchema } from "@beyo/lib";
+import {
+  BackendRichTextBlockSchema,
+  BackendRichTextInlinePartMarksSchema,
+  BackendRichTextMentionSchema,
+  ClientIdSchema,
+} from "@beyo/lib";
+import type { BackendMentionResolution, BackendRichTextBlock } from "@beyo/lib";
 import type {
   CaseConversationId,
   CaseConversationMessageId,
@@ -46,12 +52,7 @@ export type CaseTypeSelectedDisplay = {
   description: string | null;
 };
 
-export const MESSAGE_CONTENT_BLOCK_TYPE = [
-  "text",
-  "mention",
-  "label",
-  "link",
-] as const;
+export const MESSAGE_CONTENT_BLOCK_TYPE = ["text", "mention", "label", "link"] as const;
 
 export const CaseUserSnapshotSchema = z.object({
   client_id: z.string().transform((v) => v as UserId),
@@ -118,29 +119,10 @@ export const CaseListCardRawSchema = z.object({
 });
 export type CaseListCardRaw = z.infer<typeof CaseListCardRawSchema>;
 
-export const MessageMentionSchema = z.object({
-  mention_table: z.string(),
-  mention_id: z.string(),
-  client_id: z.string(),
-});
-
-export const MessageContentBlockMarksSchema = z.object({
-  bold: z.boolean().optional(),
-  underline: z.boolean().optional(),
-  size: z.enum(["small", "base", "large"]).optional(),
-  color: z.string().optional(),
-  animation: z.string().optional(),
-});
-
-export const MessageContentBlockSchema = z.object({
-  type: z.enum(MESSAGE_CONTENT_BLOCK_TYPE),
-  text: z.string(),
-  mention: MessageMentionSchema.nullable().optional(),
-  label_value: z.string().nullable().optional(),
-  link: z.string().nullable().optional(),
-  marks: MessageContentBlockMarksSchema.nullable().optional(),
-});
-export type MessageContentBlock = z.infer<typeof MessageContentBlockSchema>;
+export const MessageMentionSchema = BackendRichTextMentionSchema;
+export const MessageContentBlockMarksSchema = BackendRichTextInlinePartMarksSchema;
+export const MessageContentBlockSchema = BackendRichTextBlockSchema;
+export type MessageContentBlock = BackendRichTextBlock;
 
 export const InitialMessageInputSchema = z.object({
   client_id: z.string().nullable().optional(),
@@ -170,7 +152,7 @@ export const MentionResolutionSchema = z.object({
   mention_id: z.string(),
   mention_data: CaseUserSnapshotSchema.nullable(),
 });
-export type MentionResolution = z.infer<typeof MentionResolutionSchema>;
+export type MentionResolution = BackendMentionResolution<CaseUserSnapshot>;
 
 export const CaseConversationMessageRawSchema = z.object({
   case_id: z

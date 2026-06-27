@@ -25,6 +25,7 @@ type ImageSortableGridProps = {
   onLongPress: (imageClientId: string) => void;
   onReorder: (orderedClientIds: string[]) => void;
   onTap: (imageClientId: string) => void;
+  overflowCount?: number;
 };
 
 type SortableTileProps = {
@@ -86,6 +87,7 @@ export function ImageSortableGrid({
   onLongPress,
   onReorder,
   onTap,
+  overflowCount = 0,
 }: ImageSortableGridProps): React.JSX.Element {
   const [sortedImages, setSortedImages] = useState(() => images);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -152,12 +154,17 @@ export function ImageSortableGrid({
   if (!isEditMode) {
     return (
       <>
-        {images.map((image) => (
+        {images.map((image, index) => (
           <ImagePreviewTile
             key={image.clientId}
             image={image}
             onLongPress={onLongPress}
             onTap={onTap}
+            overlayLabel={
+              overflowCount > 0 && index === images.length - 1
+                ? `+${overflowCount}`
+                : null
+            }
           />
         ))}
       </>

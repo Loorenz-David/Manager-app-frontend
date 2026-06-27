@@ -9,6 +9,7 @@
 @source "../../../../packages/scanner/src";
 @source "../../../../packages/notifications/src";
 @source "../../../../packages/task-creation/src";
+@source "../../../../packages/task-notes/src";
 
 .test-colors {
   background: #d0d3d9;
@@ -52,7 +53,7 @@
   transform-origin: center;
 }
 
-@keyframes case-composer-inline-shake {
+@keyframes rich-text-inline-shake {
   0%,
   100% {
     transform: translateX(0);
@@ -75,7 +76,7 @@
   }
 }
 
-@keyframes case-composer-inline-pulse {
+@keyframes rich-text-inline-pulse {
   0% {
     transform: scale(1);
   }
@@ -89,14 +90,14 @@
   }
 }
 
-.case-message-animation-shake {
-  animation: case-composer-inline-shake 320ms ease-in-out 1;
+.rich-text-animation-shake {
+  animation: rich-text-inline-shake 320ms ease-in-out 1;
   display: inline-block;
   transform-origin: center;
 }
 
-.case-message-animation-pulse {
-  animation: case-composer-inline-pulse 360ms ease-out 1;
+.rich-text-animation-pulse {
+  animation: rich-text-inline-pulse 360ms ease-out 1;
   display: inline-block;
   transform-origin: center;
 }

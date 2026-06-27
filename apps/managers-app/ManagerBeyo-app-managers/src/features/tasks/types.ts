@@ -86,13 +86,37 @@ export const TaskSchema = z.object({
 
 export type Task = z.infer<typeof TaskSchema>;
 
+export const TaskNoteContentBlockSchema = z
+  .object({
+    type: z.string(),
+  })
+  .passthrough();
+export type TaskNoteContentBlock = z.infer<typeof TaskNoteContentBlockSchema>;
+
+const TaskNoteUserRoleSchema = z.object({
+  client_id: z.string(),
+  name: z.string(),
+});
+
+const TaskNoteCreatorSchema = z.object({
+  client_id: z.string(),
+  username: z.string().nullable(),
+  profile_picture: z.string().nullable(),
+  role: TaskNoteUserRoleSchema.nullable(),
+  workspace_role: TaskNoteUserRoleSchema.nullable(),
+});
+
 export const TaskNoteSchema = z.object({
   client_id: z.string(),
   task_id: z.string().transform((value) => value as TaskId),
   note_type: z.enum(TASK_NOTE_TYPE),
-  content: z.record(z.string(), z.unknown()),
+  content: z.array(TaskNoteContentBlockSchema),
+  plain_text: z.string().nullable(),
+  users_read_list: z.array(z.string()),
   created_at: z.string().datetime({ offset: true }),
+  created_by: TaskNoteCreatorSchema.nullable(),
   updated_at: z.string().datetime({ offset: true }).nullable(),
+  updated_by: TaskNoteCreatorSchema.nullable(),
   is_deleted: z.boolean(),
   deleted_at: z.string().datetime({ offset: true }).nullable(),
 });
@@ -199,7 +223,7 @@ export const TaskDetailRawSchema = z.object({
         .optional(),
     }),
   ),
-  task_notes: z.array(TaskNoteSchema),
+  task_notes: z.array(TaskNoteSchema).optional().default([]),
   unread_message_count: z.number().int(),
 });
 export type TaskDetailRaw = z.infer<typeof TaskDetailRawSchema>;
@@ -232,6 +256,17 @@ export const CreateTaskInputSchema = z.object({
     .or(z.literal("")),
   address: AddressSchema,
   additional_details: z.record(z.string(), z.unknown()).optional(),
+  notes: z
+    .array(
+      z.object({
+        client_id: z.string().optional(),
+        note_type: z.enum(TASK_NOTE_TYPE),
+        content: z.array(TaskNoteContentBlockSchema),
+        plain_text: z.string().optional(),
+        users_read_list: z.array(z.string()).optional(),
+      }),
+    )
+    .optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 
@@ -265,9 +300,12 @@ export type ResolveTaskInput = z.infer<typeof TransitionTaskInputSchema>;
 export type FailTaskInput = z.infer<typeof TransitionTaskInputSchema>;
 
 export const CreateTaskNoteInputSchema = z.object({
+  client_id: z.string().optional(),
   task_id: z.string().transform((v) => v as TaskId),
   note_type: z.enum(TASK_NOTE_TYPE, { message: "Note type is required." }),
-  content: z.record(z.string(), z.unknown()),
+  content: z.array(TaskNoteContentBlockSchema),
+  plain_text: z.string().optional(),
+  users_read_list: z.array(z.string()).optional(),
 });
 export type CreateTaskNoteInput = z.infer<typeof CreateTaskNoteInputSchema>;
 

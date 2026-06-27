@@ -1,6 +1,12 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
+import { usePreloadSurface } from "@beyo/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import { generateClientId } from "@beyo/lib";
+import {
+  TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+  useTaskNotesUnreadController,
+  type TaskNoteUnreadViewerSurfaceProps,
+} from "@beyo/task-notes";
 import {
   TaskBodyCategoryRow,
   TaskCustomerSection,
@@ -23,8 +29,13 @@ import {
   useTaskDetailContext,
 } from "@/features/tasks/providers/TaskDetailProvider";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
+import { useSurface } from "@/hooks/use-surface";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
-import type { TaskDetailSurfaceProps } from "@/features/tasks/surfaces";
+import {
+  preloadTaskNoteUnreadViewerSurface,
+  preloadTaskNotesSheetSurface,
+  type TaskDetailSurfaceProps,
+} from "@/features/tasks/surfaces";
 
 const ITEM_UPHOLSTERY_REQUIREMENT_STATES = new Set<
   ItemUpholsteryRequirementState
@@ -55,6 +66,7 @@ function toItemUpholsteryRequirementState(
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
+  const surface = useSurface();
   const queryClient = useQueryClient();
   const { scrollRef, isHidden } = useScrollVisibility({
     mode: "relative",
@@ -65,6 +77,21 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   useEffect(() => {
     header?.setHeaderHidden(true);
   }, [header]);
+
+  usePreloadSurface(preloadTaskNotesSheetSurface);
+  usePreloadSurface(preloadTaskNoteUnreadViewerSurface);
+
+  const handleOpenUnreadViewer = useCallback(
+    (props: TaskNoteUnreadViewerSurfaceProps) => {
+      surface.open(TASK_NOTE_UNREAD_VIEWER_SURFACE_ID, props);
+    },
+    [surface],
+  );
+
+  useTaskNotesUnreadController({
+    taskId: controller.taskId,
+    onOpen: handleOpenUnreadViewer,
+  });
 
   useEffect(() => {
     if (

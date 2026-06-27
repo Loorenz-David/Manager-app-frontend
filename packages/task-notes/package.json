@@ -1,0 +1,25 @@
+{
+  "name": "@beyo/task-notes",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@beyo/api-client": "*",
+    "@beyo/realtime": "*",
+    "@beyo/auth": "*",
+    "@beyo/cases": "*",
+    "@beyo/hooks": "*",
+    "@beyo/images": "*",
+    "@beyo/lib": "*",
+    "@tanstack/react-query": "*",
+    "@beyo/ui": "*",
+    "lucide-react": ">=1.0.0",
+    "embla-carousel-react": ">=8.0.0",
+    "react": ">=19.0.0",
+    "react-hook-form": "*",
+    "zod": "*"
+  }
+}

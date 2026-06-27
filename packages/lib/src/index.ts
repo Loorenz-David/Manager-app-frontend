@@ -98,3 +98,27 @@ export {
 export { useTickingElapsed } from "./hooks/use-ticking-elapsed";
 
 export { isSameImagePath } from "./url/is-same-image-path";
+
+export {
+  normalizeBackendRichTextContent,
+  richTextToBackendBlocks,
+  BackendRichTextInlinePartMarksSchema,
+  BackendRichTextMentionSchema,
+  BackendRichTextBlockSchema,
+} from "./rich-text/backend-rich-text";
+export type {
+  BackendMentionResolution,
+  BackendRichTextBlock,
+  BackendRichTextMention,
+  RichTextContent,
+  RichTextInlinePart,
+  RichTextInlinePartMarks,
+  RichTextLabelInlinePart,
+  RichTextLinkInlinePart,
+  RichTextMentionInlinePart,
+  RichTextMentionReference,
+  RichTextTextInlinePart,
+} from "./rich-text/backend-rich-text";
+
+export { RichTextContentView } from "./rich-text/RichTextContentView";
+export type { RichTextContentViewClassNames } from "./rich-text/RichTextContentView";

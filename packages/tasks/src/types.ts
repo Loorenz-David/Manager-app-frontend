@@ -15,6 +15,12 @@ export const TASK_STATE = [
   "cancelled",
 ] as const;
 export const TASK_RETURN_METHOD = ["drop_off_by_customer", "pickup"] as const;
+export const TASK_NOTE_TYPE = [
+  "user_note",
+  "system_note",
+  "correction_note",
+  "retraction_note",
+] as const;
 
 export const TaskFlowRecordActorSchema = z.object({
   client_id: z.string(),
@@ -112,6 +118,12 @@ export type TaskReturnSource = (typeof TASK_RETURN_SOURCE)[number];
 export type TaskItemLocation = (typeof TASK_ITEM_LOCATION)[number];
 export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
 
+export const TaskNoteContentBlockSchema = z
+  .object({
+    type: z.string(),
+  })
+  .passthrough();
+
 export const ImageLightSchema = z.object({
   client_id: z.string(),
   image_url: z.string(),
@@ -193,7 +205,7 @@ export const TaskDetailRawSchema = z.object({
       latest_state_records: z.record(z.string(), z.unknown()).nullable().optional(),
     }),
   ),
-  task_notes: z.array(z.unknown()),
+  task_notes: z.array(z.unknown()).optional().default([]),
   unread_message_count: z.number().int(),
 });
 export type TaskDetailRaw = z.infer<typeof TaskDetailRawSchema>;
@@ -252,5 +264,16 @@ export const CreateTaskInputSchema = z.object({
     })
     .nullable(),
   additional_details: z.record(z.string(), z.unknown()).optional(),
+  notes: z
+    .array(
+      z.object({
+        client_id: z.string().optional(),
+        note_type: z.enum(TASK_NOTE_TYPE),
+        content: z.array(TaskNoteContentBlockSchema),
+        plain_text: z.string().optional(),
+        users_read_list: z.array(z.string()).optional(),
+      }),
+    )
+    .optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;

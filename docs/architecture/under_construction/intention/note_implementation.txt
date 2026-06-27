@@ -64,17 +64,165 @@ handoff HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626:
 the handoff describes more endpoint which will later be used for further implementation on the task note system.
 
 ---
+note composer improvements:
+
+when the user taps on the note composer the user keyboard is active, and the bottom right button where the image icon was being display turns into a filled circular button with a checkmark icon ( lucid icon "check" , bg-primary for the container )
+that means the user can only access to the image capability of the note when the composer is not active.
+
+that check button closes the composer, but on edit mode the action is to also make the direct call to update the note and close the composer. 
+the parent can attach more actions to that checkmark button.
+✅
+----
 
 INTENTION:
 
 We will now create page sheet for allowing the user to visualize the notes that has been created, to edit thenm, and to delete them.
 
-This page sheet is build at the packages on the note feature ###
+This page sheet is build at the packages on the note feature /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes
+
+this page sheet will be compose of three major containers, the first container will display the list of notes added, the second container will display the note details, the third container will allow the user to add notes. 
+the first container is display on first page load and when taping a note card from the list it will slide right letting the note detail container to slide in from the left.
+the note detail container has a back arrow at the header whick allow the user to go back to the list notes container.
+
+the list note cards render a preview of the note message ( max two senteces lines, after that is truncated ), on the left right side of the card is a delete button which allows the user to directly delete the note, this delete button uses the confirm button primitive
+
+the note deatil container is compose of a header ( partially described above ), and a body.
+The body renders the a component which displays the note content with the content styling of the note, you can check the case conversation messages to look at the helpers we have for parsing the content into styled text ( CaseMessageList ).
+bellow that is the note image grid, which renders a max of three image previews, if more images then the third image container renders a dark overlay with a label "+{number of extra images}". the user can tap any of the images to open the full image preview page ( ImageFullscreenViewerPage ), look at other image containers to check how this interaction is handle ( the TaskImageSection is a good example ).
+
+
+
+on the note detail container at the header where the back arrow is all the way to the right is the edit icon ( lucid icon "square-pen" ), when the user taps on that button the user enters into edit note mode.
+this edit mode turn the note detail container into the note composer TaskNoteComposer , and the note image preview into the note image field.
+the user can then add more pictures to the note, or edit the note content.
+when making image changes to the note the interaction is direct as the image system is polimorphic and only requires the note id and the type as entities.
+when making note content changes, when the user taps the checkmark on the composer will make the call for updating the note, because the note composer is active in edit mode in this page.
+because the page can pass an action to the note composer action button, when the user checks the changes on the note, this will close the entire page sheet ( action which the parent app using the page sheet passes ).
+
+the note creation container is compose of the same components of the edit mode of the detail note container, but the check mark button of the note composer is not in edit mode.
+at the footer bellow the image grid we render a save note button ( styled as full width py-3.5 bg-primary color-card ), this makes a call to create a note for the task ( endpoint descrived in the HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626)
+the call is optimisitc and closes the page sheet ( where the user is rendering this note page sheet ), the query should be invalidated for fetching the task notes, the images for a note are created using the client id the frontend generates on entering this creationg note form.
+on note creation the users_read_list should be send with the current user client id, this can be obtain through  @beyo/auth
+
+the list note container renders at it's header a "+" button ( lucid icon "circle-plus" ). the tap of this takes the user to a container to the task creation note container, the list note slides left, the note creation container slides from the right.
+
+We will create a task note pill with the pill primitive InfoPill, that pill button will be self sufficient, meaning it will internally make the flow call to fetch the task notes given a task id ( endpoint specify at HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626 ).
+the pill will render the number of notes with the label "{notes count} notes". parent apps using this component will use this pill for triggering the note page sheet. contract 35 explains how applications can consume packages and use packages sheets to render on their own app surfaces.
+the apps using this pill will be pre calling the page sheet and pre fetching the query.
+if no note then the pill renders "--" because apps will be using it as a trigger to enter into the note page sheet
+
+we will place this note pill component / trigger on the manager application TaskDetailSlidePage at the component TaskScheduledDeliverySection on the left side of the TaskScheduledDeliveryDatePill.
+
+this note page sheet on open holds a fixed height base on the longest note content there is, so that when moving between containers there is not parent page surface resize.
+
+when only one note is present it should open directly on the note detail container.
+
+the note detail container and the note list conatiner will only render the action button for creating a note and editing a note when the user has the correct role permissions.
+which are when user role = admin or when the user workspace role != null  ### the contracts 19 and 20 specify how to use the permission controllers to restrict capabilities.
+
+the note detail container needs a parameter that allows for other parent components to manually hide the edit note capability
+
+GOAL:
+create an implementation plan for codex using the template @template_plan .
+be explicit for decreasing the amount of allucination codex might have while implementing.
+alignt the implementation to the architectural principles using the correct contracts, you can use the contract guide @frontend for chosing the contracts of concern for this implementation.
 
 
 
 RELEVANT FILES:
 
 task note package feature:
-###
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes
 
+confirm button primitive:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/confirm-action-button
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes/src/components/TaskNoteComposer.tsx:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes/src/components/TaskNoteComposer.tsx
+
+CaseMessageList:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/cases/src/components/CaseMessageList.tsx
+
+ImageFullscreenViewerPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/images/src/pages/ImageFullscreenViewerPage.tsx
+
+
+TaskImagesSection
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/detail/TaskImagesSection.tsx
+
+
+InfoPill:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/shared/InfoPill.tsx
+
+
+contract 35:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+TaskDetailSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+TaskScheduledDeliverySection:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/detail/TaskScheduledDeliverySection.tsx
+
+contracts 19 and 20 : 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/19_permissions_local.md
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/19_permissions.md
+
+
+handoff HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626.md
+
+☑️
+
+---
+
+INTENTION:
+we will now create the page sheet for displaying notes when the user has not yet seen them or mark them as seen.
+the page sheet will render the note detail container without the edit note capabilities note detail contanier DetailPanel ( from the TaskNotesSheetPage )
+
+Because there can be more than one note for a task, we will make this page to behave like an image carousel where the user can slide sideways to see the next note, at the bottom is a pill displaying the number of notes and the current note index the user is at, you can check the image full page ( ImageFullscreenViewerPage ), we might be able to use some capability that page uses to not duplicate the slide logic behind,
+
+at the bottom of this sheet is the button with label "Got it" ( style full width with bg-primary and color-card ), when the user taps that button it sends the request for marking that note as read to the endpoint /{task_id}/notes/{note_id}/read-by ( documented in the HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626 ), attaching the current user client_id to the list indepondenlty the user client_id can be obtain through the @beyo/auth .
+If there is more than one note the slide should slide to the next note for the user to read and mark as "Got it" , the index list now displays only the unread notes by that user. this update should be optimistic and on response it should invalidate the fetch of notes query.
+
+at the task note feature we will create a controller which gets the task notes given a task id, it uses the same flow as the task note pill TaskNotePill
+the controller will check for the task notes that the current user hasn't read by checking if the current user client_id is not in the "users_read_list" if it is not then it will trigger this page sheet for displaying the task notes that hasn't been read .  this logic should align with how contract 35 describes how apps should consume pages to be render on their own app surfaces.
+
+we will place this controller in the manager application task detail slide page and on the worker task detail slide page , so that on page load the evaluation is made. 
+
+the page should have the static height of the tallest note so that on sliding the app surface page doesn't resize.
+
+
+GOAL:
+create an implementation plan for codex using the template /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/architecture/under_construction/implementation/TEMPLATE_PLAN.md .
+be explicit for decreasing the amount of allucination codex might have while implementing.
+alignt the implementation to the architectural principles using the correct contracts, you can use the contract guide /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/task_system/frontend_contract_goal_mapping_guide.md for chosing the contracts of concern for this implementation.
+
+
+RELEVANT FILES:
+
+
+
+ImageFullscreenViewerPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/images/src/pages/ImageFullscreenViewerPage.tsx
+
+task note feature:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes
+
+manager task detail slide:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+worker task detail slide:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
+
+TaskNotesSheetPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes/src/pages/TaskNotesSheetPage.tsx
+
+TaskNotePill:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-notes/src/components/TaskNotePill.tsx
+
+handoff HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_note_system_improvement_20260626.md
+
+✅

@@ -18,7 +18,7 @@ export function UserPill({
   userName,
   imageSrc,
   imageAlt,
-  className,
+  className = "bg-[var(--color-soft-container)] text-foreground text-sm font-medium px-2.5 py-1",
   avatarClassName,
   userNameClassName,
   "data-testid": dataTestId,
@@ -34,7 +34,7 @@ export function UserPill({
   return (
     <span
       className={cn(
-        "inline-flex max-w-full items-center gap-2 rounded-full bg-[var(--color-soft-container)] px-2.5 py-1 text-sm font-medium text-foreground",
+        "inline-flex max-w-full items-center gap-2 rounded-full     ",
         className,
       )}
       data-testid={dataTestId}

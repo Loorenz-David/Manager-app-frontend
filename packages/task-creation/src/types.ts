@@ -4,6 +4,7 @@ import { CustomerFieldsSchema } from "@beyo/customers";
 import { DateOnlySchema } from "@beyo/lib";
 import { ItemIssuesFieldsSchema } from "@beyo/item-issues";
 import { ItemDetailsFieldsSchema } from "@beyo/items";
+import type { TaskNoteComposerValue } from "@beyo/task-notes";
 import {
   ItemUpholsteryFieldsSchema,
   type UpholsteryPickerOption,
@@ -17,7 +18,6 @@ import {
   type WorkingSectionPickerOption,
 } from "@beyo/working-sections";
 import {
-  TaskAdditionalDetailsFieldsSchema,
   TASK_FULFILLMENT_METHOD,
   TASK_RETURN_SOURCE,
 } from "@beyo/tasks";
@@ -45,8 +45,7 @@ export const ReturnFormSchema = z.object({
   working_section_assignments:
     WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
   ready_by_at: DateOnlySchema.nullable().optional(),
-  additional_details:
-    TaskAdditionalDetailsFieldsSchema.shape.additional_details,
+  note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
 });
 export type ReturnFormValues = z.input<typeof ReturnFormSchema>;
 
@@ -68,8 +67,7 @@ export const InternalFormSchema = z
     working_section_assignments:
       WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
     ready_by_at: DateOnlySchema.nullable().optional(),
-    additional_details:
-      TaskAdditionalDetailsFieldsSchema.shape.additional_details,
+    note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.item.article_number?.trim() && !data.item.sku?.trim()) {
@@ -147,6 +145,7 @@ export type WorkerInternalFormValues = z.input<typeof WorkerInternalFormSchema>;
 export type {
   ItemCategoryPickerOption,
   ItemLookupResult,
+  TaskNoteComposerValue,
   UpholsteryPickerOption,
   WorkingSectionAssignment,
   WorkingSectionMember,

@@ -1,7 +1,12 @@
-import { useEffect } from "react";
-import { usePreloadSurface, useSurfaceHeader } from "@beyo/hooks";
+import { useCallback, useEffect } from "react";
+import { usePreloadSurface, useSurface, useSurfaceHeader } from "@beyo/hooks";
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
 import { ItemPositionPill } from "@beyo/items";
+import {
+  TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+  useTaskNotesUnreadController,
+  type TaskNoteUnreadViewerSurfaceProps,
+} from "@beyo/task-notes";
 import { TaskFlowTimeline } from "@beyo/tasks";
 import {
   ContentCard,
@@ -24,6 +29,8 @@ import {
 } from "@/features/task_steps/providers/TaskStepDetailProvider";
 import {
   preloadCompleteTaskStepConfirmationSlideSurface,
+  preloadTaskNoteUnreadViewerSurface,
+  preloadTaskNotesSheetSurface,
   preloadTaskScheduledDeliverySheetSurface,
 } from "@/features/task_steps/surfaces";
 
@@ -80,6 +87,7 @@ function TaskStepCategoryPositionRow(): React.JSX.Element | null {
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
+  const surface = useSurface();
   const controller = useTaskStepDetailContext();
   const { scrollRef, isHidden } = useScrollVisibility({ mode: "relative" });
 
@@ -88,7 +96,21 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [header]);
 
   usePreloadSurface(preloadCompleteTaskStepConfirmationSlideSurface);
+  usePreloadSurface(preloadTaskNotesSheetSurface);
+  usePreloadSurface(preloadTaskNoteUnreadViewerSurface);
   usePreloadSurface(preloadTaskScheduledDeliverySheetSurface);
+
+  const handleOpenUnreadViewer = useCallback(
+    (props: TaskNoteUnreadViewerSurfaceProps) => {
+      surface.open(TASK_NOTE_UNREAD_VIEWER_SURFACE_ID, props);
+    },
+    [surface],
+  );
+
+  useTaskNotesUnreadController({
+    taskId: controller.taskId,
+    onOpen: handleOpenUnreadViewer,
+  });
 
   if (controller.isPending) {
     return (

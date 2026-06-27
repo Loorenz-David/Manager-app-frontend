@@ -14,6 +14,7 @@ type ImagePreviewTileProps = {
   onTap?: (imageClientId: string) => void;
   onDeletePress?: (imageClientId: string) => void;
   onLongPress?: (imageClientId: string) => void;
+  overlayLabel?: string | null;
   testId?: string;
 };
 
@@ -23,6 +24,7 @@ export function ImagePreviewTile({
   onTap,
   onDeletePress,
   onLongPress,
+  overlayLabel = null,
   testId,
 }: ImagePreviewTileProps): React.JSX.Element {
   const { openViewer, deleteImage } = useEntityImagesContext();
@@ -100,6 +102,15 @@ export function ImagePreviewTile({
       />
 
       <ImageUploadOverlay uploadState={image.uploadState} />
+
+      {overlayLabel ? (
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/55 text-lg font-semibold text-white"
+          aria-hidden="true"
+        >
+          {overlayLabel}
+        </div>
+      ) : null}
 
       {isEditMode ? (
         <button

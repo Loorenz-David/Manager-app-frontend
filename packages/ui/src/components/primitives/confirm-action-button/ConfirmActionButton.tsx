@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 
-import { cn } from '@beyo/lib';
+import { cn } from "@beyo/lib";
 
 export type ConfirmActionButtonProps = {
   label: string;
@@ -13,28 +13,36 @@ export type ConfirmActionButtonProps = {
   borderColor?: string;
   className?: string;
   icon?: React.ReactNode;
+  align?: "left" | "center" | "right";
   onConfirm: () => void;
   disabled?: boolean;
-  'data-testid'?: string;
+  "data-testid"?: string;
 };
+
+const alignToJustify = {
+  left: "justify-start",
+  center: "justify-center",
+  right: "justify-end",
+} as const;
 
 export function ConfirmActionButton({
   label,
   confirmLabel,
   confirmDurationMs = 3000,
-  backgroundColor = 'var(--color-card)',
-  fillColor = 'var(--color-destructive)',
+  backgroundColor = "var(--color-card)",
+  fillColor = "var(--color-destructive)",
   textColor,
-  confirmTextColor = 'white',
+  confirmTextColor = "white",
   borderColor,
   className,
   icon,
+  align = "left",
   onConfirm,
   disabled = false,
-  'data-testid': testId,
+  "data-testid": testId,
 }: ConfirmActionButtonProps): React.JSX.Element {
   const [isPending, setIsPending] = useState(false);
-  const [fillWidth, setFillWidth] = useState('0%');
+  const [fillWidth, setFillWidth] = useState("0%");
   const timerRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
@@ -47,7 +55,7 @@ export function ConfirmActionButton({
       window.cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    setFillWidth('0%');
+    setFillWidth("0%");
     setIsPending(false);
   }, []);
 
@@ -57,10 +65,10 @@ export function ConfirmActionButton({
     }
 
     if (!isPending) {
-      setFillWidth('0%');
+      setFillWidth("0%");
       setIsPending(true);
       animationFrameRef.current = window.requestAnimationFrame(() => {
-        setFillWidth('100%');
+        setFillWidth("100%");
         animationFrameRef.current = null;
       });
       timerRef.current = window.setTimeout(() => {
@@ -89,7 +97,7 @@ export function ConfirmActionButton({
   return (
     <button
       className={cn(
-        'relative overflow-hidden rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
+        "relative overflow-hidden rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
         className,
       )}
       data-testid={testId}
@@ -106,7 +114,7 @@ export function ConfirmActionButton({
         <>
           <span
             aria-hidden="true"
-            className="absolute inset-y-0 left-0"
+            className="absolute inset-y-0 left-0 z-1"
             style={{
               width: fillWidth,
               backgroundColor: fillColor,
@@ -115,18 +123,29 @@ export function ConfirmActionButton({
           />
           <span
             aria-hidden="true"
-            className="absolute inset-0 z-10 flex items-center justify-center px-4 py-3 text-sm font-medium"
+            className={cn(
+              "absolute inset-0 z-10 flex items-center gap-3 text-sm font-medium",
+              alignToJustify[align],
+            )}
             style={{
+              padding: "inherit",
               color: confirmTextColor,
-              clipPath: fillWidth === '100%' ? 'inset(0 0% 0 0)' : 'inset(0 100% 0 0)',
+              clipPath:
+                fillWidth === "100%" ? "inset(0 0% 0 0)" : "inset(0 100% 0 0)",
               transition: `clip-path ${confirmDurationMs}ms linear`,
             }}
           >
+            {icon}
             {currentLabel}
           </span>
         </>
       ) : null}
-      <span className={cn('relative z-0', icon && 'flex items-center gap-3')}>
+      <span
+        className={cn(
+          "relative z-0 flex items-center gap-3",
+          alignToJustify[align],
+        )}
+      >
         {icon}
         {currentLabel}
       </span>

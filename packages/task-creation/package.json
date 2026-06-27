@@ -7,6 +7,7 @@
     ".": "./src/index.ts"
   },
   "peerDependencies": {
+    "@beyo/auth": "*",
     "@beyo/customers": "*",
     "@beyo/hooks": "*",
     "@beyo/images": "*",
@@ -16,6 +17,7 @@
     "@beyo/lib": "*",
     "@beyo/phone-input": "*",
     "@beyo/scanner": "*",
+    "@beyo/task-notes": "*",
     "@beyo/tasks": "*",
     "@beyo/ui": "*",
     "@beyo/upholstery": "*",

@@ -86,8 +86,14 @@ function buildDefaultValues(): WorkerInternalFormValues {
 export function WorkerInternalFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const surface = useSurface();
-  const { taskClientId, itemClientId, customerClientId, regenerateIds } =
-    useTaskCreationFormContext();
+  const {
+    taskClientId,
+    itemClientId,
+    customerClientId,
+    noteClientId,
+    currentUserClientId,
+    regenerateIds,
+  } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const createImagesFromUrl = useCreateImagesFromUrl();
   const workingSectionsFlow = useWorkingSectionPickerFlow();
@@ -273,6 +279,8 @@ export function WorkerInternalFormContent(): React.JSX.Element {
         taskClientId,
         itemClientId,
         customerClientId,
+        noteClientId,
+        currentUserClientId,
       },
       defaultWoodFixSection.client_id,
     );

@@ -51,10 +51,17 @@ export {
 export type { EntityImagesController } from "./controllers/use-entity-images.controller";
 
 export { ImagePreviewGrid } from "./components/ImagePreviewGrid";
+export {
+  ImageThumbnailGrid,
+} from "./components/ImageThumbnailGrid";
 export { ImageAddPictureButton } from "./components/ImageAddPictureButton";
 export { ImageSortableGrid } from "./components/ImageSortableGrid";
 export { ImageAnnotationSvgLayer } from "./components/ImageAnnotationSvgLayer";
 export { ImageUploadOverlay } from "./components/ImageUploadOverlay";
+
+export type {
+  ImageThumbnailGridItem,
+} from "./components/ImageThumbnailGrid";
 
 export { useEntityImagesQuery } from "./api/use-entity-images";
 export { imageKeys } from "./api/image-keys";

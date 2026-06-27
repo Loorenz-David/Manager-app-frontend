@@ -1,11 +1,14 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 
+import { useAuthStore, selectUser } from "@beyo/auth";
 import { generateClientId } from "@beyo/lib";
 
 type TaskCreationFormContextValue = {
   taskClientId: string;
   itemClientId: string;
   customerClientId: string;
+  noteClientId: string;
+  currentUserClientId: string;
   regenerateIds: () => void;
 };
 
@@ -19,6 +22,9 @@ type TaskCreationFormProviderProps = {
 export function TaskCreationFormProvider({
   children,
 }: TaskCreationFormProviderProps): React.JSX.Element {
+  const user = useAuthStore(selectUser);
+  const currentUserClientId = String(user?.id ?? "");
+
   const [taskClientId, setTaskClientId] = useState(() =>
     generateClientId("ExecutionTask"),
   );
@@ -28,16 +34,27 @@ export function TaskCreationFormProvider({
   const [customerClientId, setCustomerClientId] = useState(() =>
     generateClientId("Customer"),
   );
+  const [noteClientId, setNoteClientId] = useState(() =>
+    generateClientId("TaskNote"),
+  );
 
   function regenerateIds(): void {
     setTaskClientId(generateClientId("ExecutionTask"));
     setItemClientId(generateClientId("Item"));
     setCustomerClientId(generateClientId("Customer"));
+    setNoteClientId(generateClientId("TaskNote"));
   }
 
   return (
     <TaskCreationFormContext.Provider
-      value={{ taskClientId, itemClientId, customerClientId, regenerateIds }}
+      value={{
+        taskClientId,
+        itemClientId,
+        customerClientId,
+        noteClientId,
+        currentUserClientId,
+        regenerateIds,
+      }}
     >
       {children}
     </TaskCreationFormContext.Provider>

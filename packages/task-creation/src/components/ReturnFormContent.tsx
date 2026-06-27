@@ -27,13 +27,13 @@ import {
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
 import {
-  TaskAdditionalDetailsField,
   TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
   TaskReturnSourceField,
   useCreateTask,
 } from "@beyo/tasks";
+import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
 import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
@@ -85,7 +85,7 @@ const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
     "scheduled_end_at",
   ],
   assignment: ["working_section_assignments"],
-  details: ["item_issues", "additional_details", "ready_by_at"],
+  details: ["item_issues", "note_content", "ready_by_at"],
 };
 
 function UpholsteryField({
@@ -119,8 +119,13 @@ export function ReturnFormContent(): React.JSX.Element {
   usePreloadSurface(preloadUpholsteryPickerSurface);
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
-  const { taskClientId, itemClientId, customerClientId } =
-    useTaskCreationFormContext();
+  const {
+    taskClientId,
+    itemClientId,
+    customerClientId,
+    noteClientId,
+    currentUserClientId,
+  } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const surface = useSurface();
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
@@ -160,7 +165,7 @@ export function ReturnFormContent(): React.JSX.Element {
       scheduled_end_at: null,
       working_section_assignments: [],
       ready_by_at: null,
-      additional_details: "",
+      note_content: null,
     },
   });
   const returnSource = useWatch({
@@ -274,7 +279,7 @@ export function ReturnFormContent(): React.JSX.Element {
           }
           if (
             errors.item_issues ??
-            errors.additional_details ??
+            errors.note_content ??
             errors.ready_by_at
           ) {
             setStatus("details", "error");
@@ -290,11 +295,53 @@ export function ReturnFormContent(): React.JSX.Element {
       form.handleSubmit(async (values) => {
         const payload = normalizeReturnFormPayload(
           values,
-          { taskClientId, itemClientId, customerClientId },
+          {
+            taskClientId,
+            itemClientId,
+            customerClientId,
+            noteClientId,
+            currentUserClientId,
+          },
           "return",
         );
 
         await createTask.mutateAsync(payload);
+        form.reset({
+          item: {
+            designer: "",
+            article_number: "",
+            sku: "",
+            quantity: 1,
+            item_position: undefined,
+            item_currency: undefined,
+            item_category_id: undefined,
+            major_category: undefined,
+          },
+          item_upholstery: {
+            upholstery_client_id: null,
+            upholstery_amount_meters: null,
+          },
+          item_issues: [],
+          customer: {
+            display_name: "",
+            customer_type: undefined,
+            primary_email: "",
+            primary_phone_number: "",
+            address: {
+              street: "",
+              city: "",
+              postal_code: "",
+              country: "",
+            },
+          },
+          return_source: undefined,
+          fulfillment_method: undefined,
+          scheduled_start_at: null,
+          scheduled_end_at: null,
+          working_section_assignments: [],
+          ready_by_at: null,
+          note_content: null,
+        });
         surface.close(TASK_CREATION_RETURN_SURFACE_ID);
       })(),
   });
@@ -391,29 +438,47 @@ export function ReturnFormContent(): React.JSX.Element {
           ) : null}
 
           <StagedFormStep id="details" className="px-0">
-            <div className="flex flex-col gap-4">
-              <ContentCard data-testid="return-form-images-section">
-                <EntityImagesProvider
-                  entityClientId={itemClientId}
-                  captureFlow="camera-to-editor"
-                  deleteMode="hard-delete"
-                  entityType="item"
-                >
-                  <ImagePreviewGrid
-                    maxImages={6}
-                    testId="return-form-images-grid"
+            <EntityImagesProvider
+              entityClientId={noteClientId}
+              captureFlow="camera-to-editor"
+              deleteMode="hard-delete"
+              entityType="note"
+            >
+              <div className="flex flex-col gap-4">
+                <ContentCard data-testid="return-form-images-section">
+                  <EntityImagesProvider
+                    entityClientId={itemClientId}
+                    captureFlow="camera-to-editor"
+                    deleteMode="hard-delete"
+                    entityType="item"
+                  >
+                    <ImagePreviewGrid
+                      maxImages={6}
+                      testId="return-form-images-grid"
+                    />
+                  </EntityImagesProvider>
+                </ContentCard>
+                <ContentCard>
+                  <Controller
+                    control={form.control}
+                    name="note_content"
+                    render={({ field }) => (
+                      <TaskNoteComposer
+                        onChange={field.onChange}
+                        placeholder="Add a note…"
+                        testId="return-form-note-composer"
+                      />
+                    )}
                   />
-                </EntityImagesProvider>
-              </ContentCard>
-              <ContentCard>
-                <TaskAdditionalDetailsField />
-                <TaskReadyByDateField
-                  onOpenCalendarSinglePicker={(props) =>
-                    surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
-                  }
-                />
-              </ContentCard>
-            </div>
+                  <TaskNoteImagesSection />
+                  <TaskReadyByDateField
+                    onOpenCalendarSinglePicker={(props) =>
+                      surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
+                    }
+                  />
+                </ContentCard>
+              </div>
+            </EntityImagesProvider>
           </StagedFormStep>
         </StagedForm>
       </form>

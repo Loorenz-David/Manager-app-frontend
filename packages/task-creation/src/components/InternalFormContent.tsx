@@ -25,10 +25,10 @@ import {
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
 import {
-  TaskAdditionalDetailsField,
   TaskReadyByDateField,
   useCreateTask,
 } from "@beyo/tasks";
+import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
 import {
   ItemUpholsteryAmountField,
   ItemUpholsteryField,
@@ -72,7 +72,7 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
 > = {
   item: ["item", "item_upholstery"],
   assignment: ["working_section_assignments"],
-  task: ["item_issues", "ready_by_at", "additional_details"],
+  task: ["item_issues", "ready_by_at", "note_content"],
 };
 
 function UpholsteryField({
@@ -107,8 +107,14 @@ export function InternalFormContent(): React.JSX.Element {
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
 
   const surface = useSurface();
-  const { taskClientId, itemClientId, customerClientId, regenerateIds } =
-    useTaskCreationFormContext();
+  const {
+    taskClientId,
+    itemClientId,
+    customerClientId,
+    noteClientId,
+    currentUserClientId,
+    regenerateIds,
+  } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const createImagesFromUrl = useCreateImagesFromUrl();
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
@@ -132,7 +138,7 @@ export function InternalFormContent(): React.JSX.Element {
       item_issues: [],
       working_section_assignments: [],
       ready_by_at: null,
-      additional_details: "",
+      note_content: null,
     },
   });
   const majorCategory = useWatch({
@@ -239,7 +245,7 @@ export function InternalFormContent(): React.JSX.Element {
           }
           if (
             errors.item_issues ??
-            errors.additional_details ??
+            errors.note_content ??
             errors.ready_by_at
           ) {
             setStatus("task", "error");
@@ -261,6 +267,8 @@ export function InternalFormContent(): React.JSX.Element {
           taskClientId,
           itemClientId,
           customerClientId,
+          noteClientId,
+          currentUserClientId,
         });
 
         await createTask.mutateAsync(payload);
@@ -282,7 +290,7 @@ export function InternalFormContent(): React.JSX.Element {
           item_issues: [],
           working_section_assignments: [],
           ready_by_at: null,
-          additional_details: "",
+          note_content: null,
         });
         regenerateIds();
         lastAppliedLookupSignatureRef.current = null;
@@ -360,29 +368,47 @@ export function InternalFormContent(): React.JSX.Element {
           </StagedFormStep>
 
           <StagedFormStep id="task" className="px-0">
-            <div className="flex flex-col gap-4">
-              <ContentCard data-testid="internal-form-images-section">
-                <EntityImagesProvider
-                  entityClientId={itemClientId}
-                  captureFlow="camera-to-editor"
-                  deleteMode="hard-delete"
-                  entityType="item"
-                >
-                  <ImagePreviewGrid
-                    maxImages={6}
-                    testId="internal-form-images-grid"
+            <EntityImagesProvider
+              entityClientId={noteClientId}
+              captureFlow="camera-to-editor"
+              deleteMode="hard-delete"
+              entityType="note"
+            >
+              <div className="flex flex-col gap-4">
+                <ContentCard data-testid="internal-form-images-section">
+                  <EntityImagesProvider
+                    entityClientId={itemClientId}
+                    captureFlow="camera-to-editor"
+                    deleteMode="hard-delete"
+                    entityType="item"
+                  >
+                    <ImagePreviewGrid
+                      maxImages={6}
+                      testId="internal-form-images-grid"
+                    />
+                  </EntityImagesProvider>
+                </ContentCard>
+                <ContentCard>
+                  <TaskReadyByDateField
+                    onOpenCalendarSinglePicker={(props) =>
+                      surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
+                    }
                   />
-                </EntityImagesProvider>
-              </ContentCard>
-              <ContentCard>
-                <TaskReadyByDateField
-                  onOpenCalendarSinglePicker={(props) =>
-                    surface.open(CALENDAR_SINGLE_PICKER_SURFACE_ID, props)
-                  }
-                />
-                <TaskAdditionalDetailsField />
-              </ContentCard>
-            </div>
+                  <Controller
+                    control={form.control}
+                    name="note_content"
+                    render={({ field }) => (
+                      <TaskNoteComposer
+                        onChange={field.onChange}
+                        placeholder="Add a note…"
+                        testId="internal-form-note-composer"
+                      />
+                    )}
+                  />
+                  <TaskNoteImagesSection />
+                </ContentCard>
+              </div>
+            </EntityImagesProvider>
           </StagedFormStep>
         </StagedForm>
       </form>

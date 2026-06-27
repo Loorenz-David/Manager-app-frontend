@@ -8,6 +8,7 @@ export type VerticalScrollAreaProps = {
   trackClassName?: string;
   thumbClassName?: string;
   style?: React.CSSProperties;
+  scrollRef?: React.RefObject<HTMLDivElement | null>;
   "data-testid"?: string;
 };
 
@@ -17,9 +18,11 @@ export function VerticalScrollArea({
   trackClassName,
   thumbClassName,
   style,
+  scrollRef: externalScrollRef,
   "data-testid": testId,
 }: VerticalScrollAreaProps): React.JSX.Element {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const internalScrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = externalScrollRef ?? internalScrollRef;
   const thumbRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
@@ -48,7 +51,7 @@ export function VerticalScrollArea({
 
     thumb.style.height = `${thumbHeight}px`;
     thumb.style.transform = `translateY(${thumbTop}px)`;
-  }, []);
+  }, [scrollRef]);
 
   useEffect(() => {
     const element = scrollRef.current;
@@ -75,7 +78,7 @@ export function VerticalScrollArea({
       element.removeEventListener("scroll", updateThumb);
       resizeObserver.disconnect();
     };
-  }, [updateThumb]);
+  }, [scrollRef, updateThumb]);
 
   return (
     <div className="flex flex-row" data-testid={testId} style={style}>

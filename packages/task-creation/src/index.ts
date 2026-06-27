@@ -43,6 +43,7 @@ export type {
   InternalFormValues,
   PreOrderFormValues,
   ReturnFormValues,
+  TaskNoteComposerValue,
   TaskCreationFormType,
   WorkerInternalFormValues,
   WorkerItemIssueSelectionDraft,

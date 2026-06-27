@@ -5,6 +5,7 @@ export { CaseConversationRouteHydrator } from "./components/CaseConversationRout
 export { CaseCreationRouteEntry } from "./components/CaseCreationRouteEntry";
 export { CaseCreationFormContent } from "./components/CaseCreationFormContent";
 export { CaseInitialMessageComposer } from "./components/CaseInitialMessageComposer";
+export { CaseMessageBubbleContent } from "./components/CaseMessageBubbleContent";
 export { CaseFilterSheetRouteEntry } from "./components/CaseFilterSheetRouteEntry";
 export { ParticipantPickerRouteEntry } from "./components/ParticipantPickerRouteEntry";
 export { CaseTypePickerRouteEntry } from "./components/CaseTypePickerRouteEntry";
@@ -123,3 +124,13 @@ export type {
   CaseConversationMessagesController,
   CaseMessageRenderItem,
 } from "./controllers/use-case-conversation-messages.controller";
+
+// Composer primitives — consumed by @beyo/task-notes
+export { CaseComposerEditor } from "./components/composer/CaseComposerEditor";
+export type { CaseComposerEditorToolbarActions } from "./components/composer/CaseComposerEditor";
+export { CaseComposerToolbar } from "./components/composer/CaseComposerToolbar";
+export { getCaseComposerColorToken } from "./components/composer/CaseColorPalette";
+export type { CaseComposerColorToken } from "./components/composer/CaseColorPalette";
+export { blurActiveComposerElement } from "./components/composer/blur-active-composer-element";
+export { hasMeaningfulCaseMessageContent } from "./lib/case-lexical-serialization";
+export type { CaseComposerToolbarState } from "./lib/case-lexical-serialization";

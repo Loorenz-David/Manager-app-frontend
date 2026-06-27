@@ -31,6 +31,7 @@
     "@beyo/realtime": "*",
     "@beyo/scanner": "*",
     "@beyo/styles": "*",
+    "@beyo/task-notes": "*",
     "@beyo/tasks": "*",
     "@beyo/ui": "*",
     "@beyo/upholstery": "*",

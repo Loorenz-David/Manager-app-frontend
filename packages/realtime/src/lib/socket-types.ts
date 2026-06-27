@@ -53,6 +53,9 @@ export type ServerToClientEvents = {
   "upholstery:deleted": (payload: { client_id: string }) => void;
   "upholstery:inventory-updated": (payload: { client_id: string }) => void;
   "upholstery:inventory-deleted": (payload: { client_id: string }) => void;
+  "task:note-created": (payload: { client_id: string; note_ids: string[] }) => void;
+  "task:note-updated": (payload: { client_id: string; note_id: string }) => void;
+  "task:note-deleted": (payload: { client_id: string; note_id: string }) => void;
   "notification:new": (payload: { client_id: string }) => void;
   "user:working_sections_updated": (payload: {
     client_id: string;

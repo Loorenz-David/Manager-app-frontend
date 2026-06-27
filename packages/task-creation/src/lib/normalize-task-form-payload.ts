@@ -4,11 +4,18 @@ import type {
   WorkerInternalFormValues,
   WorkerItemIssueSelectionDraft,
 } from "../types";
+import {
+  hasMeaningfulNoteContent,
+  toTaskNoteContentBlocks,
+  type TaskNoteComposerValue,
+} from "@beyo/task-notes";
 
 type BaseIds = {
   taskClientId: string;
   itemClientId: string;
   customerClientId: string;
+  noteClientId: string;
+  currentUserClientId: string;
 };
 
 function toOptionalString(
@@ -112,9 +119,22 @@ function buildUpholsteryFields(
   };
 }
 
-function buildAdditionalDetails(additionalDetails: string | undefined) {
-  const trimmed = additionalDetails?.trim();
-  return trimmed ? { text: trimmed } : undefined;
+function buildNotePayload(
+  noteContent: TaskNoteComposerValue | null | undefined,
+  noteClientId: string,
+  currentUserClientId: string,
+) {
+  if (!hasMeaningfulNoteContent(noteContent) || !noteContent) {
+    return undefined;
+  }
+
+  return {
+    client_id: noteClientId,
+    note_type: "user_note" as const,
+    content: toTaskNoteContentBlocks(noteContent.content),
+    plain_text: noteContent.plainText,
+    users_read_list: currentUserClientId ? [currentUserClientId] : [],
+  };
 }
 
 export function normalizeReturnFormPayload(
@@ -128,6 +148,11 @@ export function normalizeReturnFormPayload(
     values.item,
     ids.itemClientId,
     Boolean(issueFields) || Boolean(upholsteryFields),
+  );
+  const notePayload = buildNotePayload(
+    values.note_content,
+    ids.noteClientId,
+    ids.currentUserClientId,
   );
   const steps = (values.working_section_assignments ?? []).map((assignment) => ({
     working_section_id: assignment.working_section_id,
@@ -144,12 +169,12 @@ export function normalizeReturnFormPayload(
     scheduled_start_at: values.scheduled_start_at || undefined,
     scheduled_end_at: values.scheduled_end_at || undefined,
     ready_by_at: values.ready_by_at || undefined,
-    additional_details: buildAdditionalDetails(values.additional_details),
     ...buildCustomerFields(values.customer),
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),
     ...(upholsteryFields ? { item_upholstery: upholsteryFields } : {}),
     ...(steps.length > 0 ? { steps } : {}),
+    ...(notePayload ? { notes: [notePayload] } : {}),
   };
 }
 
@@ -164,6 +189,11 @@ export function normalizeInternalFormPayload(
     ids.itemClientId,
     Boolean(issueFields) || Boolean(upholsteryFields),
   );
+  const notePayload = buildNotePayload(
+    values.note_content,
+    ids.noteClientId,
+    ids.currentUserClientId,
+  );
 
   const steps = (values.working_section_assignments ?? []).map((assignment) => ({
     working_section_id: assignment.working_section_id,
@@ -176,11 +206,11 @@ export function normalizeInternalFormPayload(
     state: "pending",
     priority: "normal",
     ready_by_at: values.ready_by_at || undefined,
-    additional_details: buildAdditionalDetails(values.additional_details),
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),
     ...(upholsteryFields ? { item_upholstery: upholsteryFields } : {}),
     ...(steps.length > 0 ? { steps } : {}),
+    ...(notePayload ? { notes: [notePayload] } : {}),
   };
 }
 

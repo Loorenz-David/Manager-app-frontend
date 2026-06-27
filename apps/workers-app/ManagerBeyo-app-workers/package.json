@@ -33,6 +33,7 @@
     "@beyo/scanner": "*",
     "@beyo/styles": "*",
     "@beyo/task-creation": "*",
+    "@beyo/task-notes": "*",
     "@beyo/tasks": "*",
     "@beyo/upholstery": "*",
     "@beyo/ui": "*",

@@ -10,6 +10,7 @@
 @source "../../../../packages/phone-input/src";
 @source "../../../../packages/scanner/src";
 @source "../../../../packages/task-creation/src";
+@source "../../../../packages/task-notes/src";
 @source "../../../../packages/tasks/src";
 @source "../../../../packages/item-issues/src";
 @source "../../../../packages/notifications/src";
@@ -94,6 +95,55 @@
   100% {
     transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
   }
+}
+
+@keyframes rich-text-inline-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20% {
+    transform: translateX(-1px);
+  }
+
+  40% {
+    transform: translateX(1px);
+  }
+
+  60% {
+    transform: translateX(-1px);
+  }
+
+  80% {
+    transform: translateX(1px);
+  }
+}
+
+@keyframes rich-text-inline-pulse {
+  0% {
+    transform: scale(1);
+  }
+
+  45% {
+    transform: scale(1.06);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+.rich-text-animation-shake {
+  animation: rich-text-inline-shake 320ms ease-in-out 1;
+  display: inline-block;
+  transform-origin: center;
+}
+
+.rich-text-animation-pulse {
+  animation: rich-text-inline-pulse 360ms ease-out 1;
+  display: inline-block;
+  transform-origin: center;
 }
 
 @keyframes case-message-row-enter {

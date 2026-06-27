@@ -8,6 +8,10 @@ import {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
 } from "@beyo/tasks";
+import {
+  TASK_NOTES_SHEET_SURFACE_ID,
+  TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+} from "@beyo/task-notes";
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 import { lazyWithPreload } from "@beyo/ui";
 
@@ -182,11 +186,24 @@ const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
+const taskNotesSheet = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((module) => ({
+    default: module.TaskNotesSheetPage,
+  })),
+);
+const taskNoteUnreadViewer = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((module) => ({
+    default: module.TaskNoteUnreadViewerPage,
+  })),
+);
 
 export const preloadPinNotificationsSlideSurface =
   pinNotificationsSlide.preload;
 export const preloadPinTaskStepStatesSheetSurface =
   pinTaskStepStatesSheet.preload;
+export const preloadTaskNotesSheetSurface = taskNotesSheet.preload;
+export const preloadTaskNoteUnreadViewerSurface =
+  taskNoteUnreadViewer.preload;
 
 export {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
@@ -200,6 +217,8 @@ export type {
   TaskWorkingSectionsSurfaceProps,
   TaskWorkingSectionsDiscardChangesSurfaceProps,
 } from "@beyo/tasks";
+export type { TaskNotesSheetSurfaceProps } from "@beyo/task-notes";
+export type { TaskNoteUnreadViewerSurfaceProps } from "@beyo/task-notes";
 
 export const taskSurfaces: SurfaceRegistrations = {
   [TASK_DETAIL_SURFACE_ID]: {
@@ -257,5 +276,13 @@ export const taskSurfaces: SurfaceRegistrations = {
   [PIN_TASK_STEP_STATES_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: pinTaskStepStatesSheet.Component,
+  },
+  [TASK_NOTES_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskNotesSheet.Component,
+  },
+  [TASK_NOTE_UNREAD_VIEWER_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskNoteUnreadViewer.Component,
   },
 };

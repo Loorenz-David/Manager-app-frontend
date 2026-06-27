@@ -20,6 +20,7 @@ export const IMAGE_EVENT_TYPE = [
   'upload_item_image',
   'upload_case_image',
   'upload_message_image',
+  'upload_note_image',
   'link_external_image',
 ] as const;
 export type ImageEventType = (typeof IMAGE_EVENT_TYPE)[number];
@@ -48,7 +49,7 @@ export const IMAGE_ANNOTATION_TYPE = [
 export type ImageAnnotationType = (typeof IMAGE_ANNOTATION_TYPE)[number];
 export type ImageAnnotationTool = Exclude<ImageAnnotationType, 'measurement'>;
 
-export const IMAGE_LINK_ENTITY_TYPE = ['item', 'case', 'case_conversation_message'] as const;
+export const IMAGE_LINK_ENTITY_TYPE = ['item', 'case', 'case_conversation_message', 'note'] as const;
 export type ImageLinkEntityType = (typeof IMAGE_LINK_ENTITY_TYPE)[number];
 
 // The backend serializes BigInteger as a JSON number, so runtime validation stays on number.

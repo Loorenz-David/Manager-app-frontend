@@ -15,6 +15,7 @@ export {
   TASK_RETURN_SOURCE,
   TASK_STATE,
   TASK_TYPE,
+  TaskNoteContentBlockSchema,
   TaskAdditionalDetailsFieldsSchema,
 } from "./types";
 export type {
@@ -36,6 +37,7 @@ export type {
   TaskItemLocation,
   TaskListItemRaw,
   TaskNote,
+  TaskNoteContentBlock,
   TaskPriority,
   TaskReturnMethod,
   TaskReturnSource,

@@ -1,6 +1,10 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
+import {
+  TASK_NOTES_SHEET_SURFACE_ID,
+  TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+} from "@beyo/task-notes";
 import { TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID } from "@beyo/tasks";
 import {
   BATCH_DETAIL_SLIDE_SURFACE_ID,
@@ -150,6 +154,16 @@ const completeBatchTaskStepsConfirmationSlide = lazyWithPreload(
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
 );
+const taskNotesSheet = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((module) => ({
+    default: module.TaskNotesSheetPage,
+  })),
+);
+const taskNoteUnreadViewer = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((module) => ({
+    default: module.TaskNoteUnreadViewerPage,
+  })),
+);
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
@@ -175,6 +189,9 @@ export const preloadCompleteBatchTaskStepsConfirmationSlideSurface =
   completeBatchTaskStepsConfirmationSlide.preload;
 export const preloadItemIssueSelectionSheetSurface =
   itemIssueSelectionSheet.preload;
+export const preloadTaskNotesSheetSurface = taskNotesSheet.preload;
+export const preloadTaskNoteUnreadViewerSurface =
+  taskNoteUnreadViewer.preload;
 
 export const taskStepSurfaces: SurfaceRegistrations = {
   [ITEM_POSITION_SHEET_SURFACE_ID]: {
@@ -236,5 +253,13 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID]: {
     surface: "slide",
     component: completeBatchTaskStepsConfirmationSlide.Component,
+  },
+  [TASK_NOTES_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskNotesSheet.Component,
+  },
+  [TASK_NOTE_UNREAD_VIEWER_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskNoteUnreadViewer.Component,
   },
 };
