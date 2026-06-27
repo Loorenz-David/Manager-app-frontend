@@ -1,3 +1,4 @@
+import { quickTaskKeys } from "@beyo/task-working-sections";
 import type { SocketEventHandlers } from "@beyo/realtime";
 import type { TaskId, TaskStepId } from "@/types/common";
 import { taskKeys } from "./api/task-keys";
@@ -7,6 +8,10 @@ export const taskSocketEvents: SocketEventHandlers = {
   "task:created": (_payload, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: quickTaskKeys.all,
       refetchType: "active",
     });
   },
@@ -22,6 +27,10 @@ export const taskSocketEvents: SocketEventHandlers = {
       queryKey: taskKeys.lists(),
       refetchType: "active",
     });
+    queryClient.invalidateQueries({
+      queryKey: quickTaskKeys.all,
+      refetchType: "active",
+    });
   },
 
   "task:deleted": ({ client_id }, { queryClient }) => {
@@ -30,6 +39,10 @@ export const taskSocketEvents: SocketEventHandlers = {
     queryClient.removeQueries({ queryKey: taskKeys.detail(taskId) });
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: quickTaskKeys.all,
       refetchType: "active",
     });
   },
@@ -45,15 +58,16 @@ export const taskSocketEvents: SocketEventHandlers = {
       queryKey: taskKeys.lists(),
       refetchType: "active",
     });
+    queryClient.invalidateQueries({
+      queryKey: quickTaskKeys.all,
+      refetchType: "active",
+    });
   },
 
   "task:step-assigned": ({ client_id }, { queryClient }) => {
+    void client_id;
     queryClient.invalidateQueries({
-      queryKey: taskStepKeys.detail(client_id as TaskStepId),
-      refetchType: "active",
-    });
-    queryClient.invalidateQueries({
-      queryKey: taskKeys.details(),
+      queryKey: taskStepKeys.all,
       refetchType: "active",
     });
   },
@@ -66,12 +80,20 @@ export const taskSocketEvents: SocketEventHandlers = {
       });
     }
     queryClient.invalidateQueries({
+      queryKey: taskStepKeys.all,
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",
     });
   },
 
   "task:step-created": (_payloads, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.all,
+      refetchType: "active",
+    });
     queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",
@@ -89,11 +111,29 @@ export const taskSocketEvents: SocketEventHandlers = {
       });
     }
     queryClient.invalidateQueries({
+      queryKey: taskStepKeys.all,
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
       refetchType: "active",
     });
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
+      refetchType: "active",
+    });
+  },
+
+  "task:step-readiness-changed": (_payload, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.all,
+      refetchType: "active",
+    });
+  },
+
+  "task:step-updated": (_payloads, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.all,
       refetchType: "active",
     });
   },

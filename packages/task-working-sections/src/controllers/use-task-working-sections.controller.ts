@@ -6,12 +6,19 @@ import {
   type WorkingSectionMember,
   type WorkingSectionOption,
 } from "@beyo/working-sections";
+import {
+  useTaskStepsByTaskQuery,
+  humanizeSnakeCase,
+  useAddTaskStep,
+  useGetTaskQuery,
+  useRemoveTaskStep,
+  type AddTaskStepVariables,
+  type TaskStepRich,
+} from "@beyo/tasks";
+import { useQueryClient } from "@tanstack/react-query";
 
-import { humanizeSnakeCase } from "../lib/task-detail";
-import { useAddTaskStep } from "../actions/use-add-task-step";
-import { useRemoveTaskStep } from "../actions/use-remove-task-step";
-import { useGetTaskQuery } from "../api/use-get-task-query";
-import type { TaskDetailRaw } from "../types";
+import { quickTaskKeys } from "../api/quick-task-keys";
+
 import type {
   RecoveredPendingAdd,
   RecoveredPendingReassignment,
@@ -19,7 +26,7 @@ import type {
   TaskWorkingSectionsSurfaceProps,
 } from "../surface-ids";
 
-type TaskStep = TaskDetailRaw["task_steps"][number];
+type TaskStep = TaskStepRich;
 type StatePillVariant = "neutral" | "active" | "warning" | "success" | "danger";
 type ControllerInit = {
   initialPendingAdds?: RecoveredPendingAdd[];
@@ -96,6 +103,16 @@ function buildPendingStep(pendingAdd: RecoveredPendingAdd): TaskStep {
       pendingAdd.assigned_worker_display_name_snapshot,
     created_at: new Date(0).toISOString(),
     closed_at: null,
+    ready_by_at: null,
+    total_working_seconds: 0,
+    total_pause_seconds: 0,
+    total_ended_shift_seconds: 0,
+    total_working_count: 0,
+    total_pause_count: 0,
+    total_ended_shift_count: 0,
+    total_issues_count: 0,
+    total_issues_resolved_count: 0,
+    total_cost_minor: null,
     latest_state_records: null,
   };
 }
@@ -146,7 +163,9 @@ export function useTaskWorkingSectionsController(
   taskId: string,
   init: ControllerInit = {},
 ) {
+  const queryClient = useQueryClient();
   const taskQuery = useGetTaskQuery(taskId);
+  const taskStepsQuery = useTaskStepsByTaskQuery(taskId);
   const workingSectionFlow = useWorkingSectionPickerFlow();
   const addTaskStep = useAddTaskStep(taskId);
   const removeTaskStep = useRemoveTaskStep(taskId);
@@ -162,7 +181,7 @@ export function useTaskWorkingSectionsController(
   const [isSaving, setIsSaving] = useState(false);
 
   const majorCategory = taskQuery.data?.item?.item_major_category_snapshot;
-  const baseTaskSteps = taskQuery.data?.task_steps ?? [];
+  const baseTaskSteps = taskStepsQuery.data ?? [];
   const surfaceOpeners = init.surfaceOpeners;
 
   const effectiveTaskSteps = useMemo(
@@ -345,17 +364,24 @@ export function useTaskWorkingSectionsController(
       }
 
       for (const pendingAdd of recoverySnapshot.recoveredPendingAdds ?? []) {
-        await addTaskStep.mutateAsync({
+        const variables: AddTaskStepVariables = {
           working_section_id: pendingAdd.working_section_id,
           worker_id: pendingAdd.worker_id ?? undefined,
           working_section_name_snapshot:
             pendingAdd.working_section_name_snapshot,
           assigned_worker_display_name_snapshot:
             pendingAdd.assigned_worker_display_name_snapshot,
-        });
+        };
+        await addTaskStep.mutateAsync(variables);
       }
 
+      void queryClient.invalidateQueries({ queryKey: quickTaskKeys.all });
+
       // Worker reassignment is intentionally disabled.
+      surfaceOpeners?.onSaveComplete?.(
+        taskId,
+        clonePendingAdds(recoverySnapshot.recoveredPendingAdds ?? []),
+      );
     } catch {
       surfaceOpeners?.reopenSlideAfterError?.(recoverySnapshot);
     } finally {
@@ -368,6 +394,7 @@ export function useTaskWorkingSectionsController(
     closeSlide,
     hasUnsavedChanges,
     isSaving,
+    queryClient,
     removeTaskStep,
     surfaceOpeners,
   ]);
@@ -398,12 +425,17 @@ export function useTaskWorkingSectionsController(
     taskDetail: taskQuery.data ?? null,
     surfaceOpeners,
     sectionEntries,
+    pendingAdds,
+    pendingRemoveIds,
+    pendingReassignments,
     hasUnsavedChanges,
-    isPending: taskQuery.isPending,
-    isError: taskQuery.isError,
+    isPending: taskQuery.isPending || taskStepsQuery.isPending,
+    isError: taskQuery.isError || taskStepsQuery.isError,
     isSectionsLoading: workingSectionFlow.isLoading,
     isSaving,
-    refetch: taskQuery.refetch,
+    refetch: async () => {
+      await Promise.all([taskQuery.refetch(), taskStepsQuery.refetch()]);
+    },
     handleSectionPress,
     handleShortcutPress,
     handleRemoveStep,

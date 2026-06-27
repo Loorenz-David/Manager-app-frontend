@@ -10,6 +10,7 @@
 @source "../../../../packages/notifications/src";
 @source "../../../../packages/task-creation/src";
 @source "../../../../packages/task-notes/src";
+@source "../../../../packages/task-working-sections/src";
 
 .test-colors {
   background: #d0d3d9;

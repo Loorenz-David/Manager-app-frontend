@@ -93,6 +93,63 @@ export const StepStateSchema = z.enum([
   "cancelled",
 ]);
 
+export const LatestStateRecordSchema = z.object({
+  id: z.string(),
+  step_id: z.string(),
+  state: StepStateSchema,
+  reason: z.string().nullable(),
+  entered_at: z.string().datetime({ offset: true }).nullable(),
+  exited_at: z.string().datetime({ offset: true }).nullable(),
+  created_at: z.string().datetime({ offset: true }).nullable(),
+  created_by_id: z.string().nullable(),
+  description: z.string().nullable(),
+  accuracy: z.number().nullable(),
+  accuracy_measured_by: z.enum(["user", "ai"]).nullable(),
+  taken_from_average: z.boolean(),
+});
+export type LatestStateRecord = z.infer<typeof LatestStateRecordSchema>;
+
+export const TaskStepRichSchema = z.object({
+  client_id: z.string(),
+  task_id: z.string(),
+  state: StepStateSchema,
+  readiness_status: z.string(),
+  sequence_order: z.number().int().nullable(),
+  working_section_id: z.string().nullable(),
+  assigned_worker_id: z.string().nullable(),
+  total_dependencies: z.number().int(),
+  completed_dependencies: z.number().int(),
+  working_section_name_snapshot: z.string().nullable(),
+  assigned_worker_display_name_snapshot: z.string().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  closed_at: z.string().datetime({ offset: true }).nullable(),
+  ready_by_at: z.string().datetime({ offset: true }).nullable(),
+  total_working_seconds: z.number().int(),
+  total_pause_seconds: z.number().int(),
+  total_ended_shift_seconds: z.number().int(),
+  total_working_count: z.number().int(),
+  total_pause_count: z.number().int(),
+  total_ended_shift_count: z.number().int(),
+  total_issues_count: z.number().int(),
+  total_issues_resolved_count: z.number().int(),
+  total_cost_minor: z.number().int().nullable(),
+  latest_state_records: LatestStateRecordSchema.nullable(),
+});
+export type TaskStepRich = z.infer<typeof TaskStepRichSchema>;
+
+export const TaskStepCountsByStateSchema = z.object({
+  pending: z.number().int(),
+  working: z.number().int(),
+  paused: z.number().int(),
+  ended_shift: z.number().int(),
+  blocked: z.number().int(),
+  completed: z.number().int(),
+  skipped: z.number().int(),
+  failed: z.number().int(),
+  cancelled: z.number().int(),
+});
+export type TaskStepCountsByState = z.infer<typeof TaskStepCountsByStateSchema>;
+
 export const TaskStepForPinSchema = z.object({
   client_id: z.string(),
   task_id: z.string(),
@@ -187,28 +244,74 @@ export const TaskDetailRawSchema = z.object({
     })
     .nullable(),
   item_images: z.array(ImageLightSchema),
-  task_steps: z.array(
-    z.object({
-      client_id: z.string(),
-      task_id: z.string(),
-      state: z.string(),
-      readiness_status: z.string(),
-      sequence_order: z.number().int().nullable(),
-      working_section_id: z.string().nullable(),
-      assigned_worker_id: z.string().nullable(),
-      total_dependencies: z.number().int(),
-      completed_dependencies: z.number().int(),
-      working_section_name_snapshot: z.string().nullable(),
-      assigned_worker_display_name_snapshot: z.string().nullable(),
-      created_at: z.string().datetime({ offset: true }),
-      closed_at: z.string().datetime({ offset: true }).nullable(),
-      latest_state_records: z.record(z.string(), z.unknown()).nullable().optional(),
-    }),
-  ),
   task_notes: z.array(z.unknown()).optional().default([]),
   unread_message_count: z.number().int(),
 });
 export type TaskDetailRaw = z.infer<typeof TaskDetailRawSchema>;
+
+export const TaskListItemRawSchema = z.object({
+  task: z.object({
+    client_id: z.string(),
+    task_scalar_id: z.number().int(),
+    task_type: z.enum(TASK_TYPE),
+    priority: z.enum(TASK_PRIORITY),
+    state: z.enum(TASK_STATE),
+    title: z.string().nullable(),
+    summary: z.string().nullable(),
+    return_source: z.enum(TASK_RETURN_SOURCE).nullable(),
+    item_location: z.enum(TASK_ITEM_LOCATION).nullable(),
+    return_method: z.enum(TASK_RETURN_METHOD).nullable(),
+    fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).nullable(),
+    additional_details: z.record(z.string(), z.unknown()).nullable(),
+    ready_by_at: z.string().nullable(),
+    scheduled_start_at: z.string().nullable(),
+    scheduled_end_at: z.string().nullable(),
+    customer_id: z.string().nullable(),
+    primary_phone_number: z.string().nullable(),
+    secondary_phone_number: z.string().nullable(),
+    primary_email: z.string().nullable(),
+    secondary_email: z.string().nullable(),
+    address: z.unknown().nullable(),
+    created_at: z.string(),
+    updated_at: z.string().nullable(),
+    closed_at: z.string().nullable(),
+    is_deleted: z.boolean(),
+    deleted_at: z.string().nullable(),
+  }),
+  primary_item: z
+    .object({
+      client_id: z.string(),
+      article_number: z.string().nullable(),
+      sku: z.string().nullable(),
+      state: z.string(),
+      item_category_id: z.string().nullable(),
+      quantity: z.number().int(),
+      designer: z.string().nullable(),
+      height_in_cm: z.number().int().nullable(),
+      width_in_cm: z.number().int().nullable(),
+      depth_in_cm: z.number().int().nullable(),
+      item_value_minor: z.number().int().nullable(),
+      item_cost_minor: z.number().int().nullable(),
+      item_currency: z.string().nullable(),
+      item_position: z.string().nullable(),
+      external_id: z.string().nullable(),
+      external_url: z.string().nullable(),
+      external_source: z.string().nullable(),
+      external_order_id: z.string().nullable(),
+      item_category_snapshot: z.string().nullable(),
+      item_major_category_snapshot: z.string().nullable(),
+    })
+    .nullable(),
+  item_images: z.array(z.record(z.string(), z.unknown())),
+});
+export type TaskListItemRaw = z.infer<typeof TaskListItemRawSchema>;
+
+export type ListTasksResult = {
+  items: TaskListItemRaw[];
+  limit: number;
+  offset: number;
+  has_more: boolean;
+};
 
 export type ListTasksFullParams = {
   limit?: number;

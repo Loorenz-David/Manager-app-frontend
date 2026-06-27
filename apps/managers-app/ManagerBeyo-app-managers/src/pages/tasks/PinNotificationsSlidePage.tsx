@@ -16,7 +16,7 @@ import {
   humanizeStepState,
   STEP_STATE_VARIANT,
   useTaskStepsByTaskQuery,
-  type TaskStepForPin,
+  type TaskStepRich,
 } from "@beyo/tasks";
 
 import {
@@ -38,13 +38,12 @@ function TaskStepBox({
   selectedStates,
   onOpen,
 }: {
-  step: TaskStepForPin;
+  step: TaskStepRich;
   selectedStates: string[];
   onOpen: () => void;
 }): React.JSX.Element {
   const selected = selectedStates.length > 0;
-  const imageUrl = step.working_section_image ?? null;
-  const label = step.working_section_name ?? "Working section";
+  const label = step.working_section_name_snapshot ?? "Working section";
 
   return (
     <button
@@ -59,17 +58,7 @@ function TaskStepBox({
       onClick={onOpen}
     >
       <div className="aspect-square overflow-hidden ">
-        {imageUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            src={imageUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
       </div>
       <div className="flex flex-1 flex-col gap-2 p-3">
         <p className="line-clamp-2 text-sm font-medium">{label}</p>
@@ -130,7 +119,7 @@ function PinTaskStepPicker(): React.JSX.Element {
       <div className="flex gap-3">
         {steps.map((step) => {
           const states = controller.getStates("task_step", step.client_id);
-          const label = step.working_section_name ?? "Working section";
+          const label = step.working_section_name_snapshot ?? "Working section";
 
           return (
             <TaskStepBox
@@ -141,7 +130,7 @@ function PinTaskStepPicker(): React.JSX.Element {
                 surface.open(PIN_TASK_STEP_STATES_SHEET_SURFACE_ID, {
                   stepId: step.client_id,
                   label,
-                  imageUrl: step.working_section_image ?? null,
+                  imageUrl: null,
                   currentState: step.state,
                   selectedStates: states,
                   onApply: (nextStates: string[]) => {

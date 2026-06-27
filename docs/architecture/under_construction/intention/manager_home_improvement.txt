@@ -1,0 +1,188 @@
+INTENTION:
+
+we will move the current TaskWorkingSectionsSlidePage, TaskWorkingSectionsStepList, TaskWorkingSectionsProvider to the task-working-sections feature in packages ( this feature doesn't exist yet on packages ). the controllers used by this components and providers should also be moved to the task-working-sections ( some will be in the manager local app others in task feature, we are centralizing this logic to task-working-sections )
+for example the use-task-working-sections.controller is in task package feature and should be now part of the new task-working-sections feature . at the end the manager application should remove all of this pages and components we just moved to packages and consume them from packages, the contract 35 explains how an application can consume packages and use page sheets coming from packages into a local surface sheet.
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+
+RELEVANT FILES:
+
+
+TaskWorkingSectionsSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/pages/TaskWorkingSectionsSlidePage.tsx
+
+TaskWorkingSectionsStepList:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/TaskWorkingSectionsStepList.tsx
+
+packages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages
+
+35_shared_packages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+use-task-working-sections.controller:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/controllers/use-task-working-sections.controller.ts
+✅
+-----
+
+INTENTION:
+
+the current TaskWorkingSectionsSlidePage obtains the task steps from the query to get task, but we will change this.
+we will now have a dedicated get task steps, this endpoint is documented at HANDOFF_TO_FRONTEND_task_steps_list_rich_and_count_20260627 . it holds the same task step shape as the task_steps bring.
+because of this is have removed the current task_steps key enterily from the get task endpoint, we should update the schema for this endpoint get-task .
+the current TaskDetailSlidePage uses the package component TaskWorkingSectionsField this component uses the passed steps to count the completed and assigned, i have made a new endpoint documented at HANDOFF_TO_FRONTEND_task_steps_list_rich_and_count_20260627
+this endpoint gets the counts of task steps a task has per state, this TaskWorkingSectionsField will now use a flow for using that endpoint query to feed it's own counts, this endpoint is documented at HANDOFF_TO_FRONTEND_task_steps_list_rich_and_count_20260627
+this two new endpoints the get task steps and the get step counts should be invalidated on the socket events specify in the document HANDOFF_TO_FRONTEND_task_steps_list_rich_and_count_20260627
+realtime layer is in packages
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+
+RELEVANT FIELS:
+
+TaskWorkingSectionsSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/pages/TaskWorkingSectionsSlidePage.tsx
+
+get-task:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/api/get-task.ts
+
+TaskDetailSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+TaskWorkingSectionsField:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsField.tsx
+
+realtime layer:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/realtime
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/realtime/src/lib/socket-types.ts
+
+handoff
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_steps_list_rich_and_count_20260627.md
+
+✅
+----
+
+INTENTION:
+
+We will introduce quick access to certain task types on the manager application.
+
+all of this containers, page sheet, controllers, actions, flows,  cards that will be created should be created in the package features for task-working-sections. the manager application will consume them, contract 35 explains how applications can use packages and use their surfaces to render imports page sheets from packages
+NOTE: i might say sometime in the manager app we create, but i mean by this we create in packages and the manager consumes.
+
+At the manager home page, we will create two boxes containers, one with label Pre-orders another with label "Returns".
+
+This boxes have the styling of having bg-card , shadow-sm , border border-between-border , py-4 , full width , text-primary .
+each box displays the label and an icon on the left side of the label. we will place a pill counter , placed absolutely on the top right corner of the box, that pill has the styling of being full round with bg-primary text-card .
+
+the box Pre-orders has the lucid icon "ShoppingBa" , it uses the endpoint to get the counts ( documented at HANDOFF_TO_FRONTEND_task_counts_endpoint_20260627 ) using the query params task_types: pre_orde , task_states: pending . it uses the total count to render on the pill counter
+
+the box "Returns" has the lucid icon "RotateCcw", it uses the endpoint to get the counts ( documented at HANDOFF_TO_FRONTEND_task_counts_endpoint_20260627 ) using the query params task_types: return , task_states: pending . it uses the total count to render on the pill counter
+
+both boxes on tap will open a page sheet with in the surface slide page, this page will use the endpoint for getting the tasks list-tasks with the same query params as the endpoint for getting the task counts ( GET /counts ) .
+The page will be compose of two containers, the first container renders a list of task cards and the second container renders a component for picking the working sections of a task
+this page will allow to go from container one to container two through an action, the slide behaviour is relative to the position of the container .
+the container that renders the list of tasks cards renders the TaskListCard we still need to create a independent component as we will pass an action button to this TaskListCard, the action passed to the TaskListCard is to open the second container selecting the task id as it will be used by the second container submit action.
+
+The second container will render the TaskWorkingSectionsStepList ( we need to use the provider TaskWorkingSectionsProvider as we need to fetch the working sections for the given item major category type the task has )
+This list container will have a footer with a save button ( absolutely placed ), the button inside the container has a style of bg-primary text-card py-3.5 w-full . on submit we call the endpoint for assigning task steps like the TaskWorkingSectionsSlidePage does .
+this page will also render a quick selection pill list for allowing the user to select combinations of working sections, we should use the same WorkingSectionShortcutBar  exactly like the TaskWorkingSectionsFooter uses it as we will change the options with in the quick options and i need it centralized 
+this footer will react to the scroll behaviour of the working section list, we will use the scroll visibility in relative mode, this will hide the absolute containers of the submit button container and the quick action pill which is above the subit container.
+This container has a fixed top arrow back on the top left corner which allows the user to go back to the first container.
+on submit the backend will change the state of the task to assigned, thus on the refetch of the counts and task querys that task will no longer be part of the counts nor the list. we should update the list optimistically, but refetch on response, and invalidate the task list, task get queries. there is also socket events that can invalidate this queries: task:updated, task:deleted, task:state-changed, task:created
+
+On submit this second container closes to take the user back to the first container if there is no more task steps to assign working sections then it also closes the parent page surface.
+
+if the user closed the second container having made some working section selections and the user enters the again to the second container with the same task id selected the selection is saved. if the user enters with a different task id the selection is reseted.
+
+the user should be able to interact with the task card the same way it can interact with it on the TasksView .
+
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+
+RELEVANT FILES:
+
+task-working-sections:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections
+
+35_shared_packages:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+HomeView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/home/components/HomeView.tsx
+
+
+list-tasks:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/api/list-tasks.ts
+
+TaskListCard:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TaskListCard.tsx
+
+HANDOFF_TO_FRONTEND_task_counts_endpoint_20260627:
+docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_counts_endpoint_20260627.md
+
+
+TaskWorkingSectionsStepList:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsStepList.tsx
+
+TaskWorkingSectionsProvider:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/pages/TaskWorkingSectionsSlidePage.tsx
+
+TaskWorkingSectionsSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/pages/TaskWorkingSectionsSlidePage.tsx
+
+scroll visibility: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/scroll-visibility
+
+assign task steps to task:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/api/add-task-step.ts
+
+realtime layer:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/realtime
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/realtime/src/lib/socket-types.ts
+
+get-task and list-tasks:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/api/get-task.ts
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/api/list-tasks.ts
+
+TasksView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx
+
+
+---
+
+at the /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections do we have any page that allows to render only the 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsStepList.tsx with a submit button for saving the workins section selection changes ?
+
+
+in the current workers application on the TaskDetailSlidePage at the TaskStepActionsSheetPage we will render another button with the capability of opening the page ### through the slide page surface, contract 35 explains how apps can use package page sheets on their own surface.
+through that page the worker can assing other working section and submited to the task step assignment endpoint. that submit action should close the current slide page. 
+
+TaskWorkingSectionsStepList
+
+
+
+
+
+
+manager TaskDetailSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
+
+worker TaskDetailSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
+
+TaskStepActionsSheetPage
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskStepActionsSheetPage.tsx
+
+TaskWorkingSectionsField:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsField.tsx
+
+
+TaskWorkingSectionsStepList
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsStepList.tsx
+
+
+contract 35:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md

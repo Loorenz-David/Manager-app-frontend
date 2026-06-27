@@ -30,9 +30,6 @@ export function WorkingSectionsHomeView({
     >
       <header className="flex items-center justify-between px-4 py-3">
         <h1 className="text-lg font-semibold text-foreground">My Sections</h1>
-        <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-          Under construction
-        </span>
       </header>
 
       <PullToRefresh

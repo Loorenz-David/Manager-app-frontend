@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 import { generateClientId } from "@beyo/lib";
+import { TaskListCard } from "@beyo/tasks";
 
 import ThreadIcon from "@/assets/icons/thread-svgrepo-com.svg?react";
-import { TaskListCard } from "@/features/tasks/components/TaskListCard";
 
 import { usePendingUpholsteryCreate } from "../actions/use-pending-upholstery-create";
 import { usePendingUpholsteryUpdate } from "../actions/use-pending-upholstery-update";
@@ -107,16 +107,34 @@ export function PendingUpholsteryCard({
           <span>{isPending ? "Saving..." : actionLabel}</span>
         </button>
       }
-      card={{
-        taskId: card.taskId,
-        task: card.task,
-        item: card.primaryItem,
-        firstImage: card.firstImage,
-        imageCount: card.images.length,
-      }}
+      imageUrl={
+        card.firstImage
+          ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
+          : null
+      }
+      item={
+        card.primaryItem
+          ? {
+              itemId: card.primaryItem.id,
+              article_number: card.primaryItem.article_number,
+              sku: card.primaryItem.sku,
+              item_major_category_snapshot:
+                card.primaryItem.item_major_category_snapshot,
+              quantity: card.primaryItem.quantity,
+            }
+          : null
+      }
       onTapActions={onTapActions}
       onTapCard={onTapCard}
       onTapImage={() => onTapImage(card)}
+      task={{
+        task_type: card.task.task_type,
+        state: card.task.state,
+        return_source: card.task.return_source,
+        ready_by_at: card.task.ready_by_at,
+        is_overdue: card.task.is_overdue,
+      }}
+      taskId={card.taskId}
     />
   );
 }

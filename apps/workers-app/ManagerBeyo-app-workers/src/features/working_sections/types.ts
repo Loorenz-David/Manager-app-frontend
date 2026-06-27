@@ -53,7 +53,7 @@ export function toWorkingSectionViewModel(
     imageUrl: section.image,
     allowsBatchWorking: section.allows_batch_working,
     counts: c,
-    activeCount: c.pending + c.working + c.paused + c.ended_shift + c.blocked,
+    activeCount: section.ready_and_pending_count + c.working + c.paused + c.ended_shift,
     readyAndPendingCount: section.ready_and_pending_count,
     todayDoneCount: c.completed + c.skipped + c.failed,
   };

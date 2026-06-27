@@ -1,0 +1,18 @@
+{
+  "name": "@beyo/task-working-sections",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "@beyo/hooks": "*",
+    "@beyo/lib": "*",
+    "@beyo/tasks": "*",
+    "@beyo/ui": "*",
+    "@beyo/working-sections": "*",
+    "lucide-react": ">=1.0.0",
+    "react": ">=19.0.0"
+  }
+}

@@ -11,12 +11,11 @@ import { pendingSeatUpholsteryKeys } from "@/features/pending-upholstery/api/pen
 import { upholsteryOrderingKeys } from "@/features/upholstery-ordering/api/upholstery-ordering-keys";
 
 import { createTask } from "../api/create-task";
-import type { ListTasksResult } from "../api/list-tasks";
+import type { ListTasksResult, TaskListItemRaw } from "@beyo/tasks";
 import { taskKeys } from "../api/task-keys";
 import { useItemsStore } from "../store/items.store";
 import { useTaskListImagesStore } from "../store/task-list-images.store";
 import { useTasksStore } from "../store/tasks.store";
-import type { TaskListItemRaw } from "../types";
 
 type TaskListInfiniteData = InfiniteData<ListTasksResult, number>;
 

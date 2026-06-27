@@ -3,11 +3,13 @@ import { useMemo } from "react";
 import {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+} from "@beyo/tasks";
+import {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
   type TaskWorkingSectionsSurfaceOpeners,
   type TaskWorkingSectionsSurfaceProps,
-} from "@beyo/tasks";
+} from "@beyo/task-working-sections";
 import { preloadWorkingSectionWorkerPickerSurface } from "@beyo/working-sections";
 import { useSurfaceStore } from "@beyo/ui";
 import { useSurface } from "@/hooks/use-surface";

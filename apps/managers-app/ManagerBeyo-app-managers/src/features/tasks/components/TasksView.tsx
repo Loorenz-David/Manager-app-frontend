@@ -1,7 +1,7 @@
+import { TaskListCard } from "@beyo/tasks";
 import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
-import { TaskListCard } from "./TaskListCard";
 import { TasksHeader } from "./TasksHeader";
 
 export function TasksView(): React.JSX.Element {
@@ -43,10 +43,34 @@ export function TasksView(): React.JSX.Element {
             {controller.cards.map((card) => (
               <TaskListCard
                 key={card.taskId}
-                card={card}
+                imageUrl={
+                  card.firstImage
+                    ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
+                    : null
+                }
+                item={
+                  card.item
+                    ? {
+                        itemId: card.item.id,
+                        article_number: card.item.article_number,
+                        sku: card.item.sku,
+                        item_major_category_snapshot:
+                          card.item.item_major_category_snapshot,
+                        quantity: card.item.quantity,
+                      }
+                    : null
+                }
                 onTapActions={controller.openTaskActions}
                 onTapCard={controller.openTaskDetail}
                 onTapImage={controller.openImageViewer}
+                task={{
+                  task_type: card.task.task_type,
+                  state: card.task.state,
+                  return_source: card.task.return_source,
+                  ready_by_at: card.task.ready_by_at,
+                  is_overdue: card.task.is_overdue,
+                }}
+                taskId={card.taskId}
               />
             ))}
 

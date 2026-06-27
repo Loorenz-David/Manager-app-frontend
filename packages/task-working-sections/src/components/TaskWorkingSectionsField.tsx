@@ -1,24 +1,19 @@
 import { ChevronRight } from "lucide-react";
 
 import { EyebrowLabel, InfoPill } from "@beyo/ui";
-
-import type { TaskDetailRaw } from "../../types";
+import { useTaskWorkingSectionsCountsFlow } from "../flows/use-task-working-sections-counts.flow";
 
 type TaskWorkingSectionsFieldProps = {
   onOpenWorkingSections: () => void;
-  taskSteps: TaskDetailRaw["task_steps"];
+  taskId: string;
 };
 
 export function TaskWorkingSectionsField({
   onOpenWorkingSections,
-  taskSteps,
+  taskId,
 }: TaskWorkingSectionsFieldProps): React.JSX.Element {
-  const assignedCount = taskSteps.filter(
-    (step) => step.working_section_id !== null,
-  ).length;
-  const completedCount = taskSteps.filter(
-    (step) => step.closed_at !== null,
-  ).length;
+  const { assignedCount, completedCount } =
+    useTaskWorkingSectionsCountsFlow(taskId);
 
   return (
     <button

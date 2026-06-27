@@ -14,12 +14,18 @@ export type ServerToClientEvents = {
   "task:step-state-changed": (
     payload: Array<{ client_id: string; new_state: string }>,
   ) => void;
+  "task:step-readiness-changed": (
+    payload:
+      | { client_id: string; new_readiness?: string }
+      | { items: Array<{ client_id: string; new_readiness?: string }> },
+  ) => void;
   "task:step-created": (
     payload: Array<{ client_id: string; working_section_id: string }>,
   ) => void;
   "task:step-deleted": (
     payload: Array<{ client_id: string; working_section_id: string }>,
   ) => void;
+  "task:step-updated": (payload: Array<{ client_id: string }>) => void;
   "case:created": (payload: { client_id: string }) => void;
   "case:updated": (payload: { client_id: string }) => void;
   "case:state-changed": (payload: { client_id: string; new_state: string }) => void;

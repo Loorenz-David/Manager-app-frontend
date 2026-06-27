@@ -2,12 +2,12 @@ import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 
 import { toImageAnnotationViewModel, type ImageViewModel } from "@beyo/images";
 
-import { listTasks } from "./list-tasks";
+import { listTasks } from "@beyo/tasks";
+import type { ListTasksFullParams, TaskListItemRaw } from "@beyo/tasks";
 import { taskKeys } from "./task-keys";
 import { useItemsStore } from "../store/items.store";
 import { useTaskListImagesStore } from "../store/task-list-images.store";
 import { useTasksStore } from "../store/tasks.store";
-import type { ListTasksFullParams, TaskListItemRaw } from "../types";
 
 const PAGE_LIMIT = 25;
 

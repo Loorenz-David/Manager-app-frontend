@@ -31,6 +31,7 @@ function TaskWorkingSectionsFooter({
   isSaving,
   onShortcutPress,
   onSaveAndClose,
+  onClose,
 }: {
   availableSections: ReturnType<
     typeof useTaskWorkingSectionsContext
@@ -41,25 +42,21 @@ function TaskWorkingSectionsFooter({
   isSaving: boolean;
   onShortcutPress: (sectionIds: string[]) => void;
   onSaveAndClose: () => Promise<void>;
+  onClose: () => void;
 }): React.JSX.Element {
   const { isHidden } = useScrollVisibilityContext();
 
   return (
-    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-      <div className="px-4 pb-4 pt-3">
-        {canShowShortcuts ? (
-          <div
-            className={cn(
-              "overflow-hidden transition-[max-height,margin,opacity] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-              isHidden ? "mb-0 max-h-0 opacity-0" : "mb-3 max-h-28 opacity-100",
-            )}
-          >
-            <div
-              className={cn(
-                "transition-transform duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-                isHidden ? "translate-y-full" : "translate-y-0",
-              )}
-            >
+    <div
+      className={cn(
+        "grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
+        isHidden ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
+      )}
+    >
+      <div className="overflow-hidden">
+        <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+          {canShowShortcuts ? (
+            <div className="px-4 pt-3">
               <WorkingSectionShortcutBar
                 shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
                 availableSections={availableSections}
@@ -71,22 +68,34 @@ function TaskWorkingSectionsFooter({
                 trackClassName="mt-3"
               />
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <button
-          className="w-full rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-          data-testid="task-working-sections-save-button"
-          disabled={isSaving || !hasUnsavedChanges}
-          type="button"
-          onClick={() => {
-            void onSaveAndClose();
-          }}
-        >
-          {isSaving ? "Saving..." : "Save & Close"}
-        </button>
+          <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
+            <button
+              className="rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-semibold text-primary shadow-sm transition"
+              data-testid="task-working-sections-close-button"
+              type="button"
+              onClick={onClose}
+            >
+              Close & Back
+            </button>
+
+            <button
+              className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+              data-testid="task-working-sections-save-button"
+              disabled={isSaving || !hasUnsavedChanges}
+              type="button"
+              onClick={() => {
+                void onSaveAndClose();
+              }}
+            >
+              {isSaving ? "Saving..." : "Save"}
+            </button>
+          </div>
+
+          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+        </div>
       </div>
-      <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
     </div>
   );
 }
@@ -121,13 +130,13 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
   );
 
   useEffect(() => {
-    header?.setTitle("Working Sections");
-    header?.setActions(null);
+    header?.setHeaderHidden(true);
     header?.setCloseInterceptor(
       controller.hasUnsavedChanges ? controller.handleCloseWithGuard : null,
     );
 
     return () => {
+      header?.setHeaderHidden(false);
       header?.setCloseInterceptor(null);
     };
   }, [controller.handleCloseWithGuard, controller.hasUnsavedChanges, header]);
@@ -178,6 +187,7 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
           canShowShortcuts={showShortcutBar}
           hasUnsavedChanges={controller.hasUnsavedChanges}
           isSaving={controller.isSaving}
+          onClose={controller.handleCloseWithGuard}
           onShortcutPress={controller.handleShortcutPress}
           onSaveAndClose={controller.handleSaveAndClose}
         />
@@ -229,14 +239,16 @@ export function TaskWorkingSectionsSlidePage(): React.JSX.Element {
   }
 
   return (
-    <TaskWorkingSectionsProvider
-      initialPendingAdds={recoveredPendingAdds}
-      initialPendingReassignments={recoveredPendingReassignments}
-      initialPendingRemoveIds={recoveredPendingRemoveIds}
-      surfaceOpeners={surfaceOpeners}
-      taskId={taskId}
-    >
-      <TaskWorkingSectionsSlidePageContent />
-    </TaskWorkingSectionsProvider>
+    <div className="flex h-full flex-col py-4">
+      <TaskWorkingSectionsProvider
+        initialPendingAdds={recoveredPendingAdds}
+        initialPendingReassignments={recoveredPendingReassignments}
+        initialPendingRemoveIds={recoveredPendingRemoveIds}
+        surfaceOpeners={surfaceOpeners}
+        taskId={taskId}
+      >
+        <TaskWorkingSectionsSlidePageContent />
+      </TaskWorkingSectionsProvider>
+    </div>
   );
 }

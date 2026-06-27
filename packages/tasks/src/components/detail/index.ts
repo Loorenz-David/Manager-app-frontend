@@ -7,4 +7,3 @@ export { TaskReadyByAtPill } from "./TaskReadyByAtPill";
 export { TaskScheduledDeliveryDatePill } from "./TaskScheduledDeliveryDatePill";
 export { TaskScheduledDeliverySection } from "./TaskScheduledDeliverySection";
 export { TaskUpholsterySection } from "./TaskUpholsterySection";
-export { TaskWorkingSectionsField } from "./TaskWorkingSectionsField";

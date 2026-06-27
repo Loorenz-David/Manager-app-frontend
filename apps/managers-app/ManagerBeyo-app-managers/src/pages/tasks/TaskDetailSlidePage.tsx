@@ -16,9 +16,12 @@ import {
   TaskImagesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
-  TaskWorkingSectionsField,
   taskKeys,
 } from "@beyo/tasks";
+import {
+  TaskWorkingSectionsField,
+  useTaskWorkingSectionsCountsFlow,
+} from "@beyo/task-working-sections";
 import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
@@ -106,9 +109,11 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [isHidden]);
 
   const itemId = controller.taskDetail?.item?.client_id ?? null;
+  const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(controller.taskId);
   const shouldRenderAssignStages =
+    !workingSectionsCounts.isPending &&
     controller.taskDetail?.task.state === "pending" &&
-    (controller.taskDetail.task_steps.length ?? 0) === 0;
+    workingSectionsCounts.assignedCount === 0;
 
   function handleImagesChanged(): void {
     void queryClient.invalidateQueries({
@@ -158,7 +163,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             <TaskCustomerSection taskDetail={controller.taskDetail} />
             <TaskWorkingSectionsField
               onOpenWorkingSections={controller.openWorkingSectionsSlide}
-              taskSteps={controller.taskDetail.task_steps}
+              taskId={controller.taskId}
             />
             <TaskScheduledDeliverySection
               onOpenDeliveryDate={controller.openDeliveryDateSheet}

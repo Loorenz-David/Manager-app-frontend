@@ -1,9 +1,10 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-import { apiClient } from '@/lib/api-client';
-import { ApiEnvelopeSchema } from '@/types/api';
+import { apiClient } from "@beyo/api-client";
+import { ApiEnvelopeSchema } from "@beyo/lib";
 
-import { TaskListItemRawSchema, type ListTasksFullParams, type TaskListItemRaw } from '../types';
+import { TaskListItemRawSchema } from "../types";
+import type { ListTasksFullParams, ListTasksResult } from "../types";
 
 const ListTasksResponseSchema = ApiEnvelopeSchema(
   z.object({
@@ -15,13 +16,6 @@ const ListTasksResponseSchema = ApiEnvelopeSchema(
     }),
   }),
 ).extend({ ok: z.literal(true) });
-
-export type ListTasksResult = {
-  items: TaskListItemRaw[];
-  limit: number;
-  offset: number;
-  has_more: boolean;
-};
 
 export async function listTasks(params: ListTasksFullParams): Promise<ListTasksResult> {
   const queryParams: Record<string, string | number | boolean> = {};
@@ -46,6 +40,6 @@ export async function listTasks(params: ListTasksFullParams): Promise<ListTasksR
   if (params.deleted != null) queryParams.deleted = params.deleted;
   if (params.order_by) queryParams.order_by = params.order_by;
 
-  const parsed = await apiClient.get('/api/v1/tasks', ListTasksResponseSchema, queryParams);
+  const parsed = await apiClient.get("/api/v1/tasks", ListTasksResponseSchema, queryParams);
   return parsed.data.tasks_pagination;
 }

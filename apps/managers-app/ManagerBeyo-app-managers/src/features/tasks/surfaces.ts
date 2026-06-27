@@ -5,9 +5,12 @@ import {
 import {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+} from "@beyo/tasks";
+import {
+  QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
-} from "@beyo/tasks";
+} from "@beyo/task-working-sections";
 import {
   TASK_NOTES_SHEET_SURFACE_ID,
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
@@ -127,14 +130,20 @@ function loadTaskEditSlidePage() {
 }
 
 function loadTaskWorkingSectionsSlidePage() {
-  return import("@beyo/tasks").then((module) => ({
+  return import("@beyo/task-working-sections").then((module) => ({
     default: module.TaskWorkingSectionsSlidePage,
   }));
 }
 
 function loadTaskWorkingSectionsDiscardChangesSheetPage() {
-  return import("@beyo/tasks").then((module) => ({
+  return import("@beyo/task-working-sections").then((module) => ({
     default: module.TaskWorkingSectionsDiscardChangesSheetPage,
+  }));
+}
+
+function loadQuickTaskAssignSlidePage() {
+  return import("@beyo/task-working-sections").then((module) => ({
+    default: module.QuickTaskAssignSlidePage,
   }));
 }
 
@@ -182,6 +191,7 @@ const taskWorkingSectionsSlide = lazyWithPreload(
 const taskWorkingSectionsDiscardChangesSheet = lazyWithPreload(
   loadTaskWorkingSectionsDiscardChangesSheetPage,
 );
+const quickTaskAssignSlide = lazyWithPreload(loadQuickTaskAssignSlidePage);
 const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
@@ -208,15 +218,21 @@ export const preloadTaskNoteUnreadViewerSurface =
 export {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+} from "@beyo/tasks";
+export {
+  QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
-} from "@beyo/tasks";
+} from "@beyo/task-working-sections";
 export type {
   TaskReadyByAtSheetSurfaceProps,
   TaskScheduledDeliverySheetSurfaceProps,
+} from "@beyo/tasks";
+export type {
+  QuickTaskAssignSurfaceProps,
   TaskWorkingSectionsSurfaceProps,
   TaskWorkingSectionsDiscardChangesSurfaceProps,
-} from "@beyo/tasks";
+} from "@beyo/task-working-sections";
 export type { TaskNotesSheetSurfaceProps } from "@beyo/task-notes";
 export type { TaskNoteUnreadViewerSurfaceProps } from "@beyo/task-notes";
 
@@ -268,6 +284,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID]: {
     surface: "sheet",
     component: taskWorkingSectionsDiscardChangesSheet.Component,
+  },
+  [QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: quickTaskAssignSlide.Component,
   },
   [PIN_NOTIFICATIONS_SLIDE_SURFACE_ID]: {
     surface: "slide",

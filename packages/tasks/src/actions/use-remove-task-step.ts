@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import type { TaskDetailRaw } from "../types";
 import { taskKeys } from "../api/task-keys";
+import { taskStepKeys } from "../api/task-step-keys";
 import { removeTaskStepsBatch } from "../api/remove-task-step";
 
 export type RemoveTaskStepVariables = {
@@ -9,7 +9,7 @@ export type RemoveTaskStepVariables = {
 };
 
 type RemoveTaskStepContext = {
-  snapshot: TaskDetailRaw | undefined;
+  taskDetailInvalidationCancelled: true;
 };
 
 export function useRemoveTaskStep(taskId: string) {
@@ -18,36 +18,21 @@ export function useRemoveTaskStep(taskId: string) {
   return useMutation({
     mutationFn: (input: RemoveTaskStepVariables) =>
       removeTaskStepsBatch({ ...input, task_id: taskId }),
-    onMutate: async (input): Promise<RemoveTaskStepContext> => {
+    onMutate: async (): Promise<RemoveTaskStepContext> => {
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(taskId as never) });
-      const snapshot = queryClient.getQueryData<TaskDetailRaw>(
-        taskKeys.detail(taskId as never),
-      );
-      const stepIds = new Set(input.step_ids);
-
-      queryClient.setQueryData<TaskDetailRaw>(taskKeys.detail(taskId as never), (old) => {
-        if (!old) {
-          return old;
-        }
-
-        return {
-          ...old,
-          task_steps: old.task_steps.filter((step) => !stepIds.has(step.client_id)),
-        };
-      });
-
-      return { snapshot };
-    },
-    onError: (_error, _input, context) => {
-      if (context?.snapshot !== undefined) {
-        queryClient.setQueryData(taskKeys.detail(taskId as never), context.snapshot);
-      }
+      return { taskDetailInvalidationCancelled: true };
     },
     onSettled: () => {
       void queryClient.invalidateQueries({
         queryKey: taskKeys.detail(taskId as never),
       });
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      void queryClient.invalidateQueries({
+        queryKey: taskStepKeys.byTask(taskId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: taskStepKeys.counts(taskId),
+      });
     },
   });
 }

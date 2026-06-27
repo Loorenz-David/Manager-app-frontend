@@ -167,7 +167,9 @@ export function TaskNoteComposer({
   return (
     <div
       data-testid={testId}
-      style={shouldFloat && floatingHeight ? { height: floatingHeight } : undefined}
+      style={
+        shouldFloat && floatingHeight ? { height: floatingHeight } : undefined
+      }
     >
       <div
         ref={composerRootRef}
@@ -179,7 +181,7 @@ export function TaskNoteComposer({
       >
         {isEditorFocused ? (
           <div
-            className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]"
+            className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-sm"
             onMouseDown={(e) => e.preventDefault()}
           >
             <CaseComposerToolbar
@@ -198,7 +200,7 @@ export function TaskNoteComposer({
           </div>
         ) : null}
 
-        <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+        <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-sm">
           <div className="flex items-end gap-2">
             <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
               <Suspense
@@ -210,7 +212,10 @@ export function TaskNoteComposer({
               >
                 <LazyCaseComposerEditor
                   className="min-h-16"
-                  content={(initialContent ?? EMPTY_CONTENT) as unknown as CaseMessageContent}
+                  content={
+                    (initialContent ??
+                      EMPTY_CONTENT) as unknown as CaseMessageContent
+                  }
                   disabled={disabled}
                   onBlur={handleEditorBlur}
                   onChange={({ content, plainText }) => {
