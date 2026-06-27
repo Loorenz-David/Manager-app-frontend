@@ -51,6 +51,14 @@ export type {
   TaskNotesSheetSurfaceProps,
   TaskNoteUnreadViewerSurfaceProps,
 } from "./surface-ids";
-export { TaskNotesSheetPage } from "./pages/TaskNotesSheetPage";
-export { TaskNoteUnreadViewerPage } from "./pages/TaskNoteUnreadViewerPage";
+export function loadTaskNotesSheetPage() {
+  return import("./pages/TaskNotesSheetPage").then((m) => ({
+    default: m.TaskNotesSheetPage,
+  }));
+}
+export function loadTaskNoteUnreadViewerPage() {
+  return import("./pages/TaskNoteUnreadViewerPage").then((m) => ({
+    default: m.TaskNoteUnreadViewerPage,
+  }));
+}
 export { taskNoteSocketEvents } from "./socket-events";

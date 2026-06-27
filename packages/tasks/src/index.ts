@@ -135,5 +135,13 @@ export { updateTaskReadyByAt } from "./api/update-task-ready-by-at";
 export type { UpdateTaskReadyByAtInput } from "./api/update-task-ready-by-at";
 export { updateTaskSchedule } from "./api/update-task-schedule";
 export type { UpdateTaskScheduleInput } from "./api/update-task-schedule";
-export { TaskReadyByAtSheetPage } from "./pages/TaskReadyByAtSheetPage";
-export { TaskScheduledDeliverySheetPage } from "./pages/TaskScheduledDeliverySheetPage";
+export function loadTaskReadyByAtSheetPage() {
+  return import("./pages/TaskReadyByAtSheetPage").then((m) => ({
+    default: m.TaskReadyByAtSheetPage,
+  }));
+}
+export function loadTaskScheduledDeliverySheetPage() {
+  return import("./pages/TaskScheduledDeliverySheetPage").then((m) => ({
+    default: m.TaskScheduledDeliverySheetPage,
+  }));
+}

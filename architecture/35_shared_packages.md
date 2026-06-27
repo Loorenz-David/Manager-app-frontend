@@ -340,6 +340,7 @@ Do not move these into packages. They stay app-specific:
 - Source folders: match the original folder name from the managers app where possible.
 - Public exports: named exports only, no default exports from `index.ts`.
 - Do not export internal helpers that are implementation details.
+- **Exception — surface page components:** Components that are the top-level entry for a registered surface (slide, sheet, modal) must **not** be statically re-exported. Expose them as a `loadXxxPage()` loader function instead. See §14.
 
 ---
 
@@ -534,4 +535,90 @@ type CaseCreationSlideSurfaceProps = {
   openParticipantPicker?: (props: ...) => void; // grows without bound
   // → use surfaceOpeners map instead
 };
+```
+
+---
+
+## 14. Page Component Code Splitting — Loader Functions
+
+### The Problem
+
+When a package statically re-exports a page component from `index.ts`, the bundler places that component in the same chunk as all other package exports. If any other file statically imports from the package — even just to read a surface ID constant — the page component ends up in the main bundle. Any `lazyWithPreload` wrapper in the app's `surfaces.ts` becomes ineffective: the bundler emits an `[INEFFECTIVE_DYNAMIC_IMPORT]` warning and the component is never code-split.
+
+### The Rule
+
+**Page components registered as surfaces must never be statically exported from `index.ts`.** Expose them through a named loader function that contains the dynamic import.
+
+### The Pattern
+
+#### In the package's `index.ts`
+
+```ts
+// ❌ Static re-export — page lands in main chunk regardless of how the app imports it
+export { TaskNotesSheetPage } from "./pages/TaskNotesSheetPage";
+
+// ✅ Loader function — dynamic import inside, bundler can split this into its own chunk
+export function loadTaskNotesSheetPage() {
+  return import("./pages/TaskNotesSheetPage").then((m) => ({
+    default: m.TaskNotesSheetPage,
+  }));
+}
+```
+
+The function reference is statically importable (just a function pointer with no side-effects), but the `import()` call inside it is dynamic — the bundler follows only dynamic import boundaries when deciding chunk membership.
+
+#### In the app's `surfaces.ts`
+
+```ts
+// ❌ Wraps a whole-package dynamic import — only works if nothing else statically imports the package,
+//    which is never true once you also import surface ID constants from it
+const taskNotesSheet = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((m) => ({ default: m.TaskNotesSheetPage })),
+);
+
+// ✅ Delegates to the package's own loader — correctly code-splits the page component
+import { loadTaskNotesSheetPage } from "@beyo/task-notes";
+
+const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
+```
+
+### What qualifies as a "page component"
+
+A component needs the loader function treatment if all three are true:
+- It is registered as a surface in an app's `surfaces.ts` via `lazyWithPreload`
+- It is the top-level entry component for a slide, sheet, or modal surface
+- It is not rendered at app startup — only when the user opens that surface
+
+Hooks, utility functions, non-page components, types, and surface ID constants are **not** page components and must continue to be statically exported from `index.ts` in the normal way.
+
+### Relationship to `surface-ids.ts` preload functions
+
+A package's `surface-ids.ts` may also define intent-based preload functions. These use the same dynamic import path and coexist with the loader functions:
+
+```ts
+// surface-ids.ts
+export function preloadTaskNotesSheetSurface(): Promise<unknown> {
+  return import("./pages/TaskNotesSheetPage");  // same file as loadTaskNotesSheetPage targets
+}
+```
+
+When both a loader function (`index.ts`) and a preload function (`surface-ids.ts`) reference the same page file, the bundler deduplicates them into a single lazy chunk automatically.
+
+### Anti-patterns
+
+```ts
+// ❌ Static re-export — defeats code splitting
+export { TaskNotesSheetPage } from "./pages/TaskNotesSheetPage";
+
+// ❌ Synchronous wrapper — no split, component is already in memory
+import { ScannerSlideRouteEntry } from "@beyo/scanner";
+function loadScannerSlidePage() {
+  return Promise.resolve({ default: ScannerSlideRouteEntry });
+}
+
+// ❌ Dynamic import of the whole package index to reach a page —
+//    only avoids the static dependency if nothing else imports the package, which is never guaranteed
+const taskNotesSheet = lazyWithPreload(() =>
+  import("@beyo/task-notes").then((m) => ({ default: m.TaskNotesSheetPage })),
+);
 ```

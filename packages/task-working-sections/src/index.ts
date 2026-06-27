@@ -41,6 +41,18 @@ export { quickTaskKeys } from "./api/quick-task-keys";
 export { useTaskCountsQuery } from "./api/use-task-counts-query";
 export { useQuickTaskListQuery } from "./api/use-quick-task-list-query";
 
-export { TaskWorkingSectionsSlidePage } from "./pages/TaskWorkingSectionsSlidePage";
-export { TaskWorkingSectionsDiscardChangesSheetPage } from "./pages/TaskWorkingSectionsDiscardChangesSheetPage";
-export { QuickTaskAssignSlidePage } from "./pages/QuickTaskAssignSlidePage";
+export function loadTaskWorkingSectionsSlidePage() {
+  return import("./pages/TaskWorkingSectionsSlidePage").then((m) => ({
+    default: m.TaskWorkingSectionsSlidePage,
+  }));
+}
+export function loadTaskWorkingSectionsDiscardChangesSheetPage() {
+  return import("./pages/TaskWorkingSectionsDiscardChangesSheetPage").then(
+    (m) => ({ default: m.TaskWorkingSectionsDiscardChangesSheetPage }),
+  );
+}
+export function loadQuickTaskAssignSlidePage() {
+  return import("./pages/QuickTaskAssignSlidePage").then((m) => ({
+    default: m.QuickTaskAssignSlidePage,
+  }));
+}

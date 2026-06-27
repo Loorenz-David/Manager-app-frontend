@@ -27,6 +27,8 @@ This is the core discipline. The two questions have different answers:
 | How do I set up a route with lazy loading? | `11_routing.md` |
 | How do I write a feature component that consumes context? | `07_components.md` |
 | How does a package field open a picker surface? | `35_shared_packages.md §13` |
+| How do I expose a page component from a package for surface registration? | `35_shared_packages.md §14` |
+| Why is my dynamic import ineffective / landing in the main chunk? | `35_shared_packages.md §14` |
 | How do I make an input float above the mobile keyboard? | `37_keyboard_aware_inputs.md` |
 | How do I keep a custom scroll container clear of the keyboard? | `37_keyboard_aware_inputs.md` |
 | How do I hide a shell element on scroll (global pattern)? | `36_scroll_visibility.md` |
@@ -187,6 +189,7 @@ Add:
 - "dto", "view model", "client_id", "response schema", "toXxxViewModel" → `24`
 - "memoization", "useMemo", "useCallback", "React.memo", "virtualize" → `18`
 - "surfaceOpeners", "surface opener", "package picker", "openSurface from package", "picker injection", "package surface boundary", "XxxSurfaceOpeners", "callback injection surface" → `35_shared_packages §13`
+- "package page", "loadXxx", "loader function", "static page export", "INEFFECTIVE_DYNAMIC_IMPORT", "ineffective dynamic import", "page in main chunk", "surface page component", "package surface page", "code split package page", "lazyWithPreload package" → `35_shared_packages §14`
 
 ---
 

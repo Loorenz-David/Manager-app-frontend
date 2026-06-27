@@ -9,7 +9,7 @@ import {
 } from "@beyo/phone-input";
 import {
   SCANNER_SLIDE_SURFACE_ID,
-  ScannerSlideRouteEntry,
+  loadScannerSlidePage,
 } from "@beyo/scanner";
 import { upholsterySurfaces } from "@beyo/upholstery";
 import { workingSectionSurfaces } from "@beyo/working-sections";
@@ -68,10 +68,6 @@ function loadCalendarRangePickerPage() {
   return import("./pages/CalendarRangePickerPage").then((module) => ({
     default: module.CalendarRangePickerPage,
   }));
-}
-
-function loadScannerSlidePage() {
-  return Promise.resolve({ default: ScannerSlideRouteEntry });
 }
 
 const returnTaskSlide = lazyWithPreload(loadReturnTaskSlidePage);

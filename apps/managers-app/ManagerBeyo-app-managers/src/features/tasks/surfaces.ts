@@ -5,15 +5,22 @@ import {
 import {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  loadTaskReadyByAtSheetPage,
+  loadTaskScheduledDeliverySheetPage,
 } from "@beyo/tasks";
 import {
   QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
+  loadTaskWorkingSectionsSlidePage,
+  loadTaskWorkingSectionsDiscardChangesSheetPage,
+  loadQuickTaskAssignSlidePage,
 } from "@beyo/task-working-sections";
 import {
   TASK_NOTES_SHEET_SURFACE_ID,
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+  loadTaskNotesSheetPage,
+  loadTaskNoteUnreadViewerPage,
 } from "@beyo/task-notes";
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 import { lazyWithPreload } from "@beyo/ui";
@@ -129,23 +136,6 @@ function loadTaskEditSlidePage() {
   }));
 }
 
-function loadTaskWorkingSectionsSlidePage() {
-  return import("@beyo/task-working-sections").then((module) => ({
-    default: module.TaskWorkingSectionsSlidePage,
-  }));
-}
-
-function loadTaskWorkingSectionsDiscardChangesSheetPage() {
-  return import("@beyo/task-working-sections").then((module) => ({
-    default: module.TaskWorkingSectionsDiscardChangesSheetPage,
-  }));
-}
-
-function loadQuickTaskAssignSlidePage() {
-  return import("@beyo/task-working-sections").then((module) => ({
-    default: module.QuickTaskAssignSlidePage,
-  }));
-}
 
 function loadPinNotificationsSlidePage() {
   return import("@/pages/tasks/PinNotificationsSlidePage").then((module) => ({
@@ -162,15 +152,9 @@ function loadPinTaskStepStatesSheetPage() {
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
 const taskFilterSheet = lazyWithPreload(loadTaskFilterSheetPage);
-const taskReadyByAtSheet = lazyWithPreload(() =>
-  import("@beyo/tasks").then((module) => ({
-    default: module.TaskReadyByAtSheetPage,
-  })),
-);
-const taskScheduledDeliverySheet = lazyWithPreload(() =>
-  import("@beyo/tasks").then((module) => ({
-    default: module.TaskScheduledDeliverySheetPage,
-  })),
+const taskReadyByAtSheet = lazyWithPreload(loadTaskReadyByAtSheetPage);
+const taskScheduledDeliverySheet = lazyWithPreload(
+  loadTaskScheduledDeliverySheetPage,
 );
 const itemQuantitySheet = lazyWithPreload(loadItemQuantitySheetPage);
 const itemPositionSheet = lazyWithPreload(() =>
@@ -192,20 +176,13 @@ const taskWorkingSectionsDiscardChangesSheet = lazyWithPreload(
   loadTaskWorkingSectionsDiscardChangesSheetPage,
 );
 const quickTaskAssignSlide = lazyWithPreload(loadQuickTaskAssignSlidePage);
+
 const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
-const taskNotesSheet = lazyWithPreload(() =>
-  import("@beyo/task-notes").then((module) => ({
-    default: module.TaskNotesSheetPage,
-  })),
-);
-const taskNoteUnreadViewer = lazyWithPreload(() =>
-  import("@beyo/task-notes").then((module) => ({
-    default: module.TaskNoteUnreadViewerPage,
-  })),
-);
+const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
+const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
 
 export const preloadPinNotificationsSlideSurface =
   pinNotificationsSlide.preload;

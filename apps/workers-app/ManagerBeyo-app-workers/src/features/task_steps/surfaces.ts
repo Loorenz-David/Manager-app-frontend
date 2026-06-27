@@ -4,8 +4,13 @@ import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
 import {
   TASK_NOTES_SHEET_SURFACE_ID,
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
+  loadTaskNotesSheetPage,
+  loadTaskNoteUnreadViewerPage,
 } from "@beyo/task-notes";
-import { TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID } from "@beyo/tasks";
+import {
+  TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  loadTaskScheduledDeliverySheetPage,
+} from "@beyo/tasks";
 import {
   BATCH_DETAIL_SLIDE_SURFACE_ID,
   COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID,
@@ -122,10 +127,8 @@ const itemPositionSheet = lazyWithPreload(() =>
     default: module.ItemPositionSheetPage,
   })),
 );
-const taskScheduledDeliverySheet = lazyWithPreload(() =>
-  import("@beyo/tasks").then((module) => ({
-    default: module.TaskScheduledDeliverySheetPage,
-  })),
+const taskScheduledDeliverySheet = lazyWithPreload(
+  loadTaskScheduledDeliverySheetPage,
 );
 const taskStepActionsSheet = lazyWithPreload(loadTaskStepActionsSheetPage);
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
@@ -154,16 +157,8 @@ const completeBatchTaskStepsConfirmationSlide = lazyWithPreload(
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
 );
-const taskNotesSheet = lazyWithPreload(() =>
-  import("@beyo/task-notes").then((module) => ({
-    default: module.TaskNotesSheetPage,
-  })),
-);
-const taskNoteUnreadViewer = lazyWithPreload(() =>
-  import("@beyo/task-notes").then((module) => ({
-    default: module.TaskNoteUnreadViewerPage,
-  })),
-);
+const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
+const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;

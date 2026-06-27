@@ -46,7 +46,11 @@ export { FrozenFrameCanvas } from "./ui/FrozenFrameCanvas";
 export { ScannerGuideOverlay } from "./ui/ScannerGuideOverlay";
 export { ScannerLensPicker } from "./ui/ScannerLensPicker";
 export { ScannerSlideContent } from "./ui/ScannerSlideContent";
-export { ScannerSlideRouteEntry } from "./pages/ScannerSlideRouteEntry";
+export function loadScannerSlidePage() {
+  return import("./pages/ScannerSlideRouteEntry").then((m) => ({
+    default: m.ScannerSlideRouteEntry,
+  }));
+}
 export {
   SCANNER_SLIDE_SURFACE_ID,
   SCANNER_SESSION_ID,

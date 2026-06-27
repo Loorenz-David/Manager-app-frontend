@@ -3,14 +3,8 @@ import {
   itemCategoryPickerSurfaces,
   preloadItemCategoryPickerSurface as preloadSharedItemCategoryPickerSurface,
 } from "@beyo/item-categories";
-import { SCANNER_SLIDE_SURFACE_ID } from "@beyo/scanner";
+import { SCANNER_SLIDE_SURFACE_ID, loadScannerSlidePage } from "@beyo/scanner";
 import { lazyWithPreload } from "@beyo/ui";
-
-function loadScannerSlidePage() {
-  return import("@beyo/scanner").then((module) => ({
-    default: module.ScannerSlideRouteEntry,
-  }));
-}
 
 const scannerSlide = lazyWithPreload(loadScannerSlidePage);
 
