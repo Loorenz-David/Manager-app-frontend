@@ -105,6 +105,8 @@ export function getCaseTypeImageUrl(
 
 export const CaseListCardRawSchema = z.object({
   client_id: z.string().transform((v) => v as CaseId),
+  reference_number: z.string().nullable().optional(),
+  scalar_id: z.number().int().nullable().optional(),
   created_at: z.string().datetime({ offset: true }),
   state: z.enum(CASE_STATE),
   case_type_id: z.string().nullable(),
@@ -201,6 +203,8 @@ export type MessagesPagination = z.infer<typeof MessagesPaginationSchema>;
 
 export const CaseDetailBaseSchema = z.object({
   client_id: z.string().transform((v) => v as CaseId),
+  reference_number: z.string().nullable().optional(),
+  scalar_id: z.number().int().nullable().optional(),
   state: z.enum(CASE_STATE),
   case_type: CaseTypeSnapshotSchema.nullable().optional(),
   type_label: z.string().nullable().optional(),

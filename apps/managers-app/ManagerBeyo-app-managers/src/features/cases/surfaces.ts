@@ -1,9 +1,12 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import {
   CASE_CONVERSATION_SURFACE_ID,
+  CASE_CREATION_SLIDE_SURFACE_ID,
   CASE_TASK_INFO_SHEET_SURFACE_ID,
   CASE_MESSAGE_ACTIONS_SHEET_SURFACE_ID,
   CASE_FILTER_SHEET_SURFACE_ID,
+  CASE_TYPE_PICKER_SHEET_SURFACE_ID,
+  PARTICIPANT_PICKER_SLIDE_SURFACE_ID,
   type CaseConversationSurfaceProps,
 } from "@beyo/cases";
 import { buildCaseConversationRoute } from "@/lib/routes";
@@ -32,12 +35,33 @@ function loadCaseFilterSheetPage() {
   }));
 }
 
+function loadCaseCreationSlidePage() {
+  return import("@/pages/cases/CaseCreationSlidePage").then((module) => ({
+    default: module.CaseCreationSlidePage,
+  }));
+}
+
+function loadCaseTypePickerSheetPage() {
+  return import("@/pages/cases/CaseTypePickerSheetPage").then((module) => ({
+    default: module.CaseTypePickerSheetPage,
+  }));
+}
+
+function loadParticipantPickerSlidePage() {
+  return import("@/pages/cases/ParticipantPickerSlidePage").then((module) => ({
+    default: module.ParticipantPickerSlidePage,
+  }));
+}
+
 const caseConversationSlide = lazyWithPreload(loadCaseConversationSlidePage);
 const caseTaskInfoSheet = lazyWithPreload(loadCaseTaskInfoSheetPage);
 const caseMessageActionsSheet = lazyWithPreload(
   loadCaseMessageActionsSheetPage,
 );
 const caseFilterSheet = lazyWithPreload(loadCaseFilterSheetPage);
+const caseCreationSlide = lazyWithPreload(loadCaseCreationSlidePage);
+const caseTypePickerSheet = lazyWithPreload(loadCaseTypePickerSheetPage);
+const participantPickerSlide = lazyWithPreload(loadParticipantPickerSlidePage);
 
 export const preloadCaseConversationSlideSurface =
   caseConversationSlide.preload;
@@ -50,6 +74,18 @@ export const caseSurfaces: SurfaceRegistrations = {
         (props as CaseConversationSurfaceProps).caseClientId,
       ),
     component: caseConversationSlide.Component,
+  },
+  [CASE_CREATION_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: caseCreationSlide.Component,
+  },
+  [CASE_TYPE_PICKER_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: caseTypePickerSheet.Component,
+  },
+  [PARTICIPANT_PICKER_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: participantPickerSlide.Component,
   },
   [CASE_TASK_INFO_SHEET_SURFACE_ID]: {
     surface: "sheet",

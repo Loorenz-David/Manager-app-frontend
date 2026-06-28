@@ -39,6 +39,7 @@ export type CasesViewController = {
   onFilterChange: (filter: CaseFilterPill) => void;
   openCase: (caseClientId: CaseId) => void;
   openFilters: () => void;
+  openCaseCreation: () => void;
   activeFilterCount: number;
   pillCounts: { unread: number; active: number; inProgress: number };
   unreadCounts: Record<string, number>;
@@ -215,6 +216,10 @@ export function useCasesViewController(
     });
   }
 
+  function openCaseCreation(): void {
+    params.viewSurfaceOpeners?.openCaseCreation?.();
+  }
+
   async function refetch(): Promise<void> {
     await Promise.all([
       activeCasesQuery.refetch(),
@@ -261,6 +266,7 @@ export function useCasesViewController(
     onFilterChange,
     openCase,
     openFilters,
+    openCaseCreation,
     activeFilterCount,
     pillCounts: {
       unread: unreadCases.length,

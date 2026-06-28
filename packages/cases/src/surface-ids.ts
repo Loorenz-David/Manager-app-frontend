@@ -76,4 +76,5 @@ export type CaseFilterSheetSurfaceProps = {
 
 export type CasesViewSurfaceOpeners = {
   openCaseFilters?: (props: CaseFilterSheetSurfaceProps) => void;
+  openCaseCreation?: () => void;
 };

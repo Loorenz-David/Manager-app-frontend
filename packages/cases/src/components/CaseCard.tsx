@@ -90,11 +90,20 @@ export const CaseCard = memo(function CaseCard({
 
   return (
     <button
-      className="flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-card/90"
+      className="relative flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-sm transition-colors hover:bg-card/90"
       data-testid={`case-card-${card.client_id}`}
       type="button"
       onClick={() => onOpen(card.client_id)}
     >
+      {unreadCount > 0 ? (
+        <span
+          className="absolute -top-2 -right-2 inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 p-1 text-[11px] font-semibold leading-none text-card"
+          data-testid={`case-card-unread-${card.client_id}`}
+        >
+          {unreadCount}
+        </span>
+      ) : null}
+
       <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[10px] font-semibold leading-none text-foreground">
         {profilePicture ? (
           <img
@@ -111,16 +120,13 @@ export const CaseCard = memo(function CaseCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5">
           <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
             {getCaseTypeName(card.case_type, card.type_label ?? "Case")}
           </span>
-          {unreadCount > 0 ? (
-            <span
-              className="inline-flex min-w-5 items-center justify-center rounded-full bg-green-600 p-1 text-[11px] font-semibold leading-none text-card"
-              data-testid={`case-card-unread-${card.client_id}`}
-            >
-              {unreadCount}
+          {card.reference_number ? (
+            <span className="shrink-0 text-xs text-muted-foreground">
+              {card.reference_number}
             </span>
           ) : null}
         </div>

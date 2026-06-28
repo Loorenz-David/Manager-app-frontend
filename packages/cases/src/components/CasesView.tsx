@@ -1,4 +1,5 @@
 import { AnimatePresence, m } from "framer-motion";
+import { Plus } from "lucide-react";
 
 import { transitions } from "@beyo/lib";
 import { PullToRefresh, useScrollHide } from "@beyo/ui";
@@ -113,6 +114,16 @@ export function CasesView(): React.JSX.Element {
           </div>
         </div>
       </PullToRefresh>
+
+      <button
+        aria-label="New case"
+        className="absolute right-4 bottom-[calc(var(--safe-bottom,0px)+0.75rem)] z-40 flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md transition-transform active:scale-95"
+        data-testid="cases-view-create-fab"
+        type="button"
+        onClick={controller.openCaseCreation}
+      >
+        <Plus aria-hidden="true" className="size-6" />
+      </button>
     </div>
   );
 }
