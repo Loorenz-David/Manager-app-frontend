@@ -1,4 +1,4 @@
-import { useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -120,6 +120,8 @@ export function InternalFormContent(): React.JSX.Element {
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       item: {
         designer: "",
@@ -145,6 +147,7 @@ export function InternalFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.major_category",
   });
+  const { errors } = form.formState;
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
@@ -301,10 +304,42 @@ export function InternalFormContent(): React.JSX.Element {
 
   navigateToRef.current = staged.navigateTo;
 
+  useEffect(() => {
+    const stepErrorMap = {
+      item: Boolean(errors.item ?? errors.item_upholstery),
+      assignment: Boolean(errors.working_section_assignments),
+      task: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+    } as const;
+
+    for (const step of staged.steps) {
+      const hasError = stepErrorMap[step.id as keyof typeof stepErrorMap];
+      const currentStatus = staged.stepStatusMap[step.id];
+
+      if (hasError) {
+        if (currentStatus !== "error") {
+          staged.setStepStatus(step.id, "error");
+        }
+        continue;
+      }
+
+      if (currentStatus !== "error") {
+        continue;
+      }
+
+      const stepIndex = staged.steps.findIndex(
+        (candidateStep) => candidateStep.id === step.id,
+      );
+      staged.setStepStatus(
+        step.id,
+        stepIndex < staged.activeStepIndex ? "completed" : "pending",
+      );
+    }
+  }, [errors, staged]);
+
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col"
+        className="flex h-full flex-col pt-4"
         data-testid="internal-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}

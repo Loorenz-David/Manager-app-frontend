@@ -9,7 +9,7 @@ export function InternalTaskSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
 
   useEffect(() => {
-    header?.setTitle("New internal task");
+    header?.setHeaderHidden(true);
   }, [header]);
 
   return (

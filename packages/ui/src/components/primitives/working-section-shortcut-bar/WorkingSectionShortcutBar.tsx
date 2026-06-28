@@ -93,10 +93,8 @@ export function WorkingSectionShortcutBar({
       className={cn(
         animationMode === "translate"
           ? [
-              "transition-[transform,opacity] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)] will-change-transform",
-              isHidden
-                ? "pointer-events-none translate-y-full opacity-0"
-                : "translate-y-0 opacity-100",
+              "will-change-transform",
+              isHidden ? "pointer-events-none" : null,
             ]
           : [
               "overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out",
@@ -107,6 +105,17 @@ export function WorkingSectionShortcutBar({
         className,
       )}
       data-testid={testId}
+      style={
+        animationMode === "translate"
+          ? {
+              transform:
+                "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+              opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+              transition:
+                "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+            }
+          : undefined
+      }
     >
       <HorizontalScrollArea trackClassName={trackClassName}>
         <div className="flex min-w-max items-center gap-2">

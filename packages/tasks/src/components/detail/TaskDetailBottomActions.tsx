@@ -37,10 +37,15 @@ export function TaskDetailBottomActions({
   return (
     <div
       className={cn(
-        "fixed bottom-0 left-0 right-0 z-20",
-        "transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        isHidden ? "pointer-events-none translate-y-full" : "translate-y-0",
+        "fixed bottom-0 left-0 right-0 z-20 will-change-transform",
+        isHidden ? "pointer-events-none" : null,
       )}
+      style={{
+        transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transition:
+          "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+      }}
     >
       {shouldRenderAssignStages ? (
         <div className="pointer-events-none px-4 pb-3">

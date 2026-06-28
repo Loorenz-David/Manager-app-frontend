@@ -41,17 +41,23 @@ export function StagedFormTimeline(): React.JSX.Element {
       className="overflow-x-auto scrollbar-none"
       data-compact={isTimelineCompact ? 'true' : 'false'}
       data-testid="staged-form-timeline"
+      style={{
+        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
+        transition:
+          "opacity var(--scroll-snap-duration, 0ms) ease-out, transform var(--scroll-snap-duration, 0ms) ease-out",
+      }}
     >
       <div className="px-6">
         {/*
           grid-template-rows: 0fr -> 1fr is the CSS-native way to animate height: auto.
           The inner div needs overflow-hidden + min-h-0 so the grid cell can collapse fully.
-          Both opacity and grid-template-rows run off the JS thread, with no per-frame JS work.
+          Opacity is driven by --scroll-hide-progress on the outer div instead.
         */}
         <div
           className={cn(
-            'grid transition-[grid-template-rows,opacity] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
-            isTimelineCompact ? 'grid-rows-[0fr] opacity-0' : 'grid-rows-[1fr] opacity-100',
+            'grid transition-[grid-template-rows] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
+            isTimelineCompact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
           )}
         >
           <div className="min-h-0 overflow-hidden">

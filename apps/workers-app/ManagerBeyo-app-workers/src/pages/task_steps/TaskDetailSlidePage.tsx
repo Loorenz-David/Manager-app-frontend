@@ -12,9 +12,8 @@ import {
   ContentCard,
   PullToRefresh,
   SectionLabel,
-  useScrollVisibility,
+  useScrollHide,
 } from "@beyo/ui";
-import { cn } from "@beyo/lib";
 import {
   TaskStepCircularActionButton,
   TaskStepDetailFooter,
@@ -89,7 +88,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
   const controller = useTaskStepDetailContext();
-  const { scrollRef, isHidden } = useScrollVisibility({ mode: "relative" });
+  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -133,8 +132,18 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     controller.transitioningStepId === controller.vm.stepId;
   const canShowCompletionAction = controller.vm.state === "working";
 
+  const FOOTER_STYLE: React.CSSProperties = {
+    transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+    opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+    transition:
+      "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+  };
+
   return (
-    <div className="relative flex h-full flex-col bg-background">
+    <div
+      ref={hideProgressContainerRef}
+      className="relative flex h-full flex-col bg-background"
+    >
       <PullToRefresh
         className="flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none pb-[calc(var(--safe-bottom,0)+9.5rem)]"
@@ -182,12 +191,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 
       {canShowCompletionAction ? (
         <div
-          className={cn(
-            "absolute inset-x-0 bottom-0 z-0 transition-transform duration-300",
-            isHidden ? "translate-y-full" : "translate-y-0",
-          )}
+          className="absolute inset-x-0 bottom-0 z-0 will-change-transform"
+          style={{
+            ...FOOTER_STYLE,
+            pointerEvents: isHidden ? "none" : undefined,
+          }}
         >
-          <div className="px-4 pb-21 pt-3">
+          <div className="px-4 pb-27 pt-3">
             <button
               className="w-full rounded-xl py-3 text-center font-semibold transition-opacity disabled:opacity-60"
               data-testid="task-step-complete-button"
@@ -207,10 +217,11 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       ) : null}
 
       <div
-        className={cn(
-          "absolute inset-x-0 bottom-0 z-10 transition-transform duration-300",
-          isHidden ? "translate-y-full" : "translate-y-0",
-        )}
+        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
+        style={{
+          ...FOOTER_STYLE,
+          pointerEvents: isHidden ? "none" : undefined,
+        }}
       >
         <TaskStepDetailFooter
           unreadCount={controller.liveCasesSummary.totalUnread}

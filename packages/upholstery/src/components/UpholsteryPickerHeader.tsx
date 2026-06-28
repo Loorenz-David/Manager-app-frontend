@@ -10,17 +10,22 @@ import { UpholsterySearch } from "./UpholsterySearch";
 type UpholsteryPickerHeaderProps = {
   q: string;
   activeFilter: UpholsteryQuickFilter;
-  isCompact: boolean;
   isFilterDisabled?: boolean;
   onBackPress: () => void;
   onQChange: (value: string) => void;
   onFilterChange: (filter: UpholsteryQuickFilter) => void;
 };
 
+const SLIDE_HIDE_STYLE: React.CSSProperties = {
+  transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
+  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+  transition:
+    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+};
+
 export function UpholsteryPickerHeader({
   q,
   activeFilter,
-  isCompact,
   isFilterDisabled = false,
   onBackPress,
   onQChange,
@@ -33,10 +38,11 @@ export function UpholsteryPickerHeader({
 
   return (
     <div
-      className="sticky top-0 z-10 border-b border-border bg-background"
+      className="relative flex flex-col bg-background"
       data-testid="upholstery-picker-header"
     >
-      <div className="px-4 pb-3.5 pt-3">
+      {/* Search bar row — z-10 bg-background acts as mask for the pills (Pattern C) */}
+      <div className="relative z-10 border-b border-border bg-background px-4 pb-3.5 pt-3">
         <div className="flex items-center gap-2">
           <button
             aria-label="Go back"
@@ -53,37 +59,32 @@ export function UpholsteryPickerHeader({
         </div>
       </div>
 
+      {/* Pills — absolute at top:100%, slides up behind search bar row (Pattern C) */}
       <div
-        className={cn(
-          "grid transition-[grid-template-rows,opacity] duration-250 ease-[cubic-bezier(0.32,0.72,0,1)]",
-          isCompact
-            ? "grid-rows-[0fr] opacity-0"
-            : "grid-rows-[1fr] opacity-100",
-        )}
+        className="absolute inset-x-0 bg-background"
+        style={{ top: "100%", ...SLIDE_HIDE_STYLE }}
       >
-        <div className="min-h-0 overflow-hidden">
-          <HorizontalScrollArea className="pb-1">
-            <BoxPicker
-              className={cn(
-                "flex flex-nowrap flex-row gap-1.5 px-4 transition-opacity duration-150",
-                isFilterDisabled && "pointer-events-none opacity-60",
-              )}
-              data-testid="upholstery-quick-filter-pills"
-              disabledOptionClassName="opacity-60"
-              layout="stack"
-              mode="single"
-              options={filterOptions}
-              showDescription={false}
-              showIcon={false}
-              size="sm"
-              value={activeFilter}
-              visualVariant="pill"
-              onValueChange={onFilterChange}
-              selectedOptionClassName="bg-blue-100 border-blue-400 text-blue-500"
-              unselectedOptionClassName="bg-white border-slate-300 text-slate-700"
-            />
-          </HorizontalScrollArea>
-        </div>
+        <HorizontalScrollArea className="pb-1">
+          <BoxPicker
+            className={cn(
+              "flex flex-nowrap flex-row gap-1.5 px-4 transition-opacity duration-150",
+              isFilterDisabled && "pointer-events-none opacity-60",
+            )}
+            data-testid="upholstery-quick-filter-pills"
+            disabledOptionClassName="opacity-60"
+            layout="stack"
+            mode="single"
+            options={filterOptions}
+            showDescription={false}
+            showIcon={false}
+            size="sm"
+            value={activeFilter}
+            visualVariant="pill"
+            onValueChange={onFilterChange}
+            selectedOptionClassName="bg-blue-100 border-blue-400 text-blue-500"
+            unselectedOptionClassName="bg-white border-slate-300 text-slate-700"
+          />
+        </HorizontalScrollArea>
       </div>
     </div>
   );

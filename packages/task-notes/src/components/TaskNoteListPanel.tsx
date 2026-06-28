@@ -28,7 +28,7 @@ export function TaskNoteListPanel({
   onOpenDetail,
   onRetry,
 }: TaskNoteListPanelProps): React.JSX.Element {
-  const { isHidden, scrollRef } = useScrollVisibility({
+  const { isHidden, scrollRef, hideProgressContainerRef } = useScrollVisibility({
     mode: "relative",
     hideThreshold: 16,
     showThreshold: 8,
@@ -36,6 +36,7 @@ export function TaskNoteListPanel({
 
   return (
     <div
+      ref={hideProgressContainerRef}
       className="relative flex h-full flex-col"
       data-testid="task-note-list-panel"
     >
@@ -102,9 +103,16 @@ export function TaskNoteListPanel({
       {canCreate ? (
         <div
           className={cn(
-            "absolute inset-x-0 bottom-0 px-1 pb-1 transition-transform duration-300",
-            isHidden ? "translate-y-full" : "translate-y-0",
+            "absolute inset-x-0 bottom-0 px-1 pb-1 will-change-transform",
+            isHidden ? "pointer-events-none" : null,
           )}
+          style={{
+            transform:
+              "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+            opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+            transition:
+              "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+          }}
         >
           <button
             className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-semibold text-card shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"

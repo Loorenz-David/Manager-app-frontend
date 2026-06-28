@@ -1,14 +1,26 @@
-import { useFormContext } from "react-hook-form";
+import { useState } from "react";
+import { useController, useFormContext } from "react-hook-form";
 
-import { FieldErrorPill, FieldLabelRow, TextInput } from "@beyo/ui";
+import {
+  FieldErrorPill,
+  FieldLabelRow,
+  NumericKeyboardBar,
+  TextInput,
+} from "@beyo/ui";
 
 export function ItemPositionField(): React.JSX.Element {
   const {
-    register,
+    control,
     formState: { errors },
   } = useFormContext();
   const error = (errors as { item?: Record<string, { message?: string }> }).item
     ?.item_position?.message;
+  const { field } = useController({
+    name: "item.item_position",
+    control,
+  });
+  const [isFocused, setIsFocused] = useState(false);
+  const displayValue = field.value != null ? String(field.value) : "";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -18,11 +30,18 @@ export function ItemPositionField(): React.JSX.Element {
       <TextInput
         data-testid="item-position-input"
         id="item-position"
-        inputMode="numeric"
-        pattern="[0-9]*"
+        type="text"
         placeholder="e.g. 3"
         invalid={Boolean(error)}
-        {...register("item.item_position", { valueAsNumber: true })}
+        value={displayValue}
+        onBlur={() => setIsFocused(false)}
+        onChange={(event) => field.onChange(event.target.value)}
+        onFocus={() => setIsFocused(true)}
+      />
+      <NumericKeyboardBar
+        hasFocus={isFocused}
+        value={displayValue}
+        onChange={(next) => field.onChange(next)}
       />
     </div>
   );

@@ -61,6 +61,7 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
     loop: false,
   });
   const slideRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const containerRef = useRef<HTMLDivElement>(null);
   const [activeScrollElement, setActiveScrollElement] =
     useState<HTMLElement | null>(null);
 
@@ -220,8 +221,10 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
       mode="relative"
       scrollElement={activeScrollElement}
       threshold={16}
+      containerRef={containerRef}
     >
       <div
+        ref={containerRef}
         className="relative bg-background"
         data-testid="task-note-unread-viewer"
         style={{ height: NOTES_PANEL_HEIGHT }}
@@ -304,9 +307,15 @@ function UnreadViewerFooter({
   return (
     <div
       className={cn(
-        "absolute inset-x-0 bottom-0 bg-linear-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-10 transition-transform duration-300",
-        isHidden ? "translate-y-full" : "translate-y-0",
+        "absolute inset-x-0 bottom-0 bg-linear-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-10 will-change-transform",
+        isHidden ? "pointer-events-none" : null,
       )}
+      style={{
+        transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transition:
+          "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+      }}
     >
       <div className="flex flex-col gap-3">
         {entries.length > 1 ? (

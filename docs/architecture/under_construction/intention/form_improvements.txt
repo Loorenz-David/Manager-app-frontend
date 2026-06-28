@@ -1,0 +1,67 @@
+
+INTENTION:
+
+At the task creation forms ( InternalFormContent, PreOrderFormContent, ReturnFormContent ) we will make some corrections.
+
+when selecting an item with major category of "seat" the field position is mandatory, so if on submiting is missing we should display a warning on the input and on the stage step header, like we do with other manadatory fields.
+the field for position currently is set to trigger a number keyboard on phones, but we will change this now so that it triggers the text keyboard. on iphones the keyboard doesn't render numbers on top of the keyboard, thus we will help the current iphone keyboard with our utitliy that allows us to stick a container to the top of the keyboard, thus placing a component ( we should make it primitive ) which displays number buttons which the user can tap to input numbers directly on the field. we will make it work with android and iphone, after i see it works i will restricted to only work for iphones.
+
+this forms are render on the slide page surface the application provides, at the moment they render on the manager application and they render on the  slide surface ( surface-registry ).
+the slide surace provides a header with a arrow back which closes the current surface, we will hide that header on the forms as this header is not need it, we alread provide with the footer with a close & back button which triggers that action, the slide surace provides an alternative for hiding this header cleanly.
+after that is done the staged form on the task creation pages will look to  stick to much to the top, for that we will provide a padding or a margin what ever is simpler and secure to implement to the major page container of pt-4 or mt-4 .
+
+the PreOrderFormContent and the ReturnFormContent have a customer staged step with customer fields inputs, the email and the phone are mandatory on this forms and this is inforced but we are missing the warnings to be placed on the fields and on the statged form step like we do with other warnings .
+
+The ReturnFormContent will not render the customer stage step when the return source is of store_return , that means that the warning and the blocker on that form on costumer email and phone only applies when the form has other return source except store_return.
+
+At the ReturnFormContent  i have the ItemIdentityField which makes a fetch call for a look ut of items on another application, i see the look up takes place and even returns, but the field and the form is not responding at all to the response of that request, the other two forms also use the ItemIdentityField and they work properly.
+last visual test this request was made: Request URL
+http://192.168.1.246:8000/api/v1/items/lookup?article_number=0000405
+Request Method
+GET
+Status Code
+200 OK
+with response: 
+{
+    "data": {
+        "items": [
+            {
+                "article_number": "0000405",
+                "sku": null,
+                "item_category_id": "itc_01KW4KD61PKFDB5VQQM7C4F6V1",
+                "quantity": 6,
+                "external_id": null,
+                "external_source": "purchase_api",
+                "images": [
+                    "https://api.beyovintage.se/uploads/beyo/items/564b246f-8036-481d-9dba-4e03851b8382/d738e5e291fc486098f1badf9ca05f06_CAP1331831423545783033.jpg"
+                ]
+            }
+        ]
+    },
+    "ok": true,
+    "warnings": []
+}
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+
+RELEVANT FILE
+
+
+InternalFormContent:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-creation/src/components/InternalFormContent.tsx
+
+PreOrderFormContent:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-creation/src/components/PreOrderFormContent.tsx
+
+ReturnFormContent:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-creation/src/components/ReturnFormContent.tsx
+
+primitives:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives
+
+surface-registry
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/app/surface-registry.ts
+
+ItemIdentityField
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/items/src/components/ItemIdentityField.tsx

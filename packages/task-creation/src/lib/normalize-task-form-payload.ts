@@ -25,13 +25,15 @@ function toOptionalString(
   return trimmed ? trimmed : undefined;
 }
 
-function buildCustomerFields(customer: ReturnFormValues["customer"]) {
-  const address = customer.address;
+function buildCustomerFields(
+  customer: Partial<ReturnFormValues["customer"]> | undefined,
+) {
+  const address = customer?.address;
 
   return {
-    customer_display_name: customer.display_name.trim(),
-    primary_phone_number: toOptionalString(customer.primary_phone_number),
-    primary_email: toOptionalString(customer.primary_email),
+    customer_display_name: (customer?.display_name ?? "").trim(),
+    primary_phone_number: toOptionalString(customer?.primary_phone_number),
+    primary_email: toOptionalString(customer?.primary_email),
     customer_address: {
       line1: toOptionalString(address?.street) ?? "",
       city: toOptionalString(address?.city),
@@ -142,6 +144,7 @@ export function normalizeReturnFormPayload(
   ids: BaseIds,
   taskType: "return" | "pre_order" = "return",
 ): Record<string, unknown> {
+  const isStoreReturn = values.return_source === "store_return";
   const issueFields = buildIssueFields(values.item_issues);
   const upholsteryFields = buildUpholsteryFields(values.item_upholstery);
   const itemFields = buildItemFields(
@@ -169,7 +172,7 @@ export function normalizeReturnFormPayload(
     scheduled_start_at: values.scheduled_start_at || undefined,
     scheduled_end_at: values.scheduled_end_at || undefined,
     ready_by_at: values.ready_by_at || undefined,
-    ...buildCustomerFields(values.customer),
+    ...(!isStoreReturn ? buildCustomerFields(values.customer) : {}),
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),
     ...(upholsteryFields ? { item_upholstery: upholsteryFields } : {}),

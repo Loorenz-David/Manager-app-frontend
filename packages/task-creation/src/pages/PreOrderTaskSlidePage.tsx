@@ -9,7 +9,7 @@ export function PreOrderTaskSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
 
   useEffect(() => {
-    header?.setTitle("New pre-order");
+    header?.setHeaderHidden(true);
   }, [header]);
 
   return (

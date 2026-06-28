@@ -150,39 +150,51 @@ get-task and list-tasks:
 TasksView:
 /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/tasks/components/TasksView.tsx
 
-
+✅
 ---
 
-at the /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections do we have any page that allows to render only the 
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsStepList.tsx with a submit button for saving the workins section selection changes ?
+INTENTION:
 
+We will create a page sheet that will allow the same functionality that the TaskWorkingSectionsSlidePage first staged step does, which is to use the  TaskWorkingSectionsStepList for rendering task step selections and task step states, and most improtantly allowing the selection of working sections or deselection of working section for a given step ( adding or removing a task step ).
+but in this page the TaskWorkingSectionsStepList will not render in a staged form, it is independent from the staged form.
+It still renders the absolute footer which hides on list scrolling using the scroll-visibility utility ( in relative mode ).
+the footer renders two buttons one with bg-card text-primary and label of Close & Back , the other button with bg-primary text-card and label save ( the save button is gray out if there is no changes on the selection or deselection of the working section boxes ), both buttons have text-md py-3.5 w-full .
+on top of that row is the quick action button which allows the user to use the WorkingSectionShortcutBar so far with the DEFAULT_WORKING_SECTION_SHORTCUTS like the  TaskWorkingSectionsFooter uses it on TaskWorkingSectionsSlidePage, but the user can pass a param to the page to hide that quick action row by default .
 
-in the current workers application on the TaskDetailSlidePage at the TaskStepActionsSheetPage we will render another button with the capability of opening the page ### through the slide page surface, contract 35 explains how apps can use package page sheets on their own surface.
-through that page the worker can assing other working section and submited to the task step assignment endpoint. that submit action should close the current slide page. 
+this page will be part of the task-working-sections feature pages and use the same form controll or flow as the TaskWorkingSectionsSlidePage uses, that way it is centralized. 
+this page will be used by the working application use contract 35 for aligning the package and page implementation to the way packages and page packages should be consume by applications 
 
-TaskWorkingSectionsStepList
+the working application will trigger this page on the surface slide page, this package page will not use the slide page provided header, nor it will render it's own as we already have the footer with the close button that we need .
 
+on the working application, this page will be trigger at the TaskStepActionsSheetPage through a new button that we place above the urrent pin notification button ( line 26 ), that button will have the lucid icon "RotateCcw" with the label "Re-asign section" . 
 
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
 
+TaskWorkingSectionsSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/pages/TaskWorkingSectionsSlidePage.tsx
 
-
-
-manager TaskDetailSlidePage:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/tasks/TaskDetailSlidePage.tsx
-
-worker TaskDetailSlidePage:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskDetailSlidePage.tsx
-
-TaskStepActionsSheetPage
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskStepActionsSheetPage.tsx
-
-TaskWorkingSectionsField:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsField.tsx
-
-
-TaskWorkingSectionsStepList
+TaskWorkingSectionsStepList:
 /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/components/TaskWorkingSectionsStepList.tsx
 
+scroll-visibility:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/scroll-visibility
+
+WorkingSectionShortcutBar:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/working-section-shortcut-bar/WorkingSectionShortcutBar.tsx
+
+task-working-sections:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-working-sections/src/pages
 
 contract 35:
 /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+surface registry:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/app/surface-registry.ts
+
+TaskStepActionsSheetPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/workers-app/ManagerBeyo-app-workers/src/pages/task_steps/TaskStepActionsSheetPage.tsx
+✅
+----

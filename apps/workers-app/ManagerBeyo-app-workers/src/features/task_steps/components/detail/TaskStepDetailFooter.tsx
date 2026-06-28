@@ -56,10 +56,9 @@ export function TaskStepDetailFooter({
   return (
     <div className="border-t border-border bg-background">
       <div className="flex gap-3 px-4 pb-3 pt-3">
-
         <button
           type="button"
-          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-card shadow-sm text-primary border border-between-border px-4 py-3.5 text-sm font-semibold  transition"
+          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-card shadow-sm text-primary border border-between-border px-4 py-3.5 text-md font-semibold  transition"
           data-testid="task-detail-footer-close-button"
           onClick={onClose}
         >
@@ -73,7 +72,7 @@ export function TaskStepDetailFooter({
 
           <button
             type="button"
-            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl  bg-primary px-4 py-3.5 text-sm font-semibold text-card transition"
+            className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl  bg-primary px-4 py-3.5 text-md font-semibold text-card transition"
             data-testid="task-detail-footer-help-button"
             onClick={onOpenCases}
           >

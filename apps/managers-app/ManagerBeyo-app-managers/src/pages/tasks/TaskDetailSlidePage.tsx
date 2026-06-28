@@ -22,7 +22,7 @@ import {
   TaskWorkingSectionsField,
   useTaskWorkingSectionsCountsFlow,
 } from "@beyo/task-working-sections";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
 import { ItemUpholsteryField } from "@/features/items";
@@ -71,11 +71,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const controller = useTaskDetailContext();
   const surface = useSurface();
   const queryClient = useQueryClient();
-  const { scrollRef, isHidden } = useScrollVisibility({
-    mode: "relative",
-    hideThreshold: 40,
-    showThreshold: 24,
-  });
+  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -230,7 +226,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background">
+    <div ref={hideProgressContainerRef} className="flex h-full min-h-0 flex-col bg-background">
       <PullToRefresh
         className="min-h-0 flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"

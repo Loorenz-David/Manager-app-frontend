@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 
 import { transitions } from "@beyo/lib";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { useCasesViewContext } from "../providers/CasesViewProvider";
 import { CaseCard } from "./CaseCard";
@@ -26,17 +26,27 @@ const bodyVariants = {
 
 export function CasesView(): React.JSX.Element {
   const controller = useCasesViewContext();
-  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
-    mode: "relative",
-  });
+  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   return (
-    <div className="relative flex-1 min-h-0 bg-background" data-testid="cases-page">
-      <div className="absolute inset-x-0 top-0 z-10">
+    <div
+      ref={hideProgressContainerRef}
+      className="relative flex-1 min-h-0 bg-background"
+      data-testid="cases-page"
+    >
+      {/* Pattern B — whole header slides up by date section height */}
+      <div
+        className="absolute inset-x-0 top-0 z-10"
+        style={{
+          transform:
+            "translateY(calc(-1 * var(--date-section-height, 40px) * var(--scroll-hide-progress, 0)))",
+          transition: "transform var(--scroll-snap-duration, 0ms) ease-out",
+          pointerEvents: isHidden ? "none" : undefined,
+        }}
+      >
         <CasesHeader
           activeFilter={controller.activeFilter}
           activeFilterCount={controller.activeFilterCount}
-          isCompact={isCompact}
           isLoading={controller.isLoading}
           pillCounts={controller.pillCounts}
           q={controller.searchQuery}

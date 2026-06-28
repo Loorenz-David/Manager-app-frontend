@@ -4,6 +4,7 @@ export {
   useScrollVisibilityContext,
 } from "./ScrollVisibilityContext";
 export { useScrollVisibility } from "./use-scroll-visibility";
+export { useScrollHide } from "./use-scroll-hide";
 export {
   ScrollElementRegistrationContext,
   useScrollElementRegistration,

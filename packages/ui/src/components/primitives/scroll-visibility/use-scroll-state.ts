@@ -17,6 +17,9 @@ type ScrollStateOptions = {
 
 type ScrollStateResult = {
   isHidden: boolean;
+  progressRef: React.MutableRefObject<number>;
+  getSnapDirection: () => 0 | 1;
+  snap: (snapTo: 0 | 1, currentScrollValue: number) => void;
   suspend: (durationMs?: number) => void;
   onScroll: (value: number) => void;
   resetState: (value: number) => void;
@@ -43,6 +46,8 @@ export function useScrollState({
   const lastScrollValueRef = useRef(0);
   const directionAnchorRef = useRef(0);
   const movingForwardRef = useRef(false); // "forward" = increasing value (down or up depending on inverted)
+  const progressRef = useRef(0);
+  const progressAtAnchorRef = useRef(0);
 
   const applyHidden = useCallback((hidden: boolean) => {
     if (hiddenTargetRef.current === hidden) {
@@ -102,29 +107,39 @@ export function useScrollState({
       // Relative mode: delta from the last direction-change anchor.
       if (delta === 0) return;
 
+      const effectiveHideThreshold = Math.max(1, hideThreshold ?? threshold);
+      const effectiveShowThreshold = Math.max(1, showThreshold ?? threshold);
       const movingForward = delta > 0;
       if (movingForward !== movingForwardRef.current) {
         // Direction reversed — reset the anchor to the current position.
         movingForwardRef.current = movingForward;
         directionAnchorRef.current = value;
+        progressAtAnchorRef.current = progressRef.current;
       }
 
       const distanceFromAnchor = value - directionAnchorRef.current;
-      const effectiveHideThreshold = hideThreshold ?? threshold;
-      const effectiveShowThreshold = showThreshold ?? threshold;
+      const thresholdForDirection = movingForward
+        ? effectiveHideThreshold
+        : effectiveShowThreshold;
+      const newProgress = Math.min(
+        1,
+        Math.max(
+          0,
+          progressAtAnchorRef.current +
+            distanceFromAnchor / thresholdForDirection,
+        ),
+      );
 
-      // distanceFromAnchor > 0  → moved forward (down / up-from-bottom) since anchor
-      // distanceFromAnchor < 0  → moved backward (up / down-from-bottom) since anchor
-      if (
-        !hiddenTargetRef.current &&
-        distanceFromAnchor > effectiveHideThreshold
-      ) {
+      progressRef.current = newProgress;
+
+      if (!hiddenTargetRef.current && newProgress >= 1) {
         applyHidden(true);
-      } else if (
-        hiddenTargetRef.current &&
-        distanceFromAnchor < -effectiveShowThreshold
-      ) {
+        directionAnchorRef.current = value;
+        progressAtAnchorRef.current = 1;
+      } else if (hiddenTargetRef.current && newProgress <= 0) {
         applyHidden(false);
+        directionAnchorRef.current = value;
+        progressAtAnchorRef.current = 0;
       }
     },
     [
@@ -159,10 +174,28 @@ export function useScrollState({
         lastScrollValueRef.current = value;
         directionAnchorRef.current = value;
         movingForwardRef.current = false;
+        progressRef.current = 0;
+        progressAtAnchorRef.current = 0;
         applyHidden(false);
       }
     },
     [applyHidden, topOffset, hysteresis, mode],
+  );
+
+  const getSnapDirection = useCallback((): 0 | 1 => {
+    return movingForwardRef.current ? 1 : 0;
+  }, []);
+
+  const snap = useCallback(
+    (snapTo: 0 | 1, currentScrollValue: number) => {
+      progressRef.current = snapTo;
+      progressAtAnchorRef.current = snapTo;
+      lastScrollValueRef.current = currentScrollValue;
+      directionAnchorRef.current = currentScrollValue;
+      movingForwardRef.current = false;
+      applyHidden(snapTo === 1);
+    },
+    [applyHidden],
   );
 
   const initialize = useCallback(
@@ -193,10 +226,21 @@ export function useScrollState({
         lastScrollValueRef.current = value;
         directionAnchorRef.current = value;
         movingForwardRef.current = false;
+        progressRef.current = 0;
+        progressAtAnchorRef.current = 0;
       }
     },
-    [threshold, topOffset, mode],
+    [threshold, topOffset, mode, hysteresis, hideThreshold, showThreshold],
   );
 
-  return { isHidden, suspend, onScroll, resetState, initialize };
+  return {
+    isHidden,
+    progressRef,
+    getSnapDirection,
+    snap,
+    suspend,
+    onScroll,
+    resetState,
+    initialize,
+  };
 }

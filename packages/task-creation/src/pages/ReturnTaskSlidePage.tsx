@@ -9,7 +9,7 @@ export function ReturnTaskSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
 
   useEffect(() => {
-    header?.setTitle("New return");
+    header?.setHeaderHidden(true);
   }, [header]);
 
   return (

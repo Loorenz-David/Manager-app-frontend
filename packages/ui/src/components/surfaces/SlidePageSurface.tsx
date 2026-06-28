@@ -76,7 +76,7 @@ export function SlidePageSurface({
           </header>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto pb-[calc(var(--safe-bottom)_+_var(--keyboard-inset))] [scrollbar-gutter:stable]">
+        <div className="flex-1 overflow-hidden">
           {children}
         </div>
       </m.div>

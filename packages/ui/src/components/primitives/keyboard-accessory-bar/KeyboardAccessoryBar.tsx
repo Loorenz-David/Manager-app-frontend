@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { cn } from "@beyo/lib";
 import { useKeyboardInset } from "../../../providers/KeyboardInsetProvider";
 import { preventFocusSteal } from "../floating-keyboard-bar";
+import { useKeyboardAccessorySuppressed } from "./keyboardAccessoryPriority";
 
 type EligibleKeyboardField = HTMLInputElement | HTMLTextAreaElement;
 
@@ -98,6 +99,7 @@ export function KeyboardAccessoryBar({
   className,
 }: KeyboardAccessoryBarProps): React.JSX.Element {
   const { isKeyboardOpen } = useKeyboardInset();
+  const isSuppressed = useKeyboardAccessorySuppressed();
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeState, setActiveState] = useState<ActiveFieldState>({
     field: null,
@@ -160,7 +162,7 @@ export function KeyboardAccessoryBar({
 
   const activeField = activeState.field;
   const shouldShowBar = Boolean(
-    isKeyboardOpen && activeField && activeField.isConnected,
+    isKeyboardOpen && activeField && activeField.isConnected && !isSuppressed,
   );
 
   const handleClear = useCallback(() => {

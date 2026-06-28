@@ -1,5 +1,7 @@
 export const TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID =
   "task-working-sections-slide";
+export const TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID =
+  "task-working-sections-reassign-slide";
 export const TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID =
   "task-working-sections-discard-changes";
 export const QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID = "quick-task-assign-slide";
@@ -40,6 +42,15 @@ export type TaskWorkingSectionsSurfaceProps = {
   recoveredPendingRemoveIds?: string[];
   recoveredPendingReassignments?: RecoveredPendingReassignment[];
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
+};
+
+export type TaskWorkingSectionsReassignSlideSurfaceProps = {
+  taskId: string;
+  hideShortcuts?: boolean;
+  surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
+  recoveredPendingAdds?: RecoveredPendingAdd[];
+  recoveredPendingRemoveIds?: string[];
+  recoveredPendingReassignments?: RecoveredPendingReassignment[];
 };
 
 export type QuickTaskAssignSurfaceOpeners = {

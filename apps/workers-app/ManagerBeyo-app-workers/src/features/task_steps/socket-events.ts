@@ -1,6 +1,9 @@
 import type { WorkingSectionId } from "@beyo/lib";
 import type { SocketEventHandlers } from "@beyo/realtime";
-import { itemUpholsteryKeys as tasksItemUpholsteryKeys } from "@beyo/tasks";
+import {
+  itemUpholsteryKeys as tasksItemUpholsteryKeys,
+  taskStepKeys as tasksPackageStepKeys,
+} from "@beyo/tasks";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import { taskStepKeys } from "./api/task-step-keys";
 import {
@@ -24,6 +27,10 @@ export const taskStepSocketEvents: SocketEventHandlers = {
   "task:step-state-changed": (payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.sectionLists(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: tasksPackageStepKeys.byTaskAll(),
       refetchType: "active",
     });
     queryClient.invalidateQueries({
@@ -123,6 +130,10 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       });
     }
     queryClient.invalidateQueries({
+      queryKey: tasksPackageStepKeys.byTaskAll(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
       queryKey: workerWorkingSectionKeys.mine(),
       refetchType: "active",
     });
@@ -139,6 +150,10 @@ export const taskStepSocketEvents: SocketEventHandlers = {
         refetchType: "active",
       });
     }
+    queryClient.invalidateQueries({
+      queryKey: tasksPackageStepKeys.byTaskAll(),
+      refetchType: "active",
+    });
     queryClient.invalidateQueries({
       queryKey: workerWorkingSectionKeys.mine(),
       refetchType: "active",

@@ -1,21 +1,30 @@
 import { TaskListCard } from "@beyo/tasks";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
 import { TasksHeader } from "./TasksHeader";
 
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
-  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
-    mode: "relative",
-  });
+  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   return (
-    <div className="relative flex-1 min-h-0" data-testid="tasks-view">
-      <div className="absolute inset-x-0 top-0 z-10">
+    <div
+      ref={hideProgressContainerRef}
+      className="relative flex-1 min-h-0"
+      data-testid="tasks-view"
+    >
+      <div
+        className="absolute inset-x-0 top-0 z-10"
+        style={{
+          transform:
+            "translateY(calc(-1 * var(--type-picker-height, 56px) * var(--scroll-hide-progress, 0)))",
+          transition: "transform var(--scroll-snap-duration, 0ms) ease-out",
+          pointerEvents: isHidden ? "none" : undefined,
+        }}
+      >
         <TasksHeader
           activeFilterCount={controller.activeFilterCount}
-          isCompact={isCompact}
           isLoading={controller.isLoading}
           q={controller.q}
           taskStates={controller.taskStates}

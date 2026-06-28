@@ -1,4 +1,4 @@
-import { useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -112,6 +112,7 @@ function UpholsteryField({
 
 export function PreOrderFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
+  const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
 
   usePreloadSurface(preloadCalendarRangePickerSurface);
@@ -136,6 +137,8 @@ export function PreOrderFormContent(): React.JSX.Element {
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       item: {
         designer: "",
@@ -177,6 +180,7 @@ export function PreOrderFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.major_category",
   });
+  const { errors } = form.formState;
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
@@ -258,9 +262,11 @@ export function PreOrderFormContent(): React.JSX.Element {
 
         if (!allValid) {
           const { errors } = form.formState;
+          let firstErrorStep: string | null = null;
 
           if (errors.item ?? errors.item_upholstery) {
             setStatus("task", "error");
+            firstErrorStep ??= "task";
           }
           if (
             errors.customer ??
@@ -269,9 +275,11 @@ export function PreOrderFormContent(): React.JSX.Element {
             errors.scheduled_end_at
           ) {
             setStatus("customer", "error");
+            firstErrorStep ??= "customer";
           }
           if (errors.working_section_assignments) {
             setStatus("assignment", "error");
+            firstErrorStep ??= "assignment";
           }
           if (
             errors.item_issues ??
@@ -279,6 +287,10 @@ export function PreOrderFormContent(): React.JSX.Element {
             errors.ready_by_at
           ) {
             setStatus("details", "error");
+          }
+
+          if (firstErrorStep) {
+            navigateToRef.current(firstErrorStep);
           }
         }
 
@@ -342,10 +354,50 @@ export function PreOrderFormContent(): React.JSX.Element {
       })(),
   });
 
+  navigateToRef.current = staged.navigateTo;
+
+  useEffect(() => {
+    const stepErrorMap = {
+      task: Boolean(errors.item ?? errors.item_upholstery),
+      customer: Boolean(
+        errors.customer ??
+          errors.fulfillment_method ??
+          errors.scheduled_start_at ??
+          errors.scheduled_end_at,
+      ),
+      assignment: Boolean(errors.working_section_assignments),
+      details: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+    } as const;
+
+    for (const step of staged.steps) {
+      const hasError = stepErrorMap[step.id as keyof typeof stepErrorMap];
+      const currentStatus = staged.stepStatusMap[step.id];
+
+      if (hasError) {
+        if (currentStatus !== "error") {
+          staged.setStepStatus(step.id, "error");
+        }
+        continue;
+      }
+
+      if (currentStatus !== "error") {
+        continue;
+      }
+
+      const stepIndex = staged.steps.findIndex(
+        (candidateStep) => candidateStep.id === step.id,
+      );
+      staged.setStepStatus(
+        step.id,
+        stepIndex < staged.activeStepIndex ? "completed" : "pending",
+      );
+    }
+  }, [errors, staged]);
+
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col"
+        className="flex h-full flex-col pt-4"
         data-testid="pre-order-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}

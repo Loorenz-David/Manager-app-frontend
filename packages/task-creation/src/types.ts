@@ -2,29 +2,60 @@ import { z } from "zod";
 
 import { CustomerFieldsSchema } from "@beyo/customers";
 import { DateOnlySchema } from "@beyo/lib";
+import type { ItemCategoryPickerOption } from "@beyo/item-categories";
 import { ItemIssuesFieldsSchema } from "@beyo/item-issues";
-import { ItemDetailsFieldsSchema } from "@beyo/items";
+import {
+  ItemDetailsFieldsSchema,
+  type ItemLookupResult,
+} from "@beyo/items";
 import type { TaskNoteComposerValue } from "@beyo/task-notes";
+import {
+  TASK_FULFILLMENT_METHOD,
+  TASK_RETURN_SOURCE,
+} from "@beyo/tasks";
 import {
   ItemUpholsteryFieldsSchema,
   type UpholsteryPickerOption,
 } from "@beyo/upholstery";
 import {
-  WorkingSectionPickerFieldsSchema,
   WorkingSectionAssignmentSchema,
+  WorkingSectionPickerFieldsSchema,
   type WorkingSectionAssignment,
   type WorkingSectionMember,
   type WorkingSectionOption,
   type WorkingSectionPickerOption,
 } from "@beyo/working-sections";
-import {
-  TASK_FULFILLMENT_METHOD,
-  TASK_RETURN_SOURCE,
-} from "@beyo/tasks";
-import type {
-  ItemCategoryPickerOption,
-} from "@beyo/item-categories";
-import type { ItemLookupResult } from "@beyo/items";
+
+function addSeatPositionIssue(
+  item: { major_category?: string; item_position?: number | undefined },
+  ctx: z.RefinementCtx,
+): void {
+  if (item.major_category === "seat" && item.item_position == null) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Position is required for seat items.",
+      path: ["item", "item_position"],
+    });
+  }
+}
+
+function addItemIdentityIssue(
+  item: { article_number?: string; sku?: string },
+  ctx: z.RefinementCtx,
+): void {
+  if (!item.article_number?.trim() && !item.sku?.trim()) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Enter an article number or SKU.",
+      path: ["item", "article_number"],
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Enter an article number or SKU.",
+      path: ["item", "sku"],
+    });
+  }
+}
 
 export const TASK_CREATION_FORM_TYPE = [
   "return",
@@ -33,24 +64,99 @@ export const TASK_CREATION_FORM_TYPE = [
 ] as const;
 export type TaskCreationFormType = (typeof TASK_CREATION_FORM_TYPE)[number];
 
-export const ReturnFormSchema = z.object({
-  item: ItemDetailsFieldsSchema,
-  item_upholstery: ItemUpholsteryFieldsSchema,
-  item_issues: ItemIssuesFieldsSchema.shape.item_issues,
-  customer: CustomerFieldsSchema,
-  return_source: z.enum(TASK_RETURN_SOURCE).optional(),
-  fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
-  scheduled_start_at: DateOnlySchema.nullable().optional(),
-  scheduled_end_at: DateOnlySchema.nullable().optional(),
-  working_section_assignments:
-    WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
-  ready_by_at: DateOnlySchema.nullable().optional(),
-  note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
-});
+export const ReturnFormSchema = z
+  .object({
+    item: ItemDetailsFieldsSchema,
+    item_upholstery: ItemUpholsteryFieldsSchema,
+    item_issues: ItemIssuesFieldsSchema.shape.item_issues,
+    customer: CustomerFieldsSchema.partial(),
+    return_source: z.enum(TASK_RETURN_SOURCE).optional(),
+    fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
+    scheduled_start_at: DateOnlySchema.nullable().optional(),
+    scheduled_end_at: DateOnlySchema.nullable().optional(),
+    working_section_assignments:
+      WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
+    ready_by_at: DateOnlySchema.nullable().optional(),
+    note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    addItemIdentityIssue(data.item, ctx);
+    addSeatPositionIssue(data.item, ctx);
+
+    if (data.return_source === "store_return") {
+      return;
+    }
+
+    if (!data.customer.display_name?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Name is required.",
+        path: ["customer", "display_name"],
+      });
+    }
+
+    if (!data.customer.customer_type) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a customer type.",
+        path: ["customer", "customer_type"],
+      });
+    }
+
+    if (!data.customer.primary_email?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Email is required.",
+        path: ["customer", "primary_email"],
+      });
+    }
+
+    if (!data.customer.primary_phone_number?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number is required.",
+        path: ["customer", "primary_phone_number"],
+      });
+    }
+  });
 export type ReturnFormValues = z.input<typeof ReturnFormSchema>;
 
-export const PreOrderFormSchema = ReturnFormSchema;
-export type PreOrderFormValues = ReturnFormValues;
+export const PreOrderFormSchema = z
+  .object({
+    item: ItemDetailsFieldsSchema,
+    item_upholstery: ItemUpholsteryFieldsSchema,
+    item_issues: ItemIssuesFieldsSchema.shape.item_issues,
+    customer: CustomerFieldsSchema,
+    return_source: z.enum(TASK_RETURN_SOURCE).optional(),
+    fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
+    scheduled_start_at: DateOnlySchema.nullable().optional(),
+    scheduled_end_at: DateOnlySchema.nullable().optional(),
+    working_section_assignments:
+      WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
+    ready_by_at: DateOnlySchema.nullable().optional(),
+    note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
+  })
+  .superRefine((data, ctx) => {
+    addItemIdentityIssue(data.item, ctx);
+    addSeatPositionIssue(data.item, ctx);
+
+    if (!data.customer.primary_email?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Email is required.",
+        path: ["customer", "primary_email"],
+      });
+    }
+
+    if (!data.customer.primary_phone_number?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number is required.",
+        path: ["customer", "primary_phone_number"],
+      });
+    }
+  });
+export type PreOrderFormValues = z.input<typeof PreOrderFormSchema>;
 
 export const WorkerItemIssueSelectionDraftSchema = z
   .record(z.string(), z.number().int().min(0).max(3))
@@ -70,18 +176,7 @@ export const InternalFormSchema = z
     note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
   })
   .superRefine((data, ctx) => {
-    if (!data.item.article_number?.trim() && !data.item.sku?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter an article number or SKU.",
-        path: ["item", "article_number"],
-      });
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter an article number or SKU.",
-        path: ["item", "sku"],
-      });
-    }
+    addItemIdentityIssue(data.item, ctx);
     if (!data.item.major_category) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -95,6 +190,8 @@ export const InternalFormSchema = z
         path: ["item", "item_category_id"],
       });
     }
+
+    addSeatPositionIssue(data.item, ctx);
   });
 export type InternalFormValues = z.input<typeof InternalFormSchema>;
 

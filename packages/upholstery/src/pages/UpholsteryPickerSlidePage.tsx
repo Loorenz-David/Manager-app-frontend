@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import { PullToRefresh, useScrollHide } from "@beyo/ui";
 import { transitions } from "@beyo/lib";
 
 import { UpholsteryCard } from "../components/UpholsteryCard";
@@ -35,9 +35,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
   const { currentClientId, onSelect } =
     useSurfaceProps<UpholsteryPickerSlidePageProps>();
   const header = useSurfaceHeader();
-  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
-    mode: "relative",
-  });
+  const { scrollRef, hideProgressContainerRef } = useScrollHide();
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const controller = useUpholsteryPickerController(debouncedQuery);
@@ -64,13 +62,13 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
   return (
     <div
+      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col"
       data-testid="upholstery-picker-slide-page"
     >
       <div className="absolute inset-x-0 top-0 z-10">
         <UpholsteryPickerHeader
           activeFilter={controller.activeFilter}
-          isCompact={isCompact}
           isFilterDisabled={isSearchActive}
           onBackPress={header?.requestClose ?? (() => {})}
           q={searchQuery}

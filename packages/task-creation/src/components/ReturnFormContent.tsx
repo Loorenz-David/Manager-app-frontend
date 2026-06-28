@@ -1,4 +1,4 @@
-import { useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -9,7 +9,12 @@ import {
   CustomerPhoneField,
   CustomerTypeField,
 } from "@beyo/customers";
-import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
+import {
+  EntityImagesProvider,
+  imageKeys,
+  ImagePreviewGrid,
+  useCreateImagesFromUrl,
+} from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
 import { ContentCard, StagedForm, StagedFormStep, usePrefetchOnCondition } from "@beyo/ui";
@@ -53,9 +58,10 @@ import {
 } from "react-hook-form";
 
 import {
+  buildCreateImagesFromUrlBatch,
   createLookupResultSignature,
   findCachedItemCategoryOption,
-  selectInternalLookupResult,
+  selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
@@ -108,6 +114,7 @@ function UpholsteryField({
 
 export function ReturnFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
+  const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
 
   usePreloadSurface(preloadCalendarRangePickerSurface);
@@ -127,10 +134,13 @@ export function ReturnFormContent(): React.JSX.Element {
     currentUserClientId,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
+  const createImagesFromUrl = useCreateImagesFromUrl();
   const surface = useSurface();
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<ReturnFormValues>({
     resolver: zodResolver(ReturnFormSchema),
+    mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       item: {
         designer: "",
@@ -172,6 +182,7 @@ export function ReturnFormContent(): React.JSX.Element {
     control: form.control,
     name: "return_source",
   });
+  const { errors } = form.formState;
   const majorCategory = useWatch({
     control: form.control,
     name: "item.major_category",
@@ -181,7 +192,7 @@ export function ReturnFormContent(): React.JSX.Element {
     name: "item.quantity",
   });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
-    const selectedItem = selectInternalLookupResult(items);
+    const selectedItem = selectPurchaseApiLookupResult(items);
 
     if (!selectedItem) {
       return false;
@@ -214,6 +225,22 @@ export function ReturnFormContent(): React.JSX.Element {
       shouldDirty: true,
     });
 
+    if (selectedItem.images.length > 0) {
+      void createImagesFromUrl
+        .mutateAsync(
+          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
+        )
+        .then(() =>
+          queryClient.invalidateQueries({
+            queryKey: imageKeys.list({
+              entity_type: "item",
+              entity_client_id: itemClientId,
+            }),
+          }),
+        )
+        .catch(() => {});
+    }
+
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
@@ -223,9 +250,12 @@ export function ReturnFormContent(): React.JSX.Element {
     majorCategory === "seat" &&
     returnSource !== "after_purchase" &&
     returnSource !== "store_return";
+  const shouldShowCustomerStep = returnSource !== "store_return";
   const steps = [
     { id: "task", title: "Task" },
-    { id: "customer", title: "Customer" },
+    ...(shouldShowCustomerStep
+      ? ([{ id: "customer", title: "Customer" }] as const)
+      : []),
     ...(hasAssignmentStep
       ? ([{ id: "assignment", title: "Assignment" }] as const)
       : []),
@@ -262,9 +292,11 @@ export function ReturnFormContent(): React.JSX.Element {
 
         if (!allValid) {
           const { errors } = form.formState;
+          let firstErrorStep: string | null = null;
 
           if (errors.return_source ?? errors.item ?? errors.item_upholstery) {
             setStatus("task", "error");
+            firstErrorStep ??= "task";
           }
           if (
             errors.customer ??
@@ -273,9 +305,13 @@ export function ReturnFormContent(): React.JSX.Element {
             errors.scheduled_end_at
           ) {
             setStatus("customer", "error");
+            if (shouldShowCustomerStep) {
+              firstErrorStep ??= "customer";
+            }
           }
           if (hasAssignmentStep && errors.working_section_assignments) {
             setStatus("assignment", "error");
+            firstErrorStep ??= "assignment";
           }
           if (
             errors.item_issues ??
@@ -283,6 +319,10 @@ export function ReturnFormContent(): React.JSX.Element {
             errors.ready_by_at
           ) {
             setStatus("details", "error");
+          }
+
+          if (firstErrorStep) {
+            navigateToRef.current(firstErrorStep);
           }
         }
 
@@ -346,10 +386,51 @@ export function ReturnFormContent(): React.JSX.Element {
       })(),
   });
 
+  navigateToRef.current = staged.navigateTo;
+
+  useEffect(() => {
+    const stepErrorMap = {
+      task: Boolean(errors.return_source ?? errors.item ?? errors.item_upholstery),
+      customer: Boolean(
+        shouldShowCustomerStep &&
+          (errors.customer ??
+            errors.fulfillment_method ??
+            errors.scheduled_start_at ??
+            errors.scheduled_end_at),
+      ),
+      assignment: Boolean(hasAssignmentStep && errors.working_section_assignments),
+      details: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+    } as const;
+
+    for (const step of staged.steps) {
+      const hasError = stepErrorMap[step.id as keyof typeof stepErrorMap];
+      const currentStatus = staged.stepStatusMap[step.id];
+
+      if (hasError) {
+        if (currentStatus !== "error") {
+          staged.setStepStatus(step.id, "error");
+        }
+        continue;
+      }
+
+      if (currentStatus !== "error") {
+        continue;
+      }
+
+      const stepIndex = staged.steps.findIndex(
+        (candidateStep) => candidateStep.id === step.id,
+      );
+      staged.setStepStatus(
+        step.id,
+        stepIndex < staged.activeStepIndex ? "completed" : "pending",
+      );
+    }
+  }, [errors, hasAssignmentStep, shouldShowCustomerStep, staged]);
+
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col"
+        className="flex h-full flex-col pt-4"
         data-testid="return-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -402,27 +483,29 @@ export function ReturnFormContent(): React.JSX.Element {
             </div>
           </StagedFormStep>
 
-          <StagedFormStep id="customer" className="px-0">
-            <div className="flex flex-col gap-4">
-              <ContentCard>
-                <CustomerDisplayNameField />
-                <CustomerTypeField />
-                <CustomerEmailField />
-                <CustomerPhoneField />
-              </ContentCard>
-              <ContentCard>
-                <CustomerAddressFieldGroup />
-              </ContentCard>
-              <ContentCard>
-                <TaskFulfillmentMethodField />
-                <TaskDeliveryDateField
-                  onOpenCalendarRangePicker={(props) =>
-                    surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
-                  }
-                />
-              </ContentCard>
-            </div>
-          </StagedFormStep>
+          {shouldShowCustomerStep ? (
+            <StagedFormStep id="customer" className="px-0">
+              <div className="flex flex-col gap-4">
+                <ContentCard>
+                  <CustomerDisplayNameField />
+                  <CustomerTypeField />
+                  <CustomerEmailField />
+                  <CustomerPhoneField />
+                </ContentCard>
+                <ContentCard>
+                  <CustomerAddressFieldGroup />
+                </ContentCard>
+                <ContentCard>
+                  <TaskFulfillmentMethodField />
+                  <TaskDeliveryDateField
+                    onOpenCalendarRangePicker={(props) =>
+                      surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
+                    }
+                  />
+                </ContentCard>
+              </div>
+            </StagedFormStep>
+          ) : null}
 
           {hasAssignmentStep ? (
             <StagedFormStep id="assignment" className="px-0">

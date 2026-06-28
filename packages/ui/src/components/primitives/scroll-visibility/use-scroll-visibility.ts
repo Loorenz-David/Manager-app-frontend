@@ -4,10 +4,12 @@ import type {
   ScrollVisibilityContextValue,
   ScrollVisibilityOptions,
 } from "./scroll-visibility.types";
+import { useScrollProgressCssVar } from "./use-scroll-progress-css-var";
 import { useScrollState } from "./use-scroll-state";
 
 type UseScrollVisibilityResult = ScrollVisibilityContextValue & {
   scrollRef: React.RefObject<HTMLDivElement | null>;
+  hideProgressContainerRef: React.RefObject<HTMLDivElement | null>;
 };
 
 function shouldDebugScroll(): boolean {
@@ -32,7 +34,17 @@ export function useScrollVisibility({
   mode = "absolute",
 }: ScrollVisibilityOptions = {}): UseScrollVisibilityResult {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { isHidden, suspend, onScroll, resetState, initialize } =
+  const hideProgressContainerRef = useRef<HTMLDivElement>(null);
+  const {
+    isHidden,
+    progressRef,
+    getSnapDirection,
+    snap,
+    suspend,
+    onScroll,
+    resetState,
+    initialize,
+  } =
     useScrollState({
       threshold,
       topOffset,
@@ -40,6 +52,24 @@ export function useScrollVisibility({
       showThreshold,
       hysteresis,
       mode,
+    });
+
+  const onSnapComplete = useCallback(
+    (snapTo: 0 | 1) => {
+      const element = scrollRef.current;
+      const currentValue = element ? getScrollValue(element, inverted) : 0;
+      snap(snapTo, currentValue);
+    },
+    [inverted, snap],
+  );
+
+  const { onProgress, onTouchStart, onTouchEnd, onTouchCancel } =
+    useScrollProgressCssVar({
+      containerRef: hideProgressContainerRef,
+      progressRef,
+      getSnapDirection,
+      onSnapComplete,
+      suspend,
     });
 
   useEffect(() => {
@@ -66,14 +96,46 @@ export function useScrollVisibility({
         });
       }
       onScroll(value);
+      if (mode === "relative") {
+        onProgress(progressRef.current);
+      }
     };
 
     element.addEventListener("scroll", handler, { passive: true });
 
+    if (mode === "relative") {
+      element.addEventListener("touchstart", onTouchStart, { passive: true });
+      element.addEventListener("touchend", onTouchEnd, { passive: true });
+      element.addEventListener("touchcancel", onTouchCancel, {
+        passive: true,
+      });
+      document.addEventListener("touchend", onTouchEnd, { passive: true });
+      document.addEventListener("touchcancel", onTouchCancel, {
+        passive: true,
+      });
+    }
+
     return () => {
       element.removeEventListener("scroll", handler);
+      if (mode === "relative") {
+        element.removeEventListener("touchstart", onTouchStart);
+        element.removeEventListener("touchend", onTouchEnd);
+        element.removeEventListener("touchcancel", onTouchCancel);
+        document.removeEventListener("touchend", onTouchEnd);
+        document.removeEventListener("touchcancel", onTouchCancel);
+      }
     };
-  }, [initialize, inverted, onScroll]);
+  }, [
+    initialize,
+    inverted,
+    mode,
+    onProgress,
+    onScroll,
+    onTouchCancel,
+    onTouchEnd,
+    onTouchStart,
+    progressRef,
+  ]);
 
   const reset = useCallback(() => {
     const element = scrollRef.current;
@@ -85,5 +147,5 @@ export function useScrollVisibility({
     resetState(element ? getScrollValue(element, inverted) : 0);
   }, [inverted, resetState]);
 
-  return { scrollRef, isHidden, reset, suspend };
+  return { scrollRef, hideProgressContainerRef, isHidden, reset, suspend };
 }

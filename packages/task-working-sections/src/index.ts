@@ -1,5 +1,6 @@
 export {
   QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
+  TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "./surface-ids";
@@ -9,6 +10,7 @@ export type {
   RecoveredPendingAdd,
   RecoveredPendingReassignment,
   TaskWorkingSectionsDiscardChangesSurfaceProps,
+  TaskWorkingSectionsReassignSlideSurfaceProps,
   TaskWorkingSectionsSurfaceOpeners,
   TaskWorkingSectionsSurfaceProps,
 } from "./surface-ids";
@@ -44,6 +46,11 @@ export { useQuickTaskListQuery } from "./api/use-quick-task-list-query";
 export function loadTaskWorkingSectionsSlidePage() {
   return import("./pages/TaskWorkingSectionsSlidePage").then((m) => ({
     default: m.TaskWorkingSectionsSlidePage,
+  }));
+}
+export function loadTaskWorkingSectionsReassignSlidePage() {
+  return import("./pages/TaskWorkingSectionsReassignSlidePage").then((m) => ({
+    default: m.TaskWorkingSectionsReassignSlidePage,
   }));
 }
 export function loadTaskWorkingSectionsDiscardChangesSheetPage() {

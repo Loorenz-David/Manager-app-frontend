@@ -8,7 +8,6 @@ import {
   StagedForm,
   StagedFormStep,
   WorkingSectionShortcutBar,
-  useScrollVisibilityContext,
 } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@beyo/working-sections";
@@ -61,92 +60,81 @@ function QuickTaskUnifiedFooter({
   selectedSectionIds?: string[];
   onShortcutPress?: (matchedIds: string[]) => void;
 }): React.JSX.Element {
-  const { isHidden } = useScrollVisibilityContext();
-
   return (
-    <div
-      className={cn(
-        "grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        isHidden ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
-      )}
-    >
-      <div className="overflow-hidden">
-        <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-          {activeStepId === "assign" &&
-          availableSections.length > 0 &&
-          onShortcutPress ? (
-            <div className="px-4 pt-3">
-              <WorkingSectionShortcutBar
-                shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
-                availableSections={availableSections}
-                selectedSectionIds={selectedSectionIds}
-                onShortcutPress={onShortcutPress}
-                animationMode="translate"
-                data-testid="quick-task-assign-shortcut-bar"
-                className="py-2"
-                trackClassName="mt-3"
-              />
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
-            {activeStepId === "list" ? (
-              <button
-                className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-                data-testid="quick-task-list-back-button"
-                type="button"
-                onClick={onClose}
-              >
-                Close & Back
-              </button>
-            ) : (
-              <button
-                className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-                data-testid="quick-task-assign-back-button"
-                type="button"
-                onClick={onBack}
-              >
-                <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
-                Back
-              </button>
-            )}
-
-            {activeStepId === "list" ? (
-              <button
-                className={cn(
-                  "rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed",
-                  selectedCount > 0
-                    ? "bg-(--color-primary) text-card"
-                    : "bg-muted text-muted-foreground opacity-50",
-                )}
-                data-testid="quick-task-list-assign-button"
-                disabled={selectedCount === 0}
-                type="button"
-                onClick={onAssign}
-              >
-                {selectedCount > 0 ? `Assign (${selectedCount})` : "Assign"}
-              </button>
-            ) : activeStepId === "assign" && onSaveAndClose ? (
-              <button
-                className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-                data-testid="quick-task-assign-save-button"
-                disabled={isSaving || !hasUnsavedChanges}
-                type="button"
-                onClick={() => {
-                  void onSaveAndClose();
-                }}
-              >
-                {isSaving ? "Saving..." : "Save"}
-              </button>
-            ) : null}
-          </div>
-
-          <div
-            aria-hidden="true"
-            className="h-(--safe-bottom,0px) bg-background"
+    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+      {activeStepId === "assign" &&
+      availableSections.length > 0 &&
+      onShortcutPress ? (
+        <div className="px-4 pt-3">
+          <WorkingSectionShortcutBar
+            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+            availableSections={availableSections}
+            selectedSectionIds={selectedSectionIds}
+            onShortcutPress={onShortcutPress}
+            animationMode="translate"
+            data-testid="quick-task-assign-shortcut-bar"
+            className="py-2"
+            trackClassName="mt-3"
           />
         </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
+        {activeStepId === "list" ? (
+          <button
+            className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
+            data-testid="quick-task-list-back-button"
+            type="button"
+            onClick={onClose}
+          >
+            Close & Back
+          </button>
+        ) : (
+          <button
+            className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
+            data-testid="quick-task-assign-back-button"
+            type="button"
+            onClick={onBack}
+          >
+            <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
+            Back
+          </button>
+        )}
+
+        {activeStepId === "list" ? (
+          <button
+            className={cn(
+              "rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed",
+              selectedCount > 0
+                ? "bg-(--color-primary) text-card"
+                : "bg-muted text-muted-foreground opacity-50",
+            )}
+            data-testid="quick-task-list-assign-button"
+            disabled={selectedCount === 0}
+            type="button"
+            onClick={onAssign}
+          >
+            {selectedCount > 0 ? `Assign (${selectedCount})` : "Assign"}
+          </button>
+        ) : activeStepId === "assign" && onSaveAndClose ? (
+          <button
+            className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+            data-testid="quick-task-assign-save-button"
+            disabled={isSaving || !hasUnsavedChanges}
+            type="button"
+            onClick={() => {
+              void onSaveAndClose();
+            }}
+          >
+            {isSaving ? "Saving..." : "Save"}
+          </button>
+        ) : null}
       </div>
+
+      <div
+        aria-hidden="true"
+        className="h-(--safe-bottom,0px) bg-background"
+      />
     </div>
   );
 }

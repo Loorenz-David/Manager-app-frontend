@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 
-import { cn } from "@beyo/lib";
+
 import {
   usePreloadSurface,
   useStagedForm,
@@ -12,7 +12,6 @@ import {
   StagedForm,
   StagedFormStep,
   WorkingSectionShortcutBar,
-  useScrollVisibilityContext,
 } from "@beyo/ui";
 import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@beyo/working-sections";
 
@@ -44,58 +43,47 @@ function TaskWorkingSectionsFooter({
   onSaveAndClose: () => Promise<void>;
   onClose: () => void;
 }): React.JSX.Element {
-  const { isHidden } = useScrollVisibilityContext();
-
   return (
-    <div
-      className={cn(
-        "grid transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-        isHidden ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
-      )}
-    >
-      <div className="overflow-hidden">
-        <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-          {canShowShortcuts ? (
-            <div className="px-4 pt-3">
-              <WorkingSectionShortcutBar
-                shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
-                availableSections={availableSections}
-                selectedSectionIds={selectedSectionIds}
-                onShortcutPress={onShortcutPress}
-                animationMode="translate"
-                data-testid="task-working-sections-shortcut-bar"
-                className="py-2"
-                trackClassName="mt-3"
-              />
-            </div>
-          ) : null}
-
-          <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
-            <button
-              className="rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-semibold text-primary shadow-sm transition"
-              data-testid="task-working-sections-close-button"
-              type="button"
-              onClick={onClose}
-            >
-              Close & Back
-            </button>
-
-            <button
-              className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-              data-testid="task-working-sections-save-button"
-              disabled={isSaving || !hasUnsavedChanges}
-              type="button"
-              onClick={() => {
-                void onSaveAndClose();
-              }}
-            >
-              {isSaving ? "Saving..." : "Save"}
-            </button>
-          </div>
-
-          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+      {canShowShortcuts ? (
+        <div className="px-4 pt-3">
+          <WorkingSectionShortcutBar
+            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+            availableSections={availableSections}
+            selectedSectionIds={selectedSectionIds}
+            onShortcutPress={onShortcutPress}
+            animationMode="translate"
+            data-testid="task-working-sections-shortcut-bar"
+            className="py-2"
+            trackClassName="mt-3"
+          />
         </div>
+      ) : null}
+
+      <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
+        <button
+          className="rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-semibold text-primary shadow-sm transition"
+          data-testid="task-working-sections-close-button"
+          type="button"
+          onClick={onClose}
+        >
+          Close & Back
+        </button>
+
+        <button
+          className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
+          data-testid="task-working-sections-save-button"
+          disabled={isSaving || !hasUnsavedChanges}
+          type="button"
+          onClick={() => {
+            void onSaveAndClose();
+          }}
+        >
+          {isSaving ? "Saving..." : "Save"}
+        </button>
       </div>
+
+      <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
     </div>
   );
 }
@@ -239,7 +227,7 @@ export function TaskWorkingSectionsSlidePage(): React.JSX.Element {
   }
 
   return (
-    <div className="flex h-full flex-col py-4">
+    <div className="flex h-full flex-col pt-4">
       <TaskWorkingSectionsProvider
         initialPendingAdds={recoveredPendingAdds}
         initialPendingReassignments={recoveredPendingReassignments}

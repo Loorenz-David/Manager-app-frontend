@@ -1,6 +1,5 @@
 import { useEffect } from "react";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
-import { cn } from "@beyo/lib";
+import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
@@ -17,12 +16,17 @@ import {
 const HEADER_INDICATOR_OFFSET = 120;
 const CONTENT_TOP_OFFSET_CLASS = "pt-[122px]";
 
+const FOOTER_STYLE: React.CSSProperties = {
+  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+  transition:
+    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+};
+
 function PendingUpholsterySlideContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = usePendingUpholsteryContext();
-  const { scrollRef, isHidden: isCompact } = useScrollVisibility({
-    mode: "relative",
-  });
+  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -31,6 +35,7 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
 
   return (
     <div
+      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col bg-background"
       data-testid="pending-upholstery-slide-page"
     >
@@ -38,7 +43,6 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
         <PendingUpholsteryHeader
           counts={controller.counts}
           countsError={controller.countsError}
-          isCompact={isCompact}
           isLoading={controller.isBackgroundLoading}
           missingQuantity={controller.missingQuantity}
           missingSelection={controller.missingSelection}
@@ -124,15 +128,14 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
         </div>
       </PullToRefresh>
 
+      {/* Footer — Pattern A: slides down to hide */}
       <div
-        className={cn(
-          "absolute inset-x-0 bottom-0 z-10 transition-transform duration-[250ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
-          isCompact ? "translate-y-full" : "translate-y-0",
-        )}
+        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
+        style={{ ...FOOTER_STYLE, pointerEvents: isHidden ? "none" : undefined }}
       >
-        <div className="bg-background border-t border-border px-4 py-3.5">
+        <div className="border-t border-border bg-background px-4 py-3.5">
           <button
-            className="w-full rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
+            className="w-full rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
             type="button"
             onClick={controller.close}
           >

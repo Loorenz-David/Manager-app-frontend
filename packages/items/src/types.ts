@@ -24,6 +24,10 @@ export const ItemDetailsFieldsSchema = z.object({
       ) {
         return undefined;
       }
+      if (typeof value === "string") {
+        const coerced = Number(value);
+        return Number.isNaN(coerced) ? undefined : coerced;
+      }
       return value;
     },
     z.number({ message: "Enter a number." }).int().nonnegative().optional(),

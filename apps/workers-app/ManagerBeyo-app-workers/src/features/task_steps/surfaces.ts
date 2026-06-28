@@ -2,6 +2,12 @@ import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
 import {
+  TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
+  TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID,
+  loadTaskWorkingSectionsDiscardChangesSheetPage,
+  loadTaskWorkingSectionsReassignSlidePage,
+} from "@beyo/task-working-sections";
+import {
   TASK_NOTES_SHEET_SURFACE_ID,
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
   loadTaskNotesSheetPage,
@@ -157,6 +163,12 @@ const completeBatchTaskStepsConfirmationSlide = lazyWithPreload(
 const itemIssueSelectionSheet = lazyWithPreload(
   loadItemIssueSelectionSheetPage,
 );
+const taskWorkingSectionsReassignSlide = lazyWithPreload(
+  loadTaskWorkingSectionsReassignSlidePage,
+);
+const taskWorkingSectionsDiscardChangesSheet = lazyWithPreload(
+  loadTaskWorkingSectionsDiscardChangesSheetPage,
+);
 const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
 const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
 
@@ -187,6 +199,10 @@ export const preloadItemIssueSelectionSheetSurface =
 export const preloadTaskNotesSheetSurface = taskNotesSheet.preload;
 export const preloadTaskNoteUnreadViewerSurface =
   taskNoteUnreadViewer.preload;
+export const preloadTaskWorkingSectionsReassignSlideSurface =
+  taskWorkingSectionsReassignSlide.preload;
+export const preloadTaskWorkingSectionsDiscardChangesSheetSurface =
+  taskWorkingSectionsDiscardChangesSheet.preload;
 
 export const taskStepSurfaces: SurfaceRegistrations = {
   [ITEM_POSITION_SHEET_SURFACE_ID]: {
@@ -240,6 +256,14 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: itemIssueSelectionSheet.Component,
+  },
+  [TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: taskWorkingSectionsReassignSlide.Component,
+  },
+  [TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskWorkingSectionsDiscardChangesSheet.Component,
   },
   [BATCH_DETAIL_SLIDE_SURFACE_ID]: {
     surface: "slide",

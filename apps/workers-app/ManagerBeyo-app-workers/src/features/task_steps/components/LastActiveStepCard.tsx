@@ -188,10 +188,8 @@ function BatchCard({
     <m.div
       key="last-active-batch-card"
       className={cn(
-        "fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)]",
         "flex items-stretch overflow-hidden",
         "rounded-tl-2xl rounded-tr-2xl border shadow-md",
-        "transition-transform duration-200 ease-out",
         cardToneClass,
         cardBorderClass,
       )}
@@ -293,7 +291,6 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
   const hasCard = isBatchCard
     ? batchVms.length > 0
     : Boolean(step && vm);
-  const isCardHidden = isHidden || forceHidden;
   const isWorking = vm?.state === "working";
   const TypeIcon = vm ? getTaskTypeIcon(vm.task.task_type) : null;
   const taskTypeLabel = vm ? getTaskTypeLabel(vm.task.task_type) : "";
@@ -315,31 +312,36 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
     [vm?.firstImageUrl],
   );
 
-  if (isCardHidden) {
-    return <AnimatePresence initial={false} />;
-  }
-
   return (
-    <AnimatePresence initial={false}>
-      {hasCard && isBatchCard && batchSteps && batchVms.length > 0 ? (
-        <BatchCard
-          batchSteps={batchSteps}
-          batchVms={batchVms}
-          isBatchTransitioning={isBatchTransitioning}
-          onOpenDetail={handleOpenBatchDetail}
-          onTransition={handleBatchTransition}
-        />
-      ) : hasCard && step && vm ? (
-        <m.div
-          key="last-active-step-card"
-          className={cn(
-            "fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)]",
-            "flex items-stretch overflow-hidden",
-            "rounded-tl-2xl rounded-tr-2xl border shadow-md",
-            "transition-transform duration-200 ease-out",
-            cardToneClass,
-            cardBorderClass,
-          )}
+    <div
+      className="fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)] will-change-transform"
+      style={{
+        transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transition:
+          "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+        pointerEvents: isHidden ? "none" : undefined,
+        display: forceHidden ? "none" : undefined,
+      }}
+    >
+      <AnimatePresence initial={false}>
+        {hasCard && isBatchCard && batchSteps && batchVms.length > 0 ? (
+          <BatchCard
+            batchSteps={batchSteps}
+            batchVms={batchVms}
+            isBatchTransitioning={isBatchTransitioning}
+            onOpenDetail={handleOpenBatchDetail}
+            onTransition={handleBatchTransition}
+          />
+        ) : hasCard && step && vm ? (
+          <m.div
+            key="last-active-step-card"
+            className={cn(
+              "flex items-stretch overflow-hidden",
+              "rounded-tl-2xl rounded-tr-2xl border shadow-md",
+              cardToneClass,
+              cardBorderClass,
+            )}
           animate={{ opacity: 1, y: 0 }}
           data-testid="last-active-step-card"
           exit={{ opacity: 0, y: 24 }}
@@ -421,7 +423,8 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
             )}
           </div>
         </m.div>
-      ) : null}
-    </AnimatePresence>
+        ) : null}
+      </AnimatePresence>
+    </div>
   );
 });
