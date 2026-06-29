@@ -1,6 +1,11 @@
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { IncompleteDependencyViewModel } from "./types";
-import type { MajorCategory, ReadinessStatus, StepState } from "./types";
+import type {
+  MajorCategory,
+  ReadinessStatus,
+  StepState,
+  TaskType,
+} from "./types";
 
 export const TASK_STEP_ACTIONS_SHEET_SURFACE_ID = "task-step-actions-sheet";
 export const TASK_CASES_SLIDE_SURFACE_ID = "task-cases-slide";
@@ -83,10 +88,12 @@ export type StepStateFilterSheetSurfaceProps = {
   selectedStates: StepState[];
   selectedMajorCategories: MajorCategory[];
   selectedReadinessStatuses: ReadinessStatus[];
+  selectedTaskTypes: TaskType[];
   onApply: (
     states: StepState[],
     majorCategories: MajorCategory[],
     readinessStatuses: ReadinessStatus[],
+    taskTypes: TaskType[],
   ) => void;
 };
 

@@ -19,7 +19,7 @@ export function TaskNotesSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
   const { user } = useAuth();
-  const { hasRole, workspaceRoleName } = useRole();
+  const { hasRole, workspaceSpecialization } = useRole();
   const { taskId, hideEditCapability = false } =
     useSurfaceProps<TaskNotesSheetSurfaceProps>();
   const notesQuery = useTaskNotesQuery(taskId);
@@ -37,7 +37,7 @@ export function TaskNotesSheetPage(): React.JSX.Element {
     !hideEditCapability &&
     (hasRole(AuthRole.Admin) ||
       hasRole(AuthRole.Manager) ||
-      workspaceRoleName !== null);
+      workspaceSpecialization !== null);
 
   const entries = notesQuery.data ?? [];
   const [activePanel, setActivePanel] = useState<NotesPanel>("list");

@@ -21,7 +21,20 @@ type TokenClaims = {
   workspace_id: string;
   workspace_role_id: string;
   role_name: "admin" | "manager" | "worker" | "seller";
-  workspace_role_name: "wood_worker" | null;
+  workspace_role_name:
+    | "admin"
+    | "manager"
+    | "worker"
+    | "seller"
+    | "wood_worker"
+    | "upholstery_worker"
+    | "quality_control"
+    | null;
+  workspace_specialization:
+    | "wood_worker"
+    | "upholstery_worker"
+    | "quality_control"
+    | null;
   app_scope: "admin" | "manager" | "worker" | "seller";
   time_zone: string;
   backend_permissions: string[];

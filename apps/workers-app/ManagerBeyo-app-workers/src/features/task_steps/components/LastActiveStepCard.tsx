@@ -188,7 +188,7 @@ function BatchCard({
     <m.div
       key="last-active-batch-card"
       className={cn(
-        "flex items-stretch overflow-hidden",
+        "pointer-events-auto flex items-stretch overflow-hidden",
         "rounded-tl-2xl rounded-tr-2xl border shadow-md",
         cardToneClass,
         cardBorderClass,
@@ -314,15 +314,15 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
 
   return (
     <div
-      className="fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)] will-change-transform"
+      className="pointer-events-none fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)] will-change-transform"
       style={{
         transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
         opacity: "calc(1 - var(--scroll-hide-progress, 0))",
         transition:
           "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-        pointerEvents: isHidden ? "none" : undefined,
         display: forceHidden ? "none" : undefined,
       }}
+      aria-hidden={isHidden || forceHidden}
     >
       <AnimatePresence initial={false}>
         {hasCard && isBatchCard && batchSteps && batchVms.length > 0 ? (
@@ -337,7 +337,7 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
           <m.div
             key="last-active-step-card"
             className={cn(
-              "flex items-stretch overflow-hidden",
+              "pointer-events-auto flex items-stretch overflow-hidden",
               "rounded-tl-2xl rounded-tr-2xl border shadow-md",
               cardToneClass,
               cardBorderClass,

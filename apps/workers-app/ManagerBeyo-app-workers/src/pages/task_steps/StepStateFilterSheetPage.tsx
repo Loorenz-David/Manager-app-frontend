@@ -5,8 +5,14 @@ import {
   DEFAULT_READINESS_STATUS_FILTERS,
   DEFAULT_STATE_FILTERS,
 } from "@/features/task_steps/controllers/use-working-section-steps.controller";
+import { getTaskTypeLabel } from "@/features/task_steps/domain/task-type-meta";
 import type { StepStateFilterSheetSurfaceProps } from "@/features/task_steps/surface-ids";
-import type { MajorCategory, ReadinessStatus, StepState } from "@/features/task_steps/types";
+import type {
+  MajorCategory,
+  ReadinessStatus,
+  StepState,
+  TaskType,
+} from "@/features/task_steps/types";
 
 const FILTER_OPTIONS: BoxPickerOptionType<StepState>[] = [
   {
@@ -73,11 +79,34 @@ const MAJOR_CATEGORY_OPTIONS: BoxPickerOptionType<MajorCategory>[] = [
   },
 ];
 
+const TASK_TYPE_OPTIONS: BoxPickerOptionType<TaskType>[] = [
+  {
+    value: "return",
+    label: getTaskTypeLabel("return"),
+    testId: "filter-task-type-return",
+  },
+  {
+    value: "pre_order",
+    label: getTaskTypeLabel("pre_order"),
+    testId: "filter-task-type-pre-order",
+  },
+  {
+    value: "internal",
+    label: getTaskTypeLabel("internal"),
+    testId: "filter-task-type-internal",
+  },
+];
+
 export function StepStateFilterSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
-  const { selectedStates, selectedMajorCategories, selectedReadinessStatuses, onApply } =
-    useSurfaceProps<StepStateFilterSheetSurfaceProps>();
+  const {
+    selectedStates,
+    selectedMajorCategories,
+    selectedReadinessStatuses,
+    selectedTaskTypes,
+    onApply,
+  } = useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
     selectedStates?.length ? selectedStates : DEFAULT_STATE_FILTERS,
   );
@@ -87,6 +116,9 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   const [localReadinessStatuses, setLocalReadinessStatuses] = useState<
     ReadinessStatus[]
   >(selectedReadinessStatuses?.length ? selectedReadinessStatuses : DEFAULT_READINESS_STATUS_FILTERS);
+  const [localTaskTypes, setLocalTaskTypes] = useState<TaskType[]>(
+    selectedTaskTypes ?? [],
+  );
 
   useEffect(() => {
     header?.setTitle("Filter by state");
@@ -123,7 +155,12 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   }
 
   function handleApply() {
-    onApply?.(localFilters, localMajorCategories, localReadinessStatuses);
+    onApply?.(
+      localFilters,
+      localMajorCategories,
+      localReadinessStatuses,
+      localTaskTypes,
+    );
     closeSheet();
   }
 
@@ -162,6 +199,18 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
           onValueChange={setLocalMajorCategories}
           options={MAJOR_CATEGORY_OPTIONS}
           value={localMajorCategories}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-medium text-muted-foreground">Task type</p>
+        <BoxPicker
+          columns={3}
+          data-testid="step-task-type-filter-picker"
+          mode="multiple"
+          onValueChange={setLocalTaskTypes}
+          options={TASK_TYPE_OPTIONS}
+          value={localTaskTypes}
         />
       </div>
 

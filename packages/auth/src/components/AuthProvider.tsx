@@ -7,6 +7,7 @@ import { apiClient, decodeTokenClaims, initSession } from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import type { UserId, WorkspaceId } from "@beyo/lib";
+import { AuthRole, type AuthAppScope, type WorkspaceRoleName } from "../roles";
 
 const SelfProfileResponseSchema = ApiEnvelopeSchema(
   z.object({
@@ -54,15 +55,33 @@ export function AuthProvider({
               id: profile.data.user.client_id,
               email: profile.data.user.email,
               username: profile.data.user.username,
+              role_name: claims.role_name,
               role: claims.role_name,
               workspaceRoleId: claims.workspace_role_id,
-              workspaceRoleName: claims.workspace_role_name,
-              appScope: claims.app_scope,
-              timeZone: claims.time_zone,
-              backend_permissions: claims.backend_permissions,
-              ui: claims.ui,
-              jti: claims.jti,
-              exp: claims.exp,
+              workspaceRoleName:
+                (claims.workspace_role_name as WorkspaceRoleName | undefined) ??
+                claims.role_name,
+              workspaceSpecialization:
+                (claims.workspace_specialization ??
+                  (claims.workspace_role_name === AuthRole.Admin ||
+                  claims.workspace_role_name === AuthRole.Manager ||
+                  claims.workspace_role_name === AuthRole.Worker ||
+                  claims.workspace_role_name === AuthRole.Seller
+                    ? null
+                    : claims.workspace_role_name)) ??
+                null,
+              appScope: claims.app_scope ?? (appScope as AuthAppScope),
+              timeZone: claims.time_zone ?? "UTC",
+              backend_permissions: claims.backend_permissions ?? [],
+              ui: claims.ui ?? {
+                apps: [],
+                pages: [],
+                buttons: [],
+                actions: [],
+                query_filters: [],
+              },
+              jti: claims.jti ?? "",
+              exp: claims.exp ?? 0,
             },
             claims.workspace_id as WorkspaceId,
           );

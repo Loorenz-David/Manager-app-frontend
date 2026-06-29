@@ -88,6 +88,7 @@ export const TaskSnapshotSchema = z.object({
   return_method: z.string().nullable(),
 });
 export type TaskSnapshot = z.infer<typeof TaskSnapshotSchema>;
+export type TaskType = TaskSnapshot["task_type"];
 
 export const UpholsteryRequirementSchema = z.object({
   client_id: z.string(),
@@ -238,6 +239,7 @@ export type ListWorkingSectionStepsParams = {
   record_step_state?: string;
   major_category?: string;
   readiness_statuses?: string;
+  task_types?: string;
 };
 
 export type TaskStepCardViewModel = {

@@ -15,6 +15,7 @@ export const taskStepKeys = {
         record_step_state: params.record_step_state,
         major_category: params.major_category,
         readiness_statuses: params.readiness_statuses,
+        task_types: params.task_types,
       },
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>

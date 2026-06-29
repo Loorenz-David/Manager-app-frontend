@@ -5,11 +5,18 @@ export { ProtectedRoute } from './components/ProtectedRoute';
 export { RequirePermission } from './components/RequirePermission';
 export { RoleGuard } from './components/RoleGuard';
 export { SignInForm } from './components/SignInForm';
-export { AppScope, AuthRole, WorkspaceRole } from './roles';
+export { AppScope, AuthRole, WorkspaceRole, WorkspaceSpecialization } from './roles';
 export { useAuth } from './hooks/use-auth';
 export { usePermission } from './hooks/use-permission';
 export { usePermissions } from './hooks/use-permissions';
-export { useRole } from './hooks/use-role';
+export {
+  hasWorkspaceSpecialization,
+  isAdmin,
+  isManager,
+  isSeller,
+  isWorker,
+  useRole,
+} from './hooks/use-role';
 export { useSignInMutation } from './api/use-sign-in';
 export { useSignOutMutation } from './api/use-sign-out';
 export {
@@ -19,6 +26,7 @@ export {
   selectIsAuthenticated,
   selectUserRole,
   selectWorkspaceRoleName,
+  selectWorkspaceSpecialization,
   selectAppScope,
   selectTimeZone,
 } from './store/auth.store';
@@ -29,5 +37,6 @@ export type {
   AuthAppScope,
   WorkspaceRoleName,
   WorkspaceRoleValue,
+  WorkspaceSpecializationName,
 } from './roles';
 export type { SignInFormInput } from './types';

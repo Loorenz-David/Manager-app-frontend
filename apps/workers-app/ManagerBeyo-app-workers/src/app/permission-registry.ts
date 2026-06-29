@@ -1,5 +1,5 @@
 // Capability layer registry — dormant until the backend populates backend_permissions.
-// The role layer (`useRole`) is the active interface-selection mechanism today.
+// The specialization layer (`useRole().workspaceSpecialization`) selects worker interfaces today.
 import type { FeaturePermissionMap } from "@beyo/auth";
 
 export const permissionRegistry = {} as const satisfies Record<

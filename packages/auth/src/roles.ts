@@ -15,10 +15,19 @@ export const AppScope = {
 } as const;
 export type AuthAppScope = (typeof AppScope)[keyof typeof AppScope];
 
-// Non-null workspace-role values. `null` = standard system role.
-export const WorkspaceRole = {
+export const WorkspaceSpecialization = {
   WoodWorker: "wood_worker",
+  UpholsteryWorker: "upholstery_worker",
+  QualityControl: "quality_control",
 } as const;
-export type WorkspaceRoleValue =
-  (typeof WorkspaceRole)[keyof typeof WorkspaceRole];
-export type WorkspaceRoleName = WorkspaceRoleValue | null;
+export type WorkspaceSpecialization =
+  (typeof WorkspaceSpecialization)[keyof typeof WorkspaceSpecialization];
+export type WorkspaceSpecializationName = WorkspaceSpecialization | null;
+
+// Compatibility/display value returned by the backend. It is not authoritative
+// for permission or scope decisions.
+export type WorkspaceRoleName = AuthRole | WorkspaceSpecialization | null;
+
+// Deprecated compatibility aliases. Prefer WorkspaceSpecialization.
+export const WorkspaceRole = WorkspaceSpecialization;
+export type WorkspaceRoleValue = WorkspaceSpecialization;

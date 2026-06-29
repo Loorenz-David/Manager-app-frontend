@@ -9,11 +9,21 @@ type AuthUI = {
   query_filters: string[];
 };
 
+type AuthRole = "admin" | "manager" | "worker" | "seller";
+type WorkspaceSpecialization =
+  | "wood_worker"
+  | "upholstery_worker"
+  | "quality_control";
+type WorkspaceRoleName = AuthRole | WorkspaceSpecialization | null;
+
 type AuthUser = {
   id: UserId;
   email: string;
   username: string;
-  role: string;
+  role_name: AuthRole;
+  role: AuthRole;
+  workspaceRoleName: WorkspaceRoleName;
+  workspaceSpecialization: WorkspaceSpecialization | null;
   backend_permissions: string[];
   ui: AuthUI;
 };
