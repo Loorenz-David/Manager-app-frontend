@@ -24,9 +24,20 @@ export function UpholsteryEntryCard({
 
   return (
     <div
-      className="flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2"
+      className="relative flex items-center gap-3 rounded-xl border border-border bg-card px-3 py-2"
       data-testid={`upholstery-entry-card-${entry.client_id}`}
     >
+      {requirementVariant && entry.activeRequirement ? (
+        <div className="absolute -top-2 -right-2">
+          <StatePill
+            label={formatUpholsteryRequirementLabel(
+              entry.activeRequirement.state,
+            )}
+            variant={requirementVariant}
+          />
+        </div>
+      ) : null}
+
       <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
         {entry.image_url ? (
           <img
@@ -43,19 +54,9 @@ export function UpholsteryEntryCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium text-foreground">
-            {entry.name ?? "Upholstery unavailable"}
-          </p>
-          {requirementVariant && entry.activeRequirement ? (
-            <StatePill
-              label={formatUpholsteryRequirementLabel(
-                entry.activeRequirement.state,
-              )}
-              variant={requirementVariant}
-            />
-          ) : null}
-        </div>
+        <p className="text-sm font-medium text-foreground break-words">
+          {entry.name ?? "Upholstery unavailable"}
+        </p>
         <p className="text-xs text-muted-foreground">
           {entry.code ? `${entry.code} · ` : ""}
           {amountLabel}

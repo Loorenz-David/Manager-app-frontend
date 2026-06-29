@@ -17,7 +17,7 @@ import { StatePill, type StatePillVariant } from "@/components/primitives";
 import type { ItemUpholsteryRequirementState } from "@/features/items/types";
 
 const itemUpholsteryFieldVariants = cva(
-  "flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "relative flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
 );
 
 type ItemUpholsteryFieldProps = {
@@ -100,6 +100,15 @@ export function ItemUpholsteryField({
       disabled={disabled}
       onClick={handlePress}
     >
+      {requirementState ? (
+        <div className="absolute -top-2 -right-2">
+          <StatePill
+            label={requirementState.replaceAll("_", " ")}
+            variant={REQUIREMENT_VARIANT[requirementState]}
+          />
+        </div>
+      ) : null}
+
       {selectedUpholstery?.image_url ? (
         <img
           src={selectedUpholstery.image_url}
@@ -115,16 +124,8 @@ export function ItemUpholsteryField({
         {hasSelection ? (
           selectedUpholstery ? (
             <span className="flex min-w-0 flex-col">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-medium text-foreground">
-                  {selectedUpholstery.name}
-                </span>
-                {requirementState ? (
-                  <StatePill
-                    label={requirementState.replaceAll("_", " ")}
-                    variant={REQUIREMENT_VARIANT[requirementState]}
-                  />
-                ) : null}
+              <span className="min-w-0 text-sm font-medium text-foreground break-words">
+                {selectedUpholstery.name}
               </span>
               {selectedUpholstery.code !== null ? (
                 <span className="truncate text-xs text-muted-foreground">
