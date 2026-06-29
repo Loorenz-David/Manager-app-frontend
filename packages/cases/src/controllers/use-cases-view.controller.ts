@@ -40,6 +40,7 @@ export type CasesViewController = {
   openCase: (caseClientId: CaseId) => void;
   openFilters: () => void;
   openCaseCreation: () => void;
+  createFabBottomOffsetClassName?: string;
   activeFilterCount: number;
   pillCounts: { unread: number; active: number; inProgress: number };
   unreadCounts: Record<string, number>;
@@ -267,6 +268,8 @@ export function useCasesViewController(
     openCase,
     openFilters,
     openCaseCreation,
+    createFabBottomOffsetClassName:
+      params.viewSurfaceOpeners?.createFabBottomOffsetClassName,
     activeFilterCount,
     pillCounts: {
       unread: unreadCases.length,

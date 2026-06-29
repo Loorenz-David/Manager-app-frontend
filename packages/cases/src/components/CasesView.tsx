@@ -1,7 +1,7 @@
 import { AnimatePresence, m } from "framer-motion";
 import { Plus } from "lucide-react";
 
-import { transitions } from "@beyo/lib";
+import { cn, transitions } from "@beyo/lib";
 import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { useCasesViewContext } from "../providers/CasesViewProvider";
@@ -117,7 +117,11 @@ export function CasesView(): React.JSX.Element {
 
       <button
         aria-label="New case"
-        className="absolute right-4 bottom-[calc(var(--safe-bottom,0px)+0.75rem)] z-40 flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md transition-transform active:scale-95"
+        className={cn(
+          "absolute right-4 z-40 flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md transition-transform active:scale-95",
+          controller.createFabBottomOffsetClassName ??
+            "bottom-[calc(var(--safe-bottom,0px)+0.75rem)]",
+        )}
         data-testid="cases-view-create-fab"
         type="button"
         onClick={controller.openCaseCreation}
