@@ -1,0 +1,40 @@
+INTENTION:
+
+currently the UpholsteryPickerSlidePage and the UpholsteryInventoryPage page make calls two the endpoint external/nevotex .
+
+this endpoint has been modified and rename, because now it parses multiple external sources, this is documented at HANDOFF_TO_FRONTEND_upholstery_external_multi_provider_search_20260629
+
+this two pages will now make the query to this new endpoint with all the providers added on the query params as default.
+
+we have an automatic system of creating the upholstery instance if the upholstery is from external source, and this system works perfectly at the moment, we will now adapt this creation of upholstery so that we can now pass the new parameters the create upholstery endpoint supports, this is documented at: HANDOFF_TO_FRONTEND_upholstery_external_multi_provider_search_20260629
+on external source we will pass the supplier on the payload so it is created on the same call, and we will pass the page_link to the upholstery call.
+
+because now the origin / supplier_name can be different the cards should let the user know which supplier is the upholstery coming from, for that i have also added this supplier_name on the payload of the upholstery query documented at HANDOFF_TO_FRONTEND_upholstery_external_multi_provider_search_20260629
+We should also update the schema with this changes.
+
+the upholstery card use on UpholsteryPickerSlidePage will no longer have the button grid icon for drag and drop ( we will remove the ability to drag and drop ). 
+and above the upholstery code bellow the upholstery name  we will place the supplier_name with out "_" and with a track style text ( spacing between letters, modern style ). 
+
+on the InventoryListView we will also add the supplier name for the upholstery card ( InventoryListCard ), this label will also render above the upholstery code bellow the upholstery name, with the same styling as described above.
+
+GOAL:
+
+I will like you to first create a implementation plan for how you plan to implement this improvements
+
+
+RELEVANT FILES:
+UpholsteryPickerSlidePage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/upholstery/src/pages/UpholsteryPickerSlidePage.tsx
+
+UpholsteryInventoryPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/upholstery-inventory/UpholsteryInventoryPage.tsx
+
+HANDOFF_TO_FRONTEND_upholstery_external_multi_provider_search_20260629:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_upholstery_external_multi_provider_search_20260629.md
+
+
+InventoryListView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListView.tsx
+
+InventoryListCard:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/upholstery-inventory/components/InventoryListCard.tsx

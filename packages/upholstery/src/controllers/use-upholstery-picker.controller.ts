@@ -5,15 +5,20 @@ import { useSurfaceStore } from "@beyo/ui";
 
 import { useCreateUpholstery } from "../actions/use-create-upholstery";
 import { useToggleUpholsteryFavorite } from "../actions/use-toggle-upholstery-favorite";
-import { useUpdateUpholsteryListOrder } from "../actions/use-update-upholstery-list-order";
-import { useNevotexUpholsteryOptionsQuery } from "../api/use-nevotex-upholstery-options";
+import { useExternalUpholsteryOptionsQuery } from "../api/use-external-upholstery-options";
+import { detectExternalItemCategoryName } from "../category-detective";
 import { useUpholsteryPickerOptionsQuery } from "../api/use-upholstery-picker-options";
-import { UPHOLSTERY_PICKER_REORDER_SHEET_ID } from "../surfaces";
 import {
+  UPHOLSTERY_PROVIDER_FILTER_SHEET_ID,
+  type UpholsteryProviderFilterSheetSurfaceProps,
+} from "../surfaces";
+import {
+  type ExternalUpholsteryProvider,
   type UpholsteryPickerOption,
   type UpholsteryPickerRecord,
   type UpholsteryQuickFilter,
   UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS,
+  isExternalUpholsteryOrigin,
 } from "../types";
 
 const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
@@ -22,33 +27,60 @@ const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
   out_of_stock: 2,
 };
 
-function getNevotexIdentity(record: UpholsteryPickerOption): string {
-  return record.name.trim().toLowerCase();
+function toExternalProviderQueryParam(
+  providers: ExternalUpholsteryProvider[],
+): ExternalUpholsteryProvider[] | undefined {
+  return providers.length === 0 ? undefined : providers;
 }
 
-function deriveItemCategoryName(name: string): string | null {
-  const words = name.trim().split(/\s+/);
-  const firstNumericIndex = words.findIndex((w) => /^\d/.test(w));
-  return firstNumericIndex > 0 ? words.slice(0, firstNumericIndex).join(" ") : null;
+function getExternalIdentity(record: UpholsteryPickerOption): string {
+  return [
+    record.origin,
+    record.code?.trim().toLowerCase() || record.name.trim().toLowerCase(),
+  ].join(":");
 }
 
 function mergePickerResults(
   dbItems: UpholsteryPickerOption[],
-  nevotexItems: UpholsteryPickerOption[],
-  getClientIdForNevotex: (record: UpholsteryPickerOption) => string,
+  externalItems: UpholsteryPickerOption[],
+  getClientIdForExternal: (record: UpholsteryPickerOption) => string,
 ): UpholsteryPickerRecord[] {
   const dbRecords = toDatabaseRecords(dbItems);
   const dbNames = new Set(dbRecords.map((item) => item.name.trim().toLowerCase()));
 
-  const nevotexRecords: UpholsteryPickerRecord[] = nevotexItems
+  const externalRecords: UpholsteryPickerRecord[] = externalItems
     .filter((item) => !dbNames.has(item.name.trim().toLowerCase()))
     .map((item) => ({
       ...item,
-      client_id: getClientIdForNevotex(item),
+      client_id: getClientIdForExternal(item),
       favorite: false,
     }));
 
-  return [...dbRecords, ...nevotexRecords];
+  return [...dbRecords, ...externalRecords];
+}
+
+function normalizeProviderKey(value: string | null | undefined): string {
+  return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_") ?? "";
+}
+
+function filterItemsBySelectedProviders(
+  items: UpholsteryPickerOption[],
+  providers: ExternalUpholsteryProvider[],
+): UpholsteryPickerOption[] {
+  if (providers.length === 0) {
+    return items;
+  }
+
+  const selectedProviders = new Set(providers);
+
+  return items.filter((item) => {
+    if (isExternalUpholsteryOrigin(item.origin)) {
+      return selectedProviders.has(item.origin);
+    }
+
+    const supplierKey = normalizeProviderKey(item.supplier_name);
+    return selectedProviders.has(supplierKey as ExternalUpholsteryProvider);
+  });
 }
 
 function toDatabaseRecords(items: UpholsteryPickerOption[]): UpholsteryPickerRecord[] {
@@ -66,11 +98,17 @@ export function useUpholsteryPickerController(searchQuery: string) {
     useState<UpholsteryQuickFilter>("favorite");
   const previousFilterIndexRef = useRef(FILTER_INDEXES.favorite);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [pendingNevotexFavorites, setPendingNevotexFavorites] = useState<Set<string>>(
+  const [pendingExternalFavorites, setPendingExternalFavorites] = useState<Set<string>>(
     () => new Set(),
   );
-  const nevotexClientIdsRef = useRef(new Map<string, string>());
-  const nevotexInventoryClientIdsRef = useRef(new Map<string, string>());
+  const [selectedExternalProviders, setSelectedExternalProviders] = useState<
+    ExternalUpholsteryProvider[]
+  >([]);
+  const externalClientIdsRef = useRef(new Map<string, string>());
+  const externalInventoryClientIdsRef = useRef(new Map<string, string>());
+  const externalProviderQueryParam = toExternalProviderQueryParam(
+    selectedExternalProviders,
+  );
 
   const inStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: true });
   const outOfStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: false });
@@ -79,37 +117,36 @@ export function useUpholsteryPickerController(searchQuery: string) {
     { q: searchQuery },
     { enabled: searchQuery.trim().length > 0 },
   );
-  const nevotexSearchQuery = useNevotexUpholsteryOptionsQuery(
-    { q: searchQuery, limit: 7 },
+  const externalSearchQuery = useExternalUpholsteryOptionsQuery(
+    { q: searchQuery, limit: 7, providers: externalProviderQueryParam },
     { enabled: searchQuery.trim().length > 0 },
   );
 
   const createUpholsteryAction = useCreateUpholstery();
   const toggleFavoriteAction = useToggleUpholsteryFavorite();
-  const updateListOrderAction = useUpdateUpholsteryListOrder();
 
-  const getClientIdForNevotex = useCallback((record: UpholsteryPickerOption): string => {
-    const key = getNevotexIdentity(record);
-    const existing = nevotexClientIdsRef.current.get(key);
+  const getClientIdForExternal = useCallback((record: UpholsteryPickerOption): string => {
+    const key = getExternalIdentity(record);
+    const existing = externalClientIdsRef.current.get(key);
 
     if (existing) {
       return existing;
     }
 
     const clientId = generateClientId("Upholstery");
-    nevotexClientIdsRef.current.set(key, clientId);
+    externalClientIdsRef.current.set(key, clientId);
     return clientId;
   }, []);
 
-  const getInventoryClientIdForNevotex = useCallback((upholsteryClientId: string): string => {
-    const existing = nevotexInventoryClientIdsRef.current.get(upholsteryClientId);
+  const getInventoryClientIdForExternal = useCallback((upholsteryClientId: string): string => {
+    const existing = externalInventoryClientIdsRef.current.get(upholsteryClientId);
 
     if (existing) {
       return existing;
     }
 
     const clientId = generateClientId("UpholsteryInventory");
-    nevotexInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
+    externalInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
     return clientId;
   }, []);
 
@@ -127,16 +164,23 @@ export function useUpholsteryPickerController(searchQuery: string) {
 
   const { upholsteries: mergedUpholsteries, isLoading } = useMemo(() => {
     if (searchQuery.trim().length > 0) {
-      const dbItems = searchResultsQuery.data?.upholsteries ?? [];
-      const nevotexItems = nevotexSearchQuery.data?.upholsteries ?? [];
+      const dbItems = filterItemsBySelectedProviders(
+        searchResultsQuery.data?.upholsteries ?? [],
+        selectedExternalProviders,
+      );
+      const externalItems = filterItemsBySelectedProviders(
+        externalSearchQuery.data?.upholsteries ?? [],
+        selectedExternalProviders,
+      );
 
       return {
         upholsteries: mergePickerResults(
           dbItems,
-          nevotexItems,
-          getClientIdForNevotex,
+          externalItems,
+          getClientIdForExternal,
         ),
-        isLoading: searchResultsQuery.isPending || nevotexSearchQuery.isPending,
+        isLoading:
+          searchResultsQuery.isFetching || externalSearchQuery.isFetching,
       };
     }
 
@@ -162,57 +206,59 @@ export function useUpholsteryPickerController(searchQuery: string) {
     searchQuery,
     activeFilter,
     searchResultsQuery.data,
-    searchResultsQuery.isPending,
-    nevotexSearchQuery.data,
-    nevotexSearchQuery.isPending,
+    searchResultsQuery.isFetching,
+    externalSearchQuery.data,
+    externalSearchQuery.isFetching,
+    selectedExternalProviders,
     inStockQuery.data,
     inStockQuery.isPending,
     outOfStockQuery.data,
     outOfStockQuery.isPending,
     favoritesQuery.data,
     favoritesQuery.isPending,
-    getClientIdForNevotex,
+    getClientIdForExternal,
   ]);
 
   const upholsteries = useMemo(
     () =>
       mergedUpholsteries.map((record) =>
-        pendingNevotexFavorites.has(record.client_id)
+        pendingExternalFavorites.has(record.client_id)
           ? { ...record, favorite: true }
           : record,
       ),
-    [mergedUpholsteries, pendingNevotexFavorites],
+    [mergedUpholsteries, pendingExternalFavorites],
   );
+  const activeProviderFilterCount = selectedExternalProviders.length > 0 ? 1 : 0;
 
   useEffect(() => {
-    if (pendingNevotexFavorites.size === 0) {
+    if (pendingExternalFavorites.size === 0) {
       return;
     }
 
-    const activeNevotexIds = new Set(
+    const activeExternalIds = new Set(
       mergedUpholsteries
-        .filter((record) => record.origin === "nevotex")
+        .filter((record) => isExternalUpholsteryOrigin(record.origin))
         .map((record) => record.client_id),
     );
 
-    const staleIds = [...pendingNevotexFavorites].filter(
-      (id) => !activeNevotexIds.has(id),
+    const staleIds = [...pendingExternalFavorites].filter(
+      (id) => !activeExternalIds.has(id),
     );
 
     if (staleIds.length === 0) {
       return;
     }
 
-    setPendingNevotexFavorites((previous) => {
+    setPendingExternalFavorites((previous) => {
       const next = new Set(previous);
       staleIds.forEach((id) => next.delete(id));
       return next;
     });
-  }, [mergedUpholsteries, pendingNevotexFavorites]);
+  }, [mergedUpholsteries, pendingExternalFavorites]);
 
   async function refetch() {
     if (searchQuery.trim().length > 0) {
-      await Promise.all([searchResultsQuery.refetch(), nevotexSearchQuery.refetch()]);
+      await Promise.all([searchResultsQuery.refetch(), externalSearchQuery.refetch()]);
       return;
     }
 
@@ -230,29 +276,46 @@ export function useUpholsteryPickerController(searchQuery: string) {
     }
   }
 
-  function openReorderSheet(clientId: string) {
-    useSurfaceStore
-      .getState()
-      .open(UPHOLSTERY_PICKER_REORDER_SHEET_ID, { clientId });
-  }
-
   function prepareSelect(clientId: string): void {
     const record = upholsteries.find((entry) => entry.client_id === clientId);
 
-    if (!record || record.origin !== "nevotex") {
+    if (!record || !isExternalUpholsteryOrigin(record.origin)) {
       return;
     }
 
+    void createExternalUpholstery(record);
+  }
+
+  function openProviderFilterSheet(): void {
+    useSurfaceStore.getState().open(UPHOLSTERY_PROVIDER_FILTER_SHEET_ID, {
+      selectedProviders: selectedExternalProviders,
+      onApply: setSelectedExternalProviders,
+    } satisfies UpholsteryProviderFilterSheetSurfaceProps);
+  }
+
+  async function resolveExternalCategoryName(
+    record: UpholsteryPickerRecord,
+  ): Promise<string | null> {
+    if (record.upholstery_category?.id) {
+      return null;
+    }
+
+    return (await detectExternalItemCategoryName(record)) ?? "unknown";
+  }
+
+  async function createExternalUpholstery(record: UpholsteryPickerRecord): Promise<void> {
+    const categoryName = await resolveExternalCategoryName(record);
+
     createUpholsteryAction.mutate({
-      client_id: clientId,
-      upholstery_inventory_id: getInventoryClientIdForNevotex(clientId),
+      client_id: record.client_id,
+      upholstery_inventory_id: getInventoryClientIdForExternal(record.client_id),
       name: record.name,
       code: record.code,
       image_url: record.image_url,
+      page_link: record.page_link ?? record.external_url ?? null,
+      supplier_name: record.supplier_name ?? record.origin,
       upholstery_category_id: record.upholstery_category?.id ?? null,
-      upholstery_category_name: record.upholstery_category?.id
-        ? null
-        : deriveItemCategoryName(record.name),
+      upholstery_category_name: categoryName,
     });
   }
 
@@ -270,13 +333,13 @@ export function useUpholsteryPickerController(searchQuery: string) {
       return;
     }
 
-    if (pendingNevotexFavorites.has(clientId)) {
+    if (pendingExternalFavorites.has(clientId)) {
       return;
     }
 
     const nextFavorite = !currentFavorite;
 
-    setPendingNevotexFavorites((previous) => {
+    setPendingExternalFavorites((previous) => {
       const next = new Set(previous);
       if (nextFavorite) {
         next.add(clientId);
@@ -289,22 +352,22 @@ export function useUpholsteryPickerController(searchQuery: string) {
     try {
       await createUpholsteryAction.mutateAsync({
         client_id: clientId,
-        upholstery_inventory_id: getInventoryClientIdForNevotex(clientId),
+        upholstery_inventory_id: getInventoryClientIdForExternal(clientId),
         name: record.name,
         code: record.code,
         image_url: record.image_url,
+        page_link: record.page_link ?? record.external_url ?? null,
+        supplier_name: record.supplier_name ?? record.origin,
         upholstery_category_id: record.upholstery_category?.id ?? null,
-        upholstery_category_name: record.upholstery_category?.id
-          ? null
-          : deriveItemCategoryName(record.name),
+        upholstery_category_name: await resolveExternalCategoryName(record),
       });
       await toggleFavoriteAction.toggleFavoriteAsync({
         client_id: clientId,
         favorite: nextFavorite,
       });
     } catch (error) {
-      console.error("Failed to toggle Nevotex upholstery favorite", error);
-      setPendingNevotexFavorites((previous) => {
+      console.error("Failed to toggle external upholstery favorite", error);
+      setPendingExternalFavorites((previous) => {
         const next = new Set(previous);
         next.delete(clientId);
         return next;
@@ -319,9 +382,9 @@ export function useUpholsteryPickerController(searchQuery: string) {
     upholsteries,
     isLoading,
     prepareSelect,
-    isReorderPending: updateListOrderAction.isPending,
+    activeProviderFilterCount,
     onFilterChange: handleFilterChange,
-    openReorderSheet,
+    openProviderFilterSheet,
     refetch,
     toggleFavorite: (clientId: string, currentFavorite: boolean) =>
       void handleToggleFavorite(clientId, currentFavorite),

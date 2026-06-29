@@ -343,7 +343,7 @@ async function routeReorderFixtures(page: Page) {
   };
 }
 
-async function openReorderSheet(page: Page) {
+async function openUpholsteryPicker(page: Page) {
   await page.getByTestId('tab-tasks').click();
   await expect(page).toHaveURL(/\/tasks$/);
   await page.getByTestId(`tasks-card-body-${taskId}`).click();
@@ -351,95 +351,23 @@ async function openReorderSheet(page: Page) {
   await expect(page.getByTestId('task-detail-upholstery-section')).toBeVisible();
   await page.getByTestId('upholstery-field-item_upholstery_1').click();
   await expect(page.getByTestId('upholstery-picker-body-in_stock')).toBeVisible();
-
-  await page
-    .getByTestId('upholstery-card-uph_a')
-    .getByTestId('upholstery-card-reorder-button')
-    .click();
-
-  await expect(page.getByTestId('upholstery-reorder-sheet')).toBeVisible();
 }
 
-test.describe('Upholstery reorder sheet', () => {
-  test('desktop drag handle reorders cards and fires list-order PATCH', async ({
+test.describe('Upholstery picker reorder affordance', () => {
+  test('does not expose reorder controls from picker cards', async ({
     page,
     auth,
   }) => {
     test.skip(!hasCredentials, 'Set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD in .env to run');
-    test.skip(test.info().project.name !== 'desktop', 'Desktop-specific drag coverage');
 
-    const fixtures = await routeReorderFixtures(page);
-
-    await auth.signIn();
-    await expect(page.getByTestId('app-shell')).toBeVisible();
-    await openReorderSheet(page);
-
-    const handleA = page.getByTestId('upholstery-dnd-handle-uph_a');
-    const handleB = page.getByTestId('upholstery-dnd-handle-uph_b');
-    const touchAction = await handleA.evaluate((el) => window.getComputedStyle(el).touchAction);
-    expect(touchAction).toBe('none');
-
-    const boundsA = await handleA.boundingBox();
-    const boundsB = await handleB.boundingBox();
-
-    expect(boundsA).not.toBeNull();
-    expect(boundsB).not.toBeNull();
-
-    const startX = boundsA!.x + boundsA!.width / 2;
-    const startY = boundsA!.y + boundsA!.height / 2;
-    const endY = boundsB!.y + boundsB!.height * 0.5;
-
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.mouse.move(startX, startY + 10, { steps: 5 });
-    await page.mouse.move(startX, endY, { steps: 10 });
-    await page.mouse.up();
-
-    await expect.poll(fixtures.getPatchRequestBody).toEqual({ list_order: 2 });
-    await expect
-      .poll(async () =>
-        page.locator('[data-testid^="upholstery-sortable-card-"]').first().getAttribute('data-testid'),
-      )
-      .toBe('upholstery-sortable-card-uph_b');
-  });
-
-  test('mobile press-hold drag handle reorders cards and fires list-order PATCH', async ({
-    page,
-    auth,
-  }) => {
-    test.skip(!hasCredentials, 'Set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD in .env to run');
-    test.skip(test.info().project.name !== 'mobile', 'Mobile-specific touch coverage');
-
-    const fixtures = await routeReorderFixtures(page);
+    await routeReorderFixtures(page);
 
     await auth.signIn();
     await expect(page.getByTestId('app-shell')).toBeVisible();
-    await openReorderSheet(page);
+    await openUpholsteryPicker(page);
 
-    const handleA = page.getByTestId('upholstery-dnd-handle-uph_a');
-    const boundsA = await handleA.boundingBox();
-    const handleB = page.getByTestId('upholstery-dnd-handle-uph_b');
-    const boundsB = await handleB.boundingBox();
-
-    expect(boundsA).not.toBeNull();
-    expect(boundsB).not.toBeNull();
-
-    const startX = boundsA!.x + boundsA!.width / 2;
-    const startY = boundsA!.y + boundsA!.height / 2;
-    const endY = boundsB!.y + boundsB!.height * 0.5;
-
-    await page.mouse.move(startX, startY);
-    await page.mouse.down();
-    await page.waitForTimeout(300);
-    await page.mouse.move(startX, startY + 10, { steps: 5 });
-    await page.mouse.move(startX, endY, { steps: 10 });
-    await page.mouse.up();
-
-    await expect.poll(fixtures.getPatchRequestBody).toEqual({ list_order: 2 });
-    await expect
-      .poll(async () =>
-        page.locator('[data-testid^="upholstery-sortable-card-"]').first().getAttribute('data-testid'),
-      )
-      .toBe('upholstery-sortable-card-uph_b');
+    await expect(page.getByTestId('upholstery-card-uph_a')).toBeVisible();
+    await expect(page.getByTestId('upholstery-card-reorder-button')).toHaveCount(0);
+    await expect(page.getByTestId('upholstery-reorder-sheet')).toHaveCount(0);
   });
 });

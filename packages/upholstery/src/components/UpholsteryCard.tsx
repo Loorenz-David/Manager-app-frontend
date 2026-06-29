@@ -1,5 +1,5 @@
 import { cva } from "class-variance-authority";
-import { GripVertical, Heart } from "lucide-react";
+import { Heart } from "lucide-react";
 
 import { ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
@@ -27,7 +27,6 @@ type UpholsteryCardProps = {
   isSelected: boolean;
   onSelect: (clientId: string) => void;
   onToggleFavorite?: (clientId: string, currentFavorite: boolean) => void;
-  onOpenReorder?: (clientId: string) => void;
   testId?: string;
 };
 
@@ -36,7 +35,6 @@ export function UpholsteryCard({
   isSelected,
   onSelect,
   onToggleFavorite,
-  onOpenReorder,
   testId,
 }: UpholsteryCardProps): React.JSX.Element {
   const thumbnailUrl = getUpholsteryImageUrl(record.image_url, {
@@ -52,6 +50,7 @@ export function UpholsteryCard({
   const conditionColor = record.inventory_condition
     ? conditionColors[record.inventory_condition]
     : null;
+  const supplierName = record.supplier_name?.replace(/_/g, " ").trim();
 
   return (
     <div
@@ -86,10 +85,20 @@ export function UpholsteryCard({
           >
             {record.name}
           </p>
+          {supplierName ? (
+            <p
+              className={cn(
+                "mt-1 truncate text-[0.625rem] font-semibold uppercase tracking-[0.22em]",
+                isSelected ? "text-card/75" : "text-muted-foreground/80",
+              )}
+            >
+              {supplierName}
+            </p>
+          ) : null}
           {record.code !== null ? (
             <p
               className={cn(
-                "truncate text-xs",
+                "mt-0.5 truncate text-xs",
                 isSelected ? "text-card/70" : "text-muted-foreground",
               )}
             >
@@ -113,48 +122,29 @@ export function UpholsteryCard({
         </span>
       </button>
 
-      {onOpenReorder || onToggleFavorite ? (
+      {onToggleFavorite ? (
         <div className="flex shrink-0 items-center gap-1">
-          {onOpenReorder ? (
-            <button
-              aria-label={`Reorder ${record.name}`}
-              className={cn(
-                "inline-flex size-9 items-center justify-center rounded-lg transition-colors duration-150",
-                isSelected
+          <button
+            aria-label={`${record.favorite ? "Remove" : "Add"} ${record.name} favorite`}
+            aria-pressed={record.favorite}
+            className={cn(
+              "inline-flex size-9 items-center justify-center rounded-lg transition-colors duration-150",
+              record.favorite
+                ? "text-rose-500 hover:bg-rose-500/10"
+                : isSelected
                   ? "text-card/80 hover:bg-white/10"
                   : "text-muted-foreground hover:bg-muted",
-              )}
-              data-testid="upholstery-card-reorder-button"
-              type="button"
-              onClick={() => onOpenReorder(record.client_id)}
-            >
-              <GripVertical aria-hidden="true" className="size-4" />
-            </button>
-          ) : null}
-
-          {onToggleFavorite ? (
-            <button
-              aria-label={`${record.favorite ? "Remove" : "Add"} ${record.name} favorite`}
-              aria-pressed={record.favorite}
-              className={cn(
-                "inline-flex size-9 items-center justify-center rounded-lg transition-colors duration-150",
-                record.favorite
-                  ? "text-rose-500 hover:bg-rose-500/10"
-                  : isSelected
-                    ? "text-card/80 hover:bg-white/10"
-                    : "text-muted-foreground hover:bg-muted",
-              )}
-              data-testid="upholstery-card-favorite-button"
-              type="button"
-              onClick={() => onToggleFavorite(record.client_id, record.favorite)}
-            >
-              <Heart
-                aria-hidden="true"
-                className="size-4"
-                fill={record.favorite ? "currentColor" : "none"}
-              />
-            </button>
-          ) : null}
+            )}
+            data-testid="upholstery-card-favorite-button"
+            type="button"
+            onClick={() => onToggleFavorite(record.client_id, record.favorite)}
+          >
+            <Heart
+              aria-hidden="true"
+              className="size-4"
+              fill={record.favorite ? "currentColor" : "none"}
+            />
+          </button>
         </div>
       ) : null}
     </div>

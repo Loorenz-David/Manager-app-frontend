@@ -11,9 +11,12 @@ type UpholsteryPickerHeaderProps = {
   q: string;
   activeFilter: UpholsteryQuickFilter;
   isFilterDisabled?: boolean;
+  isSearchLoading?: boolean;
+  activeProviderFilterCount?: number;
   onBackPress: () => void;
   onQChange: (value: string) => void;
   onFilterChange: (filter: UpholsteryQuickFilter) => void;
+  onProviderFilterPress?: () => void;
 };
 
 const SLIDE_HIDE_STYLE: React.CSSProperties = {
@@ -27,9 +30,12 @@ export function UpholsteryPickerHeader({
   q,
   activeFilter,
   isFilterDisabled = false,
+  isSearchLoading = false,
+  activeProviderFilterCount = 0,
   onBackPress,
   onQChange,
   onFilterChange,
+  onProviderFilterPress,
 }: UpholsteryPickerHeaderProps): React.JSX.Element {
   const filterOptions = UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS.map((option) => ({
     ...option,
@@ -54,7 +60,13 @@ export function UpholsteryPickerHeader({
           </button>
 
           <div className="min-w-0 flex-1">
-            <UpholsterySearch value={q} onChange={onQChange} />
+            <UpholsterySearch
+              activeFilterCount={activeProviderFilterCount}
+              isLoading={isSearchLoading}
+              value={q}
+              onChange={onQChange}
+              onFilterPress={onProviderFilterPress}
+            />
           </div>
         </div>
       </div>

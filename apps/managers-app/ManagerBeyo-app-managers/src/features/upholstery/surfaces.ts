@@ -1,6 +1,7 @@
 import { lazy } from "react";
 
 import { lazyWithPreload } from "@beyo/ui";
+import { UPHOLSTERY_PROVIDER_FILTER_SHEET_ID } from "@beyo/upholstery";
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 
 export const UPHOLSTERY_PICKER_SLIDE_ID = "upholstery-picker";
@@ -23,7 +24,16 @@ function loadUpholsteryReorderSheetPage() {
   );
 }
 
+function loadUpholsteryProviderFilterSheetPage() {
+  return import("@beyo/upholstery").then((module) => ({
+    default: module.UpholsteryProviderFilterSheetPage,
+  }));
+}
+
 const upholsteryReorderSheet = lazyWithPreload(loadUpholsteryReorderSheetPage);
+const upholsteryProviderFilterSheet = lazyWithPreload(
+  loadUpholsteryProviderFilterSheetPage,
+);
 
 export const upholsterySurfaces: SurfaceRegistrations = {
   [UPHOLSTERY_PICKER_SLIDE_ID]: {
@@ -33,5 +43,9 @@ export const upholsterySurfaces: SurfaceRegistrations = {
   [UPHOLSTERY_PICKER_REORDER_SHEET_ID]: {
     surface: "sheet",
     component: upholsteryReorderSheet.Component,
+  },
+  [UPHOLSTERY_PROVIDER_FILTER_SHEET_ID]: {
+    surface: "sheet",
+    component: upholsteryProviderFilterSheet.Component,
   },
 };

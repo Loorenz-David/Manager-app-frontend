@@ -8,11 +8,32 @@ export const UPHOLSTERY_INVENTORY_CONDITION = [
   "out_of_stock",
 ] as const;
 
+export const EXTERNAL_UPHOLSTERY_PROVIDERS = [
+  "nevotex",
+  "ohlssons_tyger",
+  "fargotex",
+] as const;
+
+export type ExternalUpholsteryProvider =
+  (typeof EXTERNAL_UPHOLSTERY_PROVIDERS)[number];
+
+export const DEFAULT_EXTERNAL_UPHOLSTERY_PROVIDERS =
+  EXTERNAL_UPHOLSTERY_PROVIDERS.join(",");
+
+export const UPHOLSTERY_ORIGINS = [
+  "database",
+  ...EXTERNAL_UPHOLSTERY_PROVIDERS,
+] as const;
+
+export type UpholsteryOrigin = (typeof UPHOLSTERY_ORIGINS)[number];
+
 export const UpholsteryPickerOptionSchema = z.object({
   client_id: z.string().nullable(),
   name: z.string(),
   code: z.string().nullable(),
   image_url: z.string().nullable(),
+  external_url: z.string().nullable().optional(),
+  page_link: z.string().nullable().optional(),
   favorite: z.boolean().nullable(),
   list_order: z.number().nullable(),
   inventory_id: z.string().nullable().optional(),
@@ -31,7 +52,8 @@ export const UpholsteryPickerOptionSchema = z.object({
     })
     .nullable()
     .optional(),
-  origin: z.enum(["nevotex", "database"]),
+  supplier_name: z.string().nullable().optional(),
+  origin: z.enum(UPHOLSTERY_ORIGINS),
 });
 export type UpholsteryPickerOption = z.infer<typeof UpholsteryPickerOptionSchema>;
 
@@ -50,6 +72,7 @@ export const UpholsteryListResponseSchema = ApiEnvelopeSchema(
       limit: z.number(),
       offset: z.number(),
     }),
+    providers: z.array(z.string()).optional(),
   }),
 );
 
@@ -85,9 +108,21 @@ export type CreateUpholsteryInput = {
   name: string;
   code: string | null;
   image_url: string | null;
+  page_link?: string | null;
+  supplier_name?: string | null;
+  supplier_base_url?: string | null;
+  supplier_country?: string | null;
+  supplier_city?: string | null;
+  supplier_street_address?: string | null;
   upholstery_category_id?: string | null;
   upholstery_category_name?: string | null;
 };
+
+export function isExternalUpholsteryOrigin(
+  origin: UpholsteryOrigin,
+): origin is ExternalUpholsteryProvider {
+  return origin !== "database";
+}
 
 export const ItemUpholsteryFieldsSchema = z.object({
   upholstery_client_id: z.string().nullable().optional(),

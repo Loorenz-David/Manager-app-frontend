@@ -69,11 +69,14 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
       <div className="absolute inset-x-0 top-0 z-10">
         <UpholsteryPickerHeader
           activeFilter={controller.activeFilter}
+          activeProviderFilterCount={controller.activeProviderFilterCount}
           isFilterDisabled={isSearchActive}
+          isSearchLoading={isSearchActive ? controller.isLoading : false}
           onBackPress={header?.requestClose ?? (() => {})}
           q={searchQuery}
           onFilterChange={controller.onFilterChange}
           onQChange={setSearchQuery}
+          onProviderFilterPress={controller.openProviderFilterSheet}
         />
       </div>
 
@@ -94,7 +97,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
               <m.div
                 key={controller.activeFilter}
                 animate="center"
-                className="absolute inset-0 flex flex-col gap-3 px-4 py-4"
+                className="absolute inset-0 flex flex-col gap-3 px-4 py-4 pb-[calc(var(--safe-bottom,0)+6rem)]"
                 custom={controller.direction}
                 data-testid={`upholstery-picker-body-${controller.activeFilter}`}
                 exit="exit"
@@ -113,7 +116,6 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
                       isSelected={record.client_id === currentClientId}
                       record={record}
                       testId={`upholstery-card-${record.client_id}`}
-                      onOpenReorder={controller.openReorderSheet}
                       onSelect={handleSelect}
                       onToggleFavorite={controller.toggleFavorite}
                     />

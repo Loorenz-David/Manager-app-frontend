@@ -1,8 +1,7 @@
 import { z } from "zod";
 
-import { apiClient } from "@beyo/api-client";
-
-import { UpholsteryListResponseSchema, UpholsteryPickerOptionSchema } from "../types";
+import { UpholsteryPickerOptionSchema } from "../types";
+import { fetchExternalUpholsteryOptions } from "./fetch-external-upholstery-options";
 
 export type FetchNevotexUpholsteryOptionsParams = {
   q: string;
@@ -15,17 +14,13 @@ export async function fetchNevotexUpholsteryOptions(
   upholsteries: z.infer<typeof UpholsteryPickerOptionSchema>[];
   has_more: boolean;
 }> {
-  const envelope = await apiClient.get(
-    "/api/v1/upholsteries/external/nevotex",
-    UpholsteryListResponseSchema,
-    {
-      q: params.q,
-      limit: params.limit ?? 7,
-    },
-  );
+  const response = await fetchExternalUpholsteryOptions({
+    ...params,
+    providers: ["nevotex"],
+  });
 
   return {
-    upholsteries: envelope.data.upholsteries,
-    has_more: envelope.data.upholsteries_pagination.has_more,
+    upholsteries: response.upholsteries,
+    has_more: response.has_more,
   };
 }

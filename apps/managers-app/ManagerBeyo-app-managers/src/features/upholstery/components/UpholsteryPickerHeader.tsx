@@ -12,9 +12,12 @@ type UpholsteryPickerHeaderProps = {
   activeFilter: UpholsteryQuickFilter;
   isCompact: boolean;
   isFilterDisabled?: boolean;
+  isSearchLoading?: boolean;
+  activeProviderFilterCount?: number;
   onBackPress: () => void;
   onQChange: (value: string) => void;
   onFilterChange: (filter: UpholsteryQuickFilter) => void;
+  onProviderFilterPress?: () => void;
 };
 
 export function UpholsteryPickerHeader({
@@ -22,9 +25,12 @@ export function UpholsteryPickerHeader({
   activeFilter,
   isCompact,
   isFilterDisabled = false,
+  isSearchLoading = false,
+  activeProviderFilterCount = 0,
   onBackPress,
   onQChange,
   onFilterChange,
+  onProviderFilterPress,
 }: UpholsteryPickerHeaderProps): React.JSX.Element {
   const filterOptions = UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS.map((option) => ({
     ...option,
@@ -48,7 +54,13 @@ export function UpholsteryPickerHeader({
           </button>
 
           <div className="min-w-0 flex-1">
-            <UpholsterySearch value={q} onChange={onQChange} />
+            <UpholsterySearch
+              activeFilterCount={activeProviderFilterCount}
+              isLoading={isSearchLoading}
+              value={q}
+              onChange={onQChange}
+              onFilterPress={onProviderFilterPress}
+            />
           </div>
         </div>
       </div>

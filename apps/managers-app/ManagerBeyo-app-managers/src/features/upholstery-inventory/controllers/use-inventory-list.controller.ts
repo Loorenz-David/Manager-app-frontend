@@ -1,9 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  UPHOLSTERY_PROVIDER_FILTER_SHEET_ID,
+  detectExternalItemCategoryName,
+  type ExternalUpholsteryProvider,
+  type UpholsteryProviderFilterSheetSurfaceProps,
   useCreateUpholstery,
-  useNevotexUpholsteryOptionsQuery,
+  useExternalUpholsteryOptionsQuery,
   useUpholsteryPickerOptionsQuery,
+  isExternalUpholsteryOrigin,
   type UpholsteryPickerOption,
   type UpholsteryPickerRecord,
 } from "@beyo/upholstery";
@@ -35,34 +40,60 @@ import {
 
 export type InventoryPanelId = "categories" | "inventory" | "search";
 
-// Derive the category name from a single Nevotex upholstery name by stripping
-// everything from the first numeric token onward.
-// "Tyg Ballroom Blitz 0408 Steel" → "Tyg Ballroom Blitz"
-// "Tyg Lazy 21 Rose"              → "Tyg Lazy"
-// Returns null when no numeric separator is found (pattern not recognised).
-function deriveItemCategoryName(name: string): string | null {
-  const words = name.trim().split(/\s+/);
-  const firstNumericIndex = words.findIndex((w) => /^\d/.test(w));
-  return firstNumericIndex > 0 ? words.slice(0, firstNumericIndex).join(" ") : null;
+function toExternalProviderQueryParam(
+  providers: ExternalUpholsteryProvider[],
+): ExternalUpholsteryProvider[] | undefined {
+  return providers.length === 0 ? undefined : providers;
+}
+
+function getExternalIdentity(record: UpholsteryPickerOption): string {
+  return [
+    record.origin,
+    record.code?.trim().toLowerCase() || record.name.trim().toLowerCase(),
+  ].join(":");
 }
 
 function mergePickerResults(
   dbItems: UpholsteryPickerOption[],
-  nevotexItems: UpholsteryPickerOption[],
-  getClientIdForNevotex: (record: UpholsteryPickerOption) => string,
+  externalItems: UpholsteryPickerOption[],
+  getClientIdForExternal: (record: UpholsteryPickerOption) => string,
 ): UpholsteryPickerRecord[] {
   const dbRecords = toDatabaseRecords(dbItems);
   const dbNames = new Set(dbRecords.map((item) => item.name.trim().toLowerCase()));
 
-  const nevotexRecords: UpholsteryPickerRecord[] = nevotexItems
+  const externalRecords: UpholsteryPickerRecord[] = externalItems
     .filter((item) => !dbNames.has(item.name.trim().toLowerCase()))
     .map((item) => ({
       ...item,
-      client_id: getClientIdForNevotex(item),
+      client_id: getClientIdForExternal(item),
       favorite: false,
     }));
 
-  return [...dbRecords, ...nevotexRecords];
+  return [...dbRecords, ...externalRecords];
+}
+
+function normalizeProviderKey(value: string | null | undefined): string {
+  return value?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_") ?? "";
+}
+
+function filterItemsBySelectedProviders(
+  items: UpholsteryPickerOption[],
+  providers: ExternalUpholsteryProvider[],
+): UpholsteryPickerOption[] {
+  if (providers.length === 0) {
+    return items;
+  }
+
+  const selectedProviders = new Set(providers);
+
+  return items.filter((item) => {
+    if (isExternalUpholsteryOrigin(item.origin)) {
+      return selectedProviders.has(item.origin);
+    }
+
+    const supplierKey = normalizeProviderKey(item.supplier_name);
+    return selectedProviders.has(supplierKey as ExternalUpholsteryProvider);
+  });
 }
 
 function toDatabaseRecords(
@@ -89,10 +120,16 @@ export function useInventoryListController() {
     useState<UpholsteryCategory | null>(null);
   const [upholsterySearchQ, setUpholsterySearchQState] = useState("");
   const [debouncedUpholsterySearchQ, setDebouncedUpholsterySearchQ] = useState("");
-  const nevotexClientIdsRef = useRef(new Map<string, string>());
-  const nevotexInventoryClientIdsRef = useRef(new Map<string, string>());
+  const [selectedExternalProviders, setSelectedExternalProviders] = useState<
+    ExternalUpholsteryProvider[]
+  >([]);
+  const externalClientIdsRef = useRef(new Map<string, string>());
+  const externalInventoryClientIdsRef = useRef(new Map<string, string>());
   const isSearchActive = upholsterySearchQ.trim().length > 0;
   const activePanelId: InventoryPanelId = isSearchActive ? "search" : storedPanelId;
+  const externalProviderQueryParam = toExternalProviderQueryParam(
+    selectedExternalProviders,
+  );
 
   useEffect(() => {
     const timeout = window.setTimeout(
@@ -112,35 +149,39 @@ export function useInventoryListController() {
     { q: debouncedUpholsterySearchQ },
     { enabled: isSearchActive },
   );
-  const nevotexSearchQuery = useNevotexUpholsteryOptionsQuery(
-    { q: debouncedUpholsterySearchQ, limit: 7 },
+  const externalSearchQuery = useExternalUpholsteryOptionsQuery(
+    {
+      q: debouncedUpholsterySearchQ,
+      limit: 7,
+      providers: externalProviderQueryParam,
+    },
     { enabled: isSearchActive },
   );
 
   const createUpholsteryAction = useCreateUpholstery();
 
-  const getClientIdForNevotex = useCallback((record: UpholsteryPickerOption) => {
-    const key = record.name.trim().toLowerCase();
-    const existing = nevotexClientIdsRef.current.get(key);
+  const getClientIdForExternal = useCallback((record: UpholsteryPickerOption) => {
+    const key = getExternalIdentity(record);
+    const existing = externalClientIdsRef.current.get(key);
 
     if (existing) {
       return existing;
     }
 
     const clientId = generateClientId("Upholstery");
-    nevotexClientIdsRef.current.set(key, clientId);
+    externalClientIdsRef.current.set(key, clientId);
     return clientId;
   }, []);
 
-  const getInventoryClientIdForNevotex = useCallback((upholsteryClientId: string) => {
-    const existing = nevotexInventoryClientIdsRef.current.get(upholsteryClientId);
+  const getInventoryClientIdForExternal = useCallback((upholsteryClientId: string) => {
+    const existing = externalInventoryClientIdsRef.current.get(upholsteryClientId);
 
     if (existing) {
       return existing;
     }
 
     const clientId = generateClientId("UpholsteryInventory");
-    nevotexInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
+    externalInventoryClientIdsRef.current.set(upholsteryClientId, clientId);
     return clientId;
   }, []);
 
@@ -150,20 +191,28 @@ export function useInventoryListController() {
     }
 
     return mergePickerResults(
-      dbSearchQuery.data?.upholsteries ?? [],
-      nevotexSearchQuery.data?.upholsteries ?? [],
-      getClientIdForNevotex,
+      filterItemsBySelectedProviders(
+        dbSearchQuery.data?.upholsteries ?? [],
+        selectedExternalProviders,
+      ),
+      filterItemsBySelectedProviders(
+        externalSearchQuery.data?.upholsteries ?? [],
+        selectedExternalProviders,
+      ),
+      getClientIdForExternal,
     );
   }, [
     isSearchActive,
     dbSearchQuery.data,
-    nevotexSearchQuery.data,
-    getClientIdForNevotex,
+    externalSearchQuery.data,
+    selectedExternalProviders,
+    getClientIdForExternal,
   ]);
 
   const isSearchLoading =
     isSearchActive &&
-    (dbSearchQuery.isPending || nevotexSearchQuery.isPending);
+    (dbSearchQuery.isFetching || externalSearchQuery.isFetching);
+  const activeProviderFilterCount = selectedExternalProviders.length > 0 ? 1 : 0;
 
   function setUpholsterySearchQ(value: string): void {
     const wasSearchActive = upholsterySearchQ.trim().length > 0;
@@ -191,7 +240,7 @@ export function useInventoryListController() {
 
   async function refetch(): Promise<void> {
     if (activePanelId === "search") {
-      await Promise.all([dbSearchQuery.refetch(), nevotexSearchQuery.refetch()]);
+      await Promise.all([dbSearchQuery.refetch(), externalSearchQuery.refetch()]);
       return;
     }
 
@@ -228,18 +277,47 @@ export function useInventoryListController() {
     } satisfies StoredAmountSurfaceProps);
   }
 
-  function prepareNevotexCreate(record: UpholsteryPickerRecord): string {
-    const inventoryClientId = getInventoryClientIdForNevotex(record.client_id);
-    const categoryName = deriveItemCategoryName(record.name);
+  function openProviderFilterSheet(): void {
+    useSurfaceStore.getState().open(UPHOLSTERY_PROVIDER_FILTER_SHEET_ID, {
+      selectedProviders: selectedExternalProviders,
+      onApply: setSelectedExternalProviders,
+    } satisfies UpholsteryProviderFilterSheetSurfaceProps);
+  }
+
+  function prepareExternalCreate(record: UpholsteryPickerRecord): string {
+    const inventoryClientId = getInventoryClientIdForExternal(record.client_id);
+
+    void createExternalUpholstery(record, inventoryClientId);
+    return inventoryClientId;
+  }
+
+  async function resolveExternalCategoryName(
+    record: UpholsteryPickerRecord,
+  ): Promise<string | null> {
+    if (record.upholstery_category?.id) {
+      return null;
+    }
+
+    return (await detectExternalItemCategoryName(record)) ?? "unknown";
+  }
+
+  async function createExternalUpholstery(
+    record: UpholsteryPickerRecord,
+    inventoryClientId: string,
+  ): Promise<void> {
+    const categoryName = await resolveExternalCategoryName(record);
+
     createUpholsteryAction.mutate({
       client_id: record.client_id,
       upholstery_inventory_id: inventoryClientId,
       name: record.name,
       code: record.code,
       image_url: record.image_url,
+      page_link: record.page_link ?? record.external_url ?? null,
+      supplier_name: record.supplier_name ?? record.origin,
+      upholstery_category_id: record.upholstery_category?.id ?? null,
       upholstery_category_name: categoryName,
     });
-    return inventoryClientId;
   }
 
   function openCreationFormFromSearch(record: UpholsteryPickerRecord): void {
@@ -256,8 +334,8 @@ export function useInventoryListController() {
   }
 
   function openFromSearchDetail(record: UpholsteryPickerRecord): void {
-    if (record.origin === "nevotex") {
-      const inventoryClientId = prepareNevotexCreate(record);
+    if (isExternalUpholsteryOrigin(record.origin)) {
+      const inventoryClientId = prepareExternalCreate(record);
       openDetail(inventoryClientId as UpholsteryInventoryId, {
         name: record.name,
         code: record.code,
@@ -273,8 +351,8 @@ export function useInventoryListController() {
   }
 
   function openFromSearchAdd(record: UpholsteryPickerRecord): void {
-    if (record.origin === "nevotex") {
-      const inventoryClientId = prepareNevotexCreate(record);
+    if (isExternalUpholsteryOrigin(record.origin)) {
+      const inventoryClientId = prepareExternalCreate(record);
       useSurfaceStore.getState().open(STORED_AMOUNT_SHEET_ID, {
         inventoryId: inventoryClientId as UpholsteryInventoryId,
         prefill: {
@@ -318,9 +396,11 @@ export function useInventoryListController() {
     isInventoryFetched: inventoriesQuery.isFetched,
     searchUpholsteries,
     isSearchLoading,
+    activeProviderFilterCount,
     selectCategory,
     goBack,
     refetch,
+    openProviderFilterSheet,
     openDetail,
     openCardActions,
     openAddAmount,

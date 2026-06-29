@@ -21,14 +21,11 @@ export const InventoryListCard = memo(function InventoryListCard({
   onTapCard,
 }: InventoryListCardProps): React.JSX.Element {
   const thumbnailUrl = getUpholsteryImageUrl(card.imageUrl, {
-
     width: 290,
-
     height: 290,
-
     fillCanvas: false,
-
   });
+  const supplierName = card.supplierName?.replace(/_/g, " ").trim();
   return (
     <div
       className=" flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm"
@@ -86,6 +83,11 @@ export const InventoryListCard = memo(function InventoryListCard({
             </span>
           </button>
         </div>
+        {supplierName ? (
+          <span className="mt-1 truncate text-[0.625rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
+            {supplierName}
+          </span>
+        ) : null}
         <span className="mt-2 truncate text-sm text-muted-foreground">
           {card.code}
         </span>

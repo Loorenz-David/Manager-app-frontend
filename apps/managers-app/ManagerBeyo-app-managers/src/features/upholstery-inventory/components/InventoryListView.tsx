@@ -35,7 +35,6 @@ export function InventoryListView(): React.JSX.Element {
   const searchRecordById = new Map(
     controller.searchUpholsteries.map((record) => [record.client_id, record] as const),
   );
-  console.log("[InventoryListView] searchUpholsteries:", controller.searchUpholsteries.map((r) => ({ client_id: r.client_id, name: r.name, origin: r.origin })));
 
   return (
     <div
@@ -44,13 +43,14 @@ export function InventoryListView(): React.JSX.Element {
     >
       <div className="absolute inset-x-0 top-0 z-10">
         <InventoryListHeader
+          activeProviderFilterCount={controller.activeProviderFilterCount}
           activePanelId={controller.activePanelId}
           direction={controller.direction}
           isSearchLoading={controller.isSearchLoading}
-          isCategoriesFetching={controller.isCategoriesFetching}
           selectedCategory={controller.selectedCategory}
           upholsterySearchQ={controller.upholsterySearchQ}
           onBack={controller.goBack}
+          onProviderFilterPress={controller.openProviderFilterSheet}
           onUpholsterySearchQChange={controller.setUpholsterySearchQ}
         />
       </div>
@@ -100,6 +100,10 @@ export function InventoryListView(): React.JSX.Element {
                               inventoryId: record.client_id as UpholsteryInventoryId,
                               name: record.name,
                               code: record.code ?? "No code",
+                              supplierName:
+                                record.supplier_name ?? record.origin ?? null,
+                              pageLink:
+                                record.page_link ?? record.external_url ?? null,
                               imageUrl: record.image_url,
                               currentStoredAmountMeters:
                                 record.current_stored_amount_meters,
@@ -117,21 +121,18 @@ export function InventoryListView(): React.JSX.Element {
                             }}
                             onTapAdd={(card) => {
                               const searchRecord = searchRecordById.get(card.inventoryId);
-                              console.log("[InventoryListView] onTapAdd – inventoryId:", card.inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
                                 controller.openFromSearchAdd(searchRecord);
                               }
                             }}
                             onTapActions={(inventoryId) => {
                               const searchRecord = searchRecordById.get(inventoryId);
-                              console.log("[InventoryListView] onTapActions – inventoryId:", inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
                                 controller.openFromSearchDetail(searchRecord);
                               }
                             }}
                             onTapCard={(inventoryId) => {
                               const searchRecord = searchRecordById.get(inventoryId);
-                              console.log("[InventoryListView] onTapCard – inventoryId:", inventoryId, "found:", !!searchRecord, "origin:", searchRecord?.origin);
                               if (searchRecord) {
                                 controller.openFromSearchDetail(searchRecord);
                               }

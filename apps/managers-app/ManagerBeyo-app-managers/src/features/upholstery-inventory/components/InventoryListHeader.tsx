@@ -30,8 +30,9 @@ type InventoryListHeaderProps = {
   selectedCategory: UpholsteryCategory | null;
   upholsterySearchQ: string;
   isSearchLoading: boolean;
-  isCategoriesFetching: boolean;
+  activeProviderFilterCount: number;
   onUpholsterySearchQChange: (value: string) => void;
+  onProviderFilterPress: () => void;
   onBack: () => void;
 };
 
@@ -41,8 +42,9 @@ export function InventoryListHeader({
   selectedCategory,
   upholsterySearchQ,
   isSearchLoading,
-  isCategoriesFetching,
+  activeProviderFilterCount,
   onUpholsterySearchQChange,
+  onProviderFilterPress,
   onBack,
 }: InventoryListHeaderProps): React.JSX.Element {
   const isSearchLikeBrowseHeader =
@@ -65,12 +67,14 @@ export function InventoryListHeader({
             variants={headerVariants}
           >
             <SearchBar
+              activeFilterCount={activeProviderFilterCount}
               data-testid="upholstery-inventory-category-search-bar"
-              isLoading={activePanelId === "search" ? isSearchLoading : isCategoriesFetching}
+              isLoading={activePanelId === "search" ? isSearchLoading : false}
               placeholder="Search upholstery..."
               value={upholsterySearchQ}
               wrapperClassName="bg-[var(--color-card)]"
               onChange={onUpholsterySearchQChange}
+              onFilterPress={onProviderFilterPress}
             />
           </m.div>
         ) : selectedCategory ? (

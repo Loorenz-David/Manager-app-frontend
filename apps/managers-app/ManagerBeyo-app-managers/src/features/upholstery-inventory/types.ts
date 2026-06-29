@@ -49,6 +49,8 @@ export const UpholsteryInventoryPartialSchema = z.object({
   upholstery_name: z.string().nullable(),
   upholstery_code: z.string().nullable(),
   image_url: z.string().nullable(),
+  page_link: z.string().nullable().optional(),
+  supplier_name: z.string().nullable().optional(),
   favorite: z.boolean(),
   inventory_condition: InventoryConditionSchema,
   current_stored_amount_meters: nullableDecimal,
@@ -64,6 +66,8 @@ export const UpholsteryInventoryDetailSchema = z.object({
   upholstery_name: z.string().nullable(),
   upholstery_code: z.string().nullable(),
   image_url: z.string().nullable(),
+  page_link: z.string().nullable().optional(),
+  supplier_name: z.string().nullable().optional(),
   favorite: z.boolean(),
   inventory_condition: InventoryConditionSchema,
   current_stored_amount_meters: nullableDecimal,
@@ -110,6 +114,8 @@ export type InventoryListCardViewModel = {
   inventoryId: UpholsteryInventoryId;
   name: string;
   code: string;
+  supplierName: string | null;
+  pageLink: string | null;
   imageUrl: string | null;
   currentStoredAmountMeters: string | null;
   availableDisplay: string;
@@ -125,6 +131,7 @@ export type InventoryDetailViewModel = {
   name: string;
   code: string;
   imageUrl: string | null;
+  pageLink: string | null;
   availableDisplay: string;
   availableIsPositive: boolean;
   availableIsNegative: boolean;
@@ -213,6 +220,8 @@ export function toInventoryListCardViewModel(
     inventoryId: item.client_id,
     name: item.upholstery_name ?? fallbackIdentity(item.client_id),
     code: item.upholstery_code ?? "No code",
+    supplierName: item.supplier_name ?? null,
+    pageLink: item.page_link ?? null,
     imageUrl: item.image_url,
     currentStoredAmountMeters: item.current_stored_amount_meters,
     availableDisplay: available.display,
@@ -242,6 +251,7 @@ export function toInventoryDetailViewModel(
     name: item.upholstery_name ?? fallbackIdentity(item.client_id),
     code: item.upholstery_code ?? "No code",
     imageUrl: item.image_url,
+    pageLink: item.page_link ?? null,
     availableDisplay: available.display,
     availableIsPositive: available.isPositive,
     availableIsNegative: available.isNegative,

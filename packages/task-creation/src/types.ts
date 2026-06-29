@@ -64,12 +64,20 @@ export const TASK_CREATION_FORM_TYPE = [
 ] as const;
 export type TaskCreationFormType = (typeof TASK_CREATION_FORM_TYPE)[number];
 
+const ReturnCustomerFieldsSchema = z.object({
+  display_name: z.string().max(255).optional(),
+  customer_type: CustomerFieldsSchema.shape.customer_type.optional(),
+  primary_email: CustomerFieldsSchema.shape.primary_email.optional(),
+  primary_phone_number: z.string().optional(),
+  address: CustomerFieldsSchema.shape.address.optional(),
+});
+
 export const ReturnFormSchema = z
   .object({
     item: ItemDetailsFieldsSchema,
     item_upholstery: ItemUpholsteryFieldsSchema,
     item_issues: ItemIssuesFieldsSchema.shape.item_issues,
-    customer: CustomerFieldsSchema.partial(),
+    customer: ReturnCustomerFieldsSchema,
     return_source: z.enum(TASK_RETURN_SOURCE).optional(),
     fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).optional(),
     scheduled_start_at: DateOnlySchema.nullable().optional(),

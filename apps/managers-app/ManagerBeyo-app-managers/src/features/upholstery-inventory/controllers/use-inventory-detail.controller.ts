@@ -26,6 +26,7 @@ function toPrefillViewModel(
     name: prefill.name,
     code: prefill.code ?? "No code",
     imageUrl: prefill.imageUrl,
+    pageLink: null,
     availableDisplay: "0 m",
     availableIsPositive: false,
     availableIsNegative: false,
