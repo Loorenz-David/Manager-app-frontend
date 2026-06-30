@@ -1,4 +1,5 @@
 export { WorkingSectionPickerField } from "./components/WorkingSectionPickerField";
+export { NeedsPhotoPickerField } from "./components/NeedsPhotoPickerField";
 export { NeedsCleaningPickerField } from "./components/NeedsCleaningPickerField";
 export { OilingTreatmentPickerField } from "./components/OilingTreatmentPickerField";
 export {
@@ -6,9 +7,12 @@ export {
   resolveWorkingSectionShortcutsByMajorCategory,
 } from "./constants/working-section-shortcuts";
 export { useWorkingSectionPickerFlow } from "./flows/use-working-section-picker.flow";
+export { useNeedsPhotoPickerFlow } from "./flows/use-needs-photo-picker.flow";
 export { useNeedsCleaningPickerFlow } from "./flows/use-needs-cleaning-picker.flow";
 export { useOilingTreatmentPickerFlow } from "./flows/use-oiling-treatment-picker.flow";
 export {
+  filterWorkingSectionsForMajorCategory,
+  isPhotographySection,
   resolveDefaultWoodFixSection,
   resolveCleaningSections,
   resolveOilTreatmentSections,

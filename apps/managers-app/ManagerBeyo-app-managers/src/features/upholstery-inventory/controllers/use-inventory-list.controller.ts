@@ -6,7 +6,7 @@ import {
   type ExternalUpholsteryProvider,
   type UpholsteryProviderFilterSheetSurfaceProps,
   useCreateUpholstery,
-  useExternalUpholsteryOptionsQuery,
+  useExternalUpholsteryOptionsByProviderQuery,
   useUpholsteryPickerOptionsQuery,
   isExternalUpholsteryOrigin,
   type UpholsteryPickerOption,
@@ -39,12 +39,6 @@ import {
 } from "../types";
 
 export type InventoryPanelId = "categories" | "inventory" | "search";
-
-function toExternalProviderQueryParam(
-  providers: ExternalUpholsteryProvider[],
-): ExternalUpholsteryProvider[] | undefined {
-  return providers.length === 0 ? undefined : providers;
-}
 
 function getExternalIdentity(record: UpholsteryPickerOption): string {
   return [
@@ -127,9 +121,6 @@ export function useInventoryListController() {
   const externalInventoryClientIdsRef = useRef(new Map<string, string>());
   const isSearchActive = upholsterySearchQ.trim().length > 0;
   const activePanelId: InventoryPanelId = isSearchActive ? "search" : storedPanelId;
-  const externalProviderQueryParam = toExternalProviderQueryParam(
-    selectedExternalProviders,
-  );
 
   useEffect(() => {
     const timeout = window.setTimeout(
@@ -149,12 +140,8 @@ export function useInventoryListController() {
     { q: debouncedUpholsterySearchQ },
     { enabled: isSearchActive },
   );
-  const externalSearchQuery = useExternalUpholsteryOptionsQuery(
-    {
-      q: debouncedUpholsterySearchQ,
-      limit: 7,
-      providers: externalProviderQueryParam,
-    },
+  const externalSearchQuery = useExternalUpholsteryOptionsByProviderQuery(
+    { q: debouncedUpholsterySearchQ, providers: selectedExternalProviders },
     { enabled: isSearchActive },
   );
 
@@ -195,16 +182,13 @@ export function useInventoryListController() {
         dbSearchQuery.data?.upholsteries ?? [],
         selectedExternalProviders,
       ),
-      filterItemsBySelectedProviders(
-        externalSearchQuery.data?.upholsteries ?? [],
-        selectedExternalProviders,
-      ),
+      externalSearchQuery.upholsteries,
       getClientIdForExternal,
     );
   }, [
     isSearchActive,
     dbSearchQuery.data,
-    externalSearchQuery.data,
+    externalSearchQuery.upholsteries,
     selectedExternalProviders,
     getClientIdForExternal,
   ]);

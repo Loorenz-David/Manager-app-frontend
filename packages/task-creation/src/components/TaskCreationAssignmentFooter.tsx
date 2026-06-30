@@ -4,6 +4,7 @@ import { useController, useFormContext } from "react-hook-form";
 import { cn } from "@beyo/lib";
 import { useWorkingSectionPickerFlow } from "@beyo/working-sections";
 import { resolveWorkingSectionShortcutsByMajorCategory } from "@beyo/working-sections";
+import { filterWorkingSectionsForMajorCategory } from "@beyo/working-sections";
 import { useSurfaceHeader } from "@beyo/hooks";
 import {
   StagedFormNavigation,
@@ -36,14 +37,7 @@ export function TaskCreationAssignmentFooter({
   const flow = useWorkingSectionPickerFlow();
   const { isHidden } = useScrollVisibilityContext();
   const availableSections = useMemo(
-    () =>
-      majorCategory === undefined
-        ? flow.options
-        : flow.options.filter((section) =>
-            section.item_categories.some(
-              (itemCategory) => itemCategory.major_category === majorCategory,
-            ),
-          ),
+    () => filterWorkingSectionsForMajorCategory(flow.options, majorCategory),
     [flow.options, majorCategory],
   );
   const showShortcutBar =

@@ -12,6 +12,7 @@ export const EXTERNAL_UPHOLSTERY_PROVIDERS = [
   "nevotex",
   "ohlssons_tyger",
   "fargotex",
+  "selfmade",
 ] as const;
 
 export type ExternalUpholsteryProvider =

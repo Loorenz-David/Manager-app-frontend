@@ -9,10 +9,17 @@ export const DEFAULT_WORKING_SECTION_SHORTCUTS: WorkingSectionShortcutConfig = {
     "padding",
     "assembly",
     "upholstery",
+    "photography",
   ],
   Upholstery: ["upholstery"],
   "Chair Fix": ["structural repair", "sanding", "cleaning"],
-  "wood fix": ["wood fix", "ground oil", "hardwax oil", "cleaning"],
+  "wood fix": [
+    "wood fix",
+    "ground oil",
+    "hardwax oil",
+    "cleaning",
+    "photography",
+  ],
 };
 
 const MAJOR_CATEGORY_SHORTCUT_LABELS: Record<string, string[]> = {

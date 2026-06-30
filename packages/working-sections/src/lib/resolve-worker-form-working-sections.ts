@@ -4,6 +4,34 @@ function normalizeName(name: string): string {
   return name.trim().toLowerCase();
 }
 
+export function isPhotographySection(section: WorkingSectionOption): boolean {
+  return normalizeName(section.name).includes("photography");
+}
+
+export function filterWorkingSectionsForMajorCategory(
+  options: WorkingSectionOption[],
+  majorCategory?: string,
+): WorkingSectionOption[] {
+  if (majorCategory === undefined) {
+    return options;
+  }
+
+  return options.filter((section) => {
+    const supportsMajorCategory = section.item_categories.some(
+      (itemCategory) => itemCategory.major_category === majorCategory,
+    );
+
+    if (supportsMajorCategory) {
+      return true;
+    }
+
+    return (
+      (majorCategory === "seat" || majorCategory === "wood") &&
+      isPhotographySection(section)
+    );
+  });
+}
+
 export function resolveDefaultWoodFixSection(
   options: WorkingSectionOption[],
 ): WorkingSectionOption | null {

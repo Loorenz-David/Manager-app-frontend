@@ -584,26 +584,12 @@ export function ImageEditorPage(): React.JSX.Element {
     }
   }, []);
 
-  const hasAutoOpenedToolPickerRef = useRef(false);
-
   const handleOpenToolPicker = useCallback(() => {
     useSurfaceStore.getState().open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
       activeTool,
       onSelect: handleToolSelect,
     } satisfies ImageAnnotationToolPickerSurfaceProps);
   }, [activeTool, handleToolSelect]);
-
-  useEffect(() => {
-    if (hasAutoOpenedToolPickerRef.current || isAnnotationUnavailable) {
-      return;
-    }
-
-    hasAutoOpenedToolPickerRef.current = true;
-    useSurfaceStore.getState().open(IMAGE_ANNOTATION_TOOL_PICKER_SURFACE_ID, {
-      activeTool,
-      onSelect: handleToolSelect,
-    } satisfies ImageAnnotationToolPickerSurfaceProps);
-  }, [isAnnotationUnavailable, activeTool, handleToolSelect]);
 
   const handleEditText = useCallback(
     (item: AnnotatedCanvasItem) => {

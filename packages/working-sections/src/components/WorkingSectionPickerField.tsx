@@ -11,6 +11,7 @@ import {
 
 import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "../constants/working-section-shortcuts";
 import { useWorkingSectionPickerFlow } from "../flows/use-working-section-picker.flow";
+import { filterWorkingSectionsForMajorCategory } from "../lib/resolve-worker-form-working-sections";
 import type {
   WorkingSectionAssignment,
   WorkingSectionOption,
@@ -86,14 +87,7 @@ export function WorkingSectionPickerField({
     defaultValue: [],
   });
   const displayedOptions = useMemo(
-    () =>
-      majorCategory === undefined
-        ? flow.options
-        : flow.options.filter((section) =>
-            section.item_categories.some(
-              (itemCategory) => itemCategory.major_category === majorCategory,
-            ),
-          ),
+    () => filterWorkingSectionsForMajorCategory(flow.options, majorCategory),
     [flow.options, majorCategory],
   );
 

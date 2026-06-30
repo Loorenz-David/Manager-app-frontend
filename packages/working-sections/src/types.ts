@@ -48,6 +48,7 @@ export type WorkingSectionAssignment = z.infer<typeof WorkingSectionAssignmentSc
 
 export const WorkingSectionPickerFieldsSchema = z.object({
   working_section_assignments: z.array(WorkingSectionAssignmentSchema).default([]),
+  needs_photo_assignment: WorkingSectionAssignmentSchema.nullable().optional(),
   needs_cleaning_assignment: WorkingSectionAssignmentSchema.nullable().optional(),
   oiling_treatment_assignment: WorkingSectionAssignmentSchema.nullable().optional(),
 });

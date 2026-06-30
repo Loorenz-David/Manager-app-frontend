@@ -208,6 +208,8 @@ export const WorkerInternalFormSchema = z
     item: ItemDetailsFieldsSchema,
     item_issues: ItemIssuesFieldsSchema.shape.item_issues,
     item_issue_selection_draft: WorkerItemIssueSelectionDraftSchema,
+    needs_photo_assignment:
+      WorkingSectionPickerFieldsSchema.shape.needs_photo_assignment,
     needs_cleaning_assignment:
       WorkingSectionPickerFieldsSchema.shape.needs_cleaning_assignment,
     oiling_treatment_assignment: z

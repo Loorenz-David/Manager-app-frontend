@@ -1,4 +1,7 @@
-import type { ListUpholsteryPickerParams } from "../types";
+import type {
+  ExternalUpholsteryProvider,
+  ListUpholsteryPickerParams,
+} from "../types";
 import type { FetchExternalUpholsteryOptionsParams } from "./fetch-external-upholstery-options";
 
 export const upholsteryKeys = {
@@ -8,6 +11,11 @@ export const upholsteryKeys = {
     [...upholsteryKeys.pickerLists(), params] as const,
   externalSearch: (params: FetchExternalUpholsteryOptionsParams) =>
     [...upholsteryKeys.all, "external", "search", params] as const,
+  externalProviderSearch: (params: {
+    limit: number;
+    provider: ExternalUpholsteryProvider;
+    q: string;
+  }) => [...upholsteryKeys.all, "external", "search", params] as const,
   nevotexSearch: (q: string) =>
     [...upholsteryKeys.all, "nevotex", "search", q] as const,
   details: () => [...upholsteryKeys.all, "detail"] as const,

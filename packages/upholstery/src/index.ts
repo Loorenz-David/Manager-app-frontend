@@ -39,6 +39,11 @@ export { fetchUpholsteryPickerOptions } from "./api/fetch-upholstery-picker-opti
 export type { ToggleFavoriteInput } from "./api/fetch-toggle-upholstery-favorite";
 export type { UpdateListOrderInput } from "./api/fetch-update-upholstery-list-order";
 export { useExternalUpholsteryOptionsQuery } from "./api/use-external-upholstery-options";
+export {
+  resolveExternalSearchProviders,
+  useExternalUpholsteryOptionsByProviderQuery,
+  type UseExternalUpholsteryOptionsByProviderParams,
+} from "./api/use-external-upholstery-options-by-provider";
 export { useNevotexUpholsteryOptionsQuery } from "./api/use-nevotex-upholstery-options";
 export { useUpholsteryPickerOptionsQuery } from "./api/use-upholstery-picker-options";
 export { useUpholsteryPickerOptionQuery } from "./api/use-upholstery-picker-option";

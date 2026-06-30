@@ -5,7 +5,7 @@ import { useSurfaceStore } from "@beyo/ui";
 
 import { useCreateUpholstery } from "../actions/use-create-upholstery";
 import { useToggleUpholsteryFavorite } from "../actions/use-toggle-upholstery-favorite";
-import { useExternalUpholsteryOptionsQuery } from "../api/use-external-upholstery-options";
+import { useExternalUpholsteryOptionsByProviderQuery } from "../api/use-external-upholstery-options-by-provider";
 import { detectExternalItemCategoryName } from "../category-detective";
 import { useUpholsteryPickerOptionsQuery } from "../api/use-upholstery-picker-options";
 import {
@@ -26,12 +26,6 @@ const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
   in_stock: 1,
   out_of_stock: 2,
 };
-
-function toExternalProviderQueryParam(
-  providers: ExternalUpholsteryProvider[],
-): ExternalUpholsteryProvider[] | undefined {
-  return providers.length === 0 ? undefined : providers;
-}
 
 function getExternalIdentity(record: UpholsteryPickerOption): string {
   return [
@@ -106,9 +100,6 @@ export function useUpholsteryPickerController(searchQuery: string) {
   >([]);
   const externalClientIdsRef = useRef(new Map<string, string>());
   const externalInventoryClientIdsRef = useRef(new Map<string, string>());
-  const externalProviderQueryParam = toExternalProviderQueryParam(
-    selectedExternalProviders,
-  );
 
   const inStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: true });
   const outOfStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: false });
@@ -117,8 +108,8 @@ export function useUpholsteryPickerController(searchQuery: string) {
     { q: searchQuery },
     { enabled: searchQuery.trim().length > 0 },
   );
-  const externalSearchQuery = useExternalUpholsteryOptionsQuery(
-    { q: searchQuery, limit: 7, providers: externalProviderQueryParam },
+  const externalSearchQuery = useExternalUpholsteryOptionsByProviderQuery(
+    { q: searchQuery, providers: selectedExternalProviders },
     { enabled: searchQuery.trim().length > 0 },
   );
 
@@ -168,15 +159,11 @@ export function useUpholsteryPickerController(searchQuery: string) {
         searchResultsQuery.data?.upholsteries ?? [],
         selectedExternalProviders,
       );
-      const externalItems = filterItemsBySelectedProviders(
-        externalSearchQuery.data?.upholsteries ?? [],
-        selectedExternalProviders,
-      );
 
       return {
         upholsteries: mergePickerResults(
           dbItems,
-          externalItems,
+          externalSearchQuery.upholsteries,
           getClientIdForExternal,
         ),
         isLoading:
@@ -207,8 +194,8 @@ export function useUpholsteryPickerController(searchQuery: string) {
     activeFilter,
     searchResultsQuery.data,
     searchResultsQuery.isFetching,
-    externalSearchQuery.data,
     externalSearchQuery.isFetching,
+    externalSearchQuery.upholsteries,
     selectedExternalProviders,
     inStockQuery.data,
     inStockQuery.isPending,

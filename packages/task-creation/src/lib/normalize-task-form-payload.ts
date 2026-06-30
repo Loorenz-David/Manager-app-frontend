@@ -234,6 +234,13 @@ export function normalizeWorkerInternalFormPayload(
     working_section_id: defaultWoodFixSectionId,
   });
 
+  if (values.needs_photo_assignment?.working_section_id) {
+    dedupedSteps.set(values.needs_photo_assignment.working_section_id, {
+      working_section_id: values.needs_photo_assignment.working_section_id,
+      worker_id: values.needs_photo_assignment.assigned_worker_id || undefined,
+    });
+  }
+
   if (values.needs_cleaning_assignment?.working_section_id) {
     dedupedSteps.set(values.needs_cleaning_assignment.working_section_id, {
       working_section_id: values.needs_cleaning_assignment.working_section_id,

@@ -27,9 +27,11 @@ import {
 } from "@beyo/scanner";
 import { useCreateTask } from "@beyo/tasks";
 import {
+  NeedsPhotoPickerField,
   NeedsCleaningPickerField,
   OilingTreatmentPickerField,
   resolveDefaultWoodFixSection,
+  useNeedsPhotoPickerFlow,
   useNeedsCleaningPickerFlow,
   useOilingTreatmentPickerFlow,
   useWorkingSectionPickerFlow,
@@ -78,6 +80,7 @@ function buildDefaultValues(): WorkerInternalFormValues {
     },
     item_issues: [],
     item_issue_selection_draft: {},
+    needs_photo_assignment: null,
     needs_cleaning_assignment: null,
     oiling_treatment_assignment: [],
   };
@@ -101,6 +104,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     () => resolveDefaultWoodFixSection(workingSectionsFlow.options),
     [workingSectionsFlow.options],
   );
+  const photoFlow = useNeedsPhotoPickerFlow();
   const cleaningFlow = useNeedsCleaningPickerFlow();
   const oilingFlow = useOilingTreatmentPickerFlow();
   const hasAutoAppliedDefaultsRef = useRef(false);
@@ -141,10 +145,22 @@ export function WorkerInternalFormContent(): React.JSX.Element {
 
   useEffect(() => {
     if (hasAutoAppliedDefaultsRef.current) return;
-    if (cleaningFlow.isLoading || oilingFlow.isLoading) return;
-    if (cleaningFlow.sections.length === 0 && oilingFlow.sections.length === 0) return;
+    if (photoFlow.isLoading || cleaningFlow.isLoading || oilingFlow.isLoading) return;
+    if (
+      photoFlow.sections.length === 0 &&
+      cleaningFlow.sections.length === 0 &&
+      oilingFlow.sections.length === 0
+    ) return;
 
     hasAutoAppliedDefaultsRef.current = true;
+
+    if (photoFlow.sections.length > 0) {
+      form.setValue(
+        "needs_photo_assignment",
+        { working_section_id: photoFlow.sections[0].client_id, assigned_worker_id: null },
+        { shouldDirty: false },
+      );
+    }
 
     if (cleaningFlow.sections.length > 0) {
       form.setValue(
@@ -161,7 +177,15 @@ export function WorkerInternalFormContent(): React.JSX.Element {
         { shouldDirty: false },
       );
     }
-  }, [cleaningFlow.isLoading, cleaningFlow.sections, oilingFlow.isLoading, oilingFlow.sections, form]);
+  }, [
+    cleaningFlow.isLoading,
+    cleaningFlow.sections,
+    form,
+    oilingFlow.isLoading,
+    oilingFlow.sections,
+    photoFlow.isLoading,
+    photoFlow.sections,
+  ]);
 
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
@@ -334,6 +358,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
             </ContentCard>
 
             <ContentCard>
+              <NeedsPhotoPickerField />
               <NeedsCleaningPickerField />
               <OilingTreatmentPickerField />
             </ContentCard>

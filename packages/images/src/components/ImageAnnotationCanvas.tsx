@@ -1,6 +1,14 @@
-import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { Arrow, Ellipse, Layer, Line, Rect, Stage, Text as KonvaText } from 'react-konva';
-import type { KonvaEventObject } from 'konva/lib/Node';
+import { forwardRef, useImperativeHandle, useRef, useState } from "react";
+import {
+  Arrow,
+  Ellipse,
+  Layer,
+  Line,
+  Rect,
+  Stage,
+  Text as KonvaText,
+} from "react-konva";
+import type { KonvaEventObject } from "konva/lib/Node";
 
 import type {
   AnnotatedCanvasItem,
@@ -11,11 +19,11 @@ import type {
   ImageAnnotationTool,
   ImageAnnotationItemData,
   RectangleAnnotationData,
-} from '../types';
+} from "../types";
 
-const TOOL_COLOR = '#ff5a36';
-const TOOL_HIGHLIGHT = '#facc15';
-const TOOL_STROKE_WIDTH = 3;
+const TOOL_COLOR = "#ff5a36";
+const TOOL_HIGHLIGHT = "#facc15";
+const TOOL_STROKE_WIDTH = 7;
 
 type Point = {
   x: number;
@@ -73,7 +81,7 @@ function renderAnnotation(
     : {};
 
   switch (annotation.tool) {
-    case 'draw':
+    case "draw":
       return (
         <Line
           key={key}
@@ -82,14 +90,16 @@ function renderAnnotation(
           lineCap="round"
           lineJoin="round"
           points={annotation.points.map((value, index) =>
-            index % 2 === 0 ? denormalizeX(value, width) : denormalizeY(value, height),
+            index % 2 === 0
+              ? denormalizeX(value, width)
+              : denormalizeY(value, height),
           )}
           stroke={annotation.color}
           strokeWidth={annotation.strokeWidth}
           tension={0.2}
         />
       );
-    case 'arrow':
+    case "arrow":
       return (
         <Arrow
           key={key}
@@ -108,7 +118,7 @@ function renderAnnotation(
           strokeWidth={annotation.strokeWidth}
         />
       );
-    case 'circle':
+    case "circle":
       return (
         <Ellipse
           key={key}
@@ -121,7 +131,7 @@ function renderAnnotation(
           y={denormalizeY(annotation.centerY, height)}
         />
       );
-    case 'rectangle':
+    case "rectangle":
       return (
         <Rect
           key={key}
@@ -134,7 +144,7 @@ function renderAnnotation(
           y={denormalizeY(annotation.y, height)}
         />
       );
-    case 'text':
+    case "text":
       return (
         <KonvaText
           key={key}
@@ -146,7 +156,7 @@ function renderAnnotation(
           y={denormalizeY(annotation.y, height)}
         />
       );
-    case 'highlight':
+    case "highlight":
       return (
         <Rect
           key={key}
@@ -162,22 +172,30 @@ function renderAnnotation(
   }
 }
 
-export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, ImageAnnotationCanvasProps>(function ImageAnnotationCanvas({
-  width,
-  height,
-  activeTool,
-  annotations,
-  onAnnotationComplete,
-  onAnnotationTap,
-  onTextPlacementRequest,
-}: ImageAnnotationCanvasProps, ref): React.JSX.Element {
+export const ImageAnnotationCanvas = forwardRef<
+  ImageAnnotationCanvasHandle,
+  ImageAnnotationCanvasProps
+>(function ImageAnnotationCanvas(
+  {
+    width,
+    height,
+    activeTool,
+    annotations,
+    onAnnotationComplete,
+    onAnnotationTap,
+    onTextPlacementRequest,
+  }: ImageAnnotationCanvasProps,
+  ref,
+): React.JSX.Element {
   const isDrawingRef = useRef(false);
   const isInteractionEnabledRef = useRef(true);
   const [draftPoints, setDraftPoints] = useState<number[]>([]);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);
 
-  function getPointerPosition(event: KonvaEventObject<MouseEvent | TouchEvent>): Point | null {
+  function getPointerPosition(
+    event: KonvaEventObject<MouseEvent | TouchEvent>,
+  ): Point | null {
     return event.target.getStage()?.getPointerPosition() ?? null;
   }
 
@@ -203,7 +221,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
     [],
   );
 
-  function handlePointerStart(event: KonvaEventObject<MouseEvent | TouchEvent>): void {
+  function handlePointerStart(
+    event: KonvaEventObject<MouseEvent | TouchEvent>,
+  ): void {
     if (!isInteractionEnabledRef.current) {
       return;
     }
@@ -214,14 +234,14 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
       return;
     }
 
-    if (activeTool === 'text') {
+    if (activeTool === "text") {
       onTextPlacementRequest(toNormalizedPoint(point, width, height));
       return;
     }
 
     isDrawingRef.current = true;
 
-    if (activeTool === 'draw') {
+    if (activeTool === "draw") {
       setDraftPoints([point.x, point.y]);
       return;
     }
@@ -230,7 +250,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
     setCurrentPoint(point);
   }
 
-  function handlePointerMove(event: KonvaEventObject<MouseEvent | TouchEvent>): void {
+  function handlePointerMove(
+    event: KonvaEventObject<MouseEvent | TouchEvent>,
+  ): void {
     if (!isInteractionEnabledRef.current) {
       return;
     }
@@ -245,7 +267,7 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
       return;
     }
 
-    if (activeTool === 'draw') {
+    if (activeTool === "draw") {
       setDraftPoints((current) => [...current, point.x, point.y]);
       return;
     }
@@ -262,10 +284,10 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
       return;
     }
 
-    if (activeTool === 'draw') {
+    if (activeTool === "draw") {
       if (draftPoints.length >= 4) {
         const item: DrawAnnotationData = {
-          tool: 'draw',
+          tool: "draw",
           points: draftPoints.map((value, index) =>
             index % 2 === 0 ? value / width : value / height,
           ),
@@ -295,9 +317,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
       | null = null;
 
     switch (activeTool) {
-      case 'arrow':
+      case "arrow":
         item = {
-          tool: 'arrow',
+          tool: "arrow",
           fromX: start.x,
           fromY: start.y,
           toX: end.x,
@@ -306,9 +328,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
           strokeWidth: TOOL_STROKE_WIDTH,
         };
         break;
-      case 'circle':
+      case "circle":
         item = {
-          tool: 'circle',
+          tool: "circle",
           centerX: (start.x + end.x) / 2,
           centerY: (start.y + end.y) / 2,
           radiusX: Math.abs(end.x - start.x) / 2,
@@ -317,9 +339,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
           strokeWidth: TOOL_STROKE_WIDTH,
         };
         break;
-      case 'rectangle':
+      case "rectangle":
         item = {
-          tool: 'rectangle',
+          tool: "rectangle",
           x: Math.min(start.x, end.x),
           y: Math.min(start.y, end.y),
           width: Math.abs(end.x - start.x),
@@ -328,9 +350,9 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
           strokeWidth: TOOL_STROKE_WIDTH,
         };
         break;
-      case 'highlight':
+      case "highlight":
         item = {
-          tool: 'highlight',
+          tool: "highlight",
           x: Math.min(start.x, end.x),
           y: Math.min(start.y, end.y),
           width: Math.abs(end.x - start.x),
@@ -339,7 +361,7 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
           opacity: 0.35,
         };
         break;
-      case 'text':
+      case "text":
         break;
     }
 
@@ -351,11 +373,11 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
   }
 
   const previewShape =
-    startPoint && currentPoint && activeTool !== 'draw' && activeTool !== 'text'
+    startPoint && currentPoint && activeTool !== "draw" && activeTool !== "text"
       ? renderAnnotation(
-          activeTool === 'arrow'
+          activeTool === "arrow"
             ? {
-                tool: 'arrow',
+                tool: "arrow",
                 fromX: startPoint.x / width,
                 fromY: startPoint.y / height,
                 toX: currentPoint.x / width,
@@ -363,19 +385,21 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
                 color: TOOL_COLOR,
                 strokeWidth: TOOL_STROKE_WIDTH,
               }
-            : activeTool === 'circle'
+            : activeTool === "circle"
               ? {
-                  tool: 'circle',
+                  tool: "circle",
                   centerX: (startPoint.x + currentPoint.x) / (2 * width),
                   centerY: (startPoint.y + currentPoint.y) / (2 * height),
-                  radiusX: Math.abs(currentPoint.x - startPoint.x) / (2 * width),
-                  radiusY: Math.abs(currentPoint.y - startPoint.y) / (2 * height),
+                  radiusX:
+                    Math.abs(currentPoint.x - startPoint.x) / (2 * width),
+                  radiusY:
+                    Math.abs(currentPoint.y - startPoint.y) / (2 * height),
                   color: TOOL_COLOR,
                   strokeWidth: TOOL_STROKE_WIDTH,
                 }
-              : activeTool === 'rectangle'
+              : activeTool === "rectangle"
                 ? {
-                    tool: 'rectangle',
+                    tool: "rectangle",
                     x: Math.min(startPoint.x, currentPoint.x) / width,
                     y: Math.min(startPoint.y, currentPoint.y) / height,
                     width: Math.abs(currentPoint.x - startPoint.x) / width,
@@ -384,7 +408,7 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
                     strokeWidth: TOOL_STROKE_WIDTH,
                   }
                 : {
-                    tool: 'highlight',
+                    tool: "highlight",
                     x: Math.min(startPoint.x, currentPoint.x) / width,
                     y: Math.min(startPoint.y, currentPoint.y) / height,
                     width: Math.abs(currentPoint.x - startPoint.x) / width,
@@ -394,7 +418,7 @@ export const ImageAnnotationCanvas = forwardRef<ImageAnnotationCanvasHandle, Ima
                   },
           width,
           height,
-          'annotation-preview',
+          "annotation-preview",
         )
       : null;
 

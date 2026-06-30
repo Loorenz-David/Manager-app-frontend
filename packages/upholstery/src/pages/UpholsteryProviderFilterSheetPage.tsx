@@ -32,6 +32,11 @@ const PROVIDER_OPTIONS: Array<{
     label: "Fargotex",
     description: "Search Fargotex upholstery catalog.",
   },
+  {
+    value: "selfmade",
+    label: "Selfmade",
+    description: "Search Selfmade upholstery catalog.",
+  },
 ];
 
 function normalizeSelection(
