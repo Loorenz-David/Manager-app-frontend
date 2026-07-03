@@ -65,6 +65,7 @@ function buildOptimisticListItem(
       secondary_phone_number: null,
       primary_email: (payload.primary_email as string | null) ?? null,
       secondary_email: null,
+      assortment: null,
       address:
         (payload.customer_address as Record<string, unknown> | null) ?? null,
       created_at: now,
@@ -72,6 +73,7 @@ function buildOptimisticListItem(
       closed_at: null,
       is_deleted: false,
       deleted_at: null,
+      post_handling: null,
     },
     primary_item: itemPayload
       ? {

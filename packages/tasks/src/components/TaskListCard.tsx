@@ -37,6 +37,8 @@ export type TaskListCardProps = {
   onTapActions?: (taskId: string, itemId: string | null) => void;
   onTapCard?: (taskId: string) => void;
   bottomAction?: React.ReactNode;
+  statePill?: { label: string; variant: StatePillVariant };
+  typeIcon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   batchMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (taskId: string) => void;
@@ -51,11 +53,14 @@ export const TaskListCard = memo(function TaskListCard({
   onTapActions,
   onTapCard,
   bottomAction,
+  statePill,
+  typeIcon,
   batchMode = false,
   isSelected = false,
   onToggleSelect,
 }: TaskListCardProps): React.JSX.Element {
   const TypeIcon: LucideIcon = TASK_TYPE_ICON[task.task_type] ?? ShoppingBag;
+  const ResolvedTypeIcon = typeIcon ?? TypeIcon;
   const typeLabel = TASK_TYPE_LABEL[task.task_type] ?? task.task_type;
   const returnSourceLabel = task.return_source
     ? (RETURN_SOURCE_LABEL[task.return_source] ?? null)
@@ -142,7 +147,10 @@ export const TaskListCard = memo(function TaskListCard({
             </span>
 
             {!batchMode ? (
-              <StatePill label={stateLabel} variant={stateVariant} />
+              <StatePill
+                label={statePill?.label ?? stateLabel}
+                variant={statePill?.variant ?? stateVariant}
+              />
             ) : null}
 
             {!batchMode && onTapActions ? (
@@ -174,7 +182,7 @@ export const TaskListCard = memo(function TaskListCard({
           </div>
 
           <div className="mt-2 flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-            <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
+            <ResolvedTypeIcon aria-hidden="true" className="size-4 shrink-0" />
             <span className="min-w-0 flex-1 truncate">
               {typeLabel}
               {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}

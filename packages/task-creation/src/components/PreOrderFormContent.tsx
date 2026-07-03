@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { AuthRole, useRole } from "@beyo/auth";
 import {
   CustomerAddressFieldGroup,
   CustomerDisplayNameField,
@@ -114,6 +115,8 @@ export function PreOrderFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const { hasRole } = useRole();
+  const isSeller = hasRole(AuthRole.Seller);
 
   usePreloadSurface(preloadCalendarRangePickerSurface);
   usePreloadSurface(preloadCalendarSinglePickerSurface);
@@ -248,13 +251,15 @@ export function PreOrderFormContent(): React.JSX.Element {
     } satisfies ScannerSlideSurfaceProps);
   }
 
+  const steps = [
+    { id: "task", title: "Task" },
+    { id: "customer", title: "Customer" },
+    ...(!isSeller ? ([{ id: "assignment", title: "Assignment" }] as const) : []),
+    { id: "details", title: "Details" },
+  ];
+
   const staged = useStagedForm({
-    steps: [
-      { id: "task", title: "Task" },
-      { id: "customer", title: "Customer" },
-      { id: "assignment", title: "Assignment" },
-      { id: "details", title: "Details" },
-    ],
+    steps,
     mode: "free",
     onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
       if (currentStepId === "details") {
@@ -277,7 +282,7 @@ export function PreOrderFormContent(): React.JSX.Element {
             setStatus("customer", "error");
             firstErrorStep ??= "customer";
           }
-          if (errors.working_section_assignments) {
+          if (!isSeller && errors.working_section_assignments) {
             setStatus("assignment", "error");
             firstErrorStep ??= "assignment";
           }
@@ -365,7 +370,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           errors.scheduled_start_at ??
           errors.scheduled_end_at,
       ),
-      assignment: Boolean(errors.working_section_assignments),
+      assignment: Boolean(!isSeller && errors.working_section_assignments),
       details: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
     } as const;
 
@@ -468,16 +473,18 @@ export function PreOrderFormContent(): React.JSX.Element {
             </div>
           </StagedFormStep>
 
-          <StagedFormStep id="assignment" className="px-0">
-            <div className="flex flex-col gap-4">
-              <ContentCard>
-                <WorkingSectionPickerField
-                  majorCategory={majorCategory}
-                  showShortcutBar={false}
-                />
-              </ContentCard>
-            </div>
-          </StagedFormStep>
+          {!isSeller ? (
+            <StagedFormStep id="assignment" className="px-0">
+              <div className="flex flex-col gap-4">
+                <ContentCard>
+                  <WorkingSectionPickerField
+                    majorCategory={majorCategory}
+                    showShortcutBar={false}
+                  />
+                </ContentCard>
+              </div>
+            </StagedFormStep>
+          ) : null}
 
           <StagedFormStep id="details" className="px-0">
             <EntityImagesProvider

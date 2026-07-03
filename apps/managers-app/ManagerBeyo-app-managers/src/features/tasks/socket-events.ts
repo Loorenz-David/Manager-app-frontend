@@ -14,6 +14,10 @@ export const taskSocketEvents: SocketEventHandlers = {
       queryKey: quickTaskKeys.all,
       refetchType: "active",
     });
+    queryClient.invalidateQueries({
+      queryKey: taskKeys.postHandling(),
+      refetchType: "active",
+    });
   },
 
   "task:updated": (payloads, { queryClient }) => {
@@ -26,6 +30,10 @@ export const taskSocketEvents: SocketEventHandlers = {
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
       refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: taskKeys.postHandling(),
+      refetchType: "all",
     });
     queryClient.invalidateQueries({
       queryKey: quickTaskKeys.all,
@@ -57,6 +65,10 @@ export const taskSocketEvents: SocketEventHandlers = {
     queryClient.invalidateQueries({
       queryKey: taskKeys.lists(),
       refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: taskKeys.postHandling(),
+      refetchType: "all",
     });
     queryClient.invalidateQueries({
       queryKey: quickTaskKeys.all,

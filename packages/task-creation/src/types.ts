@@ -74,6 +74,7 @@ const ReturnCustomerFieldsSchema = z.object({
 
 export const ReturnFormSchema = z
   .object({
+    assortment: z.string().optional(),
     item: ItemDetailsFieldsSchema,
     item_upholstery: ItemUpholsteryFieldsSchema,
     item_issues: ItemIssuesFieldsSchema.shape.item_issues,

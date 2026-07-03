@@ -24,7 +24,7 @@ export function ItemPositionField(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <FieldLabelRow htmlFor="item-position" label="Position">
+      <FieldLabelRow htmlFor="item-position" label="Current Position">
         <FieldErrorPill data-testid="item-position-error" message={error} />
       </FieldLabelRow>
       <TextInput

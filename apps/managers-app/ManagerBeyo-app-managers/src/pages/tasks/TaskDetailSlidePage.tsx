@@ -163,6 +163,8 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             />
             <TaskScheduledDeliverySection
               onOpenDeliveryDate={controller.openDeliveryDateSheet}
+              onOpenAssortment={controller.openAssortmentSheet}
+              onOpenFulfillmentMethod={controller.openFulfillmentMethodSheet}
               taskDetail={controller.taskDetail}
             />
           </DashedInfoGroup>

@@ -172,6 +172,7 @@ export function normalizeReturnFormPayload(
     scheduled_start_at: values.scheduled_start_at || undefined,
     scheduled_end_at: values.scheduled_end_at || undefined,
     ready_by_at: values.ready_by_at || undefined,
+    assortment: toOptionalString(values.assortment),
     ...(!isStoreReturn ? buildCustomerFields(values.customer) : {}),
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),

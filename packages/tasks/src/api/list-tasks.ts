@@ -37,6 +37,9 @@ export async function listTasks(params: ListTasksFullParams): Promise<ListTasksR
   if (params.upholstery_requirement_states) {
     queryParams.upholstery_requirement_states = params.upholstery_requirement_states;
   }
+  if (params.post_handling_states) {
+    queryParams.post_handling_states = params.post_handling_states;
+  }
   if (params.deleted != null) queryParams.deleted = params.deleted;
   if (params.order_by) queryParams.order_by = params.order_by;
 

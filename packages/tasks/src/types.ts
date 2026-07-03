@@ -166,6 +166,11 @@ export const TASK_RETURN_SOURCE = [
 ] as const;
 export const TASK_ITEM_LOCATION = ["store", "customer"] as const;
 export const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
+export const POST_HANDLING_STATE = [
+  "pending",
+  "filled",
+  "completed",
+] as const;
 
 export type TaskType = (typeof TASK_TYPE)[number];
 export type TaskPriority = (typeof TASK_PRIORITY)[number];
@@ -174,6 +179,7 @@ export type TaskReturnMethod = (typeof TASK_RETURN_METHOD)[number];
 export type TaskReturnSource = (typeof TASK_RETURN_SOURCE)[number];
 export type TaskItemLocation = (typeof TASK_ITEM_LOCATION)[number];
 export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
+export type PostHandlingState = (typeof POST_HANDLING_STATE)[number];
 
 export const TaskNoteContentBlockSchema = z
   .object({
@@ -189,6 +195,15 @@ export const ImageLightSchema = z.object({
   file_size_bytes: z.number().nullable().optional(),
 });
 export type ImageLight = z.infer<typeof ImageLightSchema>;
+
+export const TaskPostHandlingSchema = z.object({
+  client_id: z.string(),
+  task_id: z.string(),
+  state: z.enum(POST_HANDLING_STATE),
+  created_at: z.string().datetime({ offset: true }),
+  updated_at: z.string().datetime({ offset: true }).nullable(),
+});
+export type TaskPostHandling = z.infer<typeof TaskPostHandlingSchema>;
 
 export const TaskDetailRawSchema = z.object({
   task: z.object({
@@ -212,12 +227,14 @@ export const TaskDetailRawSchema = z.object({
     secondary_phone_number: z.string().nullable(),
     primary_email: z.string().nullable(),
     secondary_email: z.string().nullable(),
+    assortment: z.string().nullable(),
     address: AddressSchema,
     created_at: z.string().datetime({ offset: true }),
     updated_at: z.string().datetime({ offset: true }).nullable(),
     closed_at: z.string().datetime({ offset: true }).nullable(),
     is_deleted: z.boolean(),
     deleted_at: z.string().datetime({ offset: true }).nullable(),
+    post_handling: z.array(TaskPostHandlingSchema),
   }),
   item: z
     .object({
@@ -271,12 +288,14 @@ export const TaskListItemRawSchema = z.object({
     secondary_phone_number: z.string().nullable(),
     primary_email: z.string().nullable(),
     secondary_email: z.string().nullable(),
+    assortment: z.string().nullable(),
     address: z.unknown().nullable(),
     created_at: z.string(),
     updated_at: z.string().nullable(),
     closed_at: z.string().nullable(),
     is_deleted: z.boolean(),
     deleted_at: z.string().nullable(),
+    post_handling: z.array(TaskPostHandlingSchema).nullable(),
   }),
   primary_item: z
     .object({
@@ -329,6 +348,7 @@ export type ListTasksFullParams = {
   scheduled_from_date?: string;
   scheduled_to_date?: string;
   upholstery_requirement_states?: string;
+  post_handling_states?: string;
   deleted?: boolean;
   order_by?: string;
 };

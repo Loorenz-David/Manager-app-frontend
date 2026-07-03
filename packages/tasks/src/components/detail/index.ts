@@ -1,7 +1,9 @@
 export { TaskBodyCategoryRow } from "./TaskBodyCategoryRow";
+export { TaskAssortmentPill } from "./TaskAssortmentPill";
 export { TaskCustomerSection } from "./TaskCustomerSection";
 export { TaskDetailBottomActions } from "./TaskDetailBottomActions";
 export { TaskDetailHeader } from "./TaskDetailHeader";
+export { TaskFulfillmentMethodPill } from "./TaskFulfillmentMethodPill";
 export { TaskImagesSection } from "./TaskImagesSection";
 export { TaskReadyByAtPill } from "./TaskReadyByAtPill";
 export { TaskScheduledDeliveryDatePill } from "./TaskScheduledDeliveryDatePill";

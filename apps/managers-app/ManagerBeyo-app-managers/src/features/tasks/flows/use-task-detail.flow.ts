@@ -1,6 +1,8 @@
 import { useMemo } from "react";
 
 import {
+  TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
 } from "@beyo/tasks";
@@ -54,6 +56,10 @@ export function useTaskDetailFlow(
     },
     openReadyByAtSheet: () =>
       surface.open(TASK_READY_BY_AT_SHEET_SURFACE_ID, { taskId }),
+    openAssortmentSheet: () =>
+      surface.open(TASK_ASSORTMENT_SHEET_SURFACE_ID, { taskId }),
+    openFulfillmentMethodSheet: () =>
+      surface.open(TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID, { taskId }),
     openDeliveryDateSheet: () =>
       surface.open(TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID, { taskId }),
     openEditTask: () => surface.open(TASK_EDIT_SLIDE_SURFACE_ID, { taskId }),

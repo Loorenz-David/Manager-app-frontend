@@ -6,6 +6,7 @@ import type { Address } from "@beyo/lib";
 import type { StatePillVariant } from "@beyo/ui";
 
 import type {
+  PostHandlingState,
   TaskFlowRecord,
   TaskPriority,
   TaskReturnSource,
@@ -30,6 +31,15 @@ export const TASK_PRIORITY_VARIANT: Record<TaskPriority, StatePillVariant> = {
   normal: "active",
   high: "warning",
   urgent: "danger",
+};
+
+export const POST_HANDLING_STATE_VARIANT: Record<
+  PostHandlingState,
+  StatePillVariant
+> = {
+  pending: "warning",
+  filled: "success",
+  completed: "neutral",
 };
 
 export const TASK_TYPE_LABEL: Record<TaskType, string> = {

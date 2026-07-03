@@ -3,8 +3,18 @@ import {
   type ItemPositionSheetSurfaceProps,
 } from "@beyo/items";
 import {
+  TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_SLIDE_SURFACE_ID,
+  TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  loadTaskAssortmentSheetPage,
+  loadTaskPostHandlingFilterSheetPage,
+  loadPostHandlingPendingWarningSheetPage,
+  loadTaskFulfillmentMethodSheetPage,
+  loadTaskPostHandlingSlidePage,
   loadTaskReadyByAtSheetPage,
   loadTaskScheduledDeliverySheetPage,
 } from "@beyo/tasks";
@@ -136,7 +146,6 @@ function loadTaskEditSlidePage() {
   }));
 }
 
-
 function loadPinNotificationsSlidePage() {
   return import("@/pages/tasks/PinNotificationsSlidePage").then((module) => ({
     default: module.PinNotificationsSlidePage,
@@ -153,8 +162,19 @@ const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
 const taskFilterSheet = lazyWithPreload(loadTaskFilterSheetPage);
 const taskReadyByAtSheet = lazyWithPreload(loadTaskReadyByAtSheetPage);
+const taskAssortmentSheet = lazyWithPreload(loadTaskAssortmentSheetPage);
+const taskFulfillmentMethodSheet = lazyWithPreload(
+  loadTaskFulfillmentMethodSheetPage,
+);
 const taskScheduledDeliverySheet = lazyWithPreload(
   loadTaskScheduledDeliverySheetPage,
+);
+const taskPostHandlingSlide = lazyWithPreload(loadTaskPostHandlingSlidePage);
+const taskPostHandlingFilterSheet = lazyWithPreload(
+  loadTaskPostHandlingFilterSheetPage,
+);
+const taskPostHandlingPendingWarningSheet = lazyWithPreload(
+  loadPostHandlingPendingWarningSheetPage,
 );
 const itemQuantitySheet = lazyWithPreload(loadItemQuantitySheetPage);
 const itemPositionSheet = lazyWithPreload(() =>
@@ -191,8 +211,15 @@ export const preloadPinTaskStepStatesSheetSurface =
 export const preloadTaskNotesSheetSurface = taskNotesSheet.preload;
 export const preloadTaskNoteUnreadViewerSurface =
   taskNoteUnreadViewer.preload;
+export const preloadTaskPostHandlingPendingWarningSheetSurface =
+  taskPostHandlingPendingWarningSheet.preload;
 
 export {
+  TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID,
+  TASK_POST_HANDLING_SLIDE_SURFACE_ID,
+  TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
 } from "@beyo/tasks";
@@ -202,6 +229,11 @@ export {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "@beyo/task-working-sections";
 export type {
+  TaskAssortmentSheetSurfaceProps,
+  TaskPostHandlingFilterSheetSurfaceProps,
+  TaskFulfillmentMethodSheetSurfaceProps,
+  TaskPostHandlingPendingWarningSheetSurfaceProps,
+  TaskPostHandlingSlideSurfaceProps,
   TaskReadyByAtSheetSurfaceProps,
   TaskScheduledDeliverySheetSurfaceProps,
 } from "@beyo/tasks";
@@ -230,9 +262,29 @@ export const taskSurfaces: SurfaceRegistrations = {
     surface: "sheet",
     component: taskReadyByAtSheet.Component,
   },
+  [TASK_ASSORTMENT_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskAssortmentSheet.Component,
+  },
+  [TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskFulfillmentMethodSheet.Component,
+  },
   [TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: taskScheduledDeliverySheet.Component,
+  },
+  [TASK_POST_HANDLING_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: taskPostHandlingSlide.Component,
+  },
+  [TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskPostHandlingFilterSheet.Component,
+  },
+  [TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskPostHandlingPendingWarningSheet.Component,
   },
   [ITEM_QUANTITY_SHEET_SURFACE_ID]: {
     surface: "sheet",

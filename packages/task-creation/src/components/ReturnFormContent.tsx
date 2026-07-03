@@ -2,6 +2,7 @@ import { useEffect, useEffectEvent, useRef } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
+import { AuthRole, useRole } from "@beyo/auth";
 import {
   CustomerAddressFieldGroup,
   CustomerDisplayNameField,
@@ -32,6 +33,7 @@ import {
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
 import {
+  TaskAssortmentField,
   TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
@@ -83,7 +85,7 @@ import {
 } from "../surfaces";
 
 const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
-  task: ["return_source", "item", "item_upholstery"],
+  task: ["return_source", "item", "item_upholstery", "assortment"],
   customer: [
     "customer",
     "fulfillment_method",
@@ -116,6 +118,8 @@ export function ReturnFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const { hasRole } = useRole();
+  const isSeller = hasRole(AuthRole.Seller);
 
   usePreloadSurface(preloadCalendarRangePickerSurface);
   usePreloadSurface(preloadCalendarSinglePickerSurface);
@@ -142,6 +146,7 @@ export function ReturnFormContent(): React.JSX.Element {
     mode: "onChange",
     reValidateMode: "onChange",
     defaultValues: {
+      assortment: undefined,
       item: {
         designer: "",
         article_number: "",
@@ -244,7 +249,7 @@ export function ReturnFormContent(): React.JSX.Element {
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
-  const hasAssignmentStep = returnSource === "before_purchase";
+  const hasAssignmentStep = returnSource === "before_purchase" && !isSeller;
   const shouldShowTaskQuantity = majorCategory === "seat";
   const shouldShowTaskUpholstery =
     majorCategory === "seat" &&
@@ -375,6 +380,7 @@ export function ReturnFormContent(): React.JSX.Element {
             },
           },
           return_source: undefined,
+          assortment: undefined,
           fulfillment_method: undefined,
           scheduled_start_at: null,
           scheduled_end_at: null,
@@ -465,6 +471,7 @@ export function ReturnFormContent(): React.JSX.Element {
                   onOpenScanner={handleOpenScanner}
                 />
                 <ItemPositionField />
+                {returnSource === "store_return" ? <TaskAssortmentField /> : null}
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />

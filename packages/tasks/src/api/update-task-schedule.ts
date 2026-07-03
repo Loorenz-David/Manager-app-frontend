@@ -21,7 +21,7 @@ export async function updateTaskSchedule({
   scheduled_end_at,
 }: UpdateTaskScheduleInput) {
   return apiClient.patch(
-    `/api/v1/tasks/${taskId}/schedule`,
+    `/api/v1/tasks/${taskId}/post-handling`,
     UpdateTaskScheduleResponseSchema,
     { scheduled_start_at, scheduled_end_at },
   );

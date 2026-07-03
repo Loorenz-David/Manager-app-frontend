@@ -19,7 +19,7 @@ export function TaskScheduledDeliveryDatePill({
   if (onPress) {
     return (
       <div className="flex flex-col gap-1.5">
-        <EyebrowLabel>Delivery window</EyebrowLabel>
+        <EyebrowLabel>Window</EyebrowLabel>
         <button
           className="inline-flex rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           data-testid="task-delivery-window-pill"
