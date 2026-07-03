@@ -15,6 +15,7 @@ GOAL:
 make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
 
 
+
 RELEVANT FILES:
 
 manager task components:
