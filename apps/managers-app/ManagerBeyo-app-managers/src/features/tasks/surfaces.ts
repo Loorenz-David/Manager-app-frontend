@@ -3,13 +3,31 @@ import {
   type ItemPositionSheetSurfaceProps,
 } from "@beyo/items";
 import {
+  ITEM_QUANTITY_SHEET_SURFACE_ID,
+  ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
+  PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
+  PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
+  TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_DETAIL_SURFACE_ID,
+  TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
+  TASK_FILTER_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_SLIDE_SURFACE_ID,
   TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  TASK_EDIT_SLIDE_SURFACE_ID,
+  loadItemQuantitySheetPage,
+  loadItemUpholsteryAmountSheetPage,
+  loadPinNotificationsSlidePage,
+  loadPinTaskStepStatesSheetPage,
+  loadTaskDetailMenuSheetPage,
+  loadTaskEditSlidePage,
+  loadTaskFilterSheetPage,
+  loadTaskFlowRecordDetailSheetPage,
+  loadTaskDetailSlidePage,
   loadTaskAssortmentSheetPage,
   loadTaskPostHandlingFilterSheetPage,
   loadPostHandlingPendingWarningSheetPage,
@@ -35,128 +53,7 @@ import {
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 import { lazyWithPreload } from "@beyo/ui";
 
-export const TASK_DETAIL_SURFACE_ID = "task-detail-slide";
-export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";
-export const TASK_FILTER_SHEET_SURFACE_ID = "task-filter-sheet";
-export const ITEM_QUANTITY_SHEET_SURFACE_ID = "item-quantity-sheet";
-export const ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID =
-  "item-upholstery-amount-sheet";
-export const TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID =
-  "task-flow-record-detail-sheet";
-export const TASK_EDIT_SLIDE_SURFACE_ID = "task-edit-slide";
-export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
-  "task-pin-notifications-slide";
-export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
-  "task-pin-step-states-sheet";
-
-export type TaskDetailSurfaceProps = {
-  taskId: string;
-};
-
-export type TaskActionsSurfaceProps = {
-  taskId: string;
-  itemId?: string | null;
-};
-
-export type ItemQuantitySurfaceProps = {
-  taskId: string;
-  itemId: string;
-  prefill?: {
-    quantity: number;
-  };
-};
-
 export type ItemPositionSurfaceProps = ItemPositionSheetSurfaceProps;
-
-export type ItemUpholsteryAmountSurfaceProps = {
-  taskId: string;
-  itemUpholsteryId: string;
-  showQuantityChangedWarning?: boolean;
-  prefill?: {
-    amountMeters: number | null;
-  };
-};
-
-export type TaskFlowRecordDetailSurfaceProps = {
-  taskId: string;
-  flowRecordId: string;
-};
-
-export type TaskEditSurfaceProps = {
-  taskId: string;
-};
-
-export type PinNotificationsSlideSurfaceProps = {
-  taskId: string;
-  itemId?: string | null;
-};
-
-export type PinTaskStepStatesSheetSurfaceProps = {
-  stepId: string;
-  label: string;
-  imageUrl?: string | null;
-  currentState: string;
-  selectedStates: string[];
-  onApply: (states: string[]) => void;
-};
-
-function loadTaskDetailSlidePage() {
-  return import("@/pages/tasks/TaskDetailSlidePage").then((module) => ({
-    default: module.TaskDetailSlidePage,
-  }));
-}
-
-function loadTaskDetailMenuSheetPage() {
-  return import("@/pages/tasks/TaskDetailMenuSheetPage").then((module) => ({
-    default: module.TaskDetailMenuSheetPage,
-  }));
-}
-
-function loadTaskFilterSheetPage() {
-  return import("@/pages/tasks/TaskFilterSheetPage").then((module) => ({
-    default: module.TaskFilterSheetPage,
-  }));
-}
-
-function loadItemQuantitySheetPage() {
-  return import("@/pages/tasks/ItemQuantitySheetPage").then((module) => ({
-    default: module.ItemQuantitySheetPage,
-  }));
-}
-
-function loadItemUpholsteryAmountSheetPage() {
-  return import("@/pages/tasks/ItemUpholsteryAmountSheetPage").then(
-    (module) => ({
-      default: module.ItemUpholsteryAmountSheetPage,
-    }),
-  );
-}
-
-function loadTaskFlowRecordDetailSheetPage() {
-  return import("@/pages/tasks/TaskFlowRecordDetailSheetPage").then(
-    (module) => ({
-      default: module.TaskFlowRecordDetailSheetPage,
-    }),
-  );
-}
-
-function loadTaskEditSlidePage() {
-  return import("@/pages/tasks/TaskEditSlidePage").then((module) => ({
-    default: module.TaskEditSlidePage,
-  }));
-}
-
-function loadPinNotificationsSlidePage() {
-  return import("@/pages/tasks/PinNotificationsSlidePage").then((module) => ({
-    default: module.PinNotificationsSlidePage,
-  }));
-}
-
-function loadPinTaskStepStatesSheetPage() {
-  return import("@/pages/tasks/PinTaskStepStatesSheetPage").then((module) => ({
-    default: module.PinTaskStepStatesSheetPage,
-  }));
-}
 
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
@@ -215,13 +112,22 @@ export const preloadTaskPostHandlingPendingWarningSheetSurface =
   taskPostHandlingPendingWarningSheet.preload;
 
 export {
+  ITEM_QUANTITY_SHEET_SURFACE_ID,
+  ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
+  PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
+  PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
+  TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_DETAIL_SURFACE_ID,
+  TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
+  TASK_FILTER_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID,
   TASK_POST_HANDLING_SLIDE_SURFACE_ID,
   TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  TASK_EDIT_SLIDE_SURFACE_ID,
 } from "@beyo/tasks";
 export {
   QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
@@ -229,7 +135,15 @@ export {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "@beyo/task-working-sections";
 export type {
+  ItemQuantitySurfaceProps,
+  ItemUpholsteryAmountSurfaceProps,
+  PinNotificationsSlideSurfaceProps,
+  PinTaskStepStatesSheetSurfaceProps,
+  TaskActionsSurfaceProps,
   TaskAssortmentSheetSurfaceProps,
+  TaskDetailSurfaceProps,
+  TaskEditSurfaceProps,
+  TaskFlowRecordDetailSurfaceProps,
   TaskPostHandlingFilterSheetSurfaceProps,
   TaskFulfillmentMethodSheetSurfaceProps,
   TaskPostHandlingPendingWarningSheetSurfaceProps,

@@ -11,10 +11,6 @@ export {
   useItemCategoryPickerFlow,
   useItemCategorySelectionStore,
 } from "@beyo/item-categories";
-export { useCreateItemUpholstery } from './actions/use-create-item-upholstery';
-export { useSetUpholsteryQuantity } from './actions/use-set-upholstery-quantity';
-export { useUpdateItemUpholstery } from './actions/use-update-item-upholstery';
-export { useUpdateItem } from './actions/use-update-item';
 export { useCreateImagesFromUrl } from "./subfeatures/item_images";
 export {
   itemSurfaces,

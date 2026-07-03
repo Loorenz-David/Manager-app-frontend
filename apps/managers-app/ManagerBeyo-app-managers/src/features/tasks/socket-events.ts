@@ -1,8 +1,7 @@
 import { quickTaskKeys } from "@beyo/task-working-sections";
 import type { SocketEventHandlers } from "@beyo/realtime";
-import type { TaskId, TaskStepId } from "@/types/common";
-import { taskKeys } from "./api/task-keys";
-import { taskStepKeys } from "./subfeatures/task_steps/api/task-step-keys";
+import { taskKeys, taskStepKeys } from "@beyo/tasks";
+import type { TaskId } from "@/types/common";
 
 export const taskSocketEvents: SocketEventHandlers = {
   "task:created": (_payload, { queryClient }) => {
@@ -84,13 +83,7 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:step-state-changed": (payloads, { queryClient }) => {
-    for (const { client_id } of payloads) {
-      queryClient.invalidateQueries({
-        queryKey: taskStepKeys.detail(client_id as TaskStepId),
-        refetchType: "active",
-      });
-    }
+  "task:step-state-changed": (_payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.all,
       refetchType: "active",
@@ -116,12 +109,7 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:step-deleted": (payloads, { queryClient }) => {
-    for (const { client_id } of payloads) {
-      queryClient.removeQueries({
-        queryKey: taskStepKeys.detail(client_id as TaskStepId),
-      });
-    }
+  "task:step-deleted": (_payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.all,
       refetchType: "active",

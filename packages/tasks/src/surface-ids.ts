@@ -19,6 +19,19 @@ export const TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID =
   "task-post-handling-filter-sheet";
 export const TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID =
   "task-post-handling-pending-warning-sheet";
+export const TASK_DETAIL_SURFACE_ID = "task-detail-slide";
+export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";
+export const TASK_FILTER_SHEET_SURFACE_ID = "task-filter-sheet";
+export const ITEM_QUANTITY_SHEET_SURFACE_ID = "item-quantity-sheet";
+export const ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID =
+  "item-upholstery-amount-sheet";
+export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
+  "task-pin-notifications-slide";
+export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
+  "task-pin-step-states-sheet";
+export const TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID =
+  "task-flow-record-detail-sheet";
+export const TASK_EDIT_SLIDE_SURFACE_ID = "task-edit-slide";
 
 export type TaskReadyByAtSheetSurfaceProps = {
   taskId: string;
@@ -40,6 +53,55 @@ export type TaskScheduledDeliverySheetSurfaceProps = {
 export type TaskPostHandlingPendingWarningSheetSurfaceProps = {
   taskId: string;
   onOpenCalendarRangePicker?: (props: CalendarRangeOpenerProps) => void;
+};
+
+export type TaskDetailSurfaceProps = {
+  taskId: string;
+};
+
+export type TaskActionsSurfaceProps = {
+  taskId: string;
+  itemId?: string | null;
+};
+
+export type ItemQuantitySurfaceProps = {
+  taskId: string;
+  itemId: string;
+  prefill?: {
+    quantity: number;
+  };
+};
+
+export type ItemUpholsteryAmountSurfaceProps = {
+  taskId: string;
+  itemUpholsteryId: string;
+  showQuantityChangedWarning?: boolean;
+  prefill?: {
+    amountMeters: number | null;
+  };
+};
+
+export type PinNotificationsSlideSurfaceProps = {
+  taskId: string;
+  itemId?: string | null;
+};
+
+export type PinTaskStepStatesSheetSurfaceProps = {
+  stepId: string;
+  label: string;
+  imageUrl?: string | null;
+  currentState: string;
+  selectedStates: string[];
+  onApply: (states: string[]) => void;
+};
+
+export type TaskFlowRecordDetailSurfaceProps = {
+  taskId: string;
+  flowRecordId: string;
+};
+
+export type TaskEditSurfaceProps = {
+  taskId: string;
 };
 
 export type TaskPostHandlingFilterSheetSurfaceProps = {

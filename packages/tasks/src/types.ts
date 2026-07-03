@@ -400,3 +400,110 @@ export const CreateTaskInputSchema = z.object({
     .optional(),
 });
 export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
+
+export type TaskTypeFilter = TaskType | "all";
+
+export type TaskViewModel = TaskListItemRaw["task"] & {
+  display_number: string;
+  state_label: string;
+  priority_label: string;
+  task_type_label: string;
+  ready_by_formatted: string | null;
+  scheduled_range_formatted: string | null;
+  is_overdue: boolean;
+  is_open: boolean;
+  has_customer: boolean;
+  has_scheduled_dates: boolean;
+};
+
+export type TaskCardViewModel = {
+  taskId: string;
+  task: TaskViewModel;
+  item: NonNullable<TaskListItemRaw["primary_item"]> | null;
+  firstImage: import("@beyo/images").ImageViewModel | null;
+  imageCount: number;
+};
+
+export const TASK_STATE_FILTER_OPTIONS = TASK_STATE.map((state) => ({
+  value: state,
+  label: state.charAt(0).toUpperCase() + state.slice(1).replace("_", " "),
+  testId: `task-state-option-${state}`,
+}));
+
+export const TASK_TYPE_PICKER_OPTIONS = [
+  { value: "all" as const, label: "All", testId: "task-type-all" },
+  { value: "return" as const, label: "Returns", testId: "task-type-return" },
+  {
+    value: "pre_order" as const,
+    label: "Pre-Orders",
+    testId: "task-type-pre-order",
+  },
+  {
+    value: "internal" as const,
+    label: "Internals",
+    testId: "task-type-internal",
+  },
+] as const;
+
+const dateOnlyFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function formatDateOnly(dateString: string | null): string | null {
+  if (!dateString) return null;
+  const d = new Date(dateString);
+  return Number.isNaN(d.getTime()) ? null : dateOnlyFormatter.format(d);
+}
+
+export function toTaskViewModel(task: TaskListItemRaw["task"]): TaskViewModel {
+  const readyByFormatted = formatDateOnly(task.ready_by_at);
+  const startFormatted = formatDateOnly(task.scheduled_start_at);
+  const endFormatted = formatDateOnly(task.scheduled_end_at);
+  const scheduledRangeFormatted = startFormatted
+    ? endFormatted && endFormatted !== startFormatted
+      ? `${startFormatted} – ${endFormatted}`
+      : startFormatted
+    : null;
+  const isOverdue = Boolean(
+    task.ready_by_at && new Date(task.ready_by_at) < new Date(),
+  );
+
+  return {
+    ...task,
+    display_number: `#${task.task_scalar_id}`,
+    state_label: task.state,
+    priority_label: task.priority,
+    task_type_label: task.task_type,
+    ready_by_formatted: readyByFormatted,
+    scheduled_range_formatted: scheduledRangeFormatted,
+    is_overdue: isOverdue,
+    is_open: !["cancelled", "failed", "resolved"].includes(task.state),
+    has_customer: Boolean(task.customer_id),
+    has_scheduled_dates: Boolean(task.scheduled_start_at),
+  };
+}
+
+export const UpdateTaskInputSchema = z.object({
+  id: z.string(),
+  title: z.string().max(255).nullable().optional(),
+  summary: z.string().max(1024).nullable().optional(),
+  priority: z.enum(TASK_PRIORITY).optional(),
+  ready_by_at: DateOnlySchema.nullable().optional(),
+  scheduled_start_at: DateOnlySchema.nullable().optional(),
+  scheduled_end_at: DateOnlySchema.nullable().optional(),
+  return_method: z.enum(TASK_RETURN_METHOD).nullable().optional(),
+  fulfillment_method: z.enum(TASK_FULFILLMENT_METHOD).nullable().optional(),
+  return_source: z.enum(TASK_RETURN_SOURCE).nullable().optional(),
+  item_location: z.enum(TASK_ITEM_LOCATION).nullable().optional(),
+  customer_id: z.string().min(1).nullable().optional(),
+  primary_phone_number: z.string().nullable().optional(),
+  secondary_phone_number: z.string().nullable().optional(),
+  primary_email: z.string().email().nullable().optional().or(z.literal("")),
+  secondary_email: z.string().email().nullable().optional().or(z.literal("")),
+  address: AddressSchema,
+  additional_details: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+export type UpdateTaskInput = z.infer<typeof UpdateTaskInputSchema>;

@@ -1,0 +1,57 @@
+INTENTION:
+
+We will begin the construction of the seller application.
+This application will use the same foundations as the manager application does. 
+It will use the same styling css from packages as the manager application uses.
+It will have the same app folder architecture as the manager application has.
+It will have the app shell and surace strategy as the manager application uses.
+It will also use the real time layer like the manager application uses.
+
+The seller application will log in with the app scope of seller.
+
+The seller application will have also a BottomTabBar like the manager application.
+The seller application will have the same tab structure as the BottomTabBar. 
+
+The seller application will replicate the same setting page as the manager application, with the possibility of log out and enable pwa notifications.
+
+For the task page that renders on the tab for "tasks" we will render the same task page that the manager application uses.
+tapping on a task card on the seller application will open the task detail page, same page the manager application uses.
+
+the fab button on the task page will open the task creation forms, same forms as the manager application uses.
+
+All of this task page task form and task detail replication is simple and straight forward as the manager application uses this components and logic from the packages.
+We just need to organize the imports in the correct architectural way to follow the best architectural principles outline in the frontend contracts.
+
+For the Case tab page we will use the same case page that the manager application uses ( package aswell ).
+
+For the remaining tabs "home", "stats", "upholstery inv", we will leave them empty, with a temporary component which simply renders the name of the page.
+
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+
+RELEVANT FILES:
+
+seller application:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers
+
+
+manager application:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app
+
+manager app folder structure:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/app
+
+BottomTabBar:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/components/shell/BottomTabBar.tsx
+
+
+setting page manager app:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/settings/SettingsPage.tsx
+
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/settings/components/SettingsView.tsx
+
+
+task package feature:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks
+

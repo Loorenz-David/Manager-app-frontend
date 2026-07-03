@@ -40,17 +40,16 @@ import {
   type TaskDetailSurfaceProps,
 } from "@/features/tasks/surfaces";
 
-const ITEM_UPHOLSTERY_REQUIREMENT_STATES = new Set<
-  ItemUpholsteryRequirementState
->([
-  "missing_quantity",
-  "available",
-  "needs_ordering",
-  "ordered",
-  "in_use",
-  "completed",
-  "failed",
-]);
+const ITEM_UPHOLSTERY_REQUIREMENT_STATES =
+  new Set<ItemUpholsteryRequirementState>([
+    "missing_quantity",
+    "available",
+    "needs_ordering",
+    "ordered",
+    "in_use",
+    "completed",
+    "failed",
+  ]);
 
 function toItemUpholsteryRequirementState(
   value: string | null,
@@ -105,7 +104,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [isHidden]);
 
   const itemId = controller.taskDetail?.item?.client_id ?? null;
-  const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(controller.taskId);
+  const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(
+    controller.taskId,
+  );
   const shouldRenderAssignStages =
     !workingSectionsCounts.isPending &&
     controller.taskDetail?.task.state === "pending" &&
@@ -228,7 +229,10 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }
 
   return (
-    <div ref={hideProgressContainerRef} className="flex h-full min-h-0 flex-col bg-background">
+    <div
+      ref={hideProgressContainerRef}
+      className="flex h-full min-h-0 flex-col bg-background"
+    >
       <PullToRefresh
         className="min-h-0 flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"

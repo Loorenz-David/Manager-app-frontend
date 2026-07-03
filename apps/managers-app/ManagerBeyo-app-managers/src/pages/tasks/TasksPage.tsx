@@ -1,13 +1,11 @@
 import { lazy, Suspense } from 'react';
 
+import { loadTasksRouteEntryPage } from "@beyo/tasks";
+
 import { PageSkeleton } from '@/components/ui/PageSkeleton';
 import { TaskCreationFab } from '@/features/tasks/components/TaskCreationFab';
 
-const TasksRouteEntry = lazy(() =>
-  import('@/features/tasks/route-entry').then((module) => ({
-    default: module.TasksRouteEntry,
-  })),
-);
+const TasksRouteEntry = lazy(loadTasksRouteEntryPage);
 
 export function TasksPage(): React.JSX.Element {
   return (

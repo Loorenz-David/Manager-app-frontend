@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { itemUpholsteryKeys } from "@beyo/tasks";
-
 import {
   createItemUpholstery,
   type CreateItemUpholsteryInput,
-} from "@/features/items/api/create-item-upholstery";
-import { taskKeys } from "@/features/tasks/api/task-keys";
+} from "@beyo/items";
+import { itemUpholsteryKeys } from "@beyo/tasks";
+
+import { taskKeys } from "@beyo/tasks";
 import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
 
 import type { PendingSeatTasksPage } from "../api/fetch-pending-seat-tasks";

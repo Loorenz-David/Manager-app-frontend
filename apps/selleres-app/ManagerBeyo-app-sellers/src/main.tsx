@@ -1,14 +1,13 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { KeyboardInsetProvider } from '@beyo/ui'
-import './index.css'
-import App from './App.tsx'
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
+import { App } from './app/App';
+import './lib/env';
+import './index.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {/* Sellers has no app-level provider tree yet, so the keyboard inset provider stays at the root. */}
-    <KeyboardInsetProvider>
+    <div className="h-full bg-background" vaul-drawer-wrapper="">
       <App />
-    </KeyboardInsetProvider>
+    </div>
   </StrictMode>,
 )

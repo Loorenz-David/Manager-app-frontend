@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import { taskKeys } from '@/features/tasks/api/task-keys';
+import { taskKeys } from '@beyo/tasks';
 import type { TaskDetailRaw } from '@/features/tasks/types';
 
 import { assignStepWorker } from '../api/assign-step-worker';

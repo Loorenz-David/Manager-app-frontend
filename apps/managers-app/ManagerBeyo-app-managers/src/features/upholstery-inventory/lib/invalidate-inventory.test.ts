@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { QueryClient } from "@tanstack/react-query";
 import { itemUpholsteryKeys } from "@beyo/tasks";
 
-import { taskKeys } from "@/features/tasks/api/task-keys";
+import { taskKeys } from "@beyo/tasks";
 import {
   upholsteryInventoryKeys,
   upholsteryKeys,

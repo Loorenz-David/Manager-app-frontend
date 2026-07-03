@@ -9,7 +9,15 @@ export type {
 } from "./types";
 export { itemKeys } from "./api/item-keys";
 export { fetchItemLookup } from "./api/fetch-item-lookup";
+export {
+  createItemUpholstery,
+  type CreateItemUpholsteryInput,
+} from "./api/create-item-upholstery";
 export { updateItem } from "./api/update-item";
+export {
+  updateItemUpholstery,
+  type UpdateItemUpholsteryInput,
+} from "./api/update-item-upholstery";
 export { updateItemPositions } from "./api/update-item-positions";
 export { useItemLookupQuery } from "./api/use-item-lookup-query";
 export { ItemIdentityField } from "./components/ItemIdentityField";
