@@ -12,11 +12,13 @@ import {
   TaskCustomerSection,
   TaskDetailBottomActions,
   TaskDetailHeader,
+  TaskDetailProvider,
   TaskFlowTimeline,
   TaskImagesSection,
   TaskScheduledDeliverySection,
   TaskUpholsterySection,
   taskKeys,
+  useTaskDetailContext,
 } from "@beyo/tasks";
 import {
   TaskWorkingSectionsField,
@@ -27,10 +29,6 @@ import { PullToRefresh, useScrollHide } from "@beyo/ui";
 import { ContentCard, DashedInfoGroup } from "@/components/primitives";
 import { ItemUpholsteryField } from "@/features/items";
 import type { ItemUpholsteryRequirementState } from "@/features/items/types";
-import {
-  TaskDetailProvider,
-  useTaskDetailContext,
-} from "@/features/tasks/providers/TaskDetailProvider";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurface } from "@/hooks/use-surface";
 import { useSurfaceProps } from "@/hooks/use-surface-props";

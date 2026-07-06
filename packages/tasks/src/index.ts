@@ -112,7 +112,6 @@ export { TaskListCard } from "./components/TaskListCard";
 export { TasksHeader } from "./components/TasksHeader";
 export { TasksView } from "./components/TasksView";
 export type { TaskListCardProps } from "./components/TaskListCard";
-export { default as PostHandlingIcon } from "./assets/PostHandlingIcon.svg?react";
 export {
   TaskBodyCategoryRow,
   TaskAssortmentPill,

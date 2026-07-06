@@ -12,9 +12,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@beyo/assets": "*",
     "@beyo/api-client": "*",
     "@beyo/auth": "*",
     "@beyo/cases": "*",
+    "@beyo/emails": "*",
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/items": "*",
@@ -25,6 +27,7 @@
     "@beyo/scanner": "*",
     "@beyo/styles": "*",
     "@beyo/task-creation": "*",
+    "@beyo/task-customer-coordination": "*",
     "@beyo/task-notes": "*",
     "@beyo/task-working-sections": "*",
     "@beyo/tasks": "*",

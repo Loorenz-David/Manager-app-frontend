@@ -1,5 +1,6 @@
 import { RotateCcw, ShoppingBag } from "lucide-react";
 
+import { PostHandlingIcon } from "@beyo/assets";
 import { AuthRole, useRole } from "@beyo/auth";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -7,7 +8,7 @@ import {
   type ImageViewModel,
 } from "@beyo/images";
 import { CALENDAR_RANGE_PICKER_SURFACE_ID } from "@beyo/task-creation";
-import { PostHandlingIcon, usePostHandlingCountsQuery } from "@beyo/tasks";
+import { usePostHandlingCountsQuery } from "@beyo/tasks";
 
 import { usePendingSeatCountsQuery } from "@/features/pending-upholstery/api/use-pending-seat-counts-query";
 import { useOrderNeedsCountQuery } from "@/features/upholstery-ordering/api/use-upholstery-ordering-queries";

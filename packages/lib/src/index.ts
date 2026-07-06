@@ -63,6 +63,7 @@ export type {
 export { resolveRangeSelection } from "./date/resolve-range-selection";
 export type { RangeSelectionResolution } from "./date/resolve-range-selection";
 export { daysUntil } from "./date/days-until";
+export { formatInboxDate } from "./date/format-inbox-date";
 export { formatShortDate } from "./date/format-short-date";
 export { isoWeek } from "./date/iso-week";
 

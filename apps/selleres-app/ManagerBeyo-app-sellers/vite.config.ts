@@ -64,6 +64,8 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       allowedHosts: ["7aa9-155-4-95-121.ngrok-free.app"],
+      port: 5175,
+      strictPort: true,
       proxy: env.API_TARGET_URL
         ? {
             "/api": {

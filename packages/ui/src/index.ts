@@ -49,6 +49,7 @@ export * from "./components/primitives/shared";
 export * from "./components/primitives/staged-form";
 export * from "./components/primitives/state-pill";
 export * from "./components/primitives/switch";
+export * from "./components/primitives/swipeable-row";
 export * from "./components/primitives/textarea";
 export * from "./components/primitives/ticking-timer";
 export * from "./components/primitives/user-pill";

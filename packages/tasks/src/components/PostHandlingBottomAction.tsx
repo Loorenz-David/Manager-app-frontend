@@ -1,4 +1,4 @@
-import PostHandlingIcon from "../assets/PostHandlingIcon.svg?react";
+import { PostHandlingIcon } from "@beyo/assets";
 
 import type { TaskPostHandling } from "../types";
 

@@ -62,7 +62,38 @@ export type ServerToClientEvents = {
   "task:note-created": (payload: { client_id: string; note_ids: string[] }) => void;
   "task:note-updated": (payload: { client_id: string; note_id: string }) => void;
   "task:note-deleted": (payload: { client_id: string; note_id: string }) => void;
+  // Customer-coordination state transitions. Each is a plain workspace event, so
+  // it arrives as a single { client_id } (the coordination's client_id); fail/
+  // coordinating can fire several times in quick succession (one per coordination).
+  "task_customer_coordination:completed": (payload: { client_id: string }) => void;
+  "task_customer_coordination:failed": (payload: { client_id: string }) => void;
+  "task_customer_coordination:coordinating": (payload: {
+    client_id: string;
+  }) => void;
   "notification:new": (payload: { client_id: string }) => void;
+  "email.entity_threads.updated": (payload: {
+    workspace_id: string;
+    connection_client_id: string;
+    entity_type: string;
+    entity_client_ids: string[];
+    major_entity_type: string;
+    major_entity_client_ids: string[];
+    thread_client_ids: string[];
+  }) => void;
+  // Emitted to the requesting user's room after a background email-batch send job
+  // finishes its delivery attempt. `client_id` is the job/task id (not a message or
+  // task id). `request_kind` is "coordination_batch" or "batch_send". Only aggregate
+  // counts are provided — per-message failures live in the DB (send_error). Retries
+  // of a partially-failed batch can emit a second event for the remaining subset.
+  "email_batch:delivery_completed": (payload: {
+    client_id: string;
+    request_kind: string;
+    connection_client_id: string;
+    attempted_count: number;
+    sent_count: number;
+    failed_count: number;
+    message_ids: string[];
+  }) => void;
   "user:working_sections_updated": (payload: {
     client_id: string;
     working_section_ids: string[];

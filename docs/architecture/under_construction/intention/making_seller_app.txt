@@ -1,57 +1,122 @@
-INTENTION:
+INTENTION
 
-We will begin the construction of the seller application.
-This application will use the same foundations as the manager application does. 
-It will use the same styling css from packages as the manager application uses.
-It will have the same app folder architecture as the manager application has.
-It will have the app shell and surace strategy as the manager application uses.
-It will also use the real time layer like the manager application uses.
+We will now create the package page where the user will be able to track sent and received emails,  which have an entity type of task_customer_coordination.
 
-The seller application will log in with the app scope of seller.
+This page will allow the user to see an email list in order of newest to oldest, the unread emails will come first and should be evident that they are unread.
 
-The seller application will have also a BottomTabBar like the manager application.
-The seller application will have the same tab structure as the BottomTabBar. 
+This page will replicate a gmail app inbox.
 
-The seller application will replicate the same setting page as the manager application, with the possibility of log out and enable pwa notifications.
+This page will use the endpoint GET /api/v1/tasks/customer-coordination/threads ( documented at HANDOFF_TO_FRONTEND_task_customer_coordination_email_and_counts_20260704), with the query param of coordination_states=coordinating . 
+That endpoint wil bring the email thread object serialize, the task object serialize, the item_images serialize, and the last sent or received message serialize. this composes all we need for the following list containers.
 
-For the task page that renders on the tab for "tasks" we will render the same task page that the manager application uses.
-tapping on a task card on the seller application will open the task detail page, same page the manager application uses.
+The page is compose of thow containers the first container renders a the list of emails with posibility of filtering, and the second container renders the email opened through the list of emails.
+The containers slide relative to their position, so the list of emails is on index 0 and the opened email container is on index 1 so 0 slides out left when 1 is open and 1 slides in from the right when open, carousel style, same pattern when closing container 1.
 
-the fab button on the task page will open the task creation forms, same forms as the manager application uses.
+The container holding the list of emails is compose of a header which is absolutetl positioned and holds a search bar ( primitive search bar with filter button ) this header reacts to the body scrolling using the scroll visibility on relative mode like the TaskView page does.
+The body renders the list of email cards wrap around the pull to refresh utility like the TaskView page also does. 
 
-All of this task page task form and task detail replication is simple and straight forward as the manager application uses this components and logic from the packages.
-We just need to organize the imports in the correct architectural way to follow the best architectural principles outline in the frontend contracts.
+This email inbox card follows some of the same architecture as the TaskListCard, 
+It renders a image on the left side, the image container renders the quanity of the items given a condition on a overlay at the bottom right of the image, the user can tap the image to visualize it on the full image page. 
+Besides the image is the body of the card with three rows.
+The first row will render customer name ( truncated if exeeds card width), with the number of thread emails there is in that thread .
+the second row renders the subject of the email ( truncated ).
+the third row renders part of the email content ( truncated ).
 
-For the Case tab page we will use the same case page that the manager application uses ( package aswell ).
+On the first row at the end of that row is the time the last email was sent or if there is reply then  last recived email. that time will need to be formated with a utility we will build at  package lib date 
+when unread emails the time has a light blue dot besides the time and the overlall card text content is with opacitiy 1, when read it doesn't have that dot and the opacity is of 0.8 .
+when the email has no reply, so it is only sent, besides the time lable we render a green send icon ( lucid icon "send" ), this is if the email has status of sent that is if the send_error is none ( null ). otherwise it renders a warning icon ( lucid icon "triangle-alert" ) in amber color and the opacitiy is of 1.
+The time utility we will build for formating the time for this card takes the sent_or_received_at and formats it as follows: if current user date is the same then only renders the hh:mm , if not same date but same year and same month then it render the date in friendly format Thu, 7 . If not same month but same year then it renders the month and date in friendly format Jun, 7th ( i belive js provides for a native date formater that is standarized ).
 
-For the remaining tabs "home", "stats", "upholstery inv", we will leave them empty, with a temporary component which simply renders the name of the page.
+The user can slide a email inbox card like in the email application, this slide behaviour folows the finger touch and has a threshold for when it continues sliding id the user left the sliding ( momentum ). when sliding the background where the card was reveals a green surface with a checkmark icon and a lable that says Completed ( lucid icon checkmark ), this action will call the endpoint for completing the given customer coordination instance ( endpoint documented at handoff ), this complete action is if the user slides from left to right.
+If the user slides from right to let then the sliding behaviour is the same but reversed, and the bg is now red with a x icon with label failed. This will make the call for marking the given customer coordination instance as failed. 
+This two endpoint calls are documented on the handoff and  should update the current query list ( /api/v1/tasks/customer-coordination/threads ) as those instances will no longer show in the list of the default query.
+
+This whole list body contianer has a pull to refresh utility that makes a call first to the endpoint /sync-targeted ( documented on the handoff ), with the entity type target on the query params of "task_customer_coordination", this will sync the emails with that entity type and after the response we can then refetch the query for GET /api/v1/tasks/customer-coordination/threads . both of those calls cound as a single loading.
+
+
+
+Tapping the email inbox card opens the container for viewing and interacting with the email thread (  sliding container behaviour described above ).
+
+This email thread container will follow gmail phone app principles, the header renders the back arrow button on the left, on the right is the actions for completing or failing the customer coordination instance, if tap the previous describe action is trigger and the current contaienr should close also.
+Bellow that header is the subject of the email. 
+Bellow that is the email message cards, this content cards will be used for each email message, a single email thread can have multiple as there can be the sent, received and then sent again.
+This page container will need to make a fetch call to get the previous serialize emails given the email thread id, if any. this endpoint is the ###/{thread_id}/messages documented on  ( HANDOFF_TO_FRONTEND_task_customer_coordination_email_and_counts_20260704 ). 
+This page contianer will have a pull to refresh utiltity which makes a call to sync the emails to the db, when the response comes back if any updates then it should refetch the emails, for this sync it calls the ###/{thread_id}/sync .
+
+
+Each email message cards are compose of a header and a body.
+The header renders a user avatar ( circular container with the initial of the email meassage from_name, differnt bg colors given the two first initials ) , 
+Besides that avatar is the from_name ( truncated ), besides that from_name is the sent_or_received_at using the time utitlity we used on the email inbox list cards. 
+bellow the from_name is a container that holds a short label clarifying the relative direction of the current email message ( to me , from me ) , that container ( which has no bg nor broder ), has an arrow down ( lucid icon ), when tap it opens a bottom sheet which allows to view details of the mailing like: full from email name and address, full to address, date and time it was send.
+Bellow the header is the body which renders the email content.
+
+at the bottom of this container page is the footer which has two action buttons, close & back  and reply ( this buttons and footer follow same styling as the TaskDetailBottomActions close & back and edit button ).
+The reply button will for now it will not have any action.
+This footer and header should react to the body scrolling with the scroll visibility using the scroll visibility on relative mode ( like the TaskDetailBottomActions uses it ).
+
+This two containers and all the component cards must be all independent component files placed together by their parent component, making it simple to identify and modify them in the future.
+
+
+This customer follow up page will be access by the seller application through a button placed on the HomeView page, bellow the customer coordination button. that button will use the ###/unread-count endpoint for getting the email counts of the emails the user hasn't read.
+Use contract 35 for undrstanding how to use the package pages on the local app surfaces. 
+
+We will create a flow controller for calling the endpoint /sync-targeted consecutevely as that will keep emails in sync while the app is open, this flow is called every 10 seconds while the app is open, and on app open, if any changes we should invalidate the query for the unread counts and the /api/v1/tasks/customer-coordination/threads query .
+
+On page load for this customer follow app email page it should call the /sync-targeted also reseting the timmer of the flow placed at the app provider level. 
+
+
 
 
 GOAL:
 make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+Be explicit so that codex doesn't alucinate that much as i had previous experience where it just introduces coloring and styling that is not align with the application styling
+Before you make the implemention plan, ask me questions if pending clarifications to align the implementation with what I really want.
+
+
 
 RELEVANT FILES:
 
-seller application:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers
+
+email package feature:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/emails
+
+scroll-visibility:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/scroll-visibility
+
+pull-to-refresh:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/pull-to-refresh
+
+TasksView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/TasksView.tsx
+
+TaskListCard:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/TaskListCard.tsx
+
+pakcages lib date: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/lib/src/date
 
 
-manager application:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app
+HANDOFF_TO_FRONTEND_task_customer_coordination_email_and_counts_20260704:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/docs/handoff/from_backend/HANDOFF_TO_FRONTEND_task_customer_coordination_email_and_counts_20260704.md
 
-manager app folder structure:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/app
+HomeView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers/src/features/home/components/HomeView.tsx
 
-BottomTabBar:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/components/shell/BottomTabBar.tsx
-
-
-setting page manager app:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/pages/settings/SettingsPage.tsx
-
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/managers-app/ManagerBeyo-app-managers/src/features/settings/components/SettingsView.tsx
+contract 35
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
 
 
-task package feature:
-/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks
+TaskDetailBottomActions:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/detail/TaskDetailBottomActions.tsx
 
+
+scroll-visibility:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/scroll-visibility
+
+
+search-bar primitive :
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/search-bar
+
+
+seller HomeView: 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers/src/features/home/components/HomeView.tsx

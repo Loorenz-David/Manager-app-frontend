@@ -3,6 +3,14 @@ import type { SocketEventHandlers } from "@beyo/realtime";
 import { taskKeys, taskStepKeys } from "@beyo/tasks";
 import type { TaskId } from "@/types/common";
 
+// Workspace events are declared as arrays but the backend delivers a single object
+// for the non-batched emit path (push_workspace_refresh) and an array only for the
+// batched path. Normalize so a single-object payload can't throw "not iterable" and
+// abort every invalidation in the handler.
+function asList<T>(payload: T | T[]): T[] {
+  return Array.isArray(payload) ? payload : [payload];
+}
+
 export const taskSocketEvents: SocketEventHandlers = {
   "task:created": (_payload, { queryClient }) => {
     queryClient.invalidateQueries({
@@ -20,7 +28,7 @@ export const taskSocketEvents: SocketEventHandlers = {
   },
 
   "task:updated": (payloads, { queryClient }) => {
-    for (const { client_id } of payloads) {
+    for (const { client_id } of asList(payloads)) {
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(client_id as TaskId),
         refetchType: "active",
@@ -55,7 +63,7 @@ export const taskSocketEvents: SocketEventHandlers = {
   },
 
   "task:state-changed": (payloads, { queryClient }) => {
-    for (const { client_id } of payloads) {
+    for (const { client_id } of asList(payloads)) {
       queryClient.invalidateQueries({
         queryKey: taskKeys.detail(client_id as TaskId),
         refetchType: "active",

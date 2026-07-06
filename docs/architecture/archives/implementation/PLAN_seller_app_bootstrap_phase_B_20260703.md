@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_seller_app_bootstrap_phase_B_20260703`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-07-03T00:00:00Z`
-- Last updated at (UTC): `2026-07-03T00:00:00Z`
+- Last updated at (UTC): `2026-07-03T19:51:35Z`
 - Overview plan: `docs/architecture/under_construction/implementation/PLAN_seller_app_bootstrap_overview_20260703.md`
 - Prerequisite: `PLAN_seller_app_bootstrap_phase_A_20260703.md` must be implemented and typechecking first.
 

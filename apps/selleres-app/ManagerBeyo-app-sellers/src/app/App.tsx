@@ -1,7 +1,11 @@
+import { RouterProvider } from "react-router-dom";
+import { AppProviders } from "./providers";
+import { router } from "./router";
+
 export function App(): React.JSX.Element {
   return (
-    <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-      Seller Beyo
-    </div>
+    <AppProviders>
+      <RouterProvider router={router} />
+    </AppProviders>
   );
 }

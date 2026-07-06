@@ -1,0 +1,80 @@
+INTENTION:
+
+At the CustomerCoordinationEmailInboxPage i use the EmailInboxView, which renders a searchbar on it's header EmailInboxHeader.
+
+We will now enable this searchbar to make direct queries to the endpoint get-coordination-inbox-threads .
+
+This endpoint now takes a query param "q" which will string query on many instances and columns in the backend ( same as the TaskView page uses on it's search query  )
+
+The searchbar will render the filter button and that action will render a bottom sheet page ( using the app local surface bottom sheet ), with the filters for that email query.
+The filters that we will render are quick box selections for changing the query param of coordination_states  ( CUSTOMER_COORDINATION_STATE ) , we use the box picker primitives like the filter page CaseFilterSheetRouteEntry does
+The modification on the query filter page should have direct effect on the current query after saving the filters.
+
+
+
+
+GOAL:
+make an implementation plan for codex using the template @template_plan . use the correct contracts for this implementation using the contract guide @frontend
+Be explicit so that codex doesn't alucinate that much as i had previous experience where it just introduces coloring and styling that is not align with the application styling
+
+
+
+RELEVANT FILES:
+
+
+CustomerCoordinationEmailInboxPage:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/pages/CustomerCoordinationEmailInboxPage.tsx
+
+EmailInboxView:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/emails/src/components/EmailInboxView.tsx
+
+EmailInboxHeader
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/emails/src/components/EmailInboxHeader.tsx
+
+get-coordination-inbox-threads:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/api/get-coordination-inbox-threads.ts
+
+
+CUSTOMER_COORDINATION_STATE:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/types.ts
+
+CaseFilterSheetRouteEntry:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/cases/src/components/CaseFilterSheetRouteEntry.tsx
+
+TasksView
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/components/TasksView.tsx
+
+
+
+
+
+there seem to be some ui issues withthe current email capability of the seller application and the real time layer. 
+on the  @packages/task-customer-coordination/src/pages/CustomerCoordinationEmailSlidePage.tsx  the user can send the request to send batch emails, when that happens i belive we invalidate the query for emails for  get-email-unread-count,  get-tasks-with-coordination,  get-thread-messages, get-coordination-inbox-threads isn't ? but we should also invalidate them when receiving the event socket event  
+
+Event
+Event name	email_batch:delivery_completed
+Delivery	Sent only to the requesting user's room (user:{requested_by_user_id}) — not workspace-broadcast
+When	After the background send job finishes its delivery attempt and commits
+Payload
+
+{
+  "client_id": "01J...ULID",          // the background job's task_client_id (the entity id)
+  "request_kind": "coordination_batch", // or "batch_send"
+  "connection_client_id": "01J...",     // email connection used to send
+  "attempted_count": 5,                 // messages actually attempted this run
+  "sent_count": 4,                      // succeeded
+  "failed_count": 1,                    // failed
+  "message_ids": ["01J...", "01J..."]   // EmailMessage client_ids in this batch
+}
+Field notes for the frontend
+client_id — this is the job/task id, injected automatically by the socket handler (every event carries a top-level client_id). It is not a message or task id you'd navigate to. Treat it as the batch/job identifier.
+request_kind — "coordination_batch" (from the customer-coordination email batch route) or "batch_send" (generic batch). Use this to decide which UI surface reacts.
+sent_count / failed_count — drive the toast: e.g. all-success vs. partial-failure vs. all-failed. attempted_count == sent_count + failed_count.
+message_ids — the specific EmailMessage client_ids, if you want to refetch/mark those threads.
+Important caveats
+No per-message detail — this is an aggregate summary. Which specific message failed is not in the payload (it's in email_message.send_error in the DB). If the UI needs to show which one failed, that's a follow-up (either expand the payload or refetch by message_ids).
+Coordination state does not change on failure — a failed send still leaves the task in coordinating. Don't infer a state rollback from failed_count > 0.
+Retries can emit a second event — if the job partially fails and retries the still-pending subset, a second email_batch:delivery_completed may arrive describing that subset. Make the handler idempotent/additive rather than assuming exactly one event per batch.
+This is still a plan, not merged — the event name and shape are proposed. If the frontend wants a different name or an extra field (e.g. workspace_id, or a task_ids list for coordination batches), tell me now and I'll adjust the plan before it's implemented. 
+
+Also when i pull to refresh on the /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/pages/CustomerCoordinationEmailInboxPage.tsx for any of the container views EmailInboxView and EmailThreadView it should refetch the queries they load, i had to close the app to get a fresh query.

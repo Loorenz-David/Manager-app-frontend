@@ -182,3 +182,77 @@ Use Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`) with a mobile-first app
 - **Never branch on a prop with a ternary to build class strings.** Define the variant in `cva`.
 - **Never import Tailwind utility classes from JavaScript variables.** Tailwind's purge scanner cannot detect dynamic class names — use complete class strings.
 - **Never use arbitrary values** without a comment explaining why a token does not work here.
+
+---
+
+## §14 — Monorepo app Tailwind source configuration (`@source`)
+
+### Tailwind v4 + `@tailwindcss/vite` behavior
+
+This project uses Tailwind v4 with the `@tailwindcss/vite` plugin (no `tailwind.config.ts`). The plugin scans files through Vite's transform pipeline — but **transitive workspace packages are not reliably detected** without explicit `@source` declarations.
+
+Root cause: when a monorepo package (e.g., `@beyo/task-creation`) imports another package (e.g., `@beyo/working-sections`), Tailwind may not scan the transitive dependency's files because of node_modules boundary handling, even for symlinked workspace packages. The symptom is broken layout on first load or in fresh builds — components render but dimensions are wrong, images appear full-page, containers lose their size constraints.
+
+### Rule: every UI package must be explicitly sourced
+
+Every `@beyo/*` package that contains `className=` usages **must** be listed as an explicit `@source` directive in the app's `src/index.css`. Do not rely on automatic detection for workspace packages.
+
+### Current authoritative list
+
+| Package | `className` usages | Source directive |
+|---|---|---|
+| `@beyo/ui` | yes | `@source "../../../../packages/ui/src"` |
+| `@beyo/tasks` | yes | `@source "../../../../packages/tasks/src"` |
+| `@beyo/auth` | yes | `@source "../../../../packages/auth/src"` |
+| `@beyo/cases` | yes | `@source "../../../../packages/cases/src"` |
+| `@beyo/images` | yes | `@source "../../../../packages/images/src"` |
+| `@beyo/notifications` | yes | `@source "../../../../packages/notifications/src"` |
+| `@beyo/task-creation` | yes | `@source "../../../../packages/task-creation/src"` |
+| `@beyo/task-notes` | yes | `@source "../../../../packages/task-notes/src"` |
+| `@beyo/task-working-sections` | yes | `@source "../../../../packages/task-working-sections/src"` |
+| `@beyo/working-sections` | yes | `@source "../../../../packages/working-sections/src"` |
+| `@beyo/scanner` | yes | `@source "../../../../packages/scanner/src"` |
+| `@beyo/items` | yes | `@source "../../../../packages/items/src"` |
+| `@beyo/item-categories` | yes | `@source "../../../../packages/item-categories/src"` |
+| `@beyo/upholstery` | yes | `@source "../../../../packages/upholstery/src"` |
+| `@beyo/item-issues` | yes | `@source "../../../../packages/item-issues/src"` |
+| `@beyo/customers` | yes | `@source "../../../../packages/customers/src"` |
+| `@beyo/phone-input` | yes | `@source "../../../../packages/phone-input/src"` |
+| `@beyo/pwa` | yes | `@source "../../../../packages/pwa/src"` |
+| `@beyo/permissions` | no | omit — 0 className usages |
+| `@beyo/realtime` | no | omit — 0 className usages |
+
+### Path depth rule
+
+All apps in this monorepo live at `apps/<app-group>/<app-name>/src/index.css` — three directory levels under `apps/`. The `@source` path is always `../../../../packages/<pkg>/src` (four levels up from `src/`).
+
+### Template `src/index.css` for a new app
+
+```css
+@import "tailwindcss";
+@import "@beyo/styles";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/tasks/src";
+@source "../../../../packages/auth/src";
+@source "../../../../packages/cases/src";
+@source "../../../../packages/images/src";
+@source "../../../../packages/notifications/src";
+@source "../../../../packages/task-creation/src";
+@source "../../../../packages/task-notes/src";
+@source "../../../../packages/task-working-sections/src";
+@source "../../../../packages/working-sections/src";
+@source "../../../../packages/scanner/src";
+@source "../../../../packages/items/src";
+@source "../../../../packages/item-categories/src";
+@source "../../../../packages/upholstery/src";
+@source "../../../../packages/item-issues/src";
+@source "../../../../packages/customers/src";
+@source "../../../../packages/phone-input/src";
+@source "../../../../packages/pwa/src";
+```
+
+### When you add a new `@beyo/*` package
+
+1. Run `grep -r "className=" packages/<pkg>/src | wc -l` to confirm className usages.
+2. If nonzero: add `@source "../../../../packages/<pkg>/src"` to **every app's** `src/index.css` and update the table above.
+3. If zero: omit — no entry needed.

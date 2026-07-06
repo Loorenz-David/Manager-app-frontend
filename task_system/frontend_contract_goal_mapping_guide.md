@@ -26,6 +26,7 @@ This is the core discipline. The two questions have different answers:
 | How do I handle form validation and server errors? | `09_forms.md` |
 | How do I set up a route with lazy loading? | `11_routing.md` |
 | How do I write a feature component that consumes context? | `07_components.md` |
+| Which packages need `@source` when bootstrapping a new app? | `14_styling.md §14` |
 | How does a package field open a picker surface? | `35_shared_packages.md §13` |
 | How do I expose a page component from a package for surface registration? | `35_shared_packages.md §14` |
 | Why is my dynamic import ineffective / landing in the main chunk? | `35_shared_packages.md §14` |
@@ -101,6 +102,13 @@ If `types.ts` does not exist for the domain you are implementing, stop and ask t
 
 ## Goal bundles (starter)
 
+### New application bootstrap
+
+Add:
+- `../architecture/14_styling.md` — `@source` table + template `index.css`; every new app must source all UI packages explicitly
+
+---
+
 ### New feature (CRUD)
 
 Add:
@@ -159,6 +167,7 @@ Add:
 
 ## Trigger expansion map
 
+- "new app", "bootstrap app", "create application", "new application", "@source", "index.css source", "tailwind source", "missing styles", "broken layout new app", "image full page", "wrong dimensions" → `14_styling.md §14`
 - "auth", "session", "sign-in", "sign-out", "token", "refresh cookie" → `12`
 - "permission", "role", "guard", "can", "forbidden", "403" → `19`
 - "socket", "realtime", "real-time", "live update", "websocket", "push event" → `21`
