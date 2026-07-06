@@ -79,10 +79,6 @@ export {
   useCustomerCoordinationEmailSlideController,
   type CustomerCoordinationEmailSlideController,
 } from "./controllers/use-customer-coordination-email-slide.controller";
-export { CustomerCoordinationEmailInboxPage } from "./pages/CustomerCoordinationEmailInboxPage";
-export { CustomerCoordinationInboxFilterSheetPage } from "./pages/CustomerCoordinationInboxFilterSheetPage";
-export { CustomerCoordinationEmailReplySlidePage } from "./pages/CustomerCoordinationEmailReplySlidePage";
-export { CustomerCoordinationEmailSlidePage } from "./pages/CustomerCoordinationEmailSlidePage";
 export {
   customerCoordinationEmailSocketEvents,
   customerCoordinationSocketEvents,
