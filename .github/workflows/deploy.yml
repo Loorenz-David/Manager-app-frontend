@@ -31,3 +31,6 @@ jobs:
 
             npm --workspace managerbeyo-app-workers run build
             rsync -a --delete apps/workers-app/ManagerBeyo-app-workers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-workers/
+
+            npm --workspace managerbeyo-app-sellers run build
+            rsync -a --delete apps/selleres-app/ManagerBeyo-app-sellers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-sellers/
