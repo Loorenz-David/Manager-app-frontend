@@ -150,7 +150,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         />
         <ContentCard>
           <TaskBodyCategoryRow
-            onOpenPosition={controller.openPositionSheet}
+            onOpenPositionField={controller.openPositionSheet}
             onOpenQuantity={controller.openQuantitySheet}
             taskDetail={controller.taskDetail}
           />

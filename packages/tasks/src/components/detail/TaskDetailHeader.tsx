@@ -67,6 +67,9 @@ export function TaskDetailHeader({
       ? `#${item.article_number}`
       : (item.sku ?? "Article number missing")
     : "No item linked";
+  const shouldRenderSkuRow =
+    Boolean(item?.article_number) && Boolean(item?.sku);
+  const skuLabel = item?.sku?.trim() ?? null;
 
   const TypeIcon = TASK_TYPE_ICON[task.task_type];
   const typeLabel = TASK_TYPE_LABEL[task.task_type];
@@ -84,7 +87,7 @@ export function TaskDetailHeader({
   );
 
   return (
-    <div className="flex flex-col gap-2 px-4 py-3">
+    <div className="flex flex-col gap-1  px-4 py-3">
       <div className="flex items-center gap-2">
         <span className="min-w-0 flex-1 truncate text-md font-semibold text-foreground">
           {articleLabel}
@@ -106,31 +109,38 @@ export function TaskDetailHeader({
           </span>
         </button>
       </div>
+      <div className="flex flex-col gap-1">
+        {shouldRenderSkuRow && skuLabel ? (
+          <div className="text-sm text-muted-foreground">
+            <span className="block min-w-0 truncate">{skuLabel}</span>
+          </div>
+        ) : null}
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">
-          {typeLabel}
-          {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
-        </span>
-      </div>
-
-      {onOpenReadyByAt ? (
-        <button
-          className="flex items-center gap-1.5 text-left text-xs text-muted-foreground"
-          data-testid="task-detail-ready-by-trigger"
-          type="button"
-          onClick={onOpenReadyByAt}
-        >
-          {readyByContent}
-        </button>
-      ) : (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>{readyByLabel}</span>
-          {days !== null ? <DaysLeftPill days={days} /> : null}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            {typeLabel}
+            {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
+          </span>
         </div>
-      )}
+
+        {onOpenReadyByAt ? (
+          <button
+            className="flex items-center gap-1.5 text-left text-xs text-muted-foreground"
+            data-testid="task-detail-ready-by-trigger"
+            type="button"
+            onClick={onOpenReadyByAt}
+          >
+            {readyByContent}
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
+            <span>{readyByLabel}</span>
+            {days !== null ? <DaysLeftPill days={days} /> : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

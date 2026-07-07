@@ -28,6 +28,7 @@ export const ItemSchema = z.object({
   item_cost_minor: z.number().int().nullable(),
   item_currency: z.enum(ITEM_CURRENCY).nullable(),
   item_position: z.string().nullable(),
+  item_zone: z.string().nullable(),
   external_id: z.string().nullable(),
   external_url: z.string().nullable(),
   external_source: z.string().nullable(),
@@ -58,6 +59,7 @@ export const CreateItemInputSchema = z.object({
     .enum(ITEM_CURRENCY, { message: "Select a currency." })
     .optional(),
   item_position: z.string().max(255).optional(),
+  item_zone: z.string().max(255).optional(),
   external_id: z.string().max(255).optional(),
   external_url: z
     .string()
@@ -83,6 +85,7 @@ export const UpdateItemInputSchema = z.object({
   item_cost_minor: z.number().int().nonnegative().nullable().optional(),
   item_currency: z.enum(ITEM_CURRENCY).optional(),
   item_position: z.string().max(255).nullable().optional(),
+  item_zone: z.string().max(255).nullable().optional(),
   external_url: z.string().url().nullable().optional().or(z.literal("")),
 });
 export type UpdateItemInput = z.infer<typeof UpdateItemInputSchema>;
@@ -151,6 +154,7 @@ export function toOptimisticItem(input: CreateItemInput): Item {
     item_cost_minor: input.item_cost_minor ?? null,
     item_currency: input.item_currency,
     item_position: input.item_position ?? null,
+    item_zone: input.item_zone ?? null,
     external_id: input.external_id ?? null,
     external_url: input.external_url ?? null,
     external_source: input.external_source ?? null,
@@ -258,20 +262,8 @@ export const ItemDetailsFieldsSchema = z.object({
     .int()
     .nonnegative()
     .optional(),
-  item_position: z.preprocess(
-    (value) => {
-      if (
-        value === "" ||
-        value === null ||
-        value === undefined ||
-        Number.isNaN(value)
-      ) {
-        return undefined;
-      }
-      return value;
-    },
-    z.number({ message: "Enter a number." }).int().nonnegative().optional(),
-  ),
+  item_position: z.string().trim().max(128).optional(),
+  item_zone: z.string().trim().max(128).optional(),
   item_currency: z
     .enum(ITEM_CURRENCY, { message: "Select a currency." })
     .optional(),

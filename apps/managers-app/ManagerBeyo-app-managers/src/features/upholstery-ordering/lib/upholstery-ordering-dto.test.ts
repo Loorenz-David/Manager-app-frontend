@@ -157,6 +157,7 @@ describe("upholstery-ordering dto", () => {
         item_cost_minor: null,
         item_currency: null,
         item_position: null,
+        item_zone: null,
         external_id: null,
         external_url: null,
         external_source: null,

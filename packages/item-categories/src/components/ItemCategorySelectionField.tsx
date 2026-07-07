@@ -2,8 +2,10 @@ import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
+import { cn } from "@beyo/lib";
 import {
   BoxPicker,
+  FieldErrorPill,
   ImagePlaceholder,
   useSurfaceStore,
 } from "@beyo/ui";
@@ -92,6 +94,8 @@ export function ItemCategorySelectionField(): React.JSX.Element {
   const selectedCategory = flow.options.find(
     (category) => category.client_id === categoryField.value,
   );
+  const errorMessage =
+    categoryFieldState.error?.message ?? majorFieldState.error?.message;
   const canOpenCategoryPicker =
     Boolean(majorField.value) &&
     !flow.isPending &&
@@ -99,12 +103,18 @@ export function ItemCategorySelectionField(): React.JSX.Element {
 
   return (
     <div
-      className="flex flex-col gap-3"
+      className="flex flex-col gap-2"
       data-testid="item-category-selection-field"
     >
-      <label className="text-sm font-medium text-muted-foreground">
-        Category
-      </label>
+      <div className="flex items-center justify-between gap-3">
+        <label className="text-sm font-medium text-muted-foreground">
+          Category
+        </label>
+        <FieldErrorPill
+          data-testid="item-category-error"
+          message={errorMessage}
+        />
+      </div>
       <BoxPicker
         mode="single"
         value={majorField.value ?? null}
@@ -121,7 +131,12 @@ export function ItemCategorySelectionField(): React.JSX.Element {
           <button
             type="button"
             data-testid="item-category-selected-trigger"
-            className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-sm"
+            className={cn(
+              "flex h-12 w-full items-center justify-between rounded-xl border bg-card px-4 text-sm",
+              errorMessage
+                ? "border-destructive/45 bg-destructive/[0.06] ring-1 ring-destructive/20"
+                : "border-border",
+            )}
             onClick={() =>
               openCategoryPicker(
                 majorField.value ?? selectedCategory.major_category,
@@ -153,7 +168,12 @@ export function ItemCategorySelectionField(): React.JSX.Element {
           <button
             type="button"
             data-testid="item-category-picker-trigger"
-            className="flex h-12 w-full items-center justify-between rounded-xl border border-border bg-card px-4 text-sm disabled:opacity-60"
+            className={cn(
+              "flex h-12 w-full items-center justify-between rounded-xl border bg-card px-4 text-sm disabled:opacity-60",
+              errorMessage
+                ? "border-destructive/45 bg-destructive/[0.06] ring-1 ring-destructive/20"
+                : "border-border",
+            )}
             disabled={!canOpenCategoryPicker}
             onClick={() =>
               openCategoryPicker(majorField.value, categoryField.value)
@@ -171,25 +191,6 @@ export function ItemCategorySelectionField(): React.JSX.Element {
           />
         )}
       </div>
-
-      {majorFieldState.error?.message ? (
-        <p
-          className="text-xs text-destructive"
-          data-testid="item-major-category-error"
-          role="alert"
-        >
-          {majorFieldState.error.message}
-        </p>
-      ) : null}
-      {categoryFieldState.error?.message ? (
-        <p
-          className="text-xs text-destructive"
-          data-testid="item-category-id-error"
-          role="alert"
-        >
-          {categoryFieldState.error.message}
-        </p>
-      ) : null}
     </div>
   );
 }

@@ -91,4 +91,49 @@ describe('UpholsteryCard', () => {
 
     expect(handleToggleFavorite).toHaveBeenCalledWith('uph_linen_natural', true);
   });
+
+  it('disables selection and favorite actions while a selection is being saved', async () => {
+    const user = userEvent.setup();
+    const handleSelect = vi.fn();
+    const handleToggleFavorite = vi.fn();
+
+    render(
+      <UpholsteryCard
+        record={{ ...TEST_RECORD, favorite: true }}
+        disabled
+        isSelected={false}
+        onSelect={handleSelect}
+        onToggleFavorite={handleToggleFavorite}
+      />,
+    );
+
+    const selectButton = screen.getByRole('button', { name: 'Natural Linen' });
+    const favoriteButton = screen.getByTestId('upholstery-card-favorite-button');
+
+    expect(selectButton).toBeDisabled();
+    expect(favoriteButton).toBeDisabled();
+
+    await user.click(selectButton);
+    await user.click(favoriteButton);
+
+    expect(handleSelect).not.toHaveBeenCalled();
+    expect(handleToggleFavorite).not.toHaveBeenCalled();
+  });
+
+  it('renders an avatar spinner ring while the card is being saved', () => {
+    render(
+      <UpholsteryCard
+        record={TEST_RECORD}
+        isSaving
+        isSelected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByRole('button', { name: 'Natural Linen' });
+    const spinnerRing = card.querySelector('.animate-spin');
+
+    expect(spinnerRing).not.toBeNull();
+    expect(spinnerRing).toHaveClass('rounded-full', 'border-2');
+  });
 });

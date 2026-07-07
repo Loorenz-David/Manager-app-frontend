@@ -68,11 +68,15 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 }
 
 export function TaskStepDetailHeader(): React.JSX.Element | null {
-  const { vm, handleOpenActionsSheet } = useTaskStepDetailContext();
+  const { step, vm, handleOpenActionsSheet } = useTaskStepDetailContext();
 
   if (!vm) {
     return null;
   }
+
+  const skuLabel = step?.item?.sku?.trim() ?? null;
+  const shouldRenderSkuRow =
+    Boolean(step?.item?.article_number) && Boolean(skuLabel);
 
   const TypeIcon = TYPE_ICON[vm.task.task_type] ?? Wrench;
   const typeLabel = TYPE_LABEL[vm.task.task_type] ?? vm.task.task_type;
@@ -84,7 +88,7 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
 
   return (
     <div
-      className="flex flex-col gap-2 px-4 py-3"
+      className="flex gap-1 flex-col  px-4 py-3"
       data-testid="task-step-detail-header"
     >
       <div className="flex items-center gap-2">
@@ -105,19 +109,26 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
           <ThreeDotIcon />
         </button>
       </div>
+      <div className="flex flex-col gap-2">
+        {shouldRenderSkuRow && skuLabel ? (
+          <div className="text-sm text-muted-foreground">
+            <span className="block min-w-0 truncate">{skuLabel}</span>
+          </div>
+        ) : null}
 
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate">
-          {typeLabel}
-          {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
-        </span>
-      </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <TypeIcon aria-hidden="true" className="size-4 shrink-0" />
+          <span className="min-w-0 flex-1 truncate">
+            {typeLabel}
+            {returnSourceLabel ? ` • ${returnSourceLabel}` : ""}
+          </span>
+        </div>
 
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
-        <span>{readyByLabel}</span>
-        {days !== null ? <DaysLeftPill days={days} /> : null}
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
+          <span>{readyByLabel}</span>
+          {days !== null ? <DaysLeftPill days={days} /> : null}
+        </div>
       </div>
     </div>
   );

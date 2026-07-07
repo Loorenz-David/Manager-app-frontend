@@ -53,7 +53,8 @@ function buildItemFields(
       toOptionalString(item.sku) ??
       toOptionalString(item.designer) ??
       item.item_category_id ??
-      (item.item_position != null ? String(item.item_position) : undefined) ??
+      toOptionalString(item.item_position) ??
+      toOptionalString(item.item_zone) ??
       item.item_currency ??
       item.major_category ??
       (item.quantity != null && item.quantity !== 1
@@ -72,8 +73,8 @@ function buildItemFields(
     item_category_id: item.item_category_id || undefined,
     quantity: item.quantity ?? 1,
     designer: toOptionalString(item.designer),
-    item_position:
-      item.item_position != null ? String(item.item_position) : undefined,
+    item_position: toOptionalString(item.item_position),
+    item_zone: toOptionalString(item.item_zone),
     item_currency: item.item_currency || undefined,
   };
 }

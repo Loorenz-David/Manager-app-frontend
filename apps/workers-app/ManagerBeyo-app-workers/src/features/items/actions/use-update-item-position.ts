@@ -7,14 +7,15 @@ import { taskStepKeys } from "../../task_steps/api/task-step-keys";
 type UpdateItemPositionInput = {
   id: string;
   item_position: string | null;
+  item_zone?: string | null;
 };
 
 export function useUpdateItemPosition(workingSectionId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, item_position }: UpdateItemPositionInput) =>
-      updateItemPositions([{ client_id: id, item_position }]),
+    mutationFn: ({ id, item_position, item_zone }: UpdateItemPositionInput) =>
+      updateItemPositions([{ client_id: id, item_position, item_zone }]),
     onSettled: () => {
       void queryClient.invalidateQueries({
         queryKey: taskStepKeys.sectionListsBySection(workingSectionId as never),

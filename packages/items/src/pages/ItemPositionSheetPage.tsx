@@ -1,25 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { TextInput } from "@beyo/ui";
+import { FormProvider, useForm } from "react-hook-form";
 
+import { ItemPositionZoneField } from "../components/ItemPositionZoneField";
 import type { ItemPositionSheetSurfaceProps } from "../surface-ids";
-
-function parsePosition(value: string | null): number | null {
-  if (!value) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(value, 10);
-  return Number.isNaN(parsed) ? null : parsed;
-}
 
 export function ItemPositionSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { initialPosition = null, onSave } =
+  const { initialPosition = null, initialZone = null, openField, onSave } =
     useSurfaceProps<ItemPositionSheetSurfaceProps>();
-  const [position, setPosition] = useState<number | null>(
-    parsePosition(initialPosition),
-  );
+  const form = useForm({
+    defaultValues: {
+      item: {
+        item_position: initialPosition ?? "",
+        item_zone: initialZone ?? "",
+      },
+    },
+  });
 
   useEffect(() => {
     header?.setTitle("Edit position");
@@ -27,53 +24,46 @@ export function ItemPositionSheetPage(): React.JSX.Element {
   }, [header]);
 
   useEffect(() => {
-    setPosition(parsePosition(initialPosition));
-  }, [initialPosition]);
+    form.reset({
+      item: {
+        item_position: initialPosition ?? "",
+        item_zone: initialZone ?? "",
+      },
+    });
+  }, [form, initialPosition, initialZone]);
 
   return (
-    <div className="flex flex-col gap-4 p-6">
-      <div className="flex flex-col gap-2">
-        <span className="text-sm text-muted-foreground">Position</span>
-        <TextInput
-          data-testid="item-position-input"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={position == null ? "" : String(position)}
-          onChange={(event) => {
-            const next = event.target.value;
-
-            if (next === "") {
-              setPosition(null);
-              return;
-            }
-
-            if (!/^\d+$/.test(next)) {
-              return;
-            }
-
-            const parsed = Number.parseInt(next, 10);
-            if (!Number.isNaN(parsed)) {
-              setPosition(parsed);
-            }
-          }}
+    <FormProvider {...form}>
+      <div className="flex flex-col gap-4 p-6">
+        <ItemPositionZoneField
+          defaultTab={openField ?? "position"}
+          disableLookup
         />
-      </div>
-      <button
-        data-testid="item-position-save-button"
-        type="button"
-        className="rounded-2xl bg-foreground px-4 py-3.5 text-md font-medium text-background disabled:opacity-50"
-        disabled={!onSave}
-        onClick={() => {
-          if (!onSave) {
-            return;
-          }
+        <button
+          data-testid="item-position-save-button"
+          type="button"
+          className="rounded-2xl bg-foreground px-4 py-3.5 text-md font-medium text-background disabled:opacity-50"
+          disabled={!onSave}
+          onClick={() => {
+            if (!onSave) {
+              return;
+            }
 
-          onSave(position != null ? String(position) : null);
-          header?.requestClose();
-        }}
-      >
-        Save position
-      </button>
-    </div>
+            const values = form.getValues();
+            const nextPosition = values.item.item_position?.trim() || null;
+            const nextZone = values.item.item_zone?.trim() || null;
+            const zoneDirty = Boolean(form.formState.dirtyFields.item?.item_zone);
+
+            onSave({
+              item_position: nextPosition,
+              item_zone: zoneDirty ? nextZone : undefined,
+            });
+            header?.requestClose();
+          }}
+        >
+          Save position
+        </button>
+      </div>
+    </FormProvider>
   );
 }

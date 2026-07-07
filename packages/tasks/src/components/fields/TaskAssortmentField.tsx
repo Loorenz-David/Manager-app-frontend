@@ -24,7 +24,7 @@ export function TaskAssortmentField(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-1.5">
-      <FieldLabelRow htmlFor="assortment" label="Assortment Position">
+      <FieldLabelRow htmlFor="assortment" label="Final Placement">
         <FieldErrorPill data-testid="assortment-error" message={error} />
       </FieldLabelRow>
       <TextInput

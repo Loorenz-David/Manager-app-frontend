@@ -26,7 +26,7 @@ import {
 } from "@beyo/ui";
 import {
   ItemIdentityField,
-  ItemPositionField,
+  ItemPositionZoneField,
   ItemQuantityField,
   type ItemLookupResult,
 } from "@beyo/items";
@@ -89,7 +89,21 @@ import {
 } from "../surfaces";
 
 const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
-  task: ["return_source", "item", "item_upholstery", "assortment"],
+  task: [
+    "return_source",
+    "assortment",
+    "item.article_number",
+    "item.sku",
+    "item.designer",
+    "item.quantity",
+    "item.item_position",
+    "item.item_zone",
+    "item.item_currency",
+    "item.item_category_id",
+    "item.major_category",
+    "item_upholstery.upholstery_client_id",
+    "item_upholstery.upholstery_amount_meters",
+  ],
   customer: [
     "customer",
     "fulfillment_method",
@@ -156,7 +170,8 @@ export function ReturnFormContent(): React.JSX.Element {
         article_number: "",
         sku: "",
         quantity: 1,
-        item_position: undefined,
+        item_position: "",
+        item_zone: "",
         item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,
@@ -199,6 +214,14 @@ export function ReturnFormContent(): React.JSX.Element {
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
+  });
+  const itemArticleNumber = useWatch({
+    control: form.control,
+    name: "item.article_number",
+  });
+  const itemSku = useWatch({
+    control: form.control,
+    name: "item.sku",
   });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
@@ -352,15 +375,16 @@ export function ReturnFormContent(): React.JSX.Element {
 
         await createTask.mutateAsync(payload);
         form.reset({
-          item: {
-            designer: "",
-            article_number: "",
-            sku: "",
-            quantity: 1,
-            item_position: undefined,
-            item_currency: undefined,
-            item_category_id: undefined,
-            major_category: undefined,
+              item: {
+                designer: "",
+                article_number: "",
+                sku: "",
+                quantity: 1,
+                item_position: "",
+                item_zone: "",
+                item_currency: undefined,
+                item_category_id: undefined,
+                major_category: undefined,
           },
           item_upholstery: {
             upholstery_client_id: null,
@@ -478,7 +502,11 @@ export function ReturnFormContent(): React.JSX.Element {
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
                 />
-                <ItemPositionField />
+                <ItemPositionZoneField
+                  articleNumber={itemArticleNumber}
+                  defaultTab="zone"
+                  sku={itemSku}
+                />
                 {returnSource === "store_return" ? (
                   <TaskAssortmentField />
                 ) : null}

@@ -14,24 +14,8 @@ export const ItemDetailsFieldsSchema = z.object({
     .int()
     .nonnegative()
     .optional(),
-  item_position: z.preprocess(
-    (value) => {
-      if (
-        value === "" ||
-        value === null ||
-        value === undefined ||
-        Number.isNaN(value)
-      ) {
-        return undefined;
-      }
-      if (typeof value === "string") {
-        const coerced = Number(value);
-        return Number.isNaN(coerced) ? undefined : coerced;
-      }
-      return value;
-    },
-    z.number({ message: "Enter a number." }).int().nonnegative().optional(),
-  ),
+  item_position: z.string().trim().max(128).optional(),
+  item_zone: z.string().trim().max(128).optional(),
   item_currency: z
     .enum(ITEM_CURRENCY, { message: "Select a currency." })
     .optional(),
@@ -55,9 +39,20 @@ export const ItemLookupResultSchema = z.object({
 });
 export type ItemLookupResult = z.infer<typeof ItemLookupResultSchema>;
 
+export const ItemLocationResultSchema = z.object({
+  item_article_number: z.string().nullable(),
+  sku: z.string().nullable(),
+  item_position: z.string().nullable(),
+});
+export type ItemLocationResult = z.infer<typeof ItemLocationResultSchema>;
+
 export type LookupItemsParams =
   | { article_number: string; sku?: never }
   | { sku: string; article_number?: never };
+
+export type LookupItemLocationParams = {
+  q: string;
+};
 
 export type UpdateItemInput = {
   id: string;
@@ -73,10 +68,12 @@ export type UpdateItemInput = {
   item_cost_minor?: number | null;
   item_currency?: ItemCurrency;
   item_position?: string | null;
+  item_zone?: string | null;
   external_url?: string | null;
 };
 
 export type UpdateItemPositionEntryInput = {
   client_id: string;
   item_position: string | null;
+  item_zone?: string | null;
 };

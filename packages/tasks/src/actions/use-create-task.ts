@@ -82,6 +82,7 @@ function buildOptimisticListItem(
           item_cost_minor: null,
           item_currency: (itemPayload.item_currency as string | null) ?? null,
           item_position: (itemPayload.item_position as string | null) ?? null,
+          item_zone: (itemPayload.item_zone as string | null) ?? null,
           external_id: null,
           external_url: null,
           external_source: null,

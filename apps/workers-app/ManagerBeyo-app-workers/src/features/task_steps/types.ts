@@ -108,6 +108,7 @@ export const ItemSnapshotSchema = z
     item_category_id: z.string().nullable(),
     quantity: z.number(),
     item_position: z.string().nullable(),
+    item_zone: z.string().nullable(),
     upholstery_requirement: z.array(UpholsteryRequirementSchema),
   })
   .nullable();

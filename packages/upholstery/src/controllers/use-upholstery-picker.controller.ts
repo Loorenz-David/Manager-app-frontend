@@ -95,11 +95,16 @@ export function useUpholsteryPickerController(searchQuery: string) {
   const [pendingExternalFavorites, setPendingExternalFavorites] = useState<Set<string>>(
     () => new Set(),
   );
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [selectingClientId, setSelectingClientId] = useState<string | null>(null);
   const [selectedExternalProviders, setSelectedExternalProviders] = useState<
     ExternalUpholsteryProvider[]
   >([]);
   const externalClientIdsRef = useRef(new Map<string, string>());
   const externalInventoryClientIdsRef = useRef(new Map<string, string>());
+  const pendingCreatePromisesRef = useRef(
+    new Map<string, Promise<UpholsteryPickerOption & { client_id: string }>>(),
+  );
 
   const inStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: true });
   const outOfStockQuery = useUpholsteryPickerOptionsQuery({ in_stock: false });
@@ -263,16 +268,6 @@ export function useUpholsteryPickerController(searchQuery: string) {
     }
   }
 
-  function prepareSelect(clientId: string): void {
-    const record = upholsteries.find((entry) => entry.client_id === clientId);
-
-    if (!record || !isExternalUpholsteryOrigin(record.origin)) {
-      return;
-    }
-
-    void createExternalUpholstery(record);
-  }
-
   function openProviderFilterSheet(): void {
     useSurfaceStore.getState().open(UPHOLSTERY_PROVIDER_FILTER_SHEET_ID, {
       selectedProviders: selectedExternalProviders,
@@ -290,20 +285,73 @@ export function useUpholsteryPickerController(searchQuery: string) {
     return (await detectExternalItemCategoryName(record)) ?? "unknown";
   }
 
-  async function createExternalUpholstery(record: UpholsteryPickerRecord): Promise<void> {
-    const categoryName = await resolveExternalCategoryName(record);
+  async function persistExternalUpholstery(
+    record: UpholsteryPickerRecord,
+  ): Promise<UpholsteryPickerOption & { client_id: string }> {
+    const existingPromise = pendingCreatePromisesRef.current.get(record.client_id);
 
-    createUpholsteryAction.mutate({
-      client_id: record.client_id,
-      upholstery_inventory_id: getInventoryClientIdForExternal(record.client_id),
-      name: record.name,
-      code: record.code,
-      image_url: record.image_url,
-      page_link: record.page_link ?? record.external_url ?? null,
-      supplier_name: record.supplier_name ?? record.origin,
-      upholstery_category_id: record.upholstery_category?.id ?? null,
-      upholstery_category_name: categoryName,
-    });
+    if (existingPromise) {
+      return existingPromise;
+    }
+
+    const createPromise = (async () => {
+      const categoryName = await resolveExternalCategoryName(record);
+      const upholstery = await createUpholsteryAction.mutateAsync({
+        client_id: record.client_id,
+        upholstery_inventory_id: getInventoryClientIdForExternal(record.client_id),
+        name: record.name,
+        code: record.code,
+        image_url: record.image_url,
+        page_link: record.page_link ?? record.external_url ?? null,
+        supplier_name: record.supplier_name ?? record.origin,
+        upholstery_category_id: record.upholstery_category?.id ?? null,
+        upholstery_category_name: categoryName,
+      });
+
+      externalClientIdsRef.current.set(getExternalIdentity(record), upholstery.client_id);
+      if (upholstery.inventory_id) {
+        externalInventoryClientIdsRef.current.set(
+          upholstery.client_id,
+          upholstery.inventory_id,
+        );
+      }
+
+      return upholstery;
+    })();
+
+    pendingCreatePromisesRef.current.set(record.client_id, createPromise);
+
+    try {
+      return await createPromise;
+    } finally {
+      pendingCreatePromisesRef.current.delete(record.client_id);
+    }
+  }
+
+  async function selectUpholstery(clientId: string): Promise<string> {
+    setSelectionError(null);
+
+    const record = upholsteries.find((entry) => entry.client_id === clientId);
+
+    if (!record || !isExternalUpholsteryOrigin(record.origin)) {
+      return clientId;
+    }
+
+    setSelectingClientId(clientId);
+
+    try {
+      const upholstery = await persistExternalUpholstery(record);
+      return upholstery.client_id;
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Could not create upholstery. Please try again.";
+      setSelectionError(message);
+      throw error;
+    } finally {
+      setSelectingClientId((current) => (current === clientId ? null : current));
+    }
   }
 
   async function handleToggleFavorite(
@@ -337,17 +385,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
     });
 
     try {
-      await createUpholsteryAction.mutateAsync({
-        client_id: clientId,
-        upholstery_inventory_id: getInventoryClientIdForExternal(clientId),
-        name: record.name,
-        code: record.code,
-        image_url: record.image_url,
-        page_link: record.page_link ?? record.external_url ?? null,
-        supplier_name: record.supplier_name ?? record.origin,
-        upholstery_category_id: record.upholstery_category?.id ?? null,
-        upholstery_category_name: await resolveExternalCategoryName(record),
-      });
+      await persistExternalUpholstery(record);
       await toggleFavoriteAction.toggleFavoriteAsync({
         client_id: clientId,
         favorite: nextFavorite,
@@ -368,7 +406,10 @@ export function useUpholsteryPickerController(searchQuery: string) {
     filterOptions: UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS,
     upholsteries,
     isLoading,
-    prepareSelect,
+    selectUpholstery,
+    isSelectionPending: selectingClientId !== null,
+    selectingClientId,
+    selectionError,
     activeProviderFilterCount,
     onFilterChange: handleFilterChange,
     openProviderFilterSheet,

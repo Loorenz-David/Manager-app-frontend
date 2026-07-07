@@ -18,7 +18,7 @@ export function TaskAssortmentSheetPage(): React.JSX.Element {
   const displayValue = value != null ? String(value) : "";
 
   useEffect(() => {
-    header?.setTitle("Assortment Position");
+    header?.setTitle("Final Placement");
     header?.setActions(null);
   }, [header]);
 
@@ -46,7 +46,7 @@ export function TaskAssortmentSheetPage(): React.JSX.Element {
       <div className="flex flex-col gap-1.5">
         <FieldLabelRow
           htmlFor="task-assortment-sheet-input"
-          label="Assortment Position"
+          label="Final Placement"
         />
         <TextInput
           data-testid="task-assortment-sheet-input"

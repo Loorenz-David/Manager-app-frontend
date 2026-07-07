@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,7 +25,7 @@ import {
 } from "@beyo/ui";
 import {
   ItemIdentityField,
-  ItemPositionField,
+  ItemPositionZoneField,
   ItemQuantityField,
   type ItemLookupResult,
 } from "@beyo/items";
@@ -89,7 +89,19 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
   string,
   FieldPath<PreOrderFormValues>[]
 > = {
-  task: ["item", "item_upholstery"],
+  task: [
+    "item.article_number",
+    "item.sku",
+    "item.designer",
+    "item.quantity",
+    "item.item_position",
+    "item.item_zone",
+    "item.item_currency",
+    "item.item_category_id",
+    "item.major_category",
+    "item_upholstery.upholstery_client_id",
+    "item_upholstery.upholstery_amount_meters",
+  ],
   customer: [
     "customer",
     "fulfillment_method",
@@ -122,6 +134,7 @@ export function PreOrderFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
   const { hasRole } = useRole();
   const isSeller = hasRole(AuthRole.Seller);
 
@@ -155,7 +168,8 @@ export function PreOrderFormContent(): React.JSX.Element {
         article_number: "",
         sku: "",
         quantity: 1,
-        item_position: undefined,
+        item_position: "",
+        item_zone: "",
         item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,
@@ -194,6 +208,14 @@ export function PreOrderFormContent(): React.JSX.Element {
   const itemQuantity = useWatch({
     control: form.control,
     name: "item.quantity",
+  });
+  const itemArticleNumber = useWatch({
+    control: form.control,
+    name: "item.article_number",
+  });
+  const itemSku = useWatch({
+    control: form.control,
+    name: "item.sku",
   });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
@@ -275,6 +297,7 @@ export function PreOrderFormContent(): React.JSX.Element {
         const allValid = await form.trigger();
 
         if (!allValid) {
+          setPositionErrorRevealNonce((current) => current + 1);
           const { errors } = form.formState;
           let firstErrorStep: string | null = null;
 
@@ -307,7 +330,15 @@ export function PreOrderFormContent(): React.JSX.Element {
         return allValid;
       }
 
-      return form.trigger(PRE_ORDER_STEP_FIELDS_MAP[currentStepId] ?? []);
+      const stepValid = await form.trigger(
+        PRE_ORDER_STEP_FIELDS_MAP[currentStepId] ?? [],
+      );
+
+      if (!stepValid) {
+        setPositionErrorRevealNonce((current) => current + 1);
+      }
+
+      return stepValid;
     },
     onSubmit: () =>
       form.handleSubmit(async (values) => {
@@ -330,7 +361,8 @@ export function PreOrderFormContent(): React.JSX.Element {
             article_number: "",
             sku: "",
             quantity: 1,
-            item_position: undefined,
+            item_position: "",
+            item_zone: "",
             item_currency: undefined,
             item_category_id: undefined,
             major_category: undefined,
@@ -445,7 +477,12 @@ export function PreOrderFormContent(): React.JSX.Element {
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
                 />
-                <ItemPositionField />
+                <ItemPositionZoneField
+                  articleNumber={itemArticleNumber}
+                  defaultTab="position"
+                  positionErrorRevealNonce={positionErrorRevealNonce}
+                  sku={itemSku}
+                />
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />

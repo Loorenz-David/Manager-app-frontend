@@ -4,13 +4,20 @@ import { ClientIdSchema } from '@beyo/lib';
 import type { CustomerId, UserId } from '@/types/common';
 import { AddressSchema } from '@/types/common';
 
-export const CUSTOMER_TYPE = ['person', 'company', 'unknown'] as const;
+export const CUSTOMER_TYPE = ['private', 'company', 'unknown'] as const;
 export const CUSTOMER_STATUS = ['active', 'inactive'] as const;
+
+const CustomerTypeSchema = z.preprocess(
+  (value) => (value === 'person' ? 'private' : value),
+  z.enum(CUSTOMER_TYPE, {
+    message: 'Select a customer type.',
+  }),
+);
 
 export const CustomerSchema = z.object({
   id: z.string().transform((v) => v as CustomerId),
   display_name: z.string(),
-  customer_type: z.enum(CUSTOMER_TYPE),
+  customer_type: CustomerTypeSchema,
   status: z.enum(CUSTOMER_STATUS),
   primary_phone_number: z.string().nullable(),
   primary_email: z.string().nullable(),
@@ -28,9 +35,7 @@ export type CustomerStatus = Customer['status'];
 export const CreateCustomerInputSchema = z.object({
   client_id: ClientIdSchema,
   display_name: z.string().min(1, 'Name is required.').max(255),
-  customer_type: z.enum(CUSTOMER_TYPE, {
-    message: 'Select a customer type.',
-  }),
+  customer_type: CustomerTypeSchema,
   primary_email: z
     .string()
     .email('Enter a valid email.')
@@ -43,7 +48,7 @@ export type CreateCustomerInput = z.infer<typeof CreateCustomerInputSchema>;
 
 export const UpdateCustomerInputSchema = z.object({
   id: z.string().transform((v) => v as CustomerId),
-  customer_type: z.enum(CUSTOMER_TYPE),
+  customer_type: CustomerTypeSchema,
   status: z.enum(CUSTOMER_STATUS),
   display_name: z.string().min(1, 'Name is required.').max(255).optional(),
   primary_email: z
@@ -60,7 +65,7 @@ export type UpdateCustomerInput = z.infer<typeof UpdateCustomerInputSchema>;
 export const FindOrCreateCustomerInputSchema = z.object({
   client_id: ClientIdSchema,
   display_name: z.string().min(1, 'Name is required.').max(255),
-  customer_type: z.enum(CUSTOMER_TYPE),
+  customer_type: CustomerTypeSchema,
   primary_email: z.string().email().optional().or(z.literal('')),
   primary_phone_number: z.string().optional(),
   address: AddressSchema,
@@ -83,7 +88,7 @@ export type CustomerViewModel = Customer & {
 
 export function toCustomerViewModel(customer: Customer): CustomerViewModel {
   const TYPE_LABELS: Record<CustomerType, string> = {
-    person: 'Person',
+    private: 'Private',
     company: 'Company',
     unknown: 'Unknown',
   };
@@ -117,9 +122,7 @@ export function toOptimisticCustomer(input: CreateCustomerInput): Customer {
 
 export const CustomerFieldsSchema = z.object({
   display_name: z.string().min(1, 'Name is required.').max(255),
-  customer_type: z.enum(CUSTOMER_TYPE, {
-    message: 'Select a customer type.',
-  }),
+  customer_type: CustomerTypeSchema,
   primary_email: z
     .string()
     .email('Enter a valid email.')

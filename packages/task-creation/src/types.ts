@@ -26,15 +26,28 @@ import {
   type WorkingSectionPickerOption,
 } from "@beyo/working-sections";
 
-function addSeatPositionIssue(
-  item: { major_category?: string; item_position?: number | undefined },
+function addSeatLocationIssue(
+  item: {
+    major_category?: string;
+    item_position?: string | undefined;
+    item_zone?: string | undefined;
+  },
   ctx: z.RefinementCtx,
 ): void {
-  if (item.major_category === "seat" && item.item_position == null) {
+  if (
+    item.major_category === "seat" &&
+    !item.item_position?.trim() &&
+    !item.item_zone?.trim()
+  ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Position is required for seat items.",
+      message: "Enter a zone or position for seat items.",
       path: ["item", "item_position"],
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Enter a zone or position for seat items.",
+      path: ["item", "item_zone"],
     });
   }
 }
@@ -90,7 +103,7 @@ export const ReturnFormSchema = z
   })
   .superRefine((data, ctx) => {
     addItemIdentityIssue(data.item, ctx);
-    addSeatPositionIssue(data.item, ctx);
+    addSeatLocationIssue(data.item, ctx);
 
     if (data.return_source === "store_return") {
       return;
@@ -147,7 +160,7 @@ export const PreOrderFormSchema = z
   })
   .superRefine((data, ctx) => {
     addItemIdentityIssue(data.item, ctx);
-    addSeatPositionIssue(data.item, ctx);
+    addSeatLocationIssue(data.item, ctx);
 
     if (!data.customer.primary_email?.trim()) {
       ctx.addIssue({
@@ -200,7 +213,7 @@ export const InternalFormSchema = z
       });
     }
 
-    addSeatPositionIssue(data.item, ctx);
+    addSeatLocationIssue(data.item, ctx);
   });
 export type InternalFormValues = z.input<typeof InternalFormSchema>;
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect } from "react";
 import { usePreloadSurface, useSurface, useSurfaceHeader } from "@beyo/hooks";
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
-import { ItemPositionPill } from "@beyo/items";
+import { ItemPositionZonePreview } from "@beyo/items";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
   useTaskNotesUnreadController,
@@ -46,20 +46,14 @@ function TaskStepCategoryPositionRow(): React.JSX.Element | null {
 
   const hasCategory = Boolean(step.item.item_category_id);
   const hasPosition = Boolean(step.item.item_position);
-  const shouldRenderPosition = isSeatCategory || hasPosition;
+  const hasZone = Boolean(step.item.item_zone);
+  const shouldRenderPosition = isSeatCategory || hasPosition || hasZone;
   const quantityLabel =
     step.item.quantity > 0 ? `( ${step.item.quantity} )` : null;
 
   if (!hasCategory && !quantityLabel && !shouldRenderPosition) {
     return null;
   }
-
-  const positionPill = (
-    <ItemPositionPill
-      position={step.item.item_position}
-      isSeat={isSeatCategory}
-    />
-  );
 
   return (
     <div className="flex items-center justify-between gap-2 px-1 py-0.5">
@@ -71,16 +65,21 @@ function TaskStepCategoryPositionRow(): React.JSX.Element | null {
       </div>
       {shouldRenderPosition ? (
         isSeatCategory ? (
-          <button
-            className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            data-testid="task-step-position-button"
-            type="button"
-            onClick={openPositionSheet}
-          >
-            {positionPill}
-          </button>
+          <span className="rounded-full" data-testid="task-step-position-button">
+            <ItemPositionZonePreview
+              isSeat={isSeatCategory}
+              position={step.item.item_position}
+              zone={step.item.item_zone}
+              onOpenPosition={() => openPositionSheet("position")}
+              onOpenZone={() => openPositionSheet("zone")}
+            />
+          </span>
         ) : (
-          positionPill
+          <ItemPositionZonePreview
+            isSeat={isSeatCategory}
+            position={step.item.item_position}
+            zone={step.item.item_zone}
+          />
         )
       ) : null}
     </div>

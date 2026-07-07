@@ -124,7 +124,7 @@ export type TaskStepDetailController = {
   handleOpenCasesForTask: () => void;
   handleOpenFlowRecord: (entityClientId: string) => void;
   openDeliveryDateSheet: () => void;
-  openPositionSheet: () => void;
+  openPositionSheet: (field?: "zone" | "position") => void;
   issuesSurfaceOpeners: ItemIssueSurfaceOpeners;
   isTransitioning: boolean;
   isCancellingCompletion: boolean;
@@ -498,24 +498,34 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     [step, openSurface],
   );
 
-  const openPositionSheet = useCallback(() => {
+  const openPositionSheet = useCallback((field: "zone" | "position" = "position") => {
     if (!step?.item || !isSeatCategory) {
       return;
     }
 
-    const { client_id: itemId, item_position: initialPosition } = step.item;
+    const {
+      client_id: itemId,
+      item_position: initialPosition,
+      item_zone: initialZone,
+    } = step.item;
 
-    function savePosition(position: string | null) {
+    function savePosition(values: {
+      item_position: string | null;
+      item_zone?: string | null;
+    }) {
       updateItemPosition.mutate(
         {
           id: itemId,
-          item_position: position,
+          item_position: values.item_position,
+          item_zone: values.item_zone,
         },
         {
           onError: () => {
             openSurface(ITEM_POSITION_SHEET_SURFACE_ID, {
               itemId,
-              initialPosition: position,
+              initialPosition: values.item_position,
+              initialZone: values.item_zone ?? initialZone,
+              openField: field,
               onSave: savePosition,
             } satisfies ItemPositionSheetSurfaceProps);
           },
@@ -526,6 +536,8 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     openSurface(ITEM_POSITION_SHEET_SURFACE_ID, {
       itemId,
       initialPosition,
+      initialZone,
+      openField: field,
       onSave: savePosition,
     } satisfies ItemPositionSheetSurfaceProps);
   }, [isSeatCategory, openSurface, step, updateItemPosition]);

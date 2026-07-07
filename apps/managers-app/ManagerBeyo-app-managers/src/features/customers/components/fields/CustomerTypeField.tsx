@@ -4,7 +4,7 @@ import { FieldErrorPill } from '@/components/primitives';
 import { cn } from '@/lib/utils';
 
 const CUSTOMER_TYPE_LABELS: Record<string, string> = {
-  person: 'Person',
+  private: 'Private',
   company: 'Company',
   unknown: 'Unknown',
 };
@@ -41,7 +41,7 @@ export function CustomerTypeField() {
         {...register('customer.customer_type')}
       >
         <option value="">Select type…</option>
-        <option value="person">{CUSTOMER_TYPE_LABELS.person}</option>
+        <option value="private">{CUSTOMER_TYPE_LABELS.private}</option>
         <option value="company">{CUSTOMER_TYPE_LABELS.company}</option>
         <option value="unknown">{CUSTOMER_TYPE_LABELS.unknown}</option>
       </select>

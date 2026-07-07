@@ -1,18 +1,18 @@
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
-import { ItemPositionPill } from "@beyo/items";
+import { ItemPositionZonePreview } from "@beyo/items";
 import { SectionLabel } from "@beyo/ui";
 
 import type { TaskDetailRaw } from "../../types";
 
 type TaskBodyCategoryRowProps = {
   taskDetail: TaskDetailRaw | null;
-  onOpenPosition: () => void;
+  onOpenPositionField: (field: "zone" | "position") => void;
   onOpenQuantity: () => void;
 };
 
 export function TaskBodyCategoryRow({
   taskDetail,
-  onOpenPosition,
+  onOpenPositionField,
   onOpenQuantity,
 }: TaskBodyCategoryRowProps): React.JSX.Element | null {
   if (!taskDetail?.item) {
@@ -28,6 +28,7 @@ export function TaskBodyCategoryRow({
     !item.item_category_id &&
     !item.item_category_snapshot &&
     !quantityLabel &&
+    !item.item_zone &&
     !item.item_position &&
     !isSeatItem
   ) {
@@ -51,14 +52,18 @@ export function TaskBodyCategoryRow({
         ) : null}
       </button>
       {isSeatItem ? (
-        <button
+        <span
           data-testid="task-body-position-button"
-          className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          type="button"
-          onClick={onOpenPosition}
+          className="rounded-full"
         >
-          <ItemPositionPill position={item.item_position} isSeat={isSeatItem} />
-        </button>
+          <ItemPositionZonePreview
+            isSeat={isSeatItem}
+            position={item.item_position}
+            zone={item.item_zone}
+            onOpenPosition={() => onOpenPositionField("position")}
+            onOpenZone={() => onOpenPositionField("zone")}
+          />
+        </span>
       ) : null}
     </div>
   );

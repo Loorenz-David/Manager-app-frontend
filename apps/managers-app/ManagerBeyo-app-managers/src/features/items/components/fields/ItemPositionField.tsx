@@ -22,11 +22,9 @@ export function ItemPositionField() {
       <TextInput
         data-testid="item-position-input"
         id="item-position"
-        inputMode="numeric"
-        pattern="[0-9]*"
         placeholder="e.g. 3"
         invalid={Boolean(error)}
-        {...register("item.item_position", { valueAsNumber: true })}
+        {...register("item.item_position")}
       />
     </div>
   );

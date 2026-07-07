@@ -45,22 +45,29 @@ export function useTaskDetailController(taskId: string) {
     ]);
   }
 
-  function openPositionSheet() {
+  function openPositionSheet(field: "zone" | "position" = "position") {
     if (!itemId) {
       return;
     }
 
-    function savePosition(position: string | null) {
+    function savePosition(values: {
+      item_position: string | null;
+      item_zone?: string | null;
+    }) {
       updateItemPosition.mutate(
         {
           id: itemId as string,
-          item_position: position,
+          item_position: values.item_position,
+          item_zone: values.item_zone,
         },
         {
           onError: () => {
             useSurfaceStore.getState().open(ITEM_POSITION_SHEET_SURFACE_ID, {
               itemId,
-              initialPosition: position,
+              initialPosition: values.item_position,
+              initialZone:
+                values.item_zone ?? taskQuery.data?.item?.item_zone ?? null,
+              openField: field,
               onSave: savePosition,
             });
           },
@@ -71,6 +78,8 @@ export function useTaskDetailController(taskId: string) {
     useSurfaceStore.getState().open(ITEM_POSITION_SHEET_SURFACE_ID, {
       itemId,
       initialPosition: taskQuery.data?.item?.item_position ?? null,
+      initialZone: taskQuery.data?.item?.item_zone ?? null,
+      openField: field,
       onSave: savePosition,
     });
   }

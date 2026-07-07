@@ -25,6 +25,8 @@ const upholsteryCardVariants = cva(
 type UpholsteryCardProps = {
   record: UpholsteryPickerRecord;
   isSelected: boolean;
+  disabled?: boolean;
+  isSaving?: boolean;
   onSelect: (clientId: string) => void;
   onToggleFavorite?: (clientId: string, currentFavorite: boolean) => void;
   testId?: string;
@@ -33,6 +35,8 @@ type UpholsteryCardProps = {
 export function UpholsteryCard({
   record,
   isSelected,
+  disabled = false,
+  isSaving = false,
   onSelect,
   onToggleFavorite,
   testId,
@@ -60,22 +64,34 @@ export function UpholsteryCard({
       <button
         aria-label={record.name}
         className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        disabled={disabled}
         type="button"
         onClick={() => onSelect(record.client_id)}
       >
-        {thumbnailUrl ? (
-          <img
-            src={thumbnailUrl}
-            alt={record.name}
-            className="size-10 shrink-0 rounded-full bg-muted object-contain"
-            decoding="async"
-            loading="lazy"
-          />
-        ) : (
-          <div className="size-10 shrink-0 overflow-hidden rounded-full">
-            <ImagePlaceholder />
-          </div>
-        )}
+        <div className="relative shrink-0">
+          {isSaving ? (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "pointer-events-none absolute inset-[-3px] rounded-full border-2 border-transparent animate-spin",
+                isSelected ? "border-t-card border-r-card/45" : "border-t-primary border-r-primary/35",
+              )}
+            />
+          ) : null}
+          {thumbnailUrl ? (
+            <img
+              src={thumbnailUrl}
+              alt={record.name}
+              className="size-10 shrink-0 rounded-full bg-muted object-contain"
+              decoding="async"
+              loading="lazy"
+            />
+          ) : (
+            <div className="size-10 shrink-0 overflow-hidden rounded-full">
+              <ImagePlaceholder />
+            </div>
+          )}
+        </div>
         <div className="min-w-0 flex-1">
           <p
             className={cn(
@@ -136,6 +152,7 @@ export function UpholsteryCard({
                   : "text-muted-foreground hover:bg-muted",
             )}
             data-testid="upholstery-card-favorite-button"
+            disabled={disabled}
             type="button"
             onClick={() => onToggleFavorite(record.client_id, record.favorite)}
           >

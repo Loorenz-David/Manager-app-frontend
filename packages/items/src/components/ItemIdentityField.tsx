@@ -12,6 +12,7 @@ import {
 } from "@beyo/ui";
 
 import { useItemLookupQuery } from "../api/use-item-lookup-query";
+import { normalizeArticleNumberForLookup } from "../lib/normalize-article-number";
 import type { ItemLookupResult } from "../types";
 
 const STORAGE_KEY = "item-identity-field-active-tab";
@@ -24,8 +25,8 @@ type ItemIdentityFieldProps = {
   onLookupResult?: (items: ItemLookupResult[]) => boolean | "invalid";
 };
 
-const ARTICLE_NUMBER_MIN_LENGTH = 7;
 const PADDED_ARTICLE_NUMBER_MIN_RAW_LENGTH = 3;
+const ARTICLE_NUMBER_MIN_LENGTH = 7;
 const SKU_MIN_LENGTH = 4;
 const LOOKUP_DEBOUNCE_MS = 400;
 const LOOKUP_SUCCESS_FLASH_MS = 2000;
@@ -82,18 +83,6 @@ function readStoredTab(): IdentityTab {
   } catch {}
 
   return "article_number";
-}
-
-function normalizeArticleNumberForLookup(articleNumber: string): string {
-  if (!/^\d+$/.test(articleNumber)) {
-    return articleNumber;
-  }
-
-  if (articleNumber.startsWith("0")) {
-    return articleNumber;
-  }
-
-  return articleNumber.padStart(ARTICLE_NUMBER_MIN_LENGTH, "0");
 }
 
 export function ItemIdentityField({
@@ -191,6 +180,7 @@ export function ItemIdentityField({
 
   const activeError =
     activeTab === "article_number" ? articleNumberError : skuError;
+  const visibleError = activeError ?? articleNumberError ?? skuError;
   const isLookupLoading = isLookupEnabled && lookupQuery.isFetching;
   const activeStatus = isLookupLoading ? null : lookupStatus;
 
@@ -321,7 +311,7 @@ export function ItemIdentityField({
             ? "item-article-number-error"
             : "item-sku-error"
         }
-        message={activeError}
+        message={visibleError}
       />
     </div>
   );
