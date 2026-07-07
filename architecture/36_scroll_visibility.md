@@ -56,11 +56,12 @@ Direction-based. Tracks the scroll position at each direction reversal (the anch
 
 ## Progressive CSS var animation (relative mode)
 
-When `mode: "relative"` is active the system injects two CSS custom properties onto `hideProgressContainerRef`:
+When `mode: "relative"` is active the system injects CSS custom properties onto `hideProgressContainerRef`:
 
 | Variable | Range | Meaning |
 |---|---|---|
 | `--scroll-hide-progress` | `0` → `1` | How far along the hide animation is. `0` = fully visible, `1` = fully hidden. Updated every rAF frame via lerp. |
+| `--scroll-hide-progress-footer` | `0` → `1` | Optional footer/navigation-specific progress channel. Only present for callers that opt into edge reveal. |
 | `--scroll-snap-duration` | `0ms` / `300ms` | `0ms` during active scroll (instant CSS var tracking), `300ms` during snap (CSS transition for the snap animation). |
 
 Animated elements read these vars via inline `style`. No class toggles, no re-renders during scroll.
@@ -287,9 +288,15 @@ The scroll container needs `paddingBottom` equal to the footer's height so conte
 
 `StagedForm` calls `useScrollHide()` internally and wires everything automatically:
 
-- The step-label timeline slides **up** and fades on scroll-down.
+- An optional `header` prop renders as normal scrollable content above the step content. It is not part of the scroll-visibility system.
+- The step-label timeline slides **up** and fades on scroll-down when no `header` prop is supplied.
+- When a `header` prop is supplied, the header and timeline both render as ordinary scrollable content above the step content and are not part of the scroll-visibility system.
 - Any `footer` prop or the default `StagedFormNavigation` slides **down** and fades on scroll-down.
 - The scroll container's `paddingBottom` adapts to the footer's measured height.
+- Its footer/navigation also enables a bottom-edge reveal override so long-step actions are forced visible again near the physical end of the scroll container, even if the user never reversed scroll direction.
+- That edge override only drives the footer/navigation signal (`--scroll-hide-progress-footer`). The timeline keeps reading the base `--scroll-hide-progress` signal, so its visibility remains purely direction-based.
+- That bottom-edge reveal threshold defaults to the footer's measured height, but consumers can override it with `footerEdgeOffset` when a fixed reveal distance is preferable to live footer-height tracking.
+- Footer children that animate with `--scroll-hide-progress-footer` must not also sit inside a layout-collapsing wrapper (`grid-template-rows`, `max-height`, similar) whose height contributes to the measured staged-form footer. That mixes paint-only animation with live geometry changes and can create bottom-edge reveal oscillation.
 
 No external wiring needed. Just render `<StagedForm>` and pass the content.
 
@@ -308,6 +315,12 @@ No external wiring needed. Just render `<StagedForm>` and pass the content.
 | `useScrollVisibility({ mode: "relative", ... })` | Custom thresholds needed for a non-standard use case. Rare. |
 
 `useScrollHide` is defined in `packages/ui/src/components/primitives/scroll-visibility/use-scroll-hide.ts`. Its threshold values (`hideThreshold`, `showThreshold`) are the single source of truth for the feel of all local scroll animations. Changing them changes every consumer at once.
+
+For rare local cases, `useScrollHide()` also accepts two additive fields only. Custom thresholds or a different mode still require calling `useScrollVisibility()` directly:
+
+- `revealAtEdge: "top" | "bottom"` forces the element fully visible whenever the scroll container is within `edgeOffset` px of that physical edge.
+- `edgeOffset` defaults to `0`. Use the hidden element's height when the reveal should engage as the user enters that reserved gutter.
+- This override is relative-mode-only and opt-in; callers that omit it keep the existing direction-based behavior unchanged.
 
 ---
 

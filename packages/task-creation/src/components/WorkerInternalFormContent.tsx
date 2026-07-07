@@ -145,19 +145,24 @@ export function WorkerInternalFormContent(): React.JSX.Element {
 
   useEffect(() => {
     if (hasAutoAppliedDefaultsRef.current) return;
-    if (photoFlow.isLoading || cleaningFlow.isLoading || oilingFlow.isLoading) return;
+    if (photoFlow.isLoading || cleaningFlow.isLoading || oilingFlow.isLoading)
+      return;
     if (
       photoFlow.sections.length === 0 &&
       cleaningFlow.sections.length === 0 &&
       oilingFlow.sections.length === 0
-    ) return;
+    )
+      return;
 
     hasAutoAppliedDefaultsRef.current = true;
 
     if (photoFlow.sections.length > 0) {
       form.setValue(
         "needs_photo_assignment",
-        { working_section_id: photoFlow.sections[0].client_id, assigned_worker_id: null },
+        {
+          working_section_id: photoFlow.sections[0].client_id,
+          assigned_worker_id: null,
+        },
         { shouldDirty: false },
       );
     }
@@ -165,7 +170,10 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     if (cleaningFlow.sections.length > 0) {
       form.setValue(
         "needs_cleaning_assignment",
-        { working_section_id: cleaningFlow.sections[0].client_id, assigned_worker_id: null },
+        {
+          working_section_id: cleaningFlow.sections[0].client_id,
+          assigned_worker_id: null,
+        },
         { shouldDirty: false },
       );
     }
@@ -173,7 +181,10 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     if (oilingFlow.sections.length > 0) {
       form.setValue(
         "oiling_treatment_assignment",
-        oilingFlow.sections.map((s) => ({ working_section_id: s.client_id, assigned_worker_id: null })),
+        oilingFlow.sections.map((s) => ({
+          working_section_id: s.client_id,
+          assigned_worker_id: null,
+        })),
         { shouldDirty: false },
       );
     }
@@ -358,9 +369,9 @@ export function WorkerInternalFormContent(): React.JSX.Element {
             </ContentCard>
 
             <ContentCard>
-              <NeedsPhotoPickerField />
               <NeedsCleaningPickerField />
               <OilingTreatmentPickerField />
+              <NeedsPhotoPickerField />
             </ContentCard>
 
             {!defaultWoodFixSection && !workingSectionsFlow.isLoading ? (

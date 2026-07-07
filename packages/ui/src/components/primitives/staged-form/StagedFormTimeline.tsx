@@ -23,10 +23,12 @@ export function StagedFormTimeline(): React.JSX.Element {
     stepStatusMap,
     onNavigate,
     isTimelineCompact,
+    isTimelineStatic,
   } = useStagedFormContext();
   const stepRefs = useRef<Record<string, HTMLElement | null>>({});
   const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
   const progressPercent = steps.length > 1 ? (activeStepIndex / (steps.length - 1)) * 100 : 0;
+  const compact = !isTimelineStatic && isTimelineCompact;
 
   useEffect(() => {
     stepRefs.current[activeStepId]?.scrollIntoView({
@@ -39,14 +41,18 @@ export function StagedFormTimeline(): React.JSX.Element {
   return (
     <div
       className="overflow-x-auto scrollbar-none"
-      data-compact={isTimelineCompact ? 'true' : 'false'}
+      data-compact={compact ? 'true' : 'false'}
       data-testid="staged-form-timeline"
-      style={{
-        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-        transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
-        transition:
-          "opacity var(--scroll-snap-duration, 0ms) ease-out, transform var(--scroll-snap-duration, 0ms) ease-out",
-      }}
+      style={
+        isTimelineStatic
+          ? undefined
+          : {
+              opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+              transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
+              transition:
+                "opacity var(--scroll-snap-duration, 0ms) ease-out, transform var(--scroll-snap-duration, 0ms) ease-out",
+            }
+      }
     >
       <div className="px-6">
         {/*
@@ -57,7 +63,7 @@ export function StagedFormTimeline(): React.JSX.Element {
         <div
           className={cn(
             'grid transition-[grid-template-rows] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
-            isTimelineCompact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+            compact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
           )}
         >
           <div className="min-h-0 overflow-hidden">
@@ -138,7 +144,7 @@ export function StagedFormTimeline(): React.JSX.Element {
           className={cn(
             'relative h-0.5 w-full overflow-hidden rounded-full bg-border',
             'transition-[margin-top] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
-            isTimelineCompact ? 'mt-0' : 'mt-3',
+            compact ? 'mt-0' : 'mt-3',
           )}
         >
           <div

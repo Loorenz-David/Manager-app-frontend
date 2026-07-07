@@ -5,7 +5,6 @@ import {
   ListTodo,
   MessageCircle,
   Settings2,
-  Spool,
   type LucideIcon,
 } from "lucide-react";
 import { NavTabBadge } from "@beyo/ui";
@@ -35,7 +34,6 @@ const TABS: Tab[] = [
   { path: ROUTES.cases, label: "Cases", icon: MessageCircle },
   { path: ROUTES.home, label: "Home", icon: House },
   { path: ROUTES.stats, label: "Stats", icon: ChartColumnIncreasing },
-  { path: ROUTES.upholsteryInventory, label: "Uph inv", icon: Spool },
   { path: ROUTES.settings, label: "Settings", icon: Settings2 },
 ];
 
@@ -45,8 +43,7 @@ const PRIMARY_TAB_META = TABS.filter((tab) =>
 
 const MORE_TAB_META: Record<MoreTabPath, Tab> = {
   [ROUTES.stats]: TABS[3],
-  [ROUTES.upholsteryInventory]: TABS[4],
-  [ROUTES.settings]: TABS[5],
+  [ROUTES.settings]: TABS[4],
 };
 
 function isMoreTabPath(pathname: string): pathname is MoreTabPath {

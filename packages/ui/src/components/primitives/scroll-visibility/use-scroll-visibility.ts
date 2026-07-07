@@ -8,6 +8,7 @@ import { useScrollProgressCssVar } from "./use-scroll-progress-css-var";
 import { useScrollState } from "./use-scroll-state";
 
 type UseScrollVisibilityResult = ScrollVisibilityContextValue & {
+  isAtEdge: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   hideProgressContainerRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -29,16 +30,23 @@ export function useScrollVisibility({
   topOffset = 0,
   hideThreshold,
   showThreshold,
+  revealAtEdge,
+  edgeOffset = 0,
   hysteresis = 8,
   inverted = false,
   mode = "absolute",
 }: ScrollVisibilityOptions = {}): UseScrollVisibilityResult {
   const scrollRef = useRef<HTMLDivElement>(null);
   const hideProgressContainerRef = useRef<HTMLDivElement>(null);
+  const revealAtEdgeRef = useRef(revealAtEdge);
+  revealAtEdgeRef.current = revealAtEdge;
   const {
     isHidden,
     progressRef,
+    footerProgressRef,
+    isAtEdge,
     getSnapDirection,
+    getFooterSnapDirection,
     snap,
     suspend,
     onScroll,
@@ -50,15 +58,17 @@ export function useScrollVisibility({
       topOffset,
       hideThreshold,
       showThreshold,
+      revealAtEdge,
+      edgeOffset,
       hysteresis,
       mode,
     });
 
   const onSnapComplete = useCallback(
-    (snapTo: 0 | 1) => {
+    (snapTo: 0 | 1, footerSnapTo?: 0 | 1) => {
       const element = scrollRef.current;
       const currentValue = element ? getScrollValue(element, inverted) : 0;
-      snap(snapTo, currentValue);
+      snap(snapTo, currentValue, footerSnapTo);
     },
     [inverted, snap],
   );
@@ -67,7 +77,11 @@ export function useScrollVisibility({
     useScrollProgressCssVar({
       containerRef: hideProgressContainerRef,
       progressRef,
+      footerProgressRef:
+        revealAtEdge !== undefined ? footerProgressRef : undefined,
       getSnapDirection,
+      getFooterSnapDirection:
+        revealAtEdge !== undefined ? getFooterSnapDirection : undefined,
       onSnapComplete,
       suspend,
     });
@@ -89,13 +103,21 @@ export function useScrollVisibility({
 
     const handler = () => {
       const value = getScrollValue(element, inverted);
+      const edgeMeta =
+        revealAtEdgeRef.current !== undefined
+          ? {
+              distanceFromStart: element.scrollTop,
+              distanceFromEnd:
+                element.scrollHeight - element.clientHeight - element.scrollTop,
+            }
+          : undefined;
       if (shouldDebugScroll()) {
         console.log("[scroll-debug][visibility] scroll", {
           value,
           scrollTop: element.scrollTop,
         });
       }
-      onScroll(value);
+      onScroll(value, edgeMeta);
       if (mode === "relative") {
         onProgress(progressRef.current);
       }
@@ -147,5 +169,12 @@ export function useScrollVisibility({
     resetState(element ? getScrollValue(element, inverted) : 0);
   }, [inverted, resetState]);
 
-  return { scrollRef, hideProgressContainerRef, isHidden, reset, suspend };
+  return {
+    scrollRef,
+    hideProgressContainerRef,
+    isHidden,
+    isAtEdge,
+    reset,
+    suspend,
+  };
 }

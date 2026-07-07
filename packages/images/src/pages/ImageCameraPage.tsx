@@ -1,4 +1,4 @@
-import { Camera, X } from "lucide-react";
+import { ImagePlus, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useCameraStream } from "../hooks/use-camera-stream";
@@ -12,8 +12,6 @@ export function ImageCameraPage(): React.JSX.Element {
     onCapture,
     cameraSessionId: rawCameraSessionId,
     captureFlow,
-    latestImageUrl,
-    onViewLatest,
     onEditCapturedImage,
     onCloseCamera,
   } = useSurfaceProps<ImageCameraSurfaceProps>();
@@ -23,16 +21,9 @@ export function ImageCameraPage(): React.JSX.Element {
     useCameraStream(cameraSessionId);
   const [isFlashing, setIsFlashing] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
-  const [localLatestUrl, setLocalLatestUrl] = useState<string | null>(null);
-  const localLatestUrlRef = useRef<string | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const flashTimeoutRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (localLatestUrlRef.current)
-        URL.revokeObjectURL(localLatestUrlRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     header?.setTitle("");
@@ -92,14 +83,6 @@ export function ImageCameraPage(): React.JSX.Element {
       if (captureFlow === "camera-to-editor") {
         onEditCapturedImage?.(capturedImage);
       }
-
-      if (captureFlow !== "camera-to-editor") {
-        const thumbUrl = URL.createObjectURL(blob);
-        if (localLatestUrlRef.current)
-          URL.revokeObjectURL(localLatestUrlRef.current);
-        localLatestUrlRef.current = thumbUrl;
-        setLocalLatestUrl(thumbUrl);
-      }
     } finally {
       setIsCapturing(false);
     }
@@ -111,6 +94,40 @@ export function ImageCameraPage(): React.JSX.Element {
     onEditCapturedImage,
     triggerFlash,
   ]);
+
+  const handleChooseFromDevice = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  const handleFileSelected = useCallback(
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      event.target.value = "";
+
+      if (
+        !file ||
+        !onCapture ||
+        isCapturing ||
+        isSelecting ||
+        !file.type.startsWith("image/")
+      ) {
+        return;
+      }
+
+      setIsSelecting(true);
+
+      try {
+        const capturedImage = onCapture(file);
+
+        if (captureFlow === "camera-to-editor") {
+          onEditCapturedImage?.(capturedImage);
+        }
+      } finally {
+        setIsSelecting(false);
+      }
+    },
+    [captureFlow, isCapturing, isSelecting, onCapture, onEditCapturedImage],
+  );
 
   const handleClose = useCallback(() => {
     header?.requestClose();
@@ -161,27 +178,30 @@ export function ImageCameraPage(): React.JSX.Element {
         </div>
       </div>
 
+      <input
+        ref={fileInputRef}
+        accept="image/*"
+        className="sr-only"
+        data-testid="camera-file-input"
+        onChange={(event) => {
+          void handleFileSelected(event);
+        }}
+        type="file"
+      />
+
       <div
         className="flex items-center justify-between gap-4 px-5 pb-[calc(var(--safe-bottom)+1rem)] pt-4"
         data-testid="camera-controls"
       >
         <button
           type="button"
-          aria-label="Latest image"
+          aria-label="Select image from device"
           className="flex size-14 items-center justify-center overflow-hidden rounded-2xl border border-white/30 bg-white/10 disabled:opacity-60"
-          data-testid="camera-latest-thumbnail"
-          disabled={!localLatestUrl && !latestImageUrl}
-          onClick={onViewLatest}
+          data-testid="camera-select-image-button"
+          disabled={isSelecting}
+          onClick={handleChooseFromDevice}
         >
-          {(localLatestUrl ?? latestImageUrl) ? (
-            <img
-              alt="Latest capture"
-              className="size-full object-cover"
-              src={localLatestUrl ?? latestImageUrl ?? undefined}
-            />
-          ) : (
-            <Camera aria-hidden="true" className="size-5 text-white/70" />
-          )}
+          <ImagePlus aria-hidden="true" className="size-5 text-white/70" />
         </button>
 
         <button

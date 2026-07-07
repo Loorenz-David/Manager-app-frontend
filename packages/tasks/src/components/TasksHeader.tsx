@@ -24,6 +24,7 @@ type TasksHeaderProps = {
   taskType: TaskTypeFilter;
   taskStates: TaskState[];
   q: string;
+  isHidden: boolean;
   isLoading: boolean;
   activeFilterCount: number;
   onTaskTypeChange: (value: TaskTypeFilter) => void;
@@ -37,6 +38,7 @@ export function TasksHeader({
   taskType,
   taskStates,
   q,
+  isHidden,
   isLoading,
   activeFilterCount,
   onTaskTypeChange,
@@ -50,7 +52,10 @@ export function TasksHeader({
       className="relative flex flex-col bg-background"
       data-testid="tasks-header"
     >
-      <div className="px-4 pb-2 pt-3" style={HIDE_STYLE}>
+      <div
+        className="px-4 pb-2 pt-3"
+        style={{ ...HIDE_STYLE, pointerEvents: isHidden ? "none" : undefined }}
+      >
         <BoxSlidePicker
           dataTestId="tasks-type-picker"
           options={TASK_TYPE_PICKER_OPTIONS}
@@ -76,7 +81,11 @@ export function TasksHeader({
 
       <div
         className="absolute inset-x-0 bg-background"
-        style={{ top: "100%", ...SLIDE_HIDE_STYLE }}
+        style={{
+          top: "100%",
+          ...SLIDE_HIDE_STYLE,
+          pointerEvents: isHidden ? "none" : undefined,
+        }}
       >
         <HorizontalScrollArea className="pb-1">
           <BoxPicker

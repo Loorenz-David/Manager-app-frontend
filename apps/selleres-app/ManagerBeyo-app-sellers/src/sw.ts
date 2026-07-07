@@ -58,10 +58,7 @@ function resolveRoute(
         : "/cases";
     case "item_upholstery":
     case null:
-      return withParams("/upholstery-inventory", {
-        notif_type: "upholstery",
-        notif_cid: notificationId,
-      });
+      return "/";
     default:
       return "/";
   }
@@ -94,8 +91,8 @@ self.addEventListener("push", (event) => {
         body,
         data,
         tag,
-        icon: "/pwa-192x192.png",
-        badge: "/pwa-96x96.png",
+        icon: "/pwa-192x192-20260707.png",
+        badge: "/pwa-96x96-20260707.png",
       });
     })(),
   );

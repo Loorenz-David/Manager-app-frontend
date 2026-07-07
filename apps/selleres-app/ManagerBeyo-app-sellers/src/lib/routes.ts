@@ -6,7 +6,6 @@ export const ROUTES = {
   caseConversation: '/cases/:caseId',
   stats: '/stats',
   settings: '/settings',
-  upholsteryInventory: '/upholstery-inventory',
 } as const;
 
 export function buildCaseConversationRoute(caseId: string): string {
@@ -18,7 +17,6 @@ export const TAB_ORDER = [
   ROUTES.cases,
   ROUTES.home,
   ROUTES.stats,
-  ROUTES.upholsteryInventory,
   ROUTES.settings,
 ] as const;
 
@@ -32,7 +30,6 @@ export const PRIMARY_TABS = [
 
 export const MORE_TABS = [
   ROUTES.stats,
-  ROUTES.upholsteryInventory,
   ROUTES.settings,
 ] as const satisfies TabPath[];
 

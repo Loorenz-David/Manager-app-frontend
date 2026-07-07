@@ -20,11 +20,11 @@ export function TasksView(): React.JSX.Element {
           transform:
             "translateY(calc(-1 * var(--type-picker-height, 56px) * var(--scroll-hide-progress, 0)))",
           transition: "transform var(--scroll-snap-duration, 0ms) ease-out",
-          pointerEvents: isHidden ? "none" : undefined,
         }}
       >
         <TasksHeader
           activeFilterCount={controller.activeFilterCount}
+          isHidden={isHidden}
           isLoading={controller.isLoading}
           q={controller.q}
           taskStates={controller.taskStates}

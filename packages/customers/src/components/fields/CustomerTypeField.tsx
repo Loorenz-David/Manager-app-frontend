@@ -4,7 +4,7 @@ import { cn } from "@beyo/lib";
 import { FieldErrorPill } from "@beyo/ui";
 
 const CUSTOMER_TYPE_LABELS: Record<string, string> = {
-  person: "Person",
+  private: "Private",
   company: "Company",
   unknown: "Unknown",
 };
@@ -14,14 +14,16 @@ export function CustomerTypeField(): React.JSX.Element {
     register,
     formState: { errors },
   } = useFormContext();
-  const error = (
-    errors as { customer?: Record<string, { message?: string }> }
-  ).customer?.customer_type?.message;
+  const error = (errors as { customer?: Record<string, { message?: string }> })
+    .customer?.customer_type?.message;
 
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-3">
-        <label htmlFor="customer-type" className="text-sm font-medium text-muted-foreground">
+        <label
+          htmlFor="customer-type"
+          className="text-sm font-medium text-muted-foreground"
+        >
           Type
         </label>
         <FieldErrorPill data-testid="customer-type-error" message={error} />
@@ -41,7 +43,7 @@ export function CustomerTypeField(): React.JSX.Element {
         {...register("customer.customer_type")}
       >
         <option value="">Select type...</option>
-        <option value="person">{CUSTOMER_TYPE_LABELS.person}</option>
+        <option value="private">{CUSTOMER_TYPE_LABELS.private}</option>
         <option value="company">{CUSTOMER_TYPE_LABELS.company}</option>
         <option value="unknown">{CUSTOMER_TYPE_LABELS.unknown}</option>
       </select>

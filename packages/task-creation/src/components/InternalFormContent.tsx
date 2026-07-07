@@ -9,7 +9,12 @@ import {
   useCreateImagesFromUrl,
 } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
-import { ContentCard, StagedForm, StagedFormStep, usePrefetchOnCondition } from "@beyo/ui";
+import {
+  ContentCard,
+  StagedForm,
+  StagedFormStep,
+  usePrefetchOnCondition,
+} from "@beyo/ui";
 import {
   ItemIdentityField,
   ItemPositionField,
@@ -24,10 +29,7 @@ import {
   type ScanFormat,
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
-import {
-  TaskReadyByDateField,
-  useCreateTask,
-} from "@beyo/tasks";
+import { TaskReadyByDateField, useCreateTask } from "@beyo/tasks";
 import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
 import {
   ItemUpholsteryAmountField,
@@ -56,6 +58,8 @@ import {
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
+import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
+import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
 import {
@@ -246,11 +250,7 @@ export function InternalFormContent(): React.JSX.Element {
             setStatus("assignment", "error");
             firstErrorStep ??= "assignment";
           }
-          if (
-            errors.item_issues ??
-            errors.note_content ??
-            errors.ready_by_at
-          ) {
+          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
             setStatus("task", "error");
           }
 
@@ -308,7 +308,9 @@ export function InternalFormContent(): React.JSX.Element {
     const stepErrorMap = {
       item: Boolean(errors.item ?? errors.item_upholstery),
       assignment: Boolean(errors.working_section_assignments),
-      task: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+      task: Boolean(
+        errors.item_issues ?? errors.note_content ?? errors.ready_by_at,
+      ),
     } as const;
 
     for (const step of staged.steps) {
@@ -339,7 +341,7 @@ export function InternalFormContent(): React.JSX.Element {
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col pt-4"
+        className="flex h-full flex-col "
         data-testid="internal-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -348,12 +350,14 @@ export function InternalFormContent(): React.JSX.Element {
           activeStepId={staged.activeStepId}
           data-testid="internal-staged-form"
           direction={staged.direction}
+          header={<TaskCreationStagedFormHeader title="Internal Task" />}
           footer={
             <TaskCreationAssignmentFooter
               activeStepId={staged.activeStepId}
               majorCategory={majorCategory}
             />
           }
+          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}

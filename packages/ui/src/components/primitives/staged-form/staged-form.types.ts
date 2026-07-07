@@ -15,7 +15,13 @@ export type StagedFormProps = {
   isAdvancing?: boolean;
   showNavigation?: boolean;
   enableKeyboardAccessory?: boolean;
+  header?: ReactNode;
   footer?: ReactNode;
+  /**
+   * Manual override for the footer's bottom-edge reveal threshold. When omitted,
+   * the staged form falls back to the footer's live measured height.
+   */
+  footerEdgeOffset?: number;
   navigationMode?: 'sequential' | 'free';
   stepStatusMap?: StepStatusMap;
   direction?: 1 | -1;
@@ -34,6 +40,7 @@ export type StagedFormContextValue = {
   stepStatusMap: StepStatusMap;
   direction: 1 | -1;
   isTimelineCompact: boolean;
+  isTimelineStatic: boolean;
   onAdvance: () => void;
   onBack: () => void;
   onNavigate: (stepId: string) => void;

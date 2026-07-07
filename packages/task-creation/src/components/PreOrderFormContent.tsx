@@ -17,7 +17,12 @@ import {
 } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
-import { ContentCard, StagedForm, StagedFormStep, usePrefetchOnCondition } from "@beyo/ui";
+import {
+  ContentCard,
+  StagedForm,
+  StagedFormStep,
+  usePrefetchOnCondition,
+} from "@beyo/ui";
 import {
   ItemIdentityField,
   ItemPositionField,
@@ -66,6 +71,8 @@ import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
+import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
+import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
 import {
   CALENDAR_RANGE_PICKER_SURFACE_ID,
@@ -254,7 +261,9 @@ export function PreOrderFormContent(): React.JSX.Element {
   const steps = [
     { id: "task", title: "Task" },
     { id: "customer", title: "Customer" },
-    ...(!isSeller ? ([{ id: "assignment", title: "Assignment" }] as const) : []),
+    ...(!isSeller
+      ? ([{ id: "assignment", title: "Assignment" }] as const)
+      : []),
     { id: "details", title: "Details" },
   ];
 
@@ -286,11 +295,7 @@ export function PreOrderFormContent(): React.JSX.Element {
             setStatus("assignment", "error");
             firstErrorStep ??= "assignment";
           }
-          if (
-            errors.item_issues ??
-            errors.note_content ??
-            errors.ready_by_at
-          ) {
+          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
             setStatus("details", "error");
           }
 
@@ -366,12 +371,14 @@ export function PreOrderFormContent(): React.JSX.Element {
       task: Boolean(errors.item ?? errors.item_upholstery),
       customer: Boolean(
         errors.customer ??
-          errors.fulfillment_method ??
-          errors.scheduled_start_at ??
-          errors.scheduled_end_at,
+        errors.fulfillment_method ??
+        errors.scheduled_start_at ??
+        errors.scheduled_end_at,
       ),
       assignment: Boolean(!isSeller && errors.working_section_assignments),
-      details: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+      details: Boolean(
+        errors.item_issues ?? errors.note_content ?? errors.ready_by_at,
+      ),
     } as const;
 
     for (const step of staged.steps) {
@@ -402,7 +409,7 @@ export function PreOrderFormContent(): React.JSX.Element {
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col pt-4"
+        className="flex h-full flex-col "
         data-testid="pre-order-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -412,12 +419,14 @@ export function PreOrderFormContent(): React.JSX.Element {
           data-testid="pre-order-staged-form"
           direction={staged.direction}
           enableKeyboardAccessory
+          header={<TaskCreationStagedFormHeader title="Pre-Order" />}
           footer={
             <TaskCreationAssignmentFooter
               activeStepId={staged.activeStepId}
               majorCategory={majorCategory}
             />
           }
+          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}

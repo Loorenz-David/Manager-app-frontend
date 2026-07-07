@@ -1,9 +1,14 @@
+import path from "node:path";
 import type { Page, Route } from "@playwright/test";
 
 import { test, expect } from "../../fixtures/app-fixture";
 
 const hasCredentials = Boolean(
   process.env.PLAYWRIGHT_TEST_EMAIL && process.env.PLAYWRIGHT_TEST_PASSWORD,
+);
+const devicePickerFixturePath = path.resolve(
+  process.cwd(),
+  "../../../images/working_section_2/photography.png",
 );
 
 type MockEntityImage = {
@@ -310,6 +315,30 @@ test.describe("Images item flow", () => {
     await expect(page.getByTestId("image-fullscreen-viewer")).not.toBeVisible();
     await expect(page.getByTestId("image-metadata-sheet")).not.toBeVisible();
     await expect(page.getByTestId("image-add-picture-button")).toBeVisible();
+  });
+
+  test("selects an image from the device picker and routes it through the editor flow", async ({
+    page,
+  }) => {
+    await expect(page.getByTestId("testing-images-harness-section")).toBeVisible();
+    await expect(page.getByTestId("testing-images-grid")).toBeVisible();
+
+    await page.getByTestId("image-add-picture-button").click();
+    await expect(page.getByTestId("image-camera-page")).toBeVisible();
+    await expect(page.getByTestId("camera-select-image-button")).toBeEnabled();
+
+    await page.setInputFiles(
+      '[data-testid="camera-file-input"]',
+      devicePickerFixturePath,
+    );
+    await expect(page.getByTestId("image-editor-page")).toBeVisible();
+
+    await page.getByTestId("image-editor-done-button").click();
+    await expect(page.getByTestId("image-editor-page")).not.toBeVisible();
+    await expect(page.getByTestId("image-camera-page")).not.toBeVisible();
+
+    const uploadedPreviewTile = page.getByTestId(/image-preview-tile-button-/).first();
+    await expect(uploadedPreviewTile).toBeVisible();
   });
 
   test("reuses the warm stream across manual close and reacquires after the keep-alive window", async ({

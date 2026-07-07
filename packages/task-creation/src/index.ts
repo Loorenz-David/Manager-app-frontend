@@ -1,6 +1,7 @@
 export { InternalFormContent } from "./components/InternalFormContent";
 export { PreOrderFormContent } from "./components/PreOrderFormContent";
 export { ReturnFormContent } from "./components/ReturnFormContent";
+export { TaskCreationStagedFormHeader } from "./components/TaskCreationStagedFormHeader";
 export { WorkerInternalFormContent } from "./components/WorkerInternalFormContent";
 export {
   normalizeInternalFormPayload,

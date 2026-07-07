@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1242" height="2688" viewBox="0 0 1242 2688" fill="none">
+  <rect width="1242" height="2688" fill="#F5F2FF"/>
+  <rect x="141" y="84" width="960" height="2520" rx="96" fill="#111827"/>
+  <rect x="189" y="168" width="864" height="2352" rx="64" fill="#FFFFFF"/>
+  <rect x="189" y="168" width="864" height="220" rx="64" fill="#6D28D9"/>
+  <rect x="513" y="106" width="216" height="28" rx="14" fill="#111827"/>
+  <text x="261" y="310" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="700">
+    Seller Beyo
+  </text>
+  <rect x="261" y="454" width="720" height="108" rx="36" fill="#F3E8FF"/>
+  <rect x="261" y="610" width="720" height="300" rx="40" fill="#FAF5FF"/>
+  <rect x="261" y="958" width="720" height="300" rx="40" fill="#FAF5FF"/>
+  <rect x="261" y="1306" width="720" height="300" rx="40" fill="#F5F3FF"/>
+  <rect x="261" y="1654" width="720" height="300" rx="40" fill="#EDE9FE"/>
+  <rect x="297" y="492" width="224" height="24" rx="12" fill="#7C3AED"/>
+  <rect x="297" y="542" width="328" height="18" rx="9" fill="#A78BFA"/>
+  <rect x="297" y="658" width="236" height="24" rx="12" fill="#6D28D9"/>
+  <rect x="297" y="708" width="402" height="18" rx="9" fill="#C4B5FD"/>
+  <rect x="297" y="786" width="648" height="88" rx="28" fill="#FFFFFF"/>
+  <rect x="297" y="1006" width="236" height="24" rx="12" fill="#6D28D9"/>
+  <rect x="297" y="1056" width="402" height="18" rx="9" fill="#C4B5FD"/>
+  <rect x="297" y="1134" width="648" height="88" rx="28" fill="#FFFFFF"/>
+  <rect x="297" y="1354" width="236" height="24" rx="12" fill="#6D28D9"/>
+  <rect x="297" y="1404" width="402" height="18" rx="9" fill="#A78BFA"/>
+  <rect x="297" y="1482" width="648" height="88" rx="28" fill="#FFFFFF"/>
+  <rect x="297" y="1702" width="236" height="24" rx="12" fill="#6D28D9"/>
+  <rect x="297" y="1752" width="402" height="18" rx="9" fill="#8B5CF6"/>
+  <rect x="297" y="1830" width="648" height="88" rx="28" fill="#FFFFFF"/>
+  <text x="261" y="2356" fill="#6D28D9" font-family="Arial, sans-serif" font-size="44" font-weight="700">
+    Mobile seller workflow
+  </text>
+</svg>

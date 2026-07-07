@@ -13,11 +13,6 @@ export const casesPageRoute = lazyWithPreload(() =>
 export const statsPageRoute = lazyWithPreload(() =>
   import("@/pages/stats/StatsPage").then((m) => ({ default: m.StatsPage })),
 );
-export const upholsteryInventoryPageRoute = lazyWithPreload(() =>
-  import("@/pages/upholstery-inventory/UpholsteryInventoryPage").then((m) => ({
-    default: m.UpholsteryInventoryPage,
-  })),
-);
 export const settingsPageRoute = lazyWithPreload(() =>
   import("@/pages/settings/SettingsPage").then((m) => ({
     default: m.SettingsPage,
@@ -29,7 +24,6 @@ const PRIMARY_TAB_PRELOADERS: Record<TabPath, () => Promise<void>> = {
   [ROUTES.tasks]: tasksPageRoute.preload,
   [ROUTES.cases]: casesPageRoute.preload,
   [ROUTES.stats]: statsPageRoute.preload,
-  [ROUTES.upholsteryInventory]: upholsteryInventoryPageRoute.preload,
   [ROUTES.settings]: settingsPageRoute.preload,
 };
 

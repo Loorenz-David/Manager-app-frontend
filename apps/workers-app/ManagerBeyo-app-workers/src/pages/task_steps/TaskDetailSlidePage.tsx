@@ -33,6 +33,9 @@ import {
   preloadTaskScheduledDeliverySheetSurface,
 } from "@/features/task_steps/surfaces";
 
+// Keep this in sync with the 9.5rem bottom padding used in the scroll content below.
+const TASK_DETAIL_FOOTER_EDGE_OFFSET_PX = 152;
+
 function TaskStepCategoryPositionRow(): React.JSX.Element | null {
   const { step, isSeatCategory, openPositionSheet } =
     useTaskStepDetailContext();
@@ -88,7 +91,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
   const controller = useTaskStepDetailContext();
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
+    useScrollHide({
+      revealAtEdge: "bottom",
+      edgeOffset: TASK_DETAIL_FOOTER_EDGE_OFFSET_PX,
+    });
+  const isFooterHidden = isHidden && !isAtEdge;
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -133,8 +141,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const canShowCompletionAction = controller.vm.state === "working";
 
   const FOOTER_STYLE: React.CSSProperties = {
-    transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-    opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+    transform:
+      "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+    opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
     transition:
       "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
   };
@@ -194,7 +203,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           className="absolute inset-x-0 bottom-0 z-0 will-change-transform"
           style={{
             ...FOOTER_STYLE,
-            pointerEvents: isHidden ? "none" : undefined,
+            pointerEvents: isFooterHidden ? "none" : undefined,
           }}
         >
           <div className="px-4 pb-27 pt-3">
@@ -220,12 +229,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
         style={{
           ...FOOTER_STYLE,
-          pointerEvents: isHidden ? "none" : undefined,
+          pointerEvents: isFooterHidden ? "none" : undefined,
         }}
       >
         <TaskStepDetailFooter
           unreadCount={controller.liveCasesSummary.totalUnread}
-          isScrollHidden={isHidden}
+          isScrollHidden={isFooterHidden}
           onOpenCases={controller.handleOpenCasesForTask}
           onClose={() => header?.requestClose()}
         />

@@ -2,11 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { useSurface } from "@beyo/hooks";
 import {
   ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID,
+  fetchIssueTypes,
   hasIssueTypesForContext,
   issueTypeKeys,
-  type IssueType,
   type ItemIssueSelectionSheetSurfaceProps,
-  type ListIssueTypesResponse,
 } from "@beyo/item-issues";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 
@@ -28,23 +27,10 @@ type ProceedToStartArgs = {
   transitionStepState: TransitionStepStateAction["transitionStepState"];
 };
 
-function getCachedIssueTypes(queryClient: QueryClient): IssueType[] {
-  const cachedQueries = queryClient.getQueriesData<ListIssueTypesResponse>({
-    queryKey: issueTypeKeys.all(),
-  });
-  const dedupedIssueTypes = new Map<string, IssueType>();
-
-  for (const [, data] of cachedQueries) {
-    for (const issueType of data?.issue_types ?? []) {
-      dedupedIssueTypes.set(issueType.client_id, issueType);
-    }
-  }
-
-  return Array.from(dedupedIssueTypes.values());
-}
-
-export function buildProceedToStart(args: ProceedToStartArgs): () => void {
-  return () => {
+export function buildProceedToStart(
+  args: ProceedToStartArgs,
+): () => Promise<void> {
+  return async () => {
     const {
       stepId,
       taskId,
@@ -58,8 +44,24 @@ export function buildProceedToStart(args: ProceedToStartArgs): () => void {
       transitionStepState,
     } = args;
 
+    const workingSectionIds = [workingSectionId];
+    const itemCategoryIds = itemCategoryId ? [itemCategoryId] : [];
+
+    const { issue_types: issueTypes } = await queryClient.fetchQuery({
+      queryKey: issueTypeKeys.list({
+        working_section_ids: workingSectionIds,
+        item_category_ids: itemCategoryIds,
+      }),
+      queryFn: () =>
+        fetchIssueTypes({
+          working_section_ids: workingSectionIds,
+          item_category_ids: itemCategoryIds,
+        }),
+      staleTime: 5 * 60 * 1000,
+    });
+
     const hasIssues = hasIssueTypesForContext(
-      getCachedIssueTypes(queryClient),
+      issueTypes,
       workingSectionId,
       itemCategoryId ?? null,
     );

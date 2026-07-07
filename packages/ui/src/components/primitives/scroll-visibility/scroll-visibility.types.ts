@@ -18,6 +18,16 @@ export type ScrollVisibilityOptions = {
    * Falls back to `threshold` when omitted.
    */
   showThreshold?: number;
+  /**
+   * Relative mode only. Forces the element fully visible whenever the scroll
+   * container is within `edgeOffset` px of this physical edge.
+   */
+  revealAtEdge?: "top" | "bottom";
+  /**
+   * Relative mode only. Distance in px from `revealAtEdge` at which the
+   * forced-visible override activates. Defaults to 0.
+   */
+  edgeOffset?: number;
   hysteresis?: number;
   /**
    * When true, measures distance from the bottom instead of scrollTop.

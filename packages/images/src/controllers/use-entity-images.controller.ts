@@ -74,10 +74,8 @@ export type ImageCameraSurfaceProps = {
   entityClientId: string;
   cameraSessionId: string;
   captureFlow: ImageCaptureFlow;
-  latestImageUrl?: string;
   onCapture: (rawBlob: Blob) => ImageViewModel;
   onEditCapturedImage?: (capturedImage: ImageViewModel) => void;
-  onViewLatest?: () => void;
   onCloseCamera?: () => void;
 };
 
@@ -805,12 +803,6 @@ export function useEntityImagesController(
     [deleteImage, entityClientId, entityType, images, surface, viewerMode],
   );
 
-  const imagesRef = useRef(images);
-  imagesRef.current = images;
-
-  const openViewerRef = useRef(openViewer);
-  openViewerRef.current = openViewer;
-
   const keepCameraWarm = useCallback(() => {
     keepCameraStreamWarm(cameraSessionIdRef.current);
     cancelCameraStreamStop(cameraSessionIdRef.current);
@@ -863,18 +855,12 @@ export function useEntityImagesController(
       entityClientId,
       cameraSessionId: cameraSessionIdRef.current,
       captureFlow,
-      latestImageUrl: imagesRef.current.at(-1)?.imageUrl,
       onCapture: uploadImage,
       onEditCapturedImage:
         captureFlow === "camera-to-editor"
           ? openEditorForCapturedImage
           : undefined,
       onCloseCamera: scheduleCameraStop,
-      onViewLatest: () => {
-        const latest = imagesRef.current.at(-1);
-        if (!latest) return;
-        openViewerRef.current(latest.clientId);
-      },
     } satisfies ImageCameraSurfaceProps);
   }, [
     captureFlow,

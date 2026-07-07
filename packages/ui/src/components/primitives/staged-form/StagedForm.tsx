@@ -27,8 +27,8 @@ function getActiveStepChild(
 const STAGED_FORM_TIMELINE_OFFSET_CLASS = "pt-14";
 
 const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+  transform: "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+  opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
   transition:
     "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
 };
@@ -44,7 +44,9 @@ export function StagedForm({
   isAdvancing = false,
   showNavigation = true,
   enableKeyboardAccessory = false,
+  header,
   footer,
+  footerEdgeOffset,
   navigationMode = "sequential",
   stepStatusMap = {},
   direction = 1,
@@ -52,17 +54,25 @@ export function StagedForm({
   children,
   "data-testid": testId,
 }: StagedFormProps): React.JSX.Element {
-  const {
-    scrollRef,
-    hideProgressContainerRef,
-    isHidden: isCompact,
-    reset,
-    suspend,
-  } = useScrollHide();
+  const hasHeader = Boolean(header);
+  const hasFooter = Boolean(footer) || showNavigation;
 
   // Measure the absolute-positioned footer so the scroll container can pad itself.
   const footerObserverRef = useRef<ResizeObserver | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
+
+  const {
+    scrollRef,
+    hideProgressContainerRef,
+    isHidden: isCompact,
+    isAtEdge,
+    reset,
+    suspend,
+  } = useScrollHide({
+    revealAtEdge: hasFooter ? "bottom" : undefined,
+    edgeOffset: footerEdgeOffset ?? footerHeight,
+  });
+  const isFooterHidden = isCompact && !isAtEdge;
 
   const footerCallbackRef = useCallback((el: HTMLDivElement | null) => {
     footerObserverRef.current?.disconnect();
@@ -99,6 +109,7 @@ export function StagedForm({
     stepStatusMap,
     direction,
     isTimelineCompact: isCompact,
+    isTimelineStatic: hasHeader,
     onAdvance,
     onBack,
     onNavigate,
@@ -110,8 +121,6 @@ export function StagedForm({
     </AnimatePresence>
   );
 
-  const hasFooter = Boolean(footer) || showNavigation;
-
   return (
     <StagedFormContext.Provider value={contextValue}>
       <div
@@ -119,18 +128,20 @@ export function StagedForm({
         className={cn("relative flex h-full flex-col", className)}
         data-testid={testId}
       >
-        <div className="absolute inset-x-0 top-0 z-10">
-          <StagedFormTimeline />
-        </div>
+        {!hasHeader ? (
+          <div className="absolute inset-x-0 top-0 z-10">
+            <StagedFormTimeline />
+          </div>
+        ) : null}
 
         <ScrollVisibilityContext.Provider
-          value={{ isHidden: isCompact, reset, suspend }}
+          value={{ isHidden: isFooterHidden, reset, suspend }}
         >
           <div
             ref={scrollRef}
             className={cn(
               "relative flex-1 overflow-x-hidden overflow-y-auto overscroll-y-none",
-              STAGED_FORM_TIMELINE_OFFSET_CLASS,
+              hasHeader ? null : STAGED_FORM_TIMELINE_OFFSET_CLASS,
             )}
             style={{
               paddingBottom: hasFooter
@@ -139,6 +150,12 @@ export function StagedForm({
             }}
             data-testid="staged-form-scroll-container"
           >
+            {hasHeader ? (
+              <>
+                {header}
+                <StagedFormTimeline />
+              </>
+            ) : null}
             {enableKeyboardAccessory ? (
               <KeyboardAccessoryBar>{stepContent}</KeyboardAccessoryBar>
             ) : (
@@ -151,8 +168,9 @@ export function StagedForm({
               ref={footerCallbackRef}
               className={cn(
                 "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
-                isCompact ? "pointer-events-none" : null,
+                isFooterHidden ? "pointer-events-none" : null,
               )}
+              data-testid="staged-form-footer"
               style={FOOTER_STYLE}
             >
               {footer}
@@ -162,8 +180,9 @@ export function StagedForm({
               ref={footerCallbackRef}
               className={cn(
                 "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
-                isCompact ? "pointer-events-none" : null,
+                isFooterHidden ? "pointer-events-none" : null,
               )}
+              data-testid="staged-form-footer"
               style={FOOTER_STYLE}
             >
               <StagedFormNavigation />

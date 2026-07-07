@@ -18,7 +18,12 @@ import {
 } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
-import { ContentCard, StagedForm, StagedFormStep, usePrefetchOnCondition } from "@beyo/ui";
+import {
+  ContentCard,
+  StagedForm,
+  StagedFormStep,
+  usePrefetchOnCondition,
+} from "@beyo/ui";
 import {
   ItemIdentityField,
   ItemPositionField,
@@ -69,10 +74,9 @@ import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
-import {
-  ReturnFormSchema,
-  type ReturnFormValues,
-} from "../types";
+import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
+import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
+import { ReturnFormSchema, type ReturnFormValues } from "../types";
 import {
   CALENDAR_RANGE_PICKER_SURFACE_ID,
   CALENDAR_SINGLE_PICKER_SURFACE_ID,
@@ -318,11 +322,7 @@ export function ReturnFormContent(): React.JSX.Element {
             setStatus("assignment", "error");
             firstErrorStep ??= "assignment";
           }
-          if (
-            errors.item_issues ??
-            errors.note_content ??
-            errors.ready_by_at
-          ) {
+          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
             setStatus("details", "error");
           }
 
@@ -396,16 +396,22 @@ export function ReturnFormContent(): React.JSX.Element {
 
   useEffect(() => {
     const stepErrorMap = {
-      task: Boolean(errors.return_source ?? errors.item ?? errors.item_upholstery),
+      task: Boolean(
+        errors.return_source ?? errors.item ?? errors.item_upholstery,
+      ),
       customer: Boolean(
         shouldShowCustomerStep &&
-          (errors.customer ??
-            errors.fulfillment_method ??
-            errors.scheduled_start_at ??
-            errors.scheduled_end_at),
+        (errors.customer ??
+          errors.fulfillment_method ??
+          errors.scheduled_start_at ??
+          errors.scheduled_end_at),
       ),
-      assignment: Boolean(hasAssignmentStep && errors.working_section_assignments),
-      details: Boolean(errors.item_issues ?? errors.note_content ?? errors.ready_by_at),
+      assignment: Boolean(
+        hasAssignmentStep && errors.working_section_assignments,
+      ),
+      details: Boolean(
+        errors.item_issues ?? errors.note_content ?? errors.ready_by_at,
+      ),
     } as const;
 
     for (const step of staged.steps) {
@@ -436,7 +442,7 @@ export function ReturnFormContent(): React.JSX.Element {
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col pt-4"
+        className="flex h-full flex-col "
         data-testid="return-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -445,12 +451,14 @@ export function ReturnFormContent(): React.JSX.Element {
           activeStepId={staged.activeStepId}
           data-testid="return-staged-form"
           direction={staged.direction}
+          header={<TaskCreationStagedFormHeader title="Return" />}
           footer={
             <TaskCreationAssignmentFooter
               activeStepId={staged.activeStepId}
               majorCategory={majorCategory}
             />
           }
+          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
@@ -471,7 +479,9 @@ export function ReturnFormContent(): React.JSX.Element {
                   onOpenScanner={handleOpenScanner}
                 />
                 <ItemPositionField />
-                {returnSource === "store_return" ? <TaskAssortmentField /> : null}
+                {returnSource === "store_return" ? (
+                  <TaskAssortmentField />
+                ) : null}
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />

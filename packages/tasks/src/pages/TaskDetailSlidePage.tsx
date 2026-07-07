@@ -1,6 +1,10 @@
 import { useCallback, useEffect } from "react";
 
-import { usePreloadSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import {
+  usePreloadSurface,
+  useSurfaceHeader,
+  useSurfaceProps,
+} from "@beyo/hooks";
 import { generateClientId } from "@beyo/lib";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
@@ -44,6 +48,9 @@ import {
 } from "../providers/TaskDetailProvider";
 import type { TaskDetailSurfaceProps } from "../surface-ids";
 
+// Keep this in sync with the 9.5rem bottom padding used in the scroll content below.
+const BOTTOM_ACTIONS_EDGE_OFFSET_PX = 90;
+
 function toRequirementState(value: string | null) {
   return value && isUpholsteryRequirementState(value) ? value : null;
 }
@@ -52,7 +59,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
   const queryClient = useQueryClient();
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
+    useScrollHide({
+      revealAtEdge: "bottom",
+      edgeOffset: BOTTOM_ACTIONS_EDGE_OFFSET_PX,
+    });
+  const isFooterHidden = isHidden && !isAtEdge;
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -63,7 +75,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 
   const handleOpenUnreadViewer = useCallback(
     (props: TaskNoteUnreadViewerSurfaceProps) => {
-      useSurfaceStore.getState().open(TASK_NOTE_UNREAD_VIEWER_SURFACE_ID, props);
+      useSurfaceStore
+        .getState()
+        .open(TASK_NOTE_UNREAD_VIEWER_SURFACE_ID, props);
     },
     [],
   );
@@ -82,11 +96,15 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       return;
     }
 
-    console.log("[scroll-debug][task-detail] isHidden", { isHidden });
-  }, [isHidden]);
+    console.log("[scroll-debug][task-detail] isFooterHidden", {
+      isFooterHidden,
+    });
+  }, [isFooterHidden]);
 
   const itemId = controller.taskDetail?.item?.client_id ?? null;
-  const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(controller.taskId);
+  const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(
+    controller.taskId,
+  );
   const shouldRenderAssignStages =
     !workingSectionsCounts.isPending &&
     controller.taskDetail?.task.state === "pending" &&
@@ -220,7 +238,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         {scrollContent}
       </PullToRefresh>
       <TaskDetailBottomActions
-        isHidden={isHidden}
+        isHidden={isFooterHidden}
         onEdit={controller.openEditTask}
         onOpenWorkingSections={controller.openWorkingSectionsSlide}
         shouldRenderAssignStages={shouldRenderAssignStages}

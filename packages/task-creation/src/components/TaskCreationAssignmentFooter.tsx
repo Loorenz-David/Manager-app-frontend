@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { cn } from "@beyo/lib";
 import { useWorkingSectionPickerFlow } from "@beyo/working-sections";
 import { resolveWorkingSectionShortcutsByMajorCategory } from "@beyo/working-sections";
 import { filterWorkingSectionsForMajorCategory } from "@beyo/working-sections";
@@ -9,10 +8,13 @@ import { useSurfaceHeader } from "@beyo/hooks";
 import {
   StagedFormNavigation,
   WorkingSectionShortcutBar,
-  useScrollVisibilityContext,
 } from "@beyo/ui";
 
 import type { WorkingSectionAssignment } from "../types";
+
+// Fixed edge-reveal distance for staged task-creation footers. The footer's
+// actual padding still tracks live height via ResizeObserver inside StagedForm.
+export const TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX = 50;
 
 type TaskCreationAssignmentFooterProps = {
   activeStepId: string;
@@ -35,7 +37,6 @@ export function TaskCreationAssignmentFooter({
     defaultValue: [],
   });
   const flow = useWorkingSectionPickerFlow();
-  const { isHidden } = useScrollVisibilityContext();
   const availableSections = useMemo(
     () => filterWorkingSectionsForMajorCategory(flow.options, majorCategory),
     [flow.options, majorCategory],
@@ -60,26 +61,22 @@ export function TaskCreationAssignmentFooter({
   }
 
   return (
-    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+    <div
+      className="bg-background shadow-[0_-1px_0_0_var(--color-border)]"
+      data-testid="task-creation-assignment-footer"
+    >
       {showShortcutBar ? (
-        <div
-          className={cn(
-            "grid overflow-hidden px-4 transition-[grid-template-rows] duration-220 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isHidden ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
-          )}
-        >
-          <div className="min-h-0">
-            <WorkingSectionShortcutBar
-              shortcuts={shortcuts}
-              availableSections={availableSections}
-              selectedSectionIds={selectedSectionIds}
-              onShortcutPress={handleShortcutPress}
-              animationMode="translate"
-              className="pb-3 pt-3"
-              data-testid="task-creation-working-sections-shortcut-bar"
-              trackClassName="mt-3"
-            />
-          </div>
+        <div className="px-4">
+          <WorkingSectionShortcutBar
+            shortcuts={shortcuts}
+            availableSections={availableSections}
+            selectedSectionIds={selectedSectionIds}
+            onShortcutPress={handleShortcutPress}
+            animationMode="translate"
+            className="pb-3 pt-3"
+            data-testid="task-creation-working-sections-shortcut-bar"
+            trackClassName="mt-3"
+          />
         </div>
       ) : null}
 

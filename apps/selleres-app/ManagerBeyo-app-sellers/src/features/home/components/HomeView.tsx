@@ -1,4 +1,8 @@
-import { GmailIcon, PostHandlingIcon } from "@beyo/assets";
+import {
+  GmailIcon,
+  PostHandlingIcon,
+  HandshakeIconComponent,
+} from "@beyo/assets";
 import {
   EMAIL_MESSAGE_DETAILS_SHEET_SURFACE_ID,
   EMAIL_TEMPLATE_PICKER_SHEET_SURFACE_ID,
@@ -38,11 +42,8 @@ import { formatCompactCount } from "../lib/format-compact-count";
 import { useHomeViewContext } from "../providers/HomeViewProvider";
 
 export function HomeView(): React.JSX.Element {
-  const {
-    coordinationCount,
-    emailUnreadCount,
-    postHandlingCountLabel,
-  } = useHomeViewContext();
+  const { coordinationCount, emailUnreadCount, postHandlingCountLabel } =
+    useHomeViewContext();
   const surface = useSurface();
 
   function openMessageDetailsSurface(
@@ -128,7 +129,9 @@ export function HomeView(): React.JSX.Element {
             surfaceOpeners: {
               ...props.surfaceOpeners,
               closeSurface: () =>
-                surface.close(CUSTOMER_COORDINATION_EMAIL_REPLY_SLIDE_SURFACE_ID),
+                surface.close(
+                  CUSTOMER_COORDINATION_EMAIL_REPLY_SLIDE_SURFACE_ID,
+                ),
               openEmailTemplatePicker: (pickerProps) => {
                 surface.open(
                   EMAIL_TEMPLATE_PICKER_SHEET_SURFACE_ID,
@@ -171,6 +174,17 @@ export function HomeView(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col gap-4 px-4 pt-10">
+      <button
+        className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3.5 text-left text-lg font-medium text-primary shadow-sm disabled:opacity-50"
+        data-testid="home-post-handling-box"
+        type="button"
+        onClick={openTaskPostHandlingSurface}
+      >
+        <span>Ready for Handling{postHandlingCountLabel}</span>
+        <div className="ml-auto flex">
+          <PostHandlingIcon aria-hidden="true" className="size-8 shrink-0" />
+        </div>
+      </button>
       <div className="flex gap-4">
         <button
           className="relative flex flex-1 items-center gap-2 rounded-2xl bg-card px-4 py-3.5 text-left text-lg font-medium text-primary shadow-sm disabled:opacity-50"
@@ -179,7 +193,10 @@ export function HomeView(): React.JSX.Element {
         >
           <span>Coordinate</span>
           <div className="ml-auto flex">
-            <GmailIcon aria-hidden="true" className="size-8 shrink-0" />
+            <HandshakeIconComponent
+              aria-hidden="true"
+              className="size-8 shrink-0"
+            />
           </div>
           {coordinationCount !== null && coordinationCount > 0 && (
             <div className="absolute -right-2 -top-2">
@@ -208,18 +225,6 @@ export function HomeView(): React.JSX.Element {
           )}
         </button>
       </div>
-
-      <button
-        className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3.5 text-left text-lg font-medium text-primary shadow-sm disabled:opacity-50"
-        data-testid="home-post-handling-box"
-        type="button"
-        onClick={openTaskPostHandlingSurface}
-      >
-        <span>Ready for Handling{postHandlingCountLabel}</span>
-        <div className="ml-auto flex">
-          <PostHandlingIcon aria-hidden="true" className="size-8 shrink-0" />
-        </div>
-      </button>
     </div>
   );
 }

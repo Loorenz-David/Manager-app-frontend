@@ -41,8 +41,8 @@ export function TaskDetailBottomActions({
         isHidden ? "pointer-events-none" : null,
       )}
       style={{
-        transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transform: "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+        opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
         transition:
           "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
       }}

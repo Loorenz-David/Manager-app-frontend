@@ -166,11 +166,7 @@ export const TASK_RETURN_SOURCE = [
 ] as const;
 export const TASK_ITEM_LOCATION = ["store", "customer"] as const;
 export const TASK_FULFILLMENT_METHOD = ["pickup_at_store", "delivery"] as const;
-export const POST_HANDLING_STATE = [
-  "pending",
-  "filled",
-  "completed",
-] as const;
+export const POST_HANDLING_STATE = ["pending", "filled", "completed"] as const;
 
 export type TaskType = (typeof TASK_TYPE)[number];
 export type TaskPriority = (typeof TASK_PRIORITY)[number];
@@ -376,8 +372,16 @@ export const CreateTaskInputSchema = z.object({
   customer_id: z.string().min(1).optional(),
   primary_phone_number: z.string().optional(),
   secondary_phone_number: z.string().optional(),
-  primary_email: z.string().email("Enter a valid email.").optional().or(z.literal("")),
-  secondary_email: z.string().email("Enter a valid email.").optional().or(z.literal("")),
+  primary_email: z
+    .string()
+    .email("Enter a valid email.")
+    .optional()
+    .or(z.literal("")),
+  secondary_email: z
+    .string()
+    .email("Enter a valid email.")
+    .optional()
+    .or(z.literal("")),
   address: z
     .object({
       street: z.string().optional(),
