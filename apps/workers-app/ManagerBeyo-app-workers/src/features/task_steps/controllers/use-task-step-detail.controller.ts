@@ -35,6 +35,8 @@ import {
   type CaseCreationSurfaceOpeners,
   type ParticipantPickerSlideSurfaceProps,
 } from "@beyo/cases";
+import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, type ShopifyProductSyncSurfaceOpeners } from "@beyo/shopify";
+import type { WorkerWorkingSection } from "../../working_sections/types";
 import {
   IMAGE_VIEWER_SURFACE_ID,
   ImageAnnotationSchema,
@@ -193,6 +195,10 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     () => (step ? toTaskStepCardViewModel(step) : null),
     [step],
   );
+  const allowsShopifyProductModifications = useMemo(() => {
+    const cached = queryClient.getQueryData<WorkerWorkingSection[]>(workerWorkingSectionKeys.mine());
+    return cached?.find((section) => section.client_id === resolvedWorkingSectionId)?.allows_shopify_product_modifications ?? false;
+  }, [queryClient, resolvedWorkingSectionId]);
 
   const {
     transitionStepState,
@@ -347,8 +353,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
 
   const handleComplete = useCallback(() => {
     if (!vm || STEP_TERMINAL_STATES.has(vm.state)) return;
-
-    openSurface(COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID, {
+    const openTimeConfirmation = () => openSurface(COMPLETE_TASK_STEP_CONFIRMATION_SLIDE_SURFACE_ID, {
       stepId: resolvedStepId,
       taskId: resolvedTaskId,
       workingSectionId: resolvedWorkingSectionId,
@@ -389,6 +394,12 @@ export function useTaskStepDetailController(): TaskStepDetailController {
         );
       },
     } satisfies CompleteTaskStepConfirmationSlideSurfaceProps);
+    if (allowsShopifyProductModifications && step?.item) {
+      const surfaceOpeners: ShopifyProductSyncSurfaceOpeners = { openShopPicker: (props) => openSurface(SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, props) };
+      openSurface(SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, { itemClientId: step.item.client_id, itemArticleNumber: step.item.article_number ?? null, itemSku: step.item.sku ?? null, surfaceOpeners, onCompleted: openTimeConfirmation, onSkipped: openTimeConfirmation });
+      return;
+    }
+    openTimeConfirmation();
   }, [
     openSurface,
     vm,
@@ -397,6 +408,8 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     resolvedWorkingSectionId,
     transitionStepState,
     triggerCelebration,
+    allowsShopifyProductModifications,
+    step,
   ]);
 
   const handleCancelCompletion = useCallback(() => {

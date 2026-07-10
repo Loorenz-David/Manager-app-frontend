@@ -22,6 +22,7 @@ export const WorkerWorkingSectionSchema = z.object({
   name: z.string(),
   image: z.string().nullable(),
   allows_batch_working: z.boolean(),
+  allows_shopify_product_modifications: z.boolean(),
   task_steps_counts: TaskStepStateCountsSchema,
   ready_and_pending_count: z.number(),
 });
@@ -36,6 +37,7 @@ export type WorkingSectionViewModel = {
   name: string;
   imageUrl: string | null;
   allowsBatchWorking: boolean;
+  allowsShopifyProductModifications: boolean;
   counts: TaskStepStateCounts;
   activeCount: number;
   readyAndPendingCount: number;
@@ -52,6 +54,7 @@ export function toWorkingSectionViewModel(
     name: section.name,
     imageUrl: section.image,
     allowsBatchWorking: section.allows_batch_working,
+    allowsShopifyProductModifications: section.allows_shopify_product_modifications,
     counts: c,
     activeCount: section.ready_and_pending_count + c.working + c.paused + c.ended_shift,
     readyAndPendingCount: section.ready_and_pending_count,

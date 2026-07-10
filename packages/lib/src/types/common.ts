@@ -38,6 +38,13 @@ export const AddressSchema = z
     city: z.string().optional(),
     postal_code: z.string().optional(),
     country: z.string().optional(),
+    coordinates: z
+      .object({
+        latitude: z.number().nullable().optional(),
+        longitude: z.number().nullable().optional(),
+      })
+      .nullable()
+      .optional(),
   })
   .passthrough()
   .nullable();

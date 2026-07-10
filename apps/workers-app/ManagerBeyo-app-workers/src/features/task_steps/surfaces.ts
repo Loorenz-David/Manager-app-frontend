@@ -1,6 +1,7 @@
 import { lazyWithPreload, type SurfaceRegistrations } from "@beyo/ui";
 import { ITEM_ISSUE_SELECTION_SHEET_SURFACE_ID } from "@beyo/item-issues";
 import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
+import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, loadShopifyProductSyncSlidePage, loadShopifyShopPickerSheetPage } from "@beyo/shopify";
 import {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID,
@@ -171,6 +172,8 @@ const taskWorkingSectionsDiscardChangesSheet = lazyWithPreload(
 );
 const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
 const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
+const shopifyProductSyncSlide = lazyWithPreload(loadShopifyProductSyncSlidePage);
+const shopifyShopPickerSheet = lazyWithPreload(loadShopifyShopPickerSheetPage);
 
 export const preloadTaskStepActionsSheetSurface = taskStepActionsSheet.preload;
 export const preloadTaskDetailSlideSurface = taskDetailSlide.preload;
@@ -203,6 +206,8 @@ export const preloadTaskWorkingSectionsReassignSlideSurface =
   taskWorkingSectionsReassignSlide.preload;
 export const preloadTaskWorkingSectionsDiscardChangesSheetSurface =
   taskWorkingSectionsDiscardChangesSheet.preload;
+export const preloadShopifyProductSyncSlideSurface = shopifyProductSyncSlide.preload;
+export const preloadShopifyShopPickerSheetSurface = shopifyShopPickerSheet.preload;
 
 export const taskStepSurfaces: SurfaceRegistrations = {
   [ITEM_POSITION_SHEET_SURFACE_ID]: {
@@ -281,4 +286,6 @@ export const taskStepSurfaces: SurfaceRegistrations = {
     surface: "sheet",
     component: taskNoteUnreadViewer.Component,
   },
+  [SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID]: { surface: "slide", component: shopifyProductSyncSlide.Component },
+  [SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID]: { surface: "sheet", component: shopifyShopPickerSheet.Component },
 };

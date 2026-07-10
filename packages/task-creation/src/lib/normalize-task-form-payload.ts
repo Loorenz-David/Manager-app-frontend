@@ -25,6 +25,10 @@ function toOptionalString(
   return trimmed ? trimmed : undefined;
 }
 
+function toOptionalNumber(value: number | null | undefined): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 function buildCustomerFields(
   customer: Partial<ReturnFormValues["customer"]> | undefined,
 ) {
@@ -38,7 +42,14 @@ function buildCustomerFields(
       line1: toOptionalString(address?.street) ?? "",
       city: toOptionalString(address?.city),
       postal_code: toOptionalString(address?.postal_code),
-      country: toOptionalString(address?.country),
+      coordinates:
+        toOptionalNumber(address?.coordinates?.latitude) != null ||
+        toOptionalNumber(address?.coordinates?.longitude) != null
+          ? {
+              latitude: toOptionalNumber(address?.coordinates?.latitude),
+              longitude: toOptionalNumber(address?.coordinates?.longitude),
+            }
+          : undefined,
     },
   };
 }

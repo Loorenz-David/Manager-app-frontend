@@ -1,0 +1,186 @@
+A user will be able to input data for an item, this inputed data will be send to shopify for updating the target item.
+
+The data that can be send for adding into the shopify product:
+Height ( height_in_cm )
+Width ( width_in_cm )
+Depth ( depth_in_cm )
+Location  ( options for locations will be provided through a fetch query call )
+Item Location ( provided through fetch call )
+Weight definition ( options for weight_definitions will be provided through a fetch query call )
+Country ( we will have a component which allows the user to select or query in the same field for hardcoded country names )
+Years ( options for will be provided through a fetch query call )
+Wood type ( options for  woor_type will be provided thorugh a fetch query call)
+Damage details ( options for  damage_details  will be provided thorugh a fetch query call )
+Detailed condition ( options for  detailed_conditions  will be provided thorugh a fetch query call )
+Quantity ( it will use the current item quantity as a prefilled input but the user can change it )
+Price/st ( in swedish krona  )
+Extension Quantity
+
+This fields are only for major category of dining table
+Extension Type ( provided through fetch call )
+Extension Quantity ( provided through fetch call )
+
+Product Images ( the user will be able to select images from their device for uploading them directly to shopify together with this fields, this image upload in shopify has to be lossless not lossing any quality  )
+
+
+
+-------
+
+BACKEND:
+
+We will now develop the shopify integration capability for creating or updating a product in shopify, using the already stablish shopify system.
+
+The goal is to allow a user to create or update a product in one or multiple shopify shops. Shops which the current user workspace has integration with.
+
+find_shopify_products:
+this  service we will create is a find product on given shopify shop, this service will use GrapQL . the user can pass an article_number or sku . The service should find a product matching exactly the article_number or sku given ( article_number is barcode in shopify semantics ).
+This service will return the product id if found, if none it will return a flag that let's other services using this service understand there is no product with those identity fields.
+This query is barcode or sku it doesn't have to be "and" . at least one must be provided, otherwise it raises an error.
+
+
+create_shopify_products:
+This service will allow the user to pass a payload which will be used for creating a product in shopify, after the creation it will return the product id that was created by shopify ( other info might be added on the return shape ).
+This service should allow batch creation of items from day one thus the plural naming of the service.
+This service will have a layer where it will be able to fill up defaults if missing, this should be scalable and easy to maintain, so far the only default is status: draft
+
+update_shopify_products:
+This service will allow the user to pass a payload which will be used for updating a product in shopify, after the update only the confirmation or error is return.
+This service should allow batch update of items from day one thus the plural naming of the service.
+
+paylaod builders and normalizers:
+we will need to create payload builders and normalizers for using this create and update shopify products, as those services will only accept build and normalized payloads for executing their request.
+
+
+create_or_update_shopify_products:
+This service will be a light orchestrator which will take target items with already build and normalized payloads. It will use the find_shopify_products to determine the services it should use for each target item, 
+either update_shopify_products or create_shopify_products .  This orchestrator should be efficient and optimal by handling the batch capability this services provide. when calling create and update at the same time it should use async jobs for speed.
+Before the transaction begins it will generate the db instances for each item ( efficently ), on the item shopify event table, this will allow the frontend to track the event status as this serivice will be used as with a background worker.
+After the operations this service should update the item shopify event status instance with the result of the transaction and comunicate a socket event with the client id of the items it suceeded with and a fail list also. 
+
+
+process_items_in_shopify:
+This service will be the service used by the current app routers ( routers that will be created bellow ), this service will use the payload builders and normalizers to build the payloads for then sending them through create_or_update_shopify_products
+Because this process can take time while query and either creation or update. we will make this service to delegate the create_or_update_shopify_products to a worker, there is already a shopify worker dedicated for shopify transactions.
+
+
+router_process_itemes_in_shopify:
+This router will user the service process_items_in_shopify as it's run function . and will map the incooming payload schema the frontend can send.
+
+
+The frontend will send to this router a list of objects for either creating or updating a product on shopify using the system we just described.
+The user should be able to send: product images ( for uploading, im not sure how this upload image system works ), product metafields, product category, product price, product description, product title, product status, product weight ( for shipping fields in shopify ), product tags, sku, item_article_number ( barcode ) .
+The metafields key will have an object as value, each key representing the metafield name and the value as the metafield value that should be store ( the frontend will be strict about the metafield keys so the backend doesn't need to care about that ).
+
+
+-------
+
+
+
+FRONTEND
+
+The backend now returns the column allows_shopify_product_modifications everywhere where there is an endpoint that returns  allows_batch_working .
+We should update the schemas to support this new key / value .
+
+We will create a new package page at shopify package feature.
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/shopify
+
+This page will be render on the applications that consume this page on their slide page surface. 
+Check contract 35 for understanding how to hook up this page on the application 
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+This page will be used as a form that when submited it will target the endpoint which will create or update a product properties in shopify.
+This form will follow the same principles as the  task creation forms. each field is an independent form field compoennt that is self sustainable and reusable by other forms.
+It will use the staged form for presenting steps through the form.
+The endpoint that we will use is the ### docuemented at ###
+task creation form example: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-creation/src/components/InternalFormContent.tsx
+
+The first field we will create is the shop picker, this field will have a component which is the trigger and preview of the selected shops and a page which will render on the bottom sheet surface of the applications using the page form.
+This field will be independent calling it's own query flow to obtain the currently available shops, using the endpoint */shops docuemented at ### 
+We will use the box picker primitive for rendering the shop options 
+box-picker:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/box-picker
+The user is allowed to pick multiple shops, as default if only one shop is return from the query flow it auto picks it on the trigger component load.
+The trigger component will also have a local memory for the last selected shops so that entering this form with this field already autopics the last user choice.
+
+We will create a field for allowing the user to create an sku for the item that will be created in shopify, this will be a simple input for now.
+
+We will create a field for sending the metafields for product dimensions, we will have a width, height, depth field ( single field the key target changes ).
+The user should be able to place this dimentions ( in cm ), using the primitive number-input , this number input allows the user to easely tap to add numbers through incremental steps, each step will be of 50 cm .
+The metafields key for this dimensions are: Height, Width, Depth
+
+number-input:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/number-input
+
+This sku field, the shop picker field and the three dimensions fields, will be part of the initial staged step. 
+
+The second field we will have is a title field which will allow the user to set a title for the product.
+
+The third field we will have is the description which will allow the user to set the description of a product ( text area ).
+
+This two fields will be part of the second staged form step.
+
+So far we will have this two steps with those fields, more will come later but it is a good start to start testing this capability.
+
+If the item has an article_number it will also send it in the form . if the item has already an sku it will use that to prefill the sku input. 
+
+This page form will be used for the working sections that have the key allows_shopify_product_modifications=true when they are completing a task step . this page is shown first then we display the next slide page which is the completion page for marking accurate time.
+Just like the working sections which have allows_batch_working do . at the moment the backend does not support working sections having allows_batch_working and allows_shopify_product_modifications to be true at the same time. 
+
+For this page form the user can submit an empty form when this happens no request is send it simply counts as skipped, Thus the submit button of the form should read Skipped when the user hasn't fill any field.
+
+The current endpoint for submiting this is currently under construction but we already have the shape it should be sending when filling up this fields:
+type ProcessShopifyProductsRequest = {
+  items: ProcessShopifyProductItemRequest[];
+};
+
+type ProcessShopifyProductItemRequest = {
+  /**
+   * Frontend-local id used to map socket results back to the original UI row/card.
+   * This is not necessarily a ManagerBeyo Item client_id.
+   */
+  client_id: string;
+
+  /**
+   * Optional.
+   * If omitted/null, backend targets all ACTIVE Shopify shops in the workspace.
+   * If provided, every id must belong to an ACTIVE Shopify integration in the current workspace.
+   */
+  target_shop_integration_ids?: string[] | null;
+
+  /**
+   * Product-level fields.
+   */
+  title: string;
+  description?: string | null;
+  status?: "draft" | "active" | "archived" | null;
+  tags?: string[];
+  product_category?: string | null;
+
+  /**
+   * Variant-level fields.
+   */
+  price?: string | null;
+  weight?: {
+    value: number;
+    unit: "kg" | "g" | "lb" | "oz";
+  } | null;
+
+  /**
+   * Identity fields.
+   * At least one of sku or item_article_number must be provided.
+   * item_article_number maps to Shopify barcode.
+   */
+  sku?: string | null;
+  item_article_number?: string | null;
+
+  /**
+   * Optional metafields.
+   * Backend phase 1 will map these to:
+   * namespace = "custom"
+   * type = "single_line_text_field"
+   * value = String(value)
+   */
+  metafields?: Record<string, string | number | boolean | null>;
+};
+
+As you can see there is more that the frontend can provide, we will build more later but for now this specify fields will be the paylod that it is sent.

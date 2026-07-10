@@ -6,6 +6,7 @@ export const ROUTES = {
   caseConversation: '/cases/:caseId',
   stats: '/stats',
   settings: '/settings',
+  shopifyOAuthResult: '/settings/integrations/shopify/oauth-result',
   upholsteryInventory: '/upholstery-inventory',
 } as const;
 

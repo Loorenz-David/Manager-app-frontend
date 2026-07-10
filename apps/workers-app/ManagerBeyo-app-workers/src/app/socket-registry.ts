@@ -5,6 +5,7 @@ import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { taskStepSocketEvents } from "@/features/task_steps/socket-events";
 import { upholsterySocketEvents } from "@/features/upholstery/socket-events";
 import { workerWorkingSectionSocketEvents } from "@/features/working_sections/socket-events";
+import { shopifyProductSyncSocketEvents } from "@beyo/shopify";
 
 export const socketRegistry: SocketEventHandlers = {
   ...caseSocketEvents,
@@ -13,4 +14,5 @@ export const socketRegistry: SocketEventHandlers = {
   ...workerWorkingSectionSocketEvents,
   ...upholsterySocketEvents,
   ...notificationSocketEvents,
+  ...shopifyProductSyncSocketEvents,
 };

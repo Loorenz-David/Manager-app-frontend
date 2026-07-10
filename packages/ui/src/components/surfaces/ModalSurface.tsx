@@ -71,12 +71,12 @@ export function ModalSurface({
             animate="visible"
             aria-labelledby="surface-modal-title"
             aria-modal="true"
-            className="relative flex w-full max-w-md flex-col overflow-hidden rounded-3xl bg-background shadow-2xl transform-gpu [will-change:transform,opacity]"
+            className="relative flex w-full flex-col overflow-hidden rounded-3xl bg-background shadow-2xl transform-gpu [will-change:transform,opacity]"
             exit="exit"
             initial="hidden"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
-            style={{ zIndex: zIndex + 1 }}
+            style={{ zIndex: zIndex + 1, maxWidth: "var(--manager-shell-max-width)" }}
             transition={transitions.surface}
             variants={panelVariants}
           >

@@ -70,9 +70,11 @@ import {
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
+import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
@@ -190,7 +192,10 @@ export function ReturnFormContent(): React.JSX.Element {
           street: "",
           city: "",
           postal_code: "",
-          country: "",
+          coordinates: {
+            latitude: null,
+            longitude: null,
+          },
         },
       },
       return_source: undefined,
@@ -223,6 +228,13 @@ export function ReturnFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.sku",
   });
+  const { status: shopifyCustomerLookupStatus } =
+    useShopifyCustomerLookupPrefill({
+      form,
+      articleNumber: itemArticleNumber,
+      sku: itemSku,
+      enabled: returnSource !== "store_return",
+    });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
 
@@ -400,7 +412,10 @@ export function ReturnFormContent(): React.JSX.Element {
               street: "",
               city: "",
               postal_code: "",
-              country: "",
+              coordinates: {
+                latitude: null,
+                longitude: null,
+              },
             },
           },
           return_source: undefined,
@@ -531,6 +546,9 @@ export function ReturnFormContent(): React.JSX.Element {
           {shouldShowCustomerStep ? (
             <StagedFormStep id="customer" className="px-0">
               <div className="flex flex-col gap-4">
+                <ShopifyCustomerStatusPill
+                  status={shopifyCustomerLookupStatus}
+                />
                 <ContentCard>
                   <CustomerDisplayNameField />
                   <CustomerTypeField />

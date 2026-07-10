@@ -7,4 +7,6 @@ export type SettingsState = {
   isPushLoading: boolean;
   enablePush: () => Promise<void>;
   disablePush: () => Promise<void>;
+  canViewShopifyIntegrations: boolean;
+  openShopifyIntegrations: () => void;
 };

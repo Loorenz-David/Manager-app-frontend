@@ -1,4 +1,4 @@
-import { Bell, BellOff, LogOut } from 'lucide-react';
+import { Bell, BellOff, ChevronRight, LogOut, Store } from 'lucide-react';
 import type { PushSubscriptionStatus } from '@beyo/notifications';
 
 import { useSettingsViewContext } from '../providers/SettingsViewProvider';
@@ -34,6 +34,8 @@ export function SettingsView(): React.JSX.Element {
     isPushLoading,
     enablePush,
     disablePush,
+    canViewShopifyIntegrations,
+    openShopifyIntegrations,
   } = useSettingsViewContext();
 
   const canToggle =
@@ -81,6 +83,33 @@ export function SettingsView(): React.JSX.Element {
           ) : null}
         </div>
       </div>
+
+      {canViewShopifyIntegrations ? (
+        <div className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Integrations
+          </h2>
+          <button
+            type="button"
+            className="flex items-center justify-between gap-4 rounded-xl border border-border bg-card px-4 py-3 text-left"
+            onClick={openShopifyIntegrations}
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <Store aria-hidden="true" className="size-4 shrink-0 text-primary" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">Shopify</p>
+                <p className="text-sm text-muted-foreground">
+                  Connect and manage Shopify shop integrations.
+                </p>
+              </div>
+            </div>
+            <ChevronRight
+              aria-hidden="true"
+              className="size-4 shrink-0 text-muted-foreground"
+            />
+          </button>
+        </div>
+      ) : null}
 
       <button
         type="button"

@@ -77,6 +77,57 @@ export const TASK_CREATION_FORM_TYPE = [
 ] as const;
 export type TaskCreationFormType = (typeof TASK_CREATION_FORM_TYPE)[number];
 
+export const SHOPIFY_CUSTOMER_MATCH_TYPE = ["sku", "barcode"] as const;
+export type ShopifyCustomerMatchType =
+  (typeof SHOPIFY_CUSTOMER_MATCH_TYPE)[number];
+
+const ShopifyCustomerLookupCoordinatesSchema = z.object({
+  latitude: z.number().nullable().optional(),
+  longitude: z.number().nullable().optional(),
+});
+
+const ShopifyCustomerLookupAddressSchema = z
+  .object({
+    street_address: z.string().nullable().optional(),
+    post_code: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    district: z.string().nullable().optional(),
+    coordinates: ShopifyCustomerLookupCoordinatesSchema.nullable().optional(),
+  })
+  .nullable()
+  .optional();
+
+export const ShopifyCustomerLookupResultSchema = z.object({
+  shop_integration_id: z.string().nullable().optional(),
+  shop_domain: z.string().nullable().optional(),
+  match_type: z.enum(SHOPIFY_CUSTOMER_MATCH_TYPE).nullable().optional(),
+  matched_value: z.string().nullable().optional(),
+  order_id: z.string().nullable().optional(),
+  order_name: z.string().nullable().optional(),
+  customer_id: z.string().nullable().optional(),
+  display_name: z.string().nullable().optional(),
+  primary_phone_number: z.string().nullable().optional(),
+  primary_email: z.string().nullable().optional(),
+  address: ShopifyCustomerLookupAddressSchema,
+});
+export type ShopifyCustomerLookupResult = z.infer<
+  typeof ShopifyCustomerLookupResultSchema
+>;
+
+export const ShopifyLookupFailedShopSchema = z.object({
+  shop_integration_id: z.string().nullable().optional(),
+  shop_domain: z.string().nullable().optional(),
+  error_code: z.string().nullable().optional(),
+});
+export type ShopifyLookupFailedShop = z.infer<
+  typeof ShopifyLookupFailedShopSchema
+>;
+
+export type ShopifyCustomerLookupParams = {
+  sku?: string;
+  article_number?: string;
+};
+
 const ReturnCustomerFieldsSchema = z.object({
   display_name: z.string().max(255).optional(),
   customer_type: CustomerFieldsSchema.shape.customer_type.optional(),

@@ -45,15 +45,6 @@ export function CustomerAddressFieldGroup(): React.JSX.Element {
           {...register("customer.address.postal_code")}
         />
       </div>
-      <TextInput
-        data-testid="customer-address-country-input"
-        id="customer-address-country"
-        type="text"
-        autoComplete="country-name"
-        placeholder="Country"
-        invalid={Boolean(addressErrors?.country?.message)}
-        {...register("customer.address.country")}
-      />
     </div>
   );
 }

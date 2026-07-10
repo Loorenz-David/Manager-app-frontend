@@ -116,11 +116,14 @@ export function BottomSheetSurface({
           )}
           <Drawer.Content
             className={cn(
-              "fixed inset-x-0 bottom-[var(--keyboard-inset)] max-h-[90dvh] rounded-t-2xl",
+              "fixed inset-x-0 bottom-[var(--keyboard-inset)] mx-auto max-h-[90dvh] w-full rounded-t-2xl",
               "flex flex-col bg-background shadow-xl transition-[bottom] duration-200 ease-out focus:outline-none",
             )}
             onCloseAutoFocus={(event) => event.preventDefault()}
-            style={{ zIndex: zIndex + 1 }}
+            style={{
+              zIndex: zIndex + 1,
+              maxWidth: "var(--manager-shell-max-width)",
+            }}
           >
             <Drawer.Title className="sr-only">{title || "Sheet"}</Drawer.Title>
             <Drawer.Description className="sr-only">

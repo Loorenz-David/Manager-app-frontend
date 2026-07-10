@@ -82,6 +82,16 @@ export const router = createBrowserRouter([
                 path: ROUTES.settings,
                 element: tabRoute(settingsPageRoute.Component),
               },
+              {
+                path: ROUTES.shopifyOAuthResult,
+                element: lazyRoute(() =>
+                  import("@/pages/settings/ShopifyOAuthResultPage").then(
+                    (module) => ({
+                      default: module.ShopifyOAuthResultPage,
+                    }),
+                  ),
+                ),
+              },
             ],
           },
         ],

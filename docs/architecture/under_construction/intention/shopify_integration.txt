@@ -1,0 +1,239 @@
+
+We will create a shopify package feature that will be consume and used by multiple apps consuming this packages.
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages
+
+This feature will follow the well stablish feature package pattern.
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/architecture/35_shared_packages.md
+
+an example of a already stablish feature package tree structure:
+├── package.json
+├── src
+│   ├── actions
+│   │   ├── use-add-task-step.ts
+│   │   ├── use-complete-post-handling.ts
+│   │   ├── use-create-item-upholstery.ts
+│   │   ├── use-create-task.ts
+│   │   ├── use-delete-task.ts
+│   │   ├── use-remove-task-step.ts
+│   │   ├── use-resolve-task.ts
+│   │   ├── use-set-item-upholstery-amount.ts
+│   │   ├── use-update-item-position.ts
+│   │   ├── use-update-item-upholstery.ts
+│   │   ├── use-update-item.ts
+│   │   ├── use-update-post-handling.ts
+│   │   ├── use-update-task-ready-by-at.ts
+│   │   ├── use-update-task-schedule.ts
+│   │   └── use-update-task.ts
+│   ├── api
+│   │   ├── add-task-step.ts
+│   │   ├── complete-post-handling.ts
+│   │   ├── create-task.ts
+│   │   ├── delete-task.ts
+│   │   ├── fetch-item-upholstery.ts
+│   │   ├── fetch-task-step-counts.ts
+│   │   ├── get-post-handling-counts.ts
+│   │   ├── get-task.ts
+│   │   ├── item-upholstery-keys.ts
+│   │   ├── list-task-flow-records.ts
+│   │   ├── list-task-steps-by-task.ts
+│   │   ├── list-tasks.ts
+│   │   ├── remove-task-step.ts
+│   │   ├── resolve-task.ts
+│   │   ├── set-item-upholstery-amount.ts
+│   │   ├── task-flow-record-keys.ts
+│   │   ├── task-keys.ts
+│   │   ├── task-step-keys.ts
+│   │   ├── update-post-handling.ts
+│   │   ├── update-task-ready-by-at.ts
+│   │   ├── update-task-schedule.ts
+│   │   ├── update-task.ts
+│   │   ├── use-get-task-query.ts
+│   │   ├── use-item-upholstery-query.ts
+│   │   ├── use-list-post-handling-tasks-query.ts
+│   │   ├── use-list-tasks-query.ts
+│   │   ├── use-post-handling-counts-query.ts
+│   │   ├── use-task-flow-records-infinite-query.ts
+│   │   ├── use-task-flow-records-query.ts
+│   │   ├── use-task-step-counts-query.ts
+│   │   └── use-task-steps-by-task-query.ts
+│   ├── assets
+│   ├── components
+│   │   ├── PostHandlingBottomAction.tsx
+│   │   ├── TaskFlowTimeline.tsx
+│   │   ├── TaskListCard.tsx
+│   │   ├── TaskPostHandlingHeader.tsx
+│   │   ├── TasksHeader.tsx
+│   │   ├── TasksView.tsx
+│   │   ├── UpholsteryEntryCard.tsx
+│   │   ├── detail
+│   │   │   ├── TaskAssortmentPill.tsx
+│   │   │   ├── TaskBodyCategoryRow.tsx
+│   │   │   ├── TaskCustomerSection.tsx
+│   │   │   ├── TaskDetailBottomActions.test.tsx
+│   │   │   ├── TaskDetailBottomActions.tsx
+│   │   │   ├── TaskDetailHeader.tsx
+│   │   │   ├── TaskFulfillmentMethodPill.tsx
+│   │   │   ├── TaskImagesSection.tsx
+│   │   │   ├── TaskReadyByAtPill.tsx
+│   │   │   ├── TaskScheduledDeliveryDatePill.tsx
+│   │   │   ├── TaskScheduledDeliverySection.tsx
+│   │   │   ├── TaskUpholsterySection.tsx
+│   │   │   └── index.ts
+│   │   ├── fields
+│   │   │   ├── TaskAdditionalDetailsField.tsx
+│   │   │   ├── TaskAssortmentField.tsx
+│   │   │   ├── TaskDeliveryDateField.tsx
+│   │   │   ├── TaskFulfillmentMethodField.tsx
+│   │   │   ├── TaskReadyByDateField.tsx
+│   │   │   ├── TaskReturnSourceField.tsx
+│   │   │   └── task-ready-by-quick-select-options.ts
+│   │   └── flow-descriptions
+│   │       ├── FlowRecordDescription.tsx
+│   │       ├── ItemUpholsteryHistoryFlowDescription.tsx
+│   │       ├── TaskStepFlowDescription.tsx
+│   │       └── TaskStepGroupFlowDescription.tsx
+│   ├── controllers
+│   │   ├── use-pin-notifications.controller.ts
+│   │   ├── use-task-detail.controller.ts
+│   │   ├── use-task-post-handling.controller.ts
+│   │   └── use-tasks-view.controller.ts
+│   ├── flows
+│   │   ├── use-task-detail.flow.ts
+│   │   └── use-tasks-page.flow.ts
+│   ├── index.ts
+│   ├── lib
+│   │   ├── post-handling-requirements.ts
+│   │   ├── step-state-variants.ts
+│   │   ├── task-detail.ts
+│   │   └── task-flow-record.ts
+│   ├── pages
+│   │   ├── ItemQuantitySheetPage.tsx
+│   │   ├── ItemUpholsteryAmountSheetPage.tsx
+│   │   ├── PinNotificationsSlidePage.tsx
+│   │   ├── PinTaskStepStatesSheetPage.tsx
+│   │   ├── PostHandlingPendingWarningSheetPage.tsx
+│   │   ├── TaskActionsSheetPage.tsx
+│   │   ├── TaskAssortmentSheetPage.tsx
+│   │   ├── TaskDetailMenuSheetPage.tsx
+│   │   ├── TaskDetailSlidePage.tsx
+│   │   ├── TaskEditSlidePage.tsx
+│   │   ├── TaskFilterSheetPage.tsx
+│   │   ├── TaskFlowRecordDetailSheetPage.tsx
+│   │   ├── TaskFulfillmentMethodSheetPage.tsx
+│   │   ├── TaskPostHandlingFilterSheetPage.tsx
+│   │   ├── TaskPostHandlingSlidePage.tsx
+│   │   ├── TaskReadyByAtSheetPage.tsx
+│   │   ├── TaskScheduledDeliverySheetPage.tsx
+│   │   └── TasksRouteEntry.tsx
+│   ├── providers
+│   │   ├── PinNotificationsProvider.tsx
+│   │   ├── TaskDetailProvider.tsx
+│   │   └── TasksViewProvider.tsx
+│   ├── store
+│   │   └── tasks-page.store.ts
+│   ├── surface-ids.ts
+│   ├── types.ts
+│   └── vite-env.d.ts
+└── tsconfig.json
+
+NOTE: I will create first a set of skills with the help of GPT and CLAUDE for creating and scaling packages with the task feature example.
+
+-------
+
+For this Shopify feature we will create a page which will be used on the slide surface sheet consume by the apps.
+Example of consumption of package pages on app surfaces: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/apps/selleres-app/ManagerBeyo-app-sellers/src/features/tasks/surfaces.ts
+
+This page will be used for managing the shopify shop linkage the current workspace holds, a user part of a workspace will be able to:
+
+* see the shopify integrations
+* edit the shopify integrations
+* delete a shopify integration
+* create a shopify integration
+
+The page will use it's own header. thus it will turn off the slide surface header, example at : /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/tasks/src/pages/TaskDetailSlidePage.tsx
+import {
+  usePreloadSurface,
+  useSurfaceHeader,
+  useSurfaceProps,
+} from "@beyo/hooks";
+
+const header = useSurfaceHeader();
+ useEffect(() => {
+    header?.setHeaderHidden(true);
+  }, [header]);
+
+
+This page will be compose of three containers each with a header a body and a footer.
+This page will treat this containers as main pages, one container rendering the list of shopify integrations the other rendering the shopify integration detail. The last container is the form creation for a shopify integration.
+When a user enters to this page it first loads the shopify integration listing, if the user taps into a shopify integration the containers slide and the user is now at the shopify integration detail container. If the user taps on the creation button the user will be taken to the creation form contianer
+This containers will be build as separate containers which will be reuse by other pages later on. in this page the containers slide animation is ruled by the index at which the container is at ( like a image carousel sliding component ). example of this slide implementation: /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/pages/CustomerCoordinationEmailInboxPage.tsx ( EmailThreadCarousel )
+
+For the listing container:
+The header has a back arrow icon ( lucid icon "arrow-left" ), a page title besides the back arrow icon.
+The back arrow icon when tap closes the current slide surface .
+The title for the page is "Shopify Integrations".
+
+The body renders shopify integration cards for each integration coming through the query request.
+
+The shopify integration cards render: the shop_name, the shop_domain, integration created_at , integration conection status , 
+
+At the footer we render a contianer which holds a single Close & Back button ( same styling as the /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/emails/src/components/EmailInboxView.tsx used on  /Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-customer-coordination/src/pages/CustomerCoordinationEmailInboxPage.tsx ) .
+
+At the bottom right, absolutely we render a Fab + button which will allow the user for creating of a shopify integration
+
+When the user taps a shopify integration card the user enters into the shopify integration detail continer.
+This container renders the header with the title as the shopfify integration name ( shop_name), sub header as the created_at and created_by username, all the way to the right is the integration status ( for statuses we use the primitive component ) on the same row as the shop naming .
+At the right side of the header on the right side of the state pill we render a three dot menu like the TaskDetailSlidePage does. when tapped it will open a bottom sheet page ( local app bottom sheet surface ). with the package page for the action of a shopify integration.
+For now the only action that will be render is the delete integration. which uses the primitive button confirm-action-button for making the call to remove the shopify integration. 
+confirm-action-button:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/confirm-action-button
+
+
+the body of this container uses a single ContentCard to render all of the components describes bellow.
+ContentCard:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/form-field-container/FormFieldContainer.tsx
+
+Each preview group will use the FieldLabelRow as label.
+FieldLabelRow:
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/ui/src/components/primitives/form-field-container/FieldLabelRow.tsx
+
+The first preview field is the shop_domain
+
+The second preview field is the granted_scopes ( what is requested_scopes ? )
+
+The third preview field is fiendly mobile table ( vertical styling ) which renders the:  api_version, installed_at, uninstalled_at, last_connected_at, last_health_check_at, last_health_check_status, updated_at, updated_by username .
+
+bellow that is the error container which will be a component trigger to display a page which will render on the bottom sheet surface of the apps this major page is being used. 
+This component trigger renders a error icon besides the last_error_code. 
+When tap it opens the bottom sheet surface with the package page which renders the last_error_message , this page will not use the provided header by the bottom sheet surface. closing it hapens through the close button at the top right corner ( x icon ).
+
+bellow that is the web hool installation preview, this will follow the same pattern as the error container, it will display a trigger which when tap opens a bottom sheet page where it will render the info.
+This component will need to make a call to get the shopify webhook subscriptions, this compoennt should be self sufficient, meaning the component handles it's own query flow.
+The trigger renders the counts of web hook installations.
+The page displays each web hook instalation in a card which renders: topic, status, installed_at, last_error_code
+
+Bellow that trigger is a history component which renders the flow / history of the web hooks on this shop integration.
+This component renders in a friendly dev log styling, log record flow. and it is self sufficient also. making it's own query flow calls on mount.
+Each log card renders: topic, status, attempts, received_at, processed_at. if the record card is tapped it expands to display the raw_payload . 
+This component will make an initial call to get the most recent 3 and at the bottom in the end of the list is the show more button which allows to get the next page ( loading more cards bellow the last ), each pagination brings 5 more records.
+
+This page has a bottom footer which is placed absolutely as it will react to the scroll visibilty in relative mode , reacting to the overall page container scroll . 
+an example is how the TaskDetailSlidePage uses it with it's own footer.
+
+This footer contianer will have two buttons <- Back  ( where the <- is the lucid arrow back icon ), and the right button is the Edit button . this buttons have same styling as the footer on the TaskDetailSlidePage . 
+The Back button closes the current container taking the user back to the shopify integration listing. the edit button will not work at the moment it is just a visual button.
+
+
+
+
+Coming back to the listing container which renders the creation button to access the creation form for shopify integration.
+This form page will follow the same form pattern as the task creation forms, where each field is an independent field compenent used with in a react form, It will not use the staged form component as there is not many fields for this form.
+example with InternalFormContent
+/Users/davidloorenz/Desktop/Developer/BeyoApps_2025/ManagerBeyo-app/frontend/packages/task-creation/src/components/InternalFormContent.tsx
+
+The fields that we will create for this creation form are:
+input field for shop_domain
+input field for shop_name
+
+The bottom of the form has an absolute footer like the one in the detail container. with the back button and the submit button ( submitting enters into the auth process for linking a shopify shop ).
+
