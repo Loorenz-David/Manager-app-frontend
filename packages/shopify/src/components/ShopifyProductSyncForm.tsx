@@ -23,6 +23,7 @@ import {
   ShopifyProductSyncFormSchema,
   type ShopifyProductSyncFormValues,
 } from "../types";
+import { SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS } from "../lib/shopify-product-sync-dimensions";
 
 export function ShopifyProductSyncForm(): React.JSX.Element {
   const ctx = useShopifyProductSyncFormContext();
@@ -110,21 +111,16 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
               <ShopifyProductSyncSkuField />
             </ContentCard>
             <ContentCard gapClassName="gap-3">
-              <ShopifyProductSyncDimensionField
-                name="heightCm"
-                label="Height"
-                inputTestId="shopify-product-sync-height-input"
-              />
-              <ShopifyProductSyncDimensionField
-                name="widthCm"
-                label="Width"
-                inputTestId="shopify-product-sync-width-input"
-              />
-              <ShopifyProductSyncDimensionField
-                name="depthCm"
-                label="Depth"
-                inputTestId="shopify-product-sync-depth-input"
-              />
+              {SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS.map(
+                ({ name, label, inputTestId }) => (
+                  <ShopifyProductSyncDimensionField
+                    key={name}
+                    name={name}
+                    label={label}
+                    inputTestId={inputTestId}
+                  />
+                ),
+              )}
             </ContentCard>
           </div>
         </StagedFormStep>

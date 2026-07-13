@@ -2,8 +2,10 @@ import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { IncompleteDependencyViewModel } from "./types";
 import type {
   MajorCategory,
+  ListWorkingSectionStepsParams,
   ReadinessStatus,
   StepState,
+  TaskStep,
   TaskType,
 } from "./types";
 
@@ -44,6 +46,10 @@ export type TaskStepDetailSurfaceProps = {
   stepId: TaskStepId;
   taskId: TaskId;
   workingSectionId: WorkingSectionId;
+  /** Rich step data already loaded by the listing, for instant detail opening. */
+  initialStep?: TaskStep;
+  /** The listing query parameters, so detail reuses the exact same cache entry. */
+  listQueryParams?: ListWorkingSectionStepsParams;
 };
 
 export type CompleteTaskStepConfirmationSlideSurfaceProps = {

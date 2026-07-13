@@ -135,7 +135,7 @@ export type TaskStepDetailController = {
 };
 
 export function useTaskStepDetailController(): TaskStepDetailController {
-  const { stepId, taskId, workingSectionId } =
+  const { stepId, taskId, workingSectionId, initialStep, listQueryParams } =
     useSurfaceProps<TaskStepDetailSurfaceProps>();
   // useSurfaceProps returns Partial<T> — resolve once here, use resolved everywhere
   const resolvedStepId = stepId ?? ("" as TaskStepId);
@@ -144,15 +144,23 @@ export function useTaskStepDetailController(): TaskStepDetailController {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const query = useWorkingSectionStepsQuery({
-    working_section_id: resolvedWorkingSectionId,
-    limit: 50,
-    offset: 0,
-  });
+  const queryParams = useMemo(
+    () =>
+      listQueryParams ?? {
+        working_section_id: resolvedWorkingSectionId,
+        limit: 50,
+        offset: 0,
+      },
+    [listQueryParams, resolvedWorkingSectionId],
+  );
+
+  const query = useWorkingSectionStepsQuery(queryParams);
 
   const step = useMemo(
-    () => query.data?.items.find((s) => s.client_id === resolvedStepId) ?? null,
-    [query.data?.items, resolvedStepId],
+    () =>
+      query.data?.items.find((s) => s.client_id === resolvedStepId) ??
+      (initialStep?.client_id === resolvedStepId ? initialStep : null),
+    [initialStep, query.data?.items, resolvedStepId],
   );
 
   const itemCategoryId =
@@ -674,8 +682,10 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     isItemCategoryError,
     isSeatCategory,
     vm,
-    isPending: query.isPending,
-    isError: query.isError,
+    // An initial step is already sufficient to render the detail surface while
+    // the shared listing query is being reused or refreshed in the background.
+    isPending: query.isPending && !step,
+    isError: query.isError && !step,
     isStepTerminal: vm ? STEP_TERMINAL_STATES.has(vm.state) : false,
     casesSummary: step?.cases_summary ?? null,
     liveCasesSummary,

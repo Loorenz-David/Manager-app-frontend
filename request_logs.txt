@@ -1,0 +1,1507 @@
+fetch("https://api-manager.beyoworkaroundtheclock.com/api/v1/working-sections/wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX/steps?record_step_state=pending%2Cworking%2Cpaused%2Cended_shift&readiness_statuses=ready&limit=50&offset=0", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-SE,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzAxS1ZYMEc0WDlLUE1WN0FSMlA4QUpYSFNGIiwidXNlcm5hbWUiOiJWaXRhbGlpIiwid29ya3NwYWNlX2lkIjoid3NfMDFLVlgwRzBUN1o2TkU2OVlWUlZNRkFCOTgiLCJ3b3Jrc3BhY2Vfcm9sZV9pZCI6Indzcl8wMUtWWk1XRVFNRVc4MDU3QllKOEQ4VkdWWSIsInJvbGVfbmFtZSI6IndvcmtlciIsIndvcmtzcGFjZV9yb2xlX25hbWUiOiJxdWFsaXR5X2NvbnRyb2wiLCJ3b3Jrc3BhY2Vfc3BlY2lhbGl6YXRpb24iOiJxdWFsaXR5X2NvbnRyb2wiLCJhcHBfc2NvcGUiOiJ3b3JrZXIiLCJ0aW1lX3pvbmUiOiJVVEMiLCJiYWNrZW5kX3Blcm1pc3Npb25zIjpbXSwidWkiOnsiYXBwcyI6W10sInBhZ2VzIjpbXSwiYnV0dG9ucyI6W10sImFjdGlvbnMiOltdLCJxdWVyeV9maWx0ZXJzIjpbXX0sImp0aSI6IjZmOGJmYWIxLWZjMzQtNGMyYy1hMWZhLWY2YjAxMzQyMmViOSIsImV4cCI6MTc4Mzg5MzA2N30.cV1nm2XfOmujm_DjNy_du3qhAmEOZA3khlSxGBAZxb4",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": "\"iOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "https://workers.beyoworkaroundtheclock.com/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});
+
+response:
+{
+    "data": {
+        "steps_pagination": {
+            "items": [
+                {
+                    "client_id": "tsp_01KWETKHCFMVWC12BRBAT7NT75",
+                    "task_id": "tsk_01KWETJ00KQRXDBB8CXMR1PNCT",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T12:31:33.236702+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.412097+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T12:31:33.236702+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                            "username": "Norbi",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T12:31:33.236702+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWETJ00KQRXDBB8CXMR1PNCT",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWETJ00KR10F9RZCZ3JARZG4",
+                        "article_number": "0000577",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWETJCKD9QNW63F9CH8C8PXR",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/eb07da14-76ac-444d-a491-04299080ada7/cb7351e4e36141f0816a0ac54a7fda79_CAP5091558538160231033.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T12:30:55.597291+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWETJCKYZA87WC1A20J6N7M0",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T12:30:55.614229+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWEJ0HQ91KVWB20SRZ91PJH9",
+                    "task_id": "tsk_01KWEJ070DRGAW19NVTNR10P3J",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T10:01:22.386104+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.442462+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T10:01:22.386104+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                            "username": "Mykola",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T10:01:22.386104+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWEJ070DRGAW19NVTNR10P3J",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWEJ070D4FQ117AE7SD4SEJ0",
+                        "article_number": "0000971",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWEJ0EK28PB1R3MGTT3GD05B",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/f8436e87-20fb-417a-8a16-3a943ba21400/f5887083efb24bb48ac758fbbdcc7e9f_CAP5538381968008257397.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T10:01:19.202897+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWEJ0EKMW2VX8055VPYJBF58",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T10:01:19.220315+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWE7GC5TVKVEA31FD9SB68H2",
+                    "task_id": "tsk_01KWE7FV8JP0FEA0D0N9J4ZCXJ",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T06:57:46.662574+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.473295+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T06:57:46.662574+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                            "username": "Norbi",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T06:57:46.662574+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWE7FV8JP0FEA0D0N9J4ZCXJ",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWE7FV8JR8GM1QM02J016VCG",
+                        "article_number": "0000969",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWE7G3ZDDHNBA93ABM7RSQRQ",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/917b44a7-ab94-4e5e-94ec-77f53967223d/6bcccdd3387e45ffb8813030f7183029_CAP2436009560195827576.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T06:57:38.285248+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWE7G3ZSH5A8WNDSZCCMN2SF",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T06:57:38.297118+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWCC53A0SKYC9NPYPFYV2R30",
+                    "task_id": "tsk_01KWCC4MT0364Y29S8JPX1M6NZ",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-06-30T13:40:31.136367+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-02T13:21:05.349691+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-06-30T13:40:31.136367+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                            "username": "Mykola",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-06-30T13:40:31.136367+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWCC4MT0364Y29S8JPX1M6NZ",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWCC4MT0NFV8B6YGX7FWAFJV",
+                        "article_number": "0000831",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XJ6NB5KVCZVPJT2FWY",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWCC4X8V7QFJ2WWSXNBXDTPZ",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/0d0a1f70-fa9e-4156-86a2-f724fccac8c7/faeb852bf9094e4d9ff48ef1ce21c42e_CAP4328118361637069024.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-06-30T13:40:24.987698+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWCC4X9DZ5A35HHBTRPBDXQ8",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-06-30T13:40:25.005372+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                }
+            ],
+            "limit": 50,
+            "offset": 0,
+            "has_more": false
+        }
+    },
+    "ok": true,
+    "warnings": []
+}
+
+fetch("https://api-manager.beyoworkaroundtheclock.com/api/v1/cases?case_state=open%2Cresolving&entity_type=task&entity_client_id=tsk_01KWETJ00KQRXDBB8CXMR1PNCT", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-SE,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzAxS1ZYMEc0WDlLUE1WN0FSMlA4QUpYSFNGIiwidXNlcm5hbWUiOiJWaXRhbGlpIiwid29ya3NwYWNlX2lkIjoid3NfMDFLVlgwRzBUN1o2TkU2OVlWUlZNRkFCOTgiLCJ3b3Jrc3BhY2Vfcm9sZV9pZCI6Indzcl8wMUtWWk1XRVFNRVc4MDU3QllKOEQ4VkdWWSIsInJvbGVfbmFtZSI6IndvcmtlciIsIndvcmtzcGFjZV9yb2xlX25hbWUiOiJxdWFsaXR5X2NvbnRyb2wiLCJ3b3Jrc3BhY2Vfc3BlY2lhbGl6YXRpb24iOiJxdWFsaXR5X2NvbnRyb2wiLCJhcHBfc2NvcGUiOiJ3b3JrZXIiLCJ0aW1lX3pvbmUiOiJVVEMiLCJiYWNrZW5kX3Blcm1pc3Npb25zIjpbXSwidWkiOnsiYXBwcyI6W10sInBhZ2VzIjpbXSwiYnV0dG9ucyI6W10sImFjdGlvbnMiOltdLCJxdWVyeV9maWx0ZXJzIjpbXX0sImp0aSI6IjZmOGJmYWIxLWZjMzQtNGMyYy1hMWZhLWY2YjAxMzQyMmViOSIsImV4cCI6MTc4Mzg5MzA2N30.cV1nm2XfOmujm_DjNy_du3qhAmEOZA3khlSxGBAZxb4",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": "\"iOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "https://workers.beyoworkaroundtheclock.com/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});
+response: 
+{"data":{"cases":[]},"ok":true,"warnings":[]}
+
+
+fetch("https://api-manager.beyoworkaroundtheclock.com/api/v1/working-sections/wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX/steps?record_step_state=pending%2Cworking%2Cpaused%2Cended_shift&readiness_statuses=ready&limit=50&offset=0", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-SE,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzAxS1ZYMEc0WDlLUE1WN0FSMlA4QUpYSFNGIiwidXNlcm5hbWUiOiJWaXRhbGlpIiwid29ya3NwYWNlX2lkIjoid3NfMDFLVlgwRzBUN1o2TkU2OVlWUlZNRkFCOTgiLCJ3b3Jrc3BhY2Vfcm9sZV9pZCI6Indzcl8wMUtWWk1XRVFNRVc4MDU3QllKOEQ4VkdWWSIsInJvbGVfbmFtZSI6IndvcmtlciIsIndvcmtzcGFjZV9yb2xlX25hbWUiOiJxdWFsaXR5X2NvbnRyb2wiLCJ3b3Jrc3BhY2Vfc3BlY2lhbGl6YXRpb24iOiJxdWFsaXR5X2NvbnRyb2wiLCJhcHBfc2NvcGUiOiJ3b3JrZXIiLCJ0aW1lX3pvbmUiOiJVVEMiLCJiYWNrZW5kX3Blcm1pc3Npb25zIjpbXSwidWkiOnsiYXBwcyI6W10sInBhZ2VzIjpbXSwiYnV0dG9ucyI6W10sImFjdGlvbnMiOltdLCJxdWVyeV9maWx0ZXJzIjpbXX0sImp0aSI6ImZmMmYyNzNjLTAyY2EtNDhiYi04ZmY3LWVmNDk3NGNmZmU5YiIsImV4cCI6MTc4Mzg5MzE0Nn0.czpfT4aIf1phQ2KRISjrgAk09pSxEL8EWchlg4iQ1co",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": "\"iOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "https://workers.beyoworkaroundtheclock.com/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});
+
+response:
+
+{
+    "data": {
+        "steps_pagination": {
+            "items": [
+                {
+                    "client_id": "tsp_01KWETKHCFMVWC12BRBAT7NT75",
+                    "task_id": "tsk_01KWETJ00KQRXDBB8CXMR1PNCT",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T12:31:33.236702+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.412097+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T12:31:33.236702+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                            "username": "Norbi",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T12:31:33.236702+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWETJ00KQRXDBB8CXMR1PNCT",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWETJ00KR10F9RZCZ3JARZG4",
+                        "article_number": "0000577",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWETJCKD9QNW63F9CH8C8PXR",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/eb07da14-76ac-444d-a491-04299080ada7/cb7351e4e36141f0816a0ac54a7fda79_CAP5091558538160231033.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T12:30:55.597291+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWETJCKYZA87WC1A20J6N7M0",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T12:30:55.614229+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWEJ0HQ91KVWB20SRZ91PJH9",
+                    "task_id": "tsk_01KWEJ070DRGAW19NVTNR10P3J",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T10:01:22.386104+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.442462+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T10:01:22.386104+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                            "username": "Mykola",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T10:01:22.386104+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWEJ070DRGAW19NVTNR10P3J",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWEJ070D4FQ117AE7SD4SEJ0",
+                        "article_number": "0000971",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWEJ0EK28PB1R3MGTT3GD05B",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/f8436e87-20fb-417a-8a16-3a943ba21400/f5887083efb24bb48ac758fbbdcc7e9f_CAP5538381968008257397.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T10:01:19.202897+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWEJ0EKMW2VX8055VPYJBF58",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T10:01:19.220315+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWE7GC5TVKVEA31FD9SB68H2",
+                    "task_id": "tsk_01KWE7FV8JP0FEA0D0N9J4ZCXJ",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-07-01T06:57:46.662574+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-07T06:31:22.473295+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                        "username": "Norbi",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-07-01T06:57:46.662574+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G49SQ2ENBV6THYXYP969",
+                            "username": "Norbi",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-07-01T06:57:46.662574+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWE7FV8JP0FEA0D0N9J4ZCXJ",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWE7FV8JR8GM1QM02J016VCG",
+                        "article_number": "0000969",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWE7G3ZDDHNBA93ABM7RSQRQ",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/917b44a7-ab94-4e5e-94ec-77f53967223d/6bcccdd3387e45ffb8813030f7183029_CAP2436009560195827576.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-07-01T06:57:38.285248+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWE7G3ZSH5A8WNDSZCCMN2SF",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-07-01T06:57:38.297118+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                },
+                {
+                    "client_id": "tsp_01KWCC53A0SKYC9NPYPFYV2R30",
+                    "task_id": "tsk_01KWCC4MT0364Y29S8JPX1M6NZ",
+                    "state": "pending",
+                    "readiness_status": "ready",
+                    "sequence_order": null,
+                    "working_section_id": "wsec_01KWBVA8V6E8SXS1J0HHV9P8ZX",
+                    "assigned_worker_id": "usr_01KVX0G4X9KPMV7AR2P8AJXHSF",
+                    "total_dependencies": 4,
+                    "completed_dependencies": 4,
+                    "working_section_name_snapshot": "photography",
+                    "assigned_worker_display_name_snapshot": "Vitalii",
+                    "created_at": "2026-06-30T13:40:31.136367+00:00",
+                    "closed_at": null,
+                    "ready_by_at": null,
+                    "total_working_seconds": 0,
+                    "total_pause_seconds": 0,
+                    "total_ended_shift_seconds": 0,
+                    "total_working_count": 0,
+                    "total_pause_count": 0,
+                    "total_ended_shift_count": 0,
+                    "total_issues_count": 0,
+                    "total_issues_resolved_count": 0,
+                    "total_cost_minor": null,
+                    "updated_at": "2026-07-02T13:21:05.349691+00:00",
+                    "created_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "updated_by": {
+                        "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                        "username": "Mykola",
+                        "profile_picture": null
+                    },
+                    "last_state_record": {
+                        "state": "pending",
+                        "entered_at": "2026-06-30T13:40:31.136367+00:00",
+                        "exited_at": null,
+                        "last_action_by": {
+                            "client_id": "usr_01KVX0G4KKMXB4FSP5KQRKQDPP",
+                            "username": "Mykola",
+                            "profile_picture": null
+                        },
+                        "first_started_at": "2026-06-30T13:40:31.136367+00:00"
+                    },
+                    "task": {
+                        "client_id": "tsk_01KWCC4MT0364Y29S8JPX1M6NZ",
+                        "task_type": "internal",
+                        "priority": "normal",
+                        "state": "working",
+                        "return_source": null,
+                        "item_location": null,
+                        "ready_by_at": null,
+                        "scheduled_start_at": null,
+                        "scheduled_end_at": null,
+                        "return_method": null
+                    },
+                    "item": {
+                        "client_id": "itm_01KWCC4MT0NFV8B6YGX7FWAFJV",
+                        "article_number": "0000831",
+                        "sku": null,
+                        "state": "pending",
+                        "item_category_id": "itc_01KVX0G0XJ6NB5KVCZVPJT2FWY",
+                        "quantity": 1,
+                        "item_position": null,
+                        "item_zone": null,
+                        "upholstery_requirement": []
+                    },
+                    "item_images": [
+                        {
+                            "client_id": "img_01KWCC4X8V7QFJ2WWSXNBXDTPZ",
+                            "image_url": "https://api.beyovintage.se/uploads/beyo/items/0d0a1f70-fa9e-4156-86a2-f724fccac8c7/faeb852bf9094e4d9ff48ef1ce21c42e_CAP4328118361637069024.jpg",
+                            "storage_provider": "external",
+                            "source_type": "external_url",
+                            "source_reference": null,
+                            "width_px": null,
+                            "height_px": null,
+                            "file_size_bytes": null,
+                            "created_at": "2026-06-30T13:40:24.987698+00:00",
+                            "last_event": {
+                                "client_id": "iev_01KWCC4X9DZ5A35HHBTRPBDXQ8",
+                                "event_type": "link_external_image",
+                                "state": "requested",
+                                "created_at": "2026-06-30T13:40:25.005372+00:00",
+                                "last_error": null
+                            },
+                            "events": [],
+                            "image_annotation": null
+                        }
+                    ],
+                    "cases_summary": {
+                        "total_unread": 0
+                    },
+                    "dependency_working_sections": [
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G13Y09HRXWDBJCH721BV",
+                                "name": "wood fix",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/wood_oil.webp",
+                                "order_list": 1,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G12PYZRZMQ0N2J5BGJPV",
+                                "name": "cleaning wood",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/cleaning_2.webp",
+                                "order_list": 2,
+                                "allows_batch_working": false,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G143WS65JA1YRE0CP1X0",
+                                "name": "ground oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/ground_oil.webp",
+                                "order_list": 2,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        },
+                        {
+                            "working_section": {
+                                "client_id": "wsec_01KVX0G147FPC1KPP19MVDX0SN",
+                                "name": "hardwax oil",
+                                "image": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/working_sections/hardwax.webp",
+                                "order_list": 3,
+                                "allows_batch_working": true,
+                                "allows_shopify_product_modifications": false
+                            },
+                            "prerequisite_step_state": "completed"
+                        }
+                    ]
+                }
+            ],
+            "limit": 50,
+            "offset": 0,
+            "has_more": false
+        }
+    },
+    "ok": true,
+    "warnings": []
+}
+
+fetch("https://api-manager.beyoworkaroundtheclock.com/api/v1/item-categories?limit=200&offset=0", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-SE,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzAxS1ZYMEc0WDlLUE1WN0FSMlA4QUpYSFNGIiwidXNlcm5hbWUiOiJWaXRhbGlpIiwid29ya3NwYWNlX2lkIjoid3NfMDFLVlgwRzBUN1o2TkU2OVlWUlZNRkFCOTgiLCJ3b3Jrc3BhY2Vfcm9sZV9pZCI6Indzcl8wMUtWWk1XRVFNRVc4MDU3QllKOEQ4VkdWWSIsInJvbGVfbmFtZSI6IndvcmtlciIsIndvcmtzcGFjZV9yb2xlX25hbWUiOiJxdWFsaXR5X2NvbnRyb2wiLCJ3b3Jrc3BhY2Vfc3BlY2lhbGl6YXRpb24iOiJxdWFsaXR5X2NvbnRyb2wiLCJhcHBfc2NvcGUiOiJ3b3JrZXIiLCJ0aW1lX3pvbmUiOiJVVEMiLCJiYWNrZW5kX3Blcm1pc3Npb25zIjpbXSwidWkiOnsiYXBwcyI6W10sInBhZ2VzIjpbXSwiYnV0dG9ucyI6W10sImFjdGlvbnMiOltdLCJxdWVyeV9maWx0ZXJzIjpbXX0sImp0aSI6ImZmMmYyNzNjLTAyY2EtNDhiYi04ZmY3LWVmNDk3NGNmZmU5YiIsImV4cCI6MTc4Mzg5MzE0Nn0.czpfT4aIf1phQ2KRISjrgAk09pSxEL8EWchlg4iQ1co",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": "\"iOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "https://workers.beyoworkaroundtheclock.com/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});
+
+response: 
+
+{
+    "data": {
+        "item_categories": [
+            {
+                "client_id": "itc_01KVX0G0WHH023EWJ200SCK9DE",
+                "name": "Dining Chairs",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.745929+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/dining_chair%201.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0WRH8YFDW92V1H13HXH",
+                "name": "Easy Chairs",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.752123+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/armchair.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0WWN4VSN58YC59D18P6",
+                "name": "Armchairs",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.756587+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/armchair.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0X145XX6MRD8TRVPMNV",
+                "name": "Sofas",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.761079+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/sofa%201.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0X5RFVA91HSSNBE7EF7",
+                "name": "Stools",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.765289+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/stool%201.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0X9GAGMQBHXEY2GGGDV",
+                "name": "Seating Benches",
+                "major_category": "seat",
+                "created_at": "2026-06-24T14:28:09.769685+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/bench%201.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0XEXSA7MWMFTB6J8RP3",
+                "name": "Dining Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.774139+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/dining_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0XJ6NB5KVCZVPJT2FWY",
+                "name": "Bedside Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.778369+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/bed_side_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0XP0881HDMFQQC5B3RM",
+                "name": "Coffee Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.782708+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/coffee_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0XTDF2F0M0DW8P3SKWT",
+                "name": "Side Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.786859+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/sofa_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0Y0NAF34HD9RM61M5AC",
+                "name": "Hall Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.792939+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/coffee_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0Y5VXWJYBS72MNT11CN",
+                "name": "Writing Desks",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.797002+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/writing_desk%201.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0Y8FCWMZJW78A07PBHG",
+                "name": "Nest Of Tables",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.800958+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/nest_of_tables.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0YCXCJPFXJ1CMWXSN59",
+                "name": "Sideboards",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.804832+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/sideboard.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0YGAZD35Q4ABHB36EM9",
+                "name": "Highboards",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.808741+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/highboard.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0YMA3X575ZBN9QJ348K",
+                "name": "Bookshelves",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.812734+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/bookshelf.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0YRSMNVKVENT1D1ZVQ1",
+                "name": "Shelving Units",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.816815+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/shelving_system.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0YYWXKAHC4RDN3AAZZY",
+                "name": "Chest of Drawers",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.822722+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/chest_of_drawer.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0Z2PTG5ZDM4AEKNK264",
+                "name": "Secretary Cabinets",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.826672+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/secretary_table.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0Z6KHR5DDET8KEPVY7K",
+                "name": "Bar Cabinets",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.830682+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/bar_cabinet.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZAPY26S6EF87PX6T8B",
+                "name": "Wardrobes",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.834648+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/cabinet.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZEF8Z12BTWNR9E1JWZ",
+                "name": "Storage Cabinets",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.838798+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/cabinet.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZJZG4WWYYWM872N97K",
+                "name": "Posters",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.842928+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/poster.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZQ60VFCGP5G4ADE1E7",
+                "name": "Mirrors",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.847154+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/mirror.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZVFNHSMTRX4K5HDH4M",
+                "name": "Porcelain",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.851241+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/cabinet.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G0ZZWRAV6F8X5KHK3AW3",
+                "name": "Carpets",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.855257+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/poster.webp"
+            },
+            {
+                "client_id": "itc_01KVX0G103FYM2RTWRZ2CKNRYP",
+                "name": "Lamps",
+                "major_category": "wood",
+                "created_at": "2026-06-24T14:28:09.859312+00:00",
+                "created_by_id": null,
+                "image_url": "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/lamp.webp"
+            }
+        ],
+        "item_categories_pagination": {
+            "has_more": false,
+            "limit": 200,
+            "offset": 0
+        }
+    },
+    "ok": true,
+    "warnings": []
+}
+
+fetch("https://api-manager.beyoworkaroundtheclock.com/api/v1/tasks/tsk_01KWETJ00KQRXDBB8CXMR1PNCT/notes", {
+  "headers": {
+    "accept": "*/*",
+    "accept-language": "en-SE,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzAxS1ZYMEc0WDlLUE1WN0FSMlA4QUpYSFNGIiwidXNlcm5hbWUiOiJWaXRhbGlpIiwid29ya3NwYWNlX2lkIjoid3NfMDFLVlgwRzBUN1o2TkU2OVlWUlZNRkFCOTgiLCJ3b3Jrc3BhY2Vfcm9sZV9pZCI6Indzcl8wMUtWWk1XRVFNRVc4MDU3QllKOEQ4VkdWWSIsInJvbGVfbmFtZSI6IndvcmtlciIsIndvcmtzcGFjZV9yb2xlX25hbWUiOiJxdWFsaXR5X2NvbnRyb2wiLCJ3b3Jrc3BhY2Vfc3BlY2lhbGl6YXRpb24iOiJxdWFsaXR5X2NvbnRyb2wiLCJhcHBfc2NvcGUiOiJ3b3JrZXIiLCJ0aW1lX3pvbmUiOiJVVEMiLCJiYWNrZW5kX3Blcm1pc3Npb25zIjpbXSwidWkiOnsiYXBwcyI6W10sInBhZ2VzIjpbXSwiYnV0dG9ucyI6W10sImFjdGlvbnMiOltdLCJxdWVyeV9maWx0ZXJzIjpbXX0sImp0aSI6ImE5YmNkYTY0LTQwYjQtNGYwZC04ODFiLTE1NTAwMmJkOWI5ZiIsImV4cCI6MTc4Mzg5MzE4Nn0.NROS-EV1UehVeYUsG-JW7SgFPZOXiOxzGA5R7lnEmPo",
+    "cache-control": "no-cache",
+    "content-type": "application/json",
+    "pragma": "no-cache",
+    "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": "\"iOS\"",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  },
+  "referrer": "https://workers.beyoworkaroundtheclock.com/",
+  "body": null,
+  "method": "GET",
+  "mode": "cors",
+  "credentials": "include"
+});
+
+
+
+response: {"data":{"task_notes":[]},"ok":true,"warnings":[]}

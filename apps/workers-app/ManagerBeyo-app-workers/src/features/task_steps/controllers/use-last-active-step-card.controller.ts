@@ -142,6 +142,7 @@ export function useLastActiveStepCardController() {
       stepId: step.client_id,
       taskId: step.task_id,
       workingSectionId: step.working_section_id,
+      initialStep: step,
     } as TaskStepDetailSurfaceProps);
   }, [step, openSurface]);
 

@@ -48,6 +48,7 @@ import {
   computeNonTerminalCounts,
   toIncompleteDependencyViewModels,
   toTaskStepCardViewModel,
+  type ListWorkingSectionStepsParams,
   type MajorCategory,
   type NonTerminalStepCounts,
   type ReadinessStatus,
@@ -160,20 +161,32 @@ export function useWorkingSectionStepsController(
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const query = useWorkingSectionStepsQuery({
-    working_section_id: sectionId,
-    q: debouncedSearch || undefined,
-    record_step_state: stateFilters.join(","),
-    major_category:
-      majorCategoryFilters.length > 0
-        ? majorCategoryFilters.join(",")
-        : undefined,
-    readiness_statuses: readinessStatusFilters.join(","),
-    task_types:
-      taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
-    limit: 50,
-    offset: 0,
-  });
+  const queryParams = useMemo<ListWorkingSectionStepsParams>(
+    () => ({
+      working_section_id: sectionId,
+      q: debouncedSearch || undefined,
+      record_step_state: stateFilters.join(","),
+      major_category:
+        majorCategoryFilters.length > 0
+          ? majorCategoryFilters.join(",")
+          : undefined,
+      readiness_statuses: readinessStatusFilters.join(","),
+      task_types:
+        taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
+      limit: 50,
+      offset: 0,
+    }),
+    [
+      debouncedSearch,
+      majorCategoryFilters,
+      readinessStatusFilters,
+      sectionId,
+      stateFilters,
+      taskTypeFilters,
+    ],
+  );
+
+  const query = useWorkingSectionStepsQuery(queryParams);
 
   async function refetch(): Promise<void> {
     await query.refetch();
@@ -364,13 +377,19 @@ export function useWorkingSectionStepsController(
 
   const handleOpenTaskDetail = useCallback(
     (stepId: TaskStepId, taskId: TaskId) => {
+      const initialStep = query.data?.items.find(
+        (step) => step.client_id === stepId,
+      );
+
       openSurface(TASK_STEP_DETAIL_SURFACE_ID, {
         stepId,
         taskId,
         workingSectionId: sectionId,
+        initialStep,
+        listQueryParams: queryParams,
       } as TaskStepDetailSurfaceProps);
     },
-    [openSurface, sectionId],
+    [openSurface, query.data?.items, queryParams, sectionId],
   );
 
   const handleOpenImageViewer = useCallback(

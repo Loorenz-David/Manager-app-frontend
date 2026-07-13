@@ -4,7 +4,7 @@ import { useController, useFormContext } from "react-hook-form";
 import type { ShopifyProductSyncFormValues } from "../../types";
 
 export function ShopifyProductSyncSkuField(): React.JSX.Element {
-  const { control } = useFormContext<ShopifyProductSyncFormValues>();
+  const { control, setValue } = useFormContext<ShopifyProductSyncFormValues>();
   const { field, fieldState } = useController({
     name: "sku",
     control,
@@ -24,6 +24,13 @@ export function ShopifyProductSyncSkuField(): React.JSX.Element {
         id={inputId}
         invalid={Boolean(fieldState.error)}
         value={field.value ?? ""}
+        onChange={(event) => {
+          field.onChange(event);
+          setValue("title", event.target.value, {
+            shouldDirty: true,
+            shouldValidate: true,
+          });
+        }}
         data-testid="shopify-product-sync-sku-input"
       />
     </div>

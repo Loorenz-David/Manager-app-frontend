@@ -11,6 +11,7 @@ import {
   type TaskStepDetailSurfaceProps,
 } from "@/features/task_steps/surface-ids";
 import { fetchWorkerWorkingSections } from "@/features/working_sections/api/fetch-worker-working-sections";
+import type { TaskStep } from "@/features/task_steps/types";
 import { buildCaseConversationRoute, ROUTES } from "@/lib/routes";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
@@ -30,7 +31,7 @@ function stripNotificationParams(search: string): string {
 
 async function resolveWorkingSectionIdForStep(
   stepId: string,
-): Promise<WorkingSectionId | null> {
+): Promise<{ workingSectionId: WorkingSectionId; step: TaskStep } | null> {
   const sections = await fetchWorkerWorkingSections();
   const orderedSections = [...sections].sort((a, b) => {
     const activeA =
@@ -55,8 +56,9 @@ async function resolveWorkingSectionIdForStep(
         offset,
       });
 
-      if (page.items.some((step) => step.client_id === stepId)) {
-        return section.client_id;
+      const step = page.items.find((item) => item.client_id === stepId);
+      if (step) {
+        return { workingSectionId: section.client_id, step };
       }
 
       hasMore = page.has_more;
@@ -118,7 +120,7 @@ export function NotificationDeepLinkMount(): null {
     let cancelled = false;
 
     resolveWorkingSectionIdForStep(notifId)
-      .then((workingSectionId) => {
+      .then((resolvedStep) => {
         if (cancelled) return;
 
         navigate(
@@ -129,12 +131,13 @@ export function NotificationDeepLinkMount(): null {
           { replace: true },
         );
 
-        if (!workingSectionId) return;
+        if (!resolvedStep) return;
 
         useSurfaceStore.getState().open(TASK_STEP_DETAIL_SURFACE_ID, {
           stepId: notifId as TaskStepId,
           taskId: notifTaskId as TaskId,
-          workingSectionId,
+          workingSectionId: resolvedStep.workingSectionId,
+          initialStep: resolvedStep.step,
         } satisfies TaskStepDetailSurfaceProps);
       })
       .catch((error: unknown) => {

@@ -2,6 +2,10 @@ import type {
   ProcessShopifyProductsRequest,
   ShopifyProductSyncFormValues,
 } from "../types";
+import {
+  hasPositiveShopifyProductSyncDimension,
+  SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS,
+} from "./shopify-product-sync-dimensions";
 
 export type ResolveShopifyProductSyncSubmitResult =
   | { kind: "skip" }
@@ -12,17 +16,12 @@ export type ResolveShopifyProductSyncSubmitResult =
     }
   | { kind: "submit"; payload: ProcessShopifyProductsRequest };
 
-const hasPositiveDimension = (
-  value: number | null | undefined,
-): value is number =>
-  typeof value === "number" && Number.isFinite(value) && value > 0;
-
 export function isFormFilled(values: ShopifyProductSyncFormValues): boolean {
   return Boolean(
     values.sku?.trim() ||
-      hasPositiveDimension(values.heightCm) ||
-      hasPositiveDimension(values.widthCm) ||
-      hasPositiveDimension(values.depthCm) ||
+      SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS.some(({ name }) =>
+        hasPositiveShopifyProductSyncDimension(values[name]),
+      ) ||
       values.title?.trim() ||
       values.description?.trim(),
   );
@@ -69,13 +68,14 @@ export function resolveShopifyProductSyncSubmit({
   }
 
   const metafields: Record<string, number> = {};
-  const height = hasPositiveDimension(values.heightCm) ? values.heightCm : null;
-  const width = hasPositiveDimension(values.widthCm) ? values.widthCm : null;
-  const depth = hasPositiveDimension(values.depthCm) ? values.depthCm : null;
 
-  if (height !== null) metafields.Height = height;
-  if (width !== null) metafields.Width = width;
-  if (depth !== null) metafields.Depth = depth;
+  for (const { name, metafieldKey } of SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS) {
+    const value = values[name];
+
+    if (hasPositiveShopifyProductSyncDimension(value)) {
+      metafields[metafieldKey] = value;
+    }
+  }
 
   return {
     kind: "submit",
