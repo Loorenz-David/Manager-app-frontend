@@ -39,7 +39,7 @@ import {
 } from "@beyo/scanner";
 import {
   TaskAssortmentField,
-  TaskDeliveryDateField,
+  // TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
   TaskReturnSourceField,
@@ -80,7 +80,7 @@ import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAs
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { ReturnFormSchema, type ReturnFormValues } from "../types";
 import {
-  CALENDAR_RANGE_PICKER_SURFACE_ID,
+  // CALENDAR_RANGE_PICKER_SURFACE_ID,
   CALENDAR_SINGLE_PICKER_SURFACE_ID,
   TASK_CREATION_RETURN_SURFACE_ID,
   preloadCalendarRangePickerSurface,
@@ -387,16 +387,16 @@ export function ReturnFormContent(): React.JSX.Element {
 
         await createTask.mutateAsync(payload);
         form.reset({
-              item: {
-                designer: "",
-                article_number: "",
-                sku: "",
-                quantity: 1,
-                item_position: "",
-                item_zone: "",
-                item_currency: undefined,
-                item_category_id: undefined,
-                major_category: undefined,
+          item: {
+            designer: "",
+            article_number: "",
+            sku: "",
+            quantity: 1,
+            item_position: "",
+            item_zone: "",
+            item_currency: undefined,
+            item_category_id: undefined,
+            major_category: undefined,
           },
           item_upholstery: {
             upholstery_client_id: null,
@@ -560,11 +560,11 @@ export function ReturnFormContent(): React.JSX.Element {
                 </ContentCard>
                 <ContentCard>
                   <TaskFulfillmentMethodField />
-                  <TaskDeliveryDateField
+                  {/* <TaskDeliveryDateField
                     onOpenCalendarRangePicker={(props) =>
                       surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
                     }
-                  />
+                  /> */}
                 </ContentCard>
               </div>
             </StagedFormStep>

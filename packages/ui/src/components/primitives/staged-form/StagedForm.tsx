@@ -30,7 +30,7 @@ const FOOTER_STYLE: React.CSSProperties = {
   transform: "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
   opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
   transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+    "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
 };
 
 export function StagedForm({

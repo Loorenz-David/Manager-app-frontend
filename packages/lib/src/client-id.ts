@@ -51,6 +51,7 @@ export const CLIENT_ID_PREFIXES = {
   UserSectionDailyWorkStats: 'usdwr',
   UserShiftStateRecord: 'ussr',
   UserWorkProfile: 'uwp',
+  ShopifyMetafieldPreference: 'shpmfp',
   Workspace: 'ws',
   WorkspaceMembership: 'wsm',
   WorkspaceRole: 'wsr',

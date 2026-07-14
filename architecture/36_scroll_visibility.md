@@ -60,31 +60,52 @@ When `mode: "relative"` is active the system injects CSS custom properties onto 
 
 | Variable | Range | Meaning |
 |---|---|---|
-| `--scroll-hide-progress` | `0` → `1` | How far along the hide animation is. `0` = fully visible, `1` = fully hidden. Updated every rAF frame via lerp. |
+| `--scroll-hide-progress` | `0` → `1` | How far along the core hide animation is. `0` = fully visible, `1` = fully hidden. During an active drag it tracks the latest scroll-derived value on the next animation frame. |
 | `--scroll-hide-progress-footer` | `0` → `1` | Optional footer/navigation-specific progress channel. Only present for callers that opt into edge reveal. |
-| `--scroll-snap-duration` | `0ms` / `300ms` | `0ms` during active scroll (instant CSS var tracking), `300ms` during snap (CSS transition for the snap animation). |
+| `--scroll-snap-duration` | `0ms` / `400ms` | Core/header duration. `0ms` during active drag and `400ms` while completing a release snap. |
+| `--scroll-snap-duration-footer` | `0ms` / `160ms` / `400ms` | Footer-specific duration. It normally follows the core snap, but an authoritative edge reveal uses `160ms` so the configured edge offset is visually meaningful before momentum reaches the physical edge. |
 
-Animated elements read these vars via inline `style`. No class toggles, no re-renders during scroll.
+Animated elements read these vars via inline `style`. Continuous visual progress does not require a React render; only semantic endpoint changes such as `isHidden` or `isAtEdge` may render.
 
-### Lerp smoothing
+### Frame-coalesced direct tracking
 
-Progress is never set directly from scroll events. Instead it is chased each rAF frame:
+Continuous progress updates refs only. Semantic endpoints may update React state, but at most one `requestAnimationFrame` callback is queued before the next paint, and that callback reads the latest progress and performs the CSS custom-property writes together.
 
-```
-visualProgress += (target - current) * LERP_FACTOR
-```
+- Multiple scroll events before one paint collapse into one DOM write.
+- Active finger dragging follows the latest scroll value without recursive interpolation.
+- No background animation loop continues after scrolling stops.
+- Do not restore frame-based lerp smoothing. A fixed per-frame lerp is refresh-rate-dependent, deliberately trails the finger, can require roughly 20–30 extra frames to converge, and keeps invalidating styles after input has stopped.
 
-`LERP_FACTOR` lives in `packages/ui/src/components/primitives/scroll-visibility/use-scroll-progress-css-var.ts`. Lower values = smoother/slower response to fast scrolls. Changing it affects every consumer.
+This work lives in `packages/ui/src/components/primitives/scroll-visibility/use-scroll-progress-css-var.ts`. Changing it affects every relative-mode consumer.
 
 ### Snap behaviour on finger lift
 
-On `touchend` / `touchcancel`, the system reads the current scroll direction and snaps to `0` or `1` (fully visible or fully hidden). The snap target is direction-based — it does not use a midpoint threshold.
+On `touchend` / `touchcancel`, the system reads the current scroll direction and completes toward `0` or `1` (fully visible or fully hidden). The target is direction-based — it does not use a midpoint threshold.
+
+The release decision must compare the target with the **last visual progress written to the DOM**, not only the logical scroll-state ref. A fast swipe can move logical progress to an endpoint before the browser paints it. Treating that logical endpoint as already complete makes the next pending frame jump directly to `0` or `1`.
+
+Only one release may be processed per active touch gesture. `touchend` is registered on both the scroll element and `document` as a fallback and can bubble through both. The `isTouchActive` guard prevents the second call from reversing direction after the first call finalizes state.
+
+During native momentum, the release snap owns ordinary direction changes, but a configured physical-edge reveal remains authoritative. See “Footer edge reveal during momentum” below.
 
 ### `hideProgressContainerRef`
 
-`useScrollHide()` returns a `hideProgressContainerRef`. Attach this to a DOM element that is a **DOM ancestor of all animated children**. CSS custom properties cascade through the DOM tree (including through `position: fixed` and `position: absolute` descendants), so any child — regardless of stacking — can read the vars.
+`useScrollHide()` returns a `hideProgressContainerRef`. Attach it to the **narrowest DOM ancestor that contains every element reading the scroll CSS vars**. CSS custom properties cascade through the DOM tree, including through `position: fixed` and `position: absolute` descendants.
+
+This is a performance boundary, not just a wiring ref. Updating an inherited custom property makes its descendant subtree eligible for style invalidation. If only a header animates, put the ref on the header animation wrapper—not on a page root that also contains hundreds of cards and images. If both a header and footer consume the vars, use their nearest practical common ancestor and keep large unrelated subtrees outside that boundary when the layout permits it.
 
 If the ref is not attached to any element, CSS vars are never written and the animation does not work.
+
+### Rendering and compositor invariants
+
+Smooth scroll-linked UI depends more on the work performed per frame than on how visually complex the page appears.
+
+- Animate `transform` and `opacity` only. Do not progressively animate layout properties such as `height`, `top`, `margin`, or `padding`.
+- Add `will-change: transform` or `will-change: transform, opacity` only to the small surfaces that actually animate. Do not promote an entire long page or list.
+- Scroll progress lives in refs and CSS custom properties. Never put continuous progress in React state.
+- `isHidden` and `isAtEdge` are endpoint/semantic state and may cause a React render. Keep large lists outside that render path, or memoize their element tree with stable data and handler identities. Passing newly created object props defeats a child component's `memo()` shallow comparison.
+- Passive scroll/touch listeners and rAF coalescing are mandatory. A scroll event handler may calculate refs, but DOM writes belong in the single queued animation frame.
+- Pull-to-refresh gesture work is independent of ordinary scroll visibility. Do not add competing transforms to the scroll container for the normal-scroll path.
 
 ---
 
@@ -115,15 +136,21 @@ function LastActiveStepCard(): React.JSX.Element {
   const { isHidden } = useScrollVisibilityContext();
 
   return (
-    <m.div
+    <div
       className={cn(
-        "fixed bottom-[60px] left-0 right-0 z-[49]",
-        "transition-transform duration-200 ease-out",
-        isHidden && "translate-y-full",
+        "fixed bottom-[60px] left-0 right-0 z-[49] will-change-transform",
+        isHidden && "pointer-events-none",
       )}
+      style={{
+        transform:
+          "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
+        opacity: "calc(1 - var(--scroll-hide-progress, 0))",
+        transition:
+          "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+      }}
     >
       ...
-    </m.div>
+    </div>
   );
 }
 ```
@@ -230,17 +257,18 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
   return (
-    // 1. Attach hideProgressContainerRef to the ancestor of all animated children.
-    <div ref={hideProgressContainerRef} className="flex h-full flex-col">
+    <div className="flex h-full flex-col">
 
-      {/* 2. Attach scrollRef to the scrollable container. */}
+      {/* 1. Attach scrollRef to the scrollable container. */}
       <PullToRefresh scrollRef={scrollRef} onRefresh={refetch}>
         {content}
       </PullToRefresh>
 
-      {/* 3. Animated element reads CSS vars via inline style. */}
+      {/* 2. Scope the progress ref to the only animated element. */}
+      {/* 3. The animated element reads CSS vars via inline style. */}
       {/* Footer slides DOWN to hide (positive translateY). */}
       <div
+        ref={hideProgressContainerRef}
         className={cn(
           "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
           isHidden ? "pointer-events-none" : null,
@@ -263,6 +291,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 | Element | Direction | `transform` |
 |---|---|---|
 | Footer / bottom bar | slides down to hide | `translateY(calc(var(--scroll-hide-progress, 0) * 100%))` |
+| Footer with `revealAtEdge` | slides down to hide; has independent edge override | `translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))` |
 | Header / top bar | slides up to hide | `translateY(calc(-100% * var(--scroll-hide-progress, 0)))` |
 | Fade only (no translate) | — | omit `transform`, keep `opacity` |
 
@@ -278,9 +307,11 @@ style={{
 
 Use `isHidden` only for `pointer-events-none` — never for the visual animation.
 
-### Footer layout: absolute positioning required
+For an edge-aware footer, use `--scroll-hide-progress-footer` and `--scroll-snap-duration-footer` as shown in “Footer edge reveal during momentum.” Do not mix the footer progress channel with the core duration variable; doing so visually delays the configured offset during a momentum snap.
 
-Footers that animate out must be `position: absolute` (not in the flex flow) so that when they slide off screen the scroll container's available height does not change. If the footer is a flex child (`shrink-0`), it still occupies layout space even when translated away, cropping the scroll area.
+### Footer layout: out-of-flow positioning required
+
+Footers that animate out must be out of normal flex flow—normally `position: absolute`, or `position: fixed` for a surface-level viewport footer—so translating them does not change the scroll container's available height. If the footer is a flex child (`shrink-0`), it still occupies layout space even when translated away, cropping the scroll area.
 
 The scroll container needs `paddingBottom` equal to the footer's height so content is not clipped behind it. Measure this with a `ResizeObserver` on the footer element for footers with dynamic height (e.g. those with a conditional shortcut bar).
 
@@ -296,6 +327,8 @@ The scroll container needs `paddingBottom` equal to the footer's height so conte
 - Its footer/navigation also enables a bottom-edge reveal override so long-step actions are forced visible again near the physical end of the scroll container, even if the user never reversed scroll direction.
 - That edge override only drives the footer/navigation signal (`--scroll-hide-progress-footer`). The timeline keeps reading the base `--scroll-hide-progress` signal, so its visibility remains purely direction-based.
 - That bottom-edge reveal threshold defaults to the footer's measured height, but consumers can override it with `footerEdgeOffset` when a fixed reveal distance is preferable to live footer-height tracking.
+- The edge override remains active while a release snap suppresses ordinary directional updates. Native momentum can enter and stop inside the edge zone without producing any later scroll event.
+- An in-flight footer hide is retargeted to visible as soon as momentum enters the edge zone. Footer edge reveal uses `--scroll-snap-duration-footer` so it can complete before the physical bottom while the core/header snap keeps its own timing.
 - Footer children that animate with `--scroll-hide-progress-footer` must not also sit inside a layout-collapsing wrapper (`grid-template-rows`, `max-height`, similar) whose height contributes to the measured staged-form footer. That mixes paint-only animation with live geometry changes and can create bottom-edge reveal oscillation.
 
 No external wiring needed. Just render `<StagedForm>` and pass the content.
@@ -311,7 +344,7 @@ No external wiring needed. Just render `<StagedForm>` and pass the content.
 
 | Hook | Use when |
 |---|---|
-| `useScrollHide()` | Standard case. Correct thresholds and lerp already configured. Use this. |
+| `useScrollHide()` | Standard case. Shared thresholds, frame coalescing, touch release, and edge behavior are already configured. Use this. |
 | `useScrollVisibility({ mode: "relative", ... })` | Custom thresholds needed for a non-standard use case. Rare. |
 
 `useScrollHide` is defined in `packages/ui/src/components/primitives/scroll-visibility/use-scroll-hide.ts`. Its threshold values (`hideThreshold`, `showThreshold`) are the single source of truth for the feel of all local scroll animations. Changing them changes every consumer at once.
@@ -321,6 +354,32 @@ For rare local cases, `useScrollHide()` also accepts two additive fields only. C
 - `revealAtEdge: "top" | "bottom"` forces the element fully visible whenever the scroll container is within `edgeOffset` px of that physical edge.
 - `edgeOffset` defaults to `0`. Use the hidden element's height when the reveal should engage as the user enters that reserved gutter.
 - This override is relative-mode-only and opt-in; callers that omit it keep the existing direction-based behavior unchanged.
+
+### Footer edge reveal during momentum
+
+Edge detection must not be treated like an ordinary direction update. When a user releases a fast swipe, native scrolling may continue after `touchend`. The core snap temporarily suppresses direction processing so momentum cannot fight the chosen fold/unfold target, but `revealAtEdge` must still be evaluated for every scroll event during that window.
+
+Required sequence:
+
+1. Finger release selects the direction-based core and footer snap targets.
+2. Native momentum continues scrolling.
+3. If distance from the configured edge becomes `<= edgeOffset`, `isAtEdge` becomes true and footer progress becomes `0` even while the core snap is active.
+4. Any in-flight footer hide target is changed to `0` and uses the short footer edge-reveal duration.
+5. Snap completion preserves `isAtEdge`; it must not blindly reset the edge flag.
+
+Without these rules, a swipe can reach the bottom entirely inside the suppression window. The footer then remains hidden until the user performs another drag at a scroll position that cannot move further.
+
+Footer elements using the edge-specific channel must use the footer duration variable with a compatibility fallback:
+
+```tsx
+style={{
+  transform:
+    "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+  opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
+  transition:
+    "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
+}}
+```
 
 ---
 
@@ -334,7 +393,7 @@ The CSS vars are identical across all consumers. What varies is how each element
 
 The simplest case. One element slides entirely off screen. Use `100%` as the translation amount — the element's own height, so it lands exactly at the edge at progress=1.
 
-**When to use:** a footer or bottom action bar that should fully disappear; a header timeline that should fully disappear. The element must be `position: absolute` (see "Footer layout" above).
+**When to use:** a footer or bottom action bar that should fully disappear; a header timeline that should fully disappear. The element must be out of normal layout flow (see “Footer layout” above).
 
 **Direction:**
 - Footer (slides down): `translateY(calc(var(--scroll-hide-progress, 0) * 100%))`
@@ -344,23 +403,34 @@ The simplest case. One element slides entirely off screen. Use `100%` as the tra
 
 ```tsx
 // Parent (TaskDetailSlidePageContent)
-const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+const {
+  scrollRef,
+  isHidden,
+  isAtEdge,
+  hideProgressContainerRef,
+} = useScrollHide({
+  revealAtEdge: "bottom",
+  edgeOffset: BOTTOM_ACTIONS_EDGE_OFFSET_PX,
+});
+const isFooterHidden = isHidden && !isAtEdge;
 
 <div ref={hideProgressContainerRef} className="flex h-full flex-col bg-background">
   <PullToRefresh scrollRef={scrollRef} ...>{content}</PullToRefresh>
-  <TaskDetailBottomActions isHidden={isHidden} ... />
+  <TaskDetailBottomActions isHidden={isFooterHidden} ... />
 </div>
 
-// TaskDetailBottomActions — position: absolute, slides down
+// TaskDetailBottomActions — fixed/absolute overlay, slides down
 <div
   className={cn(
     "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
     isHidden ? "pointer-events-none" : null,
   )}
   style={{
-    transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-    opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-    transition: "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+    transform:
+      "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+    opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
+    transition:
+      "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
   }}
 >
   ...
@@ -385,9 +455,10 @@ The collapsing section inside the wrapper only fades — the wrapper translation
 // TasksView — wrapper translates by collapsing section height only
 const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
 
-<div ref={hideProgressContainerRef} className="relative flex-1 min-h-0">
+<div className="relative flex-1 min-h-0">
   <div
-    className="absolute inset-x-0 top-0 z-10"
+    ref={hideProgressContainerRef}
+    className="absolute inset-x-0 top-0 z-10 will-change-transform"
     style={{
       transform: "translateY(calc(-1 * var(--type-picker-height, 56px) * var(--scroll-hide-progress, 0)))",
       transition: "transform var(--scroll-snap-duration, 0ms) ease-out",
@@ -396,13 +467,14 @@ const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
   >
     <TasksHeader ... />
   </div>
+  {/* The long list is a sibling, outside the CSS-var invalidation subtree. */}
   <PullToRefresh scrollRef={scrollRef} ...>{content}</PullToRefresh>
 </div>
 
 // TasksHeader — collapsing section fades only (wrapper handles movement)
 <div className="relative flex flex-col bg-background">
   <div
-    className="px-4 pb-2 pt-3"
+    className="px-4 pb-2 pt-3 will-change-[opacity]"
     style={{
       opacity: "calc(1 - var(--scroll-hide-progress, 0))",
       transition: "opacity var(--scroll-snap-duration, 0ms) ease-out",
@@ -439,7 +511,7 @@ A secondary section sits `position: absolute` at `top: 100%` of a relative ances
 // Pills — absolute, top:100% places them just below the search bar (outside layout box).
 // Own translateY(-100%) + wrapper translation together slide them behind the search bar.
 <div
-  className="absolute inset-x-0 bg-background"
+  className="absolute inset-x-0 bg-background [will-change:transform,opacity]"
   style={{
     top: "100%",
     transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
@@ -459,11 +531,67 @@ A secondary section sits `position: absolute` at `top: 100%` of a relative ances
 
 | Scenario | Pattern |
 |---|---|
-| Single element hides completely (footer, timeline header) | A — full-height translation, `position: absolute` |
+| Single element hides completely (footer, timeline header) | A — full-height translation, out of normal layout flow |
 | Header with a collapsing top section and a persistent section that slides to the top edge | B — wrapper partial translation by collapsing section height |
 | Secondary section hides behind a persistent sibling (e.g. pills behind search bar) | C — absolute `top:100%` + z-index mask, combines with Pattern B wrapper |
 
 Patterns B and C are always used together: B handles the wrapper and the collapsing top section, C handles the secondary section below the persistent element.
+
+---
+
+## Implementation and review checklist
+
+Use this checklist whenever creating another scroll-visibility utility or wiring a new consumer.
+
+### Shared controller
+
+- [ ] Scroll and touch listeners are passive.
+- [ ] Continuous scroll state and progress live in refs, not React state.
+- [ ] Scroll events perform calculations only; DOM writes are coalesced into at most one queued `requestAnimationFrame`.
+- [ ] The animation frame reads the latest ref value rather than a value captured by an earlier scroll event.
+- [ ] Active dragging maps directly to progress. There is no recursive per-frame lerp or animation loop after scrolling stops.
+- [ ] Release direction chooses the endpoint; the decision to animate compares against last visual progress, not only logical progress.
+- [ ] A touch-active guard makes `touchend` / `touchcancel` idempotent for one gesture.
+- [ ] A pending direct-progress frame is cancelled before a release snap starts.
+- [ ] Touch interruption cancels pending snap work and resumes from the estimated visual position.
+- [ ] Ordinary direction updates may be suppressed during release snap, but physical-edge overrides are still evaluated during native momentum.
+- [ ] Snap completion preserves an active edge override.
+- [ ] Header/core and edge-aware footer channels can use independent durations.
+- [ ] Cleanup cancels every pending rAF and timeout.
+
+### Consumer
+
+- [ ] `scrollRef` is attached to the element whose `scrollTop`, `scrollHeight`, and `clientHeight` describe the intended content.
+- [ ] `hideProgressContainerRef` is attached to the narrowest ancestor containing all CSS-var consumers.
+- [ ] A long list, image grid, or unrelated page subtree is not placed below the progress ref unless it also consumes the vars.
+- [ ] Only `transform` and `opacity` are progressively animated.
+- [ ] `will-change` is limited to the small elements that animate.
+- [ ] `isHidden` / `isAtEdge` control semantics and pointer events, not visual progress.
+- [ ] Large list children do not all re-render when endpoint state changes; data objects, handlers, and memo boundaries are stable.
+- [ ] An out-of-flow footer has matching scroll-content bottom padding.
+- [ ] An edge-aware footer uses the footer progress and footer duration variables.
+- [ ] `edgeOffset` is measured from the physical scroll edge and accounts for intentional bottom padding/gutter.
+
+### Required regression coverage
+
+- [ ] Multiple scroll events before a paint produce one DOM-write frame using the newest progress.
+- [ ] A fast swipe that reaches logical `0` or `1` before paint still animates from the last visual value.
+- [ ] Bubbling `touchend` is handled once and cannot reverse the finalized direction.
+- [ ] `revealAtEdge` activates while directional processing is suspended.
+- [ ] An in-flight footer hide retargets to visible when momentum enters `edgeOffset`.
+- [ ] Snap completion receives the retargeted footer endpoint and preserves `isAtEdge`.
+- [ ] Plain relative mode behaves unchanged when `revealAtEdge` is omitted.
+
+### Source-of-truth files
+
+| Responsibility | File |
+|---|---|
+| Direction, thresholds, independent core/footer channels, edge override | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-state.ts` |
+| rAF coalescing, visual progress, touch lifecycle, snap and duration vars | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-progress-css-var.ts` |
+| Scroll/touch listener wiring and physical edge measurements | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-visibility.ts` |
+| Standard relative-mode defaults | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-hide.ts` |
+| State and edge regression tests | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-state.test.ts` |
+| Frame, swipe, duplicate-release, and footer-retarget regression tests | `packages/ui/src/components/primitives/scroll-visibility/use-scroll-progress-css-var.test.ts` |
 
 ---
 
@@ -514,10 +642,11 @@ Does the element live inside a surface / slide / drawer?
   Is it inside a <StagedForm>?
     YES → Nothing to do. StagedForm handles scroll hide internally.
   NO  → useScrollHide() — local, isolated
-          1. Attach hideProgressContainerRef to the ancestor container div.
+          1. Attach hideProgressContainerRef to the narrowest ancestor of the animated targets.
           2. Attach scrollRef to the scroll element.
           3. Animated children use CSS var inline styles (not isHidden class toggles).
           4. isHidden is only used for pointer-events-none.
+          5. Keep long, unrelated content outside the CSS-var subtree when possible.
         Never touches global state.
 
 Does the page need to register its scroll container?
@@ -541,5 +670,12 @@ Which mode to use?
 - **Never add a new shell-level element above `z-[50]` without also raising surface z-indices.** Surfaces must always be above the nav bar.
 - **Never pass `hysteresis` when using `mode: "relative"`** — it has no effect. Control the dead band with `hideThreshold` / `showThreshold` instead.
 - **Never leave `hideProgressContainerRef` unattached.** If the ref is not on a DOM element, CSS vars are never written and the animation silently does not work. Always confirm the ref is on a real ancestor of the animated children.
+- **Never attach `hideProgressContainerRef` higher than necessary.** Inherited custom-property updates can invalidate styles through that descendant subtree. Do not wrap a long list when only its header or footer animates.
 - **Never use `isHidden` for the visual animation.** Use it only for `pointer-events-none`. The visual animation is driven exclusively by `--scroll-hide-progress` via inline `style`. Using `isHidden` for class-based animation produces a binary snap with no progressive feel.
-- **Never make an animated footer a flex child (`shrink-0`).** Make it `position: absolute` with `bottom-0 left-0 right-0`. A flex-child footer still occupies layout space when translated away, preventing the scroll area from gaining the space the footer vacated.
+- **Never make an animated footer a flex child (`shrink-0`).** Make it an absolute or fixed bottom overlay. A flex-child footer still occupies layout space when translated away, preventing the scroll area from gaining the space the footer vacated.
+- **Never store continuous scroll progress in React state.** Use refs and CSS variables. React state is reserved for semantic endpoints such as `isHidden` and `isAtEdge`.
+- **Never use recursive frame-based lerp for finger tracking.** Coalesce to one rAF and write the latest value. Lerp creates input latency, refresh-rate-dependent behavior, and extra work after scrolling ends.
+- **Never let release-snap suppression skip a configured edge override.** Native momentum can reach and stop at the edge before suppression expires, leaving the footer hidden indefinitely.
+- **Never use the core duration variable for an edge-aware footer.** Use `--scroll-snap-duration-footer` with a fallback to `--scroll-snap-duration`.
+- **Never animate layout geometry progressively during scroll.** Restrict the progressive path to `transform` and `opacity` so the compositor can handle the visual work.
+- **Never assume `memo()` protects a long list when the parent creates new object props on every render.** Stabilize the props or memoize/isolate the list subtree from endpoint state changes.

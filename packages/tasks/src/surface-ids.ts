@@ -32,6 +32,7 @@ export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
 export const TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID =
   "task-flow-record-detail-sheet";
 export const TASK_EDIT_SLIDE_SURFACE_ID = "task-edit-slide";
+export const TASK_TYPE_SHEET_SURFACE_ID = "task-type-sheet";
 
 export type TaskReadyByAtSheetSurfaceProps = {
   taskId: string;
@@ -101,6 +102,10 @@ export type TaskFlowRecordDetailSurfaceProps = {
 };
 
 export type TaskEditSurfaceProps = {
+  taskId: string;
+};
+
+export type TaskTypeSheetSurfaceProps = {
   taskId: string;
 };
 

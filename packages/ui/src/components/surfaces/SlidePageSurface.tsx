@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { m } from "framer-motion";
 import { transitions } from "@beyo/lib";
 import { SurfaceHeaderContext } from "../../providers/SurfaceProvider";
@@ -13,7 +13,7 @@ type Props = {
 export function SlidePageSurface({
   onClose,
   zIndex,
-  isTopmost: _isTopmost,
+  isTopmost,
   children,
 }: Props): React.JSX.Element {
   const [title, setTitle] = useState("");
@@ -22,6 +22,18 @@ export function SlidePageSurface({
   const [closeInterceptor, setCloseInterceptorState] = useState<
     (() => void) | null
   >(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // A surface stacked underneath (e.g. the sheet this slide opened from) can
+  // still be a mounted, "open" Vaul drawer that keeps reclaiming DOM focus.
+  // Grabbing focus here the moment this slide becomes topmost breaks that
+  // hold so taps on focusable content inside the slide (inputs, composers)
+  // actually receive focus instead of silently no-oping.
+  useEffect(() => {
+    if (isTopmost) {
+      rootRef.current?.focus({ preventScroll: true });
+    }
+  }, [isTopmost]);
 
   const setCloseInterceptor = (fn: (() => void) | null) => {
     setCloseInterceptorState(() => fn);
@@ -48,11 +60,13 @@ export function SlidePageSurface({
     >
       <div className="fixed inset-0 flex justify-center" style={{ zIndex }}>
         <m.div
+          ref={rootRef}
           animate={{ x: 0 }}
           className="flex h-full w-full flex-col overflow-hidden bg-background pt-[var(--safe-top)] focus:outline-none transform-gpu [will-change:transform]"
           exit={{ x: "100%" }}
           initial={{ x: "100%" }}
           style={{ maxWidth: "var(--manager-shell-max-width)" }}
+          tabIndex={-1}
           transition={transitions.slide}
         >
           {!headerHidden ? (

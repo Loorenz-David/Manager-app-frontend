@@ -2,15 +2,17 @@ import { useEffect } from "react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { ConfirmActionButton, useSurfaceStore } from "@beyo/ui";
-import { Pin, Trash2 } from "lucide-react";
+import { Pin, Replace, Trash2 } from "lucide-react";
 
 import { useDeleteTask } from "../actions/use-delete-task";
 import {
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
+  TASK_TYPE_SHEET_SURFACE_ID,
   type PinNotificationsSlideSurfaceProps,
   type TaskActionsSurfaceProps,
+  type TaskTypeSheetSurfaceProps,
 } from "../surface-ids";
 
 export function TaskDetailMenuSheetPage(): React.JSX.Element {
@@ -41,6 +43,22 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
       >
         <Pin className="size-4" />
         Pin notifications
+      </button>
+      <button
+        type="button"
+        className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-sm font-semibold text-foreground"
+        data-testid="task-actions-change-task-type"
+        disabled={!taskId}
+        onClick={() => {
+          if (!taskId) return;
+
+          useSurfaceStore.getState().open(TASK_TYPE_SHEET_SURFACE_ID, {
+            taskId,
+          } satisfies TaskTypeSheetSurfaceProps);
+        }}
+      >
+        <Replace className="size-4" />
+        Change task type
       </button>
       <ConfirmActionButton
         backgroundColor="var(--color-card)"

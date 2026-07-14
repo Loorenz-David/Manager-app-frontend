@@ -1,5 +1,7 @@
 import { createContext, useContext, type ReactNode } from "react";
 
+import type { TaskNoteComposerValue } from "@beyo/task-notes";
+
 import {
   useTaskWorkingSectionsController,
   type TaskWorkingSectionsController,
@@ -18,6 +20,8 @@ type TaskWorkingSectionsProviderProps = {
   initialPendingAdds?: RecoveredPendingAdd[];
   initialPendingRemoveIds?: string[];
   initialPendingReassignments?: RecoveredPendingReassignment[];
+  initialNoteClientId?: string;
+  initialNoteContent?: TaskNoteComposerValue | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
   children: ReactNode;
 };
@@ -27,6 +31,8 @@ export function TaskWorkingSectionsProvider({
   initialPendingAdds,
   initialPendingRemoveIds,
   initialPendingReassignments,
+  initialNoteClientId,
+  initialNoteContent,
   surfaceOpeners,
   children,
 }: TaskWorkingSectionsProviderProps): React.JSX.Element {
@@ -34,6 +40,8 @@ export function TaskWorkingSectionsProvider({
     initialPendingAdds,
     initialPendingRemoveIds,
     initialPendingReassignments,
+    initialNoteClientId,
+    initialNoteContent,
     surfaceOpeners,
   });
 

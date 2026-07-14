@@ -14,6 +14,11 @@ export const TASK_STATE = [
   "failed",
   "cancelled",
 ] as const;
+export const TASK_TERMINAL_STATES = ["resolved", "failed", "cancelled"] as const;
+export const TASK_DEFAULT_LIST_EXCLUDED_STATES = [
+  ...TASK_TERMINAL_STATES,
+  "ready",
+] as const;
 export const TASK_RETURN_METHOD = ["drop_off_by_customer", "pickup"] as const;
 export const TASK_NOTE_TYPE = [
   "user_note",
@@ -336,6 +341,7 @@ export type ListTasksFullParams = {
   q?: string | null;
   task_types?: string;
   task_states?: string;
+  not_task_states?: string;
   task_step_states?: string;
   step_readiness_statuses?: string;
   priorities?: string;
@@ -486,7 +492,7 @@ export function toTaskViewModel(task: TaskListItemRaw["task"]): TaskViewModel {
     ready_by_formatted: readyByFormatted,
     scheduled_range_formatted: scheduledRangeFormatted,
     is_overdue: isOverdue,
-    is_open: !["cancelled", "failed", "resolved"].includes(task.state),
+    is_open: !(TASK_TERMINAL_STATES as readonly string[]).includes(task.state),
     has_customer: Boolean(task.customer_id),
     has_scheduled_dates: Boolean(task.scheduled_start_at),
   };
@@ -494,6 +500,7 @@ export function toTaskViewModel(task: TaskListItemRaw["task"]): TaskViewModel {
 
 export const UpdateTaskInputSchema = z.object({
   id: z.string(),
+  task_type: z.enum(TASK_TYPE).optional(),
   title: z.string().max(255).nullable().optional(),
   summary: z.string().max(1024).nullable().optional(),
   priority: z.enum(TASK_PRIORITY).optional(),
@@ -509,7 +516,7 @@ export const UpdateTaskInputSchema = z.object({
   secondary_phone_number: z.string().nullable().optional(),
   primary_email: z.string().email().nullable().optional().or(z.literal("")),
   secondary_email: z.string().email().nullable().optional().or(z.literal("")),
-  address: AddressSchema,
+  address: AddressSchema.optional(),
   additional_details: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type UpdateTaskInput = z.infer<typeof UpdateTaskInputSchema>;

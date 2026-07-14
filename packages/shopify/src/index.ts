@@ -23,6 +23,16 @@ export {
   ShopifyWebhookSubscriptionStatusSchema,
   ShopifyWebhookSubscriptionSummarySchema,
   ShopifyWebhooksStatusSchema,
+  ShopifyMetafieldValidationSchema,
+  ShopifyMetafieldDefinitionSchema,
+  ShopifyMetafieldPreferenceSchema,
+  ShopifyMetafieldPreferencesResponseSchema,
+  CreateShopifyMetafieldPreferenceInputSchema,
+  CreateShopifyMetafieldPreferencesRequestSchema,
+  DeleteShopifyMetafieldPreferencesRequestSchema,
+  UpdateShopifyMetafieldPreferenceSequenceOrderRequestSchema,
+  UpdateShopifyMetafieldPreferenceSequenceOrderResponseSchema,
+  ShopifyProductSyncMetafieldValueSchema,
 } from "./types";
 export type {
   CreateShopifyInstallUrlResult,
@@ -61,10 +71,29 @@ export type {
   ShopifyWebhookSubscriptionStatus,
   ShopifyWebhookSubscriptionSummary,
   ShopifyWebhooksStatus,
+  ShopifyMetafieldValidation,
+  ShopifyMetafieldDefinition,
+  ShopifyMetafieldPreference,
+  ShopifyMetafieldPreferencesResponse,
+  CreateShopifyMetafieldPreferencesRequest,
+  DeleteShopifyMetafieldPreferencesRequest,
+  UpdateShopifyMetafieldPreferenceSequenceOrderRequest,
+  UpdateShopifyMetafieldPreferenceSequenceOrderResponse,
+  ShopifyProductSyncMetafieldValue,
+  ShopifyMetafieldField,
+  GetShopifyMetafieldPreferencesParams,
 } from "./types";
-export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues } from "./types";
+export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode } from "./types";
 export { processShopifyProducts } from "./api/process-shopify-products";
 export { useProcessShopifyProducts } from "./actions/use-process-shopify-products";
+export { getShopifyMetafieldPreferences } from "./api/get-shopify-metafield-preferences";
+export { createShopifyMetafieldPreferences } from "./api/create-shopify-metafield-preferences";
+export { deleteShopifyMetafieldPreferences } from "./api/delete-shopify-metafield-preferences";
+export { updateShopifyMetafieldPreferenceSequenceOrder } from "./api/update-shopify-metafield-preference-sequence-order";
+export { useShopifyMetafieldPreferencesCategoryQuery, useShopifyMetafieldPreferencesSearchInfiniteQuery } from "./api/use-shopify-metafield-preferences-query";
+export { useCreateShopifyMetafieldPreference } from "./actions/use-create-shopify-metafield-preference";
+export { useDeleteShopifyMetafieldPreference } from "./actions/use-delete-shopify-metafield-preference";
+export { useReorderShopifyMetafieldPreference } from "./actions/use-reorder-shopify-metafield-preference";
 export { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID } from "./surface-ids";
 export type { ShopifyProductSyncSlideSurfaceProps, ShopifyShopPickerSheetSurfaceProps, ShopifyProductSyncSurfaceOpeners } from "./surface-ids";
 export { readLastSelectedShopIntegrationIds, writeLastSelectedShopIntegrationIds, SHOPIFY_PRODUCT_SYNC_LAST_SHOPS_STORAGE_KEY } from "./lib/shopify-product-sync-storage";

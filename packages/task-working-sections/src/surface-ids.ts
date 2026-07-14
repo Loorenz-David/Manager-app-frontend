@@ -1,3 +1,5 @@
+import type { TaskNoteComposerValue } from "@beyo/task-notes";
+
 export const TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID =
   "task-working-sections-slide";
 export const TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID =
@@ -41,6 +43,8 @@ export type TaskWorkingSectionsSurfaceProps = {
   recoveredPendingAdds?: RecoveredPendingAdd[];
   recoveredPendingRemoveIds?: string[];
   recoveredPendingReassignments?: RecoveredPendingReassignment[];
+  recoveredNoteClientId?: string;
+  recoveredNoteContent?: TaskNoteComposerValue | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
 };
 
@@ -51,6 +55,8 @@ export type TaskWorkingSectionsReassignSlideSurfaceProps = {
   recoveredPendingAdds?: RecoveredPendingAdd[];
   recoveredPendingRemoveIds?: string[];
   recoveredPendingReassignments?: RecoveredPendingReassignment[];
+  recoveredNoteClientId?: string;
+  recoveredNoteContent?: TaskNoteComposerValue | null;
 };
 
 export type QuickTaskAssignSurfaceOpeners = {

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { m } from 'framer-motion';
 import { transitions } from '@beyo/lib';
 import { SurfaceHeaderContext } from '../../providers/SurfaceProvider';
@@ -25,12 +25,13 @@ const panelVariants = {
 export function ModalSurface({
   onClose,
   zIndex,
-  isTopmost: _isTopmost,
+  isTopmost,
   children,
 }: Props): React.JSX.Element {
   const [title, setTitle] = useState('');
   const [actions, setActions] = useState<ReactNode>(null);
   const [headerHidden, setHeaderHidden] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -42,6 +43,15 @@ export function ModalSurface({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
+
+  // See SlidePageSurface for why this is needed: a covered surface underneath
+  // (e.g. a still-open Vaul sheet) can keep reclaiming DOM focus, so the new
+  // topmost surface must explicitly grab it back on mount.
+  useEffect(() => {
+    if (isTopmost) {
+      panelRef.current?.focus({ preventScroll: true });
+    }
+  }, [isTopmost]);
 
   return (
     <SurfaceHeaderContext.Provider
@@ -68,15 +78,17 @@ export function ModalSurface({
         />
         <div className="absolute inset-0 flex items-center justify-center p-4">
           <m.div
+            ref={panelRef}
             animate="visible"
             aria-labelledby="surface-modal-title"
             aria-modal="true"
-            className="relative flex w-full flex-col overflow-hidden rounded-3xl bg-background shadow-2xl transform-gpu [will-change:transform,opacity]"
+            className="relative flex w-full flex-col overflow-hidden rounded-3xl bg-background shadow-2xl transform-gpu [will-change:transform,opacity] focus:outline-none"
             exit="exit"
             initial="hidden"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             style={{ zIndex: zIndex + 1, maxWidth: "var(--manager-shell-max-width)" }}
+            tabIndex={-1}
             transition={transitions.surface}
             variants={panelVariants}
           >

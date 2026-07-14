@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 
 const SNAP_DURATION_MS = 400;
+const EDGE_REVEAL_DURATION_MS = 160;
 const CSS_VAR_PROGRESS = "--scroll-hide-progress";
 const CSS_VAR_PROGRESS_FOOTER = "--scroll-hide-progress-footer";
 const CSS_VAR_DURATION = "--scroll-snap-duration";
-
-// Fraction of remaining distance closed per animation frame (≈60fps baseline).
-// Caps the visual rate for fast touch drags while still tracking slow/pinch scroll closely.
-const LERP_FACTOR = 0.2;
-const CONVERGE_THRESHOLD = 0.004;
+const CSS_VAR_DURATION_FOOTER = "--scroll-snap-duration-footer";
+const VISUAL_SETTLED_EPSILON = 0.001;
 
 // Ease-out approximation used to estimate mid-snap visual position when a
 // new touchstart interrupts an in-progress snap CSS transition.
@@ -47,8 +45,7 @@ export function useScrollProgressCssVar({
   const animRafRef = useRef<number | null>(null);
   const isSnappingRef = useRef(false);
   const isTouchActiveRef = useRef(false);
-  // Tracks the progress value currently written to the CSS var (may lag behind
-  // progressRef during a fast touch drag — that lag is intentional smoothing).
+  // Tracks the progress value currently written to the CSS var.
   const visualProgressRef = useRef(0);
   const visualFooterProgressRef = useRef(0);
 
@@ -89,101 +86,109 @@ export function useScrollProgressCssVar({
     el.style.setProperty(CSS_VAR_DURATION, `${ms}ms`);
   }, []);
 
+  const setFooterDuration = useCallback((el: HTMLElement, ms: number) => {
+    el.style.setProperty(CSS_VAR_DURATION_FOOTER, `${ms}ms`);
+  }, []);
+
   const onProgress = useCallback(
     (_progress: number) => {
-      if (isSnappingRef.current) return;
       const el = containerRef.current;
       if (!el) return;
-      setDuration(el, 0);
 
-      // If a lerp frame is already scheduled it will pick up the latest
-      // progressRef.current on its next tick — no need to schedule another.
+      if (isSnappingRef.current) {
+        // Edge reveal can become active while native momentum is still moving
+        // and the release snap is suppressing directional state updates. Let
+        // that authoritative footer value retarget an in-flight hide.
+        if (
+          footerProgressRef?.current === 0 &&
+          footerSnapTargetRef.current !== 0
+        ) {
+          footerSnapTargetRef.current = 0;
+          setFooterDuration(el, EDGE_REVEAL_DURATION_MS);
+          setFooterVar(el, 0);
+        }
+        return;
+      }
+
+      // Coalesce all scroll events received before the next paint. The frame
+      // performs all DOM writes together and reads the latest progress value,
+      // so visual progress stays aligned with the native scroll instead of
+      // recursively chasing it after scrolling.
       if (animRafRef.current !== null) return;
 
-      // Named function so it can recursively schedule itself until convergence.
-      function frame() {
+      animRafRef.current = requestAnimationFrame(() => {
         animRafRef.current = null;
         if (isSnappingRef.current) return;
 
-        const target = progressRef.current;
-        const current = visualProgressRef.current;
-        const diff = target - current;
+        const next = progressRef.current;
         const footerTarget = footerProgressRef?.current;
-        const footerCurrent = visualFooterProgressRef.current;
-        const footerDiff =
-          footerTarget === undefined ? 0 : footerTarget - footerCurrent;
-
-        let next: number;
-        let footerNext = footerCurrent;
-        if (Math.abs(diff) < CONVERGE_THRESHOLD) {
-          next = target; // close enough — snap to avoid infinite loop
-        } else {
-          next = current + diff * LERP_FACTOR;
-        }
-
-        if (footerTarget !== undefined) {
-          if (Math.abs(footerDiff) < CONVERGE_THRESHOLD) {
-            footerNext = footerTarget;
-          } else {
-            footerNext = footerCurrent + footerDiff * LERP_FACTOR;
-          }
-        }
-
-        const coreSettled = Math.abs(diff) < CONVERGE_THRESHOLD;
-        const footerSettled =
-          footerTarget === undefined ||
-          Math.abs(footerDiff) < CONVERGE_THRESHOLD;
-        if (!coreSettled || !footerSettled) {
-          animRafRef.current = requestAnimationFrame(frame); // keep chasing target
-        }
 
         visualProgressRef.current = next;
-        visualFooterProgressRef.current = footerNext;
+        if (footerTarget !== undefined) {
+          visualFooterProgressRef.current = footerTarget;
+        }
         const e = containerRef.current;
         if (e && !isSnappingRef.current) {
+          setDuration(e, 0);
           setVar(e, next);
           if (footerTarget !== undefined) {
-            setFooterVar(e, footerNext);
+            setFooterDuration(e, 0);
+            setFooterVar(e, footerTarget);
           }
         }
-      }
-
-      animRafRef.current = requestAnimationFrame(frame);
+      });
     },
     [
       containerRef,
       footerProgressRef,
       progressRef,
       setDuration,
+      setFooterDuration,
       setFooterVar,
       setVar,
     ],
   );
 
   const triggerSnap = useCallback(() => {
-    if (isSnappingRef.current) return;
+    // touchend bubbles from the scroll element to document, where a fallback
+    // listener is also registered. Only the first release for a gesture may
+    // finalize or snap progress; a second call can otherwise reverse direction
+    // after onSnapComplete resets the scroll state machine.
+    if (isSnappingRef.current || !isTouchActiveRef.current) return;
 
     isTouchActiveRef.current = false;
-
-    const progress = progressRef.current;
-    const footerProgress = footerProgressRef?.current;
-    const coreSettled = progress <= 0 || progress >= 1;
-    const footerSettled =
-      footerProgress === undefined ||
-      footerProgress <= 0 ||
-      footerProgress >= 1;
-    if (coreSettled && footerSettled) return;
-
-    // Stop the lerp loop so it doesn't fight the CSS transition during snap.
-    if (animRafRef.current !== null) {
-      cancelAnimationFrame(animRafRef.current);
-      animRafRef.current = null;
-    }
 
     const snapTo: 0 | 1 = getSnapDirection();
     const footerSnapTo: 0 | 1 | undefined = footerProgressRef
       ? (getFooterSnapDirection ?? getSnapDirection)()
       : undefined;
+
+    // Stop the pending progress write so it doesn't fight the CSS transition.
+    if (animRafRef.current !== null) {
+      cancelAnimationFrame(animRafRef.current);
+      animRafRef.current = null;
+    }
+
+    // A fast swipe can move logical progress to an endpoint before its pending
+    // animation frame is painted. Decide from the last value actually written
+    // to the visual container, otherwise touchend skips the transition and the
+    // pending frame makes the header jump straight to 0 or 1.
+    const coreVisuallySettled =
+      Math.abs(visualProgressRef.current - snapTo) <= VISUAL_SETTLED_EPSILON;
+    const footerVisuallySettled =
+      footerSnapTo === undefined ||
+      Math.abs(visualFooterProgressRef.current - footerSnapTo) <=
+        VISUAL_SETTLED_EPSILON;
+
+    if (coreVisuallySettled && footerVisuallySettled) {
+      visualProgressRef.current = snapTo;
+      if (footerSnapTo !== undefined) {
+        visualFooterProgressRef.current = footerSnapTo;
+      }
+      onSnapComplete(snapTo, footerSnapTo);
+      return;
+    }
+
     isSnappingRef.current = true;
     suspend(SNAP_DURATION_MS + 60);
 
@@ -206,24 +211,34 @@ export function useScrollProgressCssVar({
     }
 
     setDuration(el, SNAP_DURATION_MS);
+    if (footerSnapTo !== undefined) {
+      setFooterDuration(el, SNAP_DURATION_MS);
+    }
 
     snapRafRef.current = requestAnimationFrame(() => {
       setVar(el, snapTo);
       if (footerSnapTo !== undefined) {
-        setFooterVar(el, footerSnapTo);
+        setFooterVar(el, footerSnapTargetRef.current);
       }
       snapRafRef.current = null;
 
       snapTimeoutRef.current = window.setTimeout(() => {
+        const resolvedFooterSnapTo =
+          footerSnapTo === undefined
+            ? undefined
+            : footerSnapTargetRef.current;
         visualProgressRef.current = snapTo;
-        if (footerSnapTo !== undefined) {
-          visualFooterProgressRef.current = footerSnapTo;
+        if (resolvedFooterSnapTo !== undefined) {
+          visualFooterProgressRef.current = resolvedFooterSnapTo;
         }
-        onSnapComplete(snapTo, footerSnapTo);
+        onSnapComplete(snapTo, resolvedFooterSnapTo);
         isSnappingRef.current = false;
 
         if (containerRef.current) {
           setDuration(containerRef.current, 0);
+          if (resolvedFooterSnapTo !== undefined) {
+            setFooterDuration(containerRef.current, 0);
+          }
         }
 
         snapTimeoutRef.current = null;
@@ -231,12 +246,13 @@ export function useScrollProgressCssVar({
     });
   }, [
     containerRef,
-    progressRef,
+    footerProgressRef,
     getSnapDirection,
     getFooterSnapDirection,
     onSnapComplete,
     suspend,
     setDuration,
+    setFooterDuration,
     setFooterVar,
     setVar,
   ]);
@@ -270,8 +286,7 @@ export function useScrollProgressCssVar({
         (footerSnapTargetRef.current - footerSnapStartProgressRef.current) *
           easeOut(t);
     } else {
-      // No snap in progress — use the current visual position (lerp may lag
-      // slightly behind progressRef; visual position is what the user sees).
+      // No snap in progress — use the current visual position.
       resumeProgress = visualProgressRef.current;
       resumeFooterProgress = visualFooterProgressRef.current;
     }
@@ -279,8 +294,8 @@ export function useScrollProgressCssVar({
     isSnappingRef.current = false;
     isTouchActiveRef.current = true;
 
-    // Align both refs to the estimated visual position so the lerp loop and
-    // scroll state machine both resume from where the animation actually is.
+    // Align both refs to the estimated visual position so the next progress
+    // write and scroll state machine resume from where the animation actually is.
     visualProgressRef.current = resumeProgress;
     progressRef.current = resumeProgress;
     visualFooterProgressRef.current = resumeFooterProgress;
@@ -297,6 +312,7 @@ export function useScrollProgressCssVar({
       setDuration(el, 0);
       setVar(el, resumeProgress);
       if (footerProgressRef) {
+        setFooterDuration(el, 0);
         setFooterVar(el, resumeFooterProgress);
       }
     }
@@ -305,6 +321,7 @@ export function useScrollProgressCssVar({
     footerProgressRef,
     progressRef,
     setDuration,
+    setFooterDuration,
     setFooterVar,
     setVar,
     suspend,

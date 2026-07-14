@@ -283,15 +283,177 @@ export type ShopifyWebhookHistoryResponse = z.infer<
   typeof ShopifyWebhookHistoryResponseSchema
 >;
 
+export const ShopifyMetafieldValidationSchema = z.object({
+  name: z.string(),
+  value: z.string(),
+});
+export type ShopifyMetafieldValidation = z.infer<
+  typeof ShopifyMetafieldValidationSchema
+>;
+
+export const ShopifyMetafieldDefinitionSchema = z.object({
+  shopify_metafield_definition_id: z.string(),
+  name: z.string(),
+  namespace: z.string(),
+  key: z.string(),
+  description: z.string().nullable(),
+  type: z.string(),
+  validations: z.array(ShopifyMetafieldValidationSchema),
+});
+export type ShopifyMetafieldDefinition = z.infer<
+  typeof ShopifyMetafieldDefinitionSchema
+>;
+
+export const ShopifyMetafieldPreferenceSchema =
+  ShopifyMetafieldDefinitionSchema.extend({
+    client_id: z.string(),
+    item_category_id: z.string(),
+    shop_integration_id: z.string(),
+    sequence_order: z.number().int().nonnegative(),
+    is_enabled: z.boolean(),
+    created_at: z.string(),
+    updated_at: z.string().nullable(),
+    created_by: ShopifyUserReferenceSchema.nullable(),
+  });
+export type ShopifyMetafieldPreference = z.infer<
+  typeof ShopifyMetafieldPreferenceSchema
+>;
+
+export const ShopifyMetafieldItemCategorySchema = z.object({
+  item_category_id: z.string(),
+  metafield_preferences: z.array(ShopifyMetafieldPreferenceSchema),
+});
+
+export const ShopifyMetafieldSearchPaginationSchema = z.object({
+  offset: z.number().int().nonnegative(),
+  limit: z.number().int().positive(),
+  has_more: z.boolean(),
+  next_offset: z.number().int().nonnegative().nullable(),
+});
+export type ShopifyMetafieldSearchPagination = z.infer<
+  typeof ShopifyMetafieldSearchPaginationSchema
+>;
+
+export const ShopifyMetafieldPreferencesShopSchema = z.object({
+  shop_integration_id: z.string(),
+  shop_domain: z.string(),
+  item_categories: z.array(ShopifyMetafieldItemCategorySchema),
+  unavailable_definition_ids: z.array(z.string()),
+  search_results: z.array(ShopifyMetafieldDefinitionSchema),
+  search_pagination: ShopifyMetafieldSearchPaginationSchema,
+});
+
+export const ShopifyMetafieldPreferencesResponseSchema = z.object({
+  shops: z.array(ShopifyMetafieldPreferencesShopSchema),
+});
+export type ShopifyMetafieldPreferencesResponse = z.infer<
+  typeof ShopifyMetafieldPreferencesResponseSchema
+>;
+
+export const CreateShopifyMetafieldPreferenceInputSchema = z.object({
+  client_id: z.string().optional(),
+  shop_integration_id: z.string().min(1),
+  shopify_metafield_definition_id: z.string().min(1),
+  sequence_order: z.number().int().nonnegative(),
+});
+export const CreateShopifyMetafieldPreferencesRequestSchema = z.object({
+  item_category_id: z.string().min(1),
+  preferences: z.array(CreateShopifyMetafieldPreferenceInputSchema).min(1),
+});
+export type CreateShopifyMetafieldPreferencesRequest = z.infer<
+  typeof CreateShopifyMetafieldPreferencesRequestSchema
+>;
+
+export const DeleteShopifyMetafieldPreferencesRequestSchema = z.object({
+  client_ids: z.array(z.string().min(1)).min(1),
+});
+export type DeleteShopifyMetafieldPreferencesRequest = z.infer<
+  typeof DeleteShopifyMetafieldPreferencesRequestSchema
+>;
+
+export const UpdateShopifyMetafieldPreferenceSequenceOrderRequestSchema =
+  z.object({
+    sequence_order: z.number().int().nonnegative(),
+  });
+export type UpdateShopifyMetafieldPreferenceSequenceOrderRequest = z.infer<
+  typeof UpdateShopifyMetafieldPreferenceSequenceOrderRequestSchema
+>;
+
+export const UpdateShopifyMetafieldPreferenceSequenceOrderResponseSchema =
+  z.object({
+    client_id: z.string(),
+    sequence_order: z.number().int().nonnegative(),
+  });
+export type UpdateShopifyMetafieldPreferenceSequenceOrderResponse = z.infer<
+  typeof UpdateShopifyMetafieldPreferenceSequenceOrderResponseSchema
+>;
+
+export const ShopifyProductSyncMetafieldValueSchema = z.object({
+  shopIntegrationId: z.string().min(1),
+  shopifyMetafieldDefinitionId: z.string().min(1),
+  namespace: z.string().min(1),
+  key: z.string().min(1),
+  type: z.string(),
+  value: z.string(),
+});
+export type ShopifyProductSyncMetafieldValue = z.infer<
+  typeof ShopifyProductSyncMetafieldValueSchema
+>;
+
+export type ShopifyMetafieldFieldSource =
+  | "saved_preference"
+  | "search_result";
+
+export type ShopifyMetafieldField = {
+  identity: string;
+  shopIntegrationId: string;
+  shopDisplayName: string;
+  shopifyMetafieldDefinitionId: string;
+  name: string;
+  namespace: string;
+  key: string;
+  description: string | null;
+  type: string;
+  validations: ShopifyMetafieldValidation[];
+  source: ShopifyMetafieldFieldSource;
+  sequenceOrder: number;
+  preferenceClientId: string | null;
+  createdBy: ShopifyUserReference | null;
+};
+
+export type GetShopifyMetafieldPreferencesParams = {
+  shopIntegrationIds: string[];
+  itemCategoryIds?: string[];
+  q?: string;
+  searchOffset?: number;
+  onlyMyPreferences?: boolean;
+};
+
+export const ShopifyDimensionMetafieldWireValueSchema = z.object({
+  value: z.number(),
+  unit: z.literal("CENTIMETERS"),
+});
+export const ShopifyProductSyncMetafieldWireValueSchema = z.object({
+  type: z.string(),
+  value: z.union([
+    z.string(),
+    z.array(z.string()),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    ShopifyDimensionMetafieldWireValueSchema,
+  ]),
+});
 export const ShopifyProductSyncMetafieldsSchema = z.record(
   z.string(),
-  z.union([z.string(), z.number(), z.boolean(), z.null()]),
+  ShopifyProductSyncMetafieldWireValueSchema,
 );
 export const ProcessShopifyProductItemRequestSchema = z.object({
   client_id: z.string(),
   target_shop_integration_ids: z.array(z.string()).optional(),
   title: z.string(),
   description: z.string().optional(),
+  product_category: z.string().optional(),
   sku: z.string().optional(),
   item_article_number: z.string().optional(),
   metafields: ShopifyProductSyncMetafieldsSchema.optional(),
@@ -307,8 +469,9 @@ export const ShopifyProductSyncFailedResultSchema = z.object({ frontend_client_i
 export type ShopifyProductSyncFailedResult = z.infer<typeof ShopifyProductSyncFailedResultSchema>;
 export const ShopifyProductsSyncedEventSchema = z.object({ task_id: z.string(), succeeded: z.array(ShopifyProductSyncSucceededResultSchema), failed: z.array(ShopifyProductSyncFailedResultSchema) });
 export type ShopifyProductsSyncedEvent = z.infer<typeof ShopifyProductsSyncedEventSchema>;
-export const ShopifyProductSyncFormSchema = z.object({ shopIntegrationIds: z.array(z.string()), sku: z.string().optional(), heightCm: z.number().nullable().optional(), widthCm: z.number().nullable().optional(), depthCm: z.number().nullable().optional(), title: z.string().optional(), description: z.string().optional() });
+export const ShopifyProductSyncFormSchema = z.object({ shopIntegrationIds: z.array(z.string()), sku: z.string().optional(), metafields: z.array(ShopifyProductSyncMetafieldValueSchema), title: z.string().optional(), description: z.string().optional() });
 export type ShopifyProductSyncFormValues = z.infer<typeof ShopifyProductSyncFormSchema>;
+export type ShopifyProductSyncFormMode = "submit" | "keep";
 
 export type ShopifyOAuthResultParams = {
   success: boolean;

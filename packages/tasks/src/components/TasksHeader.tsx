@@ -53,7 +53,7 @@ export function TasksHeader({
       data-testid="tasks-header"
     >
       <div
-        className="px-4 pb-2 pt-3"
+        className="px-4 pb-2 pt-3 will-change-[opacity]"
         style={{ ...HIDE_STYLE, pointerEvents: isHidden ? "none" : undefined }}
       >
         <BoxSlidePicker
@@ -80,7 +80,7 @@ export function TasksHeader({
       </div>
 
       <div
-        className="absolute inset-x-0 bg-background"
+        className="absolute inset-x-0 bg-background [will-change:transform,opacity]"
         style={{
           top: "100%",
           ...SLIDE_HIDE_STYLE,

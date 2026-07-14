@@ -31,6 +31,19 @@ An implementation is not complete until both layers pass. See `34_runtime_valida
 | MSW v2 (Mock Service Worker) | Intercepts HTTP requests at the network level |
 | @testing-library/jest-dom | DOM-specific matchers (`toBeVisible`, `toHaveValue`, etc.) |
 
+## Package-level Vitest configurations
+
+A shared package may own a `vitest.config.ts` and package-local test files when its source is not
+reachable by an application's test-config include glob. The package config should use the
+workspace-resolved test tooling and does not require `devDependencies` in the package's own
+`package.json`; packages keep their no-build-step, no-dev-dependency boundary. Add a discoverable
+root or package-scoped npm script alongside the config, such as `npm run test:ui`, so contributors
+do not need to know the underlying Vitest invocation.
+
+The `@beyo/ui` config is the canonical example. Its suite also runs the pre-existing
+`packages/ui/src/components/primitives/scroll-visibility/use-scroll-state.test.ts` file; those
+four tests are part of the package suite and must remain passing.
+
 ---
 
 ## Test layers

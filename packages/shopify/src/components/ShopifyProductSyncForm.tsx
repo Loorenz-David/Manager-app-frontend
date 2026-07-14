@@ -1,4 +1,5 @@
-import { FormProvider, useForm } from "react-hook-form";
+import { useEffect, useRef } from "react";
+import { FormProvider, useController, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useStagedForm } from "@beyo/hooks";
 import {
@@ -10,7 +11,6 @@ import {
 import { useProcessShopifyProducts } from "../actions/use-process-shopify-products";
 import { ShopifyProductSyncStagedFormHeader } from "./ShopifyProductSyncStagedFormHeader";
 import { ShopifyProductSyncDescriptionField } from "./fields/ShopifyProductSyncDescriptionField";
-import { ShopifyProductSyncDimensionField } from "./fields/ShopifyProductSyncDimensionField";
 import { ShopifyProductSyncShopField } from "./fields/ShopifyProductSyncShopField";
 import { ShopifyProductSyncSkuField } from "./fields/ShopifyProductSyncSkuField";
 import { ShopifyProductSyncTitleField } from "./fields/ShopifyProductSyncTitleField";
@@ -18,12 +18,14 @@ import {
   isFormFilled,
   resolveShopifyProductSyncSubmit,
 } from "../lib/resolve-shopify-product-sync-submit";
+import { notify } from "@beyo/lib";
 import { useShopifyProductSyncFormContext } from "../providers/ShopifyProductSyncFormProvider";
 import {
   ShopifyProductSyncFormSchema,
   type ShopifyProductSyncFormValues,
 } from "../types";
-import { SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS } from "../lib/shopify-product-sync-dimensions";
+import { ShopifyMetafieldPickerForm } from "./metafields/ShopifyMetafieldPickerForm";
+import { useShopifyProductSyncDraft } from "../hooks/use-shopify-product-sync-draft";
 
 export function ShopifyProductSyncForm(): React.JSX.Element {
   const ctx = useShopifyProductSyncFormContext();
@@ -33,14 +35,18 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
     defaultValues: {
       shopIntegrationIds: [],
       sku: ctx.itemSku ?? "",
-      heightCm: null,
-      widthCm: null,
-      depthCm: null,
+      metafields: [],
       title: ctx.defaultTitle ?? "",
       description: "",
     },
   });
   const mutation = useProcessShopifyProducts();
+  const draft = useShopifyProductSyncDraft(ctx.taskClientId);
+  const hasRestoredRef = useRef(false);
+  const metafieldsField = useController({
+    control: form.control,
+    name: "metafields",
+  }).field;
   const values = form.watch();
   async function handleSubmit(
     next: ShopifyProductSyncFormValues,
@@ -49,6 +55,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
       values: next,
       itemClientId: ctx.itemClientId,
       itemArticleNumber: ctx.itemArticleNumber,
+      productCategory: ctx.productCategory,
     });
     if (result.kind === "skip") {
       ctx.onSkipped?.();
@@ -61,6 +68,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
     }
     try {
       await mutation.mutateAsync(result.payload);
+      await draft.discard();
       ctx.onCompleted?.();
     } catch (error) {
       form.setError("root", {
@@ -72,13 +80,39 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
       });
     }
   }
+  async function handleKeep(): Promise<void> {
+    try {
+      await draft.save(form.getValues());
+      notify.success("Kept", "Shopify product form kept for later.");
+      ctx.onKept?.();
+    } catch {
+      form.setError("root", {
+        type: "server",
+        message: "Could not keep this form. Please try again.",
+      });
+    }
+  }
+  useEffect(() => {
+    if (hasRestoredRef.current || draft.isRestoring || !draft.restoredValues) {
+      return;
+    }
+    if (form.formState.isDirty) {
+      hasRestoredRef.current = true;
+      return;
+    }
+    hasRestoredRef.current = true;
+    form.reset({ ...form.getValues(), ...draft.restoredValues });
+    notify.info("Restored", "Saved Shopify product form restored.");
+  }, [draft.isRestoring, draft.restoredValues, form]);
   const staged = useStagedForm({
     steps: [
       { id: "target", title: "Target" },
+      { id: "metafields", title: "Metafields" },
       { id: "content", title: "Content" },
     ],
     mode: "free",
-    onSubmit: () => form.handleSubmit(handleSubmit)(),
+    onSubmit: () =>
+      ctx.mode === "keep" ? handleKeep() : form.handleSubmit(handleSubmit)(),
   });
   return (
     <FormProvider {...form}>
@@ -91,14 +125,20 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
         onNavigate={staged.navigateTo}
         isFirstStep={staged.isFirstStep}
         isLastStep={staged.isLastStep}
-        isAdvancing={mutation.isPending}
+        isAdvancing={ctx.mode === "keep" ? draft.isSaving : mutation.isPending}
         navigationMode="free"
         header={
           <ShopifyProductSyncStagedFormHeader title="Shopify Product Sync" />
         }
         footer={
           <StagedFormNavigation
-            submitLabel={isFormFilled(values) ? "Sync" : "Skip"}
+            submitLabel={
+              ctx.mode === "keep"
+                ? "Keep"
+                : isFormFilled(values)
+                  ? "Sync"
+                  : "Skip"
+            }
             onClose={() => ctx.onSkipped?.()}
           />
         }
@@ -110,17 +150,17 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
               <ShopifyProductSyncShopField />
               <ShopifyProductSyncSkuField />
             </ContentCard>
-            <ContentCard gapClassName="gap-3">
-              {SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS.map(
-                ({ name, label, inputTestId }) => (
-                  <ShopifyProductSyncDimensionField
-                    key={name}
-                    name={name}
-                    label={label}
-                    inputTestId={inputTestId}
-                  />
-                ),
-              )}
+          </div>
+        </StagedFormStep>
+        <StagedFormStep id="metafields" className="px-0">
+          <div className="flex flex-col gap-4">
+            <ContentCard gapClassName="gap-3 ">
+              <ShopifyMetafieldPickerForm
+                shopIntegrationIds={values.shopIntegrationIds}
+                itemCategoryId={ctx.itemCategoryId}
+                value={metafieldsField.value}
+                onChange={metafieldsField.onChange}
+              />
             </ContentCard>
           </div>
         </StagedFormStep>

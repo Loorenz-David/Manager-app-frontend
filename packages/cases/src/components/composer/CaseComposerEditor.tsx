@@ -310,6 +310,7 @@ export function CaseComposerEditor({
             data-testid={CASE_RICH_TEXT_TEST_IDS.editor}
             onBlur={onBlur}
             onMouseDown={markNextFocusAsUserInitiated}
+            onPointerDown={markNextFocusAsUserInitiated}
             onFocus={(event) => {
               if (
                 suppressFocusOnMountRef.current &&

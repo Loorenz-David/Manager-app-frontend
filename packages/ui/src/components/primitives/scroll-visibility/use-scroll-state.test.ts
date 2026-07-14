@@ -191,4 +191,37 @@ describe("useScrollState", () => {
     expect(result.current.footerProgressRef.current).toBe(1);
     expect(result.current.isAtEdge).toBe(false);
   });
+
+  it("applies the footer edge override while directional updates are suppressed", () => {
+    const { result } = renderHook(() =>
+      useScrollState(
+        buildOptions({
+          revealAtEdge: "bottom",
+          edgeOffset: 20,
+        }),
+      ),
+    );
+
+    act(() => {
+      result.current.initialize(0);
+      result.current.suspend(0);
+      result.current.onScroll(1, {
+        distanceFromStart: 1,
+        distanceFromEnd: 100,
+      });
+      result.current.onScroll(41, {
+        distanceFromStart: 41,
+        distanceFromEnd: 60,
+      });
+      result.current.suspend(500);
+      result.current.onScroll(100, {
+        distanceFromStart: 100,
+        distanceFromEnd: 10,
+      });
+    });
+
+    expect(result.current.isHidden).toBe(true);
+    expect(result.current.isAtEdge).toBe(true);
+    expect(result.current.footerProgressRef.current).toBe(0);
+  });
 });

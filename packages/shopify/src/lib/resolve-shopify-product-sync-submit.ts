@@ -3,9 +3,9 @@ import type {
   ShopifyProductSyncFormValues,
 } from "../types";
 import {
-  hasPositiveShopifyProductSyncDimension,
-  SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS,
-} from "./shopify-product-sync-dimensions";
+  isSubmittableMetafieldEntry,
+  toShopifyMetafieldWireValue,
+} from "./shopify-metafield-value";
 
 export type ResolveShopifyProductSyncSubmitResult =
   | { kind: "skip" }
@@ -19,8 +19,8 @@ export type ResolveShopifyProductSyncSubmitResult =
 export function isFormFilled(values: ShopifyProductSyncFormValues): boolean {
   return Boolean(
     values.sku?.trim() ||
-      SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS.some(({ name }) =>
-        hasPositiveShopifyProductSyncDimension(values[name]),
+      values.metafields.some(
+        isSubmittableMetafieldEntry,
       ) ||
       values.title?.trim() ||
       values.description?.trim(),
@@ -31,10 +31,12 @@ export function resolveShopifyProductSyncSubmit({
   values,
   itemClientId,
   itemArticleNumber,
+  productCategory,
 }: {
   values: ShopifyProductSyncFormValues;
   itemClientId: string;
   itemArticleNumber: string | null;
+  productCategory?: string | null;
 }): ResolveShopifyProductSyncSubmitResult {
   if (!isFormFilled(values)) return { kind: "skip" };
 
@@ -67,30 +69,44 @@ export function resolveShopifyProductSyncSubmit({
     };
   }
 
-  const metafields: Record<string, number> = {};
-
-  for (const { name, metafieldKey } of SHOPIFY_PRODUCT_SYNC_DIMENSION_FIELDS) {
-    const value = values[name];
-
-    if (hasPositiveShopifyProductSyncDimension(value)) {
-      metafields[metafieldKey] = value;
-    }
-  }
+  const baseItem = {
+    client_id: itemClientId,
+    title,
+    description: values.description?.trim() || undefined,
+    product_category: productCategory?.trim() || undefined,
+    sku: values.sku?.trim() || undefined,
+    item_article_number: itemArticleNumber ?? undefined,
+  };
+  const hasMetafields = values.metafields.length > 0;
+  const items = hasMetafields
+    ? values.shopIntegrationIds.map((shopIntegrationId) => {
+        const metafields = Object.fromEntries(
+          values.metafields
+            .filter(
+              (entry) =>
+                entry.shopIntegrationId === shopIntegrationId &&
+                isSubmittableMetafieldEntry(entry),
+            )
+            .map((entry) => [entry.key, toShopifyMetafieldWireValue(entry)]),
+        );
+        return {
+          ...baseItem,
+          target_shop_integration_ids: [shopIntegrationId],
+          metafields: Object.keys(metafields).length ? metafields : undefined,
+        };
+      })
+    : [
+        {
+          ...baseItem,
+          target_shop_integration_ids: values.shopIntegrationIds,
+          metafields: undefined,
+        },
+      ];
 
   return {
     kind: "submit",
     payload: {
-      items: [
-        {
-          client_id: itemClientId,
-          target_shop_integration_ids: values.shopIntegrationIds,
-          title,
-          description: values.description?.trim() || undefined,
-          sku: values.sku?.trim() || undefined,
-          item_article_number: itemArticleNumber ?? undefined,
-          metafields: Object.keys(metafields).length ? metafields : undefined,
-        },
-      ],
+      items,
     },
   };
 }

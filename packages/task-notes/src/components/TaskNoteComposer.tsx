@@ -78,7 +78,10 @@ export function TaskNoteComposer({
   const [shakePreviewTick, setShakePreviewTick] = useState(0);
   const composerRootRef = useRef<HTMLDivElement | null>(null);
   const [floatingHeight, setFloatingHeight] = useState<number | null>(null);
+  const [floatStyle, setFloatStyle] = useState<React.CSSProperties | null>(null);
   const shouldFloat = isEditorFocused && isKeyboardOpen;
+  const shouldFloatRef = useRef(shouldFloat);
+  shouldFloatRef.current = shouldFloat;
 
   const handleToolbarActionsReady = useCallback(
     (nextActions: CaseComposerEditorToolbarActions | null) => {
@@ -121,6 +124,13 @@ export function TaskNoteComposer({
     }
 
     const measure = () => {
+      // Only capture the inline height. While floating, the root becomes a
+      // full-screen fixed panel, so measuring it would reserve the whole screen
+      // as a spacer instead of the composer's resting height.
+      if (shouldFloatRef.current) {
+        return;
+      }
+
       setFloatingHeight(root.getBoundingClientRect().height);
     };
 
@@ -134,6 +144,90 @@ export function TaskNoteComposer({
 
     return () => observer.disconnect();
   }, []);
+
+  useLayoutEffect(() => {
+    if (!shouldFloat) {
+      setFloatStyle(null);
+      return;
+    }
+
+    const root = composerRootRef.current;
+    if (!root) {
+      return;
+    }
+
+    // `position: fixed` normally resolves against the viewport, but an ancestor
+    // with transform / filter / perspective / will-change / contain establishes
+    // a new containing block. The bottom-sheet wrapper uses `will-change:
+    // transform`, so a plain `fixed inset-0` panel collapses onto the sheet's
+    // box instead of taking over the screen. We locate that containing block and
+    // compensate for its offset so the panel covers the real viewport region
+    // above the keyboard on both the slide and sheet surfaces.
+    const findFixedContainingBlock = (): HTMLElement | null => {
+      let node = root.parentElement;
+      while (
+        node &&
+        node !== document.body &&
+        node !== document.documentElement
+      ) {
+        const style = getComputedStyle(node);
+        const establishesContainingBlock =
+          style.transform !== "none" ||
+          style.filter !== "none" ||
+          style.perspective !== "none" ||
+          /transform|filter|perspective/.test(style.willChange) ||
+          /paint|layout|strict|content/.test(style.contain);
+
+        if (establishesContainingBlock) {
+          return node;
+        }
+
+        node = node.parentElement;
+      }
+
+      return null;
+    };
+
+    const compute = (): void => {
+      const keyboardInset =
+        Number.parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue(
+            "--keyboard-inset",
+          ),
+        ) || 0;
+      const keyboardTop = window.innerHeight - keyboardInset;
+      const origin = findFixedContainingBlock()?.getBoundingClientRect();
+
+      // Anchor to the containing block's BOTTOM, not its top: the sheet is
+      // bottom-pinned above the keyboard, so its bottom edge stays put even as
+      // it reflows when the panel leaves the flow, whereas its top edge shifts.
+      // `bottom` + `height` places the panel from the viewport top down to the
+      // keyboard, correctly on both the slide (viewport) and sheet surfaces.
+      const originBottom = origin?.bottom ?? window.innerHeight;
+      const originLeft = origin?.left ?? 0;
+
+      setFloatStyle({
+        position: "fixed",
+        bottom: originBottom - keyboardTop,
+        height: keyboardTop,
+        left: -originLeft,
+        width: window.innerWidth,
+      });
+    };
+
+    compute();
+
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", compute);
+    viewport?.addEventListener("scroll", compute);
+    window.addEventListener("resize", compute);
+
+    return () => {
+      viewport?.removeEventListener("resize", compute);
+      viewport?.removeEventListener("scroll", compute);
+      window.removeEventListener("resize", compute);
+    };
+  }, [shouldFloat]);
 
   const toolbarButtonActions = {
     big: () => {
@@ -175,34 +269,29 @@ export function TaskNoteComposer({
         ref={composerRootRef}
         className={cn(
           shouldFloat
-            ? "fixed inset-x-0 bottom-[var(--keyboard-inset)] z-[9999] border-t border-border bg-card px-4 pb-[calc(var(--safe-bottom)_+_0.5rem)] pt-3 shadow-xl"
+            ? "z-[9999] flex flex-col overflow-hidden overscroll-contain bg-card px-4 pb-3 pt-[max(var(--safe-top),1.75rem)]"
             : null,
         )}
+        style={shouldFloat ? (floatStyle ?? undefined) : undefined}
       >
-        {isEditorFocused ? (
+        <div
+          className={cn(
+            "rounded-2xl border border-border bg-card px-2 py-2 shadow-sm",
+            shouldFloat && "flex h-[250px] flex-col",
+          )}
+        >
           <div
-            className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-sm"
-            onMouseDown={(e) => e.preventDefault()}
+            className={cn(
+              "flex items-end gap-2",
+              shouldFloat && "min-h-0 flex-1",
+            )}
           >
-            <CaseComposerToolbar
-              actions={toolbarButtonActions}
-              disabled={disabled || toolbarActions === null}
-              expandedColorToken={getCaseComposerColorToken(
-                toolbarState.activeColor,
+            <div
+              className={cn(
+                "relative min-w-0 flex-1 rounded-[1.35rem] bg-card",
+                shouldFloat && "min-h-0 self-stretch",
               )}
-              expandedTool={expandedTool}
-              onCollapseExpandedTool={handleExpandedToolCollapse}
-              onSelectExpandedColor={handleExpandedColorSelect}
-              pulsePreviewTick={pulsePreviewTick}
-              shakePreviewTick={shakePreviewTick}
-              state={toolbarState}
-            />
-          </div>
-        ) : null}
-
-        <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-sm">
-          <div className="flex items-end gap-2">
-            <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
+            >
               <Suspense
                 fallback={
                   <div className="min-h-16 px-3 py-2 text-base text-muted-foreground">
@@ -211,7 +300,10 @@ export function TaskNoteComposer({
                 }
               >
                 <LazyCaseComposerEditor
-                  className="min-h-16"
+                  className={cn(
+                    "min-h-16",
+                    shouldFloat && "h-full max-h-none overscroll-y-contain",
+                  )}
                   content={
                     (initialContent ??
                       EMPTY_CONTENT) as unknown as CaseMessageContent
@@ -271,6 +363,27 @@ export function TaskNoteComposer({
             )}
           </div>
         </div>
+
+        {isEditorFocused ? (
+          <div
+            className="mt-2 rounded-[1.9rem]  px-2 py-1 "
+            onMouseDown={(e) => e.preventDefault()}
+          >
+            <CaseComposerToolbar
+              actions={toolbarButtonActions}
+              disabled={disabled || toolbarActions === null}
+              expandedColorToken={getCaseComposerColorToken(
+                toolbarState.activeColor,
+              )}
+              expandedTool={expandedTool}
+              onCollapseExpandedTool={handleExpandedToolCollapse}
+              onSelectExpandedColor={handleExpandedColorSelect}
+              pulsePreviewTick={pulsePreviewTick}
+              shakePreviewTick={shakePreviewTick}
+              state={toolbarState}
+            />
+          </div>
+        ) : null}
       </div>
     </div>
   );

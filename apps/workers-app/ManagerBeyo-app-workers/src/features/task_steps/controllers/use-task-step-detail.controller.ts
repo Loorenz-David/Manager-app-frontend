@@ -404,7 +404,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     } satisfies CompleteTaskStepConfirmationSlideSurfaceProps);
     if (allowsShopifyProductModifications && step?.item) {
       const surfaceOpeners: ShopifyProductSyncSurfaceOpeners = { openShopPicker: (props) => openSurface(SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, props) };
-      openSurface(SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, { itemClientId: step.item.client_id, itemArticleNumber: step.item.article_number ?? null, itemSku: step.item.sku ?? null, surfaceOpeners, onCompleted: openTimeConfirmation, onSkipped: openTimeConfirmation });
+      openSurface(SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, { itemClientId: step.item.client_id, itemArticleNumber: step.item.article_number ?? null, itemSku: step.item.sku ?? null, itemCategoryId: step.item.item_category_id ?? null, productCategory: itemCategory?.name ?? null, taskClientId: resolvedTaskId, surfaceOpeners, onCompleted: openTimeConfirmation, onSkipped: openTimeConfirmation });
       return;
     }
     openTimeConfirmation();
@@ -418,6 +418,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     triggerCelebration,
     allowsShopifyProductModifications,
     step,
+    itemCategory,
   ]);
 
   const handleCancelCompletion = useCallback(() => {
@@ -579,8 +580,18 @@ export function useTaskStepDetailController(): TaskStepDetailController {
       stepId: resolvedStepId,
       taskId: resolvedTaskId,
       itemId: step?.item?.client_id ?? null,
+      itemArticleNumber: step?.item?.article_number ?? null,
+      itemSku: step?.item?.sku ?? null,
+      itemCategoryId: step?.item?.item_category_id ?? null,
+      allowsShopifyProductModifications,
     } as TaskStepActionsSheetSurfaceProps);
-  }, [openSurface, resolvedStepId, resolvedTaskId, step?.item?.client_id]);
+  }, [
+    allowsShopifyProductModifications,
+    openSurface,
+    resolvedStepId,
+    resolvedTaskId,
+    step?.item,
+  ]);
 
   const issuesSurfaceOpeners = useMemo<ItemIssueSurfaceOpeners>(() => {
     const itemId = step?.item?.client_id;

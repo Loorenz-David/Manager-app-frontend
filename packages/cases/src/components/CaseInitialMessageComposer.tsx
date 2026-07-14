@@ -1,4 +1,15 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+
+import { cn } from "@beyo/lib";
+import { useKeyboardInset } from "@beyo/ui";
 
 import {
   getCaseComposerColorToken,
@@ -41,6 +52,7 @@ export function CaseInitialMessageComposer({
   placeholder = "Add a description…",
 }: CaseInitialMessageComposerProps): React.JSX.Element {
   const { composerContent, setComposerContent } = useCaseCreationFormContext();
+  const { isKeyboardOpen } = useKeyboardInset();
 
   const [isEditorFocused, setIsEditorFocused] = useState(false);
   const [toolbarActions, setToolbarActions] =
@@ -51,6 +63,9 @@ export function CaseInitialMessageComposer({
     useState<CaseComposerExpandedTool | null>(null);
   const [pulsePreviewTick, setPulsePreviewTick] = useState(0);
   const [shakePreviewTick, setShakePreviewTick] = useState(0);
+  const composerRootRef = useRef<HTMLDivElement | null>(null);
+  const [floatingHeight, setFloatingHeight] = useState<number | null>(null);
+  const shouldFloat = isEditorFocused && isKeyboardOpen;
 
   const handleToolbarActionsReady = useCallback(
     (nextActions: CaseComposerEditorToolbarActions | null) => {
@@ -87,6 +102,28 @@ export function CaseInitialMessageComposer({
 
   const handleDone = useCallback(() => {
     blurActiveComposerElement();
+  }, []);
+
+  useLayoutEffect(() => {
+    const root = composerRootRef.current;
+
+    if (!root) {
+      return;
+    }
+
+    const measure = () => {
+      setFloatingHeight(root.getBoundingClientRect().height);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => {
+      measure();
+    });
+
+    observer.observe(root);
+
+    return () => observer.disconnect();
   }, []);
 
   // On mobile, scrolling dismisses the keyboard but never fires a blur event
@@ -160,61 +197,75 @@ export function CaseInitialMessageComposer({
   >;
 
   return (
-    <div className={className} data-testid="case-initial-message-composer">
-      {isEditorFocused ? (
-        <div className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-          <CaseComposerToolbar
-            actions={toolbarButtonActions}
-            disabled={toolbarActions === null}
-            expandedColorToken={getCaseComposerColorToken(
-              toolbarState.activeColor,
-            )}
-            expandedTool={expandedTool}
-            onCollapseExpandedTool={handleExpandedToolCollapse}
-            onSelectExpandedColor={handleExpandedColorSelect}
-            pulsePreviewTick={pulsePreviewTick}
-            shakePreviewTick={shakePreviewTick}
-            state={toolbarState}
-          />
-        </div>
-      ) : null}
-
-      <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
-        <div className="flex items-end gap-2">
-          <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
-            <Suspense
-              fallback={
-                <div className="min-h-24 px-3 py-2 text-base text-muted-foreground">
-                  Loading composer...
-                </div>
-              }
-            >
-              <LazyCaseComposerEditor
-                className="min-h-24"
-                content={composerContent}
-                onBlur={handleEditorBlur}
-                onChange={({ content, plainText }) => {
-                  setComposerContent(content, plainText);
-                }}
-                onFocus={handleEditorFocus}
-                onToolbarActionsReady={handleToolbarActionsReady}
-                onToolbarStateChange={setToolbarState}
-                placeholder={placeholder}
-              />
-            </Suspense>
+    <div
+      data-testid="case-initial-message-composer"
+      style={
+        shouldFloat && floatingHeight ? { height: floatingHeight } : undefined
+      }
+    >
+      <div
+        ref={composerRootRef}
+        className={cn(
+          shouldFloat
+            ? "fixed inset-x-0 bottom-[calc(var(--keyboard-inset)_+_1rem)] z-[9999] border-t border-border bg-card px-4 pb-[calc(var(--safe-bottom)_+_0.5rem)] pt-3 shadow-xl"
+            : className,
+        )}
+      >
+        {isEditorFocused ? (
+          <div className="mb-2 rounded-[1.9rem] border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+            <CaseComposerToolbar
+              actions={toolbarButtonActions}
+              disabled={toolbarActions === null}
+              expandedColorToken={getCaseComposerColorToken(
+                toolbarState.activeColor,
+              )}
+              expandedTool={expandedTool}
+              onCollapseExpandedTool={handleExpandedToolCollapse}
+              onSelectExpandedColor={handleExpandedColorSelect}
+              pulsePreviewTick={pulsePreviewTick}
+              shakePreviewTick={shakePreviewTick}
+              state={toolbarState}
+            />
           </div>
+        ) : null}
 
-          {isEditorFocused ? (
-            <button
-              className="mr-0.5 self-end rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted"
-              data-testid="case-initial-message-composer-done"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={handleDone}
-              type="button"
-            >
-              Done
-            </button>
-          ) : null}
+        <div className="rounded-2xl border border-border bg-card px-2 py-2 shadow-[0_10px_24px_rgba(0,0,0,0.08)]">
+          <div className="flex items-end gap-2">
+            <div className="relative min-w-0 flex-1 rounded-[1.35rem] bg-card">
+              <Suspense
+                fallback={
+                  <div className="min-h-24 px-3 py-2 text-base text-muted-foreground">
+                    Loading composer...
+                  </div>
+                }
+              >
+                <LazyCaseComposerEditor
+                  className="min-h-24"
+                  content={composerContent}
+                  onBlur={handleEditorBlur}
+                  onChange={({ content, plainText }) => {
+                    setComposerContent(content, plainText);
+                  }}
+                  onFocus={handleEditorFocus}
+                  onToolbarActionsReady={handleToolbarActionsReady}
+                  onToolbarStateChange={setToolbarState}
+                  placeholder={placeholder}
+                />
+              </Suspense>
+            </div>
+
+            {isEditorFocused ? (
+              <button
+                className="mr-0.5 self-end rounded-full border border-border/70 bg-card px-3 py-2 text-xs font-semibold text-foreground transition-colors duration-150 hover:bg-muted"
+                data-testid="case-initial-message-composer-done"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handleDone}
+                type="button"
+              >
+                Done
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

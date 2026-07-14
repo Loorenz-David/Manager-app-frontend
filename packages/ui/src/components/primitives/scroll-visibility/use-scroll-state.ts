@@ -111,6 +111,44 @@ export function useScrollState({
   const edgeOffsetRef = useRef(edgeOffset);
   edgeOffsetRef.current = edgeOffset;
 
+  const applyEdgeOverride = useCallback(
+    (value: number, edgeMeta?: ScrollEdgeMeta): boolean => {
+      const currentRevealAtEdge = revealAtEdgeRef.current;
+      if (!currentRevealAtEdge || !edgeMeta) {
+        return false;
+      }
+
+      const distanceToEdge =
+        currentRevealAtEdge === "top"
+          ? edgeMeta.distanceFromStart
+          : edgeMeta.distanceFromEnd;
+
+      if (distanceToEdge <= (edgeOffsetRef.current ?? 0)) {
+        if (!isAtEdgeRef.current) {
+          isAtEdgeRef.current = true;
+          setIsAtEdge(true);
+        }
+        footerProgressRef.current = 0;
+        footerProgressAtAnchorRef.current = 0;
+        footerDirectionAnchorRef.current = value;
+        footerMovingForwardRef.current = false;
+        return true;
+      }
+
+      if (isAtEdgeRef.current) {
+        isAtEdgeRef.current = false;
+        setIsAtEdge(false);
+        footerDirectionAnchorRef.current = value;
+        footerMovingForwardRef.current = false;
+        footerProgressRef.current = 0;
+        footerProgressAtAnchorRef.current = 0;
+      }
+
+      return false;
+    },
+    [],
+  );
+
   const applyHidden = useCallback((hidden: boolean) => {
     if (hiddenTargetRef.current === hidden) {
       return;
@@ -133,6 +171,10 @@ export function useScrollState({
   const onScroll = useCallback(
     (value: number, edgeMeta?: ScrollEdgeMeta) => {
       if (performance.now() < suppressedUntilRef.current) {
+        // Directional updates are suppressed while a release snap runs, but a
+        // physical edge is authoritative. Native momentum can reach the edge
+        // entirely inside this window and may emit no later scroll event.
+        applyEdgeOverride(value, edgeMeta);
         return;
       }
 
@@ -195,33 +237,8 @@ export function useScrollState({
         progressAtAnchorRef.current = 0;
       }
 
-      const currentRevealAtEdge = revealAtEdgeRef.current;
-      if (currentRevealAtEdge && edgeMeta) {
-        const distanceToEdge =
-          currentRevealAtEdge === "top"
-            ? edgeMeta.distanceFromStart
-            : edgeMeta.distanceFromEnd;
-
-        if (distanceToEdge <= (edgeOffsetRef.current ?? 0)) {
-          if (!isAtEdgeRef.current) {
-            isAtEdgeRef.current = true;
-            setIsAtEdge(true);
-          }
-          footerProgressRef.current = 0;
-          footerProgressAtAnchorRef.current = 0;
-          footerDirectionAnchorRef.current = value;
-          footerMovingForwardRef.current = false;
-          return;
-        }
-
-        if (isAtEdgeRef.current) {
-          isAtEdgeRef.current = false;
-          setIsAtEdge(false);
-          footerDirectionAnchorRef.current = value;
-          footerMovingForwardRef.current = false;
-          footerProgressRef.current = 0;
-          footerProgressAtAnchorRef.current = 0;
-        }
+      if (applyEdgeOverride(value, edgeMeta)) {
+        return;
       }
 
       stepRelativeChannel(
@@ -239,6 +256,7 @@ export function useScrollState({
     },
     [
       applyHidden,
+      applyEdgeOverride,
       threshold,
       topOffset,
       hideThreshold,
@@ -302,8 +320,6 @@ export function useScrollState({
       lastScrollValueRef.current = currentScrollValue;
       directionAnchorRef.current = currentScrollValue;
       movingForwardRef.current = false;
-      isAtEdgeRef.current = false;
-      setIsAtEdge(false);
       if (footerSnapTo !== undefined) {
         footerProgressRef.current = footerSnapTo;
         footerProgressAtAnchorRef.current = footerSnapTo;

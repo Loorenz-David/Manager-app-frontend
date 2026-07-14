@@ -34,6 +34,8 @@ Opt-in: KeyboardAccessoryBar / StagedForm keyboard accessory for multi-field nav
 | Padding the main app shell clear of the keyboard | each app's `TabOutlet` |
 | Close-time focus safety (no keyboard flash on close) | `BottomSheetSurface` (`@beyo/ui`) |
 | An input pinned above the keyboard | `FloatingKeyboardBar` (`@beyo/ui`) — opt-in |
+| Full-height input/content takeover while the keyboard is open | `FloatingKeyboardBar variant="panel"` (`@beyo/ui`) — opt-in |
+| Document scroll lock during a raw keyboard panel takeover | `FloatingKeyboardBar` (`@beyo/ui`) — panel variant only |
 | Default `--keyboard-inset: 0px` | `@beyo/styles` |
 
 ---
@@ -125,6 +127,52 @@ The only dependency is that `KeyboardInsetProvider` is mounted at the app root �
 
 **Canonical reference implementation:** `apps/managers-app/.../pages/tasks/ItemUpholsteryAmountSheetPage.tsx`.
 
+#### `variant="panel"`: an input plus full-height takeover
+
+Use the panel variant when the focused input and its narrowed content should take over the
+viewport above the software keyboard. `FloatingKeyboardBar` keeps the inline copy in the
+document, mirrors the controls into a raw portal, transfers focus to the floating input, and
+returns to the inline copy when the input blurs. The callback receives `isFloating` so a
+composed primitive can use the same controls in both presentations. `isInlineHidden` is true for
+the hidden inline panel copy; overlay content such as a listbox must not render from that copy.
+`panelProgress` is the shared Framer Motion value used by composed controls that need to sequence
+their own content fade with the panel choreography.
+
+```tsx
+<SearchableSelectInput
+  options={customerOptions}
+  value={customer}
+  onValueChange={setCustomer}
+  placeholder="Search customers"
+/>
+```
+
+`SearchableSelectInput` is the canonical consumer of `FloatingKeyboardBar
+variant="panel"`; direct render-prop consumers can also use the callback's `isFloating` and
+`panelProgress` fields when their content needs the same presentation state.
+
+The panel copy mounts asynchronously after keyboard state opens. `FloatingKeyboardBar` therefore
+performs a second layout-effect focus handoff after the panel portal commits; the initial handoff
+remains for the synchronous `variant="bar"` copy. Do not hide the inline copy or assume focus has
+transferred until this panel-mounted handoff has completed.
+
+The panel is fixed from the safe-area-adjusted top of the viewport to
+`bottom: var(--keyboard-inset)`. Opening and closing are driven by one `progress` motion
+value: `transitions.surface` opens slowly with the emphasized easing and `transitions.base`
+closes faster. The panel background fades across that same value, composed content fades in over
+the final part of the range, and a `clip-path` inset uses the measured input travel distance as
+the wipe boundary. The `clip-path` is a deliberate exception to the transform/opacity
+preference because opacity cannot express the required moving visibility boundary. With reduced
+motion, the spatial transform and wipe are removed and the panel cross-fades in place.
+
+The panel variant also locks document scrolling for its mounted duration. It uses a custom
+`position: fixed` body lock that snapshots the existing inline body styles and scroll position,
+then restores both on close. This is separate from Vaul because the panel is a raw portal rather
+than a `Drawer.Root`; the option list remains the independent scroll container.
+
+**Canonical reference implementation:**
+`packages/ui/src/components/primitives/input/SearchableSelectInput.tsx`.
+
 ### Case D — multi-field navigation inside a form region
 
 Use `KeyboardAccessoryBar` when the goal is to keep the real inputs in place and add a shared
@@ -160,7 +208,6 @@ Rules for `KeyboardAccessoryBar`:
 `StagedForm` exposes `enableKeyboardAccessory?: boolean` for the common staged-form case. When
 enabled, `StagedForm` wraps its active-step `AnimatePresence` content in `KeyboardAccessoryBar`, so
 navigation stays inside the currently mounted step without each feature manually wrapping step
-content.
 
 ```tsx
 <StagedForm enableKeyboardAccessory {...props}>
@@ -175,6 +222,7 @@ The prop defaults to `false`. Forms without it behave exactly as before.
 | Need | Primitive |
 |---|---|
 | One focused input with custom inline/floating controls | `FloatingKeyboardBar` |
+| One focused input with a full-height content takeover above the keyboard | `FloatingKeyboardBar variant="panel"` |
 | Multiple in-flow text fields with `Clear` and `Next`/`Done` navigation | `KeyboardAccessoryBar` |
 | Staged form where the active step should get multi-field keyboard navigation | `StagedForm enableKeyboardAccessory` |
 

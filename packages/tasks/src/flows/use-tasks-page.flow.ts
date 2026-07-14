@@ -8,7 +8,7 @@ import {
 import { useListTasksQuery } from "../api/use-list-tasks-query";
 import { useTasksPageStore } from "../store/tasks-page.store";
 import type { TaskCardViewModel, TaskListItemRaw } from "../types";
-import { toTaskViewModel } from "../types";
+import { TASK_DEFAULT_LIST_EXCLUDED_STATES, toTaskViewModel } from "../types";
 
 export type TasksPageFlow = {
   cards: TaskCardViewModel[];
@@ -103,6 +103,9 @@ export function useTasksPageFlow(): TasksPageFlow {
       ...(taskType !== "all" ? { task_types: taskType } : {}),
       ...(taskStates.length > 0 ? { task_states: taskStates.join(",") } : {}),
       ...(debouncedQ ? { q: debouncedQ } : {}),
+      ...(taskStates.length === 0 && !debouncedQ
+        ? { not_task_states: TASK_DEFAULT_LIST_EXCLUDED_STATES.join(",") }
+        : {}),
     }),
     [debouncedQ, taskStates, taskType],
   );

@@ -1,6 +1,12 @@
 import { useEffect, useMemo } from "react";
-import { Pin, RotateCcw } from "lucide-react";
+import { Pin, RotateCcw, ShoppingBag } from "lucide-react";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import {
+  SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID,
+  SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID,
+  type ShopifyProductSyncSurfaceOpeners,
+  type ShopifyProductSyncSlideSurfaceProps,
+} from "@beyo/shopify";
 import {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_REASSIGN_SLIDE_SURFACE_ID,
@@ -17,8 +23,23 @@ import {
 export function TaskStepActionsSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
-  const { stepId, taskId, itemId } =
+  const {
+    stepId,
+    taskId,
+    itemId,
+    itemArticleNumber,
+    itemSku,
+    itemCategoryId,
+    allowsShopifyProductModifications,
+  } =
     useSurfaceProps<TaskStepActionsSheetSurfaceProps>();
+  const shopifySurfaceOpeners = useMemo<ShopifyProductSyncSurfaceOpeners>(
+    () => ({
+      openShopPicker: (props) =>
+        surface.open(SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, props),
+    }),
+    [surface],
+  );
   const workingSectionSurfaceOpeners =
     useMemo<TaskWorkingSectionsSurfaceOpeners>(
       () => ({
@@ -48,6 +69,21 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
     header?.setTitle("Actions");
     header?.setActions(null);
   }, [header]);
+
+  function handleOpenShopifySync(): void {
+    if (!taskId || !itemId) return;
+    surface.open(SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, {
+      itemClientId: itemId,
+      itemArticleNumber: itemArticleNumber ?? null,
+      itemSku: itemSku ?? null,
+      itemCategoryId: itemCategoryId ?? null,
+      productCategory: null,
+      defaultTitle: null,
+      taskClientId: taskId,
+      mode: "keep",
+      surfaceOpeners: shopifySurfaceOpeners,
+    } satisfies ShopifyProductSyncSlideSurfaceProps);
+  }
 
   return (
     <div
@@ -95,6 +131,18 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
         <Pin className="size-4" />
         Pin notifications
       </button>
+
+      {allowsShopifyProductModifications && itemId ? (
+        <button
+          type="button"
+          className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-semibold text-foreground"
+          data-testid="task-step-actions-fill-shopify-sync"
+          onClick={handleOpenShopifySync}
+        >
+          <ShoppingBag className="size-4" />
+          Fill shopify sync
+        </button>
+      ) : null}
     </div>
   );
 }

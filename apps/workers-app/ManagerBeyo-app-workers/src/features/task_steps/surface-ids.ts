@@ -35,6 +35,10 @@ export type TaskStepActionsSheetSurfaceProps = {
   stepId: TaskStepId;
   taskId: TaskId;
   itemId?: string | null;
+  itemArticleNumber?: string | null;
+  itemSku?: string | null;
+  itemCategoryId?: string | null;
+  allowsShopifyProductModifications: boolean;
 };
 
 export type TaskCasesSlideSurfaceProps = {

@@ -25,12 +25,14 @@ import {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
+  TASK_TYPE_SHEET_SURFACE_ID,
   loadItemQuantitySheetPage,
   loadItemUpholsteryAmountSheetPage,
   loadPinNotificationsSlidePage,
   loadPinTaskStepStatesSheetPage,
   loadTaskDetailMenuSheetPage,
   loadTaskEditSlidePage,
+  loadTaskTypeSheetPage,
   loadTaskFilterSheetPage,
   loadTaskFlowRecordDetailSheetPage,
   loadTaskDetailSlidePage,
@@ -106,6 +108,7 @@ const taskFlowRecordDetailSheet = lazyWithPreload(
   loadTaskFlowRecordDetailSheetPage,
 );
 const taskEditSlide = lazyWithPreload(loadTaskEditSlidePage);
+const taskTypeSheet = lazyWithPreload(loadTaskTypeSheetPage);
 const taskWorkingSectionsSlide = lazyWithPreload(
   loadTaskWorkingSectionsSlidePage,
 );
@@ -159,6 +162,7 @@ export {
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
+  TASK_TYPE_SHEET_SURFACE_ID,
 } from "@beyo/tasks";
 export {
   EMAIL_MESSAGE_DETAILS_SHEET_SURFACE_ID,
@@ -190,6 +194,7 @@ export type {
   TaskPostHandlingSlideSurfaceProps,
   TaskReadyByAtSheetSurfaceProps,
   TaskScheduledDeliverySheetSurfaceProps,
+  TaskTypeSheetSurfaceProps,
 } from "@beyo/tasks";
 export type {
   EmailMessageDetailsSheetSurfaceProps,
@@ -276,6 +281,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [TASK_EDIT_SLIDE_SURFACE_ID]: {
     surface: "slide",
     component: taskEditSlide.Component,
+  },
+  [TASK_TYPE_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskTypeSheet.Component,
   },
   [TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID]: {
     surface: "slide",

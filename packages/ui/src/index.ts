@@ -41,6 +41,10 @@ export * from "./components/primitives/input";
 export * from "./components/primitives/keyboard-accessory-bar";
 export * from "./components/primitives/number-input";
 export * from "./components/primitives/nav-tab-badge";
+export type {
+  SearchableSelectOption,
+  SearchableSelectResult,
+} from "./components/primitives/option-list";
 export * from "./components/primitives/phone-input";
 export * from "./components/primitives/pull-to-refresh";
 export * from "./components/primitives/scroll-visibility";

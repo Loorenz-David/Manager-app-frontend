@@ -1,6 +1,13 @@
 import { useCallback, useMemo, useState } from "react";
 
+import { selectUser, useAuthStore } from "@beyo/auth";
 import { generateClientId } from "@beyo/lib";
+import {
+  hasMeaningfulNoteContent,
+  toTaskNoteContentBlocks,
+  useCreateTaskNote,
+  type TaskNoteComposerValue,
+} from "@beyo/task-notes";
 import {
   useWorkingSectionPickerFlow,
   type WorkingSectionMember,
@@ -32,6 +39,8 @@ type ControllerInit = {
   initialPendingAdds?: RecoveredPendingAdd[];
   initialPendingRemoveIds?: string[];
   initialPendingReassignments?: RecoveredPendingReassignment[];
+  initialNoteClientId?: string;
+  initialNoteContent?: TaskNoteComposerValue | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
 };
 
@@ -169,6 +178,8 @@ export function useTaskWorkingSectionsController(
   const workingSectionFlow = useWorkingSectionPickerFlow();
   const addTaskStep = useAddTaskStep(taskId);
   const removeTaskStep = useRemoveTaskStep(taskId);
+  const createTaskNote = useCreateTaskNote();
+  const user = useAuthStore(selectUser);
   const [pendingAdds, setPendingAdds] = useState<RecoveredPendingAdd[]>(
     () => clonePendingAdds(init.initialPendingAdds ?? []),
   );
@@ -178,6 +189,12 @@ export function useTaskWorkingSectionsController(
   const [pendingReassignments, setPendingReassignments] = useState<
     RecoveredPendingReassignment[]
   >(() => clonePendingReassignments(init.initialPendingReassignments ?? []));
+  const [noteClientId, setNoteClientId] = useState(
+    () => init.initialNoteClientId ?? generateClientId("TaskNote"),
+  );
+  const [noteDraft, setNoteDraft] = useState<TaskNoteComposerValue | null>(
+    () => init.initialNoteContent ?? null,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const majorCategory = taskQuery.data?.item?.item_major_category_snapshot;
@@ -198,7 +215,8 @@ export function useTaskWorkingSectionsController(
   const hasUnsavedChanges =
     pendingAdds.length > 0 ||
     pendingRemoveIds.length > 0 ||
-    pendingReassignments.length > 0;
+    pendingReassignments.length > 0 ||
+    hasMeaningfulNoteContent(noteDraft);
 
   const closeSlide = useCallback(() => {
     surfaceOpeners?.closeSlide?.();
@@ -214,9 +232,19 @@ export function useTaskWorkingSectionsController(
       recoveredPendingAdds: clonePendingAdds(pendingAdds),
       recoveredPendingRemoveIds: [...pendingRemoveIds],
       recoveredPendingReassignments: clonePendingReassignments(pendingReassignments),
+      recoveredNoteClientId: noteClientId,
+      recoveredNoteContent: noteDraft,
       surfaceOpeners,
     }),
-    [pendingAdds, pendingRemoveIds, pendingReassignments, surfaceOpeners, taskId],
+    [
+      noteClientId,
+      noteDraft,
+      pendingAdds,
+      pendingRemoveIds,
+      pendingReassignments,
+      surfaceOpeners,
+      taskId,
+    ],
   );
 
   const stageStepStart = useCallback(
@@ -339,6 +367,29 @@ export function useTaskWorkingSectionsController(
     [handleRemoveStep, sectionEntries, stageStepStart],
   );
 
+  const persistPendingSectionChanges = useCallback(
+    async (recoverySnapshot: TaskWorkingSectionsSurfaceProps) => {
+      const pendingRemoveIds = recoverySnapshot.recoveredPendingRemoveIds ?? [];
+
+      if (pendingRemoveIds.length > 0) {
+        await removeTaskStep.mutateAsync({ step_ids: pendingRemoveIds });
+      }
+
+      for (const pendingAdd of recoverySnapshot.recoveredPendingAdds ?? []) {
+        const variables: AddTaskStepVariables = {
+          working_section_id: pendingAdd.working_section_id,
+          worker_id: pendingAdd.worker_id ?? undefined,
+          working_section_name_snapshot:
+            pendingAdd.working_section_name_snapshot,
+          assigned_worker_display_name_snapshot:
+            pendingAdd.assigned_worker_display_name_snapshot,
+        };
+        await addTaskStep.mutateAsync(variables);
+      }
+    },
+    [addTaskStep, removeTaskStep],
+  );
+
   const handleSaveAndClose = useCallback(async () => {
     if (isSaving) {
       return;
@@ -357,25 +408,29 @@ export function useTaskWorkingSectionsController(
     closeSlide();
 
     try {
-      const pendingRemoveIds = recoverySnapshot.recoveredPendingRemoveIds ?? [];
+      const currentUserClientId = String(user?.id ?? "");
+      const currentNoteDraft = noteDraft;
+      const notePayload = currentNoteDraft && hasMeaningfulNoteContent(currentNoteDraft)
+        ? {
+            client_id: recoverySnapshot.recoveredNoteClientId ?? noteClientId,
+            note_type: "user_note" as const,
+            content: toTaskNoteContentBlocks(currentNoteDraft.content),
+            plain_text: currentNoteDraft.plainText,
+            users_read_list: currentUserClientId ? [currentUserClientId] : [],
+          }
+        : null;
 
-      if (pendingRemoveIds.length > 0) {
-        await removeTaskStep.mutateAsync({ step_ids: pendingRemoveIds });
-      }
-
-      for (const pendingAdd of recoverySnapshot.recoveredPendingAdds ?? []) {
-        const variables: AddTaskStepVariables = {
-          working_section_id: pendingAdd.working_section_id,
-          worker_id: pendingAdd.worker_id ?? undefined,
-          working_section_name_snapshot:
-            pendingAdd.working_section_name_snapshot,
-          assigned_worker_display_name_snapshot:
-            pendingAdd.assigned_worker_display_name_snapshot,
-        };
-        await addTaskStep.mutateAsync(variables);
-      }
+      await Promise.all([
+        persistPendingSectionChanges(recoverySnapshot),
+        notePayload
+          ? createTaskNote.mutateAsync({ taskId, notes: [notePayload] })
+          : Promise.resolve(null),
+      ]);
 
       void queryClient.invalidateQueries({ queryKey: quickTaskKeys.all });
+
+      setNoteDraft(null);
+      setNoteClientId(generateClientId("TaskNote"));
 
       // Worker reassignment is intentionally disabled.
       surfaceOpeners?.onSaveComplete?.(
@@ -388,15 +443,19 @@ export function useTaskWorkingSectionsController(
       setIsSaving(false);
     }
   }, [
-    addTaskStep,
     buildRecoverySnapshot,
     closeDiscardSheet,
     closeSlide,
+    createTaskNote,
     hasUnsavedChanges,
     isSaving,
+    noteClientId,
+    noteDraft,
+    persistPendingSectionChanges,
     queryClient,
-    removeTaskStep,
     surfaceOpeners,
+    taskId,
+    user?.id,
   ]);
 
   const handleCloseWithGuard = useCallback(() => {
@@ -428,6 +487,9 @@ export function useTaskWorkingSectionsController(
     pendingAdds,
     pendingRemoveIds,
     pendingReassignments,
+    noteClientId,
+    noteDraft,
+    handleNoteChange: setNoteDraft,
     hasUnsavedChanges,
     isPending: taskQuery.isPending || taskStepsQuery.isPending,
     isError: taskQuery.isError || taskStepsQuery.isError,

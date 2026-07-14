@@ -45,4 +45,33 @@ describe("shopifyKeys", () => {
       shopifyKeys.webhookHistoryInfinite("shop_123"),
     );
   });
+
+  it("normalizes category and search metafield preference keys", () => {
+    expect(
+      shopifyKeys.metafieldPreferencesCategory({
+        shopIntegrationIds: ["shop_b", "shop_a"],
+        itemCategoryIds: ["cat_b", "cat_a"],
+      }),
+    ).toEqual([
+      "shopify",
+      "metafield-preferences",
+      "category",
+      {
+        shopIntegrationIds: ["shop_a", "shop_b"],
+        itemCategoryIds: ["cat_a", "cat_b"],
+        onlyMyPreferences: false,
+      },
+    ]);
+    expect(
+      shopifyKeys.metafieldPreferencesSearch({
+        shopIntegrationIds: ["shop_b", "shop_a"],
+        q: "  Height  ",
+      }),
+    ).toEqual([
+      "shopify",
+      "metafield-preferences",
+      "search",
+      { shopIntegrationIds: ["shop_a", "shop_b"], q: "height" },
+    ]);
+  });
 });

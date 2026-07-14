@@ -226,30 +226,36 @@ function SurfaceRenderer(): React.JSX.Element {
         const isTopmost = entry.id === topOverlay?.id;
 
         return (
-          <Shell
-            key={entry.id}
-            isTopmost={isTopmost}
-            onClose={() => close(entry.id)}
-            onStartClose={() => {
-              setClosingSurfaceIds((current) => {
-                if (current.has(entry.id)) {
-                  return current;
-                }
+          // Covered (non-topmost) overlays stay mounted so their close/exit
+          // animation and stack-return state are preserved, but they must not
+          // hold or reclaim DOM focus while covered — otherwise a still-open
+          // Vaul drawer underneath keeps re-focusing its own last-focused
+          // element and blocks focus from ever reaching the surface on top.
+          <div key={entry.id} inert={!isTopmost || undefined}>
+            <Shell
+              isTopmost={isTopmost}
+              onClose={() => close(entry.id)}
+              onStartClose={() => {
+                setClosingSurfaceIds((current) => {
+                  if (current.has(entry.id)) {
+                    return current;
+                  }
 
-                const next = new Set(current);
-                next.add(entry.id);
-                return next;
-              });
-            }}
-            showBackdrop={entry.surface === "sheet" ? false : undefined}
-            zIndex={50 + index * 10}
-          >
-            <SurfacePropsContext.Provider value={entry.props}>
-              <Suspense fallback={<SurfaceSkeleton surface={entry.surface} />}>
-                <Component />
-              </Suspense>
-            </SurfacePropsContext.Provider>
-          </Shell>
+                  const next = new Set(current);
+                  next.add(entry.id);
+                  return next;
+                });
+              }}
+              showBackdrop={entry.surface === "sheet" ? false : undefined}
+              zIndex={50 + index * 10}
+            >
+              <SurfacePropsContext.Provider value={entry.props}>
+                <Suspense fallback={<SurfaceSkeleton surface={entry.surface} />}>
+                  <Component />
+                </Suspense>
+              </SurfacePropsContext.Provider>
+            </Shell>
+          </div>
         );
       })}
     </AnimatePresence>,

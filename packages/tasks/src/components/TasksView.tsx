@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { PullToRefresh, useScrollHide } from "@beyo/ui";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
@@ -7,15 +9,54 @@ import { TasksHeader } from "./TasksHeader";
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
   const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const taskCards = useMemo(
+    () =>
+      controller.cards.map((card) => (
+        <TaskListCard
+          key={card.taskId}
+          imageUrl={
+            card.firstImage
+              ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
+              : null
+          }
+          item={
+            card.item
+              ? {
+                  itemId: card.item.client_id,
+                  article_number: card.item.article_number,
+                  sku: card.item.sku,
+                  item_major_category_snapshot:
+                    card.item.item_major_category_snapshot,
+                  quantity: card.item.quantity,
+                }
+              : null
+          }
+          taskId={card.taskId}
+          task={{
+            task_type: card.task.task_type,
+            state: card.task.state,
+            return_source: card.task.return_source,
+            ready_by_at: card.task.ready_by_at,
+            is_overdue: card.task.is_overdue,
+          }}
+          onTapActions={controller.openTaskActions}
+          onTapCard={controller.openTaskDetail}
+          onTapImage={controller.openImageViewer}
+        />
+      )),
+    [
+      controller.cards,
+      controller.openImageViewer,
+      controller.openTaskActions,
+      controller.openTaskDetail,
+    ],
+  );
 
   return (
-    <div
-      ref={hideProgressContainerRef}
-      className="relative flex-1 min-h-0"
-      data-testid="tasks-view"
-    >
+    <div className="relative flex-1 min-h-0" data-testid="tasks-view">
       <div
-        className="absolute inset-x-0 top-0 z-10"
+        ref={hideProgressContainerRef}
+        className="absolute inset-x-0 top-0 z-10 will-change-transform"
         style={{
           transform:
             "translateY(calc(-1 * var(--type-picker-height, 56px) * var(--scroll-hide-progress, 0)))",
@@ -49,39 +90,7 @@ export function TasksView(): React.JSX.Element {
             className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2"
             data-testid="tasks-list"
           >
-            {controller.cards.map((card) => (
-              <TaskListCard
-                key={card.taskId}
-                imageUrl={
-                  card.firstImage
-                    ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
-                    : null
-                }
-                item={
-                  card.item
-                    ? {
-                        itemId: card.item.client_id,
-                        article_number: card.item.article_number,
-                        sku: card.item.sku,
-                        item_major_category_snapshot:
-                          card.item.item_major_category_snapshot,
-                        quantity: card.item.quantity,
-                      }
-                    : null
-                }
-                taskId={card.taskId}
-                task={{
-                  task_type: card.task.task_type,
-                  state: card.task.state,
-                  return_source: card.task.return_source,
-                  ready_by_at: card.task.ready_by_at,
-                  is_overdue: card.task.is_overdue,
-                }}
-                onTapActions={controller.openTaskActions}
-                onTapCard={controller.openTaskDetail}
-                onTapImage={controller.openImageViewer}
-              />
-            ))}
+            {taskCards}
 
             {controller.isLoading && controller.cards.length === 0 ? (
               <div className="flex flex-col gap-3">

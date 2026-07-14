@@ -3,145 +3,222 @@ import {
   isFormFilled,
   resolveShopifyProductSyncSubmit,
 } from "./resolve-shopify-product-sync-submit";
+import { ProcessShopifyProductsRequestSchema } from "../types";
 
 const base = {
-  shopIntegrationIds: [],
+  shopIntegrationIds: [] as string[],
   sku: "",
-  heightCm: null,
-  widthCm: null,
-  depthCm: null,
+  metafields: [],
   title: "",
   description: "",
 };
 
 describe("resolveShopifyProductSyncSubmit", () => {
-  it("skips empty values even with shops or article number", () =>
+  it("skips an empty form", () => {
     expect(
       resolveShopifyProductSyncSubmit({
         values: { ...base, shopIntegrationIds: ["shop_1"] },
-        itemClientId: "itm_1",
-        itemArticleNumber: "A-1",
-      }).kind,
-    ).toBe("skip"));
-
-  it("does not consider zero dimensions filled", () => {
-    expect(
-      isFormFilled({
-        ...base,
-        heightCm: 0,
-        widthCm: 0,
-        depthCm: 0,
-      }),
-    ).toBe(false);
-  });
-
-  it("treats a form with only zero dimensions as skip", () => {
-    expect(
-      resolveShopifyProductSyncSubmit({
-        values: {
-          ...base,
-          shopIntegrationIds: ["shop_1"],
-          heightCm: 0,
-          widthCm: 0,
-          depthCm: 0,
-        },
-        itemClientId: "itm_1",
+        itemClientId: "item_1",
         itemArticleNumber: "A-1",
       }),
     ).toEqual({ kind: "skip" });
   });
 
-  it("requires title fallback and identity for real submits", () => {
-    expect(
-      resolveShopifyProductSyncSubmit({
-        values: { ...base, heightCm: 50 },
-        itemClientId: "itm_1",
-        itemArticleNumber: null,
-      }),
-    ).toMatchObject({ kind: "blocked", field: "title" });
-    expect(
-      resolveShopifyProductSyncSubmit({
-        values: { ...base, title: "Chair" },
-        itemClientId: "itm_1",
-        itemArticleNumber: null,
-      }),
-    ).toMatchObject({ kind: "blocked", field: "sku" });
-  });
-
-  it("treats positive dimensions as filled", () => {
+  it("counts valid dynamic metafields as filled but rejects invalid URLs", () => {
     expect(
       isFormFilled({
         ...base,
-        heightCm: 50,
+        metafields: [
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_1",
+            namespace: "custom",
+            key: "material",
+            type: "single_line_text_field",
+            value: "Wool",
+          },
+        ],
       }),
     ).toBe(true);
+    expect(
+      isFormFilled({
+        ...base,
+        metafields: [
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_2",
+            namespace: "custom",
+            key: "manual",
+            type: "url",
+            value: "not-a-url",
+          },
+        ],
+      }),
+    ).toBe(false);
+    expect(
+      isFormFilled({
+        ...base,
+        metafields: [
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_3",
+            namespace: "custom",
+            key: "widthcm",
+            type: "dimension",
+            value: "not-a-number",
+          },
+        ],
+      }),
+    ).toBe(false);
   });
 
-  it("does not emit zero dimensions as metafields", () => {
+  it("scopes metafields into one request item per shop", () => {
     const result = resolveShopifyProductSyncSubmit({
       values: {
         ...base,
+        shopIntegrationIds: ["shop_1", "shop_2"],
         sku: "SKU-1",
-        shopIntegrationIds: ["shop_1"],
-        heightCm: 0,
-        widthCm: 0,
-        depthCm: 0,
-      },
-      itemClientId: "itm_1",
-      itemArticleNumber: "A-1",
-    });
-
-    expect(result).toEqual({
-      kind: "submit",
-      payload: {
-        items: [
+        metafields: [
           {
-            client_id: "itm_1",
-            target_shop_integration_ids: ["shop_1"],
-            title: "SKU-1",
-            sku: "SKU-1",
-            item_article_number: "A-1",
-            metafields: undefined,
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_1",
+            namespace: "custom",
+            key: "material",
+            type: "single_line_text_field",
+            value: "Wool",
+          },
+          {
+            shopIntegrationId: "shop_2",
+            shopifyMetafieldDefinitionId: "definition_2",
+            namespace: "custom",
+            key: "manual",
+            type: "url",
+            value: "https://example.com/manual",
           },
         ],
       },
-    });
-  });
-
-  it("emits positive dimensions under the correct metafield keys", () => {
-    const result = resolveShopifyProductSyncSubmit({
-      values: {
-        ...base,
-        sku: "SKU-1",
-        shopIntegrationIds: ["shop_1"],
-        heightCm: 50,
-        widthCm: 100,
-        depthCm: 150,
-        description: "Desc",
-      },
-      itemClientId: "itm_1",
+      itemClientId: "item_1",
       itemArticleNumber: "A-1",
+      productCategory: "Chair",
     });
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       kind: "submit",
       payload: {
         items: [
           {
-            client_id: "itm_1",
             target_shop_integration_ids: ["shop_1"],
-            title: "SKU-1",
-            description: "Desc",
-            sku: "SKU-1",
-            item_article_number: "A-1",
+            product_category: "Chair",
             metafields: {
-              Height: 50,
-              Width: 100,
-              Depth: 150,
+              material: {
+                type: "single_line_text_field",
+                value: "Wool",
+              },
+            },
+          },
+          {
+            target_shop_integration_ids: ["shop_2"],
+            metafields: {
+              manual: {
+                type: "url",
+                value: "https://example.com/manual",
+              },
             },
           },
         ],
       },
     });
+
+    if (result.kind !== "submit") throw new Error("Expected submit result");
+    expect(() => ProcessShopifyProductsRequestSchema.parse(result.payload)).not
+      .toThrow();
+  });
+
+  it("serializes dimension metafields with their type and centimeter value", () => {
+    const result = resolveShopifyProductSyncSubmit({
+      values: {
+        ...base,
+        shopIntegrationIds: ["shop_1"],
+        sku: "SKU-1",
+        metafields: [
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_1",
+            namespace: "custom",
+            key: "widthcm",
+            type: "dimension",
+            value: "120",
+          },
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_2",
+            namespace: "custom",
+            key: "invalid-width",
+            type: "dimension",
+            value: "invalid",
+          },
+        ],
+      },
+      itemClientId: "item_1",
+      itemArticleNumber: "A-1",
+    });
+
+    expect(result).toMatchObject({
+      kind: "submit",
+      payload: {
+        items: [
+          {
+            metafields: {
+              widthcm: {
+                type: "dimension",
+                value: { value: 120, unit: "CENTIMETERS" },
+              },
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it("serializes list metafields as arrays in the wire payload", () => {
+    const result = resolveShopifyProductSyncSubmit({
+      values: {
+        ...base,
+        shopIntegrationIds: ["shop_1"],
+        sku: "SKU-1",
+        metafields: [
+          {
+            shopIntegrationId: "shop_1",
+            shopifyMetafieldDefinitionId: "definition_1",
+            namespace: "custom",
+            key: "colors",
+            type: "list.single_line_text_field",
+            value: '["red","blue"]',
+          },
+        ],
+      },
+      itemClientId: "item_1",
+      itemArticleNumber: "A-1",
+    });
+
+    expect(result).toMatchObject({
+      kind: "submit",
+      payload: {
+        items: [
+          {
+            metafields: {
+              colors: {
+                type: "list.single_line_text_field",
+                value: ["red", "blue"],
+              },
+            },
+          },
+        ],
+      },
+    });
+
+    if (result.kind !== "submit") throw new Error("Expected submit result");
+    expect(() => ProcessShopifyProductsRequestSchema.parse(result.payload)).not
+      .toThrow();
   });
 });

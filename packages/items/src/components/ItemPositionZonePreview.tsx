@@ -31,7 +31,7 @@ function renderPart(
   return (
     <button
       type="button"
-      className="rounded-full text-sm font-semibold text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+      className="-m-2 rounded-full p-2 text-sm font-semibold text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
       data-testid={testId}
       onClick={onClick}
     >

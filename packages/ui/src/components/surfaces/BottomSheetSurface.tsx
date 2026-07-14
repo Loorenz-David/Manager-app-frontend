@@ -119,6 +119,13 @@ export function BottomSheetSurface({
               "fixed inset-x-0 bottom-[var(--keyboard-inset)] mx-auto max-h-[90dvh] w-full rounded-t-2xl",
               "flex flex-col bg-background shadow-xl transition-[bottom] duration-200 ease-out focus:outline-none",
             )}
+            // Vaul renders Drawer.Content through its own portal, so a React-tree
+            // wrapper's `inert` never reaches this DOM node — it must be applied
+            // here directly. Without it, a covered (non-topmost) sheet stays
+            // focusable and Vaul keeps reclaiming DOM focus onto its own last
+            // -focused element even with modal={false}, blocking focus from ever
+            // landing on a surface stacked on top of it.
+            inert={!isTopmost || undefined}
             onCloseAutoFocus={(event) => event.preventDefault()}
             style={{
               zIndex: zIndex + 1,

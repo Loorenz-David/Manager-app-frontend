@@ -37,7 +37,7 @@ import {
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
 import {
-  TaskDeliveryDateField,
+  // TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
   useCreateTask,
@@ -77,7 +77,7 @@ import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAs
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
 import {
-  CALENDAR_RANGE_PICKER_SURFACE_ID,
+  // CALENDAR_RANGE_PICKER_SURFACE_ID,
   CALENDAR_SINGLE_PICKER_SURFACE_ID,
   TASK_CREATION_PRE_ORDER_SURFACE_ID,
   preloadCalendarRangePickerSurface,
@@ -526,11 +526,11 @@ export function PreOrderFormContent(): React.JSX.Element {
               </ContentCard>
               <ContentCard>
                 <TaskFulfillmentMethodField />
-                <TaskDeliveryDateField
+                {/* <TaskDeliveryDateField
                   onOpenCalendarRangePicker={(props) =>
                     surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
                   }
-                />
+                /> */}
               </ContentCard>
             </div>
           </StagedFormStep>

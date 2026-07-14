@@ -7,8 +7,11 @@
     ".": "./src/index.ts"
   },
   "peerDependencies": {
+    "@beyo/auth": "*",
+    "@beyo/images": "*",
     "@beyo/hooks": "*",
     "@beyo/lib": "*",
+    "@beyo/task-notes": "*",
     "@beyo/tasks": "*",
     "@beyo/ui": "*",
     "@beyo/working-sections": "*",

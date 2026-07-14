@@ -152,6 +152,7 @@ export {
   TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
   TASK_READY_BY_AT_SHEET_SURFACE_ID,
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
+  TASK_TYPE_SHEET_SURFACE_ID,
 } from "./surface-ids";
 export type {
   ItemQuantitySurfaceProps,
@@ -166,6 +167,7 @@ export type {
   TaskFulfillmentMethodSheetSurfaceProps,
   TaskReadyByAtSheetSurfaceProps,
   TaskScheduledDeliverySheetSurfaceProps,
+  TaskTypeSheetSurfaceProps,
 } from "./surface-ids";
 
 export { getTask } from "./api/get-task";
@@ -300,6 +302,11 @@ export function loadTaskScheduledDeliverySheetPage() {
 export function loadTaskEditSlidePage() {
   return import("./pages/TaskEditSlidePage").then((m) => ({
     default: m.TaskEditSlidePage,
+  }));
+}
+export function loadTaskTypeSheetPage() {
+  return import("./pages/TaskTypeSheetPage").then((m) => ({
+    default: m.TaskTypeSheetPage,
   }));
 }
 export function loadTaskFlowRecordDetailSheetPage() {

@@ -10,6 +10,8 @@ import { useAuth } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
 import { isSameImagePath } from "@beyo/lib";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
+import type { WorkerWorkingSection } from "../../working_sections/types";
+import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import {
   IMAGE_VIEWER_SURFACE_ID,
   ImageAnnotationSchema,
@@ -160,6 +162,15 @@ export function useWorkingSectionStepsController(
   const debouncedSearch = useDebounced(search, 300);
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const allowsShopifyProductModifications = useMemo(() => {
+    const cached = queryClient.getQueryData<WorkerWorkingSection[]>(
+      workerWorkingSectionKeys.mine(),
+    );
+    return (
+      cached?.find((section) => section.client_id === sectionId)
+        ?.allows_shopify_product_modifications ?? false
+    );
+  }, [queryClient, sectionId]);
 
   const queryParams = useMemo<ListWorkingSectionStepsParams>(
     () => ({
@@ -366,13 +377,18 @@ export function useWorkingSectionStepsController(
   const handleOpenTaskActions = useCallback(
     (stepId: TaskStepId, taskId: TaskId, itemId: string | null) => {
       preloadPinNotificationsSlideSurface();
+      const item = query.data?.items.find((step) => step.client_id === stepId)?.item;
       openSurface(TASK_STEP_ACTIONS_SHEET_SURFACE_ID, {
         stepId,
         taskId,
         itemId,
+        itemArticleNumber: item?.article_number ?? null,
+        itemSku: item?.sku ?? null,
+        itemCategoryId: item?.item_category_id ?? null,
+        allowsShopifyProductModifications,
       } as TaskStepActionsSheetSurfaceProps);
     },
-    [openSurface],
+    [allowsShopifyProductModifications, openSurface, query.data?.items],
   );
 
   const handleOpenTaskDetail = useCallback(

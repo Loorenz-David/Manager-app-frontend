@@ -25,6 +25,7 @@ export async function listTasks(params: ListTasksFullParams): Promise<ListTasksR
   if (params.q) queryParams.q = params.q;
   if (params.task_types) queryParams.task_types = params.task_types;
   if (params.task_states) queryParams.task_states = params.task_states;
+  if (params.not_task_states) queryParams.not_task_states = params.not_task_states;
   if (params.task_step_states) queryParams.task_step_states = params.task_step_states;
   if (params.step_readiness_statuses) queryParams.step_readiness_statuses = params.step_readiness_statuses;
   if (params.priorities) queryParams.priorities = params.priorities;

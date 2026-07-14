@@ -20,10 +20,15 @@ export function ShopifyProductSyncSlidePage(): React.JSX.Element {
       itemClientId={props.itemClientId ?? ""}
       itemArticleNumber={props.itemArticleNumber ?? null}
       itemSku={props.itemSku ?? null}
+      itemCategoryId={props.itemCategoryId ?? null}
+      productCategory={props.productCategory ?? null}
       defaultTitle={props.defaultTitle ?? null}
+      taskClientId={props.taskClientId ?? ""}
+      mode={props.mode ?? "submit"}
       surfaceOpeners={props.surfaceOpeners ?? {}}
       onCompleted={() => closeAndContinue(props.onCompleted)}
       onSkipped={() => closeAndContinue(props.onSkipped)}
+      onKept={() => closeAndContinue(props.onKept)}
     >
       <ShopifyProductSyncForm />
     </ShopifyProductSyncFormProvider>

@@ -5,3 +5,7 @@ export type { GetShopifyShopResult } from "./get-shopify-shop";
 export type { GetShopifyWebhookHistoryResult } from "./get-shopify-webhook-history";
 export type { ListShopifyShopsResult } from "./list-shopify-shops";
 export type { SyncShopifyWebhooksForShopResult } from "./sync-shopify-webhooks-for-shop";
+export { getShopifyMetafieldPreferences } from "./get-shopify-metafield-preferences";
+export { createShopifyMetafieldPreferences } from "./create-shopify-metafield-preferences";
+export { deleteShopifyMetafieldPreferences } from "./delete-shopify-metafield-preferences";
+export { updateShopifyMetafieldPreferenceSequenceOrder } from "./update-shopify-metafield-preference-sequence-order";

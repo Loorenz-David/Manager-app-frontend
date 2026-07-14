@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from "react";
 
-
 import {
   usePreloadSurface,
   useStagedForm,
@@ -21,6 +20,18 @@ import {
   useTaskWorkingSectionsContext,
 } from "../providers/TaskWorkingSectionsProvider";
 import type { TaskWorkingSectionsSurfaceProps } from "../surface-ids";
+
+// Fixed edge-reveal distance for the working-sections footer, mirroring the
+// task-creation staged-form footer pattern.
+const TASK_WORKING_SECTIONS_FOOTER_EDGE_OFFSET_PX = 50;
+
+function TaskWorkingSectionsStagedFormHeader(): React.JSX.Element {
+  return (
+    <div className="flex min-h-14 items-center px-4">
+      <h1 className="truncate text-base font-semibold">Working Sections</h1>
+    </div>
+  );
+}
 
 function TaskWorkingSectionsFooter({
   availableSections,
@@ -62,7 +73,7 @@ function TaskWorkingSectionsFooter({
 
       <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
         <button
-          className="rounded-2xl border border-border bg-card px-5 py-3.5 text-sm font-semibold text-primary shadow-sm transition"
+          className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
           data-testid="task-working-sections-close-button"
           type="button"
           onClick={onClose}
@@ -161,6 +172,8 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
       activeStepId={staged.activeStepId}
       data-testid="task-working-sections-slide-page"
       direction={staged.direction}
+      header={<TaskWorkingSectionsStagedFormHeader />}
+      footerEdgeOffset={TASK_WORKING_SECTIONS_FOOTER_EDGE_OFFSET_PX}
       isAdvancing={staged.isAdvancing}
       isFirstStep={staged.isFirstStep}
       isLastStep={staged.isLastStep}
@@ -223,7 +236,11 @@ export function TaskWorkingSectionsSlidePage(): React.JSX.Element {
   } = useSurfaceProps<TaskWorkingSectionsSurfaceProps>();
 
   if (!taskId) {
-    return <div className="p-6 text-sm text-muted-foreground">Task id is missing.</div>;
+    return (
+      <div className="p-6 text-sm text-muted-foreground">
+        Task id is missing.
+      </div>
+    );
   }
 
   return (

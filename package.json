@@ -1,6 +1,8 @@
 {
   "private": true,
   "scripts": {
+    "test:ui": "vitest run --config packages/ui/vitest.config.ts",
+    "test:shopify": "vitest run --config packages/shopify/vitest.config.ts",
     "typecheck": "npm run typecheck --workspace managerbeyo-app-managers --workspace managerbeyo-app-workers --workspace managerbeyo-app-sellers && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p packages/hooks/tsconfig.json --noEmit && tsc -p packages/realtime/tsconfig.json --noEmit && tsc -p packages/notifications/tsconfig.json --noEmit && tsc -p packages/celebration/tsconfig.json --noEmit && tsc -p packages/shopify/tsconfig.json --noEmit"
   },
   "workspaces": [

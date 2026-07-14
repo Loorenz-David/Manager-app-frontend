@@ -11,8 +11,10 @@ import {
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import {
   ContentCard,
+  SearchableSelectInput,
   StagedForm,
   StagedFormStep,
+  type SearchableSelectResult,
   usePrefetchOnCondition,
 } from "@beyo/ui";
 import {
@@ -91,6 +93,30 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
   task: ["item_issues", "ready_by_at", "note_content"],
 };
 
+// Temporary UI test data for SearchableSelectInput. Remove this block with the test field below.
+const WOOD_TYPE_UI_TEST_OPTIONS = [
+  { value: "oak", displayValue: "Oak" },
+  { value: "ash", displayValue: "Ash" },
+  { value: "beech", displayValue: "Beech" },
+  { value: "birch", displayValue: "Birch" },
+  { value: "walnut", displayValue: "Walnut" },
+  { value: "maple", displayValue: "Maple" },
+  { value: "mahogany", displayValue: "Mahogany" },
+  { value: "teak", displayValue: "Teak" },
+  { value: "pine", displayValue: "Pine" },
+  { value: "spruce", displayValue: "Spruce" },
+  { value: "cedar", displayValue: "Cedar" },
+  { value: "cherry", displayValue: "Cherry" },
+  { value: "douglas-fir", displayValue: "Douglas Fir" },
+  { value: "elm", displayValue: "Elm" },
+  { value: "hickory", displayValue: "Hickory" },
+  { value: "poplar", displayValue: "Poplar" },
+  { value: "redwood", displayValue: "Redwood" },
+  { value: "rosewood", displayValue: "Rosewood" },
+  { value: "wenge", displayValue: "Wenge" },
+  { value: "white-oak", displayValue: "White Oak" },
+] as const;
+
 function UpholsteryField({
   control,
 }: {
@@ -122,6 +148,9 @@ export function InternalFormContent(): React.JSX.Element {
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
+  const [uiTestWoodType, setUiTestWoodType] = useState<SearchableSelectResult<string> | null>(
+    null,
+  );
 
   const surface = useSurface();
   const {
@@ -403,6 +432,24 @@ export function InternalFormContent(): React.JSX.Element {
         >
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
+              {/* Temporary UI test field. Remove this block when the component test is complete. */}
+              <ContentCard data-testid="searchable-select-ui-test">
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    className="text-sm font-medium text-foreground"
+                    htmlFor="searchable-select-ui-test-input"
+                  >
+                    Wood type (UI test)
+                  </label>
+                  <SearchableSelectInput<string>
+                    id="searchable-select-ui-test-input"
+                    options={WOOD_TYPE_UI_TEST_OPTIONS}
+                    placeholder="Search wood types"
+                    value={uiTestWoodType}
+                    onValueChange={setUiTestWoodType}
+                  />
+                </div>
+              </ContentCard>
               <ContentCard>
                 <ItemIdentityField
                   onLookupResult={handleLookupResult}

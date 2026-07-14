@@ -177,7 +177,7 @@ describe("ShopifyIntegrationsSlidePage", () => {
     ).not.toMatch(/\bpx-\d+/);
 
     await user.click(
-      screen.getByRole("button", { name: "Close Shopify integrations" }),
+      screen.getByRole("button", { name: "Close & Back" }),
     );
 
     expect(requestCloseMock).toHaveBeenCalledTimes(1);
@@ -195,7 +195,7 @@ describe("ShopifyIntegrationsSlidePage", () => {
     renderWithQueryClient(<ShopifyIntegrationsSlidePage />);
 
     await user.click(
-      screen.getByRole("button", { name: "Close Shopify integrations" }),
+      screen.getByRole("button", { name: "Close & Back" }),
     );
 
     expect(closeSurface).toHaveBeenCalledTimes(1);

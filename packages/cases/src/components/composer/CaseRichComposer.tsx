@@ -2,6 +2,9 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { SendHorizontal } from "lucide-react";
 import { m } from "framer-motion";
 
+import { cn } from "@beyo/lib";
+import { useKeyboardInset } from "@beyo/ui";
+
 import {
   getCaseComposerColorToken,
   type CaseComposerColorToken,
@@ -45,9 +48,11 @@ export function CaseRichComposer({
   onToolbarVisibilityChange,
 }: CaseRichComposerProps): React.JSX.Element {
   const controller = useCaseConversationContext();
+  const { isKeyboardOpen } = useKeyboardInset();
   const [pulsePreviewTick, setPulsePreviewTick] = useState(0);
   const [shakePreviewTick, setShakePreviewTick] = useState(0);
   const [isEditorFocused, setIsEditorFocused] = useState(false);
+  const shouldFloat = isEditorFocused && isKeyboardOpen;
   const [toolbarActions, setToolbarActions] =
     useState<CaseComposerEditorToolbarActions | null>(null);
   const [toolbarState, setToolbarState] =
@@ -182,7 +187,10 @@ export function CaseRichComposer({
 
   return (
     <div
-      className="pointer-events-none absolute inset-x-0 bottom-0 z-20"
+      className={cn(
+        "pointer-events-none absolute inset-x-0 z-20",
+        shouldFloat ? "bottom-[calc(var(--keyboard-inset)_+_1rem)]" : "bottom-0",
+      )}
       data-testid="case-composer"
     >
       <div

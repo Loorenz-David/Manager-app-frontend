@@ -11,6 +11,7 @@ import { ShopifyShopActionsSheetPage } from "./ShopifyShopActionsSheetPage";
 
 const {
   setTitleMock,
+  setHeaderHiddenMock,
   setActionsMock,
   requestCloseMock,
   useSurfacePropsMock,
@@ -22,6 +23,7 @@ const {
   notifyErrorMock,
 } = vi.hoisted(() => ({
   setTitleMock: vi.fn(),
+  setHeaderHiddenMock: vi.fn(),
   setActionsMock: vi.fn(),
   requestCloseMock: vi.fn(),
   useSurfacePropsMock: vi.fn(),
@@ -36,6 +38,7 @@ const {
 vi.mock("@beyo/hooks", () => ({
   useSurfaceHeader: () => ({
     setTitle: setTitleMock,
+    setHeaderHidden: setHeaderHiddenMock,
     setActions: setActionsMock,
     requestClose: requestCloseMock,
   }),
