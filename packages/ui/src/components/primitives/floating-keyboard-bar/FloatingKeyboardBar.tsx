@@ -34,6 +34,31 @@ export type FloatingKeyboardBarProps = {
   className?: string;
 };
 
+type FocusOwner = {
+  relinquish: () => void;
+};
+
+// The keyboard inset is shared by the whole page, so only one floating field
+// may own it at a time. Keeping that ownership synchronous prevents an older
+// field's queued focusout/closing animation from reclaiming focus from the
+// field the user just opened.
+let activeFocusOwner: FocusOwner | null = null;
+
+function claimFocus(owner: FocusOwner): void {
+  if (activeFocusOwner === owner) {
+    return;
+  }
+
+  activeFocusOwner?.relinquish();
+  activeFocusOwner = owner;
+}
+
+function releaseFocus(owner: FocusOwner): void {
+  if (activeFocusOwner === owner) {
+    activeFocusOwner = null;
+  }
+}
+
 export function preventFocusSteal(event: MouseEvent<HTMLElement>): void {
   event.preventDefault();
 }
@@ -54,6 +79,7 @@ export function FloatingKeyboardBar({
   const [isOwnFieldFocused, setIsOwnFieldFocused] = useState(false);
   const isPanelMountedRef = useRef(false);
   const animationGenerationRef = useRef(0);
+  const focusOwnerRef = useRef<FocusOwner | null>(null);
   const reducedMotion = useReducedMotion();
   const panelY = useTransform(
     progress,
@@ -70,6 +96,11 @@ export function FloatingKeyboardBar({
   const isPanelVariant = variant === "panel";
 
   useEffect(() => {
+    const focusOwner: FocusOwner = {
+      relinquish: () => setIsOwnFieldFocused(false),
+    };
+    focusOwnerRef.current = focusOwner;
+
     function isOwnInput(target: EventTarget | null): boolean {
       return (
         target === inlineInputRef.current ||
@@ -80,8 +111,7 @@ export function FloatingKeyboardBar({
 
     function handleFocusIn(event: FocusEvent): void {
       if (isOwnInput(event.target)) {
-        // eslint-disable-next-line no-console
-        console.log("[kb-debug] focusin on own input", event.target);
+        claimFocus(focusOwner);
         setIsOwnFieldFocused(true);
       }
     }
@@ -92,13 +122,9 @@ export function FloatingKeyboardBar({
       }
 
       queueMicrotask(() => {
-        // eslint-disable-next-line no-console
-        console.log(
-          "[kb-debug] focusout microtask, activeElement is own input?",
-          isOwnInput(document.activeElement),
-          document.activeElement,
-        );
-        if (!isOwnInput(document.activeElement)) {
+        const remainsOwn = isOwnInput(document.activeElement);
+        if (!remainsOwn) {
+          releaseFocus(focusOwner);
           setIsOwnFieldFocused(false);
         }
       });
@@ -108,18 +134,19 @@ export function FloatingKeyboardBar({
     document.addEventListener("focusout", handleFocusOut);
 
     if (isOwnInput(document.activeElement)) {
+      claimFocus(focusOwner);
       setIsOwnFieldFocused(true);
     }
 
     return () => {
+      releaseFocus(focusOwner);
+      focusOwnerRef.current = null;
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", handleFocusOut);
     };
   }, []);
 
   useLayoutEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] handoff#1", { isKeyboardOpen, isOwnFieldFocused });
     if (!isKeyboardOpen || !isOwnFieldFocused) {
       return;
     }
@@ -136,13 +163,6 @@ export function FloatingKeyboardBar({
 
     const generation = animationGenerationRef.current + 1;
     animationGenerationRef.current = generation;
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] panel-effect", {
-      generation,
-      isKeyboardOpen,
-      isOwnFieldFocused,
-      wasMounted: isPanelMountedRef.current,
-    });
 
     if (isKeyboardOpen && isOwnFieldFocused) {
       const inlineRect = inlineWrapperRef.current?.getBoundingClientRect();
@@ -158,28 +178,17 @@ export function FloatingKeyboardBar({
       );
       isPanelMountedRef.current = true;
       setIsPanelMounted(true);
-      // eslint-disable-next-line no-console
-      console.log("[kb-debug] panel-effect -> OPENING", { generation });
-      void animate(progress, 1, transitions.surface);
-      return;
+      const openingAnimation = animate(progress, 1, transitions.surface);
+      return () => openingAnimation.stop();
     }
 
     if (!isPanelMountedRef.current) {
       return;
     }
 
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] panel-effect -> CLOSING", { generation });
-    void animate(progress, 0, {
+    const closingAnimation = animate(progress, 0, {
       ...transitions.base,
       onComplete: () => {
-        // eslint-disable-next-line no-console
-        console.log("[kb-debug] close animation onComplete", {
-          generation,
-          currentGeneration: animationGenerationRef.current,
-          isKeyboardOpen,
-          isOwnFieldFocused,
-        });
         if (
           animationGenerationRef.current !== generation ||
           (isKeyboardOpen && isOwnFieldFocused)
@@ -191,11 +200,10 @@ export function FloatingKeyboardBar({
         setIsPanelMounted(false);
       },
     });
+    return () => closingAnimation.stop();
   }, [isKeyboardOpen, isOwnFieldFocused, isPanelVariant, progress]);
 
   useLayoutEffect(() => {
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] handoff#2", { isOwnFieldFocused, isPanelMounted });
     if (!isPanelMounted || !isOwnFieldFocused) {
       return;
     }
@@ -213,11 +221,11 @@ export function FloatingKeyboardBar({
       activeElement === inlineInputRef.current ||
       activeElement === floatingInputRef.current ||
       activeElement === noopInputRef.current;
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] recheck-on-unmount", {
-      nextIsOwnFieldFocused,
-      activeElement,
-    });
+
+    const focusOwner = focusOwnerRef.current;
+    if (!nextIsOwnFieldFocused && focusOwner) {
+      releaseFocus(focusOwner);
+    }
     setIsOwnFieldFocused(nextIsOwnFieldFocused);
   }, [isPanelMounted]);
 
@@ -270,7 +278,10 @@ export function FloatingKeyboardBar({
               <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset)] z-[9999]">
                 <m.div
                   className={cn(
-                    "pointer-events-auto flex h-full flex-col bg-card pt-[var(--safe-top)]",
+                    "flex h-full flex-col bg-card pt-[var(--safe-top)]",
+                    isKeyboardOpen && isOwnFieldFocused
+                      ? "pointer-events-auto"
+                      : "pointer-events-none",
                     className,
                   )}
                   style={{ opacity: panelOpacity, y: panelY }}

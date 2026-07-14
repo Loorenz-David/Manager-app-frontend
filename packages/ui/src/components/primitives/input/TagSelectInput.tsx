@@ -296,11 +296,6 @@ export function TagSelectInput<TValue extends string = string>({
   useEffect(() => {
     const pendingValue = pendingInternalValueRef.current;
     pendingInternalValueRef.current = null;
-    // eslint-disable-next-line no-console
-    console.log("[kb-debug] TagSelectInput value-effect fired", {
-      valueLength: value.length,
-      wasPending: pendingValue !== null,
-    });
     if (pendingValue && areResultsEqual(pendingValue, value)) return;
     setQueryText("");
     setActiveValue(null);

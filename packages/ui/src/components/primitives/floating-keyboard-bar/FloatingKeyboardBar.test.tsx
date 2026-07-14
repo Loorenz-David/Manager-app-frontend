@@ -119,6 +119,40 @@ describe("FloatingKeyboardBar", () => {
     consoleWarn.mockRestore();
   });
 
+  it("makes a closing panel click-through immediately", async () => {
+    const view = render(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+    await waitFor(() => {
+      expect(screen.getByTestId("floating-input")).toBeTruthy();
+    });
+
+    keyboardState.isOpen = false;
+    view.rerender(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+
+    const floatingInput = screen.getByTestId("floating-input");
+    expect(
+      floatingInput.parentElement?.parentElement?.parentElement?.className,
+    ).toContain("pointer-events-none");
+  });
+
   it("reports inline-hidden state and uses resting reduced-motion styles", async () => {
     reducedMotion.mockReturnValue(true);
     const renderControlsMock = vi.fn(renderControls);
@@ -224,6 +258,46 @@ describe("FloatingKeyboardBar", () => {
         screen.getByTestId("second-floating-input"),
       );
     });
+  });
+
+  it("keeps exactly one owner through repeated rapid field handoffs", async () => {
+    reducedMotion.mockReturnValue(true);
+    const renderNamed = (name: string) =>
+      ({ inputRef, isFloating }: RenderControlArgs) =>
+        renderNamedControls(name, { inputRef, isFloating });
+    const fields = ["first", "second", "third"];
+    const renderFields = () => (
+      <>
+        {fields.map((name) => (
+          <FloatingKeyboardBar
+            key={name}
+            variant="panel"
+            renderControls={renderNamed(name)}
+          />
+        ))}
+      </>
+    );
+    const view = render(renderFields());
+
+    screen.getByTestId("first-inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(renderFields());
+
+    await waitFor(() => {
+      expect(screen.getByTestId("first-floating-input")).toBeTruthy();
+    });
+
+    for (const name of ["second", "third", "first", "third", "second"]) {
+      screen.getByTestId(`${name}-inline-input`).focus();
+
+      await waitFor(() => {
+        expect(screen.getByTestId(`${name}-floating-input`)).toBeTruthy();
+        expect(screen.getAllByTestId(/-floating-controls$/)).toHaveLength(1);
+        expect(document.activeElement).toBe(
+          screen.getByTestId(`${name}-floating-input`),
+        );
+      });
+    }
   });
 
   it("does not steal focus between bar-variant fields", async () => {
