@@ -6,10 +6,20 @@ import {
 
 export const SHOPIFY_PRODUCT_SYNC_DRAFT_SCHEMA_VERSION = 1;
 
+const ShopifyProductSyncDraftValuesSchema = z.preprocess((value) => {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const values = value as Record<string, unknown>;
+    if (!("inventoryAdjustments" in values)) {
+      return { ...values, inventoryAdjustments: [] };
+    }
+  }
+  return value;
+}, ShopifyProductSyncFormSchema);
+
 export const ShopifyProductSyncDraftRecordSchema = z.object({
   taskClientId: z.string().min(1),
   schemaVersion: z.number().int(),
-  values: ShopifyProductSyncFormSchema,
+  values: ShopifyProductSyncDraftValuesSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
   expiresAt: z.string(),

@@ -42,13 +42,12 @@ export function KeyboardInsetProvider({
     }
 
     const vv = visualViewport;
-
     function update(): void {
       animationFrameId = null;
 
       const keyboardHeight = Math.max(
         0,
-        window.innerHeight - (vv.height + vv.offsetTop),
+        window.innerHeight - vv.height,
       );
       const nextIsKeyboardOpen = keyboardHeight > KEYBOARD_OPEN_THRESHOLD;
 

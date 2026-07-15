@@ -171,7 +171,7 @@ export function formatLocalDateYYMMDD(dateString: string | null): string | null 
     return null;
   }
 
-  return isoDate.slice(2);
+  return `${isoDate.slice(8)}-${isoDate.slice(5, 7)}-${isoDate.slice(0, 4)}`;
 }
 
 export function formatDateDDMMYY(dateString: string | null): string | null {

@@ -9,3 +9,4 @@ export { getShopifyMetafieldPreferences } from "./get-shopify-metafield-preferen
 export { createShopifyMetafieldPreferences } from "./create-shopify-metafield-preferences";
 export { deleteShopifyMetafieldPreferences } from "./delete-shopify-metafield-preferences";
 export { updateShopifyMetafieldPreferenceSequenceOrder } from "./update-shopify-metafield-preference-sequence-order";
+export { listShopifyLocations } from "./list-shopify-locations";

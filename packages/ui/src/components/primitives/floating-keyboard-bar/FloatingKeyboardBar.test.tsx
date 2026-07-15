@@ -153,6 +153,36 @@ describe("FloatingKeyboardBar", () => {
     ).toContain("pointer-events-none");
   });
 
+  it("blurs the floating input before closing the keyboard panel", async () => {
+    const view = render(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+    const floatingInput = await screen.findByTestId("floating-input");
+    expect(document.activeElement).toBe(floatingInput);
+
+    keyboardState.isOpen = false;
+    view.rerender(
+      <FloatingKeyboardBar
+        variant="panel"
+        renderControls={renderControls}
+      />,
+    );
+
+    expect(document.activeElement).not.toBe(floatingInput);
+  });
+
   it("reports inline-hidden state and uses resting reduced-motion styles", async () => {
     reducedMotion.mockReturnValue(true);
     const renderControlsMock = vi.fn(renderControls);

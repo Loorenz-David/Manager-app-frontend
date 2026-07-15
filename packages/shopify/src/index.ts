@@ -12,6 +12,11 @@ export {
   ShopifyShopDetailResponseSchema,
   ShopifyShopIntegrationSchema,
   ShopifyShopsListResponseSchema,
+  ShopifyLocationsResponseSchema,
+  ShopifyLocationsShopSchema,
+  ShopifyLocationSchema,
+  InventoryAdjustmentRequestSchema,
+  ShopifyProductSyncInventoryAdjustmentSchema,
   ShopifyScopeStatusesResponseSchema,
   ShopifySyncWebhooksForShopResponseSchema,
   ShopifyUserReferenceSchema,
@@ -60,6 +65,11 @@ export type {
   ShopifyShopDetailResponse,
   ShopifyShopIntegration,
   ShopifyShopsListResponse,
+  ShopifyLocationsResponse,
+  ShopifyLocationsShop,
+  ShopifyLocation,
+  ShopifyLocationsStatus,
+  InventoryAdjustmentRequest,
   ShopifyScopeStatusesResponse,
   ShopifySyncWebhooksForShopResponse,
   ShopifyUserReference,
@@ -83,10 +93,12 @@ export type {
   ShopifyMetafieldField,
   GetShopifyMetafieldPreferencesParams,
 } from "./types";
-export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode } from "./types";
+export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode, ShopifyProductSyncInventoryAdjustment } from "./types";
 export { processShopifyProducts } from "./api/process-shopify-products";
 export { useProcessShopifyProducts } from "./actions/use-process-shopify-products";
 export { getShopifyMetafieldPreferences } from "./api/get-shopify-metafield-preferences";
+export { listShopifyLocations } from "./api/list-shopify-locations";
+export { useListShopifyLocationsQuery } from "./api/use-list-shopify-locations-query";
 export { createShopifyMetafieldPreferences } from "./api/create-shopify-metafield-preferences";
 export { deleteShopifyMetafieldPreferences } from "./api/delete-shopify-metafield-preferences";
 export { updateShopifyMetafieldPreferenceSequenceOrder } from "./api/update-shopify-metafield-preference-sequence-order";

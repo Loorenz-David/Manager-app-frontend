@@ -12,6 +12,7 @@ import { useProcessShopifyProducts } from "../actions/use-process-shopify-produc
 import { ShopifyProductSyncStagedFormHeader } from "./ShopifyProductSyncStagedFormHeader";
 import { ShopifyProductSyncDescriptionField } from "./fields/ShopifyProductSyncDescriptionField";
 import { ShopifyProductSyncShopField } from "./fields/ShopifyProductSyncShopField";
+import { ShopifyProductSyncInventoryField } from "./fields/ShopifyProductSyncInventoryField";
 import { ShopifyProductSyncSkuField } from "./fields/ShopifyProductSyncSkuField";
 import { ShopifyProductSyncTitleField } from "./fields/ShopifyProductSyncTitleField";
 import {
@@ -36,6 +37,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
       shopIntegrationIds: [],
       sku: ctx.itemSku ?? "",
       metafields: [],
+      inventoryAdjustments: [],
       title: ctx.defaultTitle ?? "",
       description: "",
     },
@@ -149,6 +151,13 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
             <ContentCard gapClassName="gap-4 py-5">
               <ShopifyProductSyncShopField />
               <ShopifyProductSyncSkuField />
+              {values.shopIntegrationIds.map((shopIntegrationId) => (
+                <ShopifyProductSyncInventoryField
+                  key={shopIntegrationId}
+                  shopIntegrationId={shopIntegrationId}
+                  shopIntegrationIds={values.shopIntegrationIds}
+                />
+              ))}
             </ContentCard>
           </div>
         </StagedFormStep>

@@ -15,6 +15,8 @@ export const shopifyKeys = {
     [...shopifyKeys.webhookHistoryRoot(id), "infinite"] as const,
   metafieldPreferences: () =>
     [...shopifyKeys.all, "metafield-preferences"] as const,
+  locations: (params: { shopIntegrationIds: string[] }) =>
+    [...shopifyKeys.all, "locations", { shopIntegrationIds: [...params.shopIntegrationIds].sort() }] as const,
   metafieldPreferencesCategories: () =>
     [...shopifyKeys.metafieldPreferences(), "category"] as const,
   metafieldPreferencesCategory: (params: {

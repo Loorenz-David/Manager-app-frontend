@@ -17,6 +17,7 @@ const values: ShopifyProductSyncFormValues = {
   shopIntegrationIds: [],
   sku: "SKU-1",
   metafields: [],
+  inventoryAdjustments: [],
   title: "Draft product",
   description: "Partial description",
 };

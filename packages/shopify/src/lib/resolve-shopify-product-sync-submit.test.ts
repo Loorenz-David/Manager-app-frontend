@@ -9,6 +9,7 @@ const base = {
   shopIntegrationIds: [] as string[],
   sku: "",
   metafields: [],
+  inventoryAdjustments: [],
   title: "",
   description: "",
 };
@@ -220,5 +221,39 @@ describe("resolveShopifyProductSyncSubmit", () => {
     if (result.kind !== "submit") throw new Error("Expected submit result");
     expect(() => ProcessShopifyProductsRequestSchema.parse(result.payload)).not
       .toThrow();
+  });
+
+  it("routes positive inventory adjustments by shop and drops zero quantities", () => {
+    const result = resolveShopifyProductSyncSubmit({
+      values: {
+        ...base,
+        shopIntegrationIds: ["shop_1", "shop_2"],
+        sku: "SKU-1",
+        inventoryAdjustments: [
+          { shopIntegrationId: "shop_1", locationId: "gid://shopify/Location/1", quantityToAdd: 3 },
+          { shopIntegrationId: "shop_2", locationId: "gid://shopify/Location/2", quantityToAdd: 0 },
+        ],
+      },
+      itemClientId: "item_1",
+      itemArticleNumber: "A-1",
+    });
+
+    expect(result).toMatchObject({
+      kind: "submit",
+      payload: {
+        items: [
+          {
+            target_shop_integration_ids: ["shop_1", "shop_2"],
+            inventory_adjustments: [
+              {
+                shop_integration_id: "shop_1",
+                location_id: "gid://shopify/Location/1",
+                quantity_to_add: 3,
+              },
+            ],
+          },
+        ],
+      },
+    });
   });
 });

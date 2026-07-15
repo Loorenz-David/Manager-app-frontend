@@ -74,7 +74,7 @@ export function FloatingKeyboardBar({
   const noopInputRef = useRef<HTMLInputElement | null>(null);
   const inlineWrapperRef = useRef<HTMLDivElement>(null);
   const progress = useMotionValue(0);
-  const [travelDistance, setTravelDistance] = useState(0);
+  const travelDistance = useMotionValue(0);
   const [isPanelMounted, setIsPanelMounted] = useState(false);
   const [isOwnFieldFocused, setIsOwnFieldFocused] = useState(false);
   const isPanelMountedRef = useRef(false);
@@ -82,15 +82,17 @@ export function FloatingKeyboardBar({
   const focusOwnerRef = useRef<FocusOwner | null>(null);
   const reducedMotion = useReducedMotion();
   const panelY = useTransform(
-    progress,
-    [0, 1],
-    reducedMotion ? [0, 0] : [travelDistance, 0],
+    [progress, travelDistance],
+    ([progressValue, distance]: number[]) =>
+      reducedMotion ? 0 : (1 - progressValue) * distance,
   );
   const panelOpacity = useTransform(progress, [0, 1], [0, 1]);
-  const panelClipPath = useTransform(progress, (value) =>
-    reducedMotion
-      ? "inset(0px 0px 0px 0px)"
-      : `inset(${(1 - value) * travelDistance}px 0px 0px 0px)`,
+  const panelClipPath = useTransform(
+    [progress, travelDistance],
+    ([progressValue, distance]: number[]) =>
+      reducedMotion
+        ? "inset(0px 0px 0px 0px)"
+        : `inset(${(1 - progressValue) * distance}px 0px 0px 0px)`,
   );
 
   const isPanelVariant = variant === "panel";
@@ -151,7 +153,7 @@ export function FloatingKeyboardBar({
       return;
     }
 
-    floatingInputRef.current?.focus();
+    floatingInputRef.current?.focus({ preventScroll: true });
   }, [isKeyboardOpen, isOwnFieldFocused]);
 
   useLayoutEffect(() => {
@@ -172,10 +174,12 @@ export function FloatingKeyboardBar({
         ),
       );
       const targetTop = Number.isFinite(safeTop) ? safeTop : 0;
-
-      setTravelDistance(
-        Math.max(0, (inlineRect?.top ?? targetTop) - targetTop),
+      const nextTravelDistance = Math.max(
+        0,
+        (inlineRect?.top ?? targetTop) - targetTop,
       );
+
+      travelDistance.set(nextTravelDistance);
       isPanelMountedRef.current = true;
       setIsPanelMounted(true);
       const openingAnimation = animate(progress, 1, transitions.surface);
@@ -184,6 +188,17 @@ export function FloatingKeyboardBar({
 
     if (!isPanelMountedRef.current) {
       return;
+    }
+
+    if (
+      !isKeyboardOpen &&
+      floatingInputRef.current &&
+      document.activeElement === floatingInputRef.current
+    ) {
+      // Release the native input before the closing animation starts. Leaving
+      // the floating input focused while the keyboard is disappearing can
+      // make mobile browsers reopen it when the portal is removed.
+      floatingInputRef.current.blur();
     }
 
     const closingAnimation = animate(progress, 0, {
@@ -208,7 +223,7 @@ export function FloatingKeyboardBar({
       return;
     }
 
-    floatingInputRef.current?.focus();
+    floatingInputRef.current?.focus({ preventScroll: true });
   }, [isOwnFieldFocused, isPanelMounted]);
 
   useLayoutEffect(() => {
