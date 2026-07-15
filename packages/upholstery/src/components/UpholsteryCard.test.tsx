@@ -1,0 +1,162 @@
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { UpholsteryCard } from "./UpholsteryCard";
+import type { UpholsteryPickerRecord } from "../types";
+
+const TEST_RECORD: UpholsteryPickerRecord = {
+  client_id: "uph_linen_natural",
+  name: "Natural Linen",
+  code: "LN-001",
+  image_url: "https://example.com/upholstery.jpg",
+  favorite: false,
+  list_order: 1,
+  current_stored_amount_meters: "1.05",
+  inventory_condition: "available",
+  upholstery_category: null,
+  origin: "database",
+};
+
+describe("UpholsteryCard", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("renders name, code, image, and formatted available meters", () => {
+    render(
+      <UpholsteryCard
+        record={TEST_RECORD}
+        isSelected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Natural Linen")).toBeVisible();
+    expect(screen.getByText("LN-001")).toBeVisible();
+    expect(screen.getByText(/1[.,]05\s*m/)).toBeVisible();
+    expect(screen.getByAltText("Natural Linen")).toHaveClass("rounded-full");
+  });
+
+  it("subtracts in-use and in-need amounts and floors the displayed meters at zero", () => {
+    render(
+      <UpholsteryCard
+        record={{
+          ...TEST_RECORD,
+          current_stored_amount_meters: "1.05",
+          current_amount_in_use_meters: "2",
+          current_amount_in_need_meters: "3",
+        }}
+        isSelected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/^0\s*m$/)).toBeVisible();
+  });
+
+  it("gracefully omits the code when it is null", () => {
+    render(
+      <UpholsteryCard
+        record={{ ...TEST_RECORD, code: null }}
+        isSelected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText("LN-001")).not.toBeInTheDocument();
+  });
+
+  it("applies selected styles and emits the selected client id", async () => {
+    const user = userEvent.setup();
+    const handleSelect = vi.fn();
+
+    render(
+      <UpholsteryCard
+        record={TEST_RECORD}
+        isSelected
+        onSelect={handleSelect}
+        testId="upholstery-card-uph_linen_natural"
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Natural Linen" });
+    expect(screen.getByTestId("upholstery-card-uph_linen_natural")).toHaveClass(
+      "bg-primary",
+      "text-card",
+      "transition-colors",
+      "duration-150",
+    );
+
+    await user.click(button);
+
+    expect(handleSelect).toHaveBeenCalledWith("uph_linen_natural");
+  });
+
+  it("renders the favorite button and triggers the toggle callback", async () => {
+    const user = userEvent.setup();
+    const handleToggleFavorite = vi.fn();
+
+    render(
+      <UpholsteryCard
+        record={{ ...TEST_RECORD, favorite: true }}
+        isSelected={false}
+        onSelect={vi.fn()}
+        onToggleFavorite={handleToggleFavorite}
+      />,
+    );
+
+    const favoriteButton = screen.getByTestId("upholstery-card-favorite-button");
+    expect(favoriteButton).toHaveAttribute("aria-pressed", "true");
+
+    await user.click(favoriteButton);
+
+    expect(handleToggleFavorite).toHaveBeenCalledWith("uph_linen_natural", true);
+  });
+
+  it("disables selection and favorite actions while a selection is being saved", async () => {
+    const user = userEvent.setup();
+    const handleSelect = vi.fn();
+    const handleToggleFavorite = vi.fn();
+
+    render(
+      <UpholsteryCard
+        record={{ ...TEST_RECORD, favorite: true }}
+        disabled
+        isSelected={false}
+        onSelect={handleSelect}
+        onToggleFavorite={handleToggleFavorite}
+      />,
+    );
+
+    const selectButton = screen.getByRole("button", { name: "Natural Linen" });
+    const favoriteButton = screen.getByTestId("upholstery-card-favorite-button");
+
+    expect(selectButton).toBeDisabled();
+    expect(favoriteButton).toBeDisabled();
+
+    await user.click(selectButton);
+    await user.click(favoriteButton);
+
+    expect(handleSelect).not.toHaveBeenCalled();
+    expect(handleToggleFavorite).not.toHaveBeenCalled();
+  });
+
+  it("renders an avatar spinner ring while the card is being saved", () => {
+    render(
+      <UpholsteryCard
+        record={TEST_RECORD}
+        isSaving
+        isSelected={false}
+        onSelect={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByRole("button", { name: "Natural Linen" });
+    const spinnerRing = card.querySelector(".animate-spin");
+
+    expect(spinnerRing).not.toBeNull();
+    expect(spinnerRing).toHaveClass("rounded-full", "border-2");
+  });
+});

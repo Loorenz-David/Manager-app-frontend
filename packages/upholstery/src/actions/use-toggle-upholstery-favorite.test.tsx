@@ -1,10 +1,8 @@
+import type { PropsWithChildren } from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import {
-  createTestQueryClient,
-  createTestWrapper,
-} from "@/test-utils/query-client";
 
 import { upholsteryKeys } from "../api/upholstery-keys";
 import type { UpholsteryPickerOption } from "../types";
@@ -19,6 +17,23 @@ vi.mock("../api/fetch-toggle-upholstery-favorite", () => ({
 
 import { useToggleUpholsteryFavorite } from "./use-toggle-upholstery-favorite";
 
+function createTestContext() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  function Wrapper({ children }: PropsWithChildren) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  }
+
+  return { queryClient, Wrapper };
+}
+
 const TEST_ITEM: UpholsteryPickerOption = {
   client_id: "uph_1",
   name: "Natural Linen",
@@ -29,6 +44,7 @@ const TEST_ITEM: UpholsteryPickerOption = {
   current_stored_amount_meters: "8.0",
   inventory_condition: "available",
   upholstery_category: null,
+  origin: "database",
 };
 
 describe("useToggleUpholsteryFavorite", () => {
@@ -41,7 +57,7 @@ describe("useToggleUpholsteryFavorite", () => {
       () => new Promise(() => undefined),
     );
 
-    const queryClient = createTestQueryClient();
+    const { queryClient, Wrapper } = createTestContext();
     queryClient.setQueryData(upholsteryKeys.pickerList({ in_stock: true }), {
       upholsteries: [TEST_ITEM],
       has_more: false,
@@ -52,7 +68,7 @@ describe("useToggleUpholsteryFavorite", () => {
     });
 
     const { result } = renderHook(() => useToggleUpholsteryFavorite(), {
-      wrapper: createTestWrapper(queryClient),
+      wrapper: Wrapper,
     });
 
     result.current.toggleFavorite({
@@ -79,14 +95,14 @@ describe("useToggleUpholsteryFavorite", () => {
       new Error("favorite failed"),
     );
 
-    const queryClient = createTestQueryClient();
+    const { queryClient, Wrapper } = createTestContext();
     queryClient.setQueryData(upholsteryKeys.pickerList({ in_stock: true }), {
       upholsteries: [TEST_ITEM],
       has_more: false,
     });
 
     const { result } = renderHook(() => useToggleUpholsteryFavorite(), {
-      wrapper: createTestWrapper(queryClient),
+      wrapper: Wrapper,
     });
 
     await expect(

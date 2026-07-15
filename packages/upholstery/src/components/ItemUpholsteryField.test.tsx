@@ -1,26 +1,32 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createTestQueryClient } from "@/test-utils/query-client";
-import { upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
-
-import { ItemUpholsteryField } from "./ItemUpholsteryField";
+import { upholsteryKeys } from "../api/upholstery-keys";
 
 const openMock = vi.fn();
 const useUpholsteryPickerOptionQueryMock = vi.fn();
 
-vi.mock("@/hooks/use-surface", () => ({
-  useSurface: () => ({
-    open: openMock,
-  }),
-}));
+vi.mock("@beyo/ui", async () => {
+  const actual = await vi.importActual<typeof import("@beyo/ui")>("@beyo/ui");
 
-vi.mock("@/features/upholstery", () => ({
+  return {
+    ...actual,
+    useSurfaceStore: {
+      ...actual.useSurfaceStore,
+      getState: () => ({ open: openMock }),
+    },
+  };
+});
+
+vi.mock("../api/use-upholstery-picker-option", () => ({
   useUpholsteryPickerOptionQuery: (...args: unknown[]) =>
     useUpholsteryPickerOptionQueryMock(...args),
 }));
+
+import { ItemUpholsteryField } from "./ItemUpholsteryField";
 
 const STORE_OPTION = {
   client_id: "uph_linen_natural",
@@ -31,7 +37,18 @@ const STORE_OPTION = {
   list_order: 1,
   current_stored_amount_meters: "12.5",
   inventory_condition: "available" as const,
+  upholstery_category: null,
+  origin: "database" as const,
 };
+
+function createTestQueryClient(): QueryClient {
+  return new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+}
 
 function renderWithQueryClient(
   ui: React.ReactElement,
@@ -58,6 +75,11 @@ describe("ItemUpholsteryField", () => {
       isPending: false,
     });
   });
+
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders the empty state with placeholder text and chevron icon", () => {
     renderWithQueryClient(
       <ItemUpholsteryField value={null} onChange={vi.fn()} />,
@@ -109,7 +131,7 @@ describe("ItemUpholsteryField", () => {
       { pickerOptions: [] },
     );
 
-    expect(screen.getByText("Loading upholstery…")).toBeVisible();
+    expect(screen.getByText("Loading upholstery...")).toBeVisible();
   });
 
   it("renders the fallback id text when no matching upholstery exists", () => {
@@ -121,17 +143,24 @@ describe("ItemUpholsteryField", () => {
     expect(screen.getByText("missing-upholstery-id")).toBeVisible();
   });
 
+  it("renders the requirement state as a corner badge", () => {
+    renderWithQueryClient(
+      <ItemUpholsteryField
+        value="uph_linen_natural"
+        onChange={vi.fn()}
+        requirementState="needs_ordering"
+      />,
+    );
+
+    expect(screen.getByText("needs ordering")).toBeVisible();
+  });
+
   it("opens the upholstery picker surface with the current selection and callbacks", async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();
 
-    render(
-      <QueryClientProvider client={createTestQueryClient()}>
-        <ItemUpholsteryField
-          value="uph_linen_natural"
-          onChange={handleChange}
-        />
-      </QueryClientProvider>,
+    renderWithQueryClient(
+      <ItemUpholsteryField value="uph_linen_natural" onChange={handleChange} />,
     );
 
     await user.click(screen.getByRole("button"));

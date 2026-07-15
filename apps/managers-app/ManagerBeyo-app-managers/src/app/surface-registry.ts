@@ -10,7 +10,7 @@ import { taskCreationSurfaces } from "@beyo/task-creation";
 import { testingFormsSurfaces } from "@/features/testing_forms";
 import { testSurfaces } from "@/features/test_feature";
 import { upholsteryCategorySurfaces } from "@/features/upholstery-category";
-import { upholsterySurfaces } from "@/features/upholstery";
+import { upholsterySurfaces } from "@beyo/upholstery";
 import { upholsteryInventorySurfaces } from "@/features/upholstery-inventory";
 import { upholsteryOrderingSurfaces } from "@/features/upholstery-ordering";
 import { workingSectionSurfaces } from "@/features/working-sections";

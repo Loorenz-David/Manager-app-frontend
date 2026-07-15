@@ -11,7 +11,7 @@ import {
   TextInput,
 } from "@/components/primitives";
 import { UpholsteryCategoryPickerField } from "@/features/upholstery-category";
-import { useUpholsteryPickerOptionQuery } from "@/features/upholstery/api/use-upholstery-picker-option";
+import { useUpholsteryPickerOptionQuery } from "@beyo/upholstery";
 import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";

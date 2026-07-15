@@ -2,9 +2,11 @@ import type { QueryClient } from "@tanstack/react-query";
 import { itemUpholsteryKeys } from "@beyo/tasks";
 
 import { taskKeys } from "@beyo/tasks";
-import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryKeys } from "@beyo/upholstery";
 import { upholsteryOrderingKeys } from "@/features/upholstery-ordering/api/upholstery-ordering-keys";
 import type { UpholsteryInventoryId } from "@/types/common";
+
+import { upholsteryInventoryKeys } from "../api/upholstery-inventory-keys";
 
 export function invalidateAfterInventoryMutation(
   queryClient: QueryClient,

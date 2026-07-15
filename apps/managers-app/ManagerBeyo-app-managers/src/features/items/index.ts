@@ -4,8 +4,7 @@ export { ItemDesignerField } from './components/fields/ItemDesignerField';
 export { ItemIdentityField } from './components/fields/ItemIdentityField';
 export { ItemPositionField } from './components/fields/ItemPositionField';
 export { ItemQuantityField } from './components/fields/ItemQuantityField';
-export { ItemUpholsteryAmountField } from './components/fields/ItemUpholsteryAmountField';
-export { ItemUpholsteryField } from './components/fields/ItemUpholsteryField';
+export { ItemUpholsteryAmountField, ItemUpholsteryField } from '@beyo/upholstery';
 export {
   ItemCategorySelectionField,
   useItemCategoryPickerFlow,

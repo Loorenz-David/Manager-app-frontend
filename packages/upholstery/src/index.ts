@@ -57,7 +57,6 @@ export { useToggleUpholsteryFavorite } from "./actions/use-toggle-upholstery-fav
 export { useUpdateUpholsteryListOrder } from "./actions/use-update-upholstery-list-order";
 export { useUpholsteryPickerController } from "./controllers/use-upholstery-picker.controller";
 export { UpholsteryCard } from "./components/UpholsteryCard";
-export { UpholsteryProviderFilterSheetPage } from "./pages/UpholsteryProviderFilterSheetPage";
 export { getUpholsteryImageUrl } from "./image-url";
 export { ItemUpholsteryField } from "./components/ItemUpholsteryField";
 export { ItemUpholsteryAmountField } from "./components/ItemUpholsteryAmountField";

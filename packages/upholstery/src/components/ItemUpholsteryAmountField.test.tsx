@@ -1,8 +1,9 @@
-import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { ItemUpholsteryAmountField } from "./ItemUpholsteryAmountField";
 
@@ -53,6 +54,10 @@ function TestHarness() {
 }
 
 describe("ItemUpholsteryAmountField", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   it("stays manual until a multiplier pill is tapped", async () => {
     const user = userEvent.setup();
     render(<TestHarness />);

@@ -1,9 +1,8 @@
 import type { SocketEventHandlers } from "@beyo/realtime";
-import type { UpholsteryId, UpholsteryInventoryId } from "@/types/common";
-import {
-  upholsteryInventoryKeys,
-  upholsteryKeys,
-} from "./api/upholstery-keys";
+import { upholsteryKeys } from "@beyo/upholstery";
+import type { UpholsteryId } from "@/types/common";
+
+import { upholsteryInventoryKeys } from "./api/upholstery-inventory-keys";
 
 export const upholsterySocketEvents: SocketEventHandlers = {
   "upholstery:updated": ({ client_id }, { queryClient }) => {
@@ -11,10 +10,6 @@ export const upholsterySocketEvents: SocketEventHandlers = {
 
     queryClient.invalidateQueries({
       queryKey: upholsteryKeys.detail(id),
-      refetchType: "active",
-    });
-    queryClient.invalidateQueries({
-      queryKey: upholsteryKeys.lists(),
       refetchType: "active",
     });
     queryClient.invalidateQueries({
@@ -32,17 +27,15 @@ export const upholsterySocketEvents: SocketEventHandlers = {
 
     queryClient.removeQueries({ queryKey: upholsteryKeys.detail(id) });
     queryClient.invalidateQueries({
-      queryKey: upholsteryKeys.lists(),
-      refetchType: "active",
-    });
-    queryClient.invalidateQueries({
       queryKey: upholsteryKeys.pickerLists(),
       refetchType: "active",
     });
   },
 
   "upholstery:inventory-updated": ({ client_id }, { queryClient }) => {
-    const id = client_id as UpholsteryInventoryId;
+    const id = client_id as Parameters<
+      typeof upholsteryInventoryKeys.detail
+    >[0];
 
     queryClient.invalidateQueries({
       queryKey: upholsteryInventoryKeys.detail(id),
@@ -59,17 +52,15 @@ export const upholsterySocketEvents: SocketEventHandlers = {
   },
 
   "upholstery:inventory-deleted": ({ client_id }, { queryClient }) => {
-    const id = client_id as UpholsteryInventoryId;
+    const id = client_id as Parameters<
+      typeof upholsteryInventoryKeys.detail
+    >[0];
 
     queryClient.removeQueries({
       queryKey: upholsteryInventoryKeys.detail(id),
     });
     queryClient.invalidateQueries({
       queryKey: upholsteryInventoryKeys.lists(),
-      refetchType: "active",
-    });
-    queryClient.invalidateQueries({
-      queryKey: upholsteryKeys.lists(),
       refetchType: "active",
     });
   },

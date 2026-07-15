@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef } from "react";
 
 import type {
   FieldPath,
@@ -92,7 +92,10 @@ export function useShopifyCustomerLookupPrefill<
   status: ShopifyCustomerStatus;
 } {
   const lastInjectedValuesRef = useRef<LastInjectedValues>({});
-  const eligibleLookupParams = buildEligibleLookupParams(articleNumber, sku);
+  const eligibleLookupParams = useMemo(
+    () => buildEligibleLookupParams(articleNumber, sku),
+    [articleNumber, sku],
+  );
   const hasEligibleLookupParams = Boolean(
     eligibleLookupParams.article_number ?? eligibleLookupParams.sku,
   );
@@ -119,10 +122,11 @@ export function useShopifyCustomerLookupPrefill<
         const typedPath = path as FieldPath<TFormValues>;
         const currentValue = normalizeCurrentFormValue(form.getValues(typedPath));
         const lastInjectedValue = lastInjectedValuesRef.current[path];
+        // An empty value is also a manual edit. Without comparing it to the
+        // last injected value, clearing a Shopify-prefilled field would be
+        // interpreted as an untouched field and the value would be restored.
         const userHasDiverged =
-          Boolean(currentValue) &&
-          currentValue !== lastInjectedValue &&
-          currentValue !== value;
+          currentValue !== lastInjectedValue && currentValue !== value;
 
         if (userHasDiverged) {
           continue;

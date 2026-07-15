@@ -6,7 +6,8 @@ import {
 import { itemUpholsteryKeys } from "@beyo/tasks";
 
 import { taskKeys } from "@beyo/tasks";
-import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryInventoryKeys } from "@/features/upholstery-inventory/api/upholstery-inventory-keys";
+import { upholsteryKeys } from "@beyo/upholstery";
 
 import type { PendingSeatTasksPage } from "../api/fetch-pending-seat-tasks";
 import { pendingSeatUpholsteryKeys } from "../api/pending-seat-keys";

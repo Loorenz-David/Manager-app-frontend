@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-import { upholsteryInventoryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryInventoryKeys } from "../api/upholstery-inventory-keys";
 import type { UpholsteryInventoryId } from "@/types/common";
 
 import { deleteUpholsteryInventory } from "../api/delete-upholstery-inventory";

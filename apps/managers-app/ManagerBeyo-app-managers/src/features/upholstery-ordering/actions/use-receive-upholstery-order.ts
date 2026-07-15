@@ -2,7 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { itemUpholsteryKeys } from "@beyo/tasks";
 
 import { pendingSeatUpholsteryKeys } from "@/features/pending-upholstery/api/pending-seat-keys";
-import { upholsteryInventoryKeys, upholsteryKeys } from "@/features/upholstery/api/upholstery-keys";
+import { upholsteryInventoryKeys } from "@/features/upholstery-inventory/api/upholstery-inventory-keys";
+import { upholsteryKeys } from "@beyo/upholstery";
 
 import { receiveUpholsteryOrder } from "../api/fetch-upholstery-ordering";
 import { upholsteryOrderingKeys } from "../api/upholstery-ordering-keys";

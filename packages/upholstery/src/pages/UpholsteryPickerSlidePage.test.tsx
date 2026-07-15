@@ -1,7 +1,8 @@
 import type React from "react";
-import { render, screen } from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UpholsteryPickerSlidePage } from "./UpholsteryPickerSlidePage";
 
@@ -30,36 +31,32 @@ vi.mock("@beyo/ui", async () => {
       children: React.ReactNode;
       className?: string;
     }) => <div className={className}>{children}</div>,
-    useScrollVisibility: () => ({
+    useScrollHide: () => ({
       scrollRef: { current: null },
-      isHidden: false,
+      hideProgressContainerRef: { current: null },
     }),
   };
 });
 
-vi.mock("@/hooks/use-surface-header", () => ({
-  useSurfaceHeader: () => ({
-    setHeaderHidden: vi.fn(),
-    requestClose: requestCloseMock,
-  }),
-}));
-
-vi.mock("@/hooks/use-surface-props", () => ({
-  useSurfaceProps: () => useSurfacePropsMock(),
-}));
-
-vi.mock("@beyo/upholstery", async () => {
-  const actual = await vi.importActual<typeof import("@beyo/upholstery")>(
-    "@beyo/upholstery",
-  );
+vi.mock("@beyo/hooks", async () => {
+  const actual =
+    await vi.importActual<typeof import("@beyo/hooks")>("@beyo/hooks");
 
   return {
     ...actual,
-    useUpholsteryPickerController: () => useUpholsteryPickerControllerMock(),
+    useSurfaceHeader: () => ({
+      setHeaderHidden: vi.fn(),
+      requestClose: requestCloseMock,
+    }),
+    useSurfaceProps: () => useSurfacePropsMock(),
   };
 });
 
-vi.mock("@/features/upholstery/components/UpholsteryPickerHeader", () => ({
+vi.mock("../controllers/use-upholstery-picker.controller", () => ({
+  useUpholsteryPickerController: () => useUpholsteryPickerControllerMock(),
+}));
+
+vi.mock("../components/UpholsteryPickerHeader", () => ({
   UpholsteryPickerHeader: () => <div data-testid="upholstery-picker-header" />,
 }));
 
@@ -118,6 +115,10 @@ describe("UpholsteryPickerSlidePage", () => {
       onSelect: vi.fn(),
     });
     useUpholsteryPickerControllerMock.mockReturnValue(makeController());
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it("stages selection with card taps and only shows Save for a staged choice", async () => {

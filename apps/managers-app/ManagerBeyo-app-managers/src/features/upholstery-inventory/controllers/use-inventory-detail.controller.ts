@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useUpholsteryPickerOptionQuery } from "@/features/upholstery/api/use-upholstery-picker-option";
+import { useUpholsteryPickerOptionQuery } from "@beyo/upholstery";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 import type { UpholsteryInventoryId } from "@/types/common";
 

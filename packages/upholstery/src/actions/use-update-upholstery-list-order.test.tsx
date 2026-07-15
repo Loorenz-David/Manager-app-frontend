@@ -1,10 +1,8 @@
+import type { PropsWithChildren } from "react";
+
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-import {
-  createTestQueryClient,
-  createTestWrapper,
-} from "@/test-utils/query-client";
 
 import { upholsteryKeys } from "../api/upholstery-keys";
 import type { UpholsteryPickerOption } from "../types";
@@ -19,6 +17,23 @@ vi.mock("../api/fetch-update-upholstery-list-order", () => ({
 
 import { useUpdateUpholsteryListOrder } from "./use-update-upholstery-list-order";
 
+function createTestContext() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  function Wrapper({ children }: PropsWithChildren) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  }
+
+  return { queryClient, Wrapper };
+}
+
 const TEST_ITEM: UpholsteryPickerOption = {
   client_id: "uph_1",
   name: "Natural Linen",
@@ -29,6 +44,7 @@ const TEST_ITEM: UpholsteryPickerOption = {
   current_stored_amount_meters: "8.0",
   inventory_condition: "available",
   upholstery_category: null,
+  origin: "database",
 };
 
 describe("useUpdateUpholsteryListOrder", () => {
@@ -42,7 +58,7 @@ describe("useUpdateUpholsteryListOrder", () => {
       list_order: 1,
     });
 
-    const queryClient = createTestQueryClient();
+    const { queryClient, Wrapper } = createTestContext();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     queryClient.setQueryData(upholsteryKeys.pickerList({ in_stock: true }), {
       upholsteries: [TEST_ITEM],
@@ -50,7 +66,7 @@ describe("useUpdateUpholsteryListOrder", () => {
     });
 
     const { result } = renderHook(() => useUpdateUpholsteryListOrder(), {
-      wrapper: createTestWrapper(queryClient),
+      wrapper: Wrapper,
     });
 
     await result.current.updateListOrderAsync({
@@ -76,14 +92,14 @@ describe("useUpdateUpholsteryListOrder", () => {
       new Error("order failed"),
     );
 
-    const queryClient = createTestQueryClient();
+    const { queryClient, Wrapper } = createTestContext();
     queryClient.setQueryData(upholsteryKeys.pickerList({ in_stock: true }), {
       upholsteries: [TEST_ITEM],
       has_more: false,
     });
 
     const { result } = renderHook(() => useUpdateUpholsteryListOrder(), {
-      wrapper: createTestWrapper(queryClient),
+      wrapper: Wrapper,
     });
 
     await expect(

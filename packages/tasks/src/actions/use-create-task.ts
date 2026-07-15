@@ -4,6 +4,7 @@ import {
   type InfiniteData,
   type QueryKey,
 } from "@tanstack/react-query";
+import { notify } from "@beyo/lib";
 
 import { createTask } from "../api/create-task";
 import { taskKeys } from "../api/task-keys";
@@ -168,14 +169,17 @@ export function useCreateTask() {
         (old) => patchCreatedTask(old, data.client_id, data.task_scalar_id),
       );
     },
-    onError: (_error, _payload, context) => {
-      if (!context) {
-        return;
+    onError: (error, _payload, context) => {
+      if (context) {
+        for (const [key, data] of context.listQueriesSnapshot) {
+          queryClient.setQueryData(key, data);
+        }
       }
 
-      for (const [key, data] of context.listQueriesSnapshot) {
-        queryClient.setQueryData(key, data);
-      }
+      notify.error(
+        "Could not create task",
+        error instanceof Error ? error.message : "Please try again.",
+      );
     },
     onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });

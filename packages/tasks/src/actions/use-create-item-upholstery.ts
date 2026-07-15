@@ -21,6 +21,12 @@ export function useCreateItemUpholstery(
       void queryClient.invalidateQueries({
         queryKey: upholsteryKeys.pickerLists(),
       });
+      void queryClient.invalidateQueries({
+        queryKey: ["upholstery-categories"],
+      });
+      void queryClient.invalidateQueries({
+        queryKey: ["upholstery-inventories"],
+      });
       if (itemId) {
         void queryClient.invalidateQueries({
           queryKey: itemUpholsteryKeys.byItem(itemId),

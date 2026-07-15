@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { upholsteryInventoryKeys } from "@/features/upholstery/api/upholstery-keys";
 import type { UpholsteryInventoryId } from "@/types/common";
 
 import { getUpholsteryInventory } from "./get-upholstery-inventory";
+import { upholsteryInventoryKeys } from "./upholstery-inventory-keys";
 
 export function useGetUpholsteryInventoryQuery(
   inventoryId: UpholsteryInventoryId,

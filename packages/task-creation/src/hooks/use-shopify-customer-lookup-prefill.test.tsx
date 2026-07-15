@@ -271,6 +271,55 @@ describe("useShopifyCustomerLookupPrefill", () => {
     );
   });
 
+  it("preserves a field after the user clears a Shopify-prefilled value", async () => {
+    vi.mocked(useShopifyCustomerLookupQuery).mockReturnValue(
+      buildQueryState({
+        data: {
+          customer_matches: [
+            {
+              match_type: "sku",
+              matched_value: "SKU-123456",
+              display_name: "Shopify Customer",
+              primary_email: "customer@example.com",
+            },
+          ],
+          failed_shops: [],
+        },
+        isSuccess: true,
+      }) as never,
+    );
+
+    const { result } = renderHook(() => {
+      const form = useForm<PreOrderFormValues>({
+        defaultValues: createDefaultValues(),
+      });
+      const prefill = useShopifyCustomerLookupPrefill({
+        form,
+        articleNumber: "BAR-1234567",
+        sku: "SKU-123456",
+        enabled: true,
+      });
+
+      return { form, prefill };
+    });
+
+    await waitFor(() =>
+      expect(result.current.form.getValues("customer.display_name")).toBe(
+        "Shopify Customer",
+      ),
+    );
+
+    act(() => {
+      result.current.form.setValue("customer.display_name", "", {
+        shouldDirty: true,
+      });
+    });
+
+    await waitFor(() =>
+      expect(result.current.form.getValues("customer.display_name")).toBe(""),
+    );
+  });
+
   it("treats query errors as a non-blocking not-found state", () => {
     vi.mocked(useShopifyCustomerLookupQuery).mockReturnValue(
       buildQueryState({

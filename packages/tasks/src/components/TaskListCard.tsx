@@ -1,8 +1,9 @@
 import { memo } from "react";
+import { m } from "framer-motion";
 import { Calendar, Check, ShoppingBag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { cn } from "@beyo/lib";
+import { cn, daysUntil } from "@beyo/lib";
 import { ImagePlaceholder, StatePill } from "@beyo/ui";
 import type { StatePillVariant } from "@beyo/ui";
 
@@ -15,6 +16,39 @@ import {
   TASK_TYPE_LABEL,
 } from "../lib/task-detail";
 import type { TaskReturnSource, TaskState, TaskType } from "../types";
+
+function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
+  if (Math.abs(days) > 99) {
+    return null;
+  }
+
+  const label =
+    days < 0
+      ? "Overdue"
+      : days === 0
+        ? "Today"
+        : `${days} ${days === 1 ? "day" : "days"}`;
+  const className =
+    "inline-flex shrink-0 items-center rounded-md bg-[#8f3a33] px-2 py-1 text-xs font-medium leading-none text-white";
+
+  if (days < 0) {
+    return <span className={className}>{label}</span>;
+  }
+
+  if (days < 3) {
+    return (
+      <m.span
+        animate={{ scale: [1, 1.06, 1] }}
+        className="inline-flex shrink-0 origin-center transform-gpu will-change-transform"
+        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        <span className={className}>{label}</span>
+      </m.span>
+    );
+  }
+
+  return <span className={className}>{label}</span>;
+}
 
 export type TaskListCardProps = {
   taskId: string;
@@ -75,11 +109,10 @@ export const TaskListCard = memo(function TaskListCard({
       ? `#${item.quantity}`
       : null;
   const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
+  const days = daysUntil(task.ready_by_at);
   const stateLabel = humanizeSnakeCase(task.state) ?? task.state;
   const stateVariant: StatePillVariant =
     TASK_STATE_VARIANT[task.state] ?? "neutral";
-  const isOverdue =
-    task.is_overdue ?? (task.ready_by_at ? new Date(task.ready_by_at) < new Date() : false);
   const imageButtonClassName = onTapImage
     ? "cursor-pointer"
     : "cursor-default pointer-events-none";
@@ -193,11 +226,7 @@ export const TaskListCard = memo(function TaskListCard({
             <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
               <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
               <span>{readyByLabel}</span>
-              {isOverdue ? (
-                <span className="ml-1 inline-flex items-center rounded-md bg-[#8f3a33] px-2 py-0.5 text-[11px] font-medium text-white">
-                  Overdue
-                </span>
-              ) : null}
+              {days !== null ? <DaysLeftPill days={days} /> : null}
             </div>
           ) : null}
         </div>

@@ -11,7 +11,7 @@ import {
   type ItemUpholsteryAmountSurfaceProps,
   type TaskDetailSurfaceProps,
 } from "@/features/tasks/surfaces";
-import { UPHOLSTERY_PICKER_SLIDE_ID } from "@/features/upholstery/surfaces";
+import { UPHOLSTERY_PICKER_SLIDE_ID } from "@beyo/upholstery";
 
 import { usePendingSeatCountsQuery } from "../api/use-pending-seat-counts-query";
 import { usePendingSeatTasksQuery } from "../api/use-pending-seat-tasks-query";

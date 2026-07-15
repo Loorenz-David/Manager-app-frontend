@@ -1,5 +1,6 @@
 import { ChevronRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { cva } from "class-variance-authority";
 
 import { cn } from "@beyo/lib";
 import {
@@ -18,6 +19,10 @@ import type {
   UpholsteryPickerOption,
 } from "../types";
 import type { UpholsteryRequirementState } from "../requirement-state";
+
+const itemUpholsteryFieldVariants = cva(
+  "relative flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+);
 
 type ItemUpholsteryFieldProps = {
   value?: string | null;
@@ -96,10 +101,19 @@ export function ItemUpholsteryField({
     <button
       type="button"
       data-testid={testId}
-      className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+      className={itemUpholsteryFieldVariants()}
       disabled={disabled}
       onClick={handlePress}
     >
+      {requirementState ? (
+        <div className="absolute -top-2 -right-2">
+          <StatePill
+            label={requirementState.replaceAll("_", " ")}
+            variant={REQUIREMENT_VARIANT[requirementState]}
+          />
+        </div>
+      ) : null}
+
       {thumbnailUrl ? (
         <img
           src={thumbnailUrl}
@@ -117,16 +131,8 @@ export function ItemUpholsteryField({
         {hasSelection ? (
           selectedUpholstery ? (
             <span className="flex min-w-0 flex-col">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-medium text-foreground">
-                  {selectedUpholstery.name}
-                </span>
-                {requirementState ? (
-                  <StatePill
-                    label={requirementState.replaceAll("_", " ")}
-                    variant={REQUIREMENT_VARIANT[requirementState]}
-                  />
-                ) : null}
+              <span className="min-w-0 text-sm font-medium text-foreground break-words">
+                {selectedUpholstery.name}
               </span>
               {selectedUpholstery.code !== null ? (
                 <span className="truncate text-xs text-muted-foreground">

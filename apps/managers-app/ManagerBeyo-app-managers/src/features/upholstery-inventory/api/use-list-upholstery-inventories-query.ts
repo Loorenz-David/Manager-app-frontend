@@ -1,8 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
-import { upholsteryInventoryKeys } from "@/features/upholstery/api/upholstery-keys";
-
 import { listUpholsteryInventories } from "./list-upholstery-inventories";
+import { upholsteryInventoryKeys } from "./upholstery-inventory-keys";
 import type { ListUpholsteryInventoriesParams } from "../types";
 
 const LIST_LIMIT = 50;

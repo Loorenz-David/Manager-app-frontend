@@ -1,25 +1,37 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import {
-  createTestQueryClient,
-  createTestWrapper,
-} from "@/test-utils/query-client";
+import type { PropsWithChildren } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-import type { ExternalUpholsteryProvider } from "../../../../../../packages/upholstery/src/types";
+import type { ExternalUpholsteryProvider } from "../types";
 
 const { fetchExternalUpholsteryOptionsMock } = vi.hoisted(() => ({
   fetchExternalUpholsteryOptionsMock: vi.fn(),
 }));
 
-vi.mock(
-  "../../../../../../packages/upholstery/src/api/fetch-external-upholstery-options",
-  () => ({
-    fetchExternalUpholsteryOptions: fetchExternalUpholsteryOptionsMock,
-  }),
-);
+vi.mock("./fetch-external-upholstery-options", () => ({
+  fetchExternalUpholsteryOptions: fetchExternalUpholsteryOptionsMock,
+}));
 
-import { useExternalUpholsteryOptionsByProviderQuery } from "../../../../../../packages/upholstery/src/api/use-external-upholstery-options-by-provider";
+import { useExternalUpholsteryOptionsByProviderQuery } from "./use-external-upholstery-options-by-provider";
+
+function createTestContext() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  function Wrapper({ children }: PropsWithChildren) {
+    return (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+  }
+
+  return { queryClient, Wrapper };
+}
 
 type Deferred<T> = {
   promise: Promise<T>;
@@ -84,7 +96,7 @@ describe("useExternalUpholsteryOptionsByProviderQuery", () => {
       }) => deferredByProvider[providers?.[0] ?? "nevotex"].promise,
     );
 
-    const queryClient = createTestQueryClient();
+    const { Wrapper } = createTestContext();
     const { result } = renderHook(
       () =>
         useExternalUpholsteryOptionsByProviderQuery(
@@ -92,7 +104,7 @@ describe("useExternalUpholsteryOptionsByProviderQuery", () => {
           { enabled: true },
         ),
       {
-        wrapper: createTestWrapper(queryClient),
+        wrapper: Wrapper,
       },
     );
 
@@ -172,7 +184,7 @@ describe("useExternalUpholsteryOptionsByProviderQuery", () => {
         createExternalResponse(providers?.[0] ?? "nevotex"),
     );
 
-    const queryClient = createTestQueryClient();
+    const { Wrapper } = createTestContext();
     const { result } = renderHook(
       () =>
         useExternalUpholsteryOptionsByProviderQuery(
@@ -180,7 +192,7 @@ describe("useExternalUpholsteryOptionsByProviderQuery", () => {
           { enabled: true },
         ),
       {
-        wrapper: createTestWrapper(queryClient),
+        wrapper: Wrapper,
       },
     );
 
