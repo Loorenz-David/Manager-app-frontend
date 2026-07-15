@@ -15,6 +15,7 @@ export {
   UpholsteryPickerOptionSchema,
   ItemUpholsteryFieldsSchema,
   formatMeters,
+  computeAvailableUpholsteryMeters,
   isExternalUpholsteryOrigin,
 } from "./types";
 export type {

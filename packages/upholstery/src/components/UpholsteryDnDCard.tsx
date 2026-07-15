@@ -5,7 +5,11 @@ import { ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { getUpholsteryImageUrl } from "../image-url";
-import { formatMeters, type UpholsteryPickerRecord } from "../types";
+import {
+  computeAvailableUpholsteryMeters,
+  formatMeters,
+  type UpholsteryPickerRecord,
+} from "../types";
 
 type UpholsteryDnDCardProps = {
   record: UpholsteryPickerRecord;
@@ -61,7 +65,7 @@ export function UpholsteryDnDCard({
       </div>
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <span className="tabular-nums">{formatMeters(record.current_stored_amount_meters) ?? "—"}</span>
+        <span className="tabular-nums">{formatMeters(computeAvailableUpholsteryMeters(record)) ?? "—"}</span>
         <button
           aria-label={`Reorder ${record.name}`}
           className={cn(

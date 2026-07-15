@@ -28,6 +28,13 @@ export const UPHOLSTERY_ORIGINS = [
 
 export type UpholsteryOrigin = (typeof UPHOLSTERY_ORIGINS)[number];
 
+const nullableMetersValue = z
+  .union([z.string(), z.number()])
+  .nullable()
+  .transform((value) =>
+    value === null ? null : typeof value === "number" ? String(value) : value,
+  );
+
 export const UpholsteryPickerOptionSchema = z.object({
   client_id: z.string().nullable(),
   name: z.string(),
@@ -38,12 +45,10 @@ export const UpholsteryPickerOptionSchema = z.object({
   favorite: z.boolean().nullable(),
   list_order: z.number().nullable(),
   inventory_id: z.string().nullable().optional(),
-  current_stored_amount_meters: z
-    .union([z.string(), z.number()])
-    .nullable()
-    .transform((value) =>
-      value === null ? null : typeof value === "number" ? String(value) : value,
-    ),
+  current_stored_amount_meters: nullableMetersValue,
+  current_amount_in_use_meters: nullableMetersValue.optional(),
+  current_amount_in_need_meters: nullableMetersValue.optional(),
+  current_amount_ordered_meters: nullableMetersValue.optional(),
   inventory_condition: z.enum(UPHOLSTERY_INVENTORY_CONDITION).nullable(),
   upholstery_category: z
     .object({
@@ -144,4 +149,25 @@ export function formatMeters(value: string | null): string | null {
   if (!value) return null;
   const num = Number.parseFloat(value);
   return Number.isNaN(num) ? null : `${metersFormatter.format(num)} m`;
+}
+
+function toMetersNumber(value: string | null | undefined): number {
+  if (!value) return 0;
+  const num = Number.parseFloat(value);
+  return Number.isNaN(num) ? 0 : num;
+}
+
+export function computeAvailableUpholsteryMeters(record: {
+  current_stored_amount_meters: string | null;
+  current_amount_in_use_meters?: string | null;
+  current_amount_in_need_meters?: string | null;
+}): string | null {
+  if (record.current_stored_amount_meters === null) return null;
+
+  const stored = toMetersNumber(record.current_stored_amount_meters);
+  const inUse = toMetersNumber(record.current_amount_in_use_meters);
+  const inNeed = toMetersNumber(record.current_amount_in_need_meters);
+  const net = Math.max(stored - (inUse + inNeed), 0);
+
+  return String(net);
 }

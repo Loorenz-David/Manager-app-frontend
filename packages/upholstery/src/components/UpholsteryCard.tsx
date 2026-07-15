@@ -5,7 +5,11 @@ import { ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { getUpholsteryImageUrl } from "../image-url";
-import { formatMeters, type UpholsteryPickerRecord } from "../types";
+import {
+  computeAvailableUpholsteryMeters,
+  formatMeters,
+  type UpholsteryPickerRecord,
+} from "../types";
 
 const upholsteryCardVariants = cva(
   "flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
@@ -134,7 +138,7 @@ export function UpholsteryCard({
               className={cn("size-2 rounded-full", conditionColor)}
             />
           ) : null}
-          {formatMeters(record.current_stored_amount_meters) ?? "—"}
+          {formatMeters(computeAvailableUpholsteryMeters(record)) ?? "—"}
         </span>
       </button>
 
