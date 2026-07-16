@@ -13,6 +13,7 @@
 @source "../../../../packages/task-notes/src";
 @source "../../../../packages/task-working-sections/src";
 @source "../../../../packages/upholstery/src";
+@source "../../../../packages/stats/src";
 
 .test-colors {
   background: #d0d3d9;

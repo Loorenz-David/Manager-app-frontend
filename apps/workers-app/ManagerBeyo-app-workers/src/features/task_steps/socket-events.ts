@@ -6,11 +6,7 @@ import {
 } from "@beyo/tasks";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import { taskStepKeys } from "./api/task-step-keys";
-import {
-  STEP_TERMINAL_STATES,
-  type StepState,
-  type UserLastActivePayload,
-} from "./types";
+import type { UserLastActivePayload } from "./types";
 
 export const taskStepSocketEvents: SocketEventHandlers = {
   "task:step-assigned": (_payload, { queryClient }) => {
@@ -24,7 +20,7 @@ export const taskStepSocketEvents: SocketEventHandlers = {
     });
   },
 
-  "task:step-state-changed": (payloads, { queryClient }) => {
+  "task:step-state-changed": (_payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.sectionLists(),
       refetchType: "active",
@@ -38,54 +34,30 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       refetchType: "active",
     });
 
-    // Extract all changed IDs from the coalesced event (one entry per changed step)
-    const changedClientIds = new Set(
-      payloads.map((p: { client_id: string }) => p.client_id),
-    );
-
-    const cachedPayload = queryClient.getQueryData<UserLastActivePayload>(
-      taskStepKeys.userLastActive(),
-    );
-
-    // Single mode: if the active step hit terminal, clear immediately without a network round-trip
-    if (!cachedPayload?.batchSteps?.length && cachedPayload?.step) {
-      if (
-        changedClientIds.has(cachedPayload.step.client_id) &&
-        payloads.some(
-          (p: { client_id: string; new_state: string }) =>
-            p.client_id === cachedPayload.step!.client_id &&
-            STEP_TERMINAL_STATES.has(p.new_state as StepState),
-        )
-      ) {
-        queryClient.setQueryData<UserLastActivePayload>(
-          taskStepKeys.userLastActive(),
-          { step: null, batchSteps: null },
-        );
-        return;
-      }
-    }
-
-    // Batch mode: if ALL batch steps hit terminal, clear immediately
-    if (cachedPayload?.batchSteps?.length) {
-      const allTerminal = cachedPayload.batchSteps.every((bs) =>
-        payloads.some(
-          (p: { client_id: string; new_state: string }) =>
-            p.client_id === bs.client_id &&
-            STEP_TERMINAL_STATES.has(p.new_state as StepState),
-        ),
-      );
-      if (allTerminal) {
-        queryClient.setQueryData<UserLastActivePayload>(
-          taskStepKeys.userLastActive(),
-          { step: null, batchSteps: null },
-        );
-        return;
-      }
-    }
-
-    // Single invalidate — not one per changed item
+    // A completed/terminal step is still the worker's last-interacted step, and the
+    // card is designed to display it (green "Completed" state). Refetch rather than
+    // optimistically clearing to null: the earlier terminal-clear made the card
+    // vanish until a manual reload — the finalize socket arrives before the
+    // transition request resolves, and the `completed` transition intentionally
+    // skips its own userLastActive invalidate, so nothing re-fetched it. React
+    // Query keeps the optimistic completed step visible during the background
+    // refetch, so there is no flicker.
     void queryClient.invalidateQueries({
       queryKey: taskStepKeys.userLastActive(),
+      refetchType: "active",
+    });
+  },
+
+  "task:step-acknowledgment-created": (_payload, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.reassignmentAcks(),
+      refetchType: "active",
+    });
+  },
+
+  "task:step-acknowledgment-removed": (_payload, { queryClient }) => {
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.reassignmentAcks(),
       refetchType: "active",
     });
   },

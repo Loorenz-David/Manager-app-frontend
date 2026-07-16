@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { ItemPositionFilterField } from "@beyo/tasks";
 import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
 import {
   DEFAULT_READINESS_STATUS_FILTERS,
@@ -8,7 +9,6 @@ import {
 import { getTaskTypeLabel } from "@/features/task_steps/domain/task-type-meta";
 import type { StepStateFilterSheetSurfaceProps } from "@/features/task_steps/surface-ids";
 import type {
-  MajorCategory,
   ReadinessStatus,
   StepState,
   TaskType,
@@ -60,25 +60,6 @@ const READINESS_STATUS_OPTIONS: BoxPickerOptionType<ReadinessStatus>[] = [
   },
 ];
 
-const MAJOR_CATEGORY_OPTIONS: BoxPickerOptionType<MajorCategory>[] = [
-  {
-    value: "wood",
-    label: "Wood",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/wood_category.webp",
-    imageClassName: "size-[2.4rem]",
-    testId: "filter-major-category-wood",
-  },
-  {
-    value: "seat",
-    label: "Seat",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/seating_category.webp",
-    imageClassName: "size-[2.4rem]",
-    testId: "filter-major-category-seat",
-  },
-];
-
 const TASK_TYPE_OPTIONS: BoxPickerOptionType<TaskType>[] = [
   {
     value: "return",
@@ -102,22 +83,26 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   const { closeTop } = useSurface();
   const {
     selectedStates,
-    selectedMajorCategories,
     selectedReadinessStatuses,
     selectedTaskTypes,
+    selectedItemPosition,
     onApply,
   } = useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
     selectedStates?.length ? selectedStates : DEFAULT_STATE_FILTERS,
   );
-  const [localMajorCategories, setLocalMajorCategories] = useState<
-    MajorCategory[]
-  >(selectedMajorCategories ?? []);
   const [localReadinessStatuses, setLocalReadinessStatuses] = useState<
     ReadinessStatus[]
-  >(selectedReadinessStatuses?.length ? selectedReadinessStatuses : DEFAULT_READINESS_STATUS_FILTERS);
+  >(
+    selectedReadinessStatuses?.length
+      ? selectedReadinessStatuses
+      : DEFAULT_READINESS_STATUS_FILTERS,
+  );
   const [localTaskTypes, setLocalTaskTypes] = useState<TaskType[]>(
     selectedTaskTypes ?? [],
+  );
+  const [localItemPosition, setLocalItemPosition] = useState<string>(
+    selectedItemPosition ?? "",
   );
 
   useEffect(() => {
@@ -157,9 +142,9 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   function handleApply() {
     onApply?.(
       localFilters,
-      localMajorCategories,
       localReadinessStatuses,
       localTaskTypes,
+      localItemPosition.trim(),
     );
     closeSheet();
   }
@@ -190,19 +175,8 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
         />
       </div>
 
-      <div className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-muted-foreground">Category</p>
-        <BoxPicker
-          columns={2}
-          data-testid="step-major-category-filter-picker"
-          mode="multiple"
-          onValueChange={setLocalMajorCategories}
-          options={MAJOR_CATEGORY_OPTIONS}
-          value={localMajorCategories}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3">
+      {/* Task type filter muted for now — kept wired for easy re-enable. */}
+      <div className="hidden flex-col gap-3">
         <p className="text-sm font-medium text-muted-foreground">Task type</p>
         <BoxPicker
           columns={3}
@@ -214,9 +188,14 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
         />
       </div>
 
+      <ItemPositionFilterField
+        value={localItemPosition}
+        onChange={setLocalItemPosition}
+      />
+
       <button
         type="button"
-        className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
+        className="w-full rounded-xl bg-primary py-3.5 text-md font-semibold text-card disabled:opacity-50"
         data-testid="step-state-filter-apply"
         disabled={localFilters.length === 0}
         onClick={handleApply}

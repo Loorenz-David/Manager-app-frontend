@@ -51,7 +51,6 @@ import {
   toIncompleteDependencyViewModels,
   toTaskStepCardViewModel,
   type ListWorkingSectionStepsParams,
-  type MajorCategory,
   type NonTerminalStepCounts,
   type ReadinessStatus,
   type StepState,
@@ -117,9 +116,9 @@ export type WorkingSectionStepsController = {
   search: string;
   setSearch: (value: string) => void;
   stateFilters: StepState[];
-  majorCategoryFilters: MajorCategory[];
   readinessStatusFilters: ReadinessStatus[];
   taskTypeFilters: TaskType[];
+  itemPositionFilter: string;
   activeFilterCount: number;
   refetch: () => Promise<void>;
   handleTransition: (
@@ -152,13 +151,11 @@ export function useWorkingSectionStepsController(
 
   const [stateFilters, setStateFilters] =
     useState<StepState[]>(DEFAULT_STATE_FILTERS);
-  const [majorCategoryFilters, setMajorCategoryFilters] = useState<
-    MajorCategory[]
-  >([]);
   const [readinessStatusFilters, setReadinessStatusFilters] = useState<
     ReadinessStatus[]
   >(DEFAULT_READINESS_STATUS_FILTERS);
   const [taskTypeFilters, setTaskTypeFilters] = useState<TaskType[]>([]);
+  const [itemPositionFilter, setItemPositionFilter] = useState<string>("");
   const debouncedSearch = useDebounced(search, 300);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -177,19 +174,16 @@ export function useWorkingSectionStepsController(
       working_section_id: sectionId,
       q: debouncedSearch || undefined,
       record_step_state: stateFilters.join(","),
-      major_category:
-        majorCategoryFilters.length > 0
-          ? majorCategoryFilters.join(",")
-          : undefined,
       readiness_statuses: readinessStatusFilters.join(","),
       task_types:
         taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
+      item_position: itemPositionFilter || undefined,
       limit: 50,
       offset: 0,
     }),
     [
       debouncedSearch,
-      majorCategoryFilters,
+      itemPositionFilter,
       readinessStatusFilters,
       sectionId,
       stateFilters,
@@ -245,12 +239,12 @@ export function useWorkingSectionStepsController(
 
     return (
       stateCount +
-      majorCategoryFilters.length +
       readinessCount +
-      taskTypeFilters.length
+      taskTypeFilters.length +
+      (itemPositionFilter ? 1 : 0)
     );
   }, [
-    majorCategoryFilters,
+    itemPositionFilter,
     readinessStatusFilters,
     stateFilters,
     taskTypeFilters,
@@ -351,23 +345,23 @@ export function useWorkingSectionStepsController(
   const handleOpenStateFilter = useCallback(() => {
     openSurface(STEP_STATE_FILTER_SHEET_SURFACE_ID, {
       selectedStates: stateFilters,
-      selectedMajorCategories: majorCategoryFilters,
       selectedReadinessStatuses: readinessStatusFilters,
       selectedTaskTypes: taskTypeFilters,
+      selectedItemPosition: itemPositionFilter,
       onApply: (
         newFilters: StepState[],
-        newMajorCategories: MajorCategory[],
         newReadinessStatuses: ReadinessStatus[],
         newTaskTypes: TaskType[],
+        newItemPosition: string,
       ) => {
         setStateFilters(newFilters);
-        setMajorCategoryFilters(newMajorCategories);
         setReadinessStatusFilters(newReadinessStatuses);
         setTaskTypeFilters(newTaskTypes);
+        setItemPositionFilter(newItemPosition);
       },
     } as StepStateFilterSheetSurfaceProps);
   }, [
-    majorCategoryFilters,
+    itemPositionFilter,
     openSurface,
     readinessStatusFilters,
     stateFilters,
@@ -476,9 +470,9 @@ export function useWorkingSectionStepsController(
     search,
     setSearch,
     stateFilters,
-    majorCategoryFilters,
     readinessStatusFilters,
     taskTypeFilters,
+    itemPositionFilter,
     activeFilterCount,
     refetch,
     handleTransition,

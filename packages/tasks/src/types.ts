@@ -353,6 +353,7 @@ export type ListTasksFullParams = {
   scheduled_to_date?: string;
   upholstery_requirement_states?: string;
   post_handling_states?: string;
+  item_position?: string;
   deleted?: boolean;
   order_by?: string;
 };

@@ -90,7 +90,7 @@ function useDelayedTrue(value: boolean, delayMs: number): boolean {
 }
 
 export function useTasksPageFlow(): TasksPageFlow {
-  const { taskType, taskStates, q } = useTasksPageStore();
+  const { taskType, taskStates, q, itemPosition } = useTasksPageStore();
   const [debouncedQ, setDebouncedQ] = useState(q);
 
   useEffect(() => {
@@ -103,11 +103,12 @@ export function useTasksPageFlow(): TasksPageFlow {
       ...(taskType !== "all" ? { task_types: taskType } : {}),
       ...(taskStates.length > 0 ? { task_states: taskStates.join(",") } : {}),
       ...(debouncedQ ? { q: debouncedQ } : {}),
+      ...(itemPosition ? { item_position: itemPosition } : {}),
       ...(taskStates.length === 0 && !debouncedQ
         ? { not_task_states: TASK_DEFAULT_LIST_EXCLUDED_STATES.join(",") }
         : {}),
     }),
-    [debouncedQ, taskStates, taskType],
+    [debouncedQ, itemPosition, taskStates, taskType],
   );
 
   const { query, loadMore } = useListTasksQuery(params);

@@ -8,6 +8,7 @@ const AddTaskStepPayloadSchema = z.object({
   worker_id: z.string().optional(),
   client_id: z.string().optional(),
   sequence_order: z.number().int().nonnegative().optional(),
+  reason: z.string().optional(),
 });
 
 const AddTaskStepInputSchema = z.object({

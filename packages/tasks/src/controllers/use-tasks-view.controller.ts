@@ -15,6 +15,7 @@ import {
   TASK_FILTER_SHEET_SURFACE_ID,
   type TaskActionsSurfaceProps,
   type TaskDetailSurfaceProps,
+  type TaskFilterSheetSurfaceProps,
 } from "../surface-ids";
 import type { TaskState, TaskTypeFilter } from "../types";
 
@@ -22,10 +23,12 @@ export type TasksViewController = TasksPageFlow & {
   taskType: TaskTypeFilter;
   taskStates: TaskState[];
   q: string;
+  itemPosition: string;
   activeFilterCount: number;
   setTaskType: (value: TaskTypeFilter) => void;
   setTaskStates: (value: TaskState[]) => void;
   setQ: (value: string) => void;
+  setItemPosition: (value: string) => void;
   openTaskDetail: (taskId: string) => void;
   openTaskActions: (taskId: string, itemId: string | null) => void;
   openFilterSheet: () => void;
@@ -35,9 +38,18 @@ export type TasksViewController = TasksPageFlow & {
 
 export function useTasksViewController(): TasksViewController {
   const flow = useTasksPageFlow();
-  const { taskType, taskStates, q, setTaskType, setTaskStates, setQ } =
-    useTasksPageStore();
-  const activeFilterCount = taskStates.length + (taskType !== "all" ? 1 : 0);
+  const {
+    taskType,
+    taskStates,
+    q,
+    itemPosition,
+    setTaskType,
+    setTaskStates,
+    setQ,
+    setItemPosition,
+  } = useTasksPageStore();
+  const activeFilterCount =
+    taskStates.length + (taskType !== "all" ? 1 : 0) + (itemPosition ? 1 : 0);
 
   function openTaskDetail(taskId: string): void {
     useSurfaceStore.getState().open(TASK_DETAIL_SURFACE_ID, {
@@ -53,7 +65,12 @@ export function useTasksViewController(): TasksViewController {
   }
 
   function openFilterSheet(): void {
-    useSurfaceStore.getState().open(TASK_FILTER_SHEET_SURFACE_ID, {});
+    useSurfaceStore.getState().open(TASK_FILTER_SHEET_SURFACE_ID, {
+      selectedItemPosition: itemPosition,
+      onApply: (nextItemPosition: string) => {
+        setItemPosition(nextItemPosition);
+      },
+    } satisfies TaskFilterSheetSurfaceProps);
   }
 
   function openSortSheet(): void {}
@@ -85,10 +102,12 @@ export function useTasksViewController(): TasksViewController {
     taskType,
     taskStates,
     q,
+    itemPosition,
     activeFilterCount,
     setTaskType,
     setTaskStates,
     setQ,
+    setItemPosition,
     openTaskDetail,
     openTaskActions,
     openFilterSheet,

@@ -267,11 +267,19 @@ function BatchCard({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
+// Base snap duration written by the scroll-visibility utility (SNAP_DURATION_MS).
+// The stagger delay is expressed as a fraction of the live duration var so it is
+// 0ms during direct finger tracking (duration 0ms) and only kicks in on the snap.
+const SNAP_DURATION_MS = 400;
+
 export const LastActiveStepCard = memo(function LastActiveStepCard({
   forceHidden = false,
+  scrollHideDelayMs = 0,
 }: {
   forceHidden?: boolean;
+  scrollHideDelayMs?: number;
 }): React.JSX.Element {
+  const snapDelayFactor = scrollHideDelayMs / SNAP_DURATION_MS;
   const {
     step,
     vm,
@@ -314,12 +322,11 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
 
   return (
     <div
-      className="pointer-events-none fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)] will-change-transform"
+      className="pointer-events-none fixed left-0 right-0 z-49 bottom-[calc(var(--safe-bottom,0)+3.75rem)] will-change-[transform,opacity]"
       style={{
         transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
         opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-        transition:
-          "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+        transition: `transform var(--scroll-snap-duration, 0ms) ease-out calc(var(--scroll-snap-duration, 0ms) * ${snapDelayFactor}), opacity var(--scroll-snap-duration, 0ms) ease-out calc(var(--scroll-snap-duration, 0ms) * ${snapDelayFactor})`,
         display: forceHidden ? "none" : undefined,
       }}
       aria-hidden={isHidden || forceHidden}

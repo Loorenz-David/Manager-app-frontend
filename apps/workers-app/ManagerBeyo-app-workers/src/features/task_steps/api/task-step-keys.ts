@@ -16,9 +16,11 @@ export const taskStepKeys = {
         major_category: params.major_category,
         readiness_statuses: params.readiness_statuses,
         task_types: params.task_types,
+        item_position: params.item_position,
       },
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>
     [...taskStepKeys.sectionLists(), sectionId] as const,
   userLastActive: () => [...taskStepKeys.all, "user-last-active"] as const,
+  reassignmentAcks: () => [...taskStepKeys.all, "reassignment-acks"] as const,
 };

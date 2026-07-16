@@ -33,6 +33,7 @@
     "@beyo/realtime": "*",
     "@beyo/scanner": "*",
     "@beyo/shopify": "*",
+    "@beyo/stats": "*",
     "@beyo/styles": "*",
     "@beyo/task-notes": "*",
     "@beyo/task-working-sections": "*",

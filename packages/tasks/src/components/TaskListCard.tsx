@@ -18,7 +18,10 @@ import {
 import type { TaskReturnSource, TaskState, TaskType } from "../types";
 
 function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
-  if (Math.abs(days) > 99) {
+  // The countdown pill only shows once ready_by_at is within 7 days
+  // (current date >= ready_by_at - 7 days). The overdue pill (days < 0)
+  // keeps rendering independently, capped at 99 days overdue.
+  if (days > 7 || days < -99) {
     return null;
   }
 

@@ -56,6 +56,11 @@ export type TaskPostHandlingPendingWarningSheetSurfaceProps = {
   onOpenCalendarRangePicker?: (props: CalendarRangeOpenerProps) => void;
 };
 
+export type TaskFilterSheetSurfaceProps = {
+  selectedItemPosition: string;
+  onApply: (itemPosition: string) => void;
+};
+
 export type TaskDetailSurfaceProps = {
   taskId: string;
 };

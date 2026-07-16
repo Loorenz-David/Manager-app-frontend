@@ -7,6 +7,8 @@ import { BottomTabBar } from "@/components/shell/BottomTabBar";
 import {
   LastActiveStepCard,
   LastActiveStepCardProvider,
+  ReassignmentAcknowledgmentPanel,
+  ReassignmentAcknowledgmentsProvider,
 } from "@/features/task_steps";
 import { preloadPrimaryTabRoutes } from "@/lib/primary-tab-preload";
 import { ROUTES } from "@/lib/routes";
@@ -44,23 +46,34 @@ function AppShellInner(): React.JSX.Element {
     <AppScrollElementProvider>
       <TabBadgeCountsProvider>
         <LastActiveStepCardProvider>
-          <div
-            className="flex h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
-            data-testid="app-shell"
-          >
-            <main className="relative flex-1 overflow-hidden" id="main-content">
-              {/* <div className="pointer-events-none absolute right-2 top-2 z-[40] flex items-center gap-2">
-                <div className="pointer-events-auto">
-                  <ConnectionStatus />
-                </div>
-                <NotificationBadge className="pointer-events-auto" />
-              </div> */}
-              <TabOutlet />
-            </main>
-            {/* <RealtimeDebugPanel /> */}
-            <LastActiveStepCard forceHidden={shouldHideLastActiveStepCard} />
-            <BottomTabBar />
-          </div>
+          <ReassignmentAcknowledgmentsProvider>
+            <div
+              className="flex h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
+              data-testid="app-shell"
+            >
+              <main
+                className="relative flex-1 overflow-hidden"
+                id="main-content"
+              >
+                {/* <div className="pointer-events-none absolute right-2 top-2 z-[40] flex items-center gap-2">
+                  <div className="pointer-events-auto">
+                    <ConnectionStatus />
+                  </div>
+                  <NotificationBadge className="pointer-events-auto" />
+                </div> */}
+                <TabOutlet />
+              </main>
+              {/* <RealtimeDebugPanel /> */}
+              <ReassignmentAcknowledgmentPanel
+                forceHidden={shouldHideLastActiveStepCard}
+              />
+              <LastActiveStepCard
+                forceHidden={shouldHideLastActiveStepCard}
+                scrollHideDelayMs={10}
+              />
+              <BottomTabBar />
+            </div>
+          </ReassignmentAcknowledgmentsProvider>
         </LastActiveStepCardProvider>
       </TabBadgeCountsProvider>
     </AppScrollElementProvider>

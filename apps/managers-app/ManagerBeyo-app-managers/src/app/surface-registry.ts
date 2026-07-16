@@ -7,6 +7,7 @@ import { pwaSurfaces } from "@/features/pwa/surfaces";
 import { shopifyIntegrationsSurfaces } from "@/features/shopify-integrations/surfaces";
 import { taskSurfaces } from "@/features/tasks";
 import { taskCreationSurfaces } from "@beyo/task-creation";
+import { workerStatsSurfaces } from "@beyo/stats";
 import { testingFormsSurfaces } from "@/features/testing_forms";
 import { testSurfaces } from "@/features/test_feature";
 import { upholsteryCategorySurfaces } from "@/features/upholstery-category";
@@ -21,6 +22,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...caseSurfaces,
   ...testingFormsSurfaces,
   ...taskCreationSurfaces,
+  ...workerStatsSurfaces,
   ...taskSurfaces,
   ...itemSurfaces,
   ...pendingUpholsterySurfaces,

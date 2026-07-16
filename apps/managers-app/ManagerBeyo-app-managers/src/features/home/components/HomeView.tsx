@@ -9,6 +9,10 @@ import {
 } from "@beyo/images";
 import { CALENDAR_RANGE_PICKER_SURFACE_ID } from "@beyo/task-creation";
 import { usePostHandlingCountsQuery } from "@beyo/tasks";
+import {
+  preloadWorkerStatsSlideSurface,
+  WORKER_STATS_SLIDE_SURFACE_ID,
+} from "@beyo/stats";
 
 import { usePendingSeatCountsQuery } from "@/features/pending-upholstery/api/use-pending-seat-counts-query";
 import { useOrderNeedsCountQuery } from "@/features/upholstery-ordering/api/use-upholstery-ordering-queries";
@@ -27,6 +31,7 @@ import {
 } from "@/features/tasks/surfaces";
 import { UPHOLSTERY_ORDERING_SLIDE_ID } from "@/features/upholstery-ordering";
 import { useSurface } from "@/hooks/use-surface";
+import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import {
   useTaskCountsQuery,
   type QuickTaskAssignSurfaceProps,
@@ -34,10 +39,31 @@ import {
 import ThreadIcon from "@/assets/icons/thread-svgrepo-com.svg?react";
 import ClipboardIcon from "@/assets/icons/ClipboardIcon.svg?react";
 
+function WorkerStatsHomeTrigger(): React.JSX.Element {
+  const surface = useSurface();
+
+  usePreloadSurface(preloadWorkerStatsSlideSurface);
+
+  return (
+    <button
+      className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3.5 text-left text-lg font-medium text-primary shadow-sm disabled:opacity-50"
+      data-testid="home-worker-stats-box"
+      type="button"
+      onClick={() => surface.open(WORKER_STATS_SLIDE_SURFACE_ID, {})}
+      onMouseEnter={() => {
+        void preloadWorkerStatsSlideSurface();
+      }}
+    >
+      <span>Worker stats</span>
+    </button>
+  );
+}
+
 export function HomeView(): React.JSX.Element {
   const { hasRole } = useRole();
   const isSeller = hasRole(AuthRole.Seller);
   const isManager = hasRole(AuthRole.Manager);
+  const isAdmin = hasRole(AuthRole.Admin);
   const countsQuery = usePendingSeatCountsQuery();
   const orderingCountQuery = useOrderNeedsCountQuery();
   const preOrderCountsQuery = useTaskCountsQuery({
@@ -256,6 +282,7 @@ export function HomeView(): React.JSX.Element {
           <PostHandlingIcon aria-hidden="true" className="size-8 shrink-0" />
         </div>
       </button>
+      {isManager || isAdmin ? <WorkerStatsHomeTrigger /> : null}
     </div>
   );
 }

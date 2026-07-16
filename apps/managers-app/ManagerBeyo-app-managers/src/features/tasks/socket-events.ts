@@ -1,5 +1,6 @@
 import { quickTaskKeys } from "@beyo/task-working-sections";
 import type { SocketEventHandlers } from "@beyo/realtime";
+import { workerStatsKeys } from "@beyo/stats";
 import { taskKeys, taskStepKeys } from "@beyo/tasks";
 import type { TaskId } from "@/types/common";
 
@@ -98,6 +99,12 @@ export const taskSocketEvents: SocketEventHandlers = {
     });
     queryClient.invalidateQueries({
       queryKey: taskKeys.details(),
+      refetchType: "active",
+    });
+    // Worker-stats slide shows each worker's last-interacted step + live ticker;
+    // refetch it when it's the open surface. No-op when the slide isn't mounted.
+    queryClient.invalidateQueries({
+      queryKey: workerStatsKeys.all,
       refetchType: "active",
     });
   },

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import { selectUser, useAuthStore } from "@beyo/auth";
+import { AuthRole, selectUser, useAuthStore, useRole } from "@beyo/auth";
 import { generateClientId } from "@beyo/lib";
 import {
   hasMeaningfulNoteContent,
@@ -19,6 +19,7 @@ import {
   useAddTaskStep,
   useGetTaskQuery,
   useRemoveTaskStep,
+  useTransitionTaskStep,
   type AddTaskStepVariables,
   type TaskStepRich,
 } from "@beyo/tasks";
@@ -178,8 +179,11 @@ export function useTaskWorkingSectionsController(
   const workingSectionFlow = useWorkingSectionPickerFlow();
   const addTaskStep = useAddTaskStep(taskId);
   const removeTaskStep = useRemoveTaskStep(taskId);
+  const transitionTaskStep = useTransitionTaskStep(taskId);
   const createTaskNote = useCreateTaskNote();
   const user = useAuthStore(selectUser);
+  const { role } = useRole();
+  const isWorker = role === AuthRole.Worker;
   const [pendingAdds, setPendingAdds] = useState<RecoveredPendingAdd[]>(
     () => clonePendingAdds(init.initialPendingAdds ?? []),
   );
@@ -211,6 +215,24 @@ export function useTaskWorkingSectionsController(
       ),
     [baseTaskSteps, pendingAdds, pendingRemoveIds, pendingReassignments],
   );
+
+  // The current worker's own in-progress step on this task. When a worker
+  // assigns new steps to fellows we pause their own working step (if any) so
+  // their timer stops while the fellows pick up the work.
+  const currentUserId = String(user?.id ?? "");
+  const currentUserWorkingStep = useMemo(() => {
+    if (!currentUserId) {
+      return null;
+    }
+
+    return (
+      baseTaskSteps.find(
+        (step) =>
+          step.assigned_worker_id === currentUserId &&
+          step.state === "working",
+      ) ?? null
+    );
+  }, [baseTaskSteps, currentUserId]);
 
   const hasUnsavedChanges =
     pendingAdds.length > 0 ||
@@ -375,10 +397,17 @@ export function useTaskWorkingSectionsController(
         await removeTaskStep.mutateAsync({ step_ids: pendingRemoveIds });
       }
 
+      const noteContent = recoverySnapshot.recoveredNoteContent ?? null;
+      const stepReason =
+        noteContent && hasMeaningfulNoteContent(noteContent)
+          ? noteContent.plainText
+          : undefined;
+
       for (const pendingAdd of recoverySnapshot.recoveredPendingAdds ?? []) {
         const variables: AddTaskStepVariables = {
           working_section_id: pendingAdd.working_section_id,
           worker_id: pendingAdd.worker_id ?? undefined,
+          reason: stepReason,
           working_section_name_snapshot:
             pendingAdd.working_section_name_snapshot,
           assigned_worker_display_name_snapshot:
@@ -420,10 +449,23 @@ export function useTaskWorkingSectionsController(
           }
         : null;
 
+      // A worker assigning new steps to fellows pauses their own working step
+      // on this task so their timer stops while handing the work over.
+      const shouldPauseOwnStep =
+        isWorker &&
+        currentUserWorkingStep !== null &&
+        (recoverySnapshot.recoveredPendingAdds?.length ?? 0) > 0;
+
       await Promise.all([
         persistPendingSectionChanges(recoverySnapshot),
         notePayload
           ? createTaskNote.mutateAsync({ taskId, notes: [notePayload] })
+          : Promise.resolve(null),
+        shouldPauseOwnStep && currentUserWorkingStep
+          ? transitionTaskStep.mutateAsync({
+              step_id: currentUserWorkingStep.client_id,
+              new_state: "paused",
+            })
           : Promise.resolve(null),
       ]);
 
@@ -447,14 +489,17 @@ export function useTaskWorkingSectionsController(
     closeDiscardSheet,
     closeSlide,
     createTaskNote,
+    currentUserWorkingStep,
     hasUnsavedChanges,
     isSaving,
+    isWorker,
     noteClientId,
     noteDraft,
     persistPendingSectionChanges,
     queryClient,
     surfaceOpeners,
     taskId,
+    transitionTaskStep,
     user?.id,
   ]);
 

@@ -4,6 +4,9 @@ export type {
   NonTerminalStepCounts,
   UserLastActivePayload,
   BatchStepTransitionRequest,
+  ReassignmentStep,
+  ReassignmentAckViewModel,
+  Acknowledgment,
 } from "./types";
 export {
   STEP_TERMINAL_STATES,
@@ -25,9 +28,14 @@ export {
   LastActiveStepCardProvider,
   useLastActiveStepCardContext,
 } from "./providers/LastActiveStepCardProvider";
+export {
+  ReassignmentAcknowledgmentsProvider,
+  useReassignmentAcknowledgmentsContext,
+} from "./providers/ReassignmentAcknowledgmentsProvider";
 export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
 export { BatchSelectableTaskStepCard } from "./components/BatchSelectableTaskStepCard";
 export { LastActiveStepCard } from "./components/LastActiveStepCard";
+export { ReassignmentAcknowledgmentPanel } from "./components/ReassignmentAcknowledgmentPanel";
 export {
   preloadBatchDetailSlideSurface,
   preloadCompleteTaskStepConfirmationSlideSurface,

@@ -29,6 +29,7 @@ export { usePrefetchOnCondition } from "./lib/use-prefetch-on-condition";
 
 export * from "./components/primitives/box-picker";
 export * from "./components/primitives/box-slide-picker";
+export * from "./components/primitives/avatar";
 export * from "./components/primitives/confirm-action-button";
 export * from "./components/primitives/dashed-info-group";
 export * from "./components/primitives/dashed-info-section";

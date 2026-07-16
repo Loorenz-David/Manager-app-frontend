@@ -31,6 +31,16 @@ export type ServerToClientEvents = {
     payload: Array<{ client_id: string; working_section_id: string }>,
   ) => void;
   "task:step-updated": (payload: Array<{ client_id: string }>) => void;
+  "task:step-acknowledgment-created": (payload: {
+    client_id: string;
+    task_id: string;
+    step_ids: string[];
+  }) => void;
+  "task:step-acknowledgment-removed": (payload: {
+    client_id: string;
+    task_id: string;
+    step_ids: string[];
+  }) => void;
   "case:created": (payload: { client_id: string }) => void;
   "case:updated": (payload: { client_id: string }) => void;
   "case:state-changed": (payload: { client_id: string; new_state: string }) => void;

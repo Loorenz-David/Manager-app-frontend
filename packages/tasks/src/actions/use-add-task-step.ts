@@ -9,6 +9,7 @@ export type AddTaskStepVariables = {
   worker_id?: string;
   client_id?: string;
   sequence_order?: number;
+  reason?: string;
   working_section_name_snapshot?: string | null;
   assigned_worker_display_name_snapshot?: string | null;
 };

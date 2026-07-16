@@ -241,6 +241,7 @@ export type ListWorkingSectionStepsParams = {
   major_category?: string;
   readiness_statuses?: string;
   task_types?: string;
+  item_position?: string;
 };
 
 export type TaskStepCardViewModel = {
@@ -371,6 +372,63 @@ export type UserLastActivePayload = {
   step: TaskStep | null;
   batchSteps: TaskStep[] | null;
 };
+
+// ─── Reassignment acknowledgments ─────────────────────────────────────────────
+// The `/pending` payload item is byte-for-byte the resume-card step shape
+// (TaskStepSchema) plus an `acknowledgment` block. Reuse the step schema verbatim.
+
+export const AcknowledgmentSchema = z.object({
+  client_id: z.string(),
+  step_id: TaskStepIdSchema,
+  task_id: TaskIdSchema,
+  reason: z.string().nullable(),
+  worker: UserRefSchema.nullable(),
+  created_by: UserRefSchema.nullable(),
+  first_seen_at: z.string().nullable(),
+  acknowledged_at: z.string().nullable(),
+  created_at: z.string(),
+});
+export type Acknowledgment = z.infer<typeof AcknowledgmentSchema>;
+
+export const ReassignmentStepSchema = TaskStepSchema.extend({
+  acknowledgment: AcknowledgmentSchema,
+});
+export type ReassignmentStep = z.infer<typeof ReassignmentStepSchema>;
+
+export type ReassignmentAckViewModel = {
+  stepId: TaskStepId;
+  taskId: TaskId;
+  articleLabel: string;
+  reason: string | null;
+  firstImageUrl: string | null;
+  firstImageAnnotations: ImageAnnotationViewModel[];
+  firstImageWidthPx: number | null;
+  firstImageHeightPx: number | null;
+  quantityPillLabel: string | null;
+  firstSeenAt: string | null;
+  createdByName: string | null;
+  step: ReassignmentStep;
+};
+
+export function toReassignmentAckViewModel(
+  item: ReassignmentStep,
+): ReassignmentAckViewModel {
+  const card = toTaskStepCardViewModel(item);
+  return {
+    stepId: card.stepId,
+    taskId: card.taskId,
+    articleLabel: card.articleLabel,
+    reason: item.acknowledgment.reason,
+    firstImageUrl: card.firstImageUrl,
+    firstImageAnnotations: card.firstImageAnnotations,
+    firstImageWidthPx: card.firstImageWidthPx,
+    firstImageHeightPx: card.firstImageHeightPx,
+    quantityPillLabel: card.quantityPillLabel,
+    firstSeenAt: item.acknowledgment.first_seen_at,
+    createdByName: item.acknowledgment.created_by?.username ?? null,
+    step: item,
+  };
+}
 
 export type BatchStepTransitionItem = {
   task_id: TaskId;

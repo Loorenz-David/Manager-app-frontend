@@ -1,7 +1,6 @@
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { IncompleteDependencyViewModel } from "./types";
 import type {
-  MajorCategory,
   ListWorkingSectionStepsParams,
   ReadinessStatus,
   StepState,
@@ -96,14 +95,14 @@ export type UpholsterySelectionMissingSheetSurfaceProps = {
 
 export type StepStateFilterSheetSurfaceProps = {
   selectedStates: StepState[];
-  selectedMajorCategories: MajorCategory[];
   selectedReadinessStatuses: ReadinessStatus[];
   selectedTaskTypes: TaskType[];
+  selectedItemPosition: string;
   onApply: (
     states: StepState[],
-    majorCategories: MajorCategory[],
     readinessStatuses: ReadinessStatus[],
     taskTypes: TaskType[],
+    itemPosition: string,
   ) => void;
 };
 

@@ -107,6 +107,7 @@ export {
 } from "./lib/step-state-variants";
 export type { StepState } from "./lib/step-state-variants";
 
+export { ItemPositionFilterField } from "./components/filter-fields/ItemPositionFilterField";
 export { TaskFlowTimeline } from "./components/TaskFlowTimeline";
 export { TaskListCard } from "./components/TaskListCard";
 export { TasksHeader } from "./components/TasksHeader";
@@ -175,12 +176,16 @@ export type { GetTaskResult } from "./api/get-task";
 export { useGetTaskQuery } from "./api/use-get-task-query";
 export { addTaskStep } from "./api/add-task-step";
 export { removeTaskStep } from "./api/remove-task-step";
+export { transitionTaskStep } from "./api/transition-task-step";
+export type { TransitionTaskStepInput } from "./api/transition-task-step";
 
 export { useAddTaskStep } from "./actions/use-add-task-step";
 export type { AddTaskStepVariables } from "./actions/use-add-task-step";
 export { useCreateItemUpholstery } from "./actions/use-create-item-upholstery";
 export { useDeleteTask } from "./actions/use-delete-task";
 export { useRemoveTaskStep } from "./actions/use-remove-task-step";
+export { useTransitionTaskStep } from "./actions/use-transition-task-step";
+export type { TransitionTaskStepVariables } from "./actions/use-transition-task-step";
 export { useResolveTask } from "./actions/use-resolve-task";
 export { useSetItemUpholsteryAmount } from "./actions/use-set-item-upholstery-amount";
 export { useUpdateItem } from "./actions/use-update-item";
