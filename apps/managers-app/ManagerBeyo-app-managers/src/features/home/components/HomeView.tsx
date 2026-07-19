@@ -1,6 +1,6 @@
 import { RotateCcw, ShoppingBag } from "lucide-react";
 
-import { PostHandlingIcon } from "@beyo/assets";
+import { PostHandlingIcon, StatsIcon } from "@beyo/assets";
 import { AuthRole, useRole } from "@beyo/auth";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -12,6 +12,7 @@ import { usePostHandlingCountsQuery } from "@beyo/tasks";
 import {
   preloadWorkerStatsSlideSurface,
   WORKER_STATS_SLIDE_SURFACE_ID,
+  type WorkerStatsSlideSurfaceProps,
 } from "@beyo/stats";
 
 import { usePendingSeatCountsQuery } from "@/features/pending-upholstery/api/use-pending-seat-counts-query";
@@ -49,12 +50,23 @@ function WorkerStatsHomeTrigger(): React.JSX.Element {
       className="flex items-center gap-2 rounded-2xl bg-card px-4 py-3.5 text-left text-lg font-medium text-primary shadow-sm disabled:opacity-50"
       data-testid="home-worker-stats-box"
       type="button"
-      onClick={() => surface.open(WORKER_STATS_SLIDE_SURFACE_ID, {})}
+      onClick={() =>
+        surface.open(WORKER_STATS_SLIDE_SURFACE_ID, {
+          surfaceOpeners: {
+            openCalendarRangePicker: (props) => {
+              surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props);
+            },
+          },
+        } satisfies WorkerStatsSlideSurfaceProps)
+      }
       onMouseEnter={() => {
         void preloadWorkerStatsSlideSurface();
       }}
     >
       <span>Worker stats</span>
+      <div className="ml-auto flex">
+        <StatsIcon className="size-8 shrink-0" />
+      </div>
     </button>
   );
 }

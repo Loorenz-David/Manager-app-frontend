@@ -3,6 +3,8 @@ import { createContext, useContext, useState, type ReactNode } from "react";
 import { useAuthStore, selectUser } from "@beyo/auth";
 import { generateClientId } from "@beyo/lib";
 
+import type { TaskCreationCallbacks } from "../surfaces";
+
 type TaskCreationFormContextValue = {
   taskClientId: string;
   itemClientId: string;
@@ -10,6 +12,7 @@ type TaskCreationFormContextValue = {
   noteClientId: string;
   currentUserClientId: string;
   regenerateIds: () => void;
+  callbacks: TaskCreationCallbacks;
 };
 
 const TaskCreationFormContext =
@@ -17,10 +20,12 @@ const TaskCreationFormContext =
 
 type TaskCreationFormProviderProps = {
   children: ReactNode;
+  callbacks?: TaskCreationCallbacks;
 };
 
 export function TaskCreationFormProvider({
   children,
+  callbacks,
 }: TaskCreationFormProviderProps): React.JSX.Element {
   const user = useAuthStore(selectUser);
   const currentUserClientId = String(user?.id ?? "");
@@ -54,6 +59,7 @@ export function TaskCreationFormProvider({
         noteClientId,
         currentUserClientId,
         regenerateIds,
+        callbacks: callbacks ?? {},
       }}
     >
       {children}

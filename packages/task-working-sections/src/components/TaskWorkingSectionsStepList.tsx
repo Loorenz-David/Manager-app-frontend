@@ -1,4 +1,4 @@
-import { ContentCard, ImagePlaceholder, StatePill } from "@beyo/ui";
+import { BackendImage, ContentCard, ImagePlaceholder, StatePill } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { useTaskWorkingSectionsContext } from "../providers/TaskWorkingSectionsProvider";
@@ -58,23 +58,19 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
                 controller.handleSectionPress(entry.section.client_id)
               }
             >
-              {entry.section.image ? (
-                <div className="w-20 shrink-0 overflow-hidden">
-                  <img
-                    alt=""
-                    aria-hidden="true"
-                    className="size-full object-cover"
-                    src={entry.section.image}
-                  />
-                </div>
-              ) : (
-                <div className="w-20 shrink-0 overflow-hidden">
-                  <ImagePlaceholder
-                    className="bg-transparent"
-                    iconClassName="size-5 opacity-50"
-                  />
-                </div>
-              )}
+              <div className="w-20 shrink-0 overflow-hidden">
+                <BackendImage
+                  aria-hidden="true"
+                  className="size-full object-cover"
+                  fallback={
+                    <ImagePlaceholder
+                      className="bg-transparent"
+                      iconClassName="size-5 opacity-50"
+                    />
+                  }
+                  src={entry.section.image}
+                />
+              </div>
 
               <div className="flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
                 <div className="min-w-0 flex-1">
@@ -100,24 +96,22 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
                           : "text-muted-foreground",
                       )}
                     >
-                      {entry.assignedMember.profile_picture ? (
-                        <img
-                          alt=""
-                          aria-hidden="true"
-                          className="size-4 shrink-0 rounded-full object-cover"
-                          src={entry.assignedMember.profile_picture}
-                        />
-                      ) : (
-                        <div
-                          aria-hidden="true"
-                          className={cn(
-                            "size-4 shrink-0 rounded-full",
-                            entry.isActive
-                              ? "bg-[var(--color-card)]/20"
-                              : "bg-muted",
-                          )}
-                        />
-                      )}
+                      <BackendImage
+                        aria-hidden="true"
+                        className="size-4 shrink-0 rounded-full object-cover"
+                        fallback={
+                          <div
+                            aria-hidden="true"
+                            className={cn(
+                              "size-4 shrink-0 rounded-full",
+                              entry.isActive
+                                ? "bg-[var(--color-card)]/20"
+                                : "bg-muted",
+                            )}
+                          />
+                        }
+                        src={entry.assignedMember.profile_picture}
+                      />
                       <span className="truncate">
                         {entry.assignedMember.username}
                       </span>

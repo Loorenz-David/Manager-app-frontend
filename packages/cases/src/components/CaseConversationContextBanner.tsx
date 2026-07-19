@@ -1,3 +1,4 @@
+import { BackendImage } from "@beyo/ui";
 import { ImagePlaceholder } from "@beyo/ui";
 import { useScrollVisibilityContext } from "@beyo/ui";
 import { cn } from "@beyo/lib";
@@ -52,21 +53,16 @@ export function CaseConversationContextBanner(): React.JSX.Element | null {
         <div className="flex w-full items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md bg-card/10">
-              {caseTypeImageUrl ? (
-                <img
-                  alt=""
-                  className="size-full object-cover"
-                  decoding="async"
-                  draggable={false}
-                  loading="lazy"
-                  src={caseTypeImageUrl}
-                />
-              ) : (
-                <ImagePlaceholder
-                  className="bg-transparent"
-                  iconClassName="size-4 text-card/70"
-                />
-              )}
+              <BackendImage
+                className="size-full object-cover"
+                fallback={
+                  <ImagePlaceholder
+                    className="bg-transparent"
+                    iconClassName="size-4 text-card/70"
+                  />
+                }
+                src={caseTypeImageUrl}
+              />
             </div>
 
             <p className="truncate text-lg font-semibold">{caseTypeName}</p>

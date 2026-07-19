@@ -1,18 +1,29 @@
 import { useEffect, useState } from "react";
 
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
 
 import { ItemPositionFilterField } from "../components/filter-fields/ItemPositionFilterField";
 import type { TaskFilterSheetSurfaceProps } from "../surface-ids";
 
+const GROUP_BY_UPHOLSTERY_OPTIONS: BoxPickerOptionType<"on">[] = [
+  {
+    value: "on",
+    label: "Group by upholstery",
+    testId: "task-filter-group-upholstery",
+  },
+];
+
 export function TaskFilterSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
-  const { selectedItemPosition, onApply } =
+  const { selectedItemPosition, groupByUpholstery, onApply } =
     useSurfaceProps<TaskFilterSheetSurfaceProps>();
   const [localItemPosition, setLocalItemPosition] = useState<string>(
     selectedItemPosition ?? "",
   );
+  const [localGroupByUpholstery, setLocalGroupByUpholstery] =
+    useState<boolean>(groupByUpholstery ?? false);
 
   useEffect(() => {
     header?.setTitle("Filters");
@@ -29,7 +40,7 @@ export function TaskFilterSheetPage(): React.JSX.Element {
   }
 
   function handleApply() {
-    onApply?.(localItemPosition.trim());
+    onApply?.(localItemPosition.trim(), localGroupByUpholstery);
     closeSheet();
   }
 
@@ -41,6 +52,17 @@ export function TaskFilterSheetPage(): React.JSX.Element {
       <ItemPositionFilterField
         value={localItemPosition}
         onChange={setLocalItemPosition}
+      />
+
+      <BoxPicker
+        layout="stack"
+        data-testid="task-filter-group-upholstery-picker"
+        mode="multiple"
+        onValueChange={(values) =>
+          setLocalGroupByUpholstery(values.includes("on"))
+        }
+        options={GROUP_BY_UPHOLSTERY_OPTIONS}
+        value={localGroupByUpholstery ? ["on"] : []}
       />
 
       <button

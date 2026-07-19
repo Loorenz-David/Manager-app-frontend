@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BoxPicker, ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, BoxPicker, ImagePlaceholder } from "@beyo/ui";
 import { humanizeStepState } from "@beyo/tasks";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import type { PinTaskStepStatesSheetSurfaceProps } from "@/features/task_steps/surface-ids";
@@ -32,17 +32,13 @@ export function PinTaskStepStatesSheetPage(): React.JSX.Element {
     >
       <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
         <div className="size-14 shrink-0 overflow-hidden rounded-lg ">
-          {props.imageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              src={props.imageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
+            }
+            src={props.imageUrl}
+          />
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-foreground">

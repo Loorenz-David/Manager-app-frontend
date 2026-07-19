@@ -1,4 +1,5 @@
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 
 import { useInventoryDetailContext } from "../providers/InventoryDetailProvider";
 
@@ -11,20 +12,15 @@ export function InventoryDetailHeader(): React.JSX.Element | null {
 
   return (
     <div className="flex items-center gap-3 px-4 py-3">
-      {detail.imageUrl ? (
-        <img
-          alt=""
-          className="size-12 shrink-0 rounded-full object-cover"
-          decoding="async"
-          draggable={false}
-          loading="lazy"
-          src={detail.imageUrl}
-        />
-      ) : (
-        <div className="size-12 shrink-0 overflow-hidden rounded-full bg-muted">
-          <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
-        </div>
-      )}
+      <BackendImage
+        className="size-12 shrink-0 rounded-full object-cover"
+        fallback={
+          <div className="size-12 shrink-0 overflow-hidden rounded-full bg-muted">
+            <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
+          </div>
+        }
+        src={detail.imageUrl}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">

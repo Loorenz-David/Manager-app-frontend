@@ -10,6 +10,12 @@ import { toImageAnnotationViewModel, type ImageViewModel } from "@beyo/images";
 import type { StatePillVariant } from "@beyo/ui";
 
 import { formatHHmm, secondsToHM } from "./format-duration";
+import {
+  appliesFill,
+  DEFAULT_FILL_MODE,
+  fillToSeconds,
+  type TimeFillMode,
+} from "./time-quality";
 import type {
   DailyStepImage,
   WorkerDailyStep,
@@ -25,10 +31,16 @@ const INTENTION_STEP_STATE: Record<WorkerGranularityIntention, StepState> = {
 };
 
 // Static text, or a live-ticking interval (HH:MM:SS) when the step has an open
-// record whose state matches the active intention.
+// record whose state matches the active intention. Active steps share real time
+// across the currently displayed steps in that state.
 export type GranularityTimeModel =
   | { kind: "static"; text: string }
-  | { kind: "ticking"; offsetSeconds: number; startedAtIso: string };
+  | {
+      kind: "ticking";
+      offsetSeconds: number;
+      startedAtIso: string;
+      ratePerSecond: number;
+    };
 
 export type WorkerDailyStepCardViewModel = {
   stepId: string;
@@ -45,6 +57,14 @@ export type WorkerDailyStepCardViewModel = {
   stateLabel: string;
   stateVariant: StatePillVariant;
   time: GranularityTimeModel;
+  // Step flagged as inaccurately timed. Its displayed working/paused time is
+  // trusted contribution + the estimated fill for the selected mode.
+  isTimeInaccurate: boolean;
+  // Badge copy for a flagged step, or null when not flagged. "Estimated" only
+  // when time was actually added — under the `none` mode, or when the backend
+  // suppressed a thin estimate to 0, the honest label is "Flagged": the shown
+  // time is trusted-only and therefore incomplete, not estimated.
+  inaccurateBadgeLabel: string | null;
 };
 
 function toImageViewModel(
@@ -83,18 +103,42 @@ function toImageViewModel(
   };
 }
 
+// Estimated seconds this step's displayed time should absorb under `mode`.
+// Zero for unflagged steps, for the `completed` intention, and under `none`.
+// A real strategy can also legitimately resolve to 0 — the backend suppresses
+// the fill when fewer than 4 trusted samples back it.
+function resolveFill(
+  step: WorkerDailyStep,
+  intention: WorkerGranularityIntention,
+  mode: TimeFillMode,
+): number {
+  if (!step.is_time_inaccurate || intention === "completed" || !appliesFill(mode)) {
+    return 0;
+  }
+
+  return fillToSeconds(
+    intention === "working"
+      ? step.estimated_fill_by_strategy.working[mode]
+      : step.estimated_fill_by_strategy.paused[mode],
+  );
+}
+
 function resolveTime(
   step: WorkerDailyStep,
   intention: WorkerGranularityIntention,
+  activeStepCount: number,
+  fill: number,
 ): GranularityTimeModel {
   if (intention === "completed") {
     return { kind: "static", text: formatHHmm(step.last_completed_at) };
   }
 
+  // Flagged steps contribute trusted-only seconds (usually 0); `fill` is their
+  // estimated replacement. `wasted` never enters.
   const settledSeconds =
-    intention === "working"
+    (intention === "working"
       ? step.contribution.working_seconds
-      : step.contribution.pause_seconds;
+      : step.contribution.pause_seconds) + fill;
 
   const isOpenForIntention = step.active_record?.state === intention;
 
@@ -103,6 +147,7 @@ function resolveTime(
       kind: "ticking",
       offsetSeconds: settledSeconds,
       startedAtIso: step.active_record.entered_at,
+      ratePerSecond: 1 / Math.max(1, activeStepCount),
     };
   }
 
@@ -112,6 +157,8 @@ function resolveTime(
 export function toWorkerDailyStepCardViewModel(
   step: WorkerDailyStep,
   intention: WorkerGranularityIntention,
+  activeStepCount = 1,
+  mode: TimeFillMode = DEFAULT_FILL_MODE,
 ): WorkerDailyStepCardViewModel {
   const item = step.item;
   const itemId = item?.client_id ?? null;
@@ -132,6 +179,8 @@ export function toWorkerDailyStepCardViewModel(
     : (step.working_section_name_snapshot ?? null);
 
   const pillState = INTENTION_STEP_STATE[intention];
+  const fill = resolveFill(step, intention, mode);
+  const time = resolveTime(step, intention, activeStepCount, fill);
 
   return {
     stepId: step.client_id,
@@ -145,8 +194,15 @@ export function toWorkerDailyStepCardViewModel(
     typeLabel: step.task ? TASK_TYPE_LABEL[step.task.task_type] : "—",
     detailLabel,
     taskType: step.task?.task_type ?? null,
-    stateLabel: humanizeStepState(pillState),
+    stateLabel:
+      intention === "working" && time.kind !== "ticking"
+        ? "Worked"
+        : humanizeStepState(pillState),
     stateVariant: STEP_STATE_VARIANT[pillState],
-    time: resolveTime(step, intention),
+    time,
+    isTimeInaccurate: step.is_time_inaccurate,
+    inaccurateBadgeLabel: step.is_time_inaccurate
+      ? (fill > 0 ? "Estimated" : "Flagged")
+      : null,
   };
 }

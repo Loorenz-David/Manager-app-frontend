@@ -4,7 +4,7 @@ import { Calendar, Check, ShoppingBag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn, daysUntil } from "@beyo/lib";
-import { ImagePlaceholder, StatePill } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, StatePill } from "@beyo/ui";
 import type { StatePillVariant } from "@beyo/ui";
 
 import {
@@ -140,18 +140,13 @@ export const TaskListCard = memo(function TaskListCard({
           type="button"
           onClick={() => onTapImage?.(taskId)}
         >
-          {imageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="lazy"
-              src={imageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+            }
+            src={imageUrl}
+          />
 
           {quantityPillLabel ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">

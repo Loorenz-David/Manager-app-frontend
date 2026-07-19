@@ -131,6 +131,7 @@ export function InternalFormContent(): React.JSX.Element {
     noteClientId,
     currentUserClientId,
     regenerateIds,
+    callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const createImagesFromUrl = useCreateImagesFromUrl();
@@ -305,7 +306,11 @@ export function InternalFormContent(): React.JSX.Element {
           currentUserClientId,
         });
 
-        await createTask.mutateAsync(payload);
+        const result = await createTask.mutateAsync(payload);
+        callbacks.onTaskCreated?.({
+          result,
+          hadUpholstery: Boolean(payload.item_upholstery),
+        });
         form.reset({
               item: {
                 designer: "",

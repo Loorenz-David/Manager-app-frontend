@@ -5,28 +5,43 @@ import {
 
 import { fetchWorkerDailySteps } from "./fetch-worker-daily-steps";
 import { workerStatsKeys } from "./worker-stats-keys";
-import type { WorkerGranularityIntention } from "../types";
+import type { TimeStrategy, WorkerGranularityIntention } from "../types";
 
 const PAGE_LIMIT = 50;
 
 export type UseWorkerDailyStepsQueryInput = {
   userId: string;
   intention: WorkerGranularityIntention;
-  workDate?: string;
+  dateFrom: string;
+  dateTo: string;
+  timeStrategy?: TimeStrategy;
+  onlyInaccurate?: boolean;
 };
 
 export function useWorkerDailyStepsQuery({
   userId,
   intention,
-  workDate,
+  dateFrom,
+  dateTo,
+  timeStrategy,
+  onlyInaccurate,
 }: UseWorkerDailyStepsQueryInput) {
   const query = useInfiniteQuery({
-    queryKey: workerStatsKeys.dailyStepsList(userId, { intention, workDate }),
+    queryKey: workerStatsKeys.dailyStepsList(userId, {
+      intention,
+      dateFrom,
+      dateTo,
+      timeStrategy,
+      onlyInaccurate,
+    }),
     queryFn: ({ pageParam }) =>
       fetchWorkerDailySteps({
         userId,
         intention,
-        workDate,
+        dateFrom,
+        dateTo,
+        timeStrategy,
+        onlyInaccurate,
         limit: PAGE_LIMIT,
         offset: pageParam,
       }),

@@ -1,6 +1,8 @@
 import { ChevronRight, Tag } from "lucide-react";
 import { useFormContext, useWatch } from "react-hook-form";
 
+import { BackendImage } from "@beyo/ui";
+
 import { useCaseCreationFormContext } from "../providers/CaseCreationFormProvider";
 import type { CaseCreationFormValues } from "../types";
 
@@ -38,21 +40,19 @@ export function CaseTypePickerTriggerField(): React.JSX.Element {
       >
         {selectedCaseType ? (
           <>
-            {selectedCaseType.imageUrl ? (
-              <img
-                src={selectedCaseType.imageUrl}
-                alt=""
-                aria-hidden="true"
-                className="size-10 shrink-0 rounded-lg object-contain"
-              />
-            ) : (
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-lg">
-                <Tag
-                  className="size-5 text-muted-foreground"
-                  aria-hidden="true"
-                />
-              </span>
-            )}
+            <BackendImage
+              aria-hidden="true"
+              className="size-10 shrink-0 rounded-lg object-contain"
+              fallback={
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg">
+                  <Tag
+                    className="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                </span>
+              }
+              src={selectedCaseType.imageUrl}
+            />
 
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-medium text-foreground">

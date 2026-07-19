@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { RefreshCcw, X } from "lucide-react";
 
+import { BackendImage } from "@beyo/ui";
+
 import { useCaseConversationContext } from "../../providers/CaseConversationProvider";
 import { useEntityImagesContext } from "@beyo/images";
 import { ImageAddPictureButton } from "@beyo/images";
@@ -43,13 +45,7 @@ function AttachmentTile({
           }}
           type="button"
         >
-          <img
-            alt=""
-            className="size-full object-cover"
-            draggable={false}
-            loading="lazy"
-            src={displayUrl}
-          />
+          <BackendImage className="size-full object-cover" src={displayUrl} />
         </button>
 
         <ImageAnnotationSvgLayer

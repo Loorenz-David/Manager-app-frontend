@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { getUpholsteryImageUrl } from "@beyo/upholstery";
 
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 
 import type { InventoryListCardViewModel } from "../types";
 
@@ -37,18 +38,13 @@ export const InventoryListCard = memo(function InventoryListCard({
         type="button"
         onClick={() => onTapCard(card.inventoryId)}
       >
-        {thumbnailUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={thumbnailUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          }
+          src={thumbnailUrl}
+        />
       </button>
 
       <div

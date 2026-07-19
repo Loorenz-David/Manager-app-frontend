@@ -6,6 +6,7 @@ import {
   type ImageAnnotationViewModel,
 } from "@beyo/images";
 import {
+  BackendImage,
   ImagePlaceholder,
   TickingTimer,
   useScrollVisibilityContext,
@@ -58,18 +59,14 @@ const CardThumbnail = memo(function CardThumbnail({
         onTap();
       }}
     >
-      {src ? (
-        <img
-          alt=""
-          className="size-full object-cover"
-          decoding="async"
-          draggable={false}
-          loading="eager"
-          src={src}
-        />
-      ) : (
-        <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
-      )}
+      <BackendImage
+        className="size-full object-cover"
+        fallback={
+          <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
+        }
+        loading="eager"
+        src={src}
+      />
       <ImageAnnotationSvgLayer
         annotations={annotations}
         coverMode
@@ -211,18 +208,14 @@ function BatchCard({
       {/* Thumbnail of first batch step */}
       {firstVm ? (
         <div className="relative aspect-square w-18 shrink-0 overflow-hidden rounded-tl-2xl bg-primary-foreground/10">
-          {firstVm.firstImageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="eager"
-              src={firstVm.firstImageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
+            }
+            loading="eager"
+            src={firstVm.firstImageUrl}
+          />
         </div>
       ) : null}
 

@@ -4,6 +4,7 @@ import { ChevronRight } from "lucide-react";
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
 import { useSurface } from "@/hooks/use-surface";
 import { IMAGE_VIEWER_SURFACE_ID } from "@beyo/images";
+import { BackendImage } from "@beyo/ui";
 import {
   RETURN_SOURCE_LABEL,
   TASK_STATE_VARIANT,
@@ -107,17 +108,13 @@ export function CaseTaskInfoCard({
           handleOpenImage();
         }}
       >
-        {imageUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            src={imageUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          }
+          src={imageUrl}
+        />
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">

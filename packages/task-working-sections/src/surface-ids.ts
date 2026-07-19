@@ -36,6 +36,9 @@ export type TaskWorkingSectionsSurfaceOpeners = {
   reopenSlideAfterError?: (props: TaskWorkingSectionsSurfaceProps) => void;
   preloadWorkerPickerSurface?: () => Promise<unknown>;
   onSaveComplete?: (taskId: string, appliedAdds: RecoveredPendingAdd[]) => number;
+  // Called after the item position is persisted, so the app can refresh any
+  // app-owned caches keyed by data the package cannot reach.
+  onItemPositionSaved?: (itemId: string) => void;
 };
 
 export type TaskWorkingSectionsSurfaceProps = {
@@ -45,6 +48,7 @@ export type TaskWorkingSectionsSurfaceProps = {
   recoveredPendingReassignments?: RecoveredPendingReassignment[];
   recoveredNoteClientId?: string;
   recoveredNoteContent?: TaskNoteComposerValue | null;
+  recoveredItemPosition?: string | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
 };
 
@@ -57,6 +61,7 @@ export type TaskWorkingSectionsReassignSlideSurfaceProps = {
   recoveredPendingReassignments?: RecoveredPendingReassignment[];
   recoveredNoteClientId?: string;
   recoveredNoteContent?: TaskNoteComposerValue | null;
+  recoveredItemPosition?: string | null;
 };
 
 export type QuickTaskAssignSurfaceOpeners = {

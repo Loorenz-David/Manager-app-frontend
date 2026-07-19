@@ -50,18 +50,53 @@ export const WorkerLastStepSchema = z.object({
 });
 export type WorkerLastStep = z.infer<typeof WorkerLastStepSchema>;
 
+// ── Inaccurate-time estimation ──────────────────────────────────────────────
+// See docs/handoff/from_backend/HANDOFF_TO_FRONTEND_worker_stats_inaccurate_time_estimation_20260718.md
+// Three alternatives for the same time: `trusted` (persisted, step not flagged),
+// `wasted` (persisted time from flagged steps — diagnostic only, NEVER added to
+// trusted), and `estimated_fill` (a modelled replacement for the flagged steps).
+// The manager-facing usable number is `trusted + estimated_fill`; `wasted` and
+// `estimated_fill` are never summed together.
+
+export const TIME_STRATEGIES = ["mean", "median", "iqr"] as const;
+export type TimeStrategy = (typeof TIME_STRATEGIES)[number];
+export const TimeStrategySchema = z.enum(TIME_STRATEGIES);
+
+// Per-state alternatives. `estimated_fill` is a float (seconds), not an int.
+export const TimeQualityStateSchema = z.object({
+  trusted: z.number().int(),
+  wasted: z.number().int(),
+  inaccurate_step_count: z.number().int(),
+  estimated_fill: z.number(),
+});
+export type TimeQualityState = z.infer<typeof TimeQualityStateSchema>;
+
+export const TimeQualitySchema = z.object({
+  strategy: TimeStrategySchema,
+  working: TimeQualityStateSchema,
+  paused: TimeQualityStateSchema,
+});
+export type TimeQuality = z.infer<typeof TimeQualitySchema>;
+
+// The roster/breakdown daily stats are summed over an inclusive [date_from,
+// date_to] range. `work_date` is the legacy single-day key, kept optional so an
+// older payload still parses. `time_quality` is additive.
 export const DailyStatsSchema = z.object({
-  work_date: z.string(),
+  work_date: z.string().optional(),
+  date_from: z.string().optional(),
+  date_to: z.string().optional(),
   total_working_seconds: z.number().int(),
   total_pause_seconds: z.number().int(),
+  total_ended_shift_seconds: z.number().int().optional(),
   total_completed_count: z.number().int(),
+  time_quality: TimeQualitySchema.optional(),
 });
 export type DailyStats = z.infer<typeof DailyStatsSchema>;
 
 // Summed running time of the worker's currently-open intervals, on top of the
 // settled `daily_stats`/`totals` (which exclude in-progress time). Live total =
-// settled + running; tick locally by advancing each metric by
-// `open_count × (now − as_of)`. All-zero for past days / nothing open.
+// settled + running; tick locally by advancing each metric at real time while
+// any interval for that state is open. All-zero for past days / nothing open.
 // See docs/handoff/from_backend/HANDOFF_TO_FRONTEND_worker_stats_running_live_totals_20260716.md
 export const RunningTotalsSchema = z.object({
   working_seconds: z.number().int(),
@@ -107,16 +142,26 @@ export const WorkerInsightSchema = z.object({
 });
 export type WorkerInsight = z.infer<typeof WorkerInsightSchema>;
 
-export const WorkerStatsRowSchema = z.object({
+export const WorkerLastStepRowSchema = z.object({
   user: WorkerStatsUserSchema,
   last_interacted_step: WorkerLastStepSchema.nullable(),
   batch: z.unknown().nullable(),
+});
+export type WorkerLastStepRow = z.infer<typeof WorkerLastStepRowSchema>;
+
+export const WorkerTotalsRowSchema = z.object({
+  user: WorkerStatsUserSchema,
   daily_stats: DailyStatsSchema,
   // Always present per the running-live-totals contract; defaulted for resilience.
   running: RunningTotalsSchema.optional().default(ZERO_RUNNING_TOTALS),
+});
+export type WorkerTotalsRow = z.infer<typeof WorkerTotalsRowSchema>;
+
+export const WorkerInsightsRowSchema = z.object({
+  user: WorkerStatsUserSchema,
   insights: z.array(WorkerInsightSchema).default([]),
 });
-export type WorkerStatsRow = z.infer<typeof WorkerStatsRowSchema>;
+export type WorkerInsightsRow = z.infer<typeof WorkerInsightsRowSchema>;
 
 export const WorkerStatsPaginationSchema = z.object({
   has_more: z.boolean(),
@@ -125,18 +170,66 @@ export const WorkerStatsPaginationSchema = z.object({
   total: z.number().int(),
 });
 
-export const WorkerStatsResponseSchema = ApiEnvelopeSchema(
+export const WorkerLastStepsResponseSchema = ApiEnvelopeSchema(
   z.object({
-    workers: z.array(WorkerStatsRowSchema),
+    workers: z.array(WorkerLastStepRowSchema),
     workers_pagination: WorkerStatsPaginationSchema,
   }),
 );
-export type WorkerStatsResponse = z.infer<typeof WorkerStatsResponseSchema>;
+export type WorkerLastStepsResponse = z.infer<
+  typeof WorkerLastStepsResponseSchema
+>;
 
-export type ListWorkerStatsParams = {
+export const WorkerTotalsResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    workers: z.array(WorkerTotalsRowSchema),
+    workers_pagination: WorkerStatsPaginationSchema,
+  }),
+);
+export type WorkerTotalsResponse = z.infer<typeof WorkerTotalsResponseSchema>;
+
+export const WorkerInsightsResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    workers: z.array(WorkerInsightsRowSchema),
+    workers_pagination: WorkerStatsPaginationSchema,
+  }),
+);
+export type WorkerInsightsResponse = z.infer<
+  typeof WorkerInsightsResponseSchema
+>;
+
+export type WorkerStatsDateRange = {
+  from: string;
+  to: string;
+};
+
+// Keep the backend's range parameter names in one place.
+export const WORK_DATE_RANGE_PARAMS = {
+  from: "date_from",
+  to: "date_to",
+} as const;
+
+type WorkerStatsPaginationParams = {
   limit?: number;
   offset?: number;
 };
+
+export type ListWorkerLastStepsParams = WorkerStatsPaginationParams & {
+  workDate?: string;
+};
+
+export type ListWorkerTotalsParams = WorkerStatsPaginationParams & {
+  dateFrom?: string;
+  dateTo?: string;
+  // Selects which statistic backs `daily_stats.time_quality.*.estimated_fill`.
+  // Omitted → backend defaults to `mean`.
+  timeStrategy?: TimeStrategy;
+};
+
+export type ListWorkerInsightsParams = WorkerStatsPaginationParams & {
+  workDate?: string;
+};
+
 
 // ── Worker daily-step granularity drill-down ────────────────────────────────
 // GET /api/v1/worker-stats/{user_id}/daily-steps
@@ -150,9 +243,14 @@ export const WORKER_GRANULARITY_INTENTIONS = [
 export type WorkerGranularityIntention =
   (typeof WORKER_GRANULARITY_INTENTIONS)[number];
 
-// The intention is sent to the backend as `sort_by`. `working`/`paused` order
-// by that metric's contribution (biggest first); `completed` filters to steps
-// completed that day, ordered by completion time (newest first).
+// The intention is sent to the backend as `sort_by`. All three both FILTER and
+// order: each lists only steps contributing to that metric (a zero-contribution
+// step would render as a 0h 0m card), ordered by it. `working`/`paused` sort by
+// that metric's contribution (biggest first); `completed` by completion time
+// (newest first). Two deliberate inclusions the backend keeps: a step live in
+// that state with zero settled time, and — under `working` only — steps flagged
+// inaccurate, whose trusted contribution is 0 but whose time lives in
+// `wasted`/`estimated_fill_by_strategy`.
 export const INTENTION_SORT_BY: Record<WorkerGranularityIntention, string> = {
   working: "working",
   paused: "paused",
@@ -212,6 +310,40 @@ export const DailyStepImageSchema = z.object({
 });
 export type DailyStepImage = z.infer<typeof DailyStepImageSchema>;
 
+// Per-state estimated fill for a single flagged step, one value per strategy.
+export const EstimatedFillByStrategySchema = z.object({
+  mean: z.number(),
+  median: z.number(),
+  iqr: z.number(),
+});
+export type EstimatedFillByStrategy = z.infer<
+  typeof EstimatedFillByStrategySchema
+>;
+
+export const StepEstimatedFillSchema = z.object({
+  working: EstimatedFillByStrategySchema,
+  paused: EstimatedFillByStrategySchema,
+  ended_shift: EstimatedFillByStrategySchema,
+});
+export type StepEstimatedFill = z.infer<typeof StepEstimatedFillSchema>;
+
+// One flagged state interval behind a step's `wasted` time — the diagnostic
+// detail a manager can open to see *which* records were marked wrong.
+export const InaccurateRecordSchema = z.object({
+  record_id: z.string(),
+  state: z.enum(["working", "paused", "ended_shift"]),
+  entered_at: z.string(),
+  exited_at: z.string().nullable(),
+  wasted_seconds: z.number(),
+});
+export type InaccurateRecord = z.infer<typeof InaccurateRecordSchema>;
+
+const ZERO_FILL_BY_STRATEGY: EstimatedFillByStrategy = {
+  mean: 0,
+  median: 0,
+  iqr: 0,
+};
+
 export const WorkerDailyStepSchema = z.object({
   client_id: z.string(),
   task_id: z.string(),
@@ -220,7 +352,22 @@ export const WorkerDailyStepSchema = z.object({
   task: DailyStepTaskLightSchema.optional().default(null),
   item: DailyStepItemLightSchema.optional().default(null),
   item_images: z.array(DailyStepImageSchema).default([]),
+  // Trusted-only: a flagged step contributes 0 seconds here (but still its
+  // completed_count). Its replacement lives in estimated_fill_by_strategy.
   contribution: StepContributionSchema,
+  is_time_inaccurate: z.boolean().default(false),
+  wasted: StepContributionSchema.optional().default({
+    working_seconds: 0,
+    pause_seconds: 0,
+    ended_shift_seconds: 0,
+    completed_count: 0,
+  }),
+  estimated_fill_by_strategy: StepEstimatedFillSchema.optional().default({
+    working: ZERO_FILL_BY_STRATEGY,
+    paused: ZERO_FILL_BY_STRATEGY,
+    ended_shift: ZERO_FILL_BY_STRATEGY,
+  }),
+  inaccurate_records: z.array(InaccurateRecordSchema).default([]),
   active_record: ActiveRecordSchema.default(null),
   last_activity_at: z.string().nullable().default(null),
   last_completed_at: z.string().nullable().default(null),
@@ -237,8 +384,26 @@ export const WorkerDailyStepsPageSchema = z.object({
 export const WorkerDailyStepsResponseSchema = ApiEnvelopeSchema(
   z.object({
     user: WorkerStatsUserSchema,
-    work_date: z.string(),
+    work_date: z.string().optional(),
+    date_from: z.string().optional(),
+    date_to: z.string().optional(),
+    // Trusted-only, i.e. excludes every flagged step's time.
     totals: StepContributionSchema,
+    // trusted + estimated[time_strategy] — the number to show a manager.
+    usable: StepContributionSchema.optional(),
+    // Diagnostic only. Never add to `totals`/`usable`.
+    wasted: StepContributionSchema.optional(),
+    // Always all three strategies, regardless of the selected `time_strategy`,
+    // so the strategies can be compared side by side.
+    estimated: z
+      .object({
+        mean: StepContributionSchema,
+        median: StepContributionSchema,
+        iqr: StepContributionSchema,
+      })
+      .optional(),
+    inaccurate_step_count: z.number().int().default(0),
+    time_strategy: TimeStrategySchema.default("mean"),
     daily_stats: DailyStatsSchema,
     steps: WorkerDailyStepsPageSchema,
   }),
@@ -252,5 +417,11 @@ export type ListWorkerDailyStepsParams = {
   intention: WorkerGranularityIntention;
   limit?: number;
   offset?: number;
-  workDate?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  // Selects only the top-level `usable` total; `estimated` and each step's
+  // `estimated_fill_by_strategy` always carry all three strategies.
+  timeStrategy?: TimeStrategy;
+  // Narrows `steps.items` to flagged steps only. Totals stay range-wide.
+  onlyInaccurate?: boolean;
 };

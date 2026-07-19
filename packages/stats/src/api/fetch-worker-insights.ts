@@ -1,27 +1,28 @@
 import { apiClient } from "@beyo/api-client";
 
 import {
-  WorkerStatsResponseSchema,
-  type ListWorkerStatsParams,
+  WorkerInsightsResponseSchema,
+  type ListWorkerInsightsParams,
 } from "../types";
 
-export type WorkerStatsPage = {
-  workers: Awaited<ReturnType<typeof fetchWorkerStats>>["workers"];
+export type WorkerInsightsPage = {
+  workers: Awaited<ReturnType<typeof fetchWorkerInsights>>["workers"];
   hasMore: boolean;
   total: number;
   limit: number;
   offset: number;
 };
 
-export async function fetchWorkerStats(
-  params: ListWorkerStatsParams = {},
+export async function fetchWorkerInsights(
+  params: ListWorkerInsightsParams = {},
 ) {
   const response = await apiClient.get(
-    "/api/v1/worker-stats/last-interacted-steps",
-    WorkerStatsResponseSchema,
+    "/api/v1/worker-stats/insights",
+    WorkerInsightsResponseSchema,
     {
       limit: params.limit ?? 50,
       offset: params.offset ?? 0,
+      ...(params.workDate ? { work_date: params.workDate } : {}),
     },
   );
   const { workers, workers_pagination: pagination } = response.data;

@@ -3,7 +3,7 @@ import { Calendar, Check } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { cn } from "@beyo/lib";
 import { ImageAnnotationSvgLayer } from "@beyo/images";
-import { ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import type { TaskStepCardViewModel } from "../types";
 
@@ -63,18 +63,13 @@ export const BatchSelectableTaskStepCard = memo(
             onTapImage(stepId);
           }}
         >
-          {firstImageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="lazy"
-              src={firstImageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+            }
+            src={firstImageUrl}
+          />
           <ImageAnnotationSvgLayer
             annotations={card.firstImageAnnotations}
             coverMode

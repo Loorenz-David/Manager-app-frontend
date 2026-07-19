@@ -213,8 +213,11 @@ function TaskWorkingSectionsReassignSlidePageContent({
 
       <StagedFormStep id="note" className="px-0">
         <TaskWorkingSectionsNoteStep
+          itemPosition={controller.itemPositionValue}
           noteClientId={controller.noteClientId}
           noteDraft={controller.noteDraft}
+          showItemPosition={controller.itemClientId !== null}
+          onItemPositionChange={controller.handleItemPositionChange}
           onNoteChange={controller.handleNoteChange}
         />
       </StagedFormStep>
@@ -232,6 +235,7 @@ export function TaskWorkingSectionsReassignSlidePage(): React.JSX.Element {
     recoveredPendingReassignments,
     recoveredNoteClientId,
     recoveredNoteContent,
+    recoveredItemPosition,
   } = useSurfaceProps<TaskWorkingSectionsReassignSlideSurfaceProps>();
 
   if (!taskId) {
@@ -246,6 +250,7 @@ export function TaskWorkingSectionsReassignSlidePage(): React.JSX.Element {
         initialPendingRemoveIds={recoveredPendingRemoveIds}
         initialNoteClientId={recoveredNoteClientId}
         initialNoteContent={recoveredNoteContent}
+        initialItemPosition={recoveredItemPosition}
         surfaceOpeners={surfaceOpeners}
         taskId={taskId}
       >

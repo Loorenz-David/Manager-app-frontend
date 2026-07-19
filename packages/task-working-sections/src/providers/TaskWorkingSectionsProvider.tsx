@@ -22,6 +22,7 @@ type TaskWorkingSectionsProviderProps = {
   initialPendingReassignments?: RecoveredPendingReassignment[];
   initialNoteClientId?: string;
   initialNoteContent?: TaskNoteComposerValue | null;
+  initialItemPosition?: string | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
   children: ReactNode;
 };
@@ -33,6 +34,7 @@ export function TaskWorkingSectionsProvider({
   initialPendingReassignments,
   initialNoteClientId,
   initialNoteContent,
+  initialItemPosition,
   surfaceOpeners,
   children,
 }: TaskWorkingSectionsProviderProps): React.JSX.Element {
@@ -42,6 +44,7 @@ export function TaskWorkingSectionsProvider({
     initialPendingReassignments,
     initialNoteClientId,
     initialNoteContent,
+    initialItemPosition,
     surfaceOpeners,
   });
 

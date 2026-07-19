@@ -5,7 +5,7 @@ import {
   ImageAnnotationSvgLayer,
   type ImageAnnotationViewModel,
 } from "@beyo/images";
-import { ImagePlaceholder, useScrollVisibilityContext } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, useScrollVisibilityContext } from "@beyo/ui";
 import type { TaskStepId } from "@beyo/lib";
 import { transitions } from "@/lib/animation";
 import { useReassignmentAcknowledgmentsContext } from "../providers/ReassignmentAcknowledgmentsProvider";
@@ -64,18 +64,14 @@ const ReassignmentAckRow = memo(function ReassignmentAckRow({
             onOpenImage(vm.step);
           }}
         >
-          {vm.firstImageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="eager"
-              src={vm.firstImageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-5 text-primary-foreground/50" />
+            }
+            loading="eager"
+            src={vm.firstImageUrl}
+          />
           <ImageAnnotationSvgLayer
             annotations={annotations}
             coverMode

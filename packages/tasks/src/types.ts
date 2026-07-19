@@ -1,6 +1,10 @@
 import { z } from "zod";
 
 import { AddressSchema, DateOnlySchema } from "@beyo/lib";
+import {
+  UpholsteryGroupFieldsSchema,
+  type UpholsteryGroupFields,
+} from "@beyo/upholstery";
 
 export const TASK_TYPE = ["return", "pre_order", "internal"] as const;
 export const TASK_PRIORITY = ["low", "normal", "high", "urgent"] as const;
@@ -325,7 +329,7 @@ export const TaskListItemRawSchema = z.object({
     })
     .nullable(),
   item_images: z.array(z.record(z.string(), z.unknown())),
-});
+}).extend(UpholsteryGroupFieldsSchema.shape);
 export type TaskListItemRaw = z.infer<typeof TaskListItemRawSchema>;
 
 export type ListTasksResult = {
@@ -356,6 +360,7 @@ export type ListTasksFullParams = {
   item_position?: string;
   deleted?: boolean;
   order_by?: string;
+  group_by_upholstery?: boolean;
 };
 
 export const TaskAdditionalDetailsFieldsSchema = z.object({
@@ -435,6 +440,7 @@ export type TaskCardViewModel = {
   item: NonNullable<TaskListItemRaw["primary_item"]> | null;
   firstImage: import("@beyo/images").ImageViewModel | null;
   imageCount: number;
+  upholsteryGroup: UpholsteryGroupFields;
 };
 
 export const TASK_STATE_FILTER_OPTIONS = TASK_STATE.map((state) => ({

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { BackendImage } from "@beyo/ui";
 
 import type { UpholsteryCategory } from "../types";
 
@@ -32,15 +33,11 @@ export function UpholsteryCategoryCard({
         }
       }}
     >
-      {category.image_url ? (
-        <img
-          alt=""
-          className="size-10 shrink-0 rounded-full object-cover"
-          src={category.image_url}
-        />
-      ) : (
-        <div className="size-10 shrink-0 rounded-full bg-muted" />
-      )}
+      <BackendImage
+        className="size-10 shrink-0 rounded-full object-cover"
+        fallback={<div className="size-10 shrink-0 rounded-full bg-muted" />}
+        src={category.image_url}
+      />
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{category.name}</p>

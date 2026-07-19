@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check } from "lucide-react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { BackendImage } from "@beyo/ui";
 import { SearchBar } from "@beyo/ui";
 
 import { useListUsersQuery } from "../api/use-list-users-query";
@@ -198,18 +199,16 @@ export function ParticipantPickerSlideContent(): React.JSX.Element {
                   onClick={() => handleToggleUser(user)}
                 >
                   <span className="relative inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--color-soft-container)]">
-                    {user.profile_picture ? (
-                      <img
-                        src={user.profile_picture}
-                        alt={user.username}
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span className="text-sm font-semibold uppercase text-muted-foreground">
-                        {user.username.charAt(0)}
-                      </span>
-                    )}
+                    <BackendImage
+                      alt={user.username}
+                      className="h-full w-full object-cover"
+                      fallback={
+                        <span className="text-sm font-semibold uppercase text-muted-foreground">
+                          {user.username.charAt(0)}
+                        </span>
+                      }
+                      src={user.profile_picture}
+                    />
                   </span>
 
                   <span className="min-w-0 flex-1">

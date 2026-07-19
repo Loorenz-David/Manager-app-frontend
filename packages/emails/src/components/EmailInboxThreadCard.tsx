@@ -1,7 +1,7 @@
 import { Send, TriangleAlert } from "lucide-react";
 
 import { cn, formatInboxDate } from "@beyo/lib";
-import { ImagePlaceholder, SwipeableRow } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, SwipeableRow } from "@beyo/ui";
 
 import type { EmailInboxThreadVM, EmailSwipeAction } from "../types";
 
@@ -93,18 +93,13 @@ export function EmailInboxThreadCard({
             onOpenImage(thread);
           }}
         >
-          {thread.imageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="lazy"
-              src={thread.imageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+            }
+            src={thread.imageUrl}
+          />
 
           {thread.quantity != null ? (
             <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">

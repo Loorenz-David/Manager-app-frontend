@@ -1,4 +1,4 @@
-import { ImagePlaceholder, SectionLabel } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, SectionLabel } from "@beyo/ui";
 
 import { useItemCategoryByIdFlow } from "../flows/use-item-category-by-id";
 import type { ItemCategoryId } from "../types";
@@ -28,21 +28,19 @@ export function ItemCategoryDetailLabel({
   return (
     <div className="flex items-center gap-1.5">
       {category ? (
-        category.imageUrl ? (
-          <img
-            src={category.imageUrl}
-            alt=""
-            aria-hidden="true"
-            className="size-4 rounded-sm object-contain"
-          />
-        ) : (
-          <div className="size-4 shrink-0 overflow-hidden rounded-sm">
-            <ImagePlaceholder
-              className="bg-transparent"
-              iconClassName="size-4"
-            />
-          </div>
-        )
+        <BackendImage
+          aria-hidden="true"
+          className="size-4 rounded-sm object-contain"
+          fallback={
+            <div className="size-4 shrink-0 overflow-hidden rounded-sm">
+              <ImagePlaceholder
+                className="bg-transparent"
+                iconClassName="size-4"
+              />
+            </div>
+          }
+          src={category.imageUrl}
+        />
       ) : null}
       <SectionLabel tone="muted">{label ?? "—"}</SectionLabel>
     </div>

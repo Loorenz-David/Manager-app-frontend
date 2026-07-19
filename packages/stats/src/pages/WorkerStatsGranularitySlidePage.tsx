@@ -19,12 +19,23 @@ import {
 
 import { useWorkerDailyStepsQuery } from "../api/use-worker-daily-steps-query";
 import { WorkerStatsGranularityCard } from "../components/WorkerStatsGranularityCard";
+import { WorkerTimeQualityPanel } from "../components/WorkerTimeQualityPanel";
 import { WorkerTotalsSelector } from "../components/WorkerTotalsSelector";
+import { secondsToHM } from "../lib/format-duration";
 import { STATE_CHIP_CLASS } from "../lib/state-pill-styles";
+import {
+  appliesFill,
+  cycleTimeStrategy,
+  DEFAULT_FILL_MODE,
+  fillToSeconds,
+  usableTotals,
+  type TimeFillMode,
+} from "../lib/time-quality";
 import {
   toWorkerDailyStepCardViewModel,
   type WorkerDailyStepCardViewModel,
 } from "../lib/worker-daily-step-dto";
+import { todayRange } from "../lib/worker-stats-date-range";
 import type { WorkerStatsGranularitySurfaceProps } from "../surface-ids";
 import type { WorkerGranularityIntention } from "../types";
 
@@ -64,32 +75,74 @@ export function WorkerStatsGranularitySlidePage(): React.JSX.Element {
     stepStateLabel: rawProps.stepStateLabel ?? null,
     stepStateVariant: rawProps.stepStateVariant ?? null,
     ticker: rawProps.ticker ?? null,
-    workingDisplay: rawProps.workingDisplay ?? "0h 0m",
-    pausedDisplay: rawProps.pausedDisplay ?? "0h 0m",
-    completedCount: rawProps.completedCount ?? 0,
     initialIntention: rawProps.initialIntention ?? "working",
+    dateFrom: rawProps.dateFrom ?? todayRange().from,
+    dateTo: rawProps.dateTo ?? todayRange().to,
   };
   const [intention, setIntention] = useState<WorkerGranularityIntention>(
     props.initialIntention,
   );
+  // Client-side only: every response carries all three strategies, so cycling
+  // re-derives totals/cards from cached data — no param, no key, no refetch.
+  // The extra `none` mode drops the estimate entirely (trusted time only).
+  const [mode, setMode] = useState<TimeFillMode>(DEFAULT_FILL_MODE);
   const { hideProgressContainerRef, scrollRef, isHidden } = useScrollHide();
 
   const { query, loadMore, hasMore, isFetchingMore } = useWorkerDailyStepsQuery(
     {
       userId: props.userId,
       intention,
+      dateFrom: props.dateFrom,
+      dateTo: props.dateTo,
     },
   );
 
+  // Range-wide aggregates repeat on every page; the first page is the source.
+  const firstPage = query.data?.pages[0] ?? null;
+
+  const displayedSteps = useMemo(
+    () => (query.data?.pages ?? []).flatMap((page) => page.items),
+    [query.data?.pages],
+  );
+  const activeStepCount = useMemo(
+    () =>
+      displayedSteps.filter(
+        (step) => step.active_record?.state === intention,
+      ).length,
+    [displayedSteps, intention],
+  );
   const cards = useMemo<WorkerDailyStepCardViewModel[]>(
     () =>
-      (query.data?.pages ?? []).flatMap((page) =>
-        page.items.map((step) =>
-          toWorkerDailyStepCardViewModel(step, intention),
-        ),
+      displayedSteps.map((step) =>
+        toWorkerDailyStepCardViewModel(step, intention, activeStepCount, mode),
       ),
-    [query.data?.pages, intention],
+    [displayedSteps, intention, activeStepCount, mode],
   );
+
+  // Selector totals: usable = trusted + estimated fill for the selected mode —
+  // trusted only under `none` (`wasted` never enters under any mode).
+  // "—" while the first page is pending.
+  const usable = firstPage
+    ? usableTotals(firstPage.totals, firstPage.estimated, mode)
+    : null;
+  const workingDisplay = usable ? secondsToHM(usable.workingSeconds) : "—";
+  const pausedDisplay = usable ? secondsToHM(usable.pausedSeconds) : "—";
+  const completedCount = usable?.completedCount ?? 0;
+
+  // Time-quality panel values follow the active intention's state. Hidden
+  // (null → em dash) under `completed`, which carries no time state; the fill
+  // is additionally blank under `none`, where nothing is being added.
+  const isCompletedIntention = intention === "completed";
+  const flaggedCount = firstPage?.inaccurateStepCount ?? 0;
+  const stateKey = intention === "paused" ? "pause_seconds" : "working_seconds";
+  const wastedDisplay =
+    isCompletedIntention || !firstPage?.wasted
+      ? null
+      : secondsToHM(firstPage.wasted[stateKey]);
+  const fillDisplay =
+    isCompletedIntention || !firstPage?.estimated || !appliesFill(mode)
+      ? null
+      : secondsToHM(fillToSeconds(firstPage.estimated[mode][stateKey]));
 
   useEffect(() => {
     // This page renders its own in-scroll header; hide the surface header.
@@ -176,14 +229,26 @@ export function WorkerStatsGranularitySlidePage(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Worker totals selector */}
+          {/* Worker totals selector — usable totals from the daily-steps query */}
           <WorkerTotalsSelector
             active={intention}
-            completedCount={props.completedCount}
-            pausedDisplay={props.pausedDisplay}
-            workingDisplay={props.workingDisplay}
+            completedCount={completedCount}
+            pausedDisplay={pausedDisplay}
+            workingDisplay={workingDisplay}
             onSelect={setIntention}
           />
+
+          {/* Time-quality diagnostics — only when something is flagged */}
+          {flaggedCount > 0 ? (
+            <WorkerTimeQualityPanel
+              canCycle={!isCompletedIntention}
+              fillDisplay={fillDisplay}
+              flaggedCount={flaggedCount}
+              mode={mode}
+              wastedDisplay={wastedDisplay}
+              onCycleStrategy={() => setMode(cycleTimeStrategy(mode))}
+            />
+          ) : null}
 
           {/* Granular task-step list */}
           <div

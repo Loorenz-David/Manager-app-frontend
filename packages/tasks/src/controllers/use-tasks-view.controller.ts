@@ -24,11 +24,13 @@ export type TasksViewController = TasksPageFlow & {
   taskStates: TaskState[];
   q: string;
   itemPosition: string;
+  groupByUpholstery: boolean;
   activeFilterCount: number;
   setTaskType: (value: TaskTypeFilter) => void;
   setTaskStates: (value: TaskState[]) => void;
   setQ: (value: string) => void;
   setItemPosition: (value: string) => void;
+  setGroupByUpholstery: (value: boolean) => void;
   openTaskDetail: (taskId: string) => void;
   openTaskActions: (taskId: string, itemId: string | null) => void;
   openFilterSheet: () => void;
@@ -43,11 +45,15 @@ export function useTasksViewController(): TasksViewController {
     taskStates,
     q,
     itemPosition,
+    groupByUpholstery,
     setTaskType,
     setTaskStates,
     setQ,
     setItemPosition,
+    setGroupByUpholstery,
   } = useTasksPageStore();
+  // Grouping is a view mode, not a filter — it does not reduce results, so it is
+  // deliberately excluded from the "filters active" badge count.
   const activeFilterCount =
     taskStates.length + (taskType !== "all" ? 1 : 0) + (itemPosition ? 1 : 0);
 
@@ -67,8 +73,10 @@ export function useTasksViewController(): TasksViewController {
   function openFilterSheet(): void {
     useSurfaceStore.getState().open(TASK_FILTER_SHEET_SURFACE_ID, {
       selectedItemPosition: itemPosition,
-      onApply: (nextItemPosition: string) => {
+      groupByUpholstery,
+      onApply: (nextItemPosition: string, nextGroupByUpholstery: boolean) => {
         setItemPosition(nextItemPosition);
+        setGroupByUpholstery(nextGroupByUpholstery);
       },
     } satisfies TaskFilterSheetSurfaceProps);
   }
@@ -103,11 +111,13 @@ export function useTasksViewController(): TasksViewController {
     taskStates,
     q,
     itemPosition,
+    groupByUpholstery,
     activeFilterCount,
     setTaskType,
     setTaskStates,
     setQ,
     setItemPosition,
+    setGroupByUpholstery,
     openTaskDetail,
     openTaskActions,
     openFilterSheet,

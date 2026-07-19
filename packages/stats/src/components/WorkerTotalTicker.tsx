@@ -5,7 +5,8 @@ import { secondsToHM } from "../lib/format-duration";
 export type WorkerTotalTickerProps = {
   // Live value at `asOfIso` (settled + running).
   offsetSeconds: number;
-  // Open-interval count — seconds accrue this fast (can be > 1, e.g. stacked pauses).
+  // Worker-level live totals advance at real time while any interval is open.
+  // The DTO supplies 0 or 1 under the current concurrency-averaged contract.
   ratePerSecond: number;
   asOfIso: string;
   className?: string;

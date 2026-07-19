@@ -12,7 +12,33 @@ import {
   loadScannerSlidePage,
 } from "@beyo/scanner";
 import { upholsterySurfaces } from "@beyo/upholstery";
+import type { CreateTaskResult } from "@beyo/tasks";
 import { workingSectionSurfaces } from "@beyo/working-sections";
+
+/**
+ * A task was successfully created from one of the creation slides. Apps inject
+ * concrete handling via {@link TaskCreationCallbacks}; the package only reports
+ * the domain event and never names app-local query keys.
+ */
+export type TaskCreatedInfo = {
+  result: CreateTaskResult;
+  /** Whether the created task consumed upholstery (payload had `item_upholstery`). */
+  hadUpholstery: boolean;
+};
+
+/**
+ * Optional post-create side-effects injected by the consuming app through the
+ * creation-slide surface props. All keys are optional — the package always
+ * invokes them with `?.()` and tolerates `undefined`.
+ */
+export type TaskCreationCallbacks = {
+  onTaskCreated?: (info: TaskCreatedInfo) => void;
+};
+
+/** Surface props accepted by the task-creation slide surfaces. */
+export type TaskCreationSlideSurfaceProps = {
+  callbacks?: TaskCreationCallbacks;
+};
 
 export const TASK_CREATION_RETURN_SURFACE_ID = "task-creation-return-slide";
 export const TASK_CREATION_PRE_ORDER_SURFACE_ID =

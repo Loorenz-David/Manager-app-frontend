@@ -34,6 +34,11 @@ export {
   preloadWorkerInternalTaskSlideSurface,
   taskCreationSurfaces,
 } from "./surfaces";
+export type {
+  TaskCreatedInfo,
+  TaskCreationCallbacks,
+  TaskCreationSlideSurfaceProps,
+} from "./surfaces";
 export {
   InternalFormSchema,
   PreOrderFormSchema,

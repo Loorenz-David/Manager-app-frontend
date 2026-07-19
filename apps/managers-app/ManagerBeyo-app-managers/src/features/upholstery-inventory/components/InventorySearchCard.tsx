@@ -4,6 +4,7 @@ import { Plus } from "lucide-react";
 import { formatMeters, type UpholsteryPickerRecord } from "@beyo/upholstery";
 
 import { ImagePlaceholder } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 
 type InventorySearchCardProps = {
   record: UpholsteryPickerRecord;
@@ -37,18 +38,13 @@ export const InventorySearchCard = memo(function InventorySearchCard({
         type="button"
         onClick={() => onTapCard(record)}
       >
-        {record.image_url ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={record.image_url}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          }
+          src={record.image_url}
+        />
       </button>
 
       <div

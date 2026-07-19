@@ -10,6 +10,7 @@
     "@beyo/auth": "*",
     "@beyo/images": "*",
     "@beyo/hooks": "*",
+    "@beyo/items": "*",
     "@beyo/lib": "*",
     "@beyo/task-notes": "*",
     "@beyo/tasks": "*",

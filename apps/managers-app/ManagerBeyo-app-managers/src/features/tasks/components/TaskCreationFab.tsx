@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Plus, RotateCcw, ShoppingBag, Wrench, X } from "lucide-react";
 import { useState } from "react";
@@ -10,9 +11,11 @@ import {
   preloadInternalTaskSlideSurface,
   preloadPreOrderTaskSlideSurface,
   preloadReturnTaskSlideSurface,
+  type TaskCreationCallbacks,
 } from "@beyo/task-creation";
 
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
+import { invalidateAfterInventoryMutation } from "@/features/upholstery-inventory/lib/invalidate-inventory";
 import { cn } from "@/lib/utils";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
@@ -53,6 +56,7 @@ const ACTION_BUTTONS = [
 
 export function TaskCreationFab(): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   usePreloadSurface(preloadReturnTaskSlideSurface);
   usePreloadSurface(preloadPreOrderTaskSlideSurface);
@@ -60,7 +64,17 @@ export function TaskCreationFab(): React.JSX.Element {
   useCameraPrewarm(SCANNER_SESSION_ID, 0, isOpen);
 
   function handleActionPress(surfaceId: string): void {
-    useSurfaceStore.getState().open(surfaceId);
+    const callbacks: TaskCreationCallbacks = {
+      onTaskCreated: ({ hadUpholstery }) => {
+        // A created task that consumed upholstery changes true stored amounts;
+        // refresh the app-local inventory/ordering views to match.
+        if (hadUpholstery) {
+          invalidateAfterInventoryMutation(queryClient);
+        }
+      },
+    };
+
+    useSurfaceStore.getState().open(surfaceId, { callbacks });
     setIsOpen(false);
   }
 

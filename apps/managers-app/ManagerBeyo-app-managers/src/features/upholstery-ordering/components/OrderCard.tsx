@@ -1,6 +1,7 @@
 import { CalendarCheck, PackageCheck } from "lucide-react";
 
 import { ImagePlaceholder, StatePill } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 
 import type { OrderCardViewModel } from "../types";
 
@@ -22,15 +23,13 @@ export function OrderCard({
     >
       <div className="flex">
         <div className="relative aspect-square w-28 shrink-0 overflow-hidden bg-muted">
-          {card.imageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              src={card.imageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+            }
+            src={card.imageUrl}
+          />
         </div>
         <button
           className="flex min-w-0 flex-1 flex-col px-3 py-2.5 text-left"

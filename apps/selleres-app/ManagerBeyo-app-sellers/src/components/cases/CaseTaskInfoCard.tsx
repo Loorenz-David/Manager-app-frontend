@@ -10,7 +10,7 @@ import {
   humanizeSnakeCase,
 } from "@beyo/tasks";
 import type { GetTaskResult } from "@beyo/tasks";
-import { ImagePlaceholder, StatePill } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, StatePill } from "@beyo/ui";
 
 type CaseTaskInfoCardProps = {
   taskDetail: GetTaskResult;
@@ -107,17 +107,13 @@ export function CaseTaskInfoCard({
           handleOpenImage();
         }}
       >
-        {imageUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            src={imageUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          }
+          src={imageUrl}
+        />
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">

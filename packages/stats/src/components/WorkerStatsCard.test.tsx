@@ -24,24 +24,47 @@ const activeWorker: WorkerStatsCardViewModel = {
   userId: "usr_test",
   username: "#test-seller",
   profilePicture: null,
-  hasStep: true,
-  taskId: "tsk_test",
-  stepState: "working",
-  stepStateLabel: "Working",
-  stepStateVariant: "active",
-  articleLabel: "#ART-40921",
-  workingSectionName: "Upholstery",
-  pauseReason: null,
-  ticker: {
-    offsetSeconds: 0,
-    startedAtIso: new Date().toISOString(),
+  step: {
+    status: "ready",
+    data: {
+      hasStep: true,
+      taskId: "tsk_test",
+      stepState: "working",
+      stepStateLabel: "Working",
+      stepStateVariant: "active",
+      articleLabel: "#ART-40921",
+      workingSectionName: "Upholstery",
+      pauseReason: null,
+      ticker: {
+        offsetSeconds: 0,
+        startedAtIso: new Date().toISOString(),
+      },
+    },
   },
-  workingTotal: { kind: "static", seconds: 26_040 },
-  pausedTotal: { kind: "static", seconds: 5_040 },
-  completedCount: 12,
-  insights: [],
-  topInsight: null,
+  totals: {
+    status: "ready",
+    data: {
+      workingTotal: { kind: "static", seconds: 26_040 },
+      pausedTotal: { kind: "static", seconds: 5_040 },
+      completedCount: 12,
+    },
+  },
+  insights: { status: "ready", data: { insights: [], topInsight: null } },
 };
+
+function getStepData(worker: WorkerStatsCardViewModel) {
+  if (worker.step.status !== "ready" || !worker.step.data) {
+    throw new Error("test worker step is not ready");
+  }
+  return worker.step.data;
+}
+
+function getTotalsData(worker: WorkerStatsCardViewModel) {
+  if (worker.totals.status !== "ready" || !worker.totals.data) {
+    throw new Error("test worker totals are not ready");
+  }
+  return worker.totals.data;
+}
 
 describe("WorkerStatsCard", () => {
   afterEach(cleanup);
@@ -63,12 +86,18 @@ describe("WorkerStatsCard", () => {
       <WorkerStatsCard
         worker={{
           ...activeWorker,
-          hasStep: false,
-          stepState: null,
-          stepStateLabel: null,
-          stepStateVariant: null,
-          articleLabel: null,
-          ticker: null,
+          step: {
+            status: "ready",
+            data: {
+              ...getStepData(activeWorker),
+              hasStep: false,
+              stepState: null,
+              stepStateLabel: null,
+              stepStateVariant: null,
+              articleLabel: null,
+              ticker: null,
+            },
+          },
         }}
       />,
     );
@@ -92,12 +121,17 @@ describe("WorkerStatsCard", () => {
       <WorkerStatsCard
         worker={{
           ...activeWorker,
-          insights: [surgeInsight],
-          topInsight: {
-            code: "completion_surge",
-            title: "Completion surge — 5 more than usual",
-            rightValue: "8 vs 3",
-            tone: "positive",
+          insights: {
+            status: "ready",
+            data: {
+              insights: [surgeInsight],
+              topInsight: {
+                code: "completion_surge",
+                title: "Completion surge — 5 more than usual",
+                rightValue: "8 vs 3",
+                tone: "positive",
+              },
+            },
           },
         }}
         onOpenInsights={onOpenInsights}
@@ -115,7 +149,16 @@ describe("WorkerStatsCard", () => {
   it("renders the pause reason row when the worker is paused with a reason", () => {
     render(
       <WorkerStatsCard
-        worker={{ ...activeWorker, pauseReason: "Waiting for upholstery" }}
+        worker={{
+          ...activeWorker,
+          step: {
+            status: "ready",
+            data: {
+              ...getStepData(activeWorker),
+              pauseReason: "Waiting for upholstery",
+            },
+          },
+        }}
       />,
     );
 
@@ -135,11 +178,17 @@ describe("WorkerStatsCard", () => {
       <WorkerStatsCard
         worker={{
           ...activeWorker,
-          pausedTotal: {
-            kind: "ticking",
-            offsetSeconds: 5_040,
-            ratePerSecond: 3,
-            asOfIso: new Date().toISOString(),
+          totals: {
+            status: "ready",
+            data: {
+              ...getTotalsData(activeWorker),
+              pausedTotal: {
+                kind: "ticking",
+                offsetSeconds: 5_040,
+                ratePerSecond: 1,
+                asOfIso: new Date().toISOString(),
+              },
+            },
           },
         }}
       />,
@@ -175,7 +224,13 @@ describe("WorkerStatsCard", () => {
 
     render(
       <WorkerStatsCard
-        worker={{ ...activeWorker, hasStep: false, taskId: null }}
+        worker={{
+          ...activeWorker,
+          step: {
+            status: "ready",
+            data: { ...getStepData(activeWorker), hasStep: false, taskId: null },
+          },
+        }}
         onOpenTaskDetail={onOpenTaskDetail}
       />,
     );

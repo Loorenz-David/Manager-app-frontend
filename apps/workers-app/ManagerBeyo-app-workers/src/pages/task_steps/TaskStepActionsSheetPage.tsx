@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { Pin, RotateCcw, ShoppingBag } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import {
   SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID,
@@ -14,6 +15,8 @@ import {
   type TaskWorkingSectionsSurfaceOpeners,
 } from "@beyo/task-working-sections";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
+import { taskStepKeys } from "@/features/task_steps/api/task-step-keys";
+import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import {
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   type PinNotificationsSlideSurfaceProps,
@@ -23,6 +26,7 @@ import {
 export function TaskStepActionsSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
+  const queryClient = useQueryClient();
   const {
     stepId,
     taskId,
@@ -61,8 +65,19 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
               hideShortcuts: false,
             } satisfies TaskWorkingSectionsReassignSlideSurfaceProps,
           ),
+        // A reassign can move the step out of the section being viewed, so the
+        // section it left needs refreshing too — invalidate every section list
+        // rather than only the current one.
+        onItemPositionSaved: () => {
+          void queryClient.invalidateQueries({
+            queryKey: taskStepKeys.sectionLists(),
+          });
+          void queryClient.invalidateQueries({
+            queryKey: workerWorkingSectionKeys.mine(),
+          });
+        },
       }),
-      [surface],
+      [queryClient, surface],
     );
 
   useEffect(() => {

@@ -14,7 +14,7 @@ const TABS: {
   intention: WorkerGranularityIntention;
   label: string;
 }[] = [
-  { intention: "working", label: "Working" },
+  { intention: "working", label: "Worked" },
   { intention: "paused", label: "Paused" },
   { intention: "completed", label: "Completed" },
 ];

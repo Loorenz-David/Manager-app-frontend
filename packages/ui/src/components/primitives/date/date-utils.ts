@@ -7,6 +7,25 @@ export type CalendarQuickSelectOption = {
   unit: RelativeDateUnit;
 };
 
+export type CalendarDateRange = {
+  from: Date;
+  to: Date;
+};
+
+export type CalendarQuickRangeKind =
+  | 'yesterday'
+  | 'last-n-days'
+  | 'this-week'
+  | 'this-month';
+
+export type CalendarQuickRangeOption = {
+  id: string;
+  label: string;
+  kind: CalendarQuickRangeKind;
+  // Number of trailing days (including today) for `last-n-days`; ignored otherwise.
+  amount?: number;
+};
+
 const DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 function toUtcCalendarDate(date: Date): Date {
@@ -93,6 +112,53 @@ export function resolveRelativeDateOption(
       localDayAnchor.getDate(),
     ),
   );
+}
+
+// Resolves a named quick-range preset to a { from, to } pair of UTC calendar
+// dates. Anchored on the UTC calendar day (consistent with serializeDateToISO /
+// parseISOToDate), so a range ending "today" serializes to the same ISO string
+// the rest of the app derives from `new Date()`. Weeks start on Sunday to match
+// the DayCalendar grid (react-day-picker default weekStartsOn = 0).
+export function resolveQuickRangeOption(
+  option: CalendarQuickRangeOption,
+  baseDate: Date = new Date(),
+): CalendarDateRange {
+  const today = new Date(
+    Date.UTC(
+      baseDate.getUTCFullYear(),
+      baseDate.getUTCMonth(),
+      baseDate.getUTCDate(),
+    ),
+  );
+
+  const shiftedByDays = (days: number): Date => {
+    const next = new Date(today);
+    next.setUTCDate(next.getUTCDate() + days);
+    return next;
+  };
+
+  switch (option.kind) {
+    case 'yesterday': {
+      const yesterday = shiftedByDays(-1);
+      return { from: yesterday, to: yesterday };
+    }
+    case 'last-n-days': {
+      const days = Math.max(1, option.amount ?? 2);
+      return { from: shiftedByDays(-(days - 1)), to: today };
+    }
+    case 'this-week': {
+      // getUTCDay(): 0 = Sunday.
+      return { from: shiftedByDays(-today.getUTCDay()), to: today };
+    }
+    case 'this-month': {
+      return {
+        from: new Date(
+          Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1),
+        ),
+        to: today,
+      };
+    }
+  }
 }
 
 export function formatDateDisplay(

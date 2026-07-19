@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, Ref } from "react";
 import { GripVertical } from "lucide-react";
 
-import { ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { getUpholsteryImageUrl } from "../image-url";
@@ -43,19 +43,16 @@ export function UpholsteryDnDCard({
         {displayOrder}
       </div>
 
-      {thumbnailUrl ? (
-        <img
-          alt={record.name}
-          className="size-10 shrink-0 rounded-full bg-muted object-contain"
-          decoding="async"
-          loading="lazy"
-          src={thumbnailUrl}
-        />
-      ) : (
-        <div className="size-10 shrink-0 overflow-hidden rounded-full">
-          <ImagePlaceholder />
-        </div>
-      )}
+      <BackendImage
+        alt={record.name}
+        className="size-10 shrink-0 rounded-full bg-muted object-contain"
+        fallback={
+          <div className="size-10 shrink-0 overflow-hidden rounded-full">
+            <ImagePlaceholder />
+          </div>
+        }
+        src={thumbnailUrl}
+      />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">{record.name}</p>

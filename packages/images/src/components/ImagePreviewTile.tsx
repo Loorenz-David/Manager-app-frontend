@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 
+import { BackendImage } from '@beyo/ui';
+
 import { useEntityImagesContext } from '../providers/EntityImagesProvider';
 import type { ImageViewModel } from '../types';
 import { ImageAnnotationSvgLayer } from './ImageAnnotationSvgLayer';
@@ -90,7 +92,7 @@ export function ImagePreviewTile({
         disabled={isEditMode || !isConfirmed}
         onClick={handleClick}
       >
-        <img src={displayUrl} alt="" className="size-full object-cover" loading="lazy" draggable={false} />
+        <BackendImage src={displayUrl} className="size-full object-cover" />
       </button>
 
       <ImageAnnotationSvgLayer

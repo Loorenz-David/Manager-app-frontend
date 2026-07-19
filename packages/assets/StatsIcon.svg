@@ -1,0 +1,29 @@
+<svg width="642" height="622" viewBox="0 0 642 622" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Growth arrow -->
+  <path
+    d="M82 311L197 227L240 256L392 145L436 180L546 96"
+    stroke="#59B88E"
+    stroke-width="35"
+    stroke-linecap="square"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M500 104L552 96L532 146"
+    stroke="#59B88E"
+    stroke-width="35"
+    stroke-linecap="square"
+    stroke-linejoin="miter"
+  />
+
+  <!-- Yellow bar -->
+  <rect x="123" y="383" width="117" height="209" rx="22" fill="#F8C62A"/>
+  <rect x="153" y="383" width="87" height="209" rx="22" fill="#FFDD63"/>
+
+  <!-- Red bar -->
+  <rect x="282" y="308" width="117" height="284" rx="22" fill="#EA474C"/>
+  <rect x="313" y="308" width="86" height="284" rx="22" fill="#FF696F"/>
+
+  <!-- Blue bar -->
+  <rect x="441" y="232" width="118" height="360" rx="22" fill="#4DB4CB"/>
+  <rect x="472" y="232" width="87" height="360" rx="22" fill="#55C8DF"/>
+</svg>

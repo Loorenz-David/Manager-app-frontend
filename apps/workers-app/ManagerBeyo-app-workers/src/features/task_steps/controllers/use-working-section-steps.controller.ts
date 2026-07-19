@@ -10,6 +10,15 @@ import { useAuth } from "@beyo/auth";
 import { useSurface } from "@beyo/hooks";
 import { isSameImagePath } from "@beyo/lib";
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
+import {
+  useUpholsteryGrouping,
+  type UpholsteryGroupFields,
+  type UpholsteryGroupedRow,
+} from "@beyo/upholstery";
+import {
+  readWorkingSectionStepsGroupByUpholstery,
+  writeWorkingSectionStepsGroupByUpholstery,
+} from "../lib/grouping-preference-storage";
 import type { WorkerWorkingSection } from "../../working_sections/types";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import {
@@ -106,8 +115,18 @@ export const DEFAULT_STATE_FILTERS: StepState[] = [
 
 export const DEFAULT_READINESS_STATUS_FILTERS: ReadinessStatus[] = ["ready"];
 
+export type StepRenderRow = UpholsteryGroupedRow<TaskStepCardViewModel>;
+
+// Module-level so the grouping memo keeps a stable reference.
+const getStepGroup = (card: TaskStepCardViewModel): UpholsteryGroupFields =>
+  card.upholsteryGroup;
+const getStepItemCount = (card: TaskStepCardViewModel): number =>
+  card.itemQuantity;
+
 export type WorkingSectionStepsController = {
   steps: TaskStepCardViewModel[];
+  renderRows: StepRenderRow[];
+  toggleFold: (reactKey: string) => void;
   rawSteps: import("../types").TaskStep[];
   nonTerminalCounts: NonTerminalStepCounts;
   isPending: boolean;
@@ -119,6 +138,7 @@ export type WorkingSectionStepsController = {
   readinessStatusFilters: ReadinessStatus[];
   taskTypeFilters: TaskType[];
   itemPositionFilter: string;
+  groupByUpholstery: boolean;
   activeFilterCount: number;
   refetch: () => Promise<void>;
   handleTransition: (
@@ -156,6 +176,13 @@ export function useWorkingSectionStepsController(
   >(DEFAULT_READINESS_STATUS_FILTERS);
   const [taskTypeFilters, setTaskTypeFilters] = useState<TaskType[]>([]);
   const [itemPositionFilter, setItemPositionFilter] = useState<string>("");
+  const [groupByUpholstery, setGroupByUpholsteryState] = useState<boolean>(
+    readWorkingSectionStepsGroupByUpholstery,
+  );
+  const setGroupByUpholstery = useCallback((value: boolean) => {
+    writeWorkingSectionStepsGroupByUpholstery(value);
+    setGroupByUpholsteryState(value);
+  }, []);
   const debouncedSearch = useDebounced(search, 300);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -178,11 +205,13 @@ export function useWorkingSectionStepsController(
       task_types:
         taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
       item_position: itemPositionFilter || undefined,
+      group_by_upholstery: groupByUpholstery || undefined,
       limit: 50,
       offset: 0,
     }),
     [
       debouncedSearch,
+      groupByUpholstery,
       itemPositionFilter,
       readinessStatusFilters,
       sectionId,
@@ -219,6 +248,13 @@ export function useWorkingSectionStepsController(
       return vm;
     });
   }, [query.data?.items]);
+
+  const { renderRows, toggleFold } = useUpholsteryGrouping({
+    rows: steps,
+    enabled: groupByUpholstery,
+    getGroup: getStepGroup,
+    getItemCount: getStepItemCount,
+  });
 
   const nonTerminalCounts = useMemo(
     () => computeNonTerminalCounts(query.data?.items ?? []),
@@ -348,22 +384,27 @@ export function useWorkingSectionStepsController(
       selectedReadinessStatuses: readinessStatusFilters,
       selectedTaskTypes: taskTypeFilters,
       selectedItemPosition: itemPositionFilter,
+      selectedGroupByUpholstery: groupByUpholstery,
       onApply: (
         newFilters: StepState[],
         newReadinessStatuses: ReadinessStatus[],
         newTaskTypes: TaskType[],
         newItemPosition: string,
+        newGroupByUpholstery: boolean,
       ) => {
         setStateFilters(newFilters);
         setReadinessStatusFilters(newReadinessStatuses);
         setTaskTypeFilters(newTaskTypes);
         setItemPositionFilter(newItemPosition);
+        setGroupByUpholstery(newGroupByUpholstery);
       },
     } as StepStateFilterSheetSurfaceProps);
   }, [
+    groupByUpholstery,
     itemPositionFilter,
     openSurface,
     readinessStatusFilters,
+    setGroupByUpholstery,
     stateFilters,
     taskTypeFilters,
   ]);
@@ -462,6 +503,8 @@ export function useWorkingSectionStepsController(
 
   return {
     steps,
+    renderRows,
+    toggleFold,
     rawSteps: query.data?.items ?? [],
     nonTerminalCounts,
     isPending,
@@ -473,6 +516,7 @@ export function useWorkingSectionStepsController(
     readinessStatusFilters,
     taskTypeFilters,
     itemPositionFilter,
+    groupByUpholstery,
     activeFilterCount,
     refetch,
     handleTransition,

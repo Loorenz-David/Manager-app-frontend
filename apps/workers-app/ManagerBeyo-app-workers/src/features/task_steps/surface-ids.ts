@@ -98,11 +98,13 @@ export type StepStateFilterSheetSurfaceProps = {
   selectedReadinessStatuses: ReadinessStatus[];
   selectedTaskTypes: TaskType[];
   selectedItemPosition: string;
+  selectedGroupByUpholstery: boolean;
   onApply: (
     states: StepState[],
     readinessStatuses: ReadinessStatus[],
     taskTypes: TaskType[],
     itemPosition: string,
+    groupByUpholstery: boolean,
   ) => void;
 };
 

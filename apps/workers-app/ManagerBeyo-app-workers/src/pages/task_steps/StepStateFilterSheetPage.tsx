@@ -60,6 +60,14 @@ const READINESS_STATUS_OPTIONS: BoxPickerOptionType<ReadinessStatus>[] = [
   },
 ];
 
+const GROUP_BY_UPHOLSTERY_OPTIONS: BoxPickerOptionType<"on">[] = [
+  {
+    value: "on",
+    label: "Group by upholstery",
+    testId: "step-filter-group-upholstery",
+  },
+];
+
 const TASK_TYPE_OPTIONS: BoxPickerOptionType<TaskType>[] = [
   {
     value: "return",
@@ -86,6 +94,7 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
     selectedReadinessStatuses,
     selectedTaskTypes,
     selectedItemPosition,
+    selectedGroupByUpholstery,
     onApply,
   } = useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
@@ -103,6 +112,9 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
   );
   const [localItemPosition, setLocalItemPosition] = useState<string>(
     selectedItemPosition ?? "",
+  );
+  const [localGroupByUpholstery, setLocalGroupByUpholstery] = useState<boolean>(
+    selectedGroupByUpholstery ?? false,
   );
 
   useEffect(() => {
@@ -145,6 +157,7 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
       localReadinessStatuses,
       localTaskTypes,
       localItemPosition.trim(),
+      localGroupByUpholstery,
     );
     closeSheet();
   }
@@ -191,6 +204,17 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
       <ItemPositionFilterField
         value={localItemPosition}
         onChange={setLocalItemPosition}
+      />
+
+      <BoxPicker
+        layout="stack"
+        data-testid="step-filter-group-upholstery-picker"
+        mode="multiple"
+        onValueChange={(values) =>
+          setLocalGroupByUpholstery(values.includes("on"))
+        }
+        options={GROUP_BY_UPHOLSTERY_OPTIONS}
+        value={localGroupByUpholstery ? ["on"] : []}
       />
 
       <button

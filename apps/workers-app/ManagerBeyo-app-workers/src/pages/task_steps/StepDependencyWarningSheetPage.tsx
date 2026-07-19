@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { humanizeStepState, STEP_STATE_VARIANT } from "@beyo/tasks";
-import { ImagePlaceholder, StatePill } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, StatePill } from "@beyo/ui";
 import { useTransitionStepState } from "@/features/task_steps/actions/use-transition-step-state";
 import type { StepDependencyWarningSheetSurfaceProps } from "@/features/task_steps/surface-ids";
 
@@ -95,17 +95,13 @@ export function StepDependencyWarningSheetPage(): React.JSX.Element {
               className="flex min-h-44 w-36 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card"
             >
               <div className="aspect-square overflow-hidden ">
-                {dependency.imageUrl ? (
-                  <img
-                    alt=""
-                    className="size-full object-cover"
-                    decoding="async"
-                    draggable={false}
-                    src={dependency.imageUrl}
-                  />
-                ) : (
-                  <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-                )}
+                <BackendImage
+                  className="size-full object-cover"
+                  fallback={
+                    <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+                  }
+                  src={dependency.imageUrl}
+                />
               </div>
               <div className="flex flex-1 flex-col gap-2 p-3">
                 <p className="line-clamp-2 text-sm font-medium text-foreground">

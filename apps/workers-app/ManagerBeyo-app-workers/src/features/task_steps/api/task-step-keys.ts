@@ -17,6 +17,7 @@ export const taskStepKeys = {
         readiness_statuses: params.readiness_statuses,
         task_types: params.task_types,
         item_position: params.item_position,
+        group_by_upholstery: params.group_by_upholstery,
       },
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>

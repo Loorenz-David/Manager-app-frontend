@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { FloatingKeyboardBar } from "@beyo/ui";
+import { BackendImage, FloatingKeyboardBar } from "@beyo/ui";
 import Decimal from "decimal.js";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
@@ -61,15 +61,11 @@ export function StoredAmountSheetPage(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4 p-6">
       <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-        {prefill?.imageUrl ? (
-          <img
-            alt=""
-            className="size-10 shrink-0 rounded-full object-cover"
-            src={prefill.imageUrl}
-          />
-        ) : (
-          <div className="size-10 shrink-0 rounded-full bg-muted" />
-        )}
+        <BackendImage
+          className="size-10 shrink-0 rounded-full object-cover"
+          fallback={<div className="size-10 shrink-0 rounded-full bg-muted" />}
+          src={prefill?.imageUrl}
+        />
         <div className="min-w-0 flex-1">
           {prefill?.upholsteryName ? (
             <p className="truncate text-sm font-medium text-foreground">

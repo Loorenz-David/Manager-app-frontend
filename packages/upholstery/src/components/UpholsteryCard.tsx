@@ -1,7 +1,7 @@
 import { cva } from "class-variance-authority";
 import { Heart } from "lucide-react";
 
-import { ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { getUpholsteryImageUrl } from "../image-url";
@@ -82,19 +82,16 @@ export function UpholsteryCard({
               )}
             />
           ) : null}
-          {thumbnailUrl ? (
-            <img
-              src={thumbnailUrl}
-              alt={record.name}
-              className="size-10 shrink-0 rounded-full bg-muted object-contain"
-              decoding="async"
-              loading="lazy"
-            />
-          ) : (
-            <div className="size-10 shrink-0 overflow-hidden rounded-full">
-              <ImagePlaceholder />
-            </div>
-          )}
+          <BackendImage
+            alt={record.name}
+            className="size-10 shrink-0 rounded-full bg-muted object-contain"
+            fallback={
+              <div className="size-10 shrink-0 overflow-hidden rounded-full">
+                <ImagePlaceholder />
+              </div>
+            }
+            src={thumbnailUrl}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <p

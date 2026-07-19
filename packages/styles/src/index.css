@@ -46,6 +46,54 @@ body {
   overscroll-behavior: none;
 }
 
+@layer base {
+  :root {
+    --skeleton-base: color-mix(in srgb, var(--color-muted) 72%, transparent);
+    --skeleton-highlight: color-mix(
+      in srgb,
+      var(--color-background) 82%,
+      transparent
+    );
+    --skeleton-radius: 0.5rem;
+  }
+}
+
+@layer utilities {
+  @keyframes skeleton-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .skeleton-shimmer {
+    position: relative;
+    overflow: hidden;
+    background: var(--skeleton-base);
+  }
+
+  .skeleton-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--skeleton-highlight),
+      transparent
+    );
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer::after {
+      animation: none;
+      transform: none;
+      opacity: 0.35;
+    }
+  }
+}
+
 body {
   margin: 0;
   background: var(--color-background);

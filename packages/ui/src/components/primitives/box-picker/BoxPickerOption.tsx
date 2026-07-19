@@ -2,6 +2,7 @@ import type { KeyboardEvent, ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
 
+import { BackendImage } from "../backend-image";
 import { boxOptionVariants } from "./box-picker.variants";
 import type {
   BoxPickerOption as BoxPickerOptionType,
@@ -81,15 +82,15 @@ export function BoxPickerOption<Value extends string>({
         )}
       >
         {showIcon && option.image ? (
-          <img
-            src={option.image}
-            alt=""
+          <BackendImage
             aria-hidden="true"
             className={cn(
               "shrink-0 rounded object-contain",
               !hasCustomImageSize && "size-8",
               option.imageClassName,
             )}
+            fallback={Icon ? <Icon className="size-5 shrink-0" /> : <></>}
+            src={option.image}
           />
         ) : showIcon && Icon ? (
           <Icon className="size-5 shrink-0" />

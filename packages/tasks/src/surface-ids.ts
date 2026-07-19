@@ -58,7 +58,8 @@ export type TaskPostHandlingPendingWarningSheetSurfaceProps = {
 
 export type TaskFilterSheetSurfaceProps = {
   selectedItemPosition: string;
-  onApply: (itemPosition: string) => void;
+  groupByUpholstery: boolean;
+  onApply: (itemPosition: string, groupByUpholstery: boolean) => void;
 };
 
 export type TaskDetailSurfaceProps = {

@@ -3,6 +3,7 @@ import { m } from "framer-motion";
 import { ChevronRight } from "lucide-react";
 
 import type { CaseId } from "@beyo/lib";
+import { BackendImage } from "@beyo/ui";
 
 import { getCaseTypeName, type CaseListCardViewModel } from "../types";
 
@@ -105,18 +106,11 @@ export const CaseCard = memo(function CaseCard({
       ) : null}
 
       <div className="flex size-6 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[10px] font-semibold leading-none text-foreground">
-        {profilePicture ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={profilePicture}
-          />
-        ) : (
-          <span>{getInitials(card.created_by.username)}</span>
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={<span>{getInitials(card.created_by.username)}</span>}
+          src={profilePicture}
+        />
       </div>
 
       <div className="min-w-0 flex-1">

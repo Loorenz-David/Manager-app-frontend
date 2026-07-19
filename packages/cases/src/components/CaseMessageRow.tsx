@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { cn } from "@beyo/lib";
+import { BackendImage } from "@beyo/ui";
 
 import type { CaseMessageRenderItem } from "../controllers/use-case-conversation-messages.controller";
 import { useCaseConversationContext } from "../providers/CaseConversationProvider";
@@ -131,18 +132,11 @@ export function CaseMessageRow({
           className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-[11px] font-semibold text-foreground"
           data-testid={`case-message-avatar-${message.client_id}`}
         >
-          {createdBy?.profile_picture ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="lazy"
-              src={createdBy.profile_picture}
-            />
-          ) : (
-            <span>{getInitials(createdBy?.username ?? "User")}</span>
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={<span>{getInitials(createdBy?.username ?? "User")}</span>}
+            src={createdBy?.profile_picture}
+          />
         </div>
       ) : null}
 

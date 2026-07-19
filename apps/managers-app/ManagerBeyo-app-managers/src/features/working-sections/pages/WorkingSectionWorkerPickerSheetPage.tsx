@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import { BackendImage } from '@beyo/ui';
 import { useSurfaceHeader } from '@/hooks/use-surface-header';
 import { useSurfaceProps } from '@/hooks/use-surface-props';
 import type { WorkingSectionWorkerPickerSurfaceProps } from '../surfaces';
@@ -33,16 +34,14 @@ export function WorkingSectionWorkerPickerSheetPage(): React.JSX.Element {
             type="button"
             onClick={() => handleSelect(member.client_id)}
           >
-            {member.profile_picture ? (
-              <img
-                alt=""
-                aria-hidden="true"
-                className="size-8 shrink-0 rounded-full object-cover"
-                src={member.profile_picture}
-              />
-            ) : (
-              <div aria-hidden="true" className="size-8 shrink-0 rounded-full bg-muted" />
-            )}
+            <BackendImage
+              aria-hidden="true"
+              className="size-8 shrink-0 rounded-full object-cover"
+              fallback={
+                <div aria-hidden="true" className="size-8 shrink-0 rounded-full bg-muted" />
+              }
+              src={member.profile_picture}
+            />
             <span className="truncate text-sm font-medium">{member.username}</span>
           </button>
         ))}

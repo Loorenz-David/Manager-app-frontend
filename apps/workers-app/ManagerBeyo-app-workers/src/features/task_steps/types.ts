@@ -5,6 +5,10 @@ import {
   toImageAnnotationViewModels,
   type ImageAnnotationViewModel,
 } from "@beyo/images";
+import {
+  UpholsteryGroupFieldsSchema,
+  type UpholsteryGroupFields,
+} from "@beyo/upholstery";
 
 const TaskIdSchema = z.string().transform((value) => value as TaskId);
 const TaskStepIdSchema = z.string().transform((value) => value as TaskStepId);
@@ -176,8 +180,9 @@ export const TaskStepSchema = z.object({
   item: ItemSnapshotSchema,
   item_images: z.array(ItemImageSchema),
   cases_summary: CasesSummarySchema.nullable().optional(),
+  is_reassigned: z.boolean().default(false),
   dependency_working_sections: z.array(StepDependencyEntrySchema).default([]),
-});
+}).extend(UpholsteryGroupFieldsSchema.shape);
 export type TaskStep = z.infer<typeof TaskStepSchema>;
 
 export const TaskStepsPaginationSchema = z.object({
@@ -242,6 +247,7 @@ export type ListWorkingSectionStepsParams = {
   readiness_statuses?: string;
   task_types?: string;
   item_position?: string;
+  group_by_upholstery?: boolean;
 };
 
 export type TaskStepCardViewModel = {
@@ -260,10 +266,13 @@ export type TaskStepCardViewModel = {
   firstImageHeightPx: number | null;
   itemPositionPillLabel: string | null;
   quantityPillLabel: string | null;
+  itemQuantity: number;
+  isReassigned: boolean;
   lastStateRecord: LastStateRecord | null;
   totalWorkingSeconds: number;
   totalPauseSeconds: number;
   casesSummary: CasesSummary | null;
+  upholsteryGroup: UpholsteryGroupFields;
 };
 
 export type IncompleteDependencyViewModel = {
@@ -322,10 +331,18 @@ export function toTaskStepCardViewModel(step: TaskStep): TaskStepCardViewModel {
     firstImageHeightPx,
     itemPositionPillLabel,
     quantityPillLabel,
+    itemQuantity: item?.quantity ?? 1,
+    isReassigned: step.is_reassigned,
     lastStateRecord: step.last_state_record,
     totalWorkingSeconds: step.total_working_seconds,
     totalPauseSeconds: step.total_pause_seconds,
     casesSummary: step.cases_summary ?? null,
+    upholsteryGroup: {
+      upholstery_group_key: step.upholstery_group_key,
+      upholstery_group_image_url: step.upholstery_group_image_url,
+      upholstery_group_upholstery_id: step.upholstery_group_upholstery_id,
+      upholstery_group_inventory: step.upholstery_group_inventory,
+    },
   };
 }
 

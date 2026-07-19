@@ -57,6 +57,23 @@ export { useToggleUpholsteryFavorite } from "./actions/use-toggle-upholstery-fav
 export { useUpdateUpholsteryListOrder } from "./actions/use-update-upholstery-list-order";
 export { useUpholsteryPickerController } from "./controllers/use-upholstery-picker.controller";
 export { UpholsteryCard } from "./components/UpholsteryCard";
+export { UpholsteryGroupHeaderCard } from "./components/UpholsteryGroupHeaderCard";
+export {
+  NO_UPHOLSTERY_LABEL,
+  UpholsteryGroupFieldsSchema,
+  UpholsteryGroupInventorySchema,
+  partitionUpholsteryGroups,
+  useUpholsteryGrouping,
+} from "./upholstery-grouping";
+export type {
+  UpholsteryGroupFields,
+  UpholsteryGroupInventory,
+  UpholsteryGroupHeaderViewModel,
+  UpholsteryGroupSection,
+  UpholsteryGroupedRow,
+  UseUpholsteryGroupingParams,
+  UseUpholsteryGroupingResult,
+} from "./upholstery-grouping";
 export { getUpholsteryImageUrl } from "./image-url";
 export { ItemUpholsteryField } from "./components/ItemUpholsteryField";
 export { ItemUpholsteryAmountField } from "./components/ItemUpholsteryAmountField";

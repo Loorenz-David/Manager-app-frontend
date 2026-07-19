@@ -6,12 +6,18 @@ import {
 import type { StatePillVariant } from "@beyo/ui";
 
 import { secondsToHM } from "./format-duration";
-import { isKnownInsight, resolveInsightCopy, type ResolvedInsight } from "./insight-copy";
+import { fillToSeconds } from "./time-quality";
+import {
+  isKnownInsight,
+  resolveInsightCopy,
+  type ResolvedInsight,
+} from "./insight-copy";
 import type {
-  RunningTotals,
-  WorkerInsight,
+  WorkerInsightsRow,
   WorkerLastStep,
-  WorkerStatsRow,
+  WorkerLastStepRow,
+  WorkerStatsUser,
+  WorkerTotalsRow,
 } from "../types";
 
 export type TickerModel = {
@@ -19,10 +25,6 @@ export type TickerModel = {
   startedAtIso: string;
 };
 
-// A daily total column. When intervals are open in that state it ticks:
-// display = offsetSeconds + ratePerSecond × (now − asOf). offsetSeconds is the
-// live value at `asOf` (settled + running); ratePerSecond is the open-interval
-// count (can be > 1 — e.g. stacked open pauses).
 export type LiveTotal =
   | { kind: "static"; seconds: number }
   | {
@@ -44,7 +46,7 @@ function resolveLiveTotal(
     return {
       kind: "ticking",
       offsetSeconds: liveSeconds,
-      ratePerSecond: openCount,
+      ratePerSecond: 1,
       asOfIso,
     };
   }
@@ -52,67 +54,83 @@ function resolveLiveTotal(
   return { kind: "static", seconds: liveSeconds };
 }
 
-export type WorkerStatsCardViewModel = {
-  userId: string;
-  username: string;
-  profilePicture: string | null;
+export type SectionState<T> =
+  | { status: "loading" }
+  | { status: "ready"; data: T | null }
+  | { status: "error" };
+
+export type WorkerStepSectionViewModel = {
   hasStep: boolean;
-  // Task of the last-interacted step, for opening its detail page. Null when the
-  // worker has no last active step.
   taskId: string | null;
   stepState: StepState | null;
   stepStateLabel: string | null;
   stepStateVariant: StatePillVariant | null;
   articleLabel: string | null;
   workingSectionName: string | null;
-  // Free-text reason the step is paused; populated only when the last step is
-  // paused and carries a reason. Drives the "Paused because: …" row.
   pauseReason: string | null;
   ticker: TickerModel | null;
+};
+
+export type WorkerTotalsSectionViewModel = {
   workingTotal: LiveTotal;
   pausedTotal: LiveTotal;
   completedCount: number;
-  // Known-code insights in server (strongest-first) order; drives the sheet.
-  insights: WorkerInsight[];
-  // Resolved copy for the top insight; drives the card band. null when none.
+};
+
+export type WorkerInsightsSectionViewModel = {
+  insights: WorkerInsightsRow["insights"];
   topInsight: ResolvedInsight | null;
 };
 
-export function resolveTicker(step: WorkerLastStep | null): TickerModel | null {
+export type WorkerStatsCardViewModel = {
+  userId: string;
+  username: string;
+  profilePicture: string | null;
+  step: SectionState<WorkerStepSectionViewModel>;
+  totals: SectionState<WorkerTotalsSectionViewModel>;
+  insights: SectionState<WorkerInsightsSectionViewModel>;
+};
+
+export function resolveTicker(
+  step: WorkerLastStep | null,
+  obtainedAtIso = new Date().toISOString(),
+): TickerModel | null {
   if (!step?.last_state_record) {
     return null;
   }
 
-  // Only the time-bearing states have a live open interval to tick.
-  const isTimeBearing =
-    step.state === "working" ||
-    step.state === "paused" ||
-    step.state === "ended_shift";
+  if (step.state === "working") {
+    return {
+      offsetSeconds: step.total_working_seconds,
+      startedAtIso: obtainedAtIso,
+    };
+  }
 
-  if (!isTimeBearing) {
+  if (step.state === "paused") {
+    return {
+      offsetSeconds: step.total_pause_seconds,
+      startedAtIso: obtainedAtIso,
+    };
+  }
+
+  if (step.state !== "ended_shift") {
     return null;
   }
 
   return {
-    // Elapsed time since the current state was entered (the open interval) —
-    // not the step's accumulated total.
     offsetSeconds: 0,
     startedAtIso: step.last_state_record.entered_at,
   };
 }
 
-export function toWorkerStatsCardViewModel(
-  row: WorkerStatsRow,
-): WorkerStatsCardViewModel {
+export function toWorkerStepSectionViewModel(
+  row: WorkerLastStepRow,
+  obtainedAtIso = new Date().toISOString(),
+): WorkerStepSectionViewModel {
   const step = row.last_interacted_step;
   const item = step?.item ?? null;
-  const insights = row.insights.filter(isKnownInsight);
-  const running: RunningTotals = row.running;
 
   return {
-    userId: row.user.client_id,
-    username: row.user.username,
-    profilePicture: row.user.profile_picture,
     hasStep: step !== null,
     taskId: step?.task_id ?? null,
     stepState: step?.state ?? null,
@@ -126,27 +144,58 @@ export function toWorkerStatsCardViewModel(
       step?.state === "paused"
         ? (step.last_state_record?.reason?.trim() || null)
         : null,
-    ticker: resolveTicker(step),
+    ticker: resolveTicker(step, obtainedAtIso),
+  };
+}
+
+export function toWorkerTotalsSectionViewModel(
+  row: WorkerTotalsRow,
+): WorkerTotalsSectionViewModel {
+  // Usable totals: trusted + estimated fill for flagged (inaccurate) steps.
+  // Rendered as a plain total — no visual guidance on the card for now.
+  // `time_quality.*.wasted` is diagnostic-only and never added here.
+  const quality = row.daily_stats.time_quality ?? null;
+  const workingFill = fillToSeconds(quality?.working.estimated_fill ?? 0);
+  const pausedFill = fillToSeconds(quality?.paused.estimated_fill ?? 0);
+
+  return {
     workingTotal: resolveLiveTotal(
-      row.daily_stats.total_working_seconds,
-      running.working_seconds,
-      running.working_open_count,
-      running.as_of,
+      row.daily_stats.total_working_seconds + workingFill,
+      row.running.working_seconds,
+      row.running.working_open_count,
+      row.running.as_of,
     ),
     pausedTotal: resolveLiveTotal(
-      row.daily_stats.total_pause_seconds,
-      running.pause_seconds,
-      running.pause_open_count,
-      running.as_of,
+      row.daily_stats.total_pause_seconds + pausedFill,
+      row.running.pause_seconds,
+      row.running.pause_open_count,
+      row.running.as_of,
     ),
     completedCount: row.daily_stats.total_completed_count,
+  };
+}
+
+export function toWorkerInsightsSectionViewModel(
+  row: WorkerInsightsRow,
+): WorkerInsightsSectionViewModel {
+  const insights = row.insights.filter(isKnownInsight);
+  return {
     insights,
     topInsight: resolveInsightCopy(insights[0]),
   };
 }
 
-// Snapshot text for a live total at its `asOf` instant (used where a ticking
-// component can't render, e.g. static surface props / passthrough).
+export function toWorkerIdentityViewModel(user: WorkerStatsUser): Pick<
+  WorkerStatsCardViewModel,
+  "userId" | "username" | "profilePicture"
+> {
+  return {
+    userId: user.client_id,
+    username: user.username,
+    profilePicture: user.profile_picture,
+  };
+}
+
 export function liveTotalToText(total: LiveTotal): string {
   return secondsToHM(
     total.kind === "static" ? total.seconds : total.offsetSeconds,

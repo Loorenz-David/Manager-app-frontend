@@ -30,6 +30,7 @@ export { updateItemPositions } from "./api/update-item-positions";
 export { useItemLocationQuery } from "./api/use-item-location-query";
 export { useItemLookupQuery } from "./api/use-item-lookup-query";
 export { ItemIdentityField } from "./components/ItemIdentityField";
+export { ItemPositionInputField } from "./components/ItemPositionInputField";
 export { ItemPositionZoneField } from "./components/ItemPositionZoneField";
 export { shouldApplyLookupZone } from "./components/ItemPositionZoneField";
 export { ItemPositionZonePreview } from "./components/ItemPositionZonePreview";

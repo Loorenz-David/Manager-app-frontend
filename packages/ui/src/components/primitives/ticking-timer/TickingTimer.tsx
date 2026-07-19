@@ -13,6 +13,7 @@ function formatElapsed(ms: number): string {
 export type TickingTimerProps = {
   startedAtIso: string;
   offsetSeconds?: number;
+  ratePerSecond?: number;
   className?: string;
   "data-testid"?: string;
 };
@@ -20,6 +21,7 @@ export type TickingTimerProps = {
 export function TickingTimer({
   startedAtIso,
   offsetSeconds = 0,
+  ratePerSecond = 1,
   className,
   "data-testid": testId,
 }: TickingTimerProps): React.JSX.Element {
@@ -31,7 +33,7 @@ export function TickingTimer({
 
   return (
     <span className={className} data-testid={testId}>
-      {formatElapsed(offsetSeconds * 1000 + elapsed)}
+      {formatElapsed(offsetSeconds * 1000 + ratePerSecond * elapsed)}
     </span>
   );
 }

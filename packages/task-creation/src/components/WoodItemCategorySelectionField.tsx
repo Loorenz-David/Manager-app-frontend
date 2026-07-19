@@ -4,6 +4,7 @@ import { useController, useFormContext } from "react-hook-form";
 
 import { useSurface } from "@beyo/hooks";
 import {
+  BackendImage,
   FieldErrorPill,
   ImagePlaceholder,
 } from "@beyo/ui";
@@ -71,19 +72,17 @@ export function WoodItemCategorySelectionField(): React.JSX.Element {
         {selectedCategory ? (
           <span className="flex min-w-0 items-center gap-3">
             <span className="size-7 shrink-0 overflow-hidden rounded-md">
-              {selectedCategory.image_url ? (
-                <img
-                  alt=""
-                  aria-hidden="true"
-                  className="size-full object-cover"
-                  src={selectedCategory.image_url}
-                />
-              ) : (
-                <ImagePlaceholder
-                  className="bg-transparent"
-                  iconClassName="size-4"
-                />
-              )}
+              <BackendImage
+                aria-hidden="true"
+                className="size-full object-cover"
+                fallback={
+                  <ImagePlaceholder
+                    className="bg-transparent"
+                    iconClassName="size-4"
+                  />
+                }
+                src={selectedCategory.image_url}
+              />
             </span>
             <span className="truncate">{selectedCategory.name}</span>
           </span>

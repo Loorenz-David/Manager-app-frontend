@@ -5,6 +5,7 @@ import { useSurface } from "@beyo/hooks";
 import { useImageQuery } from "@beyo/images";
 import { useDeleteImage } from "@beyo/images";
 import { ImageAnnotationSvgLayer } from "@beyo/images";
+import { BackendImage } from "@beyo/ui";
 import {
   IMAGE_VIEWER_SURFACE_ID,
   preloadImageViewerSurface,
@@ -212,11 +213,8 @@ const CaseMessageImageTile = memo(function CaseMessageImageTile({
     >
       {/* img is absolutely positioned — it cannot influence Virtuoso's
           ResizeObserver measurements. The collage outer div owns the height. */}
-      <img
-        alt=""
+      <BackendImage
         className="absolute inset-0 size-full object-cover"
-        decoding="async"
-        draggable={false}
         loading="eager"
         onLoad={(event) => {
           const { naturalHeight, naturalWidth } = event.currentTarget;

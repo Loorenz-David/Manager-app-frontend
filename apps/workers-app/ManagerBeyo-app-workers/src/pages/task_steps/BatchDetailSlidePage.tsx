@@ -8,7 +8,7 @@ import {
   useCelebration,
   YouDidItCelebrationIcon,
 } from "@beyo/celebration";
-import { ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { useUserLastActiveStepQuery } from "@/features/task_steps/api/use-user-last-active-step";
 import { useTransitionBatchStepStates } from "@/features/task_steps/actions/use-transition-batch-step-states";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
@@ -205,17 +205,13 @@ export function BatchDetailSlidePage(): React.JSX.Element {
         </button>
 
         <div className="relative size-10 shrink-0 overflow-hidden rounded-full">
-          {sectionImageUrl ? (
-            <img
-              alt=""
-              className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              src={sectionImageUrl}
-            />
-          ) : (
-            <ImagePlaceholder iconClassName="size-3.5 text-muted-foreground/60" />
-          )}
+          <BackendImage
+            className="size-full object-cover"
+            fallback={
+              <ImagePlaceholder iconClassName="size-3.5 text-muted-foreground/60" />
+            }
+            src={sectionImageUrl}
+          />
         </div>
 
         <span

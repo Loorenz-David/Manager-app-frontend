@@ -44,6 +44,9 @@ export async function listTasks(params: ListTasksFullParams): Promise<ListTasksR
   if (params.item_position) queryParams.item_position = params.item_position;
   if (params.deleted != null) queryParams.deleted = params.deleted;
   if (params.order_by) queryParams.order_by = params.order_by;
+  if (params.group_by_upholstery != null) {
+    queryParams.group_by_upholstery = params.group_by_upholstery;
+  }
 
   const parsed = await apiClient.get("/api/v1/tasks", ListTasksResponseSchema, queryParams);
   return parsed.data.tasks_pagination;

@@ -1,4 +1,4 @@
-import { ImagePlaceholder, StatePill } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, StatePill } from "@beyo/ui";
 import {
   formatUpholsteryRequirementLabel,
   getUpholsteryRequirementVariant,
@@ -39,18 +39,13 @@ export function UpholsteryEntryCard({
       ) : null}
 
       <div className="size-12 shrink-0 overflow-hidden rounded-lg bg-muted">
-        {entry.image_url ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={entry.image_url}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-4 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-4 text-muted-foreground/60" />
+          }
+          src={entry.image_url}
+        />
       </div>
 
       <div className="min-w-0 flex-1">

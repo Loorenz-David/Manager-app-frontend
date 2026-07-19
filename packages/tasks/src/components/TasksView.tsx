@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 
 import { PullToRefresh, useScrollHide } from "@beyo/ui";
+import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
 import { TaskListCard } from "./TaskListCard";
@@ -11,44 +12,60 @@ export function TasksView(): React.JSX.Element {
   const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
   const taskCards = useMemo(
     () =>
-      controller.cards.map((card) => (
-        <TaskListCard
-          key={card.taskId}
-          imageUrl={
-            card.firstImage
-              ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
-              : null
-          }
-          item={
-            card.item
-              ? {
-                  itemId: card.item.client_id,
-                  article_number: card.item.article_number,
-                  sku: card.item.sku,
-                  item_major_category_snapshot:
-                    card.item.item_major_category_snapshot,
-                  quantity: card.item.quantity,
-                }
-              : null
-          }
-          taskId={card.taskId}
-          task={{
-            task_type: card.task.task_type,
-            state: card.task.state,
-            return_source: card.task.return_source,
-            ready_by_at: card.task.ready_by_at,
-            is_overdue: card.task.is_overdue,
-          }}
-          onTapActions={controller.openTaskActions}
-          onTapCard={controller.openTaskDetail}
-          onTapImage={controller.openImageViewer}
-        />
-      )),
+      controller.renderRows.map((entry) => {
+        if (entry.kind === "header") {
+          return (
+            <UpholsteryGroupHeaderCard
+              key={`header-${entry.header.reactKey}`}
+              header={entry.header}
+              itemCount={entry.itemCount}
+              isFolded={entry.isFolded}
+              onToggle={() => controller.toggleFold(entry.header.reactKey)}
+            />
+          );
+        }
+
+        const card = entry.row;
+        return (
+          <TaskListCard
+            key={card.taskId}
+            imageUrl={
+              card.firstImage
+                ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
+                : null
+            }
+            item={
+              card.item
+                ? {
+                    itemId: card.item.client_id,
+                    article_number: card.item.article_number,
+                    sku: card.item.sku,
+                    item_major_category_snapshot:
+                      card.item.item_major_category_snapshot,
+                    quantity: card.item.quantity,
+                  }
+                : null
+            }
+            taskId={card.taskId}
+            task={{
+              task_type: card.task.task_type,
+              state: card.task.state,
+              return_source: card.task.return_source,
+              ready_by_at: card.task.ready_by_at,
+              is_overdue: card.task.is_overdue,
+            }}
+            onTapActions={controller.openTaskActions}
+            onTapCard={controller.openTaskDetail}
+            onTapImage={controller.openImageViewer}
+          />
+        );
+      }),
     [
-      controller.cards,
+      controller.renderRows,
       controller.openImageViewer,
       controller.openTaskActions,
       controller.openTaskDetail,
+      controller.toggleFold,
     ],
   );
 

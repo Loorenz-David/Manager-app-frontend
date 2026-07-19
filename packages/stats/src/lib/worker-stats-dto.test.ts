@@ -1,16 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveTicker, toWorkerStatsCardViewModel } from "./worker-stats-dto";
-import type { WorkerStatsRow } from "../types";
+import {
+  resolveTicker,
+  toWorkerInsightsSectionViewModel,
+  toWorkerStepSectionViewModel,
+  toWorkerTotalsSectionViewModel,
+} from "./worker-stats-dto";
+import type {
+  WorkerInsightsRow,
+  WorkerLastStepRow,
+  WorkerTotalsRow,
+} from "../types";
 
-function makeRow(overrides: Partial<WorkerStatsRow> = {}): WorkerStatsRow {
+const user = {
+  client_id: "usr_test",
+  username: "#test-seller",
+  profile_picture: null,
+  last_online: null,
+};
+
+function makeStepRow(
+  overrides: Partial<WorkerLastStepRow> = {},
+): WorkerLastStepRow {
   return {
-    user: {
-      client_id: "usr_test",
-      username: "#test-seller",
-      profile_picture: null,
-      last_online: null,
-    },
+    user,
     last_interacted_step: {
       client_id: "tsp_test",
       state: "working",
@@ -23,6 +36,15 @@ function makeRow(overrides: Partial<WorkerStatsRow> = {}): WorkerStatsRow {
       total_ended_shift_seconds: 45,
     },
     batch: null,
+    ...overrides,
+  };
+}
+
+function makeTotalsRow(
+  overrides: Partial<WorkerTotalsRow> = {},
+): WorkerTotalsRow {
+  return {
+    user,
     daily_stats: {
       work_date: "2026-07-15",
       total_working_seconds: 26_040,
@@ -38,37 +60,31 @@ function makeRow(overrides: Partial<WorkerStatsRow> = {}): WorkerStatsRow {
       ended_shift_open_count: 0,
       as_of: "2026-07-15T12:00:00Z",
     },
-    insights: [],
     ...overrides,
   };
 }
 
 describe("worker stats DTO", () => {
-  it("maps the worker card fields and live working ticker", () => {
-    const viewModel = toWorkerStatsCardViewModel(makeRow());
-
-    expect(viewModel).toMatchObject({
-      userId: "usr_test",
-      username: "#test-seller",
+  it("maps the step section and its live step ticker", () => {
+    expect(
+      toWorkerStepSectionViewModel(
+        makeStepRow(),
+        "2026-07-15T13:00:00Z",
+      ),
+    ).toMatchObject({
+      hasStep: true,
       stepState: "working",
       stepStateLabel: "Working",
       stepStateVariant: "active",
       articleLabel: "#ART-40921",
       workingSectionName: "Upholstery",
-      workingTotal: { kind: "static", seconds: 26_040 },
-      pausedTotal: { kind: "static", seconds: 5_040 },
-      completedCount: 12,
-      // Ticks the current open interval from zero, not the step's accumulated total.
-      ticker: {
-        offsetSeconds: 0,
-        startedAtIso: "2026-07-15T12:00:00Z",
-      },
+      ticker: { offsetSeconds: 120, startedAtIso: "2026-07-15T13:00:00Z" },
     });
   });
 
-  it("makes a total tick when intervals are open, adding running on top of settled", () => {
-    const viewModel = toWorkerStatsCardViewModel(
-      makeRow({
+  it("maps settled and running totals with one-second ticking", () => {
+    const viewModel = toWorkerTotalsSectionViewModel(
+      makeTotalsRow({
         running: {
           working_seconds: 60,
           pause_seconds: 900,
@@ -81,157 +97,102 @@ describe("worker stats DTO", () => {
       }),
     );
 
-    // Both columns can be open at once (active working + stacked auto-pauses).
     expect(viewModel.workingTotal).toEqual({
       kind: "ticking",
-      offsetSeconds: 26_040 + 60,
+      offsetSeconds: 26_100,
       ratePerSecond: 1,
       asOfIso: "2026-07-16T12:00:00Z",
     });
     expect(viewModel.pausedTotal).toEqual({
       kind: "ticking",
-      offsetSeconds: 5_040 + 900,
-      ratePerSecond: 3,
+      offsetSeconds: 5_940,
+      ratePerSecond: 1,
       asOfIso: "2026-07-16T12:00:00Z",
     });
   });
 
-  it("ticks the open interval from zero for every time-bearing state", () => {
-    for (const state of ["working", "paused", "ended_shift"] as const) {
-      const row = makeRow({
-        last_interacted_step: {
-          ...makeRow().last_interacted_step!,
-          state,
-        },
-      });
-
-      expect(resolveTicker(row.last_interacted_step)).toEqual({
-        offsetSeconds: 0,
-        startedAtIso: "2026-07-15T12:00:00Z",
-      });
-    }
-  });
-
-  it("surfaces the free-text pause reason only when paused", () => {
-    const pausedWithReason = makeRow({
-      last_interacted_step: {
-        ...makeRow().last_interacted_step!,
-        state: "paused",
-        last_state_record: {
-          entered_at: "2026-07-15T12:00:00Z",
-          reason: "  Waiting for upholstery  ",
-        },
-      },
-    });
-    const workingWithReason = makeRow({
-      last_interacted_step: {
-        ...makeRow().last_interacted_step!,
-        state: "working",
-        last_state_record: {
-          entered_at: "2026-07-15T12:00:00Z",
-          reason: "irrelevant",
-        },
-      },
-    });
-
-    expect(toWorkerStatsCardViewModel(pausedWithReason).pauseReason).toBe(
-      "Waiting for upholstery",
-    );
-    expect(
-      toWorkerStatsCardViewModel(workingWithReason).pauseReason,
-    ).toBeNull();
-    expect(toWorkerStatsCardViewModel(makeRow()).pauseReason).toBeNull();
-  });
-
-  it("has no ticker for a non-time-bearing state or a step without a state record", () => {
-    const completed = makeRow({
-      last_interacted_step: {
-        ...makeRow().last_interacted_step!,
-        state: "completed",
-      },
-    });
-    const noRecord = makeRow({
-      last_interacted_step: {
-        ...makeRow().last_interacted_step!,
-        last_state_record: null,
-      },
-    });
-
-    expect(resolveTicker(completed.last_interacted_step)).toBeNull();
-    expect(resolveTicker(noRecord.last_interacted_step)).toBeNull();
-  });
-
-  it("filters unknown insight codes and resolves the top insight, preserving order", () => {
-    const viewModel = toWorkerStatsCardViewModel(
-      makeRow({
-        insights: [
-          {
-            code: "completion_surge",
-            polarity: "positive",
-            metric: "completed_count",
-            target_value: 8,
-            baseline_value: 3,
-            delta: 5,
-            delta_pct: 1.667,
-            sample_size: 4,
-            severity: "high",
+  it("folds the estimated fill into usable totals and ignores wasted", () => {
+    const viewModel = toWorkerTotalsSectionViewModel(
+      makeTotalsRow({
+        daily_stats: {
+          date_from: "2026-07-01",
+          date_to: "2026-07-15",
+          total_working_seconds: 26_040,
+          total_pause_seconds: 5_040,
+          total_completed_count: 12,
+          time_quality: {
+            strategy: "median",
+            working: {
+              trusted: 26_040,
+              wasted: 9_600,
+              inaccurate_step_count: 3,
+              estimated_fill: 1_800.4,
+            },
+            paused: {
+              trusted: 5_040,
+              wasted: 600,
+              inaccurate_step_count: 3,
+              estimated_fill: 299.6,
+            },
           },
-          {
-            code: "future_unknown_code",
-            polarity: "negative",
-            metric: "whatever",
-            target_value: 1,
-            baseline_value: 1,
-            delta: 0,
-            delta_pct: null,
-            sample_size: 3,
-            severity: "low",
-          },
-          {
-            code: "rising_pauses",
-            polarity: "negative",
-            metric: "avg_pause_seconds",
-            target_value: 660,
-            baseline_value: 300,
-            delta: 360,
-            delta_pct: 1.2,
-            sample_size: 3,
-            severity: "medium",
-          },
-        ],
+        },
       }),
     );
 
-    expect(viewModel.insights.map((i) => i.code)).toEqual([
-      "completion_surge",
-      "rising_pauses",
-    ]);
-    expect(viewModel.topInsight).toMatchObject({
-      title: "Completion surge — 5 more than usual",
-      rightValue: "8 vs 3",
-      tone: "positive",
+    // trusted + round(fill); wasted must never be added.
+    expect(viewModel.workingTotal).toEqual({ kind: "static", seconds: 27_840 });
+    expect(viewModel.pausedTotal).toEqual({ kind: "static", seconds: 5_340 });
+  });
+
+  it("keeps ticker rules for paused and ended-shift steps", () => {
+    const paused = {
+      ...makeStepRow().last_interacted_step!,
+      state: "paused" as const,
+    };
+    expect(resolveTicker(paused, "2026-07-15T13:00:00Z")).toEqual({
+      offsetSeconds: 30,
+      startedAtIso: "2026-07-15T13:00:00Z",
+    });
+
+    const endedShift = { ...paused, state: "ended_shift" as const };
+    expect(resolveTicker(endedShift)).toEqual({
+      offsetSeconds: 0,
+      startedAtIso: "2026-07-15T12:00:00Z",
     });
   });
 
-  it("has no top insight when the list is empty", () => {
-    const viewModel = toWorkerStatsCardViewModel(makeRow({ insights: [] }));
-    expect(viewModel.insights).toEqual([]);
-    expect(viewModel.topInsight).toBeNull();
-  });
+  it("filters unknown insight codes and resolves the top insight", () => {
+    const row: WorkerInsightsRow = {
+      user,
+      insights: [
+        {
+          code: "completion_surge",
+          polarity: "positive",
+          metric: "completed_count",
+          target_value: 8,
+          baseline_value: 3,
+          delta: 5,
+          delta_pct: 1.667,
+          sample_size: 4,
+          severity: "high",
+        },
+        {
+          code: "future_unknown_code",
+          polarity: "negative",
+          metric: "whatever",
+          target_value: 1,
+          baseline_value: 1,
+          delta: 0,
+          delta_pct: null,
+          sample_size: 3,
+          severity: "low",
+        },
+      ],
+    };
 
-  it("renders an idle worker without step-specific values", () => {
-    const viewModel = toWorkerStatsCardViewModel(
-      makeRow({ last_interacted_step: null }),
-    );
-
-    expect(viewModel).toMatchObject({
-      hasStep: false,
-      stepState: null,
-      articleLabel: null,
-      ticker: null,
-      workingTotal: { kind: "static", seconds: 26_040 },
-      pausedTotal: { kind: "static", seconds: 5_040 },
-      completedCount: 12,
+    expect(toWorkerInsightsSectionViewModel(row)).toMatchObject({
+      insights: [{ code: "completion_surge" }],
+      topInsight: { tone: "positive" },
     });
   });
 });

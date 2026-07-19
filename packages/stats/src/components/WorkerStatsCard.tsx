@@ -8,6 +8,7 @@ import { STATE_CHIP_CLASS } from "../lib/state-pill-styles";
 import type {
   LiveTotal,
   WorkerStatsCardViewModel,
+  WorkerTotalsSectionViewModel,
 } from "../lib/worker-stats-dto";
 import { WorkerTotalTicker } from "./WorkerTotalTicker";
 import type {
@@ -45,8 +46,12 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
   onOpenSection,
   onOpenTaskDetail,
 }: WorkerStatsCardProps): React.JSX.Element {
-  const tickerChipClass = worker.stepStateVariant
-    ? STATE_CHIP_CLASS[worker.stepStateVariant]
+  const step = worker.step.status === "ready" ? worker.step.data : null;
+  const totals = worker.totals.status === "ready" ? worker.totals.data : null;
+  const insights =
+    worker.insights.status === "ready" ? worker.insights.data : null;
+  const tickerChipClass = step?.stepStateVariant
+    ? STATE_CHIP_CLASS[step.stepStateVariant]
     : STATE_CHIP_CLASS.neutral;
   const canTapBody = Boolean(onOpenTaskDetail);
 
@@ -62,7 +67,7 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
         data-testid={`worker-stats-card-body-${worker.userId}`}
         role={canTapBody ? "button" : undefined}
         tabIndex={canTapBody ? 0 : undefined}
-        onClick={() => onOpenTaskDetail?.(worker.taskId)}
+        onClick={() => onOpenTaskDetail?.(step?.taskId ?? null)}
         onKeyDown={(event) => {
           if (!canTapBody) {
             return;
@@ -70,7 +75,7 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
 
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
-            onOpenTaskDetail?.(worker.taskId);
+            onOpenTaskDetail?.(step?.taskId ?? null);
           }
         }}
       >
@@ -84,67 +89,85 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
             <p className="min-w-0 flex-1 truncate text-sm font-semibold tracking-tight text-foreground">
               {worker.username}
             </p>
-            {worker.stepStateLabel && worker.stepStateVariant ? (
+            {worker.step.status === "loading" ? (
+              <span
+                aria-label="Loading current step"
+                className="skeleton-shimmer h-6 w-24 shrink-0 rounded-full"
+                data-testid={`worker-stats-step-skeleton-${worker.userId}`}
+              />
+            ) : step?.stepStateLabel && step.stepStateVariant ? (
               <div
                 className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${tickerChipClass}`}
               >
-                <span>{worker.stepStateLabel}</span>
-                {worker.ticker ? (
+                <span>{step.stepStateLabel}</span>
+                {step.ticker ? (
                   <TickingTimer
                     className="font-mono tabular-nums font-normal"
                     data-testid={`worker-stats-timer-${worker.userId}`}
-                    offsetSeconds={worker.ticker.offsetSeconds}
-                    startedAtIso={worker.ticker.startedAtIso}
+                    offsetSeconds={step.ticker.offsetSeconds}
+                    startedAtIso={step.ticker.startedAtIso}
                   />
                 ) : null}
               </div>
             ) : null}
           </div>
-          {worker.hasStep ? (
+          {worker.step.status === "loading" ? (
+            <span
+              aria-label="Loading last interacted step"
+              className="skeleton-shimmer mt-2 h-5 w-32 rounded"
+              data-testid={`worker-stats-step-row-skeleton-${worker.userId}`}
+            />
+          ) : step?.hasStep ? (
             <div className="mt-1 flex min-w-0 items-center gap-2">
               <p className="min-w-0 truncate text-sm font-semibold text-muted-foreground">
-                {worker.articleLabel ?? "—"}
-                {worker.workingSectionName ? (
+                {step.articleLabel ?? "—"}
+                {step.workingSectionName ? (
                   <span className="font-normal text-muted-foreground">
-                    {` · ${worker.workingSectionName}`}
+                    {` · ${step.workingSectionName}`}
                   </span>
                 ) : null}
               </p>
             </div>
           ) : null}
-          {worker.pauseReason ? (
+          {step?.pauseReason ? (
             <p
               className="mt-2 min-w-0 border-l-2 border-[#f0c36a] pl-2.5 text-sm italic text-muted-foreground"
               data-testid={`worker-stats-pause-reason-${worker.userId}`}
             >
-              {worker.pauseReason}
+              {step.pauseReason}
             </p>
           ) : null}
         </div>
       </div>
 
-      {worker.topInsight ? (
+      {worker.insights.status === "loading" ? (
+        <div
+          aria-label="Loading worker insight"
+          className="skeleton-shimmer mx-4 h-10 rounded-lg"
+          data-testid={`worker-stats-insight-skeleton-${worker.userId}`}
+        />
+      ) : insights?.topInsight ? (
         <button
-          aria-label={worker.topInsight.title}
-          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left ${INSIGHT_BAND_CLASS[worker.topInsight.tone].band}`}
+          aria-label={insights.topInsight.title}
+          className={`flex w-full items-center gap-2.5 px-4 py-2.5 text-left ${INSIGHT_BAND_CLASS[insights.topInsight.tone].band}`}
           data-testid={`worker-stats-insight-${worker.userId}`}
           type="button"
-          onClick={() => onOpenInsights?.(worker.insights)}
+          onClick={() => onOpenInsights?.(insights.insights)}
         >
           <span
             aria-hidden="true"
-            className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full ${INSIGHT_BAND_CLASS[worker.topInsight.tone].icon}`}
+            className={`inline-flex size-6 shrink-0 items-center justify-center rounded-full ${INSIGHT_BAND_CLASS[insights.topInsight.tone].icon}`}
           >
             <Triangle
-              className={`size-3 fill-current ${worker.topInsight.tone === "negative" ? "rotate-180" : ""}`}
+              className={`size-3 fill-current ${insights.topInsight.tone === "negative" ? "rotate-180" : ""}`}
             />
           </span>
           <span className="min-w-0 flex-1 truncate text-sm font-semibold">
-            {worker.topInsight.title}
+            {insights.topInsight.title}
           </span>
-          {worker.topInsight.rightValue ? (
+          {insights.topInsight.rightValue ? (
             <span className="shrink-0 text-sm font-semibold tabular-nums">
-              {worker.topInsight.rightValue}
+              {insights.topInsight.rightValue}
             </span>
           ) : null}
         </button>
@@ -153,39 +176,66 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
       <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
         <WorkerStat
           intention="working"
-          label="Working"
+          label="Worked"
           testId={`worker-stats-working-${worker.userId}`}
-          value={
-            <LiveTotalValue
-              testId={`worker-stats-working-${worker.userId}`}
-              total={worker.workingTotal}
-            />
-          }
-          onOpenSection={onOpenSection}
+          value={renderTotalValue(worker, "working", totals)}
+          onOpenSection={totals ? onOpenSection : undefined}
         />
         <WorkerStat
           intention="paused"
           label="Paused"
           testId={`worker-stats-paused-${worker.userId}`}
-          value={
-            <LiveTotalValue
-              testId={`worker-stats-paused-${worker.userId}`}
-              total={worker.pausedTotal}
-            />
-          }
-          onOpenSection={onOpenSection}
+          value={renderTotalValue(worker, "paused", totals)}
+          onOpenSection={totals ? onOpenSection : undefined}
         />
         <WorkerStat
           intention="completed"
           label="Completed"
           testId={`worker-stats-completed-${worker.userId}`}
-          value={String(worker.completedCount)}
-          onOpenSection={onOpenSection}
+          value={
+            worker.totals.status === "loading" ? (
+              <span
+                aria-hidden="true"
+                className="skeleton-shimmer inline-block h-5 w-10 rounded"
+              />
+            ) : totals ? (
+              String(totals.completedCount)
+            ) : (
+              "—"
+            )
+          }
+          onOpenSection={totals ? onOpenSection : undefined}
         />
       </div>
     </article>
   );
 });
+
+function renderTotalValue(
+  worker: WorkerStatsCardViewModel,
+  intention: "working" | "paused",
+  totals: WorkerTotalsSectionViewModel | null,
+): React.ReactNode {
+  if (worker.totals.status === "loading") {
+    return (
+      <span
+        aria-hidden="true"
+        className="skeleton-shimmer inline-block h-5 w-14 rounded"
+      />
+    );
+  }
+
+  if (!totals) {
+    return "—";
+  }
+
+  return (
+    <LiveTotalValue
+      testId={`worker-stats-${intention}-${worker.userId}`}
+      total={intention === "working" ? totals.workingTotal : totals.pausedTotal}
+    />
+  );
+}
 
 // Ticks off the shared clock when intervals are open in that state; otherwise
 // renders a plain settled total.

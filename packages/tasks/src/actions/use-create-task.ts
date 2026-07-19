@@ -5,8 +5,10 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 import { notify } from "@beyo/lib";
+import { upholsteryKeys } from "@beyo/upholstery";
 
 import { createTask } from "../api/create-task";
+import { itemUpholsteryKeys } from "../api/item-upholstery-keys";
 import { taskKeys } from "../api/task-keys";
 import type { ListTasksResult, TaskListItemRaw } from "../types";
 
@@ -93,6 +95,10 @@ function buildOptimisticListItem(
         }
       : null,
     item_images: [],
+    upholstery_group_key: null,
+    upholstery_group_image_url: null,
+    upholstery_group_upholstery_id: null,
+    upholstery_group_inventory: null,
   };
 }
 
@@ -181,8 +187,20 @@ export function useCreateTask() {
         error instanceof Error ? error.message : "Please try again.",
       );
     },
-    onSettled: () => {
+    onSettled: (_data, _error, payload) => {
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+
+      if (payload.item_upholstery) {
+        // A created task that consumes upholstery changes the true stored
+        // amounts, so refresh the upholstery picker lists and item→upholstery
+        // associations to reflect the reduced quantity.
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryKeys.pickerLists(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: itemUpholsteryKeys.all,
+        });
+      }
     },
   });
 }

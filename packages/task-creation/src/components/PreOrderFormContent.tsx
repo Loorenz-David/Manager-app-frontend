@@ -155,6 +155,7 @@ export function PreOrderFormContent(): React.JSX.Element {
     customerClientId,
     noteClientId,
     currentUserClientId,
+    callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const createImagesFromUrl = useCreateImagesFromUrl();
@@ -366,7 +367,11 @@ export function PreOrderFormContent(): React.JSX.Element {
           "pre_order",
         );
 
-        await createTask.mutateAsync(payload);
+        const result = await createTask.mutateAsync(payload);
+        callbacks.onTaskCreated?.({
+          result,
+          hadUpholstery: Boolean(payload.item_upholstery),
+        });
         form.reset({
           item: {
             designer: "",

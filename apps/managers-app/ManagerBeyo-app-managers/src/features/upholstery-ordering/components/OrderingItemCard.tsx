@@ -7,6 +7,7 @@ import {
 } from "@beyo/tasks";
 
 import { ImagePlaceholder } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 import type { Item } from "@/features/items/types";
 
 import type { OrderingItemCardViewModel } from "../types";
@@ -67,11 +68,13 @@ export function OrderingItemCard({
         type="button"
         onClick={() => onOpenImage(card)}
       >
-        {imageUrl ? (
-          <img alt="" className="size-full object-cover" src={imageUrl} />
-        ) : (
-          <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-6 text-muted-foreground/60" />
+          }
+          src={imageUrl}
+        />
         {quantityPillLabel ? (
           <span className="absolute bottom-2 right-2 rounded-full bg-black/50 px-2 py-0.5 text-xs font-medium text-white">
             {quantityPillLabel}

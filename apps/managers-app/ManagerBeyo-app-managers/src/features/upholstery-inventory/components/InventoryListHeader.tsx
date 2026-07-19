@@ -2,6 +2,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { ChevronLeft } from "lucide-react";
 
 import { SearchBar } from "@/components/primitives";
+import { BackendImage } from "@beyo/ui";
 import type { UpholsteryCategory } from "@/features/upholstery-category";
 import { transitions } from "@/lib/animation";
 
@@ -96,15 +97,11 @@ export function InventoryListHeader({
               <ChevronLeft className="size-5" />
             </button>
 
-            {selectedCategory.image_url ? (
-              <img
-                alt=""
-                className="size-9 shrink-0 rounded-full object-cover"
-                src={selectedCategory.image_url}
-              />
-            ) : (
-              <div className="size-9 shrink-0 rounded-full bg-muted" />
-            )}
+            <BackendImage
+              className="size-9 shrink-0 rounded-full object-cover"
+              fallback={<div className="size-9 shrink-0 rounded-full bg-muted" />}
+              src={selectedCategory.image_url}
+            />
 
             <p className="min-w-0 flex-1 truncate font-medium text-foreground">
               {selectedCategory.name}

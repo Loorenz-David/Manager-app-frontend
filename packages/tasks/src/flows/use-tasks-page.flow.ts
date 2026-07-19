@@ -4,14 +4,29 @@ import {
   toImageAnnotationViewModel,
   type ImageViewModel,
 } from "@beyo/images";
+import {
+  useUpholsteryGrouping,
+  type UpholsteryGroupFields,
+  type UpholsteryGroupedRow,
+} from "@beyo/upholstery";
 
 import { useListTasksQuery } from "../api/use-list-tasks-query";
 import { useTasksPageStore } from "../store/tasks-page.store";
 import type { TaskCardViewModel, TaskListItemRaw } from "../types";
 import { TASK_DEFAULT_LIST_EXCLUDED_STATES, toTaskViewModel } from "../types";
 
+export type TaskRenderRow = UpholsteryGroupedRow<TaskCardViewModel>;
+
+// Module-level so the grouping memo keeps a stable reference.
+const getTaskGroup = (card: TaskCardViewModel): UpholsteryGroupFields =>
+  card.upholsteryGroup;
+const getTaskItemCount = (card: TaskCardViewModel): number =>
+  card.item?.quantity ?? 1;
+
 export type TasksPageFlow = {
   cards: TaskCardViewModel[];
+  renderRows: TaskRenderRow[];
+  toggleFold: (reactKey: string) => void;
   isLoading: boolean;
   isFetchingMore: boolean;
   hasMore: boolean;
@@ -90,7 +105,8 @@ function useDelayedTrue(value: boolean, delayMs: number): boolean {
 }
 
 export function useTasksPageFlow(): TasksPageFlow {
-  const { taskType, taskStates, q, itemPosition } = useTasksPageStore();
+  const { taskType, taskStates, q, itemPosition, groupByUpholstery } =
+    useTasksPageStore();
   const [debouncedQ, setDebouncedQ] = useState(q);
 
   useEffect(() => {
@@ -104,11 +120,12 @@ export function useTasksPageFlow(): TasksPageFlow {
       ...(taskStates.length > 0 ? { task_states: taskStates.join(",") } : {}),
       ...(debouncedQ ? { q: debouncedQ } : {}),
       ...(itemPosition ? { item_position: itemPosition } : {}),
+      ...(groupByUpholstery ? { group_by_upholstery: true } : {}),
       ...(taskStates.length === 0 && !debouncedQ
         ? { not_task_states: TASK_DEFAULT_LIST_EXCLUDED_STATES.join(",") }
         : {}),
     }),
-    [debouncedQ, itemPosition, taskStates, taskType],
+    [debouncedQ, groupByUpholstery, itemPosition, taskStates, taskType],
   );
 
   const { query, loadMore } = useListTasksQuery(params);
@@ -143,6 +160,13 @@ export function useTasksPageFlow(): TasksPageFlow {
           item: primaryItem,
           firstImage: images[0] ?? null,
           imageCount: images.length,
+          upholsteryGroup: {
+            upholstery_group_key: listItem.upholstery_group_key,
+            upholstery_group_image_url: listItem.upholstery_group_image_url,
+            upholstery_group_upholstery_id:
+              listItem.upholstery_group_upholstery_id,
+            upholstery_group_inventory: listItem.upholstery_group_inventory,
+          },
         });
       }
     }
@@ -150,8 +174,17 @@ export function useTasksPageFlow(): TasksPageFlow {
     return { cards, taskIdToItemId, imagesByItemId };
   }, [query.data]);
 
+  const { renderRows, toggleFold } = useUpholsteryGrouping({
+    rows: cards,
+    enabled: groupByUpholstery,
+    getGroup: getTaskGroup,
+    getItemCount: getTaskItemCount,
+  });
+
   return {
     cards,
+    renderRows,
+    toggleFold,
     isLoading: useDelayedTrue(query.isLoading, 200),
     isFetchingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage ?? false,

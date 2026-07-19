@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 
 import { AuthRole, selectUser, useAuthStore, useRole } from "@beyo/auth";
+import { updateItemPositions } from "@beyo/items";
 import { generateClientId } from "@beyo/lib";
 import {
   hasMeaningfulNoteContent,
@@ -20,6 +21,7 @@ import {
   useGetTaskQuery,
   useRemoveTaskStep,
   useTransitionTaskStep,
+  taskKeys,
   type AddTaskStepVariables,
   type TaskStepRich,
 } from "@beyo/tasks";
@@ -42,6 +44,7 @@ type ControllerInit = {
   initialPendingReassignments?: RecoveredPendingReassignment[];
   initialNoteClientId?: string;
   initialNoteContent?: TaskNoteComposerValue | null;
+  initialItemPosition?: string | null;
   surfaceOpeners?: TaskWorkingSectionsSurfaceOpeners;
 };
 
@@ -199,9 +202,22 @@ export function useTaskWorkingSectionsController(
   const [noteDraft, setNoteDraft] = useState<TaskNoteComposerValue | null>(
     () => init.initialNoteContent ?? null,
   );
+  // `null` means the user has not touched the field yet, so the persisted item
+  // position is shown instead. This keeps the draft correct even though the
+  // task detail resolves after the controller mounts.
+  const [itemPositionDraft, setItemPositionDraft] = useState<string | null>(
+    () => init.initialItemPosition ?? null,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const majorCategory = taskQuery.data?.item?.item_major_category_snapshot;
+  const itemClientId = taskQuery.data?.item?.client_id ?? null;
+  const persistedItemPosition = taskQuery.data?.item?.item_position ?? "";
+  const itemPositionValue = itemPositionDraft ?? persistedItemPosition;
+  const hasItemPositionChange =
+    itemPositionDraft !== null &&
+    itemClientId !== null &&
+    itemPositionDraft.trim() !== persistedItemPosition.trim();
   const baseTaskSteps = taskStepsQuery.data ?? [];
   const surfaceOpeners = init.surfaceOpeners;
 
@@ -238,6 +254,7 @@ export function useTaskWorkingSectionsController(
     pendingAdds.length > 0 ||
     pendingRemoveIds.length > 0 ||
     pendingReassignments.length > 0 ||
+    hasItemPositionChange ||
     hasMeaningfulNoteContent(noteDraft);
 
   const closeSlide = useCallback(() => {
@@ -256,9 +273,11 @@ export function useTaskWorkingSectionsController(
       recoveredPendingReassignments: clonePendingReassignments(pendingReassignments),
       recoveredNoteClientId: noteClientId,
       recoveredNoteContent: noteDraft,
+      recoveredItemPosition: itemPositionDraft,
       surfaceOpeners,
     }),
     [
+      itemPositionDraft,
       noteClientId,
       noteDraft,
       pendingAdds,
@@ -467,7 +486,23 @@ export function useTaskWorkingSectionsController(
               new_state: "paused",
             })
           : Promise.resolve(null),
+        hasItemPositionChange && itemClientId
+          ? updateItemPositions([
+              {
+                client_id: itemClientId,
+                item_position: itemPositionDraft?.trim() || null,
+              },
+            ])
+          : Promise.resolve(null),
       ]);
+
+      if (hasItemPositionChange && itemClientId) {
+        setItemPositionDraft(null);
+        void queryClient.invalidateQueries({
+          queryKey: taskKeys.detail(taskId),
+        });
+        surfaceOpeners?.onItemPositionSaved?.(itemClientId);
+      }
 
       void queryClient.invalidateQueries({ queryKey: quickTaskKeys.all });
 
@@ -490,8 +525,11 @@ export function useTaskWorkingSectionsController(
     closeSlide,
     createTaskNote,
     currentUserWorkingStep,
+    hasItemPositionChange,
     hasUnsavedChanges,
     isSaving,
+    itemClientId,
+    itemPositionDraft,
     isWorker,
     noteClientId,
     noteDraft,
@@ -534,6 +572,9 @@ export function useTaskWorkingSectionsController(
     pendingReassignments,
     noteClientId,
     noteDraft,
+    itemClientId,
+    itemPositionValue,
+    handleItemPositionChange: setItemPositionDraft,
     handleNoteChange: setNoteDraft,
     hasUnsavedChanges,
     isPending: taskQuery.isPending || taskStepsQuery.isPending,

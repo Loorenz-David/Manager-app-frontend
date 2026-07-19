@@ -3,6 +3,7 @@ import { Download, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 import { useSurfaceHeader } from '@beyo/hooks';
 import { useSurfaceProps } from '@beyo/hooks';
+import { BackendImage } from '@beyo/ui';
 import { fetchImageDownloadUrl } from '../api/fetch-image-download-url';
 import type { ImageMetadataSurfaceProps } from '../controllers/use-entity-images.controller';
 import type { ImageUploadState } from '../types';
@@ -110,19 +111,18 @@ export function ImageMetadataActionsSheetPage(): React.JSX.Element {
   return (
     <div className="flex flex-col" data-testid="image-metadata-sheet">
       <div className="flex items-center gap-3 border-b border-border px-4 py-4">
-        {displayUrl ? (
-          <img
-            alt="Image preview"
-            className="size-14 shrink-0 rounded-2xl object-cover"
-            data-testid="metadata-sheet-thumbnail"
-            src={displayUrl}
-          />
-        ) : (
-          <div
-            className="size-14 shrink-0 rounded-2xl bg-muted"
-            data-testid="metadata-sheet-thumbnail-placeholder"
-          />
-        )}
+        <BackendImage
+          alt="Image preview"
+          className="size-14 shrink-0 rounded-2xl object-cover"
+          data-testid="metadata-sheet-thumbnail"
+          fallback={
+            <div
+              className="size-14 shrink-0 rounded-2xl bg-muted"
+              data-testid="metadata-sheet-thumbnail-placeholder"
+            />
+          }
+          src={displayUrl}
+        />
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-foreground" data-testid="metadata-sheet-title">

@@ -8,7 +8,10 @@ import {
   DayCalendar,
   formatDateDisplay,
   parseISOToDate,
+  resolveQuickRangeOption,
   serializeDateToISO,
+  type CalendarDateRange,
+  type CalendarQuickRangeOption,
 } from "@beyo/ui";
 
 type CalendarRangePickerSurfaceProps = {
@@ -19,6 +22,10 @@ type CalendarRangePickerSurfaceProps = {
   onToSelect: (isoString: string | null) => void;
   fromLabel?: string;
   toLabel?: string;
+  // Optional preset pills rendered below the calendar (e.g. Yesterday, This
+  // week). Omitted by default so flows that don't want them (delivery window)
+  // are unaffected.
+  quickRangeOptions?: CalendarQuickRangeOption[];
 };
 
 export function CalendarRangePickerPage(): React.JSX.Element {
@@ -72,6 +79,25 @@ export function CalendarRangePickerPage(): React.JSX.Element {
       header?.requestClose();
     }
   }
+
+  function handleQuickRange(range: CalendarDateRange) {
+    setFromDate(range.from);
+    setToDate(range.to);
+    rawProps.onFromSelect?.(serializeDateToISO(range.from));
+    rawProps.onToSelect?.(serializeDateToISO(range.to));
+    header?.requestClose();
+  }
+
+  const quickRangePills = (rawProps.quickRangeOptions ?? []).map((option) => {
+    const range = resolveQuickRangeOption(option);
+    const selected =
+      Boolean(fromDate) &&
+      Boolean(toDate) &&
+      serializeDateToISO(fromDate as Date) === serializeDateToISO(range.from) &&
+      serializeDateToISO(toDate as Date) === serializeDateToISO(range.to);
+
+    return { ...option, range, selected };
+  });
 
   return (
     <div data-testid="calendar-range-picker-page">
@@ -133,6 +159,32 @@ export function CalendarRangePickerPage(): React.JSX.Element {
         onSelect={(_range: DateRange | undefined) => {}}
         selected={{ from: fromDate, to: toDate }}
       />
+      {quickRangePills.length ? (
+        <>
+          <div
+            className="flex items-center gap-2 border-t border-border px-4 pb-4 pt-3"
+            data-testid="calendar-range-picker-quick-select"
+          >
+            {quickRangePills.map((option) => (
+              <button
+                key={option.id}
+                className={[
+                  "inline-flex min-h-10 flex-1 items-center justify-center rounded-full border px-4 py-2 text-sm font-medium transition-colors duration-150",
+                  option.selected
+                    ? "border-primary bg-primary text-card"
+                    : "border-border bg-card text-foreground hover:bg-muted",
+                ].join(" ")}
+                data-testid={`calendar-range-picker-quick-select-${option.id}`}
+                onClick={() => handleQuickRange(option.range)}
+                type="button"
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+        </>
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { BackendImage } from '@beyo/ui';
+
 import { ImageAnnotationSvgLayer } from './ImageAnnotationSvgLayer';
 import type { ImageAnnotationViewModel } from '../types';
 
@@ -45,12 +47,8 @@ export function ImageThumbnailGrid({
             type="button"
             onClick={() => onOpen(image.clientId)}
           >
-            <img
-              alt=""
+            <BackendImage
               className="size-full object-cover"
-              decoding="async"
-              draggable={false}
-              loading="lazy"
               src={image.imageUrl}
             />
 

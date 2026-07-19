@@ -3,6 +3,7 @@ import { useController, useFormContext } from "react-hook-form";
 
 import { cn } from "@beyo/lib";
 import {
+  BackendImage,
   FieldErrorPill,
   ImagePlaceholder,
   WorkingSectionShortcutBar,
@@ -49,18 +50,19 @@ function WorkingSectionBox({
         }
       }}
     >
-      {section.image ? (
-        <div aria-hidden="true" className="w-16 shrink-0 self-stretch overflow-hidden">
-          <img alt="" aria-hidden="true" className="size-full object-cover" src={section.image} />
-        </div>
-      ) : (
-        <div aria-hidden="true" className="w-16 shrink-0 self-stretch overflow-hidden">
-          <ImagePlaceholder
-            className="bg-transparent"
-            iconClassName="size-5 opacity-50"
-          />
-        </div>
-      )}
+      <div aria-hidden="true" className="w-16 shrink-0 self-stretch overflow-hidden">
+        <BackendImage
+          aria-hidden="true"
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder
+              className="bg-transparent"
+              iconClassName="size-5 opacity-50"
+            />
+          }
+          src={section.image}
+        />
+      </div>
 
       <span className="flex min-w-0 flex-1 flex-col justify-center gap-1 px-4 py-5">
         <span className="truncate text-sm font-medium">{section.name}</span>

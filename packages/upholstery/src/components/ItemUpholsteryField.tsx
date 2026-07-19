@@ -4,6 +4,7 @@ import { cva } from "class-variance-authority";
 
 import { cn } from "@beyo/lib";
 import {
+  BackendImage,
   ImagePlaceholder,
   StatePill,
   type StatePillVariant,
@@ -115,12 +116,15 @@ export function ItemUpholsteryField({
       ) : null}
 
       {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
+        <BackendImage
           alt={selectedUpholstery?.name ?? "Selected upholstery"}
           className="size-10 shrink-0 rounded-full object-cover"
-          decoding="async"
-          loading="lazy"
+          fallback={
+            <div className="size-10 shrink-0 overflow-hidden rounded-full">
+              <ImagePlaceholder />
+            </div>
+          }
+          src={thumbnailUrl}
         />
       ) : selectedUpholstery ? (
         <div className="size-10 shrink-0 overflow-hidden rounded-full">

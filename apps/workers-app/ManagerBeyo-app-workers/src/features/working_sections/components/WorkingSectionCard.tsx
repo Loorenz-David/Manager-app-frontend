@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { ImagePlaceholder } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import type { WorkingSectionViewModel } from "../types";
 
 type WorkingSectionCardProps = {
@@ -26,18 +26,13 @@ export const WorkingSectionCard = memo(function WorkingSectionCard({
       }}
     >
       <div className="relative aspect-square w-20 shrink-0 overflow-hidden ">
-        {section.imageUrl ? (
-          <img
-            alt=""
-            className="size-full object-cover"
-            decoding="async"
-            draggable={false}
-            loading="lazy"
-            src={section.imageUrl}
-          />
-        ) : (
-          <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
-        )}
+        <BackendImage
+          className="size-full object-cover"
+          fallback={
+            <ImagePlaceholder iconClassName="size-5 text-muted-foreground/60" />
+          }
+          src={section.imageUrl}
+        />
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5 px-3 py-3">

@@ -26,6 +26,7 @@ describe("WorkerTotalsSelector", () => {
   it("renders each total and marks the active tab selected", () => {
     renderSelector("paused");
 
+    expect(screen.getByText("Worked")).toBeInTheDocument();
     expect(screen.getByText("7h 14m")).toBeInTheDocument();
     expect(screen.getByText("1h 24m")).toBeInTheDocument();
     expect(screen.getByText("12")).toBeInTheDocument();

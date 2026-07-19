@@ -4,6 +4,7 @@ import { useController, useFormContext } from "react-hook-form";
 
 import { cn } from "@beyo/lib";
 import {
+  BackendImage,
   BoxPicker,
   FieldErrorPill,
   ImagePlaceholder,
@@ -146,19 +147,17 @@ export function ItemCategorySelectionField(): React.JSX.Element {
           >
             <span className="flex items-center gap-3">
               <div className="size-7 shrink-0 overflow-hidden rounded-md">
-                {selectedCategory.image_url ? (
-                  <img
-                    src={selectedCategory.image_url}
-                    alt=""
-                    aria-hidden="true"
-                    className="size-full object-cover"
-                  />
-                ) : (
-                  <ImagePlaceholder
-                    className="bg-transparent"
-                    iconClassName="size-4"
-                  />
-                )}
+                <BackendImage
+                  aria-hidden="true"
+                  className="size-full object-cover"
+                  fallback={
+                    <ImagePlaceholder
+                      className="bg-transparent"
+                      iconClassName="size-4"
+                    />
+                  }
+                  src={selectedCategory.image_url}
+                />
               </div>
               {selectedCategory.name}
             </span>

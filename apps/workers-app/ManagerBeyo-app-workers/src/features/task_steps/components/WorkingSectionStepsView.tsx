@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { notify } from "@beyo/lib";
 import type { TaskStepId } from "@beyo/lib";
-import { ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
+import { BackendImage, ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
+import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 import { usePreloadSurface, useSurface } from "@beyo/hooks";
 import {
   SCANNER_SESSION_ID,
@@ -36,6 +37,8 @@ export function WorkingSectionStepsView({
 
   const {
     steps,
+    renderRows,
+    toggleFold,
     rawSteps,
     isPending,
     isError,
@@ -161,17 +164,13 @@ export function WorkingSectionStepsView({
 
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <div className="relative size-10 shrink-0 overflow-hidden rounded-full ">
-              {section.imageUrl ? (
-                <img
-                  alt=""
-                  className="size-full object-cover"
-                  decoding="async"
-                  draggable={false}
-                  src={section.imageUrl}
-                />
-              ) : (
-                <ImagePlaceholder iconClassName="size-3.5 text-muted-foreground/60" />
-              )}
+              <BackendImage
+                className="size-full object-cover"
+                fallback={
+                  <ImagePlaceholder iconClassName="size-3.5 text-muted-foreground/60" />
+                }
+                src={section.imageUrl}
+              />
             </div>
             <span
               className="truncate text-lg font-semibold text-foreground"
@@ -248,33 +247,53 @@ export function WorkingSectionStepsView({
             className="flex flex-col gap-4 py-2 pb-24"
             data-testid="batch-steps-list"
           >
-            {steps.map((card) => (
-              <BatchSelectableTaskStepCard
-                key={card.stepId}
-                card={card}
-                selected={selectedStepIds.has(card.stepId)}
-                onTapCard={handleOpenTaskDetail}
-                onTapImage={handleOpenImageViewer}
-                onToggleSelect={handleToggleSelect}
-              />
-            ))}
+            {renderRows.map((entry) =>
+              entry.kind === "header" ? (
+                <UpholsteryGroupHeaderCard
+                  key={`header-${entry.header.reactKey}`}
+                  header={entry.header}
+                  itemCount={entry.itemCount}
+                  isFolded={entry.isFolded}
+                  onToggle={() => toggleFold(entry.header.reactKey)}
+                />
+              ) : (
+                <BatchSelectableTaskStepCard
+                  key={entry.row.stepId}
+                  card={entry.row}
+                  selected={selectedStepIds.has(entry.row.stepId)}
+                  onTapCard={handleOpenTaskDetail}
+                  onTapImage={handleOpenImageViewer}
+                  onToggleSelect={handleToggleSelect}
+                />
+              ),
+            )}
           </div>
         ) : (
           <div
             className="flex flex-col gap-4 py-2 pb-10"
             data-testid="working-section-steps-list"
           >
-            {steps.map((card) => (
-              <TaskStepCard
-                key={card.stepId}
-                card={card}
-                transitioningStepId={transitioningStepId}
-                onTapActions={handleOpenTaskActions}
-                onTapCard={handleOpenTaskDetail}
-                onTapImage={handleOpenImageViewer}
-                onTransition={handleTransition}
-              />
-            ))}
+            {renderRows.map((entry) =>
+              entry.kind === "header" ? (
+                <UpholsteryGroupHeaderCard
+                  key={`header-${entry.header.reactKey}`}
+                  header={entry.header}
+                  itemCount={entry.itemCount}
+                  isFolded={entry.isFolded}
+                  onToggle={() => toggleFold(entry.header.reactKey)}
+                />
+              ) : (
+                <TaskStepCard
+                  key={entry.row.stepId}
+                  card={entry.row}
+                  transitioningStepId={transitioningStepId}
+                  onTapActions={handleOpenTaskActions}
+                  onTapCard={handleOpenTaskDetail}
+                  onTapImage={handleOpenImageViewer}
+                  onTransition={handleTransition}
+                />
+              ),
+            )}
           </div>
         )}
       </PullToRefresh>
