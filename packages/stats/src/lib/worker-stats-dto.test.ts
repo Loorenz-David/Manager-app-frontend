@@ -4,12 +4,12 @@ import {
   resolveTicker,
   toWorkerInsightsSectionViewModel,
   toWorkerStepSectionViewModel,
-  toWorkerTotalsSectionViewModel,
+  toWorkerTimelineSectionViewModel,
 } from "./worker-stats-dto";
 import type {
   WorkerInsightsRow,
   WorkerLastStepRow,
-  WorkerTotalsRow,
+  WorkerLinearTimelineRow,
 } from "../types";
 
 const user = {
@@ -40,108 +40,56 @@ function makeStepRow(
   };
 }
 
-function makeTotalsRow(
-  overrides: Partial<WorkerTotalsRow> = {},
-): WorkerTotalsRow {
+function makeTimelineRow(
+  timeline: Partial<WorkerLinearTimelineRow["timeline"]> = {},
+): WorkerLinearTimelineRow {
   return {
     user,
-    daily_stats: {
-      work_date: "2026-07-15",
-      total_working_seconds: 26_040,
-      total_pause_seconds: 5_040,
-      total_completed_count: 12,
-    },
-    running: {
-      working_seconds: 0,
-      pause_seconds: 0,
+    timeline: {
+      date_from: "2026-07-15",
+      date_to: "2026-07-15",
+      working_seconds: 26_040,
+      pause_seconds: 5_040,
       ended_shift_seconds: 0,
-      working_open_count: 0,
-      pause_open_count: 0,
-      ended_shift_open_count: 0,
-      as_of: "2026-07-15T12:00:00Z",
+      idle_seconds: 600,
+      completed_count: 12,
+      pause_by_reason: { pause_lunch_break: 5_040 },
+      ...timeline,
     },
-    ...overrides,
   };
 }
 
 describe("worker stats DTO", () => {
   it("maps the step section and its live step ticker", () => {
-    expect(
-      toWorkerStepSectionViewModel(
-        makeStepRow(),
-        "2026-07-15T13:00:00Z",
-      ),
-    ).toMatchObject({
+    expect(toWorkerStepSectionViewModel(makeStepRow())).toMatchObject({
       hasStep: true,
       stepState: "working",
       stepStateLabel: "Working",
       stepStateVariant: "active",
       articleLabel: "#ART-40921",
       workingSectionName: "Upholstery",
-      ticker: { offsetSeconds: 120, startedAtIso: "2026-07-15T13:00:00Z" },
+      // Anchors to the step's state-entry time, not fetch time, so the settled
+      // total plus the open interval survives reloads/rerenders.
+      ticker: { offsetSeconds: 120, startedAtIso: "2026-07-15T12:00:00Z" },
     });
   });
 
-  it("maps settled and running totals with one-second ticking", () => {
-    const viewModel = toWorkerTotalsSectionViewModel(
-      makeTotalsRow({
-        running: {
-          working_seconds: 60,
-          pause_seconds: 900,
-          ended_shift_seconds: 0,
-          working_open_count: 1,
-          pause_open_count: 3,
-          ended_shift_open_count: 0,
-          as_of: "2026-07-16T12:00:00Z",
-        },
+  it("maps the linear-timeline wall-clock partition to static seconds", () => {
+    const viewModel = toWorkerTimelineSectionViewModel(
+      makeTimelineRow({
+        working_seconds: 26_040,
+        pause_seconds: 5_040,
+        idle_seconds: 600,
+        completed_count: 12,
       }),
     );
 
-    expect(viewModel.workingTotal).toEqual({
-      kind: "ticking",
-      offsetSeconds: 26_100,
-      ratePerSecond: 1,
-      asOfIso: "2026-07-16T12:00:00Z",
+    expect(viewModel).toEqual({
+      workingSeconds: 26_040,
+      pausedSeconds: 5_040,
+      idleSeconds: 600,
+      completedCount: 12,
     });
-    expect(viewModel.pausedTotal).toEqual({
-      kind: "ticking",
-      offsetSeconds: 5_940,
-      ratePerSecond: 1,
-      asOfIso: "2026-07-16T12:00:00Z",
-    });
-  });
-
-  it("folds the estimated fill into usable totals and ignores wasted", () => {
-    const viewModel = toWorkerTotalsSectionViewModel(
-      makeTotalsRow({
-        daily_stats: {
-          date_from: "2026-07-01",
-          date_to: "2026-07-15",
-          total_working_seconds: 26_040,
-          total_pause_seconds: 5_040,
-          total_completed_count: 12,
-          time_quality: {
-            strategy: "median",
-            working: {
-              trusted: 26_040,
-              wasted: 9_600,
-              inaccurate_step_count: 3,
-              estimated_fill: 1_800.4,
-            },
-            paused: {
-              trusted: 5_040,
-              wasted: 600,
-              inaccurate_step_count: 3,
-              estimated_fill: 299.6,
-            },
-          },
-        },
-      }),
-    );
-
-    // trusted + round(fill); wasted must never be added.
-    expect(viewModel.workingTotal).toEqual({ kind: "static", seconds: 27_840 });
-    expect(viewModel.pausedTotal).toEqual({ kind: "static", seconds: 5_340 });
   });
 
   it("keeps ticker rules for paused and ended-shift steps", () => {
@@ -149,9 +97,9 @@ describe("worker stats DTO", () => {
       ...makeStepRow().last_interacted_step!,
       state: "paused" as const,
     };
-    expect(resolveTicker(paused, "2026-07-15T13:00:00Z")).toEqual({
+    expect(resolveTicker(paused)).toEqual({
       offsetSeconds: 30,
-      startedAtIso: "2026-07-15T13:00:00Z",
+      startedAtIso: "2026-07-15T12:00:00Z",
     });
 
     const endedShift = { ...paused, state: "ended_shift" as const };

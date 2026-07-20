@@ -188,6 +188,140 @@ export const WorkerTotalsResponseSchema = ApiEnvelopeSchema(
 );
 export type WorkerTotalsResponse = z.infer<typeof WorkerTotalsResponseSchema>;
 
+// ── Linear timeline (wall-clock partition) roster ───────────────────────────
+// GET /api/v1/worker-stats/linear-timeline
+// See docs/handoff/from_backend/HANDOFF_TO_FRONTEND_worker_stats_linear_timeline_20260719.md
+//
+// A DIFFERENT number than `/totals`: it collapses overlapping intervals to
+// wall-clock, partitioning the shift into four disjoint buckets (working wins
+// over pause; non-attributed non-working time falls to `idle`). Settled range
+// view — there is NO `running`/live-tick add-on here.
+export const WorkerLinearTimelineSchema = z.object({
+  date_from: z.string().optional(),
+  date_to: z.string().optional(),
+  working_seconds: z.number().int(),
+  pause_seconds: z.number().int(),
+  ended_shift_seconds: z.number().int(),
+  idle_seconds: z.number().int(),
+  // A count of steps completed in the range, not part of the time partition.
+  // Scoped to recorded shifts (2026-07-20 addendum): counts COMPLETED records
+  // only when the completion falls inside a recorded shift interval (bounds
+  // inclusive); a day with no recorded shift contributes 0. Shape unchanged.
+  completed_count: z.number().int(),
+  // Splits `pause_seconds` exactly. Keys are an open set (reason enum values,
+  // `"unspecified"`, or future/unknown reasons) — render defensively.
+  pause_by_reason: z.record(z.string(), z.number()).default({}),
+});
+export type WorkerLinearTimeline = z.infer<typeof WorkerLinearTimelineSchema>;
+
+export const WorkerLinearTimelineRowSchema = z.object({
+  user: WorkerStatsUserSchema,
+  timeline: WorkerLinearTimelineSchema,
+});
+export type WorkerLinearTimelineRow = z.infer<
+  typeof WorkerLinearTimelineRowSchema
+>;
+
+export const WorkerLinearTimelineResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    workers: z.array(WorkerLinearTimelineRowSchema),
+    workers_pagination: WorkerStatsPaginationSchema,
+  }),
+);
+export type WorkerLinearTimelineResponse = z.infer<
+  typeof WorkerLinearTimelineResponseSchema
+>;
+
+// ── Linear timeline drill-down (drawable segments) ──────────────────────────
+// GET /api/v1/worker-stats/{user_id}/linear-timeline
+// See docs/handoff/from_backend/HANDOFF_TO_FRONTEND_worker_stats_linear_timeline_20260719.md
+//
+// The interactive-timeline source: the same wall-clock totals as the roster
+// endpoint PLUS the ordered, contiguous, non-overlapping segments to draw.
+// No limit/offset — the client owns the window via date_from/date_to.
+
+// `working`/`paused`/`ended_shift`/`idle` are duration states; `started_shift`
+// and `ended_shift` also arrive as zero-duration clock-in/clock-out MARKER
+// segments (see the 2026-07-20 recorded-shift addendum in the handoff).
+export const WORKER_TIMELINE_SEGMENT_STATES = [
+  "working",
+  "paused",
+  "ended_shift",
+  "started_shift",
+  "idle",
+] as const;
+export type WorkerTimelineSegmentState =
+  (typeof WORKER_TIMELINE_SEGMENT_STATES)[number];
+
+// One underlying StepStateRecord contributing to a segment — NOT one unique
+// step/task. `entered_at`/`exited_at` are the record's TRUE span and can extend
+// beyond the segment or the requested window (clip when drawing). `ended_by`
+// is an open set ("completed" | "paused" | … | "still_open" | "unknown" | …).
+export const WorkerLinearTimelineStepRecordSchema = z.object({
+  record_id: z.string(),
+  step_id: z.string(),
+  task_id: z.string(),
+  working_section_id: z.string().nullable(),
+  working_section_name: z.string().nullable(),
+  item: z
+    .object({
+      client_id: z.string(),
+      article_number: z.string().nullable(),
+      sku: z.string().nullable(),
+    })
+    .nullable(),
+  state: z.string(),
+  reason: z.string().nullable(),
+  entered_at: z.string(),
+  exited_at: z.string().nullable(),
+  is_open: z.boolean(),
+  ended_by: z.string(),
+});
+export type WorkerLinearTimelineStepRecord = z.infer<
+  typeof WorkerLinearTimelineStepRecordSchema
+>;
+
+// Segments partition the worker's active span: ordered by start, contiguous,
+// non-overlapping, merged per state (+reason for pauses), split at UTC
+// midnight. `steps` is empty for idle. `is_open` marks the live block whose
+// effective end reaches the backend's "now". Zero-duration `started_shift`/
+// `ended_shift` markers have `start == end`, `seconds: 0`, `steps: []`.
+export const WorkerLinearTimelineSegmentSchema = z.object({
+  start: z.string(),
+  end: z.string(),
+  seconds: z.number(),
+  state: z.enum(WORKER_TIMELINE_SEGMENT_STATES),
+  reason: z.string().nullable(),
+  is_open: z.boolean(),
+  // `true` only for a worker's explicit shift pause; `false` for derived,
+  // backfilled, idle, working, and marker records (2026-07-20 addendum).
+  manually_recorded: z.boolean().default(false),
+  steps: z.array(WorkerLinearTimelineStepRecordSchema).default([]),
+});
+export type WorkerLinearTimelineSegment = z.infer<
+  typeof WorkerLinearTimelineSegmentSchema
+>;
+
+export const WorkerLinearTimelineBreakdownResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    user: WorkerStatsUserSchema,
+    timeline: WorkerLinearTimelineSchema,
+    segments: z.array(WorkerLinearTimelineSegmentSchema).default([]),
+    // True only when the (pathological) window exceeded the backend's
+    // 5000-segment cap — narrow the window, never render partial as complete.
+    segments_truncated: z.boolean().default(false),
+  }),
+);
+export type WorkerLinearTimelineBreakdownResponse = z.infer<
+  typeof WorkerLinearTimelineBreakdownResponseSchema
+>;
+
+export type GetWorkerLinearTimelineBreakdownParams = {
+  userId: string;
+  dateFrom: string;
+  dateTo: string;
+};
+
 export const WorkerInsightsResponseSchema = ApiEnvelopeSchema(
   z.object({
     workers: z.array(WorkerInsightsRowSchema),
@@ -224,6 +358,11 @@ export type ListWorkerTotalsParams = WorkerStatsPaginationParams & {
   // Selects which statistic backs `daily_stats.time_quality.*.estimated_fill`.
   // Omitted → backend defaults to `mean`.
   timeStrategy?: TimeStrategy;
+};
+
+export type ListWorkerLinearTimelineParams = WorkerStatsPaginationParams & {
+  dateFrom?: string;
+  dateTo?: string;
 };
 
 export type ListWorkerInsightsParams = WorkerStatsPaginationParams & {

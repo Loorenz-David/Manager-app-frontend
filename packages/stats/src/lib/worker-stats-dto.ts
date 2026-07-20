@@ -5,8 +5,6 @@ import {
 } from "@beyo/tasks";
 import type { StatePillVariant } from "@beyo/ui";
 
-import { secondsToHM } from "./format-duration";
-import { fillToSeconds } from "./time-quality";
 import {
   isKnownInsight,
   resolveInsightCopy,
@@ -16,43 +14,14 @@ import type {
   WorkerInsightsRow,
   WorkerLastStep,
   WorkerLastStepRow,
+  WorkerLinearTimelineRow,
   WorkerStatsUser,
-  WorkerTotalsRow,
 } from "../types";
 
 export type TickerModel = {
   offsetSeconds: number;
   startedAtIso: string;
 };
-
-export type LiveTotal =
-  | { kind: "static"; seconds: number }
-  | {
-      kind: "ticking";
-      offsetSeconds: number;
-      ratePerSecond: number;
-      asOfIso: string;
-    };
-
-function resolveLiveTotal(
-  settledSeconds: number,
-  runningSeconds: number,
-  openCount: number,
-  asOfIso: string,
-): LiveTotal {
-  const liveSeconds = settledSeconds + runningSeconds;
-
-  if (openCount > 0) {
-    return {
-      kind: "ticking",
-      offsetSeconds: liveSeconds,
-      ratePerSecond: 1,
-      asOfIso,
-    };
-  }
-
-  return { kind: "static", seconds: liveSeconds };
-}
 
 export type SectionState<T> =
   | { status: "loading" }
@@ -71,9 +40,12 @@ export type WorkerStepSectionViewModel = {
   ticker: TickerModel | null;
 };
 
-export type WorkerTotalsSectionViewModel = {
-  workingTotal: LiveTotal;
-  pausedTotal: LiveTotal;
+// Wall-clock partition of the shift from /linear-timeline. Settled values —
+// no live ticking (that endpoint carries no `running` add-on).
+export type WorkerTimelineSectionViewModel = {
+  workingSeconds: number;
+  pausedSeconds: number;
+  idleSeconds: number;
   completedCount: number;
 };
 
@@ -87,14 +59,17 @@ export type WorkerStatsCardViewModel = {
   username: string;
   profilePicture: string | null;
   step: SectionState<WorkerStepSectionViewModel>;
-  totals: SectionState<WorkerTotalsSectionViewModel>;
+  timeline: SectionState<WorkerTimelineSectionViewModel>;
   insights: SectionState<WorkerInsightsSectionViewModel>;
 };
 
-export function resolveTicker(
-  step: WorkerLastStep | null,
-  obtainedAtIso = new Date().toISOString(),
-): TickerModel | null {
+// Live ticker for the pill. The settled `total_*_seconds` EXCLUDE the currently
+// open interval (see RunningTotals contract in types.ts), so the timer must
+// anchor to when the step entered its current state — `last_state_record
+// .entered_at` — NOT to fetch time. Anchoring to fetch time would drop the open
+// interval's elapsed and re-tick from the settled total on every reload/render.
+// Displayed = total settled + (now − entered_at) = the true live total.
+export function resolveTicker(step: WorkerLastStep | null): TickerModel | null {
   if (!step?.last_state_record) {
     return null;
   }
@@ -102,14 +77,14 @@ export function resolveTicker(
   if (step.state === "working") {
     return {
       offsetSeconds: step.total_working_seconds,
-      startedAtIso: obtainedAtIso,
+      startedAtIso: step.last_state_record.entered_at,
     };
   }
 
   if (step.state === "paused") {
     return {
       offsetSeconds: step.total_pause_seconds,
-      startedAtIso: obtainedAtIso,
+      startedAtIso: step.last_state_record.entered_at,
     };
   }
 
@@ -125,7 +100,6 @@ export function resolveTicker(
 
 export function toWorkerStepSectionViewModel(
   row: WorkerLastStepRow,
-  obtainedAtIso = new Date().toISOString(),
 ): WorkerStepSectionViewModel {
   const step = row.last_interacted_step;
   const item = step?.item ?? null;
@@ -144,34 +118,18 @@ export function toWorkerStepSectionViewModel(
       step?.state === "paused"
         ? (step.last_state_record?.reason?.trim() || null)
         : null,
-    ticker: resolveTicker(step, obtainedAtIso),
+    ticker: resolveTicker(step),
   };
 }
 
-export function toWorkerTotalsSectionViewModel(
-  row: WorkerTotalsRow,
-): WorkerTotalsSectionViewModel {
-  // Usable totals: trusted + estimated fill for flagged (inaccurate) steps.
-  // Rendered as a plain total — no visual guidance on the card for now.
-  // `time_quality.*.wasted` is diagnostic-only and never added here.
-  const quality = row.daily_stats.time_quality ?? null;
-  const workingFill = fillToSeconds(quality?.working.estimated_fill ?? 0);
-  const pausedFill = fillToSeconds(quality?.paused.estimated_fill ?? 0);
-
+export function toWorkerTimelineSectionViewModel(
+  row: WorkerLinearTimelineRow,
+): WorkerTimelineSectionViewModel {
   return {
-    workingTotal: resolveLiveTotal(
-      row.daily_stats.total_working_seconds + workingFill,
-      row.running.working_seconds,
-      row.running.working_open_count,
-      row.running.as_of,
-    ),
-    pausedTotal: resolveLiveTotal(
-      row.daily_stats.total_pause_seconds + pausedFill,
-      row.running.pause_seconds,
-      row.running.pause_open_count,
-      row.running.as_of,
-    ),
-    completedCount: row.daily_stats.total_completed_count,
+    workingSeconds: row.timeline.working_seconds,
+    pausedSeconds: row.timeline.pause_seconds,
+    idleSeconds: row.timeline.idle_seconds,
+    completedCount: row.timeline.completed_count,
   };
 }
 
@@ -196,8 +154,3 @@ export function toWorkerIdentityViewModel(user: WorkerStatsUser): Pick<
   };
 }
 
-export function liveTotalToText(total: LiveTotal): string {
-  return secondsToHM(
-    total.kind === "static" ? total.seconds : total.offsetSeconds,
-  );
-}

@@ -5,17 +5,8 @@ import { Avatar, TickingTimer } from "@beyo/ui";
 
 import { secondsToHM } from "../lib/format-duration";
 import { STATE_CHIP_CLASS } from "../lib/state-pill-styles";
-import type {
-  LiveTotal,
-  WorkerStatsCardViewModel,
-  WorkerTotalsSectionViewModel,
-} from "../lib/worker-stats-dto";
-import { WorkerTotalTicker } from "./WorkerTotalTicker";
-import type {
-  InsightPolarity,
-  WorkerGranularityIntention,
-  WorkerInsight,
-} from "../types";
+import type { WorkerStatsCardViewModel } from "../lib/worker-stats-dto";
+import type { InsightPolarity, WorkerInsight } from "../types";
 
 // Insight band tones — green (recognize) / amber (attention). Driven by the
 // insight's `polarity`, never by the sign of its delta.
@@ -36,18 +27,21 @@ const INSIGHT_BAND_CLASS: Record<
 export type WorkerStatsCardProps = {
   worker: WorkerStatsCardViewModel;
   onOpenInsights?: (insights: WorkerInsight[]) => void;
-  onOpenSection?: (intention: WorkerGranularityIntention) => void;
+  // The whole totals row is ONE tap target opening the worker's timeline
+  // calendar (decision 20260719 — replaced the per-column granularity opens).
+  onOpenTimeline?: () => void;
   onOpenTaskDetail?: (taskId: string | null) => void;
 };
 
 export const WorkerStatsCard = memo(function WorkerStatsCard({
   worker,
   onOpenInsights,
-  onOpenSection,
+  onOpenTimeline,
   onOpenTaskDetail,
 }: WorkerStatsCardProps): React.JSX.Element {
   const step = worker.step.status === "ready" ? worker.step.data : null;
-  const totals = worker.totals.status === "ready" ? worker.totals.data : null;
+  const timeline =
+    worker.timeline.status === "ready" ? worker.timeline.data : null;
   const insights =
     worker.insights.status === "ready" ? worker.insights.data : null;
   const tickerChipClass = step?.stepStateVariant
@@ -173,50 +167,60 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
         </button>
       ) : null}
 
-      <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
+      {/* One row-level tap target: the totals strip opens the worker's
+          timeline calendar (per-column granularity opens removed 20260719). */}
+      <button
+        aria-label={`Open ${worker.username}'s timeline`}
+        className={`grid grid-cols-4 divide-x divide-border border-t border-border ${
+          timeline && onOpenTimeline ? "cursor-pointer" : "cursor-default"
+        }`}
+        data-testid={`worker-stats-timeline-row-${worker.userId}`}
+        disabled={!timeline || !onOpenTimeline}
+        type="button"
+        onClick={() => onOpenTimeline?.()}
+      >
         <WorkerStat
-          intention="working"
           label="Worked"
           testId={`worker-stats-working-${worker.userId}`}
-          value={renderTotalValue(worker, "working", totals)}
-          onOpenSection={totals ? onOpenSection : undefined}
+          value={renderDurationValue(worker, timeline?.workingSeconds)}
         />
         <WorkerStat
-          intention="paused"
           label="Paused"
           testId={`worker-stats-paused-${worker.userId}`}
-          value={renderTotalValue(worker, "paused", totals)}
-          onOpenSection={totals ? onOpenSection : undefined}
+          value={renderDurationValue(worker, timeline?.pausedSeconds)}
         />
         <WorkerStat
-          intention="completed"
+          label="Idle"
+          testId={`worker-stats-idle-${worker.userId}`}
+          value={renderDurationValue(worker, timeline?.idleSeconds)}
+        />
+        <WorkerStat
           label="Completed"
           testId={`worker-stats-completed-${worker.userId}`}
           value={
-            worker.totals.status === "loading" ? (
+            worker.timeline.status === "loading" ? (
               <span
                 aria-hidden="true"
                 className="skeleton-shimmer inline-block h-5 w-10 rounded"
               />
-            ) : totals ? (
-              String(totals.completedCount)
+            ) : timeline ? (
+              String(timeline.completedCount)
             ) : (
               "—"
             )
           }
-          onOpenSection={totals ? onOpenSection : undefined}
         />
-      </div>
+      </button>
     </article>
   );
 });
 
-function renderTotalValue(
+// Settled wall-clock duration from /linear-timeline — no live ticking.
+function renderDurationValue(
   worker: WorkerStatsCardViewModel,
-  intention: "working" | "paused",
-  totals: WorkerTotalsSectionViewModel | null,
+  seconds: number | undefined,
 ): React.ReactNode {
-  if (worker.totals.status === "loading") {
+  if (worker.timeline.status === "loading") {
     return (
       <span
         aria-hidden="true"
@@ -225,66 +229,27 @@ function renderTotalValue(
     );
   }
 
-  if (!totals) {
+  if (seconds === undefined) {
     return "—";
   }
 
-  return (
-    <LiveTotalValue
-      testId={`worker-stats-${intention}-${worker.userId}`}
-      total={intention === "working" ? totals.workingTotal : totals.pausedTotal}
-    />
-  );
+  return <span className="tabular-nums">{secondsToHM(seconds)}</span>;
 }
 
-// Ticks off the shared clock when intervals are open in that state; otherwise
-// renders a plain settled total.
-function LiveTotalValue({
-  total,
-  testId,
-}: {
-  total: LiveTotal;
-  testId: string;
-}): React.JSX.Element {
-  if (total.kind === "ticking") {
-    return (
-      <WorkerTotalTicker
-        asOfIso={total.asOfIso}
-        className="tabular-nums"
-        data-testid={`${testId}-timer`}
-        offsetSeconds={total.offsetSeconds}
-        ratePerSecond={total.ratePerSecond}
-      />
-    );
-  }
-
-  return <span className="tabular-nums">{secondsToHM(total.seconds)}</span>;
-}
-
+// Display-only cell — interaction lives on the row-level button above.
 function WorkerStat({
-  intention,
   label,
   testId,
   value,
-  onOpenSection,
 }: {
-  intention: WorkerGranularityIntention;
   label: string;
   testId: string;
   value: React.ReactNode;
-  onOpenSection?: (intention: WorkerGranularityIntention) => void;
 }): React.JSX.Element {
-  const isInteractive = Boolean(onOpenSection);
-
   return (
-    <button
-      className={`flex min-w-0 flex-col items-center px-2 py-3 text-center ${
-        isInteractive ? "cursor-pointer" : "cursor-default"
-      }`}
+    <div
+      className="flex min-w-0 flex-col items-center px-2 py-3 text-center"
       data-testid={`${testId}-section`}
-      disabled={!isInteractive}
-      type="button"
-      onClick={() => onOpenSection?.(intention)}
     >
       <span className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         {label}
@@ -295,6 +260,6 @@ function WorkerStat({
       >
         {value}
       </strong>
-    </button>
+    </div>
   );
 }

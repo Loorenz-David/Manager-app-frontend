@@ -1,5 +1,7 @@
 import type { CalendarQuickRangeOption, StatePillVariant } from "@beyo/ui";
 
+import type { CalendarEventRecord } from "./lib/time-line-calendar/segment-adapter";
+import type { TimelineViewMode } from "./lib/time-line-calendar/window";
 import type { TickerModel } from "./lib/worker-stats-dto";
 import type { WorkerGranularityIntention, WorkerInsight } from "./types";
 
@@ -49,6 +51,56 @@ export type WorkerStatsGranularitySurfaceProps = {
 
 export function preloadWorkerStatsGranularitySlideSurface(): Promise<unknown> {
   return import("./pages/WorkerStatsGranularitySlidePage");
+}
+
+export const WORKER_TIMELINE_SLIDE_SURFACE_ID = "worker-timeline-slide";
+
+// Worker identity is passed from the tapped WorkerStatsCard so the header
+// renders immediately; the drill-down response remains its source of truth.
+// The parent dates are an INITIAL navigation anchor only — after mount the
+// page owns its visible-date state.
+export type WorkerTimelineSurfaceProps = {
+  userId: string;
+  username?: string;
+  profilePicture?: string | null;
+  initialDate?: string;
+  initialDateFrom?: string;
+  initialDateTo?: string;
+};
+
+export function preloadWorkerTimelineSlideSurface(): Promise<unknown> {
+  return import("./pages/WorkerTimelineSlidePage");
+}
+
+export const WORKER_TIMELINE_DATE_SHEET_SURFACE_ID =
+  "worker-timeline-date-sheet";
+
+// Package-owned date picker (DayCalendar primitive) with the 1-day/3-day
+// view-mode toggle — the non-gesture fallback for pinch mode switching.
+export type WorkerTimelineDateSheetProps = {
+  selectedDate: string;
+  mode: TimelineViewMode;
+  maxDate: string;
+  onSelect: (dateKey: string, mode: TimelineViewMode) => void;
+};
+
+export function preloadWorkerTimelineDateSheetSurface(): Promise<unknown> {
+  return import("./pages/WorkerTimelineDateSheetPage");
+}
+
+export const WORKER_TIMELINE_EVENT_SHEET_SURFACE_ID =
+  "worker-timeline-event-sheet";
+
+// Record chooser for multi-record events: lists every contributing state
+// record (true timestamps), visually grouped by task, and opens task detail.
+export type WorkerTimelineEventSheetProps = {
+  title: string;
+  subtitle?: string | null;
+  records: CalendarEventRecord[];
+};
+
+export function preloadWorkerTimelineEventSheetSurface(): Promise<unknown> {
+  return import("./pages/WorkerTimelineEventSheetPage");
 }
 
 export const WORKER_STATS_INSIGHTS_SHEET_SURFACE_ID =

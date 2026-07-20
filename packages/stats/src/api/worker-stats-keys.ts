@@ -1,6 +1,7 @@
 import type {
   ListWorkerInsightsParams,
   ListWorkerLastStepsParams,
+  ListWorkerLinearTimelineParams,
   ListWorkerTotalsParams,
   TimeStrategy,
   WorkerGranularityIntention,
@@ -15,6 +16,18 @@ export const workerStatsKeys = {
   totalsLists: () => [...workerStatsKeys.all, "totals", "list"] as const,
   totalsList: (params: ListWorkerTotalsParams = {}) =>
     [...workerStatsKeys.totalsLists(), params] as const,
+  linearTimelineLists: () =>
+    [...workerStatsKeys.all, "linear-timeline", "list"] as const,
+  linearTimelineList: (params: ListWorkerLinearTimelineParams = {}) =>
+    [...workerStatsKeys.linearTimelineLists(), params] as const,
+  linearTimelineBreakdowns: () =>
+    [...workerStatsKeys.all, "linear-timeline", "breakdown"] as const,
+  // One cache entry per exact request window — distinct windows never
+  // overwrite each other (stale-response protection for free).
+  linearTimelineBreakdown: (
+    userId: string,
+    params: { dateFrom: string; dateTo: string },
+  ) => [...workerStatsKeys.linearTimelineBreakdowns(), userId, params] as const,
   insightsLists: () => [...workerStatsKeys.all, "insights", "list"] as const,
   insightsList: (params: ListWorkerInsightsParams = {}) =>
     [...workerStatsKeys.insightsLists(), params] as const,

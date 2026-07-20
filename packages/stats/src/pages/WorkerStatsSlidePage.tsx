@@ -23,35 +23,28 @@ import type { WorkerStatsCardViewModel } from "../lib/worker-stats-dto";
 import { dateRangeLabel, todayRange } from "../lib/worker-stats-date-range";
 import { WORKER_STATS_QUICK_RANGE_OPTIONS } from "../lib/worker-stats-quick-ranges";
 import {
-  preloadWorkerStatsGranularitySlideSurface,
-  WORKER_STATS_GRANULARITY_SLIDE_SURFACE_ID,
+  preloadWorkerTimelineSlideSurface,
   WORKER_STATS_INSIGHTS_SHEET_SURFACE_ID,
+  WORKER_TIMELINE_SLIDE_SURFACE_ID,
   type WorkerStatsSlideSurfaceProps,
-  type WorkerStatsGranularitySurfaceProps,
   type WorkerStatsInsightsSheetProps,
+  type WorkerTimelineSurfaceProps,
 } from "../surface-ids";
-import type { WorkerGranularityIntention, WorkerStatsDateRange } from "../types";
+import type { WorkerStatsDateRange } from "../types";
 
-function openGranularitySlide(
+// The totals row opens the worker's timeline calendar with the roster's
+// selected range as the initial navigation anchor.
+function openWorkerTimeline(
   worker: WorkerStatsCardViewModel,
-  intention: WorkerGranularityIntention,
   range: WorkerStatsDateRange,
 ): void {
-  // Totals are not passed — the granularity page derives them (per selected
-  // time strategy) from its own daily-steps response.
-  useSurfaceStore.getState().open(WORKER_STATS_GRANULARITY_SLIDE_SURFACE_ID, {
+  useSurfaceStore.getState().open(WORKER_TIMELINE_SLIDE_SURFACE_ID, {
     userId: worker.userId,
     username: worker.username,
     profilePicture: worker.profilePicture,
-    stepStateLabel:
-      worker.step.status === "ready" ? worker.step.data?.stepStateLabel ?? null : null,
-    stepStateVariant:
-      worker.step.status === "ready" ? worker.step.data?.stepStateVariant ?? null : null,
-    ticker: worker.step.status === "ready" ? worker.step.data?.ticker ?? null : null,
-    initialIntention: intention,
-    dateFrom: range.from,
-    dateTo: range.to,
-  } satisfies WorkerStatsGranularitySurfaceProps);
+    initialDateFrom: range.from,
+    initialDateTo: range.to,
+  } satisfies WorkerTimelineSurfaceProps);
 }
 
 function openLastStepTaskDetail(taskId: string | null): void {
@@ -87,8 +80,8 @@ function WorkerStatsCardSkeleton(): React.JSX.Element {
         <div className="skeleton-shimmer h-6 w-28 rounded sm:h-8 sm:w-36" />
         <div className="skeleton-shimmer h-9 w-28 rounded-full sm:h-12 sm:w-40" />
       </div>
-      <div className="grid grid-cols-3 divide-x divide-border border-t border-border">
-        {Array.from({ length: 3 }).map((_, index) => (
+      <div className="grid grid-cols-4 divide-x divide-border border-t border-border">
+        {Array.from({ length: 4 }).map((_, index) => (
           <div className="flex flex-col items-center gap-2 px-2 py-4 sm:py-5" key={index}>
             <div className="skeleton-shimmer h-3 w-14 rounded" />
             <div className="skeleton-shimmer h-6 w-12 rounded" />
@@ -105,7 +98,7 @@ export function WorkerStatsSlidePage(): React.JSX.Element {
   const [range, setRange] = useState<WorkerStatsDateRange>(() => todayRange());
   const roster = useWorkerStatsRoster(range);
   const { hideProgressContainerRef, scrollRef, isHidden } = useScrollHide();
-  usePreloadSurface(preloadWorkerStatsGranularitySlideSurface);
+  usePreloadSurface(preloadWorkerTimelineSlideSurface);
   const today = useMemo(() => todayRange().from, []);
 
   useEffect(() => {
@@ -219,9 +212,7 @@ export function WorkerStatsSlidePage(): React.JSX.Element {
                     } satisfies WorkerStatsInsightsSheetProps,
                   )
                 }
-                onOpenSection={(intention) =>
-                  openGranularitySlide(worker, intention, range)
-                }
+                onOpenTimeline={() => openWorkerTimeline(worker, range)}
                 onOpenTaskDetail={openLastStepTaskDetail}
               />
             ))

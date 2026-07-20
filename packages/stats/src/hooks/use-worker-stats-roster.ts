@@ -3,23 +3,23 @@ import type { UseQueryResult } from "@tanstack/react-query";
 
 import { useWorkerInsightsQuery } from "../api/use-worker-insights-query";
 import { useWorkerLastStepsQuery } from "../api/use-worker-last-steps-query";
-import { useWorkerTotalsQuery } from "../api/use-worker-totals-query";
+import { useWorkerLinearTimelineQuery } from "../api/use-worker-linear-timeline-query";
 import {
   toWorkerIdentityViewModel,
   toWorkerInsightsSectionViewModel,
   toWorkerStepSectionViewModel,
-  toWorkerTotalsSectionViewModel,
+  toWorkerTimelineSectionViewModel,
   type SectionState,
   type WorkerInsightsSectionViewModel,
   type WorkerStatsCardViewModel,
   type WorkerStepSectionViewModel,
-  type WorkerTotalsSectionViewModel,
+  type WorkerTimelineSectionViewModel,
 } from "../lib/worker-stats-dto";
 import type {
   WorkerInsightsRow,
   WorkerLastStepRow,
+  WorkerLinearTimelineRow,
   WorkerStatsDateRange,
-  WorkerTotalsRow,
 } from "../types";
 
 type WorkerPage<T> = { workers: T[] };
@@ -60,7 +60,7 @@ export function useWorkerStatsRoster(
     offset: 0,
     workDate,
   });
-  const totalsQuery = useWorkerTotalsQuery({
+  const timelineQuery = useWorkerLinearTimelineQuery({
     limit: 50,
     offset: 0,
     dateFrom: range.from,
@@ -75,35 +75,35 @@ export function useWorkerStatsRoster(
   const workers = useMemo(() => {
     const sourceRows = lastStepsQuery.data
       ? lastStepsQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
-      : totalsQuery.data
-        ? totalsQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
+      : timelineQuery.data
+        ? timelineQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
         : insightsQuery.data
           ? insightsQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
           : [];
     const lastById = new Map(
       (lastStepsQuery.data?.workers ?? []).map((row) => [row.user.client_id, row]),
     );
-    const totalsById = new Map(
-      (totalsQuery.data?.workers ?? []).map((row) => [row.user.client_id, row]),
+    const timelineById = new Map(
+      (timelineQuery.data?.workers ?? []).map((row) => [row.user.client_id, row]),
     );
     const insightsById = new Map(
       (insightsQuery.data?.workers ?? []).map((row) => [row.user.client_id, row]),
     );
-    const obtainedAtIso = lastStepsQuery.dataUpdatedAt
-      ? new Date(lastStepsQuery.dataUpdatedAt).toISOString()
-      : new Date().toISOString();
 
     return sourceRows.map(({ id, user }) => ({
       ...toWorkerIdentityViewModel(user),
       step: resolveSection<WorkerLastStepRow, WorkerStepSectionViewModel>(
         lastStepsQuery,
         lastById.get(id) ?? null,
-        (row) => toWorkerStepSectionViewModel(row, obtainedAtIso),
+        toWorkerStepSectionViewModel,
       ),
-      totals: resolveSection<WorkerTotalsRow, WorkerTotalsSectionViewModel>(
-        totalsQuery,
-        totalsById.get(id) ?? null,
-        toWorkerTotalsSectionViewModel,
+      timeline: resolveSection<
+        WorkerLinearTimelineRow,
+        WorkerTimelineSectionViewModel
+      >(
+        timelineQuery,
+        timelineById.get(id) ?? null,
+        toWorkerTimelineSectionViewModel,
       ),
       insights:
         range.from === range.to
@@ -124,23 +124,23 @@ export function useWorkerStatsRoster(
     lastStepsQuery,
     range.from,
     range.to,
-    totalsQuery,
+    timelineQuery,
   ]);
 
   return {
     workers,
     isPending:
       lastStepsQuery.isPending &&
-      totalsQuery.isPending &&
+      timelineQuery.isPending &&
       insightsQuery.isPending,
     isError:
       lastStepsQuery.isError &&
-      totalsQuery.isError &&
+      timelineQuery.isError &&
       insightsQuery.isError,
     refetchAll: () =>
       Promise.all([
         lastStepsQuery.refetch(),
-        totalsQuery.refetch(),
+        timelineQuery.refetch(),
         insightsQuery.refetch(),
       ]),
   };

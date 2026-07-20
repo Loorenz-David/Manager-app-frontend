@@ -41,11 +41,12 @@ const activeWorker: WorkerStatsCardViewModel = {
       },
     },
   },
-  totals: {
+  timeline: {
     status: "ready",
     data: {
-      workingTotal: { kind: "static", seconds: 26_040 },
-      pausedTotal: { kind: "static", seconds: 5_040 },
+      workingSeconds: 26_040,
+      pausedSeconds: 5_040,
+      idleSeconds: 600,
       completedCount: 12,
     },
   },
@@ -57,13 +58,6 @@ function getStepData(worker: WorkerStatsCardViewModel) {
     throw new Error("test worker step is not ready");
   }
   return worker.step.data;
-}
-
-function getTotalsData(worker: WorkerStatsCardViewModel) {
-  if (worker.totals.status !== "ready" || !worker.totals.data) {
-    throw new Error("test worker totals are not ready");
-  }
-  return worker.totals.data;
 }
 
 describe("WorkerStatsCard", () => {
@@ -78,6 +72,7 @@ describe("WorkerStatsCard", () => {
     expect(screen.getByTestId("worker-stats-timer-usr_test")).toBeInTheDocument();
     expect(screen.getByTestId("worker-stats-working-usr_test")).toHaveTextContent("7h 14m");
     expect(screen.getByTestId("worker-stats-paused-usr_test")).toHaveTextContent("1h 24m");
+    expect(screen.getByTestId("worker-stats-idle-usr_test")).toHaveTextContent("0h 10m");
     expect(screen.getByTestId("worker-stats-completed-usr_test")).toHaveTextContent("12");
   });
 
@@ -173,37 +168,38 @@ describe("WorkerStatsCard", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders a live ticking total when a state has open intervals", () => {
+  it("opens the timeline from a single row-level tap on the totals strip", async () => {
+    const user = userEvent.setup();
+    const onOpenTimeline = vi.fn();
+
+    render(
+      <WorkerStatsCard worker={activeWorker} onOpenTimeline={onOpenTimeline} />,
+    );
+
+    const row = screen.getByTestId("worker-stats-timeline-row-usr_test");
+    expect(row).toHaveAccessibleName("Open #test-seller's timeline");
+
+    // Cells are display-only — tapping any of them fires the row tap.
+    await user.click(screen.getByTestId("worker-stats-working-usr_test-section"));
+    await user.click(screen.getByTestId("worker-stats-idle-usr_test-section"));
+    expect(onOpenTimeline).toHaveBeenCalledTimes(2);
+  });
+
+  it("disables the totals row while the timeline totals are loading", async () => {
+    const user = userEvent.setup();
+    const onOpenTimeline = vi.fn();
+
     render(
       <WorkerStatsCard
-        worker={{
-          ...activeWorker,
-          totals: {
-            status: "ready",
-            data: {
-              ...getTotalsData(activeWorker),
-              pausedTotal: {
-                kind: "ticking",
-                offsetSeconds: 5_040,
-                ratePerSecond: 1,
-                asOfIso: new Date().toISOString(),
-              },
-            },
-          },
-        }}
+        worker={{ ...activeWorker, timeline: { status: "loading" } }}
+        onOpenTimeline={onOpenTimeline}
       />,
     );
 
-    // Static column stays a plain value; open column mounts the live ticker.
-    expect(
-      screen.queryByTestId("worker-stats-working-usr_test-timer"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByTestId("worker-stats-paused-usr_test-timer"),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("worker-stats-paused-usr_test"),
-    ).toHaveTextContent("1h 24m");
+    const row = screen.getByTestId("worker-stats-timeline-row-usr_test");
+    expect(row).toBeDisabled();
+    await user.click(row);
+    expect(onOpenTimeline).not.toHaveBeenCalled();
   });
 
   it("opens the last step's task detail on body tap", async () => {
