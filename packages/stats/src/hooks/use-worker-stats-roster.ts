@@ -20,6 +20,7 @@ import type {
   WorkerLastStepRow,
   WorkerLinearTimelineRow,
   WorkerStatsDateRange,
+  WorkerStatsUser,
 } from "../types";
 
 type WorkerPage<T> = { workers: T[] };
@@ -73,13 +74,27 @@ export function useWorkerStatsRoster(
   });
 
   const workers = useMemo(() => {
-    const sourceRows = lastStepsQuery.data
-      ? lastStepsQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
-      : timelineQuery.data
-        ? timelineQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
-        : insightsQuery.data
-          ? insightsQuery.data.workers.map((row) => ({ user: row.user, id: row.user.client_id }))
-          : [];
+    // Union by client_id instead of trusting a single source's worker list:
+    // the three roster endpoints are expected to agree on role scope, but a
+    // worker missing from one response (pagination race, transient error)
+    // shouldn't drop their card if another source still has them.
+    const byId = new Map<string, WorkerStatsUser>();
+    for (const row of lastStepsQuery.data?.workers ?? []) {
+      byId.set(row.user.client_id, row.user);
+    }
+    for (const row of timelineQuery.data?.workers ?? []) {
+      if (!byId.has(row.user.client_id)) {
+        byId.set(row.user.client_id, row.user);
+      }
+    }
+    for (const row of insightsQuery.data?.workers ?? []) {
+      if (!byId.has(row.user.client_id)) {
+        byId.set(row.user.client_id, row.user);
+      }
+    }
+    const sourceRows = Array.from(byId, ([id, user]) => ({ id, user })).sort(
+      (a, b) => a.user.username.localeCompare(b.user.username),
+    );
     const lastById = new Map(
       (lastStepsQuery.data?.workers ?? []).map((row) => [row.user.client_id, row]),
     );
