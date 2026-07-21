@@ -88,14 +88,7 @@ export function resolveTicker(step: WorkerLastStep | null): TickerModel | null {
     };
   }
 
-  if (step.state !== "ended_shift") {
-    return null;
-  }
-
-  return {
-    offsetSeconds: 0,
-    startedAtIso: step.last_state_record.entered_at,
-  };
+  return null;
 }
 
 export function toWorkerStepSectionViewModel(
@@ -153,4 +146,3 @@ export function toWorkerIdentityViewModel(user: WorkerStatsUser): Pick<
     profilePicture: user.profile_picture,
   };
 }
-

@@ -13,10 +13,11 @@ vi.mock("../flows/use-task-working-sections-counts.flow", () => ({
 }));
 
 describe("TaskWorkingSectionsField", () => {
-  it("renders assigned and completed counts from the counts flow", () => {
+  it("renders assigned, completed, and working-time pills from the counts flow", () => {
     useTaskWorkingSectionsCountsFlowMock.mockReturnValue({
       assignedCount: 4,
       completedCount: 2,
+      totalWorkingSeconds: 86400 + 2 * 3600 + 20 * 60,
       isPending: false,
       isError: false,
     });
@@ -34,12 +35,16 @@ describe("TaskWorkingSectionsField", () => {
     expect(
       screen.getByTestId("working-sections-completed-count"),
     ).toHaveTextContent("2 completed");
+    expect(
+      screen.getByTestId("working-sections-working-time"),
+    ).toHaveTextContent("1d 2h 20m");
   });
 
   it("shows zero counts when the flow returns zero counts", () => {
     useTaskWorkingSectionsCountsFlowMock.mockReturnValue({
       assignedCount: 0,
       completedCount: 0,
+      totalWorkingSeconds: 0,
       isPending: false,
       isError: false,
     });
@@ -57,6 +62,9 @@ describe("TaskWorkingSectionsField", () => {
     expect(
       screen.getByTestId("working-sections-completed-count"),
     ).toHaveTextContent("0 completed");
+    expect(
+      screen.getByTestId("working-sections-working-time"),
+    ).toHaveTextContent("0m");
   });
 
   it("opens the slide when pressed", async () => {
@@ -65,6 +73,7 @@ describe("TaskWorkingSectionsField", () => {
     useTaskWorkingSectionsCountsFlowMock.mockReturnValue({
       assignedCount: 0,
       completedCount: 0,
+      totalWorkingSeconds: 0,
       isPending: false,
       isError: false,
     });

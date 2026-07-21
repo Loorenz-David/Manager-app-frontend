@@ -2,6 +2,7 @@ import { ChevronRight } from "lucide-react";
 
 import { EyebrowLabel, InfoPill } from "@beyo/ui";
 import { useTaskWorkingSectionsCountsFlow } from "../flows/use-task-working-sections-counts.flow";
+import { formatWorkingDuration } from "../lib/format-working-duration";
 
 type TaskWorkingSectionsFieldProps = {
   onOpenWorkingSections: () => void;
@@ -12,7 +13,7 @@ export function TaskWorkingSectionsField({
   onOpenWorkingSections,
   taskId,
 }: TaskWorkingSectionsFieldProps): React.JSX.Element {
-  const { assignedCount, completedCount } =
+  const { assignedCount, completedCount, totalWorkingSeconds } =
     useTaskWorkingSectionsCountsFlow(taskId);
 
   return (
@@ -36,6 +37,12 @@ export function TaskWorkingSectionsField({
             data-testid="working-sections-completed-count"
           >
             {completedCount} completed
+          </InfoPill>
+          <InfoPill
+            className="py-1 text-xs"
+            data-testid="working-sections-working-time"
+          >
+            {formatWorkingDuration(totalWorkingSeconds)}
           </InfoPill>
         </div>
         <ChevronRight

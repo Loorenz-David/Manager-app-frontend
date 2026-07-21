@@ -341,6 +341,160 @@ describe("toCalendarTimelineEvents", () => {
   });
 });
 
+describe("toCalendarTimelineEvents — step clustering", () => {
+  const stepAt = (
+    recordId: string,
+    taskId: string,
+    article: string,
+    from: string,
+    to: string | null,
+    overrides: Partial<WorkerLinearTimelineStepRecord> = {},
+  ): WorkerLinearTimelineStepRecord =>
+    makeRecord({
+      record_id: recordId,
+      task_id: taskId,
+      item: { client_id: `itm_${recordId}`, article_number: article, sku: null },
+      entered_at: from,
+      exited_at: to,
+      is_open: to === null,
+      ended_by: to === null ? "still_open" : "paused",
+      ...overrides,
+    });
+
+  it("splits sequential steps into consecutive blocks (one per step)", () => {
+    const events = toCalendarTimelineEvents(
+      [
+        makeSegment({
+          start: iso(2026, 7, 15, 9, 0),
+          end: iso(2026, 7, 15, 11, 0),
+          steps: [
+            stepAt("s1", "tsk_a", "ART-A", iso(2026, 7, 15, 9, 0), iso(2026, 7, 15, 10, 0)),
+            stepAt("s2", "tsk_b", "ART-B", iso(2026, 7, 15, 10, 0), iso(2026, 7, 15, 11, 0)),
+          ],
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(events).toHaveLength(2);
+    const [first, second] = events;
+    expect(first.startMinute).toBe(9 * 60);
+    expect(first.endMinute).toBe(10 * 60);
+    expect(first.primaryLabel).toBe("ART-A");
+    expect(first.singleTaskId).toBe("tsk_a");
+    expect(first.recordCount).toBe(1);
+    expect(second.startMinute).toBe(10 * 60);
+    expect(second.endMinute).toBe(11 * 60);
+    expect(second.primaryLabel).toBe("ART-B");
+    expect(second.singleTaskId).toBe("tsk_b");
+    expect(first.key).not.toBe(second.key);
+  });
+
+  it("keeps overlapping steps as one batch block", () => {
+    const events = toCalendarTimelineEvents(
+      [
+        makeSegment({
+          start: iso(2026, 7, 15, 9, 0),
+          end: iso(2026, 7, 15, 10, 0),
+          steps: [
+            stepAt("s1", "tsk_a", "ART-A", iso(2026, 7, 15, 9, 0), iso(2026, 7, 15, 10, 0)),
+            stepAt("s2", "tsk_b", "ART-B", iso(2026, 7, 15, 9, 5), iso(2026, 7, 15, 9, 55)),
+          ],
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(events).toHaveLength(1);
+    expect(events[0].startMinute).toBe(9 * 60);
+    expect(events[0].endMinute).toBe(10 * 60);
+    expect(events[0].recordCount).toBe(2);
+    expect(events[0].singleTaskId).toBeNull();
+  });
+
+  it("mixes an overlapping batch and a sequential step into two blocks", () => {
+    const events = toCalendarTimelineEvents(
+      [
+        makeSegment({
+          start: iso(2026, 7, 15, 9, 0),
+          end: iso(2026, 7, 15, 11, 0),
+          steps: [
+            stepAt("a", "tsk_a", "ART-A", iso(2026, 7, 15, 9, 0), iso(2026, 7, 15, 10, 0)),
+            stepAt("b", "tsk_b", "ART-B", iso(2026, 7, 15, 9, 30), iso(2026, 7, 15, 10, 0)),
+            stepAt("c", "tsk_c", "ART-C", iso(2026, 7, 15, 10, 0), iso(2026, 7, 15, 11, 0)),
+          ],
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(events).toHaveLength(2);
+    const [batch, single] = events;
+    expect(batch.startMinute).toBe(9 * 60);
+    expect(batch.endMinute).toBe(10 * 60);
+    expect(batch.recordCount).toBe(2);
+    expect(batch.singleTaskId).toBeNull();
+    expect(single.startMinute).toBe(10 * 60);
+    expect(single.endMinute).toBe(11 * 60);
+    expect(single.recordCount).toBe(1);
+    expect(single.singleTaskId).toBe("tsk_c");
+  });
+
+  it("marks only the last sequential block live for an open segment", () => {
+    // NOW = 2026-07-19 12:00; segment ends exactly at now.
+    const events = toCalendarTimelineEvents(
+      [
+        makeSegment({
+          start: iso(2026, 7, 19, 9, 0),
+          end: iso(2026, 7, 19, 12, 0),
+          is_open: true,
+          steps: [
+            stepAt("s1", "tsk_a", "ART-A", iso(2026, 7, 19, 9, 0), iso(2026, 7, 19, 11, 0)),
+            stepAt("s2", "tsk_b", "ART-B", iso(2026, 7, 19, 11, 0), null),
+          ],
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(events).toHaveLength(2);
+    expect(events[0].isOpen).toBe(false);
+    expect(events[0].endLabel).toBe("11:00");
+    expect(events[1].isOpen).toBe(true);
+    expect(events[1].endLabel).toBe("now");
+  });
+
+  it("applies clustering to paused segments too", () => {
+    const events = toCalendarTimelineEvents(
+      [
+        makeSegment({
+          start: iso(2026, 7, 15, 9, 0),
+          end: iso(2026, 7, 15, 11, 0),
+          state: "paused",
+          reason: "pause_lunch_break",
+          steps: [
+            stepAt("p1", "tsk_a", "ART-A", iso(2026, 7, 15, 9, 0), iso(2026, 7, 15, 10, 0), {
+              state: "paused",
+              reason: "pause_lunch_break",
+            }),
+            stepAt("p2", "tsk_b", "ART-B", iso(2026, 7, 15, 10, 0), iso(2026, 7, 15, 11, 0), {
+              state: "paused",
+              reason: "pause_lunch_break",
+            }),
+          ],
+        }),
+      ],
+      { now: NOW },
+    );
+
+    expect(events).toHaveLength(2);
+    expect(events[0].reasonLabel).toBe("Lunch break");
+    expect(events[1].reasonLabel).toBe("Lunch break");
+    expect(events[0].singleTaskId).toBe("tsk_a");
+    expect(events[1].singleTaskId).toBe("tsk_b");
+  });
+});
+
 describe("dayLastActivityMinute", () => {
   it("returns the end minute of the latest duration slice", () => {
     const events = toCalendarTimelineEvents(

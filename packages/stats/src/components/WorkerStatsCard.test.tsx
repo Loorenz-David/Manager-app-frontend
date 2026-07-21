@@ -101,6 +101,28 @@ describe("WorkerStatsCard", () => {
     expect(screen.getByTestId("worker-stats-completed-usr_test")).toHaveTextContent("12");
   });
 
+  it("renders only the state when the last step ended the shift", () => {
+    render(
+      <WorkerStatsCard
+        worker={{
+          ...activeWorker,
+          step: {
+            status: "ready",
+            data: {
+              ...getStepData(activeWorker),
+              stepState: "ended_shift",
+              stepStateLabel: "Shift ended",
+              ticker: null,
+            },
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Shift ended")).toBeInTheDocument();
+    expect(screen.queryByTestId("worker-stats-timer-usr_test")).not.toBeInTheDocument();
+  });
+
   it("renders no insight band when there is no top insight", () => {
     render(<WorkerStatsCard worker={activeWorker} />);
     expect(

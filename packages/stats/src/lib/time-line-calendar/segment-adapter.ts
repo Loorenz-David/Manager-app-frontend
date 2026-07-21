@@ -113,6 +113,72 @@ function toCalendarEventRecord(
   };
 }
 
+type StepCluster = {
+  start: number;
+  end: number;
+  steps: WorkerLinearTimelineSegment["steps"];
+};
+
+// Group a segment's step records into clusters of time-overlapping steps (each
+// clipped to the segment span). Overlapping steps share a cluster — drawn as
+// one batch block; sequential steps land in separate clusters, drawn as
+// consecutive blocks. Touching endpoints (a.end === b.start) count as
+// sequential, not overlapping. The outer edges are clamped to the segment so
+// the blocks tile it exactly (the backend guarantees a working/paused segment
+// is fully covered by its steps).
+function clusterSteps(
+  steps: WorkerLinearTimelineSegment["steps"],
+  segmentStart: Date,
+  segmentEnd: Date,
+): StepCluster[] {
+  const segStartMs = segmentStart.getTime();
+  const segEndMs = segmentEnd.getTime();
+
+  const intervals = steps
+    .map((step) => {
+      const enteredMs = new Date(step.entered_at).getTime();
+      const exitedMs = step.exited_at
+        ? new Date(step.exited_at).getTime()
+        : segEndMs;
+      return {
+        step,
+        start: Math.max(enteredMs, segStartMs),
+        end: Math.min(exitedMs, segEndMs),
+      };
+    })
+    .filter((interval) => interval.end > interval.start)
+    .sort((a, b) =>
+      a.start !== b.start
+        ? a.start - b.start
+        : a.step.record_id.localeCompare(b.step.record_id),
+    );
+
+  const clusters: StepCluster[] = [];
+  for (const interval of intervals) {
+    const last = clusters[clusters.length - 1];
+    if (last && interval.start < last.end) {
+      last.end = Math.max(last.end, interval.end);
+      last.steps.push(interval.step);
+    } else {
+      clusters.push({
+        start: interval.start,
+        end: interval.end,
+        steps: [interval.step],
+      });
+    }
+  }
+
+  if (clusters.length > 0) {
+    clusters[0].start = Math.min(clusters[0].start, segStartMs);
+    clusters[clusters.length - 1].end = Math.max(
+      clusters[clusters.length - 1].end,
+      segEndMs,
+    );
+  }
+
+  return clusters;
+}
+
 export function toCalendarTimelineEvents(
   segments: WorkerLinearTimelineSegment[],
   options: { now: Date },
@@ -156,102 +222,139 @@ export function toCalendarTimelineEvents(
     }
 
     // Open blocks continue toward the client's "now" between refetches.
-    const end =
+    const effectiveEnd =
       segment.is_open && options.now.getTime() > backendEnd.getTime()
         ? options.now
         : backendEnd;
 
-    if (end.getTime() <= start.getTime()) {
+    if (effectiveEnd.getTime() <= start.getTime()) {
       continue;
     }
 
-    // Order records deterministically: earliest CLIPPED start, then record id.
-    const sortedSteps = [...segment.steps].sort((a, b) => {
-      const aStart = Math.max(new Date(a.entered_at).getTime(), start.getTime());
-      const bStart = Math.max(new Date(b.entered_at).getTime(), start.getTime());
-      if (aStart !== bStart) {
-        return aStart - bStart;
-      }
-      return a.record_id.localeCompare(b.record_id);
-    });
-    const records = sortedSteps.map(toCalendarEventRecord);
-    const primary = records[0] ?? null;
-    const taskIds = [...new Set(records.map((record) => record.taskId))];
+    // A working/paused segment can carry several step records. Render one
+    // block PER CLUSTER of time-overlapping steps: overlapping steps fuse into
+    // a single batch block; sequential steps become consecutive blocks. Idle
+    // (and any stepless) segments stay one block spanning the whole segment.
+    const clusters = clusterSteps(segment.steps, start, effectiveEnd);
+    const blocks =
+      clusters.length > 0
+        ? clusters.map((cluster, index) => ({
+            start: new Date(cluster.start),
+            end: new Date(cluster.end),
+            steps: cluster.steps,
+            // Only the last cluster reaches the segment's live edge.
+            isOpen: segment.is_open && index === clusters.length - 1,
+          }))
+        : [
+            {
+              start,
+              end: effectiveEnd,
+              steps: [] as WorkerLinearTimelineSegment["steps"],
+              isOpen: segment.is_open,
+            },
+          ];
 
-    // Completions are transitions on working records: clip the completion
-    // instant into the segment span, then place it on that instant's day.
-    const completions = sortedSteps
-      .filter((step) => step.ended_by === "completed" && step.exited_at)
-      .map((step) => {
-        const exited = new Date(step.exited_at as string);
-        const clipped = new Date(
-          Math.min(Math.max(exited.getTime(), start.getTime()), end.getTime()),
+    for (const block of blocks) {
+      const { start: blockStart, end: blockEnd } = block;
+
+      // Order records deterministically: earliest CLIPPED start, then record id.
+      const sortedSteps = [...block.steps].sort((a, b) => {
+        const aStart = Math.max(
+          new Date(a.entered_at).getTime(),
+          blockStart.getTime(),
         );
-        return {
-          key: `completion|${step.record_id}`,
-          dateKey: localDateKey(clipped),
-          minute: minuteOfLocalDay(clipped),
-          label: step.item?.article_number ?? step.item?.sku ?? null,
-          recordId: step.record_id,
-          taskId: step.task_id,
-        };
+        const bStart = Math.max(
+          new Date(b.entered_at).getTime(),
+          blockStart.getTime(),
+        );
+        if (aStart !== bStart) {
+          return aStart - bStart;
+        }
+        return a.record_id.localeCompare(b.record_id);
       });
+      const records = sortedSteps.map(toCalendarEventRecord);
+      const primary = records[0] ?? null;
+      const taskIds = [...new Set(records.map((record) => record.taskId))];
 
-    // Split into local-day slices.
-    let dayKey = localDateKey(start);
-    while (parseLocalDateKey(dayKey).getTime() < end.getTime()) {
-      const dayStart = parseLocalDateKey(dayKey);
-      const nextDayStart = parseLocalDateKey(addDaysToKey(dayKey, 1));
-      const sliceStart = start.getTime() > dayStart.getTime() ? start : dayStart;
-      const endsAtMidnight = end.getTime() >= nextDayStart.getTime();
-      const sliceEnd = endsAtMidnight ? nextDayStart : end;
-
-      if (sliceEnd.getTime() > sliceStart.getTime()) {
-        const isLastSlice = !endsAtMidnight;
-        const startMinute = minuteOfLocalDay(sliceStart);
-        const endMinute = endsAtMidnight
-          ? MINUTES_PER_DAY
-          : minuteOfLocalDay(sliceEnd);
-        const sliceSeconds = Math.round(
-          (sliceEnd.getTime() - sliceStart.getTime()) / 1000,
-        );
-        const isOpenSlice = segment.is_open && isLastSlice;
-
-        events.push({
-          key: `${segment.state}|${segment.start}|${dayKey}`,
-          dateKey: dayKey,
-          state: segment.state,
-          stateLabel: TIMELINE_STATE_LABEL[segment.state],
-          startMinute,
-          endMinute,
-          startLabel: formatLocalTime(sliceStart),
-          endLabel: isOpenSlice ? "now" : formatLocalTime(sliceEnd),
-          durationLabel: secondsToHM(sliceSeconds),
-          isOpen: isOpenSlice,
-          // Only paused blocks reach here with a reason (shift states are
-          // markers handled above).
-          reasonLabel:
-            segment.state === "paused"
-              ? pauseReasonLabel(segment.reason)
-              : null,
-          primaryLabel:
-            primary?.articleLabel ?? primary?.workingSectionName ?? null,
-          workingSectionName: primary?.workingSectionName ?? null,
-          recordCount: records.length,
-          records,
-          completions: completions.filter(
-            (completion) => completion.dateKey === dayKey,
-          ),
-          singleTaskId: taskIds.length === 1 ? taskIds[0] : null,
-          isTaskActionable: segment.state !== "idle" && taskIds.length > 0,
-          isMarker: false,
-          manuallyRecorded: segment.manually_recorded,
-          laneIndex: 0,
-          laneCount: 1,
+      // Completions are transitions on working records: clip the completion
+      // instant into the block span, then place it on that instant's day.
+      const completions = sortedSteps
+        .filter((step) => step.ended_by === "completed" && step.exited_at)
+        .map((step) => {
+          const exited = new Date(step.exited_at as string);
+          const clipped = new Date(
+            Math.min(
+              Math.max(exited.getTime(), blockStart.getTime()),
+              blockEnd.getTime(),
+            ),
+          );
+          return {
+            key: `completion|${step.record_id}`,
+            dateKey: localDateKey(clipped),
+            minute: minuteOfLocalDay(clipped),
+            label: step.item?.article_number ?? step.item?.sku ?? null,
+            recordId: step.record_id,
+            taskId: step.task_id,
+          };
         });
-      }
 
-      dayKey = addDaysToKey(dayKey, 1);
+      // Split the block into local-day slices.
+      let dayKey = localDateKey(blockStart);
+      while (parseLocalDateKey(dayKey).getTime() < blockEnd.getTime()) {
+        const dayStart = parseLocalDateKey(dayKey);
+        const nextDayStart = parseLocalDateKey(addDaysToKey(dayKey, 1));
+        const sliceStart =
+          blockStart.getTime() > dayStart.getTime() ? blockStart : dayStart;
+        const endsAtMidnight = blockEnd.getTime() >= nextDayStart.getTime();
+        const sliceEnd = endsAtMidnight ? nextDayStart : blockEnd;
+
+        if (sliceEnd.getTime() > sliceStart.getTime()) {
+          const isLastSlice = !endsAtMidnight;
+          const startMinute = minuteOfLocalDay(sliceStart);
+          const endMinute = endsAtMidnight
+            ? MINUTES_PER_DAY
+            : minuteOfLocalDay(sliceEnd);
+          const sliceSeconds = Math.round(
+            (sliceEnd.getTime() - sliceStart.getTime()) / 1000,
+          );
+          const isOpenSlice = block.isOpen && isLastSlice;
+
+          events.push({
+            key: `${segment.state}|${segment.start}|${blockStart.toISOString()}|${dayKey}`,
+            dateKey: dayKey,
+            state: segment.state,
+            stateLabel: TIMELINE_STATE_LABEL[segment.state],
+            startMinute,
+            endMinute,
+            startLabel: formatLocalTime(sliceStart),
+            endLabel: isOpenSlice ? "now" : formatLocalTime(sliceEnd),
+            durationLabel: secondsToHM(sliceSeconds),
+            isOpen: isOpenSlice,
+            // Only paused blocks reach here with a reason (shift states are
+            // markers handled above).
+            reasonLabel:
+              segment.state === "paused"
+                ? pauseReasonLabel(segment.reason)
+                : null,
+            primaryLabel:
+              primary?.articleLabel ?? primary?.workingSectionName ?? null,
+            workingSectionName: primary?.workingSectionName ?? null,
+            recordCount: records.length,
+            records,
+            completions: completions.filter(
+              (completion) => completion.dateKey === dayKey,
+            ),
+            singleTaskId: taskIds.length === 1 ? taskIds[0] : null,
+            isTaskActionable: segment.state !== "idle" && taskIds.length > 0,
+            isMarker: false,
+            manuallyRecorded: segment.manually_recorded,
+            laneIndex: 0,
+            laneCount: 1,
+          });
+        }
+
+        dayKey = addDaysToKey(dayKey, 1);
+      }
     }
   }
 

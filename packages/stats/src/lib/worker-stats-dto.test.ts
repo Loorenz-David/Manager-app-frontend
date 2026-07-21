@@ -92,7 +92,7 @@ describe("worker stats DTO", () => {
     });
   });
 
-  it("keeps ticker rules for paused and ended-shift steps", () => {
+  it("keeps a ticker for paused steps but not ended-shift steps", () => {
     const paused = {
       ...makeStepRow().last_interacted_step!,
       state: "paused" as const,
@@ -103,10 +103,7 @@ describe("worker stats DTO", () => {
     });
 
     const endedShift = { ...paused, state: "ended_shift" as const };
-    expect(resolveTicker(endedShift)).toEqual({
-      offsetSeconds: 0,
-      startedAtIso: "2026-07-15T12:00:00Z",
-    });
+    expect(resolveTicker(endedShift)).toBeNull();
   });
 
   it("filters unknown insight codes and resolves the top insight", () => {

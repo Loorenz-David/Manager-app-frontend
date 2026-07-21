@@ -1,11 +1,13 @@
 import {
   useTaskStepCountsQuery,
+  useTaskStepsByTaskQuery,
   type TaskStepCountsByState,
 } from "@beyo/tasks";
 
 export type TaskWorkingSectionsCountsFlow = {
   assignedCount: number;
   completedCount: number;
+  totalWorkingSeconds: number;
   isPending: boolean;
   isError: boolean;
 };
@@ -32,11 +34,18 @@ export function useTaskWorkingSectionsCountsFlow(
   taskId: string | null | undefined,
 ): TaskWorkingSectionsCountsFlow {
   const query = useTaskStepCountsQuery(taskId);
+  const stepsQuery = useTaskStepsByTaskQuery(taskId);
+
+  const totalWorkingSeconds = (stepsQuery.data ?? []).reduce(
+    (total, step) => total + step.total_working_seconds,
+    0,
+  );
 
   if (!query.data) {
     return {
       assignedCount: 0,
       completedCount: 0,
+      totalWorkingSeconds,
       isPending: query.isPending,
       isError: query.isError,
     };
@@ -45,6 +54,7 @@ export function useTaskWorkingSectionsCountsFlow(
   return {
     assignedCount: sumCounts(query.data),
     completedCount: terminalCount(query.data),
+    totalWorkingSeconds,
     isPending: false,
     isError: false,
   };
