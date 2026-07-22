@@ -76,10 +76,10 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 > **Lesson (Phases 3–4):** the original per-phase implementation prompts mandate reading ~20 contract files before writing code — both sessions that got them stalled without implementing; the one lean prompt (Phase 3 corrections) succeeded. From Phase 5 on, Claude-builder rewrites each implementation prompt as a lean session brief (scoped read list, "start coding early", clean-boundary stop rule) before it is handed to Codex — ask for it as part of the kit step.
 
 ### Phase 5 — timeline & composition editing (biggest phase)
-- [ ] **Decision (you), before kit**: confirm the two defaults — (a) shrinking slide duration clamps elements, (b) new text defaults to appear=Slide / disappear=Fade. Tell Claude to record your confirmation in the master Review log.
-- [ ] Ask Claude: flip plan to `approved`
-- [ ] Ask Claude: **"build the Phase 5 timeline + panels kit"** → review → iterate — Claude also rewrites the session prompt as a lean brief (per the Phase 3–4 Lesson) and folds in the two Phase 4 advisories (memoize rail thumbnails; clear the title-PATCH timer on presentationId change)
-- [ ] Codex: paste the lean Phase 5 brief (Claude will name it; likely split into 5a/5b like Phase 4)
+- [x] **Decision (you)**: both defaults confirmed *(2026-07-22 — clamp on shrink; Slide-in/Fade-out)*
+- [x] Ask Claude: flip plan to `approved` *(2026-07-22)*
+- [x] Ask Claude: **"build the Phase 5 timeline + panels kit"** → review → iterate *(built + 1 iteration (panel close button, lane clipping, clamp-on-shrink in preview) + design-approved 2026-07-22)*
+- [ ] Codex: paste `PROMPT_phase5_timeline.md` *(rewritten as a lean single-session brief per your no-split decision; carries the gesture contract + both Phase 4 advisories)*
 - [ ] Opus reviewer: paste `review_prompts/REVIEW_phase5_editor_timeline_composition.md`
 - Note: if Codex reports overrun, the pre-approved fallback is a `5b` correction plan for timed-media bars — ask Claude to draft it.
 

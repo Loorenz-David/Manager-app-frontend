@@ -70,6 +70,32 @@ export { EditorCanvas } from "./components/editor/EditorCanvas";
 export { MediaUploadOverlay } from "./components/editor/MediaUploadOverlay";
 export { type SlideRailItemData } from "./components/editor/types";
 
+// Timeline & panels UI kit (presentational, props-only — see master plan "Division of labor")
+export { TimelineDock } from "./components/timeline/TimelineDock";
+export { TimelineControls } from "./components/timeline/TimelineControls";
+export { TimelineRuler } from "./components/timeline/TimelineRuler";
+export { TimelineTrack } from "./components/timeline/TimelineTrack";
+export { TimelineBar } from "./components/timeline/TimelineBar";
+export {
+  TIMELINE_LABEL_GUTTER_PX,
+  type TimelineBarGesture,
+  type TimelineBarGestureKind,
+} from "./components/timeline/types";
+export { CanvasDraggableBox } from "./components/editor/CanvasDraggableBox";
+export { TextBlockPanel, type TextAnimationChoice } from "./components/panels/TextBlockPanel";
+export { MediaElementPanel, type MediaFitChoice } from "./components/panels/MediaElementPanel";
+export { SlidePropertiesPanel } from "./components/panels/SlidePropertiesPanel";
+export {
+  PanelDeleteButton,
+  PanelFieldLabel,
+  PanelHeading,
+  PanelHint,
+  PanelSection,
+  PanelSlider,
+  SegmentedControl,
+} from "./components/panels/PanelPrimitives";
+
 // Dev-only kit showcases (mounted by the studio behind import.meta.env.DEV routes)
 export { DashboardKitPreview } from "./dev/DashboardKitPreview";
 export { EditorKitPreview } from "./dev/EditorKitPreview";
+export { TimelineKitPreview } from "./dev/TimelineKitPreview";

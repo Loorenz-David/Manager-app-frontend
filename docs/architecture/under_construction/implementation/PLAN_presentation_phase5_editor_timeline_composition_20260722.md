@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase5_editor_timeline_composition_20260722`
-- Status: `under_construction`
+- Status: `approved`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T20:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 5)
 - Design reference: design README §1b "Interactions & behavior" + "State management" + both editor screenshots (timeline framing)
@@ -33,8 +33,8 @@
 
 ## Clarifications required
 
-- [ ] Slide duration shrink below an element's `end_ms`: clamp elements into the new duration on save (recommended, matches backend 422 avoidance) vs. block the slider. Default: clamp, with bars visually compressing.
-- [ ] Should `+ Text` default `animIn` be `slide` (mock shows Slide active on appear) and `animOut` `fade`? Default: yes (`fade_up` in / `fade` out on the wire).
+- [x] **Confirmed by user 2026-07-22**: slide duration shrink below an element's `end_ms` **clamps** elements into the new duration (bars visually compress); the slider is never blocked.
+- [x] **Confirmed by user 2026-07-22**: `+ Text` defaults to appear=`slide` / disappear=`fade` (`fade_up` in / `fade` out on the wire).
 
 ## Acceptance criteria
 
@@ -106,9 +106,10 @@ Permitted relational reads: Phase 4 store/controller/renderer (what exists — t
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 5.
+- `2026-07-22` User: both clarifications confirmed at their defaults (clamp on shrink; Slide-in/Fade-out). Approved as a **single implementation session** (user decision — no 4a/4b-style split); the session brief is the lean rewrite of `prompts/PROMPT_phase5_timeline.md`, which also carries the two Phase 4 review advisories (memoize rail thumbnails; clear the title-PATCH timer on `presentationId` change). Claude-builder timeline/panels kit session precedes Codex.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `approved`
+- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Transition owner: `Codex session (Phase 5)`, after the Claude-builder kit session

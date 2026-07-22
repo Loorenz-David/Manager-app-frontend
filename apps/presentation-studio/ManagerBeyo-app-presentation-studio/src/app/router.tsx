@@ -67,6 +67,14 @@ export const router = createBrowserRouter([
                 })),
               ),
             },
+            {
+              path: "/kit/timeline",
+              element: lazyRoute(() =>
+                import("@/pages/dev/TimelineKitPreviewPage").then((module) => ({
+                  default: module.TimelineKitPreviewPage,
+                })),
+              ),
+            },
           ]
         : []),
       { path: "*", element: <Navigate to={ROUTES.home} replace /> },
