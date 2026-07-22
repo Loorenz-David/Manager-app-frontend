@@ -4,6 +4,7 @@ import { itemSurfaces } from "@/features/items";
 import { phoneInputSurfaces } from "@/features/phone-input";
 import { pendingUpholsterySurfaces } from "@/features/pending-upholstery";
 import { pwaSurfaces } from "@/features/pwa/surfaces";
+import { presentationSurfaces } from "@/app/presentation-surfaces";
 import { shopifyIntegrationsSurfaces } from "@/features/shopify-integrations/surfaces";
 import { taskSurfaces } from "@/features/tasks";
 import { taskCreationSurfaces } from "@beyo/task-creation";
@@ -32,6 +33,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...imageSurfaces,
   ...phoneInputSurfaces,
   ...pwaSurfaces,
+  ...presentationSurfaces,
   ...shopifyIntegrationsSurfaces,
   ...upholsterySurfaces,
   ...workingSectionSurfaces,

@@ -29,6 +29,8 @@
     "@beyo/item-categories": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
+    "@beyo/presentation-runtime": "*",
+    "@beyo/presentations": "*",
     "@beyo/pwa": "*",
     "@beyo/realtime": "*",
     "@beyo/scanner": "*",

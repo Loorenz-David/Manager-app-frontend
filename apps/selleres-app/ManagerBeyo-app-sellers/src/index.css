@@ -7,6 +7,8 @@
 @source "../../../../packages/emails/src";
 @source "../../../../packages/images/src";
 @source "../../../../packages/notifications/src";
+@source "../../../../packages/presentation-runtime/src";
+@source "../../../../packages/presentations/src";
 @source "../../../../packages/task-creation/src";
 @source "../../../../packages/task-customer-coordination/src";
 @source "../../../../packages/task-notes/src";

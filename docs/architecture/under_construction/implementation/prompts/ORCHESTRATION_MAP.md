@@ -112,11 +112,17 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [ ] **Operator (you): commit the Phase 8 implementation**
 
 ### Phase 9 — phone apps wiring (final)
-- [ ] **Decision (you), before launch**: auto-show timing policy (recommendation: auto-open only on home/root route; workers most conservative). Tell Claude to record it.
-- [ ] Ask Claude: re-validate the Phase 9 plan, flip to `approved`
-- [ ] Codex: paste `PROMPT_phase9_phone_wiring.md` (no kit — no new styled UI)
-- [ ] Opus reviewer: paste `review_prompts/REVIEW_phase9_phone_apps_wiring.md`; then ask Claude-builder for the final chrome check on real devices
-- [ ] End state: Codex archives the child plan **and the master** — capability complete.
+- [x] **Decision**: auto-show timing policy = **home/root route only, all three apps** *(2026-07-23)*
+- [x] Ask Claude: re-validate the Phase 9 plan, flip to `approved` *(2026-07-23 — Phase 8 API confirmed; lean brief written; carries the default-export advisory + timing predicate + V3 socket contract)*
+- [x] **Operator: commit** Phase 8 impl *(`3b64dc75`)*
+- [x] Codex: `PROMPT_phase9_phone_wiring.md` *(2026-07-23 — session stalled with ZERO output, 3rd no-show; lean brief didn't prevent it → refined lesson: **breadth-of-touch across many pre-existing files stalls sessions**; split by scope boundary)*
+- [x] Review *(2026-07-23 — DEFECTS FOUND: implementation absent + 2 real package gaps found (provider lacks auto-show gate seam; realtime types lack both events); wrote `PLAN_presentation_phase9_corrections_20260722`, all Codex-logic)*
+- [x] Claude-builder: corrections plan approved + split into three lean sessions *(2026-07-23)*
+- [ ] Codex session 1: paste `PROMPT_phase9a_corrections_seams.md` (packages only: named entries, provider gate, realtime types/handler)
+- [ ] Codex session 2: paste `PROMPT_phase9b_corrections_managers.md` (managers-app end-to-end + its validation)
+- [ ] Codex session 3: paste `PROMPT_phase9c_corrections_replicate_close.md` (sellers + workers, live matrix — may need you for live servers/credentials — then the master close-out)
+- [ ] Re-review: `review_prompts/REVIEW_phase9_phone_apps_wiring.md` (also archives the corrections plan on pass); then ask Claude-builder for the final chrome check on real devices
+- [ ] End state: master archived — capability complete.
 
 ---
 

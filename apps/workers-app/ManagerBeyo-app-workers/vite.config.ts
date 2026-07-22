@@ -63,4 +63,54 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    modulePreload: {
+      resolveDependencies(_filename, dependencies) {
+        return dependencies.filter(
+          (dependency) => !dependency.includes("presentation-player"),
+        );
+      },
+    },
+    rollupOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "presentation-player",
+              includeDependenciesRecursively: false,
+              test(id) {
+                const normalizedId = id.replaceAll("\\", "/");
+                return (
+                  normalizedId.includes(
+                    "/packages/presentations/src/PresentationPlayer.tsx",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentations/src/components/player/",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentations/src/playback/",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentations/src/surfaces/",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentation-runtime/src/SlideCompositionRenderer.tsx",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentation-runtime/src/animation-registry.ts",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentation-runtime/src/ordering.ts",
+                  ) ||
+                  normalizedId.includes(
+                    "/packages/presentation-runtime/src/usePlaybackClock.ts",
+                  )
+                );
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
 });

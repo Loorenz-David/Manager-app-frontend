@@ -1,5 +1,6 @@
 import { caseSocketEvents } from "@beyo/cases";
 import { notificationSocketEvents } from "@beyo/notifications";
+import { presentationSocketEvents } from "@beyo/presentations";
 import type { SocketEventHandlers } from "@beyo/realtime";
 import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { itemSocketEvents } from "@/features/items/socket-events";
@@ -15,4 +16,5 @@ export const socketRegistry: SocketEventHandlers = {
   ...workingSectionSocketEvents,
   ...upholsterySocketEvents,
   ...notificationSocketEvents,
+  ...presentationSocketEvents,
 };

@@ -3,13 +3,13 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase9_phone_apps_wiring_20260722`
-- Status: `under_construction`
+- Status: `approved`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
 - Last updated at (UTC): `2026-07-22T00:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 9)
-- Note: **Re-validate against master before implementation** — created ahead of Phase 8 completing.
+- Note: Re-validated 2026-07-23 — Phase 8 shipped as planned (`@beyo/presentations` public API confirmed: provider, surfaces, keys, loaders). Carried from the Phase 8 review: the three surface entry modules use `export default` (zero repo precedent) — this phase's surface registration maps named exports and drops the defaults in the same touch.
 
 ## Goal and intent
 
@@ -28,7 +28,7 @@
 ## Clarifications required
 
 - [x] **V3 — RESOLVED (backend team, 2026-07-22)**: Socket.io events `app_update_presentation:published` and `app_update_presentation:archived`, emitted to room `workspace:{workspace_id}` (auto-joined on connect). Payload, no outer envelope: `{ "client_id": "aup_...", "logical_client_id": "aup_...", "version": 2 }` — change signal only; on receipt refetch `/active`. No created/updated events. Documented in backend `04_admin_presentations.md` → "Realtime (socket) events".
-- [ ] Timing policy: should the presentation auto-open immediately on boot (potentially interrupting a task-in-progress) or wait for the home/root screen? Recommendation: only auto-open while on the app's home/root route; elsewhere defer until next navigation-to-home or foreground. Needs user confirmation — it shapes the provider's trigger predicate injected per app.
+- [x] **Timing policy — RESOLVED (user decision, 2026-07-23)**: auto-open **only while on the app's home/root route**, in all three apps; elsewhere defer until the next navigation-to-home or app foreground. Implemented as the trigger predicate each app injects into `ActivePresentationProvider`.
 
 ## Acceptance criteria
 
@@ -94,8 +94,10 @@ Permitted relational reads: each app's shell (`AppShell.tsx`/root providers — 
 
 - `2026-07-22` Claude: drafted from master Phase 9.
 
+- `2026-07-23` User: approved — Phases 1–8 complete; V3 + timing policy resolved; final phase. Codex session archives the MASTER at close (the only phase allowed to).
+
 ## Lifecycle transition
 
 - Current state: `under_construction`
-- Next state: `approved` (after Phase 8 ships and V3 + timing policy resolve)
+- Next state: `archived` (by the Codex session after green validation, together with the master close-out)
 - Transition owner: `Claude`

@@ -1,4 +1,5 @@
 import { TabOutlet } from "@/app/TabOutlet";
+import { PresentationMount } from "@/app/PresentationMount";
 import { useEffect } from "react";
 import { SlideParallaxUnderlay } from "@beyo/ui";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
@@ -11,7 +12,8 @@ export function AppShell(): React.JSX.Element {
   }, []);
 
   return (
-    <TabBadgeCountsProvider>
+    <PresentationMount>
+      <TabBadgeCountsProvider>
       <div
         className="flex h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
         data-testid="app-shell"
@@ -25,6 +27,7 @@ export function AppShell(): React.JSX.Element {
           <BottomTabBar />
         </SlideParallaxUnderlay>
       </div>
-    </TabBadgeCountsProvider>
+      </TabBadgeCountsProvider>
+    </PresentationMount>
   );
 }

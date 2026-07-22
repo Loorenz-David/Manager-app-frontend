@@ -8,6 +8,7 @@ import type { ConsumerPresentation, PresentationViewAction } from "./types";
 
 export type ActivePresentationProviderProps = {
   appKey: string;
+  canAutoShow: boolean;
   surfaceOpeners: PresentationsSurfaceOpeners;
   navigate: (route: string) => void;
   children: ReactNode;
@@ -15,6 +16,7 @@ export type ActivePresentationProviderProps = {
 
 export function ActivePresentationProvider({
   appKey,
+  canAutoShow,
   surfaceOpeners,
   navigate,
   children,
@@ -50,6 +52,7 @@ export function ActivePresentationProvider({
       if (currentIdRef.current === null) suppressedIdRef.current = null;
       return;
     }
+    if (!canAutoShow) return;
     if (
       currentIdRef.current !== null
       || suppressedIdRef.current === presentation.client_id
@@ -114,6 +117,7 @@ export function ActivePresentationProvider({
   }, [
     activeQuery.data,
     activeQuery.refetch,
+    canAutoShow,
     cycle,
     navigate,
     recordFor,
@@ -124,4 +128,3 @@ export function ActivePresentationProvider({
 
   return <>{children}</>;
 }
-

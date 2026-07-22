@@ -14,6 +14,8 @@
 @source "../../../../packages/tasks/src";
 @source "../../../../packages/item-issues/src";
 @source "../../../../packages/notifications/src";
+@source "../../../../packages/presentation-runtime/src";
+@source "../../../../packages/presentations/src";
 @source "../../../../packages/celebration/src";
 @source "../../../../packages/upholstery/src";
 @source "../../../../packages/working-sections/src";

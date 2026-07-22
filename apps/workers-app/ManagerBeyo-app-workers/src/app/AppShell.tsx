@@ -1,4 +1,5 @@
 import { TabOutlet } from "@/app/TabOutlet";
+import { PresentationMount } from "@/app/PresentationMount";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { SlideParallaxUnderlay } from "@beyo/ui";
@@ -92,8 +93,10 @@ function AppShellInner(): React.JSX.Element {
 
 export function AppShell(): React.JSX.Element {
   return (
-    <BatchSelectionOverlayProvider>
-      <AppShellInner />
-    </BatchSelectionOverlayProvider>
+    <PresentationMount>
+      <BatchSelectionOverlayProvider>
+        <AppShellInner />
+      </BatchSelectionOverlayProvider>
+    </PresentationMount>
   );
 }

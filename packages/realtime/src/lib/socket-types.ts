@@ -1,6 +1,16 @@
 import type { Socket } from "socket.io-client";
 
 export type ServerToClientEvents = {
+  "app_update_presentation:published": (payload: {
+    client_id: string;
+    logical_client_id: string;
+    version: number;
+  }) => void;
+  "app_update_presentation:archived": (payload: {
+    client_id: string;
+    logical_client_id: string;
+    version: number;
+  }) => void;
   "shopify.products.synced": (payload: {
     task_id: string;
     succeeded: Array<{ frontend_client_id: string; shop_integration_id: string; sync_item_client_id: string; requested_operation: "create" | "update"; shopify_product_id: string; shopify_variant_id: string }>;

@@ -10,15 +10,20 @@ export type PresentationsSurfaceOpeners = {
   openPresentationSlidePage?: (props: PresentationSurfaceProps) => void;
 };
 
-export function preloadPresentationModalSurface(): Promise<unknown> {
-  return import("./surfaces/PresentationModalSurface");
+export function preloadPresentationModalSurface() {
+  return import("./surfaces/PresentationModalSurface").then((module) => ({
+    default: module.PresentationModalSurfaceEntry,
+  }));
 }
 
-export function preloadPresentationFullScreenSurface(): Promise<unknown> {
-  return import("./surfaces/PresentationFullScreenSurface");
+export function preloadPresentationFullScreenSurface() {
+  return import("./surfaces/PresentationFullScreenSurface").then((module) => ({
+    default: module.PresentationFullScreenSurfaceEntry,
+  }));
 }
 
-export function preloadPresentationSlidePageSurface(): Promise<unknown> {
-  return import("./surfaces/PresentationSlidePageSurface");
+export function preloadPresentationSlidePageSurface() {
+  return import("./surfaces/PresentationSlidePageSurface").then((module) => ({
+    default: module.PresentationSlidePageSurfaceEntry,
+  }));
 }
-

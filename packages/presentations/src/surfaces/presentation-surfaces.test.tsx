@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { consumerPresentationFixture } from "../test/fixtures";
+import {
+  preloadPresentationFullScreenSurface,
+  preloadPresentationModalSurface,
+  preloadPresentationSlidePageSurface,
+} from "../surface-ids";
 import type { PresentationSurfaceProps } from "./presentation-surface-props";
 import { PresentationFullScreenSurface } from "./PresentationFullScreenSurface";
 import { PresentationModalSurface } from "./PresentationModalSurface";
@@ -49,6 +54,18 @@ function ContextHarness({
 }
 
 describe("presentation surface dismiss matrix", () => {
+  it("maps lazy loaders to the named context-consuming entries", async () => {
+    const [modal, fullScreen, slidePage] = await Promise.all([
+      preloadPresentationModalSurface(),
+      preloadPresentationFullScreenSurface(),
+      preloadPresentationSlidePageSurface(),
+    ]);
+
+    expect(modal.default.name).toBe("PresentationModalSurfaceEntry");
+    expect(fullScreen.default.name).toBe("PresentationFullScreenSurfaceEntry");
+    expect(slidePage.default.name).toBe("PresentationSlidePageSurfaceEntry");
+  });
+
   it("uses X for modal and Skip for full screen when dismissible", () => {
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(690);
@@ -106,4 +123,3 @@ describe("presentation surface dismiss matrix", () => {
     await waitFor(() => expect(controller.requestClose).toHaveBeenCalled());
   });
 });
-

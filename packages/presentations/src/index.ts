@@ -46,6 +46,11 @@ export { PresentationFullScreenSurface } from "./surfaces/PresentationFullScreen
 export { PresentationSlidePageSurface } from "./surfaces/PresentationSlidePageSurface";
 export type { PresentationSurfaceProps } from "./surfaces/presentation-surface-props";
 export { ActivePresentationProvider, type ActivePresentationProviderProps } from "./ActivePresentationProvider";
+export {
+  invalidateActivePresentationQueries,
+  presentationSocketEvents,
+} from "./realtime/presentation-socket-events";
+export type { PresentationRealtimePayload } from "./realtime/presentation-socket-events";
 
 // Dev-only kit showcase (mounted by the studio behind an import.meta.env.DEV route)
 export { PlayerKitPreview } from "./dev/PlayerKitPreview";

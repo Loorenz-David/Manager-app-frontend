@@ -20,7 +20,7 @@ export function PresentationFullScreenSurface(props: PresentationSurfaceProps): 
   );
 }
 
-export default function PresentationFullScreenSurfaceEntry(): React.JSX.Element {
+export function PresentationFullScreenSurfaceEntry(): React.JSX.Element {
   const props = useContext(SurfacePropsContext) as PresentationSurfaceProps;
   return <PresentationFullScreenSurface {...props} />;
 }

@@ -1,5 +1,6 @@
 import { caseSocketEvents } from "@beyo/cases";
 import { notificationSocketEvents } from "@beyo/notifications";
+import { presentationSocketEvents } from "@beyo/presentations";
 import type { SocketEventHandlers } from "@beyo/realtime";
 import {
   customerCoordinationEmailSocketEvents,
@@ -13,6 +14,7 @@ export const socketRegistry: SocketEventHandlers = {
   ...taskSocketEvents,
   ...taskNoteSocketEvents,
   ...notificationSocketEvents,
+  ...presentationSocketEvents,
   ...customerCoordinationEmailSocketEvents,
   ...customerCoordinationSocketEvents,
 };

@@ -20,7 +20,7 @@ export function PresentationModalSurface(props: PresentationSurfaceProps): React
   );
 }
 
-export default function PresentationModalSurfaceEntry(): React.JSX.Element {
+export function PresentationModalSurfaceEntry(): React.JSX.Element {
   const props = useContext(SurfacePropsContext) as PresentationSurfaceProps;
   return <PresentationModalSurface {...props} />;
 }

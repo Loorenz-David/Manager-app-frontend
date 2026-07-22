@@ -37,7 +37,7 @@ export function PresentationSlidePageSurface(props: PresentationSurfaceProps): R
   );
 }
 
-export default function PresentationSlidePageSurfaceEntry(): React.JSX.Element {
+export function PresentationSlidePageSurfaceEntry(): React.JSX.Element {
   const props = useContext(SurfacePropsContext) as PresentationSurfaceProps;
   return <PresentationSlidePageSurface {...props} />;
 }

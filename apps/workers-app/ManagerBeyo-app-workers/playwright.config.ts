@@ -40,6 +40,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:5174",
 
+    serviceWorkers: "block",
+
     trace: "on-first-retry",
 
     screenshot: "only-on-failure",
