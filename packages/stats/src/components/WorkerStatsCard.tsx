@@ -123,13 +123,25 @@ export const WorkerStatsCard = memo(function WorkerStatsCard({
               </p>
             </div>
           ) : null}
-          {step?.pauseReason ? (
-            <p
-              className="mt-2 min-w-0 border-l-2 border-[#f0c36a] pl-2.5 text-sm italic text-muted-foreground"
-              data-testid={`worker-stats-pause-reason-${worker.userId}`}
-            >
-              {step.pauseReason}
-            </p>
+          {step?.pauseReason || step?.pauseDescription ? (
+            <div className="mt-2 min-w-0 border-l-2 border-[#f0c36a] pl-2.5">
+              {step.pauseReason ? (
+                <p
+                  className="min-w-0 text-sm italic text-muted-foreground"
+                  data-testid={`worker-stats-pause-reason-${worker.userId}`}
+                >
+                  {step.pauseReason}
+                </p>
+              ) : null}
+              {step.pauseDescription ? (
+                <p
+                  className="mt-0.5 min-w-0 whitespace-pre-line text-sm text-muted-foreground"
+                  data-testid={`worker-stats-pause-description-${worker.userId}`}
+                >
+                  {step.pauseDescription}
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

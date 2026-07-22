@@ -46,6 +46,8 @@ export type CalendarEventRecord = {
   articleLabel: string | null;
   state: string;
   reasonLabel: string | null;
+  // Free-text detail the worker typed alongside the pause reason.
+  description: string | null;
   enteredAtLabel: string;
   exitedAtLabel: string | null;
   isOpen: boolean;
@@ -91,6 +93,9 @@ export type CalendarTimelineEvent = {
   // Future-overlap capability (Phase 1: always one full-width lane).
   laneIndex: number;
   laneCount: number;
+  // A render-time group folding several colliding micro-events into one block
+  // (see merge-events). Never set by the adapter; only the merge pass sets it.
+  isMerged?: boolean;
 };
 
 function toCalendarEventRecord(
@@ -104,6 +109,7 @@ function toCalendarEventRecord(
     articleLabel: record.item?.article_number ?? record.item?.sku ?? null,
     state: record.state,
     reasonLabel: record.reason ? pauseReasonLabel(record.reason) : null,
+    description: record.description?.trim() || null,
     enteredAtLabel: formatLocalTime(new Date(record.entered_at)),
     exitedAtLabel: record.exited_at
       ? formatLocalTime(new Date(record.exited_at))

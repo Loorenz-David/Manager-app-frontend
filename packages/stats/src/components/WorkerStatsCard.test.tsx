@@ -35,6 +35,7 @@ const activeWorker: WorkerStatsCardViewModel = {
       articleLabel: "#ART-40921",
       workingSectionName: "Upholstery",
       pauseReason: null,
+      pauseDescription: null,
       ticker: {
         offsetSeconds: 0,
         startedAtIso: new Date().toISOString(),

@@ -2,6 +2,7 @@ import { BackendImage, ContentCard, ImagePlaceholder, StatePill } from "@beyo/ui
 import { cn } from "@beyo/lib";
 
 import { useTaskWorkingSectionsContext } from "../providers/TaskWorkingSectionsProvider";
+import { formatWorkingDuration } from "../lib/format-working-duration";
 
 function TaskWorkingSectionsEmptyState({
   message,
@@ -74,16 +75,43 @@ export function TaskWorkingSectionsStepList(): React.JSX.Element {
 
               <div className="flex min-w-0 flex-1 items-center gap-3 px-4 py-4">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-center gap-2">
                     <span
                       className={cn(
-                        "truncate text-sm font-medium",
+                        "min-w-0 flex-1 truncate text-sm font-medium",
                         entry.isActive
                           ? "text-[var(--color-card)]"
                           : "text-foreground",
                       )}
                     >
                       {entry.section.name}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium">
+                      <span
+                        className={cn(
+                          "tabular-nums",
+                          entry.isActive
+                            ? "text-[var(--color-card)]/80"
+                            : "text-muted-foreground",
+                        )}
+                        data-testid={`task-working-section-working-time-${entry.section.client_id}`}
+                      >
+                        {formatWorkingDuration(entry.totalWorkingSeconds)}
+                      </span>
+                      {entry.recordedTimeMarkedWrong ? (
+                        <span
+                          className={cn(
+                            "flex items-center gap-1.5",
+                            entry.isActive
+                              ? "text-[var(--color-card)]"
+                              : "text-[var(--color-warning)]",
+                          )}
+                          data-testid={`task-working-section-time-flag-${entry.section.client_id}`}
+                        >
+                          <span aria-hidden="true">•</span>
+                          <span>Inaccurate</span>
+                        </span>
+                      ) : null}
                     </span>
                   </div>
 

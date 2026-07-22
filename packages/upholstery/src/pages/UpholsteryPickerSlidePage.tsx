@@ -3,7 +3,7 @@ import { AnimatePresence, m } from "framer-motion";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { PullToRefresh, useScrollHide } from "@beyo/ui";
-import { transitions } from "@beyo/lib";
+import { cn, transitions } from "@beyo/lib";
 
 import { UpholsteryCard } from "../components/UpholsteryCard";
 import { UpholsteryPickerHeader } from "../components/UpholsteryPickerHeader";
@@ -31,11 +31,19 @@ const bodyVariants = {
   }),
 } as const;
 
+// Keep this in sync with the bottom padding used in the scroll content below.
+const BOTTOM_ACTIONS_EDGE_OFFSET_PX = 96;
+
 export function UpholsteryPickerSlidePage(): React.JSX.Element {
   const { currentClientId, onSelect } =
     useSurfaceProps<UpholsteryPickerSlidePageProps>();
   const header = useSurfaceHeader();
-  const { scrollRef, hideProgressContainerRef } = useScrollHide();
+  const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
+    useScrollHide({
+      revealAtEdge: "bottom",
+      edgeOffset: BOTTOM_ACTIONS_EDGE_OFFSET_PX,
+    });
+  const isFooterHidden = isHidden && !isAtEdge;
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [stagedClientId, setStagedClientId] = useState<string | null>(
@@ -159,11 +167,24 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
         </div>
       </PullToRefresh>
 
-      {shouldShowSaveButton ? (
-        <div className="absolute inset-x-0 bottom-0 z-20 bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-          <div className="px-4 pb-4 pt-3">
+      <div
+        className={cn(
+          "absolute inset-x-0 bottom-0 z-20 will-change-transform",
+          isFooterHidden ? "pointer-events-none" : null,
+        )}
+        style={{
+          transform:
+            "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
+          opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
+          transition:
+            "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
+        }}
+        data-testid="upholstery-picker-bottom-actions"
+      >
+        {shouldShowSaveButton ? (
+          <div className="px-4 pb-3">
             <button
-              className="w-full rounded-2xl bg-primary py-3.5 text-card text-md disabled:opacity-50"
+              className="w-full rounded-2xl bg-primary py-3.5 text-card text-md shadow-sm disabled:opacity-50"
               disabled={controller.isSelectionPending}
               type="button"
               onClick={() => void handleSaveSelection()}
@@ -171,9 +192,21 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
               Save selection
             </button>
           </div>
+        ) : null}
+
+        <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
+          <div className="px-4 pb-4 pt-3">
+            <button
+              className="w-full rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
+              type="button"
+              onClick={() => header?.requestClose()}
+            >
+              Close & Back
+            </button>
+          </div>
           <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

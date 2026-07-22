@@ -57,6 +57,11 @@ import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
+import { COMPLETION_FEEDBACK_ENABLED } from "../lib/completion-feedback";
+import {
+  selectShowFinalPlacementReminder,
+  useFinalPlacementReminderStore,
+} from "../lib/final-placement-reminder.store";
 import {
   hasNoAvailableUpholstery,
   hasNoUpholsterySelected,
@@ -210,6 +215,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
 
   const {
     transitionStepState,
+    transitionStepStateAsync,
     isPending: isTransitioning,
     pendingStepId,
     pendingCompletion,
@@ -220,6 +226,9 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     useCancelPendingStepCompletion();
   const { open: openSurface } = useSurface();
   const { trigger: triggerCelebration } = useCelebration();
+  const showFinalPlacementReminder = useFinalPlacementReminderStore(
+    selectShowFinalPlacementReminder,
+  );
 
   const taskCasesQuery = useListCasesQuery({
     case_state: "open,resolving",
@@ -369,37 +378,64 @@ export function useTaskStepDetailController(): TaskStepDetailController {
       totalPauseSeconds: vm.totalPauseSeconds,
       lastStateRecordEnteredAt: vm.lastStateRecord?.entered_at ?? null,
       onConfirm: (markInaccurate: boolean) => {
-        transitionStepState(
-          {
-            task_id: resolvedTaskId,
-            step_id: resolvedStepId,
-            new_state: "completed",
-            working_section_id: resolvedWorkingSectionId,
-            ...(markInaccurate
-              ? { mark_closing_record_inaccurate: true }
-              : {}),
-          },
-          {
-            onSuccess: (data) => {
-              if (markInaccurate || data.kind !== "immediate") {
-                return;
+        // Return the mutation promise so the confirmation page can keep the
+        // slide open through the (~100ms) network call and close behind the
+        // celebration overlay — no wait on the close animation. Feedback runs
+        // off the promise (resolves regardless of unmount); the celebration /
+        // reminder sinks are app-root globals, safe to call from here.
+        return transitionStepStateAsync({
+          task_id: resolvedTaskId,
+          step_id: resolvedStepId,
+          new_state: "completed",
+          working_section_id: resolvedWorkingSectionId,
+          ...(markInaccurate
+            ? { mark_closing_record_inaccurate: true }
+            : {}),
+        })
+          .then((data) => {
+            if (data.kind !== "immediate" || !COMPLETION_FEEDBACK_ENABLED) {
+              return;
+            }
+
+            const finalPlacementReminder = [
+              {
+                itemLabel: vm.articleLabel,
+                assortment: step?.task.assortment ?? null,
+              },
+            ];
+
+            if (markInaccurate) {
+              if (data.was_final_step) {
+                showFinalPlacementReminder(finalPlacementReminder);
               }
+              return;
+            }
 
-              const claims = decodeTokenClaims();
+            const claims = decodeTokenClaims();
 
-              triggerCelebration(
-                celebrationPresets.TASK_COMPLETE(
-                  claims?.username ?? "",
-                  createElement(YouDidItCelebrationIcon, {
-                    className: "h-48 w-auto text-white",
-                    animated: true,
-                    decorative: true,
-                  }),
-                ),
-              );
-            },
-          },
-        );
+            const celebration = celebrationPresets.TASK_COMPLETE(
+              claims?.username ?? "",
+              createElement(YouDidItCelebrationIcon, {
+                className: "h-48 w-auto text-white",
+                animated: true,
+                decorative: true,
+              }),
+            );
+
+            triggerCelebration(
+              data.was_final_step
+                ? {
+                    ...celebration,
+                    onDismiss: () =>
+                      showFinalPlacementReminder(finalPlacementReminder),
+                  }
+                : celebration,
+            );
+          })
+          .catch(() => {
+            // Failure UX (error notify + optimistic rollback) is handled by
+            // the mutation's own onError; nothing extra to do here.
+          });
       },
     } satisfies CompleteTaskStepConfirmationSlideSurfaceProps);
     if (allowsShopifyProductModifications && step?.item) {
@@ -414,8 +450,9 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     resolvedTaskId,
     resolvedStepId,
     resolvedWorkingSectionId,
-    transitionStepState,
+    transitionStepStateAsync,
     triggerCelebration,
+    showFinalPlacementReminder,
     allowsShopifyProductModifications,
     step,
     itemCategory,

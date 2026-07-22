@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check } from "lucide-react";
-import { useSurfaceProps } from "@beyo/hooks";
+import { useHideSlideBackdrop, useSurfaceProps } from "@beyo/hooks";
 import { cn } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { formatSecondsHHMMSS } from "@/features/task_steps/domain/formatSecondsHHMMSS";
@@ -32,6 +32,10 @@ export function CompleteBatchTaskStepsConfirmationSlidePage(): React.JSX.Element
   const isPending = props.isPending ?? false;
 
   const [selection, setSelection] = useState<TimeAccuracy | null>(null);
+
+  // This confirmation renders over a page that shows its own dark overlay on
+  // close; suppress this slide's dim so the two don't stack into a flicker.
+  useHideSlideBackdrop();
 
   // Aggregate totals across all working steps
   const totalWorkingSeconds = workingSteps.reduce(

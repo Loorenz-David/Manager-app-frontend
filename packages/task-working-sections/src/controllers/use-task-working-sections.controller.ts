@@ -69,6 +69,10 @@ export type TaskWorkingSectionEntry = {
   stateVariant: StatePillVariant;
   isActive: boolean;
   isCompleted: boolean;
+  totalWorkingSeconds: number;
+  // True when any step in this section had its recorded time flagged as wrong,
+  // so the aggregated working total above should be treated as unreliable.
+  recordedTimeMarkedWrong: boolean;
 };
 
 function isCompletedStep(step: TaskStep): boolean {
@@ -126,6 +130,7 @@ function buildPendingStep(pendingAdd: RecoveredPendingAdd): TaskStep {
     total_issues_count: 0,
     total_issues_resolved_count: 0,
     total_cost_minor: null,
+    recorded_time_marked_wrong: false,
     latest_state_records: null,
   };
 }
@@ -319,6 +324,16 @@ export function useTaskWorkingSectionsController(
         effectiveTaskSteps,
         section.client_id,
       );
+      const sectionSteps = effectiveTaskSteps.filter(
+        (step) => step.working_section_id === section.client_id,
+      );
+      const totalWorkingSeconds = sectionSteps.reduce(
+        (total, step) => total + (step.total_working_seconds ?? 0),
+        0,
+      );
+      const recordedTimeMarkedWrong = sectionSteps.some(
+        (step) => step.recorded_time_marked_wrong,
+      );
       const isCompleted = currentStep ? isCompletedStep(currentStep) : false;
       const isActive = currentStep !== null && !isCompleted;
       const assignedMember =
@@ -341,6 +356,8 @@ export function useTaskWorkingSectionsController(
           : "neutral",
         isActive,
         isCompleted,
+        totalWorkingSeconds,
+        recordedTimeMarkedWrong,
       };
     });
   }, [effectiveTaskSteps, majorCategory, workingSectionFlow.options]);

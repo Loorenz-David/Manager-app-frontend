@@ -14,4 +14,5 @@ export type CelebrationConfig = {
   message?: MessageConfig;
   soundUrl?: string;
   duration?: number;
+  onDismiss?: () => void;
 };

@@ -37,7 +37,7 @@ export function TimelineShiftMarker({
 
   return (
     <div
-      className={`absolute inset-x-0.5 z-10 flex gap-1 ${
+      className={`absolute inset-x-0.5 z-500 flex gap-1 ${
         isCompact ? "items-start" : "items-center"
       }`}
       data-testid={testId}

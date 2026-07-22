@@ -13,8 +13,13 @@ export const MAX_PX_PER_HOUR = 600;
 // Multiplier per +/- button press (pinch is continuous).
 export const ZOOM_STEP = 1.4;
 
-// Very short events keep a visible sliver…
-export const MIN_EVENT_VISUAL_PX = 4;
+// Very short events keep a visible bar (a 4px sliver reads as "not rendered",
+// so the floor is a perceptible strip).
+export const MIN_EVENT_VISUAL_PX = 10;
+// A completed micro-event must be tall enough to show its ✓ completion pill
+// (~18px, clipped by the block's overflow-hidden). At/above 20px the block also
+// earns one text line (see eventLineBudget), so the title shows alongside it.
+export const MIN_COMPLETED_EVENT_VISUAL_PX = 22;
 // …while their tap target stays usable via a separate overlay (never inflate
 // the visual height — the overlay is the hit area).
 export const MIN_EVENT_HIT_PX = 32;
@@ -66,11 +71,23 @@ export function computeEventLayout(
   startMinute: number,
   endMinute: number,
   pxPerMinute: number,
+  minVisualPx: number = MIN_EVENT_VISUAL_PX,
 ): EventLayout {
   const dayHeight = 24 * 60 * pxPerMinute;
-  const top = startMinute * pxPerMinute;
+  const rawTop = startMinute * pxPerMinute;
   const rawHeight = (endMinute - startMinute) * pxPerMinute;
-  const height = Math.max(rawHeight, MIN_EVENT_VISUAL_PX);
+  const height = Math.max(rawHeight, minVisualPx);
+
+  // When inflated past the real duration, grow UPWARD from the real end edge
+  // instead of downward. A segment draws its content at the top and leaves its
+  // tail empty, so an inflated sliver (which sits above longer blocks via
+  // z-order) must overhang the PREVIOUS block's empty tail — never the NEXT
+  // block's header. The drawn box still contains the real event span.
+  const realBottom = rawTop + rawHeight;
+  const top =
+    height > rawHeight
+      ? Math.min(Math.max(realBottom - height, 0), dayHeight - height)
+      : rawTop;
 
   const hitHeight = Math.max(height, MIN_EVENT_HIT_PX);
   // Center the enlarged hit area on the visual block, clamped into the day.

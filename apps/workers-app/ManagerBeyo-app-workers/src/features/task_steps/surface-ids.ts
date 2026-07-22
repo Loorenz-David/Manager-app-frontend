@@ -62,7 +62,10 @@ export type CompleteTaskStepConfirmationSlideSurfaceProps = {
   totalWorkingSeconds: number;
   totalPauseSeconds: number;
   lastStateRecordEnteredAt: string | null;
-  onConfirm: (markInaccurate: boolean) => void;
+  // Returns a promise that resolves once the completion network call has
+  // finished (and the celebration/reminder has been triggered), so the page
+  // can keep the slide open through the call and close behind the overlay.
+  onConfirm: (markInaccurate: boolean) => void | Promise<void>;
 };
 
 export type PauseReasonSheetSurfaceProps = {

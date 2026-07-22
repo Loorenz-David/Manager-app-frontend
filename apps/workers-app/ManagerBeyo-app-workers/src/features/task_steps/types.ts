@@ -82,6 +82,7 @@ export const TaskSnapshotSchema = z.object({
   task_type: z.enum(["return", "pre_order", "internal"]),
   priority: z.enum(["low", "normal", "high", "urgent"]),
   state: z.string(),
+  assortment: z.string().nullable(),
   return_source: z
     .enum(["after_purchase", "before_purchase", "store_return"])
     .nullable(),
@@ -227,6 +228,7 @@ export type TransitionStepStateOutput =
       step_id: TaskStepId;
       new_state: StepState;
       last_state_record: LastStateRecord;
+      was_final_step: boolean;
     }
   | {
       kind: "pending_completion";
@@ -464,6 +466,7 @@ export type BatchStepTransitionResponseItem = {
   step_id: TaskStepId;
   new_state: StepState;
   last_state_record: LastStateRecord;
+  was_final_step: boolean;
 };
 
 export type BatchStepTransitionResponse = {

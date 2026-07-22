@@ -3,6 +3,7 @@ import {
   eventLineBudget,
   groupMarkerMinutes,
   markerOffsetWithinEventPx,
+  MIN_COMPLETED_EVENT_VISUAL_PX,
 } from "../../lib/time-line-calendar/geometry";
 import type { CalendarTimelineEvent } from "../../lib/time-line-calendar/segment-adapter";
 import type { TimelineViewMode } from "../../lib/time-line-calendar/window";
@@ -76,13 +77,23 @@ export function TimelineEventBlock({
   pxPerMinute,
   onSelect,
 }: TimelineEventBlockProps): React.JSX.Element {
+  const hasCompletions = event.completions.length > 0;
+  // A completed or merged micro-event gets a taller floor so its content (✓
+  // pill / group label) isn't clipped by the block's overflow-hidden; plain
+  // micro-events keep the default sliver.
+  const needsTallFloor = hasCompletions || event.isMerged;
   const layout = computeEventLayout(
     event.startMinute,
     event.endMinute,
     pxPerMinute,
+    needsTallFloor ? MIN_COMPLETED_EVENT_VISUAL_PX : undefined,
   );
   const styles = STATE_STYLES[event.state as keyof typeof STATE_STYLES];
-  const hasCompletions = event.completions.length > 0;
+  // Stack shorter events above longer ones so an inflated micro-block is never
+  // painted over by the larger (e.g. idle) segment that follows it in the day.
+  // Real height, not the inflated height, drives the order.
+  const realHeightPx = (event.endMinute - event.startMinute) * pxPerMinute;
+  const zIndex = Math.max(1, Math.round(400 - realHeightPx));
   const isCompact = density === "threeDay";
   const isActionable = Boolean(onSelect) && event.isTaskActionable;
   // Show only as many content lines as the block height fits, so the last
@@ -96,11 +107,13 @@ export function TimelineEventBlock({
     })),
   );
 
-  const title = event.reasonLabel
-    ? isCompact
-      ? `${event.stateLabel} ${event.durationLabel}`
-      : `${event.stateLabel} · ${event.reasonLabel}`
-    : event.stateLabel;
+  const title = event.isMerged
+    ? `${event.recordCount} steps`
+    : event.reasonLabel
+      ? isCompact
+        ? `${event.stateLabel} ${event.durationLabel}`
+        : `${event.stateLabel} · ${event.reasonLabel}`
+      : event.stateLabel;
   const idleTitle = isCompact
     ? `${event.stateLabel} ${event.durationLabel}`
     : `${event.stateLabel} · no activity detected`;
@@ -143,7 +156,9 @@ export function TimelineEventBlock({
           {isCompact
             ? event.durationLabel
             : `${event.startLabel} – ${event.endLabel} · ${event.durationLabel}`}
-          {event.recordCount > 1 ? ` · ${event.recordCount} records` : ""}
+          {!event.isMerged && event.recordCount > 1
+            ? ` · ${event.recordCount} records`
+            : ""}
         </p>,
       );
     }
@@ -166,13 +181,14 @@ export function TimelineEventBlock({
     <>
       <div
         aria-hidden={isActionable ? true : undefined}
-        className={`absolute inset-x-0.5 overflow-hidden rounded-lg ${styles.container} ${
+        className={`pointer-events-none absolute inset-x-0.5 overflow-hidden rounded-lg ${styles.container} ${
           hasCompletions ? "border-b border-b-[#2fa15c]" : ""
         } ${event.isOpen ? "ring-1 ring-current/30" : ""}`}
         data-testid={`timeline-event-${event.key}`}
         style={{
           top: layout.top,
           height: layout.height,
+          zIndex,
           ...(event.state === "idle" ? IDLE_STRIPES : {}),
         }}
       >
@@ -226,9 +242,9 @@ export function TimelineEventBlock({
       {isActionable ? (
         <button
           aria-label={accessibleName(event)}
-          className="absolute inset-x-0.5 z-10 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
+          className="absolute inset-x-0.5 rounded-lg focus-visible:outline-2 focus-visible:outline-primary"
           data-testid={`timeline-event-hit-${event.key}`}
-          style={{ top: layout.hitTop, height: layout.hitHeight }}
+          style={{ top: layout.hitTop, height: layout.hitHeight, zIndex }}
           type="button"
           onClick={() => onSelect?.(event)}
         />

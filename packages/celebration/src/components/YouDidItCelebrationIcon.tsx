@@ -53,7 +53,7 @@ export function YouDidItCelebrationIcon({
       aria-labelledby={!decorative && title ? titleId : undefined}
       className={className}
       fill="currentColor"
-      initial={{ opacity: 0, scale: reduceMotion ? 1 : 0.72 }}
+      initial={{ opacity: 1, scale: reduceMotion ? 1 : 0.72 }}
       role={decorative ? undefined : "img"}
       transition={
         reduceMotion

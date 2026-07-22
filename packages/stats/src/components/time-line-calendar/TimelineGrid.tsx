@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { minuteToOffsetPx } from "../../lib/time-line-calendar/geometry";
 import { minuteOfLocalDay } from "../../lib/time-line-calendar/local-date";
+import { mergeCollidingEvents } from "../../lib/time-line-calendar/merge-events";
 import type { TimelinePagerPages } from "../../lib/time-line-calendar/pager";
 import {
   dayLastActivityMinute,
@@ -67,6 +68,26 @@ export function TimelineGrid({
     onNavigate,
   });
   const zoom = useTimelineVerticalZoom(scrollRef);
+
+  // Per-day render events: colliding micro-events collapse into group blocks at
+  // the current zoom. Totals/scroll math keep using the raw `events`; this only
+  // affects what is drawn. Recomputed when the events or the scale change.
+  const renderEventsByDate = useMemo(() => {
+    const byDate = new Map<string, CalendarTimelineEvent[]>();
+    for (const event of events) {
+      const list = byDate.get(event.dateKey);
+      if (list) {
+        list.push(event);
+      } else {
+        byDate.set(event.dateKey, [event]);
+      }
+    }
+    const merged = new Map<string, CalendarTimelineEvent[]>();
+    for (const [dateKey, dayEvents] of byDate) {
+      merged.set(dateKey, mergeCollidingEvents(dayEvents, zoom.pxPerMinute));
+    }
+    return merged;
+  }, [events, zoom.pxPerMinute]);
 
   // Initial scroll: one hour above the focused date's first event, else a
   // standard workday start. Applied once — afterwards the user's vertical
@@ -158,9 +179,7 @@ export function TimelineGrid({
                       pxPerHour={zoom.pxPerHour}
                       testId={`timeline-day-${dateKey}`}
                     >
-                      {events
-                        .filter((event) => event.dateKey === dateKey)
-                        .map((event) =>
+                      {(renderEventsByDate.get(dateKey) ?? []).map((event) =>
                           event.isMarker ? (
                             <TimelineShiftMarker
                               key={event.key}

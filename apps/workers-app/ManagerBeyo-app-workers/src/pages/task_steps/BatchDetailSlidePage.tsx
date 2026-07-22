@@ -11,6 +11,12 @@ import {
 import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { useUserLastActiveStepQuery } from "@/features/task_steps/api/use-user-last-active-step";
 import { useTransitionBatchStepStates } from "@/features/task_steps/actions/use-transition-batch-step-states";
+import { taskStepKeys } from "@/features/task_steps/api/task-step-keys";
+import {
+  selectShowFinalPlacementReminder,
+  useFinalPlacementReminderStore,
+} from "@/features/task_steps/lib/final-placement-reminder.store";
+import { COMPLETION_FEEDBACK_ENABLED } from "@/features/task_steps/lib/completion-feedback";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import type { WorkerWorkingSection } from "@/features/working_sections/types";
 import {
@@ -93,6 +99,9 @@ export function BatchDetailSlidePage(): React.JSX.Element {
   );
 
   const { trigger: triggerCelebration } = useCelebration();
+  const showFinalPlacementReminder = useFinalPlacementReminderStore(
+    selectShowFinalPlacementReminder,
+  );
 
   // Section image — look up from cached mine() data without firing a new query
   const queryClient = useQueryClient();
@@ -155,28 +164,83 @@ export function BatchDetailSlidePage(): React.JSX.Element {
             step_id: s.client_id,
             ...(markInaccurate && { mark_closing_record_inaccurate: true }),
           }));
-          await transitionBatchAsync({
+          const response = await transitionBatchAsync({
             items,
             new_state: "completed",
             reason: null,
             description: null,
             working_section_id: workingSectionId,
           });
-          // Post-completion close: confirmation slide first, then batch detail
-          close(COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID);
-          close(BATCH_DETAIL_SLIDE_SURFACE_ID);
-          if (!markInaccurate) {
-            const claims = decodeTokenClaims();
-            triggerCelebration(
-              celebrationPresets.TASK_COMPLETE(
+          const finalStepIds = new Set(
+            response.items
+              .filter((responseItem) => responseItem.was_final_step)
+              .map((responseItem) => responseItem.step_id),
+          );
+          const finalPlacementReminders = workingSteps
+            .filter((workingStep) => finalStepIds.has(workingStep.client_id))
+            .map((workingStep) => ({
+              itemLabel: toTaskStepCardViewModel(workingStep).articleLabel,
+              assortment: workingStep.task.assortment,
+            }));
+          const hasFeedbackOverlay =
+            COMPLETION_FEEDBACK_ENABLED &&
+            (!markInaccurate || finalPlacementReminders.length > 0);
+
+          if (COMPLETION_FEEDBACK_ENABLED) {
+            if (markInaccurate) {
+              if (finalPlacementReminders.length > 0) {
+                showFinalPlacementReminder(finalPlacementReminders);
+              }
+            } else {
+              const claims = decodeTokenClaims();
+              const celebration = celebrationPresets.TASK_COMPLETE(
                 claims?.username ?? "",
                 createElement(YouDidItCelebrationIcon, {
                   className: "h-48 w-auto text-white",
                   animated: true,
                   decorative: true,
                 }),
-              ),
-            );
+              );
+
+              triggerCelebration(
+                finalPlacementReminders.length > 0
+                  ? {
+                      ...celebration,
+                      onDismiss: () =>
+                        showFinalPlacementReminder(finalPlacementReminders),
+                    }
+                  : celebration,
+              );
+            }
+          }
+
+          // Mount the feedback overlay first, then close both slides behind it.
+          // React batches these updates, so the user never sees an intermediate
+          // surface state.
+          close(COMPLETE_BATCH_TASK_STEPS_CONFIRMATION_SLIDE_SURFACE_ID);
+          close(BATCH_DETAIL_SLIDE_SURFACE_ID);
+
+          const refreshCompletionQueries = () => {
+            void queryClient.invalidateQueries({
+              queryKey:
+                taskStepKeys.sectionListsBySection(workingSectionId),
+            });
+            void queryClient.invalidateQueries({
+              queryKey: workerWorkingSectionKeys.mine(),
+            });
+            void queryClient.invalidateQueries({
+              queryKey: taskStepKeys.userLastActive(),
+            });
+          };
+
+          if (hasFeedbackOverlay) {
+            // Two animation frames form a paint barrier: the dark feedback
+            // layer is committed before any refetch can change the list below.
+            window.requestAnimationFrame(() => {
+              window.requestAnimationFrame(refreshCompletionQueries);
+            });
+          } else {
+            refreshCompletionQueries();
           }
         } finally {
           setIsConfirmationPending(false);

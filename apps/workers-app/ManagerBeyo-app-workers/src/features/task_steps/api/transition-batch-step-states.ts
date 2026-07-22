@@ -13,6 +13,7 @@ const ResponseDataSchema = z.object({
       step_id: z.string(),
       new_state: StepStateSchema,
       last_state_record: LastStateRecordSchema,
+      was_final_step: z.boolean(),
     }),
   ),
 });

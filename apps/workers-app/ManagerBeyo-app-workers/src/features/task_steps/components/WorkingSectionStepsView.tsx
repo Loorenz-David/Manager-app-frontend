@@ -2,7 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft } from "lucide-react";
 import { notify } from "@beyo/lib";
 import type { TaskStepId } from "@beyo/lib";
-import { BackendImage, ImagePlaceholder, PullToRefresh, SearchBar } from "@beyo/ui";
+import {
+  AnimatedRemovalGroup,
+  AnimatedRemovalItem,
+  BackendImage,
+  ImagePlaceholder,
+  PullToRefresh,
+  SearchBar,
+} from "@beyo/ui";
 import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 import { usePreloadSurface, useSurface } from "@beyo/hooks";
 import {
@@ -247,53 +254,59 @@ export function WorkingSectionStepsView({
             className="flex flex-col gap-4 py-2 pb-24"
             data-testid="batch-steps-list"
           >
-            {renderRows.map((entry) =>
-              entry.kind === "header" ? (
-                <UpholsteryGroupHeaderCard
-                  key={`header-${entry.header.reactKey}`}
-                  header={entry.header}
-                  itemCount={entry.itemCount}
-                  isFolded={entry.isFolded}
-                  onToggle={() => toggleFold(entry.header.reactKey)}
-                />
-              ) : (
-                <BatchSelectableTaskStepCard
-                  key={entry.row.stepId}
-                  card={entry.row}
-                  selected={selectedStepIds.has(entry.row.stepId)}
-                  onTapCard={handleOpenTaskDetail}
-                  onTapImage={handleOpenImageViewer}
-                  onToggleSelect={handleToggleSelect}
-                />
-              ),
-            )}
+            <AnimatedRemovalGroup>
+              {renderRows.map((entry) =>
+                entry.kind === "header" ? (
+                  <UpholsteryGroupHeaderCard
+                    key={`header-${entry.header.reactKey}`}
+                    header={entry.header}
+                    itemCount={entry.itemCount}
+                    isFolded={entry.isFolded}
+                    onToggle={() => toggleFold(entry.header.reactKey)}
+                  />
+                ) : (
+                  <AnimatedRemovalItem key={entry.row.stepId}>
+                    <BatchSelectableTaskStepCard
+                      card={entry.row}
+                      selected={selectedStepIds.has(entry.row.stepId)}
+                      onTapCard={handleOpenTaskDetail}
+                      onTapImage={handleOpenImageViewer}
+                      onToggleSelect={handleToggleSelect}
+                    />
+                  </AnimatedRemovalItem>
+                ),
+              )}
+            </AnimatedRemovalGroup>
           </div>
         ) : (
           <div
             className="flex flex-col gap-4 py-2 pb-10"
             data-testid="working-section-steps-list"
           >
-            {renderRows.map((entry) =>
-              entry.kind === "header" ? (
-                <UpholsteryGroupHeaderCard
-                  key={`header-${entry.header.reactKey}`}
-                  header={entry.header}
-                  itemCount={entry.itemCount}
-                  isFolded={entry.isFolded}
-                  onToggle={() => toggleFold(entry.header.reactKey)}
-                />
-              ) : (
-                <TaskStepCard
-                  key={entry.row.stepId}
-                  card={entry.row}
-                  transitioningStepId={transitioningStepId}
-                  onTapActions={handleOpenTaskActions}
-                  onTapCard={handleOpenTaskDetail}
-                  onTapImage={handleOpenImageViewer}
-                  onTransition={handleTransition}
-                />
-              ),
-            )}
+            <AnimatedRemovalGroup>
+              {renderRows.map((entry) =>
+                entry.kind === "header" ? (
+                  <UpholsteryGroupHeaderCard
+                    key={`header-${entry.header.reactKey}`}
+                    header={entry.header}
+                    itemCount={entry.itemCount}
+                    isFolded={entry.isFolded}
+                    onToggle={() => toggleFold(entry.header.reactKey)}
+                  />
+                ) : (
+                  <AnimatedRemovalItem key={entry.row.stepId}>
+                    <TaskStepCard
+                      card={entry.row}
+                      transitioningStepId={transitioningStepId}
+                      onTapActions={handleOpenTaskActions}
+                      onTapCard={handleOpenTaskDetail}
+                      onTapImage={handleOpenImageViewer}
+                      onTransition={handleTransition}
+                    />
+                  </AnimatedRemovalItem>
+                ),
+              )}
+            </AnimatedRemovalGroup>
           </div>
         )}
       </PullToRefresh>

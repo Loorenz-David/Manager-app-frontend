@@ -42,6 +42,9 @@ export const WorkerLastStepSchema = z.object({
       // Why the step entered this state (StepTransitionReason enum value);
       // populated for paused/ended-shift transitions. Kept as a tolerant string.
       reason: z.string().nullable().optional(),
+      // Free-text detail the worker typed alongside the reason (e.g. why they
+      // paused). Optional for resilience against older cached payloads.
+      description: z.string().nullable().optional(),
     })
     .nullable(),
   total_working_seconds: z.number().int(),
@@ -272,6 +275,9 @@ export const WorkerLinearTimelineStepRecordSchema = z.object({
     .nullable(),
   state: z.string(),
   reason: z.string().nullable(),
+  // Free-text detail the worker typed alongside the pause reason. Optional for
+  // resilience against older cached payloads.
+  description: z.string().nullable().optional(),
   entered_at: z.string(),
   exited_at: z.string().nullable(),
   is_open: z.boolean(),

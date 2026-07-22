@@ -142,6 +142,9 @@ export const TaskStepRichSchema = z.object({
   total_issues_count: z.number().int(),
   total_issues_resolved_count: z.number().int(),
   total_cost_minor: z.number().int().nullable(),
+  // True when a step's recorded time was flagged as inaccurate, meaning its
+  // contribution to the aggregated working total should be treated as unreliable.
+  recorded_time_marked_wrong: z.boolean().default(false),
   latest_state_records: LatestStateRecordSchema.nullable(),
 });
 export type TaskStepRich = z.infer<typeof TaskStepRichSchema>;

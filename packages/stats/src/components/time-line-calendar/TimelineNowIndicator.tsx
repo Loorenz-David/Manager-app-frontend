@@ -18,7 +18,7 @@ export function TimelineNowIndicator({
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 z-20 flex -translate-y-1/2 items-center"
+      className="pointer-events-none absolute inset-x-0 z-600 flex -translate-y-1/2 items-center"
       data-testid="timeline-now-indicator"
       style={{ top: minuteToOffsetPx(minuteOfLocalDay(now), pxPerMinute) }}
     >

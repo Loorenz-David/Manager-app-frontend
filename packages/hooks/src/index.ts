@@ -1,6 +1,8 @@
 export { usePreloadSurface } from './use-preload-surface';
 export { useStagedForm } from './use-staged-form';
 export type { StagedFormConfig, StagedFormReturn } from './use-staged-form';
+export { useDisableSlideDismiss } from './use-disable-slide-dismiss';
+export { useHideSlideBackdrop } from './use-hide-slide-backdrop';
 export { useSurface } from './use-surface';
 export { useSurfaceHeader } from './use-surface-header';
 export { useSurfaceProps } from './use-surface-props';

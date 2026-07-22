@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ImgHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
@@ -23,11 +23,13 @@ export type BackendImageProps = Omit<
  *
  * Backend GET URLs are already byte-stable within their signing bucket (see the backend
  * `stable_presign` deterministic signer), so this component does not stabilize URLs — it
- * owns the two remaining render concerns:
+ * owns the three remaining render concerns:
  *
  * 1. **Fallback** — a missing `src` or a load failure (network blip, expired-on-idle URL,
  *    genuinely absent image) renders `fallback` instead of the browser's broken-image glyph.
- * 2. **Swap-on-decode** — when `src` changes to a genuinely new image (e.g. the ~6h bucket
+ * 2. **Skeleton-on-decode** — the first image stays visually hidden behind a shimmer until it
+ *    has decoded, preventing progressive images from painting with a dated "scan" effect.
+ * 3. **Swap-on-decode** — when `src` changes to a genuinely new image (e.g. the ~6h bucket
  *    rollover or a replaced upload), the previous image stays on screen until the new one has
  *    decoded, so there is no blank frame / flicker during the swap.
  *
@@ -49,11 +51,14 @@ export function BackendImage({
   // until the incoming one is decoded.
   const [displayedSrc, setDisplayedSrc] = useState<string | null | undefined>(src);
   const [didFail, setDidFail] = useState(false);
+  const [isDisplayedDecoded, setIsDisplayedDecoded] = useState(false);
+  const displayedImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
     if (!src) {
       setDisplayedSrc(src);
       setDidFail(false);
+      setIsDisplayedDecoded(false);
       return;
     }
 
@@ -67,6 +72,7 @@ export function BackendImage({
     // and the browser cache apply, and errors surface through the element's onError.
     if (!displayedSrc) {
       setDidFail(false);
+      setIsDisplayedDecoded(false);
       setDisplayedSrc(src);
       return;
     }
@@ -77,6 +83,7 @@ export function BackendImage({
     const commit = () => {
       if (cancelled) return;
       setDidFail(false);
+      setIsDisplayedDecoded(true);
       setDisplayedSrc(src);
     };
     const fail = () => {
@@ -84,18 +91,26 @@ export function BackendImage({
       setDidFail(true);
     };
 
-    preload.onload = commit;
+    // Prefer decode() when available: it resolves only once the image is paintable. `load`
+    // alone is not enough because progressive formats can otherwise reveal in visible bands.
     preload.onerror = fail;
-    preload.src = src;
-
-    // Prefer decode() when available: it resolves only once the image is paintable, so the
-    // swap never lands on a half-decoded frame. Where it is unavailable (e.g. jsdom) the
-    // onload/onerror handlers above are the fallback.
     if (typeof preload.decode === "function") {
+      let didLoad = false;
+      let decodeRejected = false;
+
+      preload.onload = () => {
+        didLoad = true;
+        // Some browsers reject decode() for detached images even after a successful load.
+        if (decodeRejected) commit();
+      };
+      preload.src = src;
       preload.decode().then(commit).catch(() => {
-        // decode() may reject even when the image is fine (e.g. detached element in some
-        // browsers); defer to the load/error events rather than failing outright.
+        decodeRejected = true;
+        if (didLoad) commit();
       });
+    } else {
+      preload.onload = commit;
+      preload.src = src;
     }
 
     return () => {
@@ -112,19 +127,62 @@ export function BackendImage({
   }
 
   return (
-    <img
-      {...imgProps}
-      alt={alt}
-      className={cn(imgProps.className)}
-      decoding={decoding}
-      draggable={draggable}
-      loading={loading}
-      src={displayedSrc ?? undefined}
-      onError={(event) => {
-        setDidFail(true);
-        onError?.(event);
-      }}
-      onLoad={onLoad}
-    />
+    <span
+      className={cn(
+        "relative isolate block overflow-hidden",
+        imgProps.className,
+      )}
+    >
+      {!isDisplayedDecoded ? (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0"
+          data-backend-image-skeleton=""
+        >
+          <span className="skeleton-shimmer block size-full" />
+        </span>
+      ) : null}
+      <img
+        {...imgProps}
+        ref={displayedImageRef}
+        alt={alt}
+        className={cn("relative size-full", imgProps.className)}
+        decoding={decoding}
+        draggable={draggable}
+        loading={loading}
+        src={displayedSrc ?? undefined}
+        style={{
+          ...imgProps.style,
+          opacity: isDisplayedDecoded ? imgProps.style?.opacity : 0,
+        }}
+        onError={(event) => {
+          setDidFail(true);
+          setIsDisplayedDecoded(false);
+          onError?.(event);
+        }}
+        onLoad={(event) => {
+          onLoad?.(event);
+
+          const image = event.currentTarget;
+          if (typeof image.decode !== "function") {
+            setIsDisplayedDecoded(true);
+            return;
+          }
+
+          const revealCurrentImage = () => {
+            // Ignore a late decode from an image that failed or was replaced in the meantime.
+            if (displayedImageRef.current === image) {
+              setIsDisplayedDecoded(true);
+            }
+          };
+
+          image.decode().then(revealCurrentImage, () => {
+            // A successful load is still safe to reveal when a browser rejects decode() for
+            // implementation-specific reasons.
+            revealCurrentImage();
+          });
+        }}
+      />
+    </span>
   );
 }

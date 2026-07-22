@@ -13,12 +13,22 @@ export function useTransitionBatchStepStates() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({
-      working_section_id: _id,
-      ...input
-    }: BatchTransitionInput) => transitionBatchStepStates(input),
+    mutationFn: (input: BatchTransitionInput) =>
+      transitionBatchStepStates({
+        items: input.items,
+        new_state: input.new_state,
+        reason: input.reason,
+        description: input.description,
+      }),
 
     onSuccess: (_data, variables) => {
+      // Completion feedback must paint before these refetches update the page
+      // underneath it. The completion caller schedules the refresh after that
+      // paint; other batch transitions can refresh immediately.
+      if (variables.new_state === "completed") {
+        return;
+      }
+
       void queryClient.invalidateQueries({
         queryKey: taskStepKeys.sectionListsBySection(variables.working_section_id),
       });

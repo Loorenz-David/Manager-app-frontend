@@ -69,6 +69,8 @@ export function BottomSheetSurface({
         requestClose: handleClose,
         setHeaderHidden,
         setCloseInterceptor: () => {},
+        setSwipeDismissDisabled: () => {},
+        setBackdropHidden: () => {},
       }}
     >
       <Drawer.Root

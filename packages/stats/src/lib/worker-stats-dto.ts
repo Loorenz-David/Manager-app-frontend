@@ -37,6 +37,7 @@ export type WorkerStepSectionViewModel = {
   articleLabel: string | null;
   workingSectionName: string | null;
   pauseReason: string | null;
+  pauseDescription: string | null;
   ticker: TickerModel | null;
 };
 
@@ -110,6 +111,10 @@ export function toWorkerStepSectionViewModel(
     pauseReason:
       step?.state === "paused"
         ? (step.last_state_record?.reason?.trim() || null)
+        : null,
+    pauseDescription:
+      step?.state === "paused"
+        ? (step.last_state_record?.description?.trim() || null)
         : null,
     ticker: resolveTicker(step),
   };

@@ -1,6 +1,7 @@
 import { TabOutlet } from "@/app/TabOutlet";
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { SlideParallaxUnderlay } from "@beyo/ui";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
 // import { NotificationBadge } from "@beyo/notifications";
 // import { ConnectionStatus } from "@/components/shell/ConnectionStatus";
@@ -51,27 +52,34 @@ function AppShellInner(): React.JSX.Element {
               className="flex h-full flex-col overflow-hidden bg-background pt-(--safe-top)"
               data-testid="app-shell"
             >
-              <main
-                className="relative flex-1 overflow-hidden"
-                id="main-content"
-              >
-                {/* <div className="pointer-events-none absolute right-2 top-2 z-[40] flex items-center gap-2">
-                  <div className="pointer-events-auto">
-                    <ConnectionStatus />
-                  </div>
-                  <NotificationBadge className="pointer-events-auto" />
-                </div> */}
-                <TabOutlet />
-              </main>
-              {/* <RealtimeDebugPanel /> */}
-              <ReassignmentAcknowledgmentPanel
-                forceHidden={shouldHideLastActiveStepCard}
-              />
-              <LastActiveStepCard
-                forceHidden={shouldHideLastActiveStepCard}
-                scrollHideDelayMs={10}
-              />
-              <BottomTabBar />
+              {/* The whole base screen — tab content AND shell chrome (tab
+               * bar, step card, acknowledgment panel) — parks as one unit
+               * under the slide-stack parallax, like iOS. The fixed-positioned
+               * card/panel re-anchor to this transformed wrapper, whose box
+               * matches the viewport edges they anchored to before. */}
+              <SlideParallaxUnderlay className="flex flex-col">
+                <main
+                  className="relative flex-1 overflow-hidden"
+                  id="main-content"
+                >
+                  {/* <div className="pointer-events-none absolute right-2 top-2 z-[40] flex items-center gap-2">
+                    <div className="pointer-events-auto">
+                      <ConnectionStatus />
+                    </div>
+                    <NotificationBadge className="pointer-events-auto" />
+                  </div> */}
+                  <TabOutlet />
+                </main>
+                {/* <RealtimeDebugPanel /> */}
+                <ReassignmentAcknowledgmentPanel
+                  forceHidden={shouldHideLastActiveStepCard}
+                />
+                <LastActiveStepCard
+                  forceHidden={shouldHideLastActiveStepCard}
+                  scrollHideDelayMs={10}
+                />
+                <BottomTabBar />
+              </SlideParallaxUnderlay>
             </div>
           </ReassignmentAcknowledgmentsProvider>
         </LastActiveStepCardProvider>

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
-import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import {
+  useHideSlideBackdrop,
+  useSurface,
+  useSurfaceHeader,
+  useSurfaceProps,
+} from "@beyo/hooks";
 import { cn } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { formatSecondsHHMMSS } from "@/features/task_steps/domain/formatSecondsHHMMSS";
@@ -43,19 +48,33 @@ export function CompleteTaskStepConfirmationSlidePage(): React.JSX.Element {
     onConfirm,
   } = useSurfaceProps<CompleteTaskStepConfirmationSlideSurfaceProps>();
   const [selection, setSelection] = useState<TimeAccuracy | null>(null);
+  const [isPending, setIsPending] = useState(false);
   const clearSearch = useTaskStepsUiStore(selectClearSearch);
+
+  // This confirmation renders over a page that shows its own dark overlay on
+  // close; suppress this slide's dim so the two don't stack into a flicker.
+  useHideSlideBackdrop();
 
   useEffect(() => {
     header?.setTitle("Complete task");
   }, [header]);
 
-  function handleSave() {
-    if (!selection || !onConfirm) {
+  async function handleSave() {
+    if (!selection || !onConfirm || isPending) {
       return;
     }
 
-    onConfirm(selection === "inaccurate");
+    const markInaccurate = selection === "inaccurate";
+    setIsPending(true);
+
+    // Batch-style flow: keep this slide open through the (~100ms) network call
+    // — the list re-render happens while nothing is animating, so it can't jank
+    // a close — then onConfirm triggers the celebration and we close the slides
+    // behind that overlay. This removes the previous ~258ms "wait for the close
+    // animation before starting the network" dead time.
+    await onConfirm(markInaccurate);
     clearSearch();
+
     close(TASK_STEP_DETAIL_SURFACE_ID);
 
     if (header) {
@@ -160,11 +179,11 @@ export function CompleteTaskStepConfirmationSlidePage(): React.JSX.Element {
         <button
           className="w-full rounded-xl bg-primary py-3.5 text-center font-semibold text-card transition-opacity disabled:opacity-40"
           data-testid="complete-step-confirm-button"
-          disabled={selection === null}
+          disabled={selection === null || isPending}
           type="button"
           onClick={handleSave}
         >
-          Complete task
+          {isPending ? "Completing…" : "Complete task"}
         </button>
       </div>
     </div>

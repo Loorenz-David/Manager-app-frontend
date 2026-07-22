@@ -1,5 +1,11 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { BackendImage } from "./BackendImage";
 
@@ -44,6 +50,32 @@ describe("BackendImage", () => {
     expect(img.getAttribute("decoding")).toBe("async");
     expect(img.getAttribute("alt")).toBe("");
     expect(img.className).toContain("object-cover");
+  });
+
+  it("shows a shimmer and hides the first image until it has decoded", async () => {
+    let resolveDecode: (() => void) | undefined;
+    (HTMLImageElement.prototype as unknown as { decode: () => Promise<void> }).decode =
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDecode = resolve;
+        });
+
+    render(<BackendImage src="https://cdn.test/a.jpg" data-testid="img" />);
+
+    const img = screen.getByTestId("img") as HTMLImageElement;
+    expect(document.querySelector("[data-backend-image-skeleton]")).not.toBeNull();
+    expect(img.style.opacity).toBe("0");
+
+    fireEvent.load(img);
+    expect(document.querySelector("[data-backend-image-skeleton]")).not.toBeNull();
+
+    resolveDecode?.();
+    await waitFor(() => {
+      expect(document.querySelector("[data-backend-image-skeleton]")).toBeNull();
+      expect(img.style.opacity).toBe("");
+    });
+
+    delete (HTMLImageElement.prototype as unknown as { decode?: unknown }).decode;
   });
 
   it("falls back to the placeholder after a load error", async () => {

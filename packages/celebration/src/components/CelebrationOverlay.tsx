@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
 import { transitions } from "@beyo/lib";
@@ -18,6 +18,18 @@ function CelebrationOverlayInner(): React.JSX.Element {
   const dismiss = useCelebrationStore(selectDismiss);
   const { play } = useCelebrationSound();
 
+  const handleDismiss = useCallback(() => {
+    if (!config) {
+      return;
+    }
+
+    // Mount any follow-up overlay before this one starts fading out. With a
+    // lower z-index, it stays hidden underneath and prevents a blank frame
+    // between the two overlays.
+    config.onDismiss?.();
+    dismiss();
+  }, [config, dismiss]);
+
   useEffect(() => {
     if (!config) {
       return;
@@ -27,11 +39,11 @@ function CelebrationOverlayInner(): React.JSX.Element {
       play(config.soundUrl);
     }
 
-    const timer = window.setTimeout(dismiss, config.duration ?? 5000);
+    const timer = window.setTimeout(handleDismiss, config.duration ?? 5000);
     return () => {
       window.clearTimeout(timer);
     };
-  }, [config, dismiss, play]);
+  }, [config, handleDismiss, play]);
 
   return (
     <AnimatePresence>
@@ -43,8 +55,8 @@ function CelebrationOverlayInner(): React.JSX.Element {
           data-testid="celebration-overlay"
           className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden px-6"
           exit={{ opacity: 0 }}
-          initial={{ opacity: 0 }}
-          onClick={dismiss}
+          initial={{ opacity: 1 }}
+          onClick={handleDismiss}
           style={{ zIndex: OVERLAY_Z_INDEX, backgroundColor: "rgba(0,0,0,0.82)" }}
           transition={transitions.base}
           type="button"

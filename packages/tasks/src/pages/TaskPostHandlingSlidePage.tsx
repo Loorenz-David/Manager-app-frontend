@@ -167,12 +167,14 @@ function renderTaskPane({
                 onTapActions={controller.openTaskActions}
                 onTapCard={controller.openTaskDetail}
                 onTapImage={() => controller.openImageViewer(task)}
+                showAssortment
                 statePill={statePill}
                 task={{
                   task_type: task.task.task_type,
                   state: task.task.state,
                   return_source: task.task.return_source,
                   ready_by_at: task.task.ready_by_at,
+                  assortment: task.task.assortment,
                 }}
                 taskId={task.task.client_id}
               />

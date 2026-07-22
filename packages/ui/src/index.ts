@@ -18,6 +18,7 @@ export {
 export { BottomSheetSurface } from "./components/surfaces/BottomSheetSurface";
 export { ModalSurface } from "./components/surfaces/ModalSurface";
 export { SlidePageSurface } from "./components/surfaces/SlidePageSurface";
+export { SlideParallaxUnderlay } from "./components/surfaces/slide-parallax";
 
 export { PageSkeleton } from "./components/ui/PageSkeleton";
 export { SurfaceSkeleton } from "./components/ui/SurfaceSkeleton";
@@ -27,6 +28,7 @@ export { lazyRoute } from "./lib/lazy-route";
 export { lazyWithPreload } from "./lib/lazy-with-preload";
 export { usePrefetchOnCondition } from "./lib/use-prefetch-on-condition";
 
+export * from "./components/primitives/animated-removal";
 export * from "./components/primitives/box-picker";
 export * from "./components/primitives/box-slide-picker";
 export * from "./components/primitives/avatar";

@@ -61,6 +61,8 @@ export function ModalSurface({
         requestClose: onClose,
         setHeaderHidden,
         setCloseInterceptor: () => {},
+        setSwipeDismissDisabled: () => {},
+        setBackdropHidden: () => {},
       }}
     >
       <div className="fixed inset-0" style={{ zIndex }}>

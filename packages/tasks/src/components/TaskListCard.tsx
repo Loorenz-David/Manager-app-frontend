@@ -60,6 +60,7 @@ export type TaskListCardProps = {
     state: TaskState;
     return_source: TaskReturnSource | null;
     ready_by_at: string | null;
+    assortment?: string | null;
     is_overdue?: boolean;
   };
   item: {
@@ -76,6 +77,7 @@ export type TaskListCardProps = {
   bottomAction?: React.ReactNode;
   statePill?: { label: string; variant: StatePillVariant };
   typeIcon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  showAssortment?: boolean;
   batchMode?: boolean;
   isSelected?: boolean;
   onToggleSelect?: (taskId: string) => void;
@@ -92,6 +94,7 @@ export const TaskListCard = memo(function TaskListCard({
   bottomAction,
   statePill,
   typeIcon,
+  showAssortment = false,
   batchMode = false,
   isSelected = false,
   onToggleSelect,
@@ -112,6 +115,7 @@ export const TaskListCard = memo(function TaskListCard({
       ? `#${item.quantity}`
       : null;
   const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
+  const assortment = task.assortment?.trim();
   const days = daysUntil(task.ready_by_at);
   const stateLabel = humanizeSnakeCase(task.state) ?? task.state;
   const stateVariant: StatePillVariant =
@@ -225,6 +229,16 @@ export const TaskListCard = memo(function TaskListCard({
               <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
               <span>{readyByLabel}</span>
               {days !== null ? <DaysLeftPill days={days} /> : null}
+            </div>
+          ) : null}
+
+          {showAssortment && assortment ? (
+            <div
+              className="mt-2 min-w-0 truncate text-xs text-muted-foreground"
+              data-testid={`tasks-card-assortment-${taskId}`}
+            >
+              Final Placement:{" "}
+              <span className="font-semibold text-foreground">{assortment}</span>
             </div>
           ) : null}
         </div>

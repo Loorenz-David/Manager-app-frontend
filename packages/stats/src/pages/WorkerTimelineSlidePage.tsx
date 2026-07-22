@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 
 import { ApiRequestError } from "@beyo/api-client";
 import {
+  useDisableSlideDismiss,
   usePreloadSurface,
   useSurfaceHeader,
   useSurfaceProps,
@@ -74,6 +75,12 @@ export function WorkerTimelineSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const rawProps = useSurfaceProps<WorkerTimelineSurfaceProps>();
   const userId = rawProps.userId ?? "";
+
+  // The calendar grid pages between dates with a horizontal swipe, which would
+  // collide with slide-to-close. Disable the dismiss gesture for this surface
+  // only — nested slides (task detail, etc.) keep theirs, as each slide owns
+  // its own SurfaceHeaderContext. Users close via the "Close & Back" button.
+  useDisableSlideDismiss();
 
   const dates = useTimelineVisibleDates({
     initialDate: rawProps.initialDate,

@@ -47,7 +47,42 @@ type SurfaceState = {
   closeMany: (ids: string[]) => void;
   closeTop: () => void;
   closeAll: () => void;
+  /**
+   * Reconcile the stack to a history-recorded depth without touching history.
+   * Called by the popstate handler when the user navigates Back (browser,
+   * Android system gesture, or hardware button) so a Back closes the topmost
+   * overlay(s) instead of unwinding the app's route.
+   */
+  syncToDepth: (depth: number) => void;
 };
+
+/**
+ * Each open overlay owns one same-URL history entry so a Back navigation closes
+ * it. Same-URL keeps React Router's location unchanged, so the data router never
+ * re-renders routes or desyncs off these phantom entries. The entry's state
+ * records the overlay depth it corresponds to.
+ */
+const SURFACE_DEPTH_KEY = "__surfaceDepth";
+
+function pushSurfaceHistory(depth: number): void {
+  if (typeof window === "undefined") return;
+  const current =
+    (window.history.state as Record<string, unknown> | null) ?? {};
+  window.history.pushState({ ...current, [SURFACE_DEPTH_KEY]: depth }, "");
+}
+
+function popSurfaceHistory(count: number): void {
+  if (typeof window === "undefined" || count <= 0) return;
+  window.history.go(-count);
+}
+
+export function readSurfaceDepth(state: unknown): number {
+  if (state && typeof state === "object") {
+    const value = (state as Record<string, unknown>)[SURFACE_DEPTH_KEY];
+    if (typeof value === "number") return value;
+  }
+  return 0;
+}
 
 export const SurfacePropsContext = createContext<Record<string, unknown>>({});
 
@@ -57,6 +92,19 @@ export type SurfaceHeaderValue = {
   requestClose: () => void;
   setHeaderHidden: (hidden: boolean) => void;
   setCloseInterceptor: (fn: (() => void) | null) => void;
+  /**
+   * Turn the slide-to-close swipe gesture off for the whole page (e.g. a page
+   * whose own left/right swipe interaction would collide with it). No-op on
+   * sheet/modal surfaces, which have no swipe dismissal. For disabling only a
+   * region, mark the element with `data-slide-dismiss-ignore` instead.
+   */
+  setSwipeDismissDisabled: (disabled: boolean) => void;
+  /**
+   * Suppress this slide's dark backdrop (the drag-reveal / close-fade dim).
+   * Use when the page itself renders another dark overlay on close, so the two
+   * dims don't stack into a flicker. No-op on sheet/modal surfaces.
+   */
+  setBackdropHidden: (hidden: boolean) => void;
 };
 
 export const SurfaceHeaderContext = createContext<SurfaceHeaderValue | null>(
@@ -83,6 +131,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
 
     const isOpen = stack.some((surface) => surface.id === id);
     if (isOpen) {
+      // Re-surface to the top; the overlay count is unchanged so history stays.
       set((state) => ({
         stack: [
           ...state.stack.filter((surface) => surface.id !== id),
@@ -93,6 +142,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     }
 
     if (registration.path && navigate) {
+      // Route-backed surface: React Router's navigate owns the history entry.
       const path = registration.path(props);
       const currentLocation = window.location;
       navigate(path, {
@@ -104,11 +154,15 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
           },
         },
       });
+      set((state) => ({
+        stack: [...state.stack, { id, ...registration, props }],
+      }));
+      return;
     }
 
-    set((state) => ({
-      stack: [...state.stack, { id, ...registration, props }],
-    }));
+    const nextStack = [...stack, { id, ...registration, props }];
+    set({ stack: nextStack });
+    pushSurfaceHistory(nextStack.length);
   },
 
   hydrate: (id, props = {}) => {
@@ -127,15 +181,18 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       return;
     }
 
-    set((state) => ({
-      stack: [...state.stack, { id, ...registration, props }],
-    }));
+    const nextStack = [...stack, { id, ...registration, props }];
+    set({ stack: nextStack });
+    pushSurfaceHistory(nextStack.length);
   },
 
-  close: (id) =>
-    set((state) => ({
-      stack: state.stack.filter((surface) => surface.id !== id),
-    })),
+  close: (id) => {
+    const { stack } = get();
+    const nextStack = stack.filter((surface) => surface.id !== id);
+    if (nextStack.length === stack.length) return;
+    set({ stack: nextStack });
+    popSurfaceHistory(stack.length - nextStack.length);
+  },
 
   closeMany: (ids) => {
     if (ids.length === 0) {
@@ -143,17 +200,36 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     }
 
     const idsToClose = new Set(ids);
-    set((state) => ({
-      stack: state.stack.filter((surface) => !idsToClose.has(surface.id)),
-    }));
+    const { stack } = get();
+    const nextStack = stack.filter((surface) => !idsToClose.has(surface.id));
+    const removed = stack.length - nextStack.length;
+    if (removed === 0) return;
+    set({ stack: nextStack });
+    popSurfaceHistory(removed);
   },
 
-  closeTop: () =>
-    set((state) => ({
-      stack: state.stack.slice(0, -1),
-    })),
+  closeTop: () => {
+    const { stack } = get();
+    if (stack.length === 0) return;
+    set({ stack: stack.slice(0, -1) });
+    popSurfaceHistory(1);
+  },
 
-  closeAll: () => set({ stack: [] }),
+  closeAll: () => {
+    const { stack } = get();
+    if (stack.length === 0) return;
+    set({ stack: [] });
+    popSurfaceHistory(stack.length);
+  },
+
+  // Back navigation already moved history; only reconcile the stack (drop the
+  // topmost overlays down to the recorded depth).
+  syncToDepth: (depth) =>
+    set((state) =>
+      state.stack.length > depth
+        ? { stack: state.stack.slice(0, Math.max(0, depth)) }
+        : state,
+    ),
 }));
 
 type SurfaceShellProps = {
@@ -161,6 +237,8 @@ type SurfaceShellProps = {
   onStartClose?: () => void;
   zIndex: number;
   isTopmost: boolean;
+  /** Position among the open overlays; slides use it for stack parallax. */
+  stackIndex?: number;
   showBackdrop?: boolean;
   children: ReactNode;
 };
@@ -234,6 +312,7 @@ function SurfaceRenderer(): React.JSX.Element {
           <div key={entry.id} inert={!isTopmost || undefined}>
             <Shell
               isTopmost={isTopmost}
+              stackIndex={index}
               onClose={() => close(entry.id)}
               onStartClose={() => {
                 setClosingSurfaceIds((current) => {
@@ -278,6 +357,20 @@ export function SurfaceProvider({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     init(registry, navigate);
+  }, []);
+
+  // Back navigation (browser button, Android system gesture, hardware button)
+  // fires popstate. Reconcile the overlay stack to the depth recorded on the
+  // history entry we landed on, so Back closes the topmost overlay instead of
+  // unwinding the underlying route. Programmatic closes call history.go(...)
+  // themselves and have already shrunk the stack, so this is a no-op for them.
+  useEffect(() => {
+    const handlePopState = (event: PopStateEvent) => {
+      useSurfaceStore.getState().syncToDepth(readSurfaceDepth(event.state));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   return (

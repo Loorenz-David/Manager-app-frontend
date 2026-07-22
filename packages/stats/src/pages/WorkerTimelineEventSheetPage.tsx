@@ -93,30 +93,39 @@ export function WorkerTimelineEventSheetPage(): React.JSX.Element {
             </div>
 
             {group.records.map((record) => (
-              <div
-                key={record.recordId}
-                className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground"
-              >
-                <span className="font-medium text-foreground">
-                  {humanizeReason(record.state)}
-                </span>
-                {record.reasonLabel ? <span>· {record.reasonLabel}</span> : null}
-                {record.workingSectionName ? (
-                  <span>· {record.workingSectionName}</span>
-                ) : null}
-                <span className="tabular-nums">
-                  {record.enteredAtLabel} –{" "}
-                  {record.isOpen ? "now" : (record.exitedAtLabel ?? "—")}
-                </span>
-                {record.isCompleted ? (
-                  <span className="rounded-full bg-[#dff3e6] px-1.5 py-px font-semibold text-[#1e7a46]">
-                    ✓ completed
+              <div key={record.recordId} className="flex min-w-0 flex-col gap-0.5">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">
+                    {humanizeReason(record.state)}
                   </span>
-                ) : null}
-                {record.isOpen ? (
-                  <span className="rounded-full bg-[#eaf1fd] px-1.5 py-px font-semibold text-[#2f6fed]">
-                    live
+                  {record.reasonLabel ? (
+                    <span>· {record.reasonLabel}</span>
+                  ) : null}
+                  {record.workingSectionName ? (
+                    <span>· {record.workingSectionName}</span>
+                  ) : null}
+                  <span className="tabular-nums">
+                    {record.enteredAtLabel} –{" "}
+                    {record.isOpen ? "now" : (record.exitedAtLabel ?? "—")}
                   </span>
+                  {record.isCompleted ? (
+                    <span className="rounded-full bg-[#dff3e6] px-1.5 py-px font-semibold text-[#1e7a46]">
+                      ✓ completed
+                    </span>
+                  ) : null}
+                  {record.isOpen ? (
+                    <span className="rounded-full bg-[#eaf1fd] px-1.5 py-px font-semibold text-[#2f6fed]">
+                      live
+                    </span>
+                  ) : null}
+                </div>
+                {record.description ? (
+                  <p
+                    className="min-w-0 whitespace-pre-line border-l-2 border-[#f0c36a] pl-2 text-xs text-muted-foreground"
+                    data-testid={`timeline-event-record-description-${record.recordId}`}
+                  >
+                    {record.description}
+                  </p>
                 ) : null}
               </div>
             ))}

@@ -9,6 +9,7 @@ import {
   groupMarkerMinutes,
   markerOffsetWithinEventPx,
   MAX_PX_PER_HOUR,
+  MIN_COMPLETED_EVENT_VISUAL_PX,
   MIN_EVENT_HIT_PX,
   MIN_EVENT_VISUAL_PX,
   MIN_PX_PER_HOUR,
@@ -50,6 +51,39 @@ describe("event geometry", () => {
     expect(layout.hitHeight).toBe(MIN_EVENT_HIT_PX);
     // The hit target is centered around the visual block.
     expect(layout.hitTop).toBeLessThan(layout.top);
+  });
+
+  it("grows an inflated sliver upward so it never overhangs the next block", () => {
+    const start = 600;
+    const end = 601; // 1-min event, inflated to the min height
+    const layout = computeEventLayout(start, end, PPM);
+    const realBottom = end * PPM;
+    // The block's bottom stays pinned at the real end edge; the extra height is
+    // taken from ABOVE (the previous block's empty tail), not below.
+    expect(layout.top + layout.height).toBeCloseTo(realBottom);
+    expect(layout.top).toBeLessThan(start * PPM);
+  });
+
+  it("does not shift a naturally tall event's top", () => {
+    const layout = computeEventLayout(9 * 60, 10 * 60, PPM);
+    expect(layout.top).toBe(9 * PPH);
+  });
+
+  it("raises the floor for completed micro-events so the ✓ pill fits", () => {
+    const layout = computeEventLayout(
+      600,
+      601,
+      PPM,
+      MIN_COMPLETED_EVENT_VISUAL_PX,
+    );
+    expect(layout.height).toBe(MIN_COMPLETED_EVENT_VISUAL_PX);
+    // Tall enough to also earn one text line alongside the pill.
+    expect(eventLineBudget(layout.height)).toBeGreaterThanOrEqual(1);
+  });
+
+  it("never shrinks a naturally tall event to the min floor", () => {
+    const layout = computeEventLayout(600, 660, PPM, MIN_COMPLETED_EVENT_VISUAL_PX);
+    expect(layout.height).toBeCloseTo(60 * PPM);
   });
 
   it("clamps the hit target inside the day bounds at any scale", () => {

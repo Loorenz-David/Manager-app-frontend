@@ -21,6 +21,7 @@ const ImmediateTransitionDataSchema = z
     step_id: z.string().transform((value) => value as TaskStepId),
     new_state: StepStateSchema,
     last_state_record: LastStateRecordSchema,
+    was_final_step: z.boolean(),
   })
   .transform((data) => ({ kind: "immediate" as const, ...data }));
 

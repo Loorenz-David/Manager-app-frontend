@@ -48,7 +48,7 @@ export function UpholsteryPickerHeader({
       data-testid="upholstery-picker-header"
     >
       {/* Search bar row — z-10 bg-background acts as mask for the pills (Pattern C) */}
-      <div className="relative z-10 border-b border-border bg-background px-4 pb-3.5 pt-3">
+      <div className="relative z-10  bg-background px-4 pb-3.5 pt-3">
         <div className="flex items-center gap-2">
           <button
             aria-label="Go back"
