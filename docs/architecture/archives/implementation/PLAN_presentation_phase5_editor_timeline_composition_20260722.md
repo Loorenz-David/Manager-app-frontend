@@ -3,7 +3,7 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase5_editor_timeline_composition_20260722`
-- Status: `approved`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
 - Last updated at (UTC): `2026-07-22T20:00:00Z`
@@ -107,9 +107,10 @@ Permitted relational reads: Phase 4 store/controller/renderer (what exists — t
 
 - `2026-07-22` Claude: drafted from master Phase 5.
 - `2026-07-22` User: both clarifications confirmed at their defaults (clamp on shrink; Slide-in/Fade-out). Approved as a **single implementation session** (user decision — no 4a/4b-style split); the session brief is the lean rewrite of `prompts/PROMPT_phase5_timeline.md`, which also carries the two Phase 4 review advisories (memoize rail thumbnails; clear the title-PATCH timer on `presentationId` change). Claude-builder timeline/panels kit session precedes Codex.
+- `2026-07-22` Codex: implemented the runtime clock/animation engine, pure geometry and composition mapping (including the required deep-equality round trip), draft persistence/CTA orchestration, timeline/canvas/panel assembly, Phase 4 advisories, and desktop persistence coverage. Root typecheck, runtime 18/18, builder 54/54, and desktop timeline Playwright 1/1 passed; the component-kit diff is empty. Plan archived.
 
 ## Lifecycle transition
 
-- Current state: `approved`
-- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Current state: `archived`
+- Next state: none
 - Transition owner: `Codex session (Phase 5)`, after the Claude-builder kit session

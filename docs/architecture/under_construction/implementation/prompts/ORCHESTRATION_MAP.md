@@ -70,7 +70,7 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [x] Codex session 2: `PROMPT_phase4b_corrections_editor.md` *(2026-07-22 — editor delivered; gate correctly stopped once on the broken toolchain before the fix)*
 - [x] Opus re-review *(2026-07-22 — PASS-WITH-NOTES; all 12 criteria; 38/38 builder + 9/9 runtime tests, Playwright 1/1; embedded-media carried item resolved; corrections plan archived by builder; 3 advisories: thumb memoization + title-timer reset → Phase 5 session, commit baseline → operator)*
 - **Phase 4 COMPLETE** ✅
-- [ ] **Operator (you): commit the Phases 1–4 baseline** — the whole capability is uncommitted, so kit no-restyle rules can't be diff-verified by reviewers until a baseline commit exists
+- [x] **Operator: commit the Phases 1–4 baseline** *(done by user — `66f6d2c7`; Phase 5 kit committed by Claude-builder as `7761b909`. Kit no-restyle rules are now diff-verifiable.)*
 - Gate: none (default stands: poster-only video thumbnails).
 
 > **Lesson (Phases 3–4):** the original per-phase implementation prompts mandate reading ~20 contract files before writing code — both sessions that got them stalled without implementing; the one lean prompt (Phase 3 corrections) succeeded. From Phase 5 on, Claude-builder rewrites each implementation prompt as a lean session brief (scoped read list, "start coding early", clean-boundary stop rule) before it is handed to Codex — ask for it as part of the kit step.
@@ -79,12 +79,14 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [x] **Decision (you)**: both defaults confirmed *(2026-07-22 — clamp on shrink; Slide-in/Fade-out)*
 - [x] Ask Claude: flip plan to `approved` *(2026-07-22)*
 - [x] Ask Claude: **"build the Phase 5 timeline + panels kit"** → review → iterate *(built + 1 iteration (panel close button, lane clipping, clamp-on-shrink in preview) + design-approved 2026-07-22)*
-- [ ] Codex: paste `PROMPT_phase5_timeline.md` *(rewritten as a lean single-session brief per your no-split decision; carries the gesture contract + both Phase 4 advisories)*
-- [ ] Opus reviewer: paste `review_prompts/REVIEW_phase5_editor_timeline_composition.md`
+- [x] Codex: paste `PROMPT_phase5_timeline.md` *(2026-07-22 — implemented in ONE session, first heavyweight phase to succeed single-shot: lean-brief approach validated)*
+- [x] Opus reviewer *(2026-07-22 — PASS-WITH-NOTES: 8/8 criteria, 18/18 runtime + 54/54 builder tests, Playwright timeline 1/1 + shell regression 1/1, round-trip deep-equal holds, both Phase 4 advisories fixed with tests. Live advisory routed to Phase 6 prompt: consolidate inline mapping in EditorView/panels into composition-mapping.ts. Its "housekeeping open" claims were stale — see master log correction.)*
+- **Phase 5 COMPLETE** ✅
+- [ ] **Operator (you): commit the Phase 5 implementation** (Codex's work is uncommitted in the working tree — same practice as the kit baselines)
 - Note: if Codex reports overrun, the pre-approved fallback is a `5b` correction plan for timed-media bars — ask Claude to draft it.
 
 ### Phase 6 — preview + publish + versioning
-- [ ] **Decision (you + Claude), before launch**: user-picker source for audience `user_ids` — ask Claude: "resolve the Phase 6 user-picker clarification" (Claude checks what exists in the repo and proposes; you decide; Claude records it).
+- [x] **Decision**: user-picker source resolved *(2026-07-22 — builder-owned wrapper of the compact `/users` endpoint, mirroring `@beyo/cases`' shape; no cases dependency, no injected fetch)*
 - [ ] Ask Claude: flip plan to `approved`
 - [ ] Ask Claude: **"build the Phase 6 preview + publish dialog kit"** → review → iterate
 - [ ] Codex: paste `PROMPT_phase6_preview_publish.md`

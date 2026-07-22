@@ -28,7 +28,7 @@
 ## Clarifications required
 
 - [x] **V2 — RESOLVED (backend team, 2026-07-22)**: yes — publish accepts a slide whose only content is composition elements (elements OR media OR title/description); text-only timed slides are first-class with a passing backend test. **Mitigation dropped: never mirror composition text into `slide.title`** — title is legacy metadata; the composition is the source of truth. (`04_admin_presentations.md` corrected backend-side.)
-- [ ] User picker data source: which existing endpoint/package lists workspace members in this monorepo (needed for `user_ids` targeting)? Resolve by relational read of the existing users feature at phase start; if none is importable from a package, the picker's fetch function is **injected** by the host app (keeps the builder app-agnostic) — decide with user if injection is acceptable here.
+- [x] **User picker data source — RESOLVED (user decision, 2026-07-22)**: `@beyo/presentation-builder` owns a tiny `list-users` api function + query hook against the same compact `/users` endpoint that `packages/cases/src/api/list-users.ts` wraps (mirror its request/response shape — `compact: true`, `q`, pagination; relational read only). No dependency on `@beyo/cases`; no injected fetch. Keeps the builder self-contained/sellable.
 
 ## Acceptance criteria
 

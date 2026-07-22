@@ -1,13 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { notify } from "@beyo/lib";
 
 import { useAddSlide } from "../actions/use-add-slide";
 import { useDeleteSlide } from "../actions/use-delete-slide";
 import { useDeleteSlideMedia } from "../actions/use-delete-slide-media";
 import { useReorderSlides } from "../actions/use-reorder-slides";
+import { useReplaceComposition } from "../actions/use-replace-composition";
+import { useUpdateSlide } from "../actions/use-update-slide";
 import { useUpdatePresentationMetadata } from "../actions/use-update-presentation-metadata";
 import { useUploadSlideMedia } from "../actions/use-upload-slide-media";
 import { usePresentationDetail } from "../api/use-presentation-detail";
 import type { Presentation, Slide } from "../types";
+import type { CompositionElement } from "@beyo/presentation-runtime";
 import {
   appendOverlayMediaElement,
   createEditorDraftStore,
@@ -16,8 +20,31 @@ import {
   slideHasBackground,
   useEditorDraftStore,
 } from "../editor/draft-store";
+import {
+  editorCompositionToPutBody,
+  serverElementsToEditorComposition,
+  type TextMeasurementAdapter,
+} from "../lib/composition-mapping";
 
 const TITLE_DEBOUNCE_MS = 450;
+const COMPOSITION_AUTOSAVE_MS = 2_000;
+
+const measureText: TextMeasurementAdapter = ({ content, fontSizePx, fontWeight }) => {
+  if (typeof document !== "undefined") {
+    const node = document.createElement("span");
+    node.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font-size:${fontSizePx}px;font-weight:${fontWeight};line-height:1.2`;
+    node.textContent = content;
+    document.body.appendChild(node);
+    const rect = node.getBoundingClientRect();
+    node.remove();
+    if (rect.width > 0 && rect.height > 0) return { widthPx: rect.width, heightPx: rect.height };
+  }
+  const lines = content.split("\n");
+  return {
+    widthPx: Math.max(fontSizePx, ...lines.map((line) => line.length * fontSizePx * 0.58)),
+    heightPx: Math.max(1, lines.length) * fontSizePx * 1.2,
+  };
+};
 
 type UploadRole = "background" | "overlay";
 
@@ -54,19 +81,30 @@ export function usePresentationEditorController(presentationId: string) {
   const [titleDraft, setTitleDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
+  const [ctaDraft, setCtaDraft] = useState({ label: "", route: "" });
+  const [ctaRouteError, setCtaRouteError] = useState<string | null>(null);
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUploadRef = useRef<{ file: File; role: UploadRole } | null>(null);
+  const compositionFailureNotifiedRef = useRef(new Set<string>());
+  const compositionFlushesRef = useRef(new Map<string, Promise<boolean>>());
+  const flushAllRef = useRef<() => Promise<boolean>>(async () => true);
 
   const detail = usePresentationDetail(presentationId);
   const addSlide = useAddSlide();
   const deleteSlide = useDeleteSlide();
   const reorderSlides = useReorderSlides();
+  const replaceComposition = useReplaceComposition();
+  const updateSlide = useUpdateSlide();
   const updateMetadata = useUpdatePresentationMetadata();
   const uploadMedia = useUploadSlideMedia();
   const cancelUploadMutation = uploadMedia.cancel;
   const deleteMedia = useDeleteSlideMedia();
 
   useEffect(() => {
+    if (titleTimerRef.current !== null) {
+      clearTimeout(titleTimerRef.current);
+      titleTimerRef.current = null;
+    }
     store.reset();
     setTitleDraft("");
     setNotice(null);
@@ -100,15 +138,125 @@ export function usePresentationEditorController(presentationId: string) {
     [store],
   );
 
+  const flushSlide = useCallback(async (slideId: string): Promise<boolean> => {
+    const existingFlush = compositionFlushesRef.current.get(slideId);
+    if (existingFlush) return existingFlush;
+    const current = store.getState();
+    if (current.presentation?.status !== "draft" || !current.dirtySlideIds.has(slideId)) return true;
+    const slide = slideById(current.presentation, slideId);
+    const elements = current.localCompositions[slideId];
+    if (!slide || !elements || slide.duration_ms === null) return true;
+    const flush = (async () => {
+      try {
+        const body = editorCompositionToPutBody(
+          serverElementsToEditorComposition(slide.duration_ms!, elements),
+          measureText,
+        );
+        const response = await replaceComposition.replaceCompositionAsync({
+          presentationId,
+          slideId,
+          ...body,
+        });
+        store.reconcileAfterFlush(response, slideId);
+        compositionFailureNotifiedRef.current.delete(slideId);
+        setNotice(null);
+        return true;
+      } catch (error) {
+        const message = errorMessage(error);
+        setNotice(message);
+        if (!compositionFailureNotifiedRef.current.has(slideId)) {
+          compositionFailureNotifiedRef.current.add(slideId);
+          notify.error("Your timeline changes are still local. Choose Save draft to retry.", "Composition save failed");
+        }
+        return false;
+      }
+    })();
+    compositionFlushesRef.current.set(slideId, flush);
+    void flush.finally(() => {
+      if (compositionFlushesRef.current.get(slideId) === flush) compositionFlushesRef.current.delete(slideId);
+    });
+    return flush;
+  }, [presentationId, replaceComposition, store]);
+
+  const flushAll = useCallback(async (): Promise<boolean> => {
+    const dirtyIds = [...store.getState().dirtySlideIds];
+    let succeeded = true;
+    for (const slideId of dirtyIds) {
+      if (!(await flushSlide(slideId))) succeeded = false;
+    }
+    return succeeded;
+  }, [flushSlide, store]);
+  flushAllRef.current = flushAll;
+
   const selectSlide = useCallback(
     (slideId: string) => {
+      const previousSlideId = store.getState().selectedSlideId;
+      if (previousSlideId === slideId) return;
+      if (previousSlideId) void flushSlide(previousSlideId);
       store.selectSlide(slideId);
     },
-    [store],
+    [flushSlide, store],
+  );
+
+  useEffect(() => {
+    const selected = selectedSlideFromState(draft);
+    setCtaDraft({
+      label: selected?.action?.label ?? "",
+      route: selected?.action?.route ?? "",
+    });
+    setCtaRouteError(null);
+  }, [draft.selectedSlideId]);
+
+  useEffect(() => {
+    if (readOnly || draft.dirtySlideIds.size === 0) return;
+    const timer = setTimeout(() => void flushAllRef.current(), COMPOSITION_AUTOSAVE_MS);
+    return () => clearTimeout(timer);
+  }, [draft.revision, draft.dirtySlideIds.size, readOnly]);
+
+  useEffect(() => {
+    const guard = (event: BeforeUnloadEvent) => {
+      if (store.getState().presentation?.status !== "draft" || store.getState().dirtySlideIds.size === 0) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", guard);
+    return () => window.removeEventListener("beforeunload", guard);
+  }, [store]);
+
+  const commitCta = useCallback(async () => {
+    const slideId = store.getState().selectedSlideId;
+    if (readOnly || !slideId) return;
+    const route = ctaDraft.route.trim();
+    if (route !== "" && (!route.startsWith("/") || route.startsWith("//"))) {
+      setCtaRouteError("Must start with / and use an in-app path");
+      return;
+    }
+    setCtaRouteError(null);
+    await flushSlide(slideId);
+    try {
+      const response = await updateSlide.updateSlideAsync({
+        presentationId,
+        slideId,
+        action_label: ctaDraft.label.trim() || null,
+        action_route: route || null,
+      });
+      reconcile(response, slideId);
+    } catch (error) {
+      setNotice(errorMessage(error));
+    }
+  }, [ctaDraft, flushSlide, presentationId, readOnly, reconcile, store, updateSlide]);
+
+  const updateElement = useCallback(
+    (elementId: string, update: (element: CompositionElement) => CompositionElement) => {
+      const slideId = store.getState().selectedSlideId;
+      if (!readOnly && slideId) store.updateElement(slideId, elementId, update);
+    },
+    [readOnly, store],
   );
 
   const add = useCallback(async () => {
     if (readOnly || !presentation) return;
+    await flushAll();
     setNotice(null);
     try {
       const previousIds = new Set(presentation.slides.map((slide) => slide.client_id));
@@ -118,11 +266,12 @@ export function usePresentationEditorController(presentationId: string) {
     } catch (error) {
       setNotice(errorMessage(error));
     }
-  }, [addSlide, presentation, presentationId, readOnly, reconcile]);
+  }, [addSlide, flushAll, presentation, presentationId, readOnly, reconcile]);
 
   const remove = useCallback(
     async (slideId: string) => {
       if (readOnly || !presentation || presentation.slides.length <= 1) return;
+      await flushAll();
       const oldIndex = presentation.slides.findIndex((slide) => slide.client_id === slideId);
       if (oldIndex < 0) return;
       const wasSelected = draft.selectedSlideId === slideId;
@@ -138,12 +287,13 @@ export function usePresentationEditorController(presentationId: string) {
         setNotice(errorMessage(error));
       }
     },
-    [deleteSlide, draft.selectedSlideId, presentation, presentationId, readOnly, reconcile],
+    [deleteSlide, draft.selectedSlideId, flushAll, presentation, presentationId, readOnly, reconcile],
   );
 
   const removeMedia = useCallback(
     async (mediaId: string, slideId = draft.selectedSlideId) => {
       if (readOnly || !presentation || !slideId) return;
+      await flushAll();
       const slide = slideById(presentation, slideId);
       if (!slide?.media.some((media) => media.client_id === mediaId)) return;
       setNotice(null);
@@ -154,12 +304,13 @@ export function usePresentationEditorController(presentationId: string) {
         setNotice(errorMessage(error));
       }
     },
-    [deleteMedia, draft.selectedSlideId, presentation, presentationId, readOnly, reconcile],
+    [deleteMedia, draft.selectedSlideId, flushAll, presentation, presentationId, readOnly, reconcile],
   );
 
   const reorder = useCallback(
     async (slideId: string, targetIndex: number) => {
       if (readOnly || !presentation) return;
+      await flushAll();
       const orderedSlideIds = moveSlide(presentation.slides, slideId, targetIndex);
       if (orderedSlideIds.every((id, index) => id === presentation.slides[index]?.client_id)) return;
       setNotice(null);
@@ -170,7 +321,7 @@ export function usePresentationEditorController(presentationId: string) {
         setNotice(errorMessage(error));
       }
     },
-    [draft.selectedSlideId, presentation, presentationId, readOnly, reconcile, reorderSlides],
+    [draft.selectedSlideId, flushAll, presentation, presentationId, readOnly, reconcile, reorderSlides],
   );
 
   const commitTitle = useCallback(
@@ -197,6 +348,7 @@ export function usePresentationEditorController(presentationId: string) {
   const uploadFile = useCallback(
     async (file: File, requestedRole?: UploadRole) => {
       if (readOnly || !presentation) return;
+      await flushAll();
       const currentState = store.getState();
       const slide = selectedSlideFromState(currentState);
       if (!slide) return;
@@ -252,7 +404,7 @@ export function usePresentationEditorController(presentationId: string) {
         }
       }
     },
-    [deleteMedia, presentation, presentationId, readOnly, reconcile, store, uploadMedia],
+    [deleteMedia, flushAll, presentation, presentationId, readOnly, reconcile, store, uploadMedia],
   );
 
   const onFilesDropped = useCallback(
@@ -281,17 +433,53 @@ export function usePresentationEditorController(presentationId: string) {
     selectedSlideId: draft.selectedSlideId,
     localCompositions: draft.localCompositions,
     dirty: draft.dirtySlideIds.size > 0,
+    dirtySlideIds: draft.dirtySlideIds,
     revision: draft.revision,
+    slideRevisions: draft.slideRevisions,
     hydrated: draft.hydrated,
     isLoading: detail.isLoading,
     error: detail.error ?? (notice ? new Error(notice) : null),
     notice,
     readOnly,
-    isMutating: addSlide.isPending || deleteSlide.isPending || reorderSlides.isPending || updateMetadata.isPending || uploadMedia.isPending || deleteMedia.isPending,
+    isMutating: addSlide.isPending || deleteSlide.isPending || reorderSlides.isPending || updateMetadata.isPending || uploadMedia.isPending || deleteMedia.isPending || replaceComposition.isPending || updateSlide.isPending,
+    isSavingComposition: replaceComposition.isPending,
     title: titleDraft,
     onTitleChange: setTitleDraft,
     onTitleCommit: commitTitle,
     onSelectSlide: selectSlide,
+    selectedElementId: selectedSlide ? draft.selectedElementIds[selectedSlide.client_id] ?? null : null,
+    playback: selectedSlide ? draft.playbackBySlide[selectedSlide.client_id] ?? { playheadMs: 0, playing: false } : { playheadMs: 0, playing: false },
+    onSelectElement: (elementId: string | null) => {
+      const slideId = store.getState().selectedSlideId;
+      if (slideId) store.selectElement(slideId, elementId);
+    },
+    onAddText: () => {
+      const slideId = store.getState().selectedSlideId;
+      if (!readOnly && slideId) store.addTextElement(slideId);
+    },
+    onUpdateElement: updateElement,
+    onDeleteElement: (elementId: string) => {
+      const slideId = store.getState().selectedSlideId;
+      if (!readOnly && slideId) store.deleteElement(slideId, elementId);
+    },
+    onDurationChange: (durationMs: number) => {
+      const slideId = store.getState().selectedSlideId;
+      if (!readOnly && slideId) store.setSlideDuration(slideId, durationMs);
+    },
+    onPlaybackCheckpoint: (patch: Partial<{ playheadMs: number; playing: boolean }>) => {
+      const slideId = store.getState().selectedSlideId;
+      if (slideId) store.setPlayback(slideId, patch);
+    },
+    onSaveDraft: flushAll,
+    ctaLabel: ctaDraft.label,
+    ctaRoute: ctaDraft.route,
+    ctaRouteError,
+    onCtaLabelChange: (label: string) => setCtaDraft((current) => ({ ...current, label })),
+    onCtaRouteChange: (route: string) => {
+      setCtaDraft((current) => ({ ...current, route }));
+      setCtaRouteError(null);
+    },
+    onCtaCommit: commitCta,
     onAddSlide: add,
     onDeleteSlide: remove,
     onDeleteMedia: removeMedia,

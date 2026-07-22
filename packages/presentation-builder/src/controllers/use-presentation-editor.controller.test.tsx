@@ -1,6 +1,7 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
+import { notify } from "@beyo/lib";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { fullPresentationFixture, envelope } from "../test/fixtures";
 import { server } from "../test/server";
@@ -34,6 +35,8 @@ function installDetail(presentation = fullPresentationFixture) {
     ),
   );
 }
+
+afterEach(() => cleanup());
 
 describe("presentation editor controller", () => {
   it("adds and selects the server-returned slide", async () => {
@@ -146,9 +149,158 @@ describe("presentation editor controller", () => {
       await result.current.onReorder(fullPresentationFixture.slides[0].client_id, 0);
       await result.current.onUploadFile(new File(["bytes"], "blocked.png", { type: "image/png" }));
       result.current.onTitleCommit("blocked");
+      result.current.onAddText();
+      await result.current.onSaveDraft();
     });
 
     expect(result.current.readOnly).toBe(true);
     expect(result.current.notice).toBeNull();
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("flushes a dirty text composition with the confirmed defaults on Save draft", async () => {
+    const putSpy = vi.fn();
+    installDetail();
+    server.use(
+      http.put(`${API_PATTERN}/:id/slides/:slideId/composition`, async ({ request }) => {
+        putSpy(await request.json());
+        return HttpResponse.json(envelope({ presentation: fullPresentationFixture }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+
+    act(() => result.current.onAddText());
+    expect(result.current.dirty).toBe(true);
+    await act(async () => result.current.onSaveDraft());
+
+    expect(putSpy).toHaveBeenCalledTimes(1);
+    expect(putSpy.mock.calls[0]?.[0]).toMatchObject({
+      playback_mode: "timed",
+      duration_ms: fullPresentationFixture.slides[0].duration_ms,
+      elements: expect.arrayContaining([
+        expect.objectContaining({
+          element_type: "text",
+          enter_animation: { type: "fade_up", duration_ms: 450 },
+          exit_animation: { type: "fade", duration_ms: 450 },
+        }),
+      ]),
+    });
+    expect(result.current.dirty).toBe(false);
+  });
+
+  it("flushes the previous slide when switching", async () => {
+    const initial = withSlides([fullPresentationFixture.slides[0], secondSlide]);
+    const putSpy = vi.fn();
+    installDetail(initial);
+    server.use(
+      http.put(`${API_PATTERN}/:id/slides/:slideId/composition`, ({ params }) => {
+        putSpy(params.slideId);
+        return HttpResponse.json(envelope({ presentation: initial }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    act(() => {
+      result.current.onAddText();
+      result.current.onSelectSlide(secondSlide.client_id);
+    });
+    await waitFor(() => expect(putSpy).toHaveBeenCalledWith(fullPresentationFixture.slides[0].client_id));
+    expect(result.current.selectedSlideId).toBe(secondSlide.client_id);
+  });
+
+  it("keeps failed composition state local, notifies once, and retries", async () => {
+    const notifyError = vi.spyOn(notify, "error").mockImplementation(() => undefined);
+    const putSpy = vi.fn();
+    installDetail();
+    server.use(
+      http.put(`${API_PATTERN}/:id/slides/:slideId/composition`, () => {
+        putSpy();
+        return HttpResponse.json({ error: { message: "Save failed" } }, { status: 500 });
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    act(() => result.current.onAddText());
+
+    await act(async () => result.current.onSaveDraft());
+    await act(async () => result.current.onSaveDraft());
+
+    expect(putSpy).toHaveBeenCalledTimes(2);
+    expect(notifyError).toHaveBeenCalledTimes(1);
+    expect(result.current.dirty).toBe(true);
+    expect(result.current.localCompositions[fullPresentationFixture.slides[0].client_id]).toHaveLength(2);
+  });
+
+  it("mirrors CTA route validation before PATCH", async () => {
+    const patchSpy = vi.fn();
+    installDetail();
+    server.use(
+      http.patch(`${API_PATTERN}/:id/slides/:slideId`, async ({ request }) => {
+        patchSpy(await request.json());
+        return HttpResponse.json(envelope({ presentation: fullPresentationFixture }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+
+    act(() => result.current.onCtaRouteChange("products"));
+    await act(async () => result.current.onCtaCommit());
+    expect(result.current.ctaRouteError).toMatch(/start with/);
+    expect(patchSpy).not.toHaveBeenCalled();
+
+    act(() => {
+      result.current.onCtaLabelChange("Open");
+      result.current.onCtaRouteChange("/products");
+    });
+    await act(async () => result.current.onCtaCommit());
+    expect(patchSpy).toHaveBeenCalledWith({ action_label: "Open", action_route: "/products" });
+  });
+
+  it("autosaves after roughly two idle seconds and guards a dirty unload", async () => {
+    const putSpy = vi.fn();
+    installDetail();
+    server.use(
+      http.put(`${API_PATTERN}/:id/slides/:slideId/composition`, () => {
+        putSpy();
+        return HttpResponse.json(envelope({ presentation: fullPresentationFixture }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    act(() => result.current.onAddText());
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(true);
+    await waitFor(() => {
+      expect(putSpy).toHaveBeenCalledTimes(1);
+      expect(result.current.dirty).toBe(false);
+    }, { timeout: 3_000 });
+  });
+
+  it("clears a pending title PATCH when presentationId changes", async () => {
+    const patchSpy = vi.fn();
+    installDetail();
+    server.use(
+      http.patch(`${API_PATTERN}/:id`, () => {
+        patchSpy();
+        return HttpResponse.json(envelope({ presentation: fullPresentationFixture }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result, rerender } = renderHook(
+      ({ id }) => usePresentationEditorController(id),
+      { initialProps: { id: fullPresentationFixture.client_id }, wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    act(() => result.current.onTitleCommit("Must not leak"));
+    rerender({ id: "aup_other_editor" });
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    expect(patchSpy).not.toHaveBeenCalled();
   });
 });

@@ -54,7 +54,7 @@ function DashboardViewContent(): React.JSX.Element {
   }
 
   return (
-    <div className="h-full min-h-[calc(100vh-4rem)] overflow-y-auto bg-[#ededed] pb-16">
+    <div className="h-full overflow-y-auto bg-[#ededed] pb-16">
       <div className="mx-auto max-w-[1180px]">
         <div className="overflow-hidden rounded-b-2xl bg-[#f4f4f4] shadow-[0_24px_60px_-30px_rgba(0,0,0,0.28)]">
           <DashboardTopBar

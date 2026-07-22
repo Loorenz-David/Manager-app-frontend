@@ -15,15 +15,15 @@ Per the master's "Division of labor" section, this phase's presentational compon
 - Purely additive optional props allowed; anything structural/visual → plan Review log + stop for Claude. Never improvise styled components.
 - If the kit is missing, STOP and report — the kit session runs before this one.
 
+## Carried from the Phase 5 review (do this early — you edit these files anyway)
+
+`EditorView.tsx` and the panel wiring re-implement mapping conversions inline (`wireAnimation`/`editorAnimation`, font-size ×390/264) instead of importing the converters already exported from `lib/composition-mapping.ts`. Consolidate to the mapping module — behavior-identical refactor; the master rule is "the design↔backend mapping lives in exactly one module."
+
 ## GATE — do not start implementation until recorded
 
 **V2 is resolved (backend team, 2026-07-22): no gate remains for it.** Publish accepts slides whose only content is composition elements; text-only timed slides are first-class. **Never mirror composition text into `slide.title`** — title is legacy metadata; the composition is the source of truth. The plan's mitigation is dropped and must not be implemented.
 
-One gate remains — check the child plan's "Clarifications required" / master Review log:
-
-1. **User-picker source** for `user_ids` targeting must be decided (existing package/endpoint vs. injected fetch function from the host app).
-
-If it is missing, STOP and ask the user — do not proceed on assumptions.
+**User-picker source is resolved (user decision, 2026-07-22): no gate remains.** The builder owns a tiny `list-users` api function + query hook against the compact `/users` endpoint — mirror the request/response shape of `packages/cases/src/api/list-users.ts` (relational read; `compact: true`, `q`, pagination). Do NOT depend on `@beyo/cases` and do NOT inject a fetch from the host app.
 
 ## Read before writing any code, in this order
 

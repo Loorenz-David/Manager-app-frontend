@@ -30,6 +30,7 @@ export { DashboardView, type DashboardViewProps } from "./views/DashboardView";
 export { EditorView, type EditorViewProps } from "./views/EditorView";
 export {
   appendOverlayMediaElement,
+  compositionElementId,
   createEditorDraftStore,
   mediaElementForAsset,
   replaceBackgroundMediaElement,
@@ -39,6 +40,33 @@ export {
   type EditorDraftState,
   type EditorDraftStore,
 } from "./editor/draft-store";
+export {
+  editorAnimationToWire,
+  editorCompositionToPutBody,
+  putElementToServerElement,
+  serverElementsToEditorComposition,
+  wireAnimationToEditor,
+  type CompositionPutBody,
+  type EditorAnimationChoice,
+  type EditorComposition,
+  type EditorCompositionElement,
+  type EditorMediaElement,
+  type EditorTextElement,
+  type TextMeasurementAdapter,
+} from "./lib/composition-mapping";
+export {
+  applyTimelineGesture,
+  clampCanvasPosition,
+  clampWindowToDuration,
+  generateTimelineTicks,
+  MIN_TIMELINE_WINDOW_MS,
+  scrubFractionToTime,
+  timelineWindowFractions,
+  timeToX,
+  xToTime,
+  type CanvasPosition,
+  type TimelineWindow,
+} from "./lib/timeline-geometry";
 export { usePresentationEditorController } from "./controllers/use-presentation-editor.controller";
 
 // Dashboard UI kit (presentational, props-only — see master plan "Division of labor")

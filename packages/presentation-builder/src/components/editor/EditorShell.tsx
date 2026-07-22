@@ -22,7 +22,7 @@ export function EditorShell({
   return (
     <div
       data-testid="presentation-editor-shell"
-      className="flex h-screen min-h-0 flex-col bg-white"
+      className="flex h-full min-h-0 flex-col bg-white"
     >
       {topBar}
       {banner}

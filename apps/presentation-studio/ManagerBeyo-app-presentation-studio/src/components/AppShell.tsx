@@ -5,8 +5,8 @@ export function AppShell(): React.JSX.Element {
   const { isSigningOut, signOut, user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-muted">
-      <header className="flex h-16 items-center justify-between border-b bg-background px-8 shadow-sm">
+    <div className="flex h-screen flex-col bg-muted">
+      <header className="flex h-16 shrink-0 items-center justify-between border-b bg-background px-8 shadow-sm">
         <div className="flex items-baseline gap-3">
           <span className="text-base font-semibold text-foreground">ManagerBeyo</span>
           <span className="text-sm text-muted-foreground">Presentation Studio</span>
@@ -23,7 +23,8 @@ export function AppShell(): React.JSX.Element {
           </button>
         </div>
       </header>
-      <main className="min-h-[calc(100vh-4rem)]">
+      {/* Bounded box: each routed page fills it with h-full and owns its own scrolling. */}
+      <main className="min-h-0 flex-1">
         <Outlet />
       </main>
     </div>

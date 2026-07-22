@@ -99,7 +99,8 @@ export type ElementAnimation = z.infer<typeof ElementAnimationSchema>;
 
 export const SlideMediaSchema = z.object({
   client_id: z.string().startsWith("aupm_").max(64),
-  sequence_order: z.number().int().positive(),
+  // 0 is legal in drafts — the backend only normalizes sequences to 1..N at publish.
+  sequence_order: z.number().int().nonnegative(),
   media_type: MediaTypeSchema,
   media_url: z.url(),
   poster_url: z.url().nullable(),

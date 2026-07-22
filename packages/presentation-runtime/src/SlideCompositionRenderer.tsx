@@ -7,6 +7,7 @@ import type {
   LayoutAnchor,
   TextStyle,
 } from "./schemas";
+import { getElementAnimationFrame, mergeAnimationStyle } from "./animation-registry";
 
 export const REFERENCE_CANVAS_WIDTH = 390;
 
@@ -16,6 +17,9 @@ export type SlideCompositionRendererProps = {
   containerWidth: number;
   containerHeight: number;
   className?: string;
+  /** Editor-only affordance: keep one selected element faintly renderable outside its timing window. */
+  forceVisibleElementId?: string | null;
+  forceVisibleOpacity?: number;
 };
 
 type AnchorFactor = readonly [x: number, y: number];
@@ -94,8 +98,15 @@ function renderElement(
   index: number,
   containerWidth: number,
   containerHeight: number,
+  timeMs: number,
+  forceVisible: boolean,
+  forceVisibleOpacity: number,
 ): ReactElement | null {
-  const frame = elementFrame(element.layout, containerWidth, containerHeight);
+  const animationFrame = getElementAnimationFrame(element, timeMs);
+  const frame = mergeAnimationStyle(
+    elementFrame(element.layout, containerWidth, containerHeight),
+    forceVisible ? { ...animationFrame, opacity: forceVisibleOpacity } : animationFrame,
+  );
   const sharedProps = {
     "data-composition-element": "",
     "data-element-id": element.client_id ?? "legacy",
@@ -158,9 +169,11 @@ export function SlideCompositionRenderer({
   containerWidth,
   containerHeight,
   className,
+  forceVisibleElementId = null,
+  forceVisibleOpacity = 0.25,
 }: SlideCompositionRendererProps): ReactElement {
   const visibleElements = sortCompositionElements(elements).filter((element) =>
-    isVisible(element, timeMs),
+    isVisible(element, timeMs) || element.client_id === forceVisibleElementId,
   );
 
   return (
@@ -175,7 +188,15 @@ export function SlideCompositionRenderer({
       }}
     >
       {visibleElements.map((element, index) =>
-        renderElement(element, index, containerWidth, containerHeight),
+        renderElement(
+          element,
+          index,
+          containerWidth,
+          containerHeight,
+          timeMs,
+          element.client_id === forceVisibleElementId && !isVisible(element, timeMs),
+          forceVisibleOpacity,
+        ),
       )}
     </div>
   );

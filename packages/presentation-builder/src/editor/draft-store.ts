@@ -8,6 +8,9 @@ export type EditorDraftState = {
   selectedSlideId: string | null;
   localCompositions: Record<string, CompositionElement[]>;
   dirtySlideIds: ReadonlySet<string>;
+  selectedElementIds: Record<string, string | null>;
+  playbackBySlide: Record<string, { playheadMs: number; playing: boolean }>;
+  slideRevisions: Record<string, number>;
   revision: number;
   hydrated: boolean;
 };
@@ -19,8 +22,23 @@ export type EditorDraftStore = {
   reconcile: (presentation: Presentation, selectedSlideId?: string | null) => void;
   selectSlide: (slideId: string) => void;
   setLocalComposition: (slideId: string, elements: readonly CompositionElement[]) => void;
+  selectElement: (slideId: string, elementId: string | null) => void;
+  addTextElement: (slideId: string) => string | null;
+  updateElement: (
+    slideId: string,
+    elementId: string,
+    update: (element: CompositionElement) => CompositionElement,
+  ) => void;
+  deleteElement: (slideId: string, elementId: string) => void;
+  setSlideDuration: (slideId: string, durationMs: number) => void;
+  setPlayback: (slideId: string, patch: Partial<{ playheadMs: number; playing: boolean }>) => void;
+  reconcileAfterFlush: (presentation: Presentation, slideId: string) => void;
   reset: () => void;
 };
+
+export function compositionElementId(element: CompositionElement): string {
+  return element.client_id ?? `legacy-${element.sequence_order}`;
+}
 
 function cloneElements(elements: readonly CompositionElement[]): CompositionElement[] {
   return elements.map((element) => ({
@@ -63,11 +81,15 @@ function firstExistingSlideId(presentation: Presentation, requested: string | nu
 }
 
 export function createEditorDraftStore(): EditorDraftStore {
+  let localElementSequence = 0;
   let state: EditorDraftState = {
     presentation: null,
     selectedSlideId: null,
     localCompositions: {},
     dirtySlideIds: new Set(),
+    selectedElementIds: {},
+    playbackBySlide: {},
+    slideRevisions: {},
     revision: 0,
     hydrated: false,
   };
@@ -85,6 +107,9 @@ export function createEditorDraftStore(): EditorDraftStore {
       selectedSlideId: firstExistingSlideId(nextPresentation, selectedSlideId ?? state.selectedSlideId),
       localCompositions: compositionsFor(nextPresentation),
       dirtySlideIds: new Set(),
+      selectedElementIds: Object.fromEntries(nextPresentation.slides.map((slide) => [slide.client_id, null])),
+      playbackBySlide: Object.fromEntries(nextPresentation.slides.map((slide) => [slide.client_id, { playheadMs: 0, playing: false }])),
+      slideRevisions: Object.fromEntries(nextPresentation.slides.map((slide) => [slide.client_id, 0])),
       revision: state.revision + 1,
       hydrated: true,
     });
@@ -108,6 +133,158 @@ export function createEditorDraftStore(): EditorDraftStore {
         ...state,
         localCompositions: { ...state.localCompositions, [slideId]: cloneElements(elements) },
         dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        slideRevisions: {
+          ...state.slideRevisions,
+          [slideId]: (state.slideRevisions[slideId] ?? 0) + 1,
+        },
+        revision: state.revision + 1,
+      });
+    },
+    selectElement: (slideId, elementId) => {
+      if (!(slideId in state.localCompositions)) return;
+      publish({
+        ...state,
+        selectedElementIds: { ...state.selectedElementIds, [slideId]: elementId },
+        revision: state.revision + 1,
+      });
+    },
+    addTextElement: (slideId) => {
+      const slide = state.presentation?.slides.find((candidate) => candidate.client_id === slideId);
+      if (!slide) return null;
+      const elements = state.localCompositions[slideId] ?? slide.elements;
+      const durationMs = slide.duration_ms ?? 4_000;
+      const playheadMs = state.playbackBySlide[slideId]?.playheadMs ?? 0;
+      const startMs = Math.min(Math.max(0, playheadMs), Math.max(0, durationMs - 400));
+      const endMs = Math.min(durationMs, startMs + 2_500);
+      const id = `local-text-${++localElementSequence}`;
+      const layerIndex = Math.max(9, ...elements.filter((element) => element.element_type === "text").map((element) => element.layer_index)) + 1;
+      const next: CompositionElement = {
+        client_id: id,
+        element_type: "text",
+        sequence_order: elements.length,
+        layer_index: layerIndex,
+        start_ms: startMs,
+        end_ms: endMs,
+        media: null,
+        text_content: "New text",
+        layout: { x: 0.5, y: 0.5, width: 0.5, height: 0.1, anchor: "center" },
+        style: {
+          text_role: "body",
+          text_align: "center",
+          font_size: 44,
+          font_weight: 400,
+        },
+        enter_animation: { type: "fade_up", duration_ms: 450 },
+        exit_animation: { type: "fade", duration_ms: 450 },
+      };
+      const nextElements = [...elements, next];
+      publish({
+        ...state,
+        localCompositions: { ...state.localCompositions, [slideId]: cloneElements(nextElements) },
+        dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        selectedElementIds: { ...state.selectedElementIds, [slideId]: id },
+        slideRevisions: { ...state.slideRevisions, [slideId]: (state.slideRevisions[slideId] ?? 0) + 1 },
+        revision: state.revision + 1,
+      });
+      return id;
+    },
+    updateElement: (slideId, elementId, update) => {
+      const elements = state.localCompositions[slideId];
+      if (!elements) return;
+      let changed = false;
+      const next = elements.map((element) => {
+        if (compositionElementId(element) !== elementId) return element;
+        changed = true;
+        return update(cloneElements([element])[0]!);
+      });
+      if (!changed) return;
+      publish({
+        ...state,
+        localCompositions: { ...state.localCompositions, [slideId]: cloneElements(next) },
+        dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        slideRevisions: { ...state.slideRevisions, [slideId]: (state.slideRevisions[slideId] ?? 0) + 1 },
+        revision: state.revision + 1,
+      });
+    },
+    deleteElement: (slideId, elementId) => {
+      const elements = state.localCompositions[slideId];
+      if (!elements?.some((element) => compositionElementId(element) === elementId)) return;
+      const next = elements
+        .filter((element) => compositionElementId(element) !== elementId)
+        .map((element, sequence_order) => ({ ...element, sequence_order }));
+      publish({
+        ...state,
+        localCompositions: { ...state.localCompositions, [slideId]: cloneElements(next) },
+        dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        selectedElementIds: { ...state.selectedElementIds, [slideId]: null },
+        slideRevisions: { ...state.slideRevisions, [slideId]: (state.slideRevisions[slideId] ?? 0) + 1 },
+        revision: state.revision + 1,
+      });
+    },
+    setSlideDuration: (slideId, durationMs) => {
+      if (!state.presentation) return;
+      const roundedDuration = Math.min(12_000, Math.max(2_000, Math.round(durationMs / 500) * 500));
+      const elements = state.localCompositions[slideId];
+      if (!elements) return;
+      const nextElements = elements.map((element) => {
+        if (element.end_ms === null) return { ...element, start_ms: Math.min(element.start_ms, roundedDuration) };
+        const end_ms = Math.min(element.end_ms, roundedDuration);
+        const start_ms = Math.min(element.start_ms, Math.max(0, end_ms - 400));
+        return { ...element, start_ms, end_ms };
+      });
+      const nextPresentation = {
+        ...state.presentation,
+        slides: state.presentation.slides.map((slide) =>
+          slide.client_id === slideId ? { ...slide, duration_ms: roundedDuration, playback_mode: "timed" as const } : slide),
+      };
+      const playback = state.playbackBySlide[slideId] ?? { playheadMs: 0, playing: false };
+      publish({
+        ...state,
+        presentation: nextPresentation,
+        localCompositions: { ...state.localCompositions, [slideId]: cloneElements(nextElements) },
+        dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        playbackBySlide: {
+          ...state.playbackBySlide,
+          [slideId]: { ...playback, playheadMs: Math.min(playback.playheadMs, roundedDuration) },
+        },
+        slideRevisions: { ...state.slideRevisions, [slideId]: (state.slideRevisions[slideId] ?? 0) + 1 },
+        revision: state.revision + 1,
+      });
+    },
+    setPlayback: (slideId, patch) => {
+      if (!(slideId in state.localCompositions)) return;
+      const current = state.playbackBySlide[slideId] ?? { playheadMs: 0, playing: false };
+      publish({
+        ...state,
+        playbackBySlide: { ...state.playbackBySlide, [slideId]: { ...current, ...patch } },
+        revision: state.revision + 1,
+      });
+    },
+    reconcileAfterFlush: (presentation, slideId) => {
+      const nextPresentation = clonePresentation(presentation);
+      const serverSlide = nextPresentation.slides.find((slide) => slide.client_id === slideId);
+      const dirtySlideIds = new Set(state.dirtySlideIds);
+      dirtySlideIds.delete(slideId);
+      const presentationWithLocalDurations = {
+        ...nextPresentation,
+        slides: nextPresentation.slides.map((slide) => {
+          if (!dirtySlideIds.has(slide.client_id)) return slide;
+          const localSlide = state.presentation?.slides.find((candidate) => candidate.client_id === slide.client_id);
+          return localSlide
+            ? { ...slide, playback_mode: localSlide.playback_mode, duration_ms: localSlide.duration_ms }
+            : slide;
+        }),
+      };
+      publish({
+        ...state,
+        presentation: presentationWithLocalDurations,
+        selectedSlideId: firstExistingSlideId(presentationWithLocalDurations, state.selectedSlideId),
+        localCompositions: {
+          ...state.localCompositions,
+          ...(serverSlide ? { [slideId]: cloneElements(serverSlide.elements) } : {}),
+        },
+        dirtySlideIds,
+        selectedElementIds: { ...state.selectedElementIds, [slideId]: null },
         revision: state.revision + 1,
       });
     },
@@ -117,6 +294,9 @@ export function createEditorDraftStore(): EditorDraftStore {
         selectedSlideId: null,
         localCompositions: {},
         dirtySlideIds: new Set(),
+        selectedElementIds: {},
+        playbackBySlide: {},
+        slideRevisions: {},
         revision: state.revision + 1,
         hydrated: false,
       });
@@ -187,4 +367,3 @@ export function appendOverlayMediaElement(
     sequence_order,
   }));
 }
-

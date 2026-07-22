@@ -193,33 +193,38 @@ async function installApi(page: Page): Promise<void> {
     });
   });
 
+  // Full presentation shape shared by the create (PUT) response and the editor's
+  // detail GET after create-navigation (the editor is real since Phase 5).
+  const createdPresentation = {
+    ...baseItem,
+    client_id: "aup_created",
+    logical_client_id: "aup_created",
+    title: "Untitled announcement",
+    slide_count: undefined,
+    media_kinds: undefined,
+    cover_url: undefined,
+    slides: [],
+    audience: {
+      audience_mode: "all_matching",
+      app_keys: [],
+      role_keys: [],
+      workspace_ids: [],
+      user_ids: [],
+    },
+  };
+
   await page.route("**/api/v1/app-update-presentations**", async (route) => {
     const request = route.request();
     if (request.method() === "PUT") {
       expect(request.postDataJSON()).toEqual({ title: "Untitled announcement" });
-      await json(route, 200, {
-        ok: true,
-        data: {
-          presentation: {
-            ...baseItem,
-            client_id: "aup_created",
-            logical_client_id: "aup_created",
-            title: "Untitled announcement",
-            slide_count: undefined,
-            media_kinds: undefined,
-            cover_url: undefined,
-            slides: [],
-            audience: {
-              audience_mode: "all_matching",
-              app_keys: [],
-              role_keys: [],
-              workspace_ids: [],
-              user_ids: [],
-            },
-          },
-        },
-        warnings: [],
-      });
+      await json(route, 200, { ok: true, data: { presentation: createdPresentation }, warnings: [] });
+      return;
+    }
+    if (
+      request.method() === "GET" &&
+      new URL(request.url()).pathname.endsWith("/app-update-presentations/aup_created")
+    ) {
+      await json(route, 200, { ok: true, data: { presentation: createdPresentation }, warnings: [] });
       return;
     }
 
@@ -290,7 +295,7 @@ test("presentation-dashboard supports grouping, filters, search, and create navi
   await expect(page.getByText("Q3 Product Update")).toBeVisible();
   await page.getByTestId("presentation-dashboard-new-announcement-button").click();
   await expect(page).toHaveURL(/\/editor\/aup_created$/);
-  await expect(page.getByTestId("editor-placeholder")).toBeAttached();
+  await expect(page.getByTestId("presentation-editor-shell")).toBeVisible();
 
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);

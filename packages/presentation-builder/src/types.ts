@@ -85,7 +85,8 @@ export type SlideAction = z.infer<typeof SlideActionSchema>;
 
 export const SlideSchema = z.object({
   client_id: z.string().startsWith("aups_").max(64),
-  sequence_order: z.number().int().positive(),
+  // 0 is legal in drafts — the backend only normalizes sequences to 1..N at publish.
+  sequence_order: z.number().int().nonnegative(),
   title: z.string().nullable(),
   description: z.string().nullable(),
   layout_type: SlideLayoutTypeSchema,
