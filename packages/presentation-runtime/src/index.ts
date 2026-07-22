@@ -1,0 +1,43 @@
+export {
+  AnimationEasingSchema,
+  AnimationTypeSchema,
+  COMPOSITION_SCHEMA_VERSION,
+  CompositionElementSchema,
+  CompositionSchemaVersionSchema,
+  ElementAnimationSchema,
+  ElementLayoutSchema,
+  ElementTypeSchema,
+  LayoutAnchorSchema,
+  LayoutFitSchema,
+  MediaTypeSchema,
+  PlaybackModeSchema,
+  SlideMediaSchema,
+  TextAlignSchema,
+  TextOverflowSchema,
+  TextRoleSchema,
+  TextStyleSchema,
+} from "./schemas";
+export type {
+  AnimationEasing,
+  AnimationType,
+  CompositionElement,
+  CompositionSchemaVersion,
+  ElementAnimation,
+  ElementLayout,
+  ElementType,
+  LayoutAnchor,
+  LayoutFit,
+  MediaType,
+  PlaybackMode,
+  SlideMedia,
+  TextAlign,
+  TextOverflow,
+  TextRole,
+  TextStyle,
+} from "./schemas";
+export { compareCompositionElements, sortCompositionElements } from "./ordering";
+export {
+  REFERENCE_CANVAS_WIDTH,
+  SlideCompositionRenderer,
+  type SlideCompositionRendererProps,
+} from "./SlideCompositionRenderer";

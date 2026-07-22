@@ -25,6 +25,7 @@ export type UpholsteryId = Branded<string, 'UpholsteryId'>;
 export type UpholsteryInventoryId = Branded<string, 'UpholsteryInventoryId'>;
 export type UpholsteryRequirementId = Branded<string, 'UpholsteryRequirementId'>;
 export type WorkspaceId = Branded<string, 'WorkspaceId'>;
+export type PauseReasonId = Branded<string, 'PauseReasonId'>;
 
 export const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 export const DateOnlySchema = z

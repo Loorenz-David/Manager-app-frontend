@@ -1,5 +1,11 @@
 import { z } from "zod";
-import type { TaskId, TaskStepId, WorkingSectionId, UserId } from "@beyo/lib";
+import type {
+  PauseReasonId,
+  TaskId,
+  TaskStepId,
+  WorkingSectionId,
+  UserId,
+} from "@beyo/lib";
 import {
   ImageAnnotationSchema,
   toImageAnnotationViewModels,
@@ -70,6 +76,11 @@ export type StepDependencyEntry = z.infer<typeof StepDependencyEntrySchema>;
 
 export const LastStateRecordSchema = z.object({
   state: StepStateSchema,
+  pause_reason_id: z
+    .string()
+    .transform((value) => value as PauseReasonId)
+    .nullable()
+    .optional(),
   entered_at: z.string(),
   exited_at: z.string().nullable(),
   last_action_by: UserRefSchema.nullable().optional(),
@@ -194,23 +205,12 @@ export const TaskStepsPaginationSchema = z.object({
 });
 export type TaskStepsPagination = z.infer<typeof TaskStepsPaginationSchema>;
 
-export const StepTransitionReasonSchema = z.enum([
-  "waiting_for_upholstery",
-  "pause_lunch_break",
-  "pause_coffee_break",
-  "pause_ended_shift",
-  "pause_meeting",
-  "pause_other_task_priority",
-  "pause_case_created",
-]);
-export type StepTransitionReason = z.infer<typeof StepTransitionReasonSchema>;
-
 export type TransitionStepStateInput = {
   task_id: TaskId;
   step_id: TaskStepId;
   new_state: StepState;
   credited_user_id?: UserId;
-  reason?: StepTransitionReason;
+  pause_reason_id?: PauseReasonId | null;
   description?: string;
   mark_closing_record_inaccurate?: boolean;
 };
@@ -458,7 +458,7 @@ export type BatchStepTransitionItem = {
 export type BatchStepTransitionRequest = {
   items: BatchStepTransitionItem[];
   new_state: StepState;
-  reason?: string | null;
+  pause_reason_id?: PauseReasonId | null;
   description?: string | null;
 };
 

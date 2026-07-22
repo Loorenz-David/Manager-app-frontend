@@ -17,6 +17,7 @@
 @source "../../../../packages/celebration/src";
 @source "../../../../packages/upholstery/src";
 @source "../../../../packages/working-sections/src";
+@source "../../../../packages/pause-reasons/src";
 
 @theme {
   --font-celebration: "Fredoka", sans-serif;

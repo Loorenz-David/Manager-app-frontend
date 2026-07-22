@@ -35,6 +35,7 @@ import {
   type CaseCreationSurfaceOpeners,
   type ParticipantPickerSlideSurfaceProps,
 } from "@beyo/cases";
+import { usePauseReasonsQuery } from "@beyo/pause-reasons";
 import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, type ShopifyProductSyncSurfaceOpeners } from "@beyo/shopify";
 import type { WorkerWorkingSection } from "../../working_sections/types";
 import {
@@ -221,6 +222,10 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     pendingCompletion,
     clearPendingCompletion,
   } = useTransitionStepState();
+  const { data: pauseReasonsData } = usePauseReasonsQuery({});
+  const caseCreatedPauseReasonId = pauseReasonsData?.pause_reasons.find(
+    (reason) => reason.slug === "pause_case_created",
+  )?.client_id;
   const updateItemPosition = useUpdateItemPosition(resolvedWorkingSectionId);
   const { cancelCompletion, isPending: isCancellingCompletion } =
     useCancelPendingStepCompletion();
@@ -684,7 +689,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
             step_id: resolvedStepId,
             new_state: "paused",
             working_section_id: resolvedWorkingSectionId,
-            reason: "pause_case_created",
+            pause_reason_id: caseCreatedPauseReasonId,
             ...(plainText ? { description: plainText } : {}),
           });
         },
@@ -715,6 +720,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     transitionStepState,
     resolvedStepId,
     resolvedWorkingSectionId,
+    caseCreatedPauseReasonId,
   ]);
 
   // Flow record detail surface not yet registered in workers app.

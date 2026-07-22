@@ -2,67 +2,49 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { usePauseReasonsQuery, PauseReasonPicker, type PauseReason } from "@beyo/pause-reasons";
 import { tabVariants, transitions } from "@beyo/lib";
-import { BoxPicker, type BoxPickerOptionType } from "@beyo/ui";
 import { useTransitionStepState } from "@/features/task_steps/actions/use-transition-step-state";
 import type { PauseReasonSheetSurfaceProps } from "@/features/task_steps/surface-ids";
-import type { StepTransitionReason } from "@/features/task_steps/types";
+import { resolvePauseReasonTransition } from "@/features/task_steps/lib/pause-reason-transition";
 
-const PAUSE_REASON_OPTIONS: BoxPickerOptionType<StepTransitionReason>[] = [
-  {
-    value: "waiting_for_upholstery",
-    label: "Waiting upholstery",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/case_types/no_fabric.webp",
-    imageClassName: "size-14",
-  },
-  {
-    value: "pause_lunch_break",
-    label: "Lunch break",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/pause_reasons/lunch_break.webp",
-    imageClassName: "size-14",
-  },
-  {
-    value: "pause_coffee_break",
-    label: "Coffee break",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/pause_reasons/coffee_break.webp",
-    imageClassName: "size-14",
-  },
-  {
-    value: "pause_ended_shift",
-    label: "Ended shift",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/pause_reasons/ended_shift.webp",
-    imageClassName: "size-14",
-  },
-  {
-    value: "pause_meeting",
-    label: "Meeting",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/pause_reasons/meeting.webp",
-    imageClassName: "size-14",
-  },
-  {
-    value: "pause_other_task_priority",
-    label: "Other task",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/pause_reasons/other_task_priority.webp",
-    imageClassName: "size-14",
-  },
-];
+function PauseReasonPickerSkeleton(): React.JSX.Element {
+  return (
+    <div
+      aria-busy="true"
+      className="grid grid-cols-2 gap-2"
+      data-testid="pause-reason-loading"
+    >
+      {Array.from({ length: 6 }, (_, index) => (
+        <div
+          aria-hidden="true"
+          className="skeleton-shimmer h-28 rounded-xl"
+          key={index}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function PauseReasonSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
   const { stepId, taskId, workingSectionId } =
     useSurfaceProps<PauseReasonSheetSurfaceProps>();
-  const { transitionStepState, isPending } = useTransitionStepState();
+  const {
+    data: pauseReasonsData,
+    isPending: isReasonsPending,
+    isError: isReasonsError,
+  } = usePauseReasonsQuery({});
+  const { transitionStepState, isPending: isTransitionPending } =
+    useTransitionStepState();
 
   const [view, setView] = useState<0 | 1>(0);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [otherDescription, setOtherDescription] = useState("");
+  const [selectedReason, setSelectedReason] = useState<PauseReason | null>(
+    null,
+  );
+  const [description, setDescription] = useState("");
   const [pickerViewHeightPx, setPickerViewHeightPx] = useState<number | null>(
     null,
   );
@@ -76,6 +58,7 @@ export function PauseReasonSheetPage(): React.JSX.Element {
   const resolvedWorkingSectionId =
     workingSectionId ??
     ("" as PauseReasonSheetSurfaceProps["workingSectionId"]);
+  const reasons = pauseReasonsData?.pause_reasons ?? [];
 
   useEffect(() => {
     header?.setTitle("Pause reason");
@@ -94,14 +77,9 @@ export function PauseReasonSheetPage(): React.JSX.Element {
 
     updateHeight();
 
-    const observer = new ResizeObserver(() => {
-      updateHeight();
-    });
+    const observer = new ResizeObserver(updateHeight);
     observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, [view]);
 
   function closeSheet() {
@@ -113,40 +91,48 @@ export function PauseReasonSheetPage(): React.JSX.Element {
     closeTop();
   }
 
-  function handleOptionSelect(reason: StepTransitionReason) {
-    if (isPending) {
+  function handleOptionSelect(reason: PauseReason) {
+    if (isTransitionPending) {
       return;
     }
 
-    if (reason === "pause_other_task_priority") {
+    setSelectedReason(reason);
+    const transition = resolvePauseReasonTransition(reason);
+
+    if (transition.requiresDescription) {
+      setDescription("");
       setDirection(1);
       setView(1);
       return;
     }
 
-    const newState = reason === "pause_ended_shift" ? "ended_shift" : "paused";
-
     transitionStepState({
       task_id: resolvedTaskId,
       step_id: resolvedStepId,
-      new_state: newState,
-      reason,
+      new_state: transition.newState,
+      pause_reason_id: reason.client_id,
       working_section_id: resolvedWorkingSectionId,
     });
     closeSheet();
   }
 
   function handlePauseWithDescription() {
-    if (isPending) {
+    const trimmedDescription = description.trim();
+    if (
+      isTransitionPending ||
+      !selectedReason ||
+      trimmedDescription.length === 0
+    ) {
       return;
     }
 
+    const transition = resolvePauseReasonTransition(selectedReason);
     transitionStepState({
       task_id: resolvedTaskId,
       step_id: resolvedStepId,
-      new_state: "paused",
-      reason: "pause_other_task_priority",
-      description: otherDescription.trim() || undefined,
+      new_state: transition.newState,
+      pause_reason_id: selectedReason.client_id,
+      description: trimmedDescription,
       working_section_id: resolvedWorkingSectionId,
     });
     closeSheet();
@@ -179,24 +165,35 @@ export function PauseReasonSheetPage(): React.JSX.Element {
               Why are you pausing this task?
             </div>
 
-            <div
-              className={
-                isPending ? "pointer-events-none opacity-60" : undefined
-              }
-            >
-              <BoxPicker
-                columns={2}
+            {isReasonsPending ? <PauseReasonPickerSkeleton /> : null}
+            {!isReasonsPending && isReasonsError ? (
+              <div
+                className="rounded-xl border border-border p-4 text-sm text-muted-foreground"
+                data-testid="pause-reason-error"
+              >
+                Pause reasons could not be loaded.
+              </div>
+            ) : null}
+            {!isReasonsPending && !isReasonsError && reasons.length === 0 ? (
+              <div
+                className="rounded-xl border border-border p-4 text-sm text-muted-foreground"
+                data-testid="pause-reason-empty"
+              >
+                No pause reasons are available.
+              </div>
+            ) : null}
+            {!isReasonsPending && !isReasonsError && reasons.length > 0 ? (
+              <PauseReasonPicker
                 data-testid="pause-reason-picker"
-                mode="single"
-                onValueChange={handleOptionSelect}
-                options={PAUSE_REASON_OPTIONS}
-                value={null}
+                disabled={isTransitionPending}
+                onSelect={handleOptionSelect}
+                reasons={reasons}
               />
-            </div>
+            ) : null}
           </m.div>
         ) : (
           <m.div
-            key="pause-reason-other-view"
+            key="pause-reason-description-view"
             animate="center"
             className="flex flex-col gap-3 px-4 pb-4 pt-2"
             custom={direction}
@@ -227,26 +224,27 @@ export function PauseReasonSheetPage(): React.JSX.Element {
                 <ArrowLeft className="size-4" />
               </button>
               <span className="text-sm font-medium text-muted-foreground">
-                Other task details
+                {selectedReason?.name ?? "Pause details"}
               </span>
             </div>
 
             <textarea
               ref={textareaRef}
+              aria-label="Pause description"
               className="h-36 w-full resize-none rounded-xl border border-border bg-card p-3 text-sm text-foreground outline-none focus:border-primary"
               data-testid="pause-reason-description-input"
               placeholder="Describe the reason..."
-              value={otherDescription}
-              onChange={(event) => {
-                setOtherDescription(event.target.value);
-              }}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
             />
 
             <button
               type="button"
               className="mt-auto w-full rounded-xl bg-primary py-3 text-sm font-semibold text-card disabled:opacity-50"
               data-testid="pause-reason-submit-button"
-              disabled={isPending}
+              disabled={
+                isTransitionPending || description.trim().length === 0
+              }
               onClick={handlePauseWithDescription}
             >
               Pause task

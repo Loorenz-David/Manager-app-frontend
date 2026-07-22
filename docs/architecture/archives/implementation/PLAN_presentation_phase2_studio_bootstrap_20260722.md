@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase2_studio_bootstrap_20260722`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T11:44:47Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 2)
 
@@ -91,9 +91,11 @@ Permitted relational reads: `apps/managers-app/ManagerBeyo-app-managers/` — `p
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 2.
+- `2026-07-22` User: approved for implementation — Phase 1 reviewed PASS-WITH-NOTES (Opus reviewer; advisories routed to Phases 4 and 7); V1 resolved (`appScope="manager"`); no kit session needed. Handed to Codex.
+- `2026-07-22` Codex: implemented the thin desktop shell and passed root typecheck, app lint/build, and the 4/4 desktop auth browser suite (manager/admin session lifecycle, worker rejection, editor deep-link round-trip). Dual-role wiring used deterministic API interception because live role credentials were unavailable; both successful roles asserted `app_scope="manager"`.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `archived`
+- Next state: none — Phase 2 complete
+- Transition owner: `Codex session (Phase 2)`

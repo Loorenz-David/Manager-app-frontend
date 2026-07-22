@@ -2,7 +2,7 @@
 
 **Start with [`ORCHESTRATION_MAP.md`](ORCHESTRATION_MAP.md)** — the operator runbook: who to talk to (Claude / Codex / backend) at every step, with per-phase checklists and the open-decisions queue.
 
-One prompt file per phase. Paste a single file into a **fresh Codex session**; each is standalone.
+One implementation prompt per phase (paste into a **fresh Codex session**) and one pre-filled review prompt per phase in [`review_prompts/`](review_prompts/) (paste into a **fresh Claude Opus review session** after the Codex session finishes). `PROMPT_review_template.md` is the generic fallback the review prompts were generated from. Each file is standalone.
 
 Run strictly in order (each phase builds on the previous one's shipped shape). Never run two phases in parallel.
 

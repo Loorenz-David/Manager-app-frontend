@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase4_editor_shell_slides_media_20260722`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T16:28:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 4)
 - Design reference: design README §1b (layout regions) + both editor screenshots
@@ -96,9 +96,10 @@ Permitted relational reads: Phase 1 hooks/types (what exists), `packages/ui` `Ba
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 4.
+- `2026-07-22` User: approved — Phases 1–3 complete and reviewed. Sequence: Claude-builder editor-chrome kit session first, then Codex (which also owns the carried embedded-media serialization verification from the Phase 1 review). Poster-only video thumbnails default stands.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `approved`
+- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Transition owner: `Codex session (Phase 4)`, after the Claude-builder kit session

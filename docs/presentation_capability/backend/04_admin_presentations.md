@@ -95,7 +95,8 @@ the admin console list, not the consumer feed).
 | `role_key` | presentations targeting that role. |
 | `published_before` / `published_after` | `published_at` range (ISO-8601). |
 
-**Response** — compact items (no slides/audience):
+**Response** — compact items (no full slides/audience) **plus per-deck card
+preview fields** (`slide_count`, `media_kinds`, `cover_url`):
 
 ```json
 {
@@ -120,7 +121,10 @@ the admin console list, not the consumer feed).
         "archived_at": null,
         "created_at": "2026-07-20T10:00:00+00:00",
         "created_by_id": "usr_01J...",
-        "updated_at": "2026-07-21T18:00:00+00:00"
+        "updated_at": "2026-07-21T18:00:00+00:00",
+        "slide_count": 3,
+        "media_kinds": ["image", "video"],
+        "cover_url": "https://<s3-presigned-GET>"
       }
     ],
     "has_more": false,
@@ -129,6 +133,18 @@ the admin console list, not the consumer feed).
   }
 }
 ```
+
+**Card preview fields** (admin list only — the consumer `/active` and `/history`
+already return full slides and are unchanged):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `slide_count` | int ≥ 0 | Number of the version's non-deleted slides. |
+| `media_kinds` | `("image"\|"video")[]` | One entry per non-deleted media across the deck, ordered by slide `sequence_order`, then media `sequence_order`. `[]` when the deck has no media. |
+| `cover_url` | string \| null | Short-lived presigned cover URL: the first usable media scanning slides then media in order — an `image`'s own URL, or a `video`'s `poster_url` then `fallback_url`. `null` when nothing usable exists. Same presigning semantics as other `*_url` fields. |
+
+Soft-deleted slides/media are excluded from all three. Every status/version gets
+them.
 
 ---
 

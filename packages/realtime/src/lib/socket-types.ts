@@ -113,6 +113,9 @@ export type ServerToClientEvents = {
     client_id: string;
     working_section_ids: string[];
   }) => void;
+  "pause_reason:created": (payload: { client_id: string }) => void;
+  "pause_reason:updated": (payload: { client_id: string }) => void;
+  "pause_reason:deleted": (payload: { client_id: string }) => void;
 };
 
 export type ClientToServerEvents = {

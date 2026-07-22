@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@beyo/styles";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/auth/src";
+@source "../../../../packages/presentation-builder/src";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  color: #171717;
+  background: #f4f4f4;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body,
+#root {
+  min-width: 1024px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: #f4f4f4;
+}
+
+button,
+input {
+  font: inherit;
+}

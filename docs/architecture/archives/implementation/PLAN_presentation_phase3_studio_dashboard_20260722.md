@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase3_studio_dashboard_20260722`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T13:27:43Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 3)
 - Design reference: `docs/presentation_capability/design/README.md` §1a + `presentation_menu.png`
@@ -92,9 +92,11 @@ Permitted relational reads: `packages/ui` `StatePill` + `BackendImage` prop surf
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 3.
+- `2026-07-22` User: approved for implementation — Phases 1–2 reviewed PASS-WITH-NOTES; open clarification resolved by stated default (no card context menu until Phase 6). Sequence: Claude-builder kit session first (dashboard components, user design approval), then Codex session.
+- `2026-07-22` Codex: implementation completed through `PLAN_presentation_phase3_corrections_20260722`; validation passed (root typecheck, builder 8 files / 29 tests, dashboard Playwright 1/1, approved kit diff empty). Summary and archive record written; original plan archived. Corrections plan remains approved for independent re-review.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `archived`
+- Next state: none for this original plan; independently review the corrections plan.
+- Transition owner: `Codex session (Phase 3 corrections)`

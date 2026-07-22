@@ -30,6 +30,7 @@ Per the master's "Division of labor" section, this phase's presentational compon
 - Schema ownership moves composition schemas to `@beyo/presentation-runtime` with builder re-exports (planned move — do it cleanly, no duplicated schema definitions anywhere).
 - Slide ops are eager with write-through-from-response (never blind invalidation); deleting the last slide is blocked; upload failures at the S3 step must never call the confirm endpoint.
 - Non-draft presentations: read-only banner + every mutating affordance disabled; this screen must never trigger a 409.
+- **Carried from the Phase 1 review (master Review log)**: `SlideMediaSchema` requires `sequence_order` + `mime_type`, but backend doc `09`'s element-embedded media example omits them and no fixture covers that path. Before real data flows through the renderer: verify the element-embedded media serialization against a real backend response and add a round-trip fixture for a media element with embedded media; loosen the schema for the embedded context if the backend omits those fields there.
 - Clarification default applies: video thumbnails use `poster_url` or the stripe placeholder — no poster generation UX.
 - Relational reads per the plan's whitelist only. `data-testid` on all feature-critical elements.
 

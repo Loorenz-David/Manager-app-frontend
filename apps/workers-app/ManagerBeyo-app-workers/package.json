@@ -27,6 +27,7 @@
     "@beyo/images": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
+    "@beyo/pause-reasons": "*",
     "@beyo/phone-input": "*",
     "@beyo/pwa": "*",
     "@beyo/realtime": "*",

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase1_builder_foundation_20260722`
-- Status: `approved`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T12:00:00Z`
+- Last updated at (UTC): `2026-07-22T11:02:40Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 1)
 - Backend contract: `docs/presentation_capability/backend/` `02`–`09`
@@ -98,9 +98,10 @@ Apply the test from `task_system/frontend_contract_goal_mapping_guide.md`. Permi
 
 - `2026-07-22` Claude: drafted from master Phase 1.
 - `2026-07-22` User: approved for implementation (no open clarifications; V1–V3 resolved at master level; no kit session needed — logic-only phase). Handed to Codex.
+- `2026-07-22` Codex: implemented the complete builder logic foundation; `npm run typecheck` passed with zero errors and `npm run test:presentation-builder` passed 5 files / 16 tests. No scope deviations; lifecycle artifacts written and plan archived.
 
 ## Lifecycle transition
 
-- Current state: `approved`
-- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Current state: `archived`
+- Next state: Phase 2 may proceed under its own approved child plan.
 - Transition owner: `Codex session (Phase 1)`

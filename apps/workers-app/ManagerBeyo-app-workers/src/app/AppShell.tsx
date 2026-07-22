@@ -12,6 +12,7 @@ import {
   ReassignmentAcknowledgmentsProvider,
 } from "@/features/task_steps";
 import { preloadPrimaryTabRoutes } from "@/lib/primary-tab-preload";
+import { useBootstrapPrefetch } from "@/hooks/use-bootstrap-prefetch";
 import { ROUTES } from "@/lib/routes";
 import { AppScrollElementProvider } from "@/providers/AppScrollElementProvider";
 import {
@@ -35,6 +36,7 @@ function isPathInHiddenCardSection(pathname: string): boolean {
 function AppShellInner(): React.JSX.Element {
   const location = useLocation();
   const { isSelecting } = useBatchSelectionOverlay();
+  useBootstrapPrefetch();
 
   useEffect(() => {
     preloadPrimaryTabRoutes();

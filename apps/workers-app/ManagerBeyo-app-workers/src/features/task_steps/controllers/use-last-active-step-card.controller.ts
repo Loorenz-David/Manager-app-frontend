@@ -125,7 +125,7 @@ export function useLastActiveStepCardController() {
       await transitionBatchAsync({
         items,
         new_state: targetState,
-        reason: null,
+        pause_reason_id: null,
         description: null,
         working_section_id: workingSectionId,
       });

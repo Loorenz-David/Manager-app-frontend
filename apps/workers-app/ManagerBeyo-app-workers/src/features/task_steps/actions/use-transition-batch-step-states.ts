@@ -17,7 +17,7 @@ export function useTransitionBatchStepStates() {
       transitionBatchStepStates({
         items: input.items,
         new_state: input.new_state,
-        reason: input.reason,
+        pause_reason_id: input.pause_reason_id,
         description: input.description,
       }),
 

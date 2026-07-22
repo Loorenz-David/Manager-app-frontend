@@ -1,5 +1,6 @@
 import { caseSocketEvents } from "@beyo/cases";
 import { notificationSocketEvents } from "@beyo/notifications";
+import { pauseReasonSocketEvents } from "@beyo/pause-reasons";
 import type { SocketEventHandlers } from "@beyo/realtime";
 import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { taskStepSocketEvents } from "@/features/task_steps/socket-events";
@@ -14,5 +15,6 @@ export const socketRegistry: SocketEventHandlers = {
   ...workerWorkingSectionSocketEvents,
   ...upholsterySocketEvents,
   ...notificationSocketEvents,
+  ...pauseReasonSocketEvents,
   ...shopifyProductSyncSocketEvents,
 };
