@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase6_editor_preview_publish_20260722`
-- Status: `under_construction`
+- Status: `approved`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T22:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 6)
 - Design reference: design README "Preview overlay"; backend `04_admin_presentations.md`, `06_admin_audience.md`
@@ -94,9 +94,10 @@ Permitted relational reads: existing users/members feature (`src/features/users/
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 6.
+- `2026-07-22` User: approved — Phases 1–5 complete; both clarifications resolved (V2: no mitigation; user picker: builder-owned `/users` wrapper). Claude-builder preview/publish kit session precedes the Codex session (lean brief). Carried into the session: consolidate EditorView/panel inline mapping into `composition-mapping.ts` (Phase 5 review advisory).
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `approved`
+- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Transition owner: `Codex session (Phase 6)`, after the Claude-builder kit session

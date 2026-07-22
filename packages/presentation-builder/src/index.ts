@@ -123,7 +123,24 @@ export {
   SegmentedControl,
 } from "./components/panels/PanelPrimitives";
 
+// Preview & publish UI kit (presentational, props-only — see master plan "Division of labor")
+export { PreviewOverlay } from "./components/preview/PreviewOverlay";
+export {
+  PublishDialogShell,
+  PublishDialogSection,
+} from "./components/publish/PublishDialogShell";
+export { ChipCheckboxGroup } from "./components/publish/ChipCheckboxGroup";
+export { UserPickerList, type UserPickerOption } from "./components/publish/UserPickerList";
+export {
+  PublishSettingsFields,
+  type PublishCategoryChoice,
+  type PublishTypeChoice,
+} from "./components/publish/PublishSettingsFields";
+export { SchedulePickers } from "./components/publish/SchedulePickers";
+export { PublishErrorSummary } from "./components/publish/PublishErrorSummary";
+
 // Dev-only kit showcases (mounted by the studio behind import.meta.env.DEV routes)
 export { DashboardKitPreview } from "./dev/DashboardKitPreview";
 export { EditorKitPreview } from "./dev/EditorKitPreview";
 export { TimelineKitPreview } from "./dev/TimelineKitPreview";
+export { PublishKitPreview } from "./dev/PublishKitPreview";

@@ -87,9 +87,9 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 
 ### Phase 6 — preview + publish + versioning
 - [x] **Decision**: user-picker source resolved *(2026-07-22 — builder-owned wrapper of the compact `/users` endpoint, mirroring `@beyo/cases`' shape; no cases dependency, no injected fetch)*
-- [ ] Ask Claude: flip plan to `approved`
-- [ ] Ask Claude: **"build the Phase 6 preview + publish dialog kit"** → review → iterate
-- [ ] Codex: paste `PROMPT_phase6_preview_publish.md`
+- [x] Ask Claude: flip plan to `approved` *(2026-07-22)*
+- [ ] Ask Claude: **"build the Phase 6 preview + publish dialog kit"** → review → iterate *(kit built 2026-07-22 — view at `/kit/publish`: preview overlay + full publish dialog; awaiting your design approval)*
+- [ ] Codex: paste `PROMPT_phase6_preview_publish.md` *(rewritten as lean brief; carries the mapping-consolidation advisory, resolved V2 + user-picker decisions)*
 - [ ] Opus reviewer: paste `review_prompts/REVIEW_phase6_editor_preview_publish.md`
 - Gate note: V2 resolved — no title-mirror anywhere; review checks it stayed absent.
 

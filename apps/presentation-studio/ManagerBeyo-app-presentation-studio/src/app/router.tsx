@@ -75,6 +75,14 @@ export const router = createBrowserRouter([
                 })),
               ),
             },
+            {
+              path: "/kit/publish",
+              element: lazyRoute(() =>
+                import("@/pages/dev/PublishKitPreviewPage").then((module) => ({
+                  default: module.PublishKitPreviewPage,
+                })),
+              ),
+            },
           ]
         : []),
       { path: "*", element: <Navigate to={ROUTES.home} replace /> },
