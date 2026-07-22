@@ -5,6 +5,7 @@
     "test:shopify": "vitest run --config packages/shopify/vitest.config.ts",
     "test:presentation-builder": "vitest run --config packages/presentation-builder/vitest.config.ts",
     "test:presentation-runtime": "vitest run --config packages/presentation-runtime/vitest.config.ts",
+    "test:presentations": "vitest run --config packages/presentations/vitest.config.ts",
     "test:stats": "vitest run --config packages/stats/vitest.config.ts",
     "test:upholstery": "vitest run --config packages/upholstery/vitest.config.ts",
     "test:pause-reasons": "vitest run --config packages/pause-reasons/vitest.config.ts",

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase8_player_package_20260722`
-- Status: `approved`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-22T19:29:12Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 8)
 - Backend contract: `docs/presentation_capability/backend/03_consumer_endpoints.md` (+ `09` for rendering)
@@ -102,8 +102,10 @@ Permitted relational reads: `@beyo/presentation-runtime` public API (what shippe
 
 - `2026-07-23` User: approved — creation side (Phases 1–7) complete and reviewed clean. All clarifications resolved (dismiss-chrome matrix incl. `setSwipeDismissDisabled` for slide_page; all three playback modes in scope). Claude-builder player-chrome kit session precedes the lean-brief Codex session; kit scaffolds the package skeleton, Codex adds api/orchestration/surfaces.
 
+- `2026-07-22` Codex: Phase 8 implemented and validated. Added the consumer schemas/API/actions, all-mode playback, runtime-rendered player assembly, three surface wrappers/openers/loaders, and single-owner orchestration with invalidation dedupe and terminal refetch. Validation: root typecheck exit 0; presentations 10/10, runtime 19/19, builder 95/95; shared builder/player rendering-parity fixture passed; `/history` and forbidden-import scans clean; player-kit diff empty. Summary written and plan archived. Playwright remains deferred to Phase 9 as approved.
+
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
+- Current state: `archived`
+- Next state: Phase 9 host-app wiring
 - Transition owner: `Claude`

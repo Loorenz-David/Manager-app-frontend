@@ -105,9 +105,11 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 ### Phase 8 — phone player package
 - [x] **Decision**: dismiss chrome resolved *(2026-07-23 — slide_page: built-in slide-to-close gesture = dismiss, deactivated via `setSwipeDismissDisabled` + footer acknowledge button when `is_dismissible: false`; modal: X; full_screen: Skip; acknowledge always records `completed`. All three playback modes in scope.)*
 - [x] Ask Claude: **re-validate the Phase 8 plan** *(2026-07-23 — shipped runtime API matches assumptions; plan `approved`)*
-- [ ] Ask Claude: **"build the Phase 8 player chrome kit"** → review → iterate *(kit built 2026-07-23 — `packages/presentations` scaffolded with 8 chrome components; view at `/kit/player` in the dev studio: switch frames, toggle is_dismissible, drag progress; awaiting your design approval)*
-- [ ] Codex: paste `PROMPT_phase8_player_package.md` *(rewritten as lean brief; kit + dismiss matrix + setSwipeDismissDisabled wiring spelled out)*
-- [ ] Opus reviewer: paste `review_prompts/REVIEW_phase8_player_package.md`
+- [x] Ask Claude: **"build the Phase 8 player chrome kit"** *(built + design-approved 2026-07-23; committed `320bd2a2`; showcase at `/kit/player`)*
+- [x] Codex: paste `PROMPT_phase8_player_package.md` *(2026-07-23 — implemented single-session; lifecycle complete)*
+- [x] Review *(2026-07-23 — PASS-WITH-NOTES by Claude-builder substituting for busy Opus, disclosed; 7/7 criteria; 10/10+19/19+95/95 tests; kit diff vs `320bd2a2` EMPTY; parity fixture green cross-package; 1 low advisory → Phase 9: drop the surface entries' default exports while wiring lazy registration)*
+- **Phase 8 COMPLETE** ✅
+- [ ] **Operator (you): commit the Phase 8 implementation**
 
 ### Phase 9 — phone apps wiring (final)
 - [ ] **Decision (you), before launch**: auto-show timing policy (recommendation: auto-open only on home/root route; workers most conservative). Tell Claude to record it.
