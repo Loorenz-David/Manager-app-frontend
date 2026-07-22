@@ -287,6 +287,22 @@ export function usePresentationEditorController(presentationId: string) {
     }
   }, [addSlide, flushAll, presentation, presentationId, readOnly, reconcile]);
 
+  // A draft deck always has at least one slide (design invariant: the editor's
+  // timeline/text tools are inert without one). Fresh presentations arrive with
+  // slides: [] — append the first slide automatically, once per mount.
+  const autoFirstSlideRef = useRef(false);
+  useEffect(() => {
+    if (
+      autoFirstSlideRef.current ||
+      readOnly ||
+      !presentation ||
+      presentation.slides.length > 0
+    )
+      return;
+    autoFirstSlideRef.current = true;
+    void add();
+  }, [add, presentation, readOnly]);
+
   const remove = useCallback(
     async (slideId: string) => {
       if (readOnly || !presentation || presentation.slides.length <= 1) return;

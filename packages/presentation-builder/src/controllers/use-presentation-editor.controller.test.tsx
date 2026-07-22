@@ -39,6 +39,32 @@ function installDetail(presentation = fullPresentationFixture) {
 afterEach(() => cleanup());
 
 describe("presentation editor controller", () => {
+  // Regression (2026-07-23): fresh presentations arrive with slides: [] and the
+  // timeline/+Text were inert — a draft deck must auto-create its first slide.
+  it("auto-creates and selects the first slide when a draft hydrates empty", async () => {
+    const emptyDraft = withSlides([]);
+    const afterAutoAdd = withSlides([fullPresentationFixture.slides[0]]);
+    installDetail(emptyDraft as typeof fullPresentationFixture);
+    server.use(
+      http.post(`${API_PATTERN}/:id/slides`, () =>
+        HttpResponse.json(envelope({ presentation: afterAutoAdd })),
+      ),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    await waitFor(() =>
+      expect(result.current.presentation?.slides).toHaveLength(1),
+    );
+    expect(result.current.selectedSlideId).toBe(
+      fullPresentationFixture.slides[0]!.client_id,
+    );
+  });
+
   it("adds and selects the server-returned slide", async () => {
     const response = withSlides([fullPresentationFixture.slides[0], secondSlide]);
     installDetail();

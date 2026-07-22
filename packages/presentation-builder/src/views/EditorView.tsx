@@ -228,7 +228,7 @@ function TimelineCanvasWorkspace({
             }}
             timecodeLabel={`${(clock.timeMs / 1_000).toFixed(1)}s / ${(durationMs / 1_000).toFixed(1)}s`}
             onAddText={controller.onAddText}
-            addTextDisabled={controller.readOnly}
+            addTextDisabled={controller.readOnly || controller.selectedSlide === null}
           />
         }
         ruler={<TimelineRuler ticks={generateTimelineTicks(durationMs)} onScrub={scrub} />}
