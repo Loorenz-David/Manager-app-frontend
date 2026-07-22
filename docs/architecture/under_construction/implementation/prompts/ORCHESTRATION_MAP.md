@@ -118,9 +118,9 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [x] Codex: `PROMPT_phase9_phone_wiring.md` *(2026-07-23 — session stalled with ZERO output, 3rd no-show; lean brief didn't prevent it → refined lesson: **breadth-of-touch across many pre-existing files stalls sessions**; split by scope boundary)*
 - [x] Review *(2026-07-23 — DEFECTS FOUND: implementation absent + 2 real package gaps found (provider lacks auto-show gate seam; realtime types lack both events); wrote `PLAN_presentation_phase9_corrections_20260722`, all Codex-logic)*
 - [x] Claude-builder: corrections plan approved + split into three lean sessions *(2026-07-23)*
-- [ ] Codex session 1: paste `PROMPT_phase9a_corrections_seams.md` (packages only: named entries, provider gate, realtime types/handler)
-- [ ] Codex session 2: paste `PROMPT_phase9b_corrections_managers.md` (managers-app end-to-end + its validation)
-- [ ] Codex session 3: paste `PROMPT_phase9c_corrections_replicate_close.md` (sellers + workers, live matrix — may need you for live servers/credentials — then the master close-out)
+- [x] Codex 9a *(2026-07-22 — seams delivered; 17/17)* · 9b *(managers end-to-end, all green + replication notes)* · 9c *(sellers+workers replicated incl. sellers Playwright setup; all per-app validation green; committed `4e91fd52` scoped away from the user's pause-reasons work)*
+- [ ] **Operator: fix the pause-reasons typecheck break** (`packages/stats/.../segment-adapter.test.ts:22`, user's parallel work) so the root gate goes green
+- [ ] **Live matrix + final chrome check (operator + Claude-builder together)**: user starts backend + studio + 3 apps, signs in with manager/seller/worker accounts; publish one announcement per app_key; verify receipt only in the matching app (realtime + cold boot); Claude records evidence in the corrections plan and performs the close-out (summary, Phase 9 plan + MASTER archival)
 - [ ] Re-review: `review_prompts/REVIEW_phase9_phone_apps_wiring.md` (also archives the corrections plan on pass); then ask Claude-builder for the final chrome check on real devices
 - [ ] End state: master archived — capability complete.
 

@@ -59,7 +59,8 @@ export const ConsumerPresentationSchema = z
     title: z.string(),
     summary: z.string().nullable(),
     presentation_type: PresentationTypeSchema,
-    category: z.string(),
+    // Nullable per backend 07_enums.md — announcements without a category serve null.
+    category: z.string().nullable(),
     is_dismissible: z.boolean(),
     display_priority: z.number().int(),
     published_at: z.string().nullable(),

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_capability_master_20260722`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-23T12:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: none (this master plan carries the intent; design + backend handoff below are the source documents)
 - Backend handoff (authoritative API contract): `docs/presentation_capability/backend/` (files `01`–`09` + `README.md`)
@@ -266,6 +266,9 @@ Per-phase (each child plan carries concrete commands); master-level gates:
 - Round-trip fixture test (Phase 5): a composition built in the editor store → mapped to the API body → mapped back → deep-equals the store state (guards mapping-table criterion 3).
 
 ## Review log
+
+- `2026-07-23` Claude (builder): **ALL PHASES (1–9) COMPLETE — CAPABILITY SHIPPED.** Creation side: studio app + @beyo/presentation-builder (dashboard, video-editor timeline, preview, publish/audience/versioning) hardened and hosting-documented. Shared core: @beyo/presentation-runtime (schemas, renderer, clock, animation registry) — one renderer across editor canvas, preview, and phone player, parity-fixture-proven. Phone side: @beyo/presentations mounted in managers/sellers/workers with home-route auto-show, realtime refresh (published+archived), full view-state loop, and the dismiss/acknowledge matrix. Live cross-app matrix recorded 2026-07-23 with operator-run servers: 12/12 assertions + realtime push + off-home deferral, zero frontend eligibility logic. Final validation: root typecheck green; all package/app suites green; per-app Playwright mobile+desktop green; bundle audits clean. Master archived per the Phase 9 close-out rule (executed by Claude-builder with the operator, per the corrections plan's operator-assisted matrix). The Phase 9 corrections plan remains `approved` for optional independent re-review.
+
 
 - `2026-07-22` Codex: **Phase 8 implemented and archived.** `@beyo/presentations` now provides the runtime-composed consumer DTOs, scoped `/active` query keys/hook, version-guarded non-blocking view-state actions, timed/manual/media-driven multi-slide playback, shared-runtime player assembly, the full modal/full-screen/slide-page dismiss matrix, surface IDs/openers/loaders, presigned-media refetch, and single-owner provider orchestration with monotonic progress, terminal next-item refetch, and mid-show invalidation dedupe. Shared rendering-parity fixture passes in builder preview and player tests. Validation: root typecheck PASS; presentations 10/10; runtime 19/19; builder 95/95; `/history` and forbidden-import scans clean; player-kit diff empty. Playwright remains deferred to Phase 9 because host registration is required. Master remains under construction.
 

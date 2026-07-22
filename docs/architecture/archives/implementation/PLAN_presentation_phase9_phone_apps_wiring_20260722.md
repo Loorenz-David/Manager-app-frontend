@@ -3,7 +3,7 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase9_phone_apps_wiring_20260722`
-- Status: `approved`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
 - Last updated at (UTC): `2026-07-22T00:00:00Z`
