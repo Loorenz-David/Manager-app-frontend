@@ -88,10 +88,11 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 ### Phase 6 — preview + publish + versioning
 - [x] **Decision**: user-picker source resolved *(2026-07-22 — builder-owned wrapper of the compact `/users` endpoint, mirroring `@beyo/cases`' shape; no cases dependency, no injected fetch)*
 - [x] Ask Claude: flip plan to `approved` *(2026-07-22)*
-- [ ] Ask Claude: **"build the Phase 6 preview + publish dialog kit"** → review → iterate *(kit built 2026-07-22 — view at `/kit/publish`: preview overlay + full publish dialog; awaiting your design approval)*
-- [ ] Codex: paste `PROMPT_phase6_preview_publish.md` *(rewritten as lean brief; carries the mapping-consolidation advisory, resolved V2 + user-picker decisions)*
-- [ ] Opus reviewer: paste `review_prompts/REVIEW_phase6_editor_preview_publish.md`
-- Gate note: V2 resolved — no title-mirror anywhere; review checks it stayed absent.
+- [x] Ask Claude: **"build the Phase 6 preview + publish dialog kit"** *(built + design-approved 2026-07-22; committed `8a1e0614`; showcase at `/kit/publish`)*
+- [x] Codex: paste `PROMPT_phase6_preview_publish.md` *(2026-07-22 — implemented single-session; Phase 5 mapping advisory consolidated; kit gained pre-recorded additive onArchive/archiveDisabled props, accepted by Claude-builder)*
+- [x] Opus reviewer *(2026-07-22 — PASS-WITH-NOTES: 7/7 criteria, 18/18 + 75/75 tests, publish flow + 3 regressions 4/4; no title-mirror anywhere; one advisory: 422 cause mapping is keyword-regex over backend's flat error string — optional backend follow-up: structured causes; its "carried process items" were again stale except the ApiEnvelopeSchema fold, which stays in Phase 7)*
+- **Phase 6 COMPLETE — creation side functionally complete** ✅
+- [ ] **Operator (you): commit the Phase 6 implementation**
 
 ### Phase 7 — hardening (split phase)
 - [ ] Ask Claude: flip plan to `approved`

@@ -1,7 +1,6 @@
-import { memo, useMemo, useRef } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 
 import {
-  REFERENCE_CANVAS_WIDTH,
   SlideCompositionRenderer,
   usePlaybackClock,
   type CompositionElement,
@@ -18,7 +17,8 @@ import { SlideRail } from "../components/editor/SlideRail";
 import type { SlideRailItemData } from "../components/editor/types";
 import { MediaElementPanel, type MediaFitChoice } from "../components/panels/MediaElementPanel";
 import { SlidePropertiesPanel } from "../components/panels/SlidePropertiesPanel";
-import { TextBlockPanel, type TextAnimationChoice } from "../components/panels/TextBlockPanel";
+import { TextBlockPanel } from "../components/panels/TextBlockPanel";
+import { PreviewOverlay } from "../components/preview/PreviewOverlay";
 import { TimelineBar } from "../components/timeline/TimelineBar";
 import { TimelineControls } from "../components/timeline/TimelineControls";
 import { TimelineDock } from "../components/timeline/TimelineDock";
@@ -28,19 +28,57 @@ import type { TimelineBarGesture } from "../components/timeline/types";
 import { usePresentationEditorController } from "../controllers/use-presentation-editor.controller";
 import { compositionElementId, slideHasBackground } from "../editor/draft-store";
 import {
+  editorAnimationToWire,
+  editorFontSizeToWire,
+  wireAnimationToEditor,
+  wireFontSizeToEditor,
+} from "../lib/composition-mapping";
+import { derivePresentationDisplayStatus } from "../lib/presentation-dashboard";
+import {
   applyTimelineGesture,
   clampCanvasPosition,
   generateTimelineTicks,
   scrubFractionToTime,
   timelineWindowFractions,
 } from "../lib/timeline-geometry";
+import { PublishDialog } from "../publish/PublishDialog";
+import { usePresentationPreviewPlayback } from "../preview/use-presentation-preview-playback";
+import type { Slide } from "../types";
 
 export type EditorViewProps = {
   presentationId: string;
   onBack: () => void;
+  onPresentationIdChange?: (presentationId: string) => void;
 };
 
 type EditorController = ReturnType<typeof usePresentationEditorController>;
+
+function EditorPreview({ slides, onExit }: { slides: Slide[]; onExit: () => void }) {
+  const durations = useMemo(() => slides.map((slide) => slide.duration_ms ?? 4_000), [slides]);
+  const playback = usePresentationPreviewPlayback(durations);
+  const slide = slides[playback.activeSlideIndex];
+  return (
+    <PreviewOverlay
+      onExit={onExit}
+      isPlaying={playback.isPlaying}
+      onTogglePlay={playback.toggle}
+      progressFraction={playback.progressFraction}
+      slideCount={slides.length}
+      activeSlideIndex={playback.activeSlideIndex}
+      onSelectSlide={playback.selectSlide}
+    >
+      {slide ? (
+        <SlideCompositionRenderer
+          elements={slide.elements}
+          timeMs={playback.slideTimeMs}
+          containerWidth={300}
+          containerHeight={533}
+          className="h-full w-full"
+        />
+      ) : null}
+    </PreviewOverlay>
+  );
+}
 
 const RailThumbnail = memo(function RailThumbnail({
   elements,
@@ -59,18 +97,8 @@ const RailThumbnail = memo(function RailThumbnail({
   );
 });
 
-function editorAnimation(animation: ElementAnimation | null): TextAnimationChoice {
-  if (animation === null || animation.type === "none") return "none";
-  return animation.type === "fade" ? "fade" : "slide";
-}
-
-function wireAnimation(choice: TextAnimationChoice): ElementAnimation {
-  if (choice === "none") return { type: "none" };
-  return { type: choice === "slide" ? "fade_up" : "fade", duration_ms: 450 };
-}
-
 const animationLabel = (animation: ElementAnimation | null): string => {
-  const value = editorAnimation(animation);
+  const value = wireAnimationToEditor(animation);
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
@@ -237,20 +265,20 @@ function propertiesPanel(
   const durationMs = controller.selectedSlide?.duration_ms ?? 4_000;
   if (selected?.element_type === "text") {
     const id = compositionElementId(selected);
-    const sizePx = Math.round((selected.style?.font_size ?? 44) * 264 / REFERENCE_CANVAS_WIDTH);
+    const sizePx = wireFontSizeToEditor(selected.style?.font_size ?? 44);
     return (
       <TextBlockPanel
         content={selected.text_content ?? ""}
         onContentChange={(content) => controller.onUpdateElement(id, (element) => ({ ...element, text_content: content }))}
         onContentCommit={(content) => controller.onUpdateElement(id, (element) => ({ ...element, text_content: content }))}
-        appears={editorAnimation(selected.enter_animation)}
-        onAppearsChange={(choice) => controller.onUpdateElement(id, (element) => ({ ...element, enter_animation: wireAnimation(choice) }))}
-        disappears={editorAnimation(selected.exit_animation)}
-        onDisappearsChange={(choice) => controller.onUpdateElement(id, (element) => ({ ...element, exit_animation: wireAnimation(choice) }))}
+        appears={wireAnimationToEditor(selected.enter_animation)}
+        onAppearsChange={(choice) => controller.onUpdateElement(id, (element) => ({ ...element, enter_animation: editorAnimationToWire(choice) }))}
+        disappears={wireAnimationToEditor(selected.exit_animation)}
+        onDisappearsChange={(choice) => controller.onUpdateElement(id, (element) => ({ ...element, exit_animation: editorAnimationToWire(choice) }))}
         sizePx={sizePx}
         onSizeChange={(value) => controller.onUpdateElement(id, (element) => ({
           ...element,
-          style: { ...(element.style ?? {}), font_size: Math.round(value * REFERENCE_CANVAS_WIDTH / 264) },
+          style: { ...(element.style ?? {}), font_size: editorFontSizeToWire(value) },
         }))}
         styleRole={selected.style?.font_weight === 700 ? "heading" : "body"}
         onStyleRoleChange={(role) => controller.onUpdateElement(id, (element) => ({
@@ -309,8 +337,10 @@ function propertiesPanel(
   );
 }
 
-export function EditorView({ presentationId, onBack }: EditorViewProps): React.JSX.Element {
+export function EditorView({ presentationId, onBack, onPresentationIdChange }: EditorViewProps): React.JSX.Element {
   const controller = usePresentationEditorController(presentationId);
+  const [surface, setSurface] = useState<"none" | "publish">("none");
+  const [previewSlides, setPreviewSlides] = useState<Slide[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const uploadRoleRef = useRef<"background" | "overlay">("background");
   const railSlides: SlideRailItemData[] = useMemo(() =>
@@ -343,29 +373,57 @@ export function EditorView({ presentationId, onBack }: EditorViewProps): React.J
     (element) => compositionElementId(element) === controller.selectedElementId,
   ) ?? null;
   const canMutate = !controller.readOnly && !controller.isMutating;
+  const displayStatus = derivePresentationDisplayStatus(presentation, new Date());
   const openFilePicker = (role: "background" | "overlay") => {
     uploadRoleRef.current = role;
     fileInputRef.current?.click();
   };
 
   return (
-    <EditorShell
+    <>
+      <EditorShell
       topBar={<EditorTopBar
         title={controller.title}
         onTitleChange={controller.onTitleChange}
         onTitleCommit={controller.onTitleCommit}
         titleReadOnly={controller.readOnly}
-        status={presentation.status}
+        status={displayStatus}
         onBack={onBack}
-        onPreview={() => undefined}
-        previewDisabled
+        onPreview={() => void controller.onOpenPreview().then((slides) => {
+          if (slides) setPreviewSlides(slides);
+        })}
+        previewDisabled={controller.isMutating || presentation.slides.length === 0}
         onSaveDraft={() => void controller.onSaveDraft()}
         saveDraftDisabled={controller.readOnly || controller.isSavingComposition || !controller.dirty}
         saveDraftLabel={controller.isSavingComposition ? "Saving…" : controller.dirty ? "Save draft •" : "Saved"}
-        onPublish={() => undefined}
-        publishDisabled
+        onPublish={() => setSurface("publish")}
+        publishDisabled={controller.readOnly || controller.isMutating}
+        onArchive={presentation.status === "archived" ? undefined : () => {
+          if (window.confirm("Archive this announcement?")) void controller.onArchive();
+        }}
+        archiveDisabled={controller.isMutating}
       />}
-      banner={controller.readOnly ? <EditorReadOnlyBanner label={`${presentation.status === "published" ? "Published" : "Archived"} — read-only · v${presentation.version}`} /> : undefined}
+      banner={controller.notice || controller.readOnly ? (
+        <>
+          {controller.notice && (
+            <div
+              data-testid="presentation-editor-notice"
+              className="shrink-0 border-b border-[#f0e2c0] bg-[#fdf6e7] px-4 py-2 text-xs font-semibold text-[#8a5a00]"
+            >
+              {controller.notice}
+            </div>
+          )}
+          {controller.readOnly && (
+            <EditorReadOnlyBanner
+              label={`${presentation.status === "published" ? "Published" : "Archived"} — read-only · v${presentation.version}`}
+              onEditAsNewVersion={() => void controller.onEditAsNewVersion().then((id) => {
+                if (id) onPresentationIdChange?.(id);
+              })}
+              editAsNewVersionDisabled={controller.isCreatingNewVersion}
+            />
+          )}
+        </>
+      ) : undefined}
       rail={<SlideRail
         slides={railSlides}
         selectedSlideId={controller.selectedSlideId}
@@ -397,6 +455,16 @@ export function EditorView({ presentationId, onBack }: EditorViewProps): React.J
           if (file) void controller.onUploadFile(file, uploadRoleRef.current);
         }}
       />
-    </EditorShell>
+      </EditorShell>
+      {previewSlides && <EditorPreview slides={previewSlides} onExit={() => setPreviewSlides(null)} />}
+      {surface === "publish" && !controller.readOnly && (
+        <PublishDialog
+          presentation={presentation}
+          isPublishing={controller.isPublishing}
+          onClose={() => setSurface("none")}
+          onPublish={controller.onPublish}
+        />
+      )}
+    </>
   );
 }

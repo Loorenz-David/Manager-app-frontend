@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { presentationKeys } from "./presentation-keys";
+import { presentationKeys, presentationUserKeys } from "./presentation-keys";
 
 describe("presentationKeys", () => {
   it("builds hierarchical list, detail, and preview keys", () => {
@@ -19,5 +19,16 @@ describe("presentationKeys", () => {
       "preview",
       "aup_01JONE",
     ]);
+  });
+});
+
+describe("presentationUserKeys", () => {
+  it("includes compact user list parameters", () => {
+    expect(presentationUserKeys.list({ compact: true, q: "mar", limit: 50, offset: 0 }))
+      .toEqual([
+        "presentation-builder-users",
+        "list",
+        { compact: true, q: "mar", limit: 50, offset: 0 },
+      ]);
   });
 });

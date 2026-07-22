@@ -9,5 +9,11 @@ export function EditorPage(): React.JSX.Element {
 
   if (!presentationId) return <div data-testid="presentation-editor-missing-id" />;
 
-  return <EditorView presentationId={presentationId} onBack={() => navigate(ROUTES.home)} />;
+  return (
+    <EditorView
+      presentationId={presentationId}
+      onBack={() => navigate(ROUTES.home)}
+      onPresentationIdChange={(nextId) => navigate(ROUTES.editor(nextId), { replace: true })}
+    />
+  );
 }

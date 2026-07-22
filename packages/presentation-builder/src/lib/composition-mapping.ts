@@ -86,6 +86,14 @@ export function wireAnimationToEditor(animation: ElementAnimation | null): Edito
   return animation.type === "fade" ? "fade" : "slide";
 }
 
+export function editorFontSizeToWire(sizePx: number): number {
+  return Math.round(sizePx * REFERENCE_CANVAS_WIDTH / EDITOR_CANVAS_WIDTH);
+}
+
+export function wireFontSizeToEditor(fontSize: number): number {
+  return Math.round(fontSize * EDITOR_CANVAS_WIDTH / REFERENCE_CANVAS_WIDTH);
+}
+
 function editorElementToPutInput(
   element: EditorCompositionElement,
   durationMs: number,
@@ -138,7 +146,7 @@ function editorElementToPutInput(
     style: {
       text_role: element.role === "heading" ? "headline" : "body",
       text_align: element.textAlign,
-      font_size: Math.round(element.sizePx * REFERENCE_CANVAS_WIDTH / EDITOR_CANVAS_WIDTH),
+      font_size: editorFontSizeToWire(element.sizePx),
       font_weight: element.weight,
     },
     enter_animation,
@@ -207,8 +215,9 @@ export function serverElementsToEditorComposition(
           width: positiveDimension(element.layout?.width),
           height: positiveDimension(element.layout?.height),
           content: element.text_content,
-          sizePx: Math.round((element.style?.font_size ?? 30 * REFERENCE_CANVAS_WIDTH / EDITOR_CANVAS_WIDTH)
-            * EDITOR_CANVAS_WIDTH / REFERENCE_CANVAS_WIDTH),
+          sizePx: wireFontSizeToEditor(
+            element.style?.font_size ?? 30 * REFERENCE_CANVAS_WIDTH / EDITOR_CANVAS_WIDTH,
+          ),
           weight,
           role: weight === 700 ? "heading" : "body",
           textAlign: element.style?.text_align ?? "center",

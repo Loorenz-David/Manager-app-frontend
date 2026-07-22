@@ -1,4 +1,4 @@
-import { ChevronLeft, Play } from "lucide-react";
+import { Archive, ChevronLeft, Play } from "lucide-react";
 import { useState } from "react";
 
 import { cn } from "@beyo/lib";
@@ -23,6 +23,8 @@ type EditorTopBarProps = {
   saveDraftLabel?: string;
   onPublish: () => void;
   publishDisabled?: boolean;
+  onArchive?: () => void;
+  archiveDisabled?: boolean;
 };
 
 const GHOST_BUTTON_CLASS =
@@ -42,6 +44,8 @@ export function EditorTopBar({
   saveDraftLabel = "Save draft",
   onPublish,
   publishDisabled,
+  onArchive,
+  archiveDisabled,
 }: EditorTopBarProps): React.JSX.Element {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
 
@@ -107,6 +111,18 @@ export function EditorTopBar({
         >
           {saveDraftLabel}
         </button>
+        {onArchive && (
+          <button
+            type="button"
+            onClick={onArchive}
+            disabled={archiveDisabled}
+            data-testid="presentation-editor-archive-button"
+            className={GHOST_BUTTON_CLASS}
+          >
+            <Archive aria-hidden className="size-3.5" strokeWidth={2} />
+            Archive
+          </button>
+        )}
         <button
           type="button"
           onClick={onPublish}

@@ -1,6 +1,14 @@
 export * from "./types";
 
-export { presentationKeys } from "./api/presentation-keys";
+export { presentationKeys, presentationUserKeys } from "./api/presentation-keys";
+export {
+  listPresentationUsers,
+  PresentationUserCompactSchema,
+  type ListPresentationUsersParams,
+  type ListPresentationUsersResult,
+  type PresentationUserCompact,
+} from "./api/list-users";
+export { usePresentationUsers } from "./api/use-presentation-users";
 export { usePresentationsList } from "./api/use-presentations-list";
 export { usePresentationDetail } from "./api/use-presentation-detail";
 export {
@@ -43,9 +51,11 @@ export {
 export {
   editorAnimationToWire,
   editorCompositionToPutBody,
+  editorFontSizeToWire,
   putElementToServerElement,
   serverElementsToEditorComposition,
   wireAnimationToEditor,
+  wireFontSizeToEditor,
   type CompositionPutBody,
   type EditorAnimationChoice,
   type EditorComposition,
@@ -54,6 +64,25 @@ export {
   type EditorTextElement,
   type TextMeasurementAdapter,
 } from "./lib/composition-mapping";
+export {
+  CATEGORY_DEFAULT_PRIORITY,
+  buildPublishPayloads,
+  initialPublishForm,
+  localInputToUtcIso,
+  mapPublishFailure,
+  priorityForCategory,
+  type PublishFieldErrors,
+  type PublishFormState,
+  type PublishIssueState,
+  type PublishPayloads,
+  type PublishStep,
+} from "./lib/publish-form";
+export {
+  advancePreviewPlayback,
+  previewTotalProgress,
+  usePresentationPreviewPlayback,
+  type PreviewPlaybackState,
+} from "./preview/use-presentation-preview-playback";
 export {
   applyTimelineGesture,
   clampCanvasPosition,

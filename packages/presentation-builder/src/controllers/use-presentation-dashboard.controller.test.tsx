@@ -8,6 +8,7 @@ import { usePresentationDashboardController } from "./use-presentation-dashboard
 
 const mocks = vi.hoisted(() => ({
   canManagePresentations: true,
+  archivePresentationAsync: vi.fn(),
   createPresentationAsync: vi.fn(),
   listQuery: vi.fn(),
 }));
@@ -19,6 +20,13 @@ vi.mock("../api/use-presentations-list", () => ({
 vi.mock("../actions/use-create-presentation", () => ({
   useCreatePresentation: () => ({
     createPresentationAsync: mocks.createPresentationAsync,
+    isPending: false,
+  }),
+}));
+
+vi.mock("../actions/use-archive-presentation", () => ({
+  useArchivePresentation: () => ({
+    archivePresentationAsync: mocks.archivePresentationAsync,
     isPending: false,
   }),
 }));
@@ -48,6 +56,7 @@ describe("usePresentationDashboardController", () => {
     vi.useFakeTimers();
     mocks.canManagePresentations = true;
     mocks.createPresentationAsync.mockReset();
+    mocks.archivePresentationAsync.mockReset();
     mocks.listQuery.mockReset();
     mocks.listQuery.mockReturnValue(listResult());
   });

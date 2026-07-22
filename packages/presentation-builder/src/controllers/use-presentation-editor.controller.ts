@@ -2,14 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { notify } from "@beyo/lib";
 
 import { useAddSlide } from "../actions/use-add-slide";
+import { useArchivePresentation } from "../actions/use-archive-presentation";
+import { useCreateNewVersion } from "../actions/use-create-new-version";
 import { useDeleteSlide } from "../actions/use-delete-slide";
 import { useDeleteSlideMedia } from "../actions/use-delete-slide-media";
 import { useReorderSlides } from "../actions/use-reorder-slides";
 import { useReplaceComposition } from "../actions/use-replace-composition";
+import { useReplaceAudience } from "../actions/use-replace-audience";
+import { usePublishPresentation } from "../actions/use-publish-presentation";
 import { useUpdateSlide } from "../actions/use-update-slide";
 import { useUpdatePresentationMetadata } from "../actions/use-update-presentation-metadata";
 import { useUploadSlideMedia } from "../actions/use-upload-slide-media";
 import { usePresentationDetail } from "../api/use-presentation-detail";
+import { usePresentationPreview } from "../api/use-presentation-preview";
 import type { Presentation, Slide } from "../types";
 import type { CompositionElement } from "@beyo/presentation-runtime";
 import {
@@ -25,6 +30,14 @@ import {
   serverElementsToEditorComposition,
   type TextMeasurementAdapter,
 } from "../lib/composition-mapping";
+import {
+  buildPublishPayloads,
+  mapPublishFailure,
+  type PublishFormState,
+  type PublishIssueState,
+  type PublishStep,
+} from "../lib/publish-form";
+import { assertPreviewCompositionParity } from "../preview/preview-parity";
 
 const TITLE_DEBOUNCE_MS = 450;
 const COMPOSITION_AUTOSAVE_MS = 2_000;
@@ -90,6 +103,7 @@ export function usePresentationEditorController(presentationId: string) {
   const flushAllRef = useRef<() => Promise<boolean>>(async () => true);
 
   const detail = usePresentationDetail(presentationId);
+  const preview = usePresentationPreview(presentationId, { enabled: false });
   const addSlide = useAddSlide();
   const deleteSlide = useDeleteSlide();
   const reorderSlides = useReorderSlides();
@@ -99,6 +113,10 @@ export function usePresentationEditorController(presentationId: string) {
   const uploadMedia = useUploadSlideMedia();
   const cancelUploadMutation = uploadMedia.cancel;
   const deleteMedia = useDeleteSlideMedia();
+  const replaceAudience = useReplaceAudience();
+  const publishPresentation = usePublishPresentation();
+  const archivePresentation = useArchivePresentation();
+  const createNewVersion = useCreateNewVersion();
 
   useEffect(() => {
     if (titleTimerRef.current !== null) {
@@ -427,6 +445,90 @@ export function usePresentationEditorController(presentationId: string) {
 
   const dismissUploadError = useCallback(() => setUploadState(null), []);
 
+  const refetchLatest = useCallback(async () => {
+    const result = await detail.refetch();
+    if (result.data) reconcile(result.data, store.getState().selectedSlideId);
+  }, [detail, reconcile, store]);
+
+  const openPreview = useCallback(async (): Promise<Slide[] | null> => {
+    if (!(await flushAll())) {
+      setNotice("Save the local timeline changes before previewing.");
+      return null;
+    }
+    const current = store.getState();
+    if (!current.presentation) return null;
+    const slides = current.presentation.slides.map((slide) => ({
+      ...slide,
+      elements: current.localCompositions[slide.client_id] ?? slide.elements,
+    }));
+    if (import.meta.env.DEV) {
+      const result = await preview.refetch();
+      if (result.data) assertPreviewCompositionParity(slides, result.data);
+    }
+    return slides;
+  }, [flushAll, preview, store]);
+
+  const publish = useCallback(async (form: PublishFormState): Promise<PublishIssueState | null> => {
+    const built = buildPublishPayloads(presentationId, form);
+    if (!built.success) return built.issues;
+    let step: PublishStep = "flush";
+    try {
+      if (!(await flushAll())) {
+        return mapPublishFailure(new Error("Local timeline changes are still unsaved."), "flush");
+      }
+      step = "audience";
+      const withAudience = await replaceAudience.replaceAudienceAsync(built.payloads.audience);
+      reconcile(withAudience, store.getState().selectedSlideId);
+      step = "metadata";
+      const withMetadata = await updateMetadata.updatePresentationMetadataAsync(built.payloads.metadata);
+      reconcile(withMetadata, store.getState().selectedSlideId);
+      step = "publish";
+      const published = await publishPresentation.publishPresentationAsync(presentationId);
+      reconcile(published, store.getState().selectedSlideId);
+      notify.success("Announcement published");
+      return null;
+    } catch (error) {
+      const issues = mapPublishFailure(error, step);
+      if (issues.raced) {
+        setNotice(issues.summary.join(" "));
+        await refetchLatest();
+      }
+      return issues;
+    }
+  }, [flushAll, presentationId, publishPresentation, reconcile, refetchLatest, replaceAudience, store, updateMetadata]);
+
+  const archive = useCallback(async (): Promise<boolean> => {
+    if (!presentation || presentation.status === "archived") return false;
+    if (presentation.status === "draft" && !(await flushAll())) return false;
+    try {
+      const archived = await archivePresentation.archivePresentationAsync(presentationId);
+      reconcile(archived, store.getState().selectedSlideId);
+      notify.success("Announcement archived");
+      return true;
+    } catch (error) {
+      const issues = mapPublishFailure(error, "publish");
+      setNotice(issues.summary.join(" "));
+      if (issues.raced) await refetchLatest();
+      return false;
+    }
+  }, [archivePresentation, flushAll, presentation, presentationId, reconcile, refetchLatest, store]);
+
+  const editAsNewVersion = useCallback(async (): Promise<string | null> => {
+    if (!presentation || presentation.status === "draft") return null;
+    try {
+      const next = await createNewVersion.createNewVersionAsync(presentationId);
+      notify.success(`Draft v${next.version} created`);
+      return next.client_id;
+    } catch (error) {
+      const issues = mapPublishFailure(error, "publish");
+      setNotice(issues.raced
+        ? "Another version was created first. The announcement has been refreshed."
+        : issues.summary.join(" "));
+      if (issues.raced) await refetchLatest();
+      return null;
+    }
+  }, [createNewVersion, presentation, presentationId, refetchLatest]);
+
   return {
     presentation,
     selectedSlide,
@@ -441,7 +543,7 @@ export function usePresentationEditorController(presentationId: string) {
     error: detail.error ?? (notice ? new Error(notice) : null),
     notice,
     readOnly,
-    isMutating: addSlide.isPending || deleteSlide.isPending || reorderSlides.isPending || updateMetadata.isPending || uploadMedia.isPending || deleteMedia.isPending || replaceComposition.isPending || updateSlide.isPending,
+    isMutating: addSlide.isPending || deleteSlide.isPending || reorderSlides.isPending || updateMetadata.isPending || uploadMedia.isPending || deleteMedia.isPending || replaceComposition.isPending || updateSlide.isPending || replaceAudience.isPending || publishPresentation.isPending || archivePresentation.isPending || createNewVersion.isPending,
     isSavingComposition: replaceComposition.isPending,
     title: titleDraft,
     onTitleChange: setTitleDraft,
@@ -471,6 +573,13 @@ export function usePresentationEditorController(presentationId: string) {
       if (slideId) store.setPlayback(slideId, patch);
     },
     onSaveDraft: flushAll,
+    onOpenPreview: openPreview,
+    onPublish: publish,
+    isPublishing: replaceAudience.isPending || updateMetadata.isPending || publishPresentation.isPending,
+    onArchive: archive,
+    isArchiving: archivePresentation.isPending,
+    onEditAsNewVersion: editAsNewVersion,
+    isCreatingNewVersion: createNewVersion.isPending,
     ctaLabel: ctaDraft.label,
     ctaRoute: ctaDraft.route,
     ctaRouteError,

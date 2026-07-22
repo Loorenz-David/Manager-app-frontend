@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase6_editor_preview_publish_20260722`
-- Status: `approved`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T22:00:00Z`
+- Last updated at (UTC): `2026-07-22T18:03:49Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 6)
 - Design reference: design README "Preview overlay"; backend `04_admin_presentations.md`, `06_admin_audience.md`
@@ -95,9 +95,12 @@ Permitted relational reads: existing users/members feature (`src/features/users/
 
 - `2026-07-22` Claude: drafted from master Phase 6.
 - `2026-07-22` User: approved — Phases 1–5 complete; both clarifications resolved (V2: no mitigation; user picker: builder-owned `/users` wrapper). Claude-builder preview/publish kit session precedes the Codex session (lean brief). Carried into the session: consolidate EditorView/panel inline mapping into `composition-mapping.ts` (Phase 5 review advisory).
+- `2026-07-22` Codex: verified the archived-source rule against backend `04_admin_presentations.md`: `POST /{id}/new-version` has no source-status restriction and creates the next draft while clearing lifecycle timestamps, so the read-only archived editor offers **Edit as new version**.
+- `2026-07-22` Codex: approved additive kit API exception required by acceptance criterion 6: add optional `onArchive`/disabled props to `EditorTopBar` and optional `onArchive` to `AnnouncementCard`; existing DOM/classes remain unchanged when omitted, and the additions supply the specified editor and dashboard archive entry points.
+- `2026-07-22` Codex: Phase 6 implemented and validated. Root typecheck passed; runtime 18/18; builder 75/75; desktop publish lifecycle 1/1; existing dashboard/editor flows 3/3; `slide.title` mirror scan clean. Summary written and plan transitioned to archived.
 
 ## Lifecycle transition
 
-- Current state: `approved`
-- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
-- Transition owner: `Codex session (Phase 6)`, after the Claude-builder kit session
+- Current state: `archived`
+- Next state: none — implementation complete
+- Transition owner: `Codex session (Phase 6)`

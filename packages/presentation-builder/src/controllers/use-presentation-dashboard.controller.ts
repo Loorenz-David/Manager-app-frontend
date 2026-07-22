@@ -2,6 +2,7 @@ import { notify } from "@beyo/lib";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCreatePresentation } from "../actions/use-create-presentation";
+import { useArchivePresentation } from "../actions/use-archive-presentation";
 import { usePresentationsList } from "../api/use-presentations-list";
 import type { DashboardFilterKey } from "../components/dashboard/types";
 import {
@@ -89,6 +90,7 @@ export function usePresentationDashboardController({
   );
   const listQuery = usePresentationsList(listFilters);
   const createAction = useCreatePresentation();
+  const archiveAction = useArchivePresentation();
   const { canManagePresentations } = usePresentationBuilderPermissions();
 
   const cards = useMemo(() => {
@@ -126,10 +128,25 @@ export function usePresentationDashboardController({
     void listQuery.refetch();
   }, [listQuery]);
 
+  const archive = useCallback(async (id: string) => {
+    if (!canManagePresentations || !window.confirm("Archive this announcement?")) return;
+    try {
+      await archiveAction.archivePresentationAsync(id);
+      notify.success("Announcement archived");
+    } catch (error) {
+      notify.error(
+        "Announcement could not be archived.",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    }
+  }, [archiveAction, canManagePresentations]);
+
   const emptyCopy = getEmptyCopy(activeFilter);
 
   return {
     activeFilter,
+    archive,
+    archiveDisabled: archiveAction.isPending || !canManagePresentations,
     cards,
     createAndOpen,
     emptyDescription: emptyCopy.description,
