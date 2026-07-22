@@ -1,61 +1,44 @@
-# Codex — Phase 8: `@beyo/presentations` phone player package
+# Codex — Phase 8: `@beyo/presentations` phone player (single session, lean brief)
 
-You are implementing exactly **one phase** of the ManagerBeyo presentation capability, working in the `frontend/` monorepo root. Phases 1–7 are implemented and archived — the creation side (studio + builder + runtime packages) is complete and hardened.
+You are implementing Phase 8 of the ManagerBeyo presentation capability, working in the `frontend/` monorepo root. The creation side (Phases 1–7) is complete, reviewed, and committed. The `packages/presentations` skeleton EXISTS (package.json, tsconfig, the Claude-built player chrome kit, dev preview) — you add the consumer API, orchestration, playback, and surface wrappers. Start coding early — read only what is listed below, then build.
 
-## Your plan
+## Spec
 
-- Implement: `docs/architecture/under_construction/implementation/PLAN_presentation_phase8_player_package_20260722.md`
-- Governing master: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md`
+`docs/architecture/under_construction/implementation/PLAN_presentation_phase8_player_package_20260722.md` (status `approved`) — all acceptance criteria. Both clarifications are **resolved in the plan**, including the full dismiss-chrome matrix (read it carefully — slide_page uses the surface's own `setSwipeDismissDisabled` controller).
 
-## Component kit (pre-built by Claude — READ-ONLY for you)
+## Read (only this)
 
-Per the master's "Division of labor" section, this phase's presentational components already exist in `packages/presentations/src/components/`, design-approved: player chrome (progress bar, slide dots, CTA button, dismiss affordances per presentation_type, deck container per surface form).
+1. The phase plan, fully (esp. the resolved dismiss-chrome matrix and acceptance criteria 1–7).
+2. Backend `docs/presentation_capability/backend/03_consumer_endpoints.md` — the exact `/active` + `view-state` semantics, errors, and the typical loop — and `02_conventions.md` §"Role vs. app_scope" (`app_key` must equal the token's `app_scope`; the host app passes it, never hardcode).
+3. Master plan — decision #10 and the "Package boundaries" section (player is app-agnostic; everything app-specific is injected).
+4. Relational only: the kit files below (READ-ONLY), `src/dev/PlayerKitPreview.tsx` (**reference consumer** — shows chrome assembly incl. the dismissible/acknowledge conditional logic), `@beyo/presentation-runtime` public exports (`usePlaybackClock`, `SlideCompositionRenderer`), `packages/ui/src/components/surfaces/SlidePageSurface.tsx` (the `setSwipeDismissDisabled` + `closeInterceptor` context surface — relational), one existing package's `surface-ids.ts` (openers convention), `packages/presentation-builder/src/preview/use-presentation-preview-playback.ts` (multi-slide playback precedent — mirror the approach, do not import builder).
 
-- **Never** restyle, restructure markup, or edit class lists. Your job: consumer api/hooks, view-state orchestration, the three playback modes, surface wrappers' logic, provider, assembly through the kit's prop contracts.
-- Purely additive optional props allowed; anything structural/visual → plan Review log + stop for Claude. Never improvise styled components.
-- If the kit is missing, STOP and report — the kit session runs before this one.
+## Component kit — READ-ONLY (pre-built by Claude, in `packages/presentations/src/components/player/`)
 
-## GATE — do not start implementation until all are true
+`PlayerViewport` (measures itself, render-prop `{width,height}` for the runtime renderer), `PlayerSegmentedProgress` (story-style segments, `activeFraction` from your clock), `PlayerTapZones` (prev/next), `PlayerDismissButton` (`variant: "x" | "skip"`), `PlayerCtaButton`, `PlayerAcknowledgeFooter`, `PlayerModalFrame`, `PlayerFullScreenFrame`. Never edit kit DOM/classes/styling; `git diff -- packages/presentations/src/components` must show no non-additive change; additive optional props only, recorded in the plan Review log first.
 
-1. The plan carries a "Re-validate against master" note: re-read `@beyo/presentation-runtime`'s **shipped** public API (exports of `packages/presentation-runtime/src/index.ts`) and reconcile any drift from what the plan assumed. Record reconciliations in the plan's Review log before coding.
-2. The plan's two clarifications are resolved in its "Clarifications required" section or the master Review log:
-   - All three `playback_mode`s (`timed`/`manual`/`media_driven`) in player scope (recommended default: yes — the backend can serve all three).
-   - **Dismiss-affordance chrome per `presentation_type`** — this needs an explicit user decision (no mockup exists). If unrecorded, STOP and ask.
+## Deliver (per the plan's criteria)
 
-## Read before writing any code, in this order
+1. **Consumer layer**: `types.ts` composing runtime schemas (consumer presentation shape + `view_state`; schemas stay draft-lenient where the wire allows), `api/` (`useActivePresentation(appKey)` + exported `activePresentationKeys`), `actions/useRecordViewState` (all four actions, `version` guard; failures never block playback; `dismissed` only when `is_dismissible`).
+2. **Playback**: multi-slide hook over runtime primitives honoring all three `playback_mode`s — `timed` auto-advance at `duration_ms`, `manual` tap-next (kit `PlayerTapZones`), `media_driven` video `currentTime` clock. Presigned URLs never persisted; expiry → `/active` refetch.
+3. **`PresentationPlayer`** assembly through the kit: renderer inside `PlayerViewport`, segmented progress, tap zones, CTA via injected navigate callback, dismiss/acknowledge per the matrix (acknowledge → `completed` → close; dismiss → `dismissed` → close).
+4. **Surfaces**: three wrappers — modal/full_screen use the kit frames; **slide_page** renders inside the host's `SlidePageSurface` and, when `is_dismissible: false`, calls `setSwipeDismissDisabled(true)` from the surface context (restore on unmount) and shows the acknowledge footer; when dismissible, the surface's gesture close records `dismissed` (use the surface context's close-interception point). `surface-ids.ts` + `PresentationsSurfaceOpeners` + loader functions per §13–14.
+5. **Orchestration**: `ActivePresentationProvider` — single owner of "currently presenting": `shown` (index 0) on display, `progressed` monotonic, terminal action → `/active` refetch → next presentation; dedupe so a mid-show invalidation never double-opens.
+6. **Tests**: MSW view-state loop (incl. version guard + dismiss-after-complete 409), playback modes with fake clock, and the **rendering-parity fixture** (same composition JSON rendered in a builder preview test and a player test). Register `test:presentations` in root scripts.
 
-1. The child plan, fully.
-2. The master plan — decision #10 (auto-show + realtime), package boundaries (player is app-agnostic; navigation/surface opening injected), master criterion 7 (view-state loop).
-3. `task_system/frontend_contract_goal_mapping_guide.md`.
-4. Every contract in the child plan's "Contracts loaded" (canonical first, `_local` second).
-5. Backend ground truth: `docs/presentation_capability/backend/03_consumer_endpoints.md` (the exact view-state semantics, errors, typical loop) + `09_slide_composition.md` (playback modes) + `02_conventions.md` (`app_key` must equal token `app_scope`).
+## Validation (all must be green)
 
-## Hard rules
+- `npm run typecheck`
+- `npm run test:presentations` && `npm run test:presentation-runtime` && `npm run test:presentation-builder`
+- `rg -n "/history" packages/presentations` → nothing wrapped
+- `rg -n "@beyo/presentation-builder|apps/" packages/presentations/src` → no forbidden imports
+- `git diff -- packages/presentations/src/components` → no non-additive kit change
+- Playwright is deferred to Phase 9 (needs a host app) — state this explicitly in the summary.
 
-- `GET /history` is **never wrapped** (master non-goal) — no scaffolding for it.
-- View-state loop exactly per backend docs: `shown` with `last_slide_index: 0` on first display; `progressed` monotonic; `completed`/`dismissed` terminal handling; always send `version`; view-state failures never block playback UI; after a terminal action, refetch `/active`.
-- `is_dismissible: false` → no dismiss path exists in any chrome; completion is the only exit.
-- The orchestration provider is the single owner of "currently presenting"; it dedupes so an invalidation mid-show never double-opens. Export `activePresentationKeys` for Phase 9's realtime handler.
-- Rendering goes through the shared runtime renderer — the parity fixture (same composition rendered in builder preview test and player test) is a required test.
-- No app-specific imports anywhere; presigned URLs never persisted.
-- Relational reads per the plan's whitelist. `data-testid` on all feature-critical elements.
+## Finish
 
-## Validation (must be green before lifecycle processing)
-
-- `npm run typecheck` — zero errors (package registered).
-- `npm run test:presentations` — view-state loop, all three playback modes, parity fixtures green.
-- Playwright is deferred to Phase 9 (the player needs a host app) — state this in the summary rather than skipping silently.
-
-## After implementation — process the plan
-
-Follow `skills/cross_cutting/plan_lifecycle_orchestrator/SKILL.md`:
-
-1. Validation green → write `docs/architecture/implemented_summaries/SUMMARY_presentation_phase8_player_package_20260722.md`.
-2. Archive record in `docs/architecture/archives/`.
-3. Plan `Status: archived`, update `Last updated at`, `mv` to `docs/architecture/archives/implementation/`, verify.
-4. Dated entry in the master plan's Review log. Never archive/move the master.
-5. Validation not green → plan stays, `Status: debugging`, defect logged, stop with a report.
+Only after green validation, per `skills/cross_cutting/plan_lifecycle_orchestrator/SKILL.md`: summary `SUMMARY_presentation_phase8_player_package_20260722.md` → archive the phase plan → dated master Review-log entry → never archive/move the master. If validation cannot go green: plan `Status: debugging`, defect in its Review log, stop with a report. If you run low on context, finish the current numbered deliverable cleanly and report exactly what remains — never stop before writing code.
 
 ## Report back
 
-End with: lifecycle state, reconciliations made at the gate, files created/modified, validation output, deviations with justification.
+Lifecycle state, files created/modified, all validation outputs (parity fixture result explicitly), deviations with justification.

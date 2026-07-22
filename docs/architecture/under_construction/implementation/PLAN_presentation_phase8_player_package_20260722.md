@@ -3,14 +3,14 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase8_player_package_20260722`
-- Status: `under_construction`
+- Status: `approved`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
 - Last updated at (UTC): `2026-07-22T00:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 8)
 - Backend contract: `docs/presentation_capability/backend/03_consumer_endpoints.md` (+ `09` for rendering)
-- Note: **Re-validate against master before implementation** — created ahead of Phases 4–7 completing; the runtime package API it consumes must match what actually shipped.
+- Note: Re-validated against the shipped runtime on 2026-07-23 — its public API (`SlideCompositionRenderer`+props, `usePlaybackClock`/`advancePlaybackTime`, `REFERENCE_CANVAS_WIDTH`, composition schemas incl. draft-lenient `sequence_order`) matches this plan's assumptions. Consumer schemas compose runtime schemas exactly as Phase 1's builder types now do.
 
 ## Goal and intent
 
@@ -100,8 +100,10 @@ Permitted relational reads: `@beyo/presentation-runtime` public API (what shippe
 
 - `2026-07-22` Claude: drafted from master Phase 8.
 
+- `2026-07-23` User: approved — creation side (Phases 1–7) complete and reviewed clean. All clarifications resolved (dismiss-chrome matrix incl. `setSwipeDismissDisabled` for slide_page; all three playback modes in scope). Claude-builder player-chrome kit session precedes the lean-brief Codex session; kit scaffolds the package skeleton, Codex adds api/orchestration/surfaces.
+
 ## Lifecycle transition
 
 - Current state: `under_construction`
-- Next state: `approved` (after re-validation against shipped Phases 4–7)
+- Next state: `archived` (by the Codex session via `plan_lifecycle_orchestrator` after green validation; `debugging` if validation fails)
 - Transition owner: `Claude`

@@ -104,9 +104,9 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 
 ### Phase 8 — phone player package
 - [x] **Decision**: dismiss chrome resolved *(2026-07-23 — slide_page: built-in slide-to-close gesture = dismiss, deactivated via `setSwipeDismissDisabled` + footer acknowledge button when `is_dismissible: false`; modal: X; full_screen: Skip; acknowledge always records `completed`. All three playback modes in scope.)*
-- [ ] Ask Claude: **re-validate the Phase 8 plan** against the shipped runtime package, then flip to `approved`
-- [ ] Ask Claude: **"build the Phase 8 player chrome kit"** → review → iterate
-- [ ] Codex: paste `PROMPT_phase8_player_package.md`
+- [x] Ask Claude: **re-validate the Phase 8 plan** *(2026-07-23 — shipped runtime API matches assumptions; plan `approved`)*
+- [ ] Ask Claude: **"build the Phase 8 player chrome kit"** → review → iterate *(kit built 2026-07-23 — `packages/presentations` scaffolded with 8 chrome components; view at `/kit/player` in the dev studio: switch frames, toggle is_dismissible, drag progress; awaiting your design approval)*
+- [ ] Codex: paste `PROMPT_phase8_player_package.md` *(rewritten as lean brief; kit + dismiss matrix + setSwipeDismissDisabled wiring spelled out)*
 - [ ] Opus reviewer: paste `review_prompts/REVIEW_phase8_player_package.md`
 
 ### Phase 9 — phone apps wiring (final)

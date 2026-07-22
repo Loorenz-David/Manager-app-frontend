@@ -83,6 +83,14 @@ export const router = createBrowserRouter([
                 })),
               ),
             },
+            {
+              path: "/kit/player",
+              element: lazyRoute(() =>
+                import("@/pages/dev/PlayerKitPreviewPage").then((module) => ({
+                  default: module.PlayerKitPreviewPage,
+                })),
+              ),
+            },
           ]
         : []),
       { path: "*", element: <Navigate to={ROUTES.home} replace /> },
