@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 
 type PublishDialogShellProps = {
@@ -21,6 +22,13 @@ export function PublishDialogShell({
   isPublishing,
   errorSummary,
 }: PublishDialogShellProps): React.JSX.Element {
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Move focus into the dialog on open so keyboard/AT users land inside it.
+  useEffect(() => {
+    panelRef.current?.focus();
+  }, []);
+
   return (
     <div
       data-testid="presentation-publish-dialog"
@@ -28,8 +36,15 @@ export function PublishDialogShell({
       role="dialog"
       aria-modal="true"
       aria-label="Publish announcement"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose();
+      }}
     >
-      <div className="flex max-h-full w-[520px] flex-col overflow-hidden rounded-xl border border-[#e7e7e7] bg-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.4)]">
+      <div
+        ref={panelRef}
+        tabIndex={-1}
+        className="flex max-h-full w-[520px] flex-col overflow-hidden rounded-xl border border-[#e7e7e7] bg-white shadow-[0_24px_60px_-30px_rgba(0,0,0,0.4)] focus:outline-none"
+      >
         <div className="flex shrink-0 items-center justify-between border-b border-[#ececec] px-5 py-3.5">
           <p className="text-[14.5px] font-bold text-[#303030]">Publish announcement</p>
           <button

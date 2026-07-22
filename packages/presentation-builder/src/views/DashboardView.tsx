@@ -49,6 +49,7 @@ function DashboardViewContent(): React.JSX.Element {
             onOpen={dashboard.navigateToEditor}
             onArchive={announcement.displayStatus === "archived" ? undefined : dashboard.archive}
             archiveDisabled={dashboard.archiveDisabled}
+            onCoverError={dashboard.refreshMediaUrls}
           />
         ))}
       </AnnouncementCardGrid>

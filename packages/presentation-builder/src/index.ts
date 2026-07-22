@@ -36,67 +36,6 @@ export { usePresentationBuilderPermissions } from "./lib/use-presentation-builde
 
 export { DashboardView, type DashboardViewProps } from "./views/DashboardView";
 export { EditorView, type EditorViewProps } from "./views/EditorView";
-export {
-  appendOverlayMediaElement,
-  compositionElementId,
-  createEditorDraftStore,
-  mediaElementForAsset,
-  replaceBackgroundMediaElement,
-  selectedSlideFromState,
-  slideHasBackground,
-  useEditorDraftStore,
-  type EditorDraftState,
-  type EditorDraftStore,
-} from "./editor/draft-store";
-export {
-  editorAnimationToWire,
-  editorCompositionToPutBody,
-  editorFontSizeToWire,
-  putElementToServerElement,
-  serverElementsToEditorComposition,
-  wireAnimationToEditor,
-  wireFontSizeToEditor,
-  type CompositionPutBody,
-  type EditorAnimationChoice,
-  type EditorComposition,
-  type EditorCompositionElement,
-  type EditorMediaElement,
-  type EditorTextElement,
-  type TextMeasurementAdapter,
-} from "./lib/composition-mapping";
-export {
-  CATEGORY_DEFAULT_PRIORITY,
-  buildPublishPayloads,
-  initialPublishForm,
-  localInputToUtcIso,
-  mapPublishFailure,
-  priorityForCategory,
-  type PublishFieldErrors,
-  type PublishFormState,
-  type PublishIssueState,
-  type PublishPayloads,
-  type PublishStep,
-} from "./lib/publish-form";
-export {
-  advancePreviewPlayback,
-  previewTotalProgress,
-  usePresentationPreviewPlayback,
-  type PreviewPlaybackState,
-} from "./preview/use-presentation-preview-playback";
-export {
-  applyTimelineGesture,
-  clampCanvasPosition,
-  clampWindowToDuration,
-  generateTimelineTicks,
-  MIN_TIMELINE_WINDOW_MS,
-  scrubFractionToTime,
-  timelineWindowFractions,
-  timeToX,
-  xToTime,
-  type CanvasPosition,
-  type TimelineWindow,
-} from "./lib/timeline-geometry";
-export { usePresentationEditorController } from "./controllers/use-presentation-editor.controller";
 
 // Dashboard UI kit (presentational, props-only — see master plan "Division of labor")
 export { DashboardTopBar } from "./components/dashboard/DashboardTopBar";

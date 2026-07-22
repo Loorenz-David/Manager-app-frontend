@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { NotificationHostProvider } from "@/providers/NotificationHostProvider";
+import { NotificationHostProvider } from "@beyo/lib";
 
 export function AppProviders({ children }: { children: ReactNode }): React.JSX.Element {
   const [queryClient] = useState(

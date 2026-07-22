@@ -62,6 +62,7 @@ const SignInResponseSchema = ApiEnvelopeSchema(
         .transform((value) => value as WorkspaceId)
         .optional(),
       workspace_role_id: z.string().optional(),
+      workspace_name: z.string().trim().min(1).optional(),
       role_name: AuthRoleSchema,
       workspace_role_name: WorkspaceRoleNameSchema.optional(),
       workspace_specialization: WorkspaceSpecializationSchema.nullable().optional(),
@@ -121,6 +122,7 @@ async function signIn(credentials: SignInCredentials) {
       role: roleName,
       workspaceRoleId:
         result.data.user.workspace_role_id ?? claims?.workspace_role_id ?? "",
+      workspaceName: result.data.user.workspace_name ?? claims?.workspace_name,
       workspaceRoleName: workspaceRoleName as WorkspaceRoleName,
       workspaceSpecialization:
         workspaceSpecialization as WorkspaceSpecializationName,

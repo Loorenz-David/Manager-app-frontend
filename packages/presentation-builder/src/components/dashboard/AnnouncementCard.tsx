@@ -10,6 +10,7 @@ type AnnouncementCardProps = {
   onOpen: (id: string) => void;
   onArchive?: (id: string) => void;
   archiveDisabled?: boolean;
+  onCoverError?: () => void;
 };
 
 export function AnnouncementCard({
@@ -17,6 +18,7 @@ export function AnnouncementCard({
   onOpen,
   onArchive,
   archiveDisabled,
+  onCoverError,
 }: AnnouncementCardProps): React.JSX.Element {
   const [menuOpen, setMenuOpen] = useState(false);
   const card = (
@@ -30,6 +32,7 @@ export function AnnouncementCard({
         <MiniPhoneCover
           mediaKinds={announcement.mediaKinds}
           coverImageUrl={announcement.coverImageUrl}
+          onCoverError={onCoverError}
         />
         <AnnouncementStatusPill
           status={announcement.displayStatus}

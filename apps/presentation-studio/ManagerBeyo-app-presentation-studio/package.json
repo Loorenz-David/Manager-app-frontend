@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@beyo/auth": "*",
+    "@beyo/lib": "*",
     "@beyo/presentation-builder": "*",
     "@beyo/styles": "*",
     "@beyo/ui": "*",

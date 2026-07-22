@@ -20,6 +20,8 @@ export type SlideCompositionRendererProps = {
   /** Editor-only affordance: keep one selected element faintly renderable outside its timing window. */
   forceVisibleElementId?: string | null;
   forceVisibleOpacity?: number;
+  /** Called when a backend media URL fails so the host can refetch short-lived URLs. */
+  onMediaError?: () => void;
 };
 
 type AnchorFactor = readonly [x: number, y: number];
@@ -101,6 +103,7 @@ function renderElement(
   timeMs: number,
   forceVisible: boolean,
   forceVisibleOpacity: number,
+  onMediaError?: () => void,
 ): ReactElement | null {
   const animationFrame = getElementAnimationFrame(element, timeMs);
   const frame = mergeAnimationStyle(
@@ -134,6 +137,7 @@ function renderElement(
           muted
           playsInline
           aria-label={element.media.alt_text ?? undefined}
+          onError={onMediaError}
         />
       );
     }
@@ -145,6 +149,7 @@ function renderElement(
         style={mediaStyle}
         src={element.media.media_url}
         alt={element.media.alt_text ?? ""}
+        onError={onMediaError}
       />
     );
   }
@@ -171,6 +176,7 @@ export function SlideCompositionRenderer({
   className,
   forceVisibleElementId = null,
   forceVisibleOpacity = 0.25,
+  onMediaError,
 }: SlideCompositionRendererProps): ReactElement {
   const visibleElements = sortCompositionElements(elements).filter((element) =>
     isVisible(element, timeMs) || element.client_id === forceVisibleElementId,
@@ -196,6 +202,7 @@ export function SlideCompositionRenderer({
           timeMs,
           element.client_id === forceVisibleElementId && !isVisible(element, timeMs),
           forceVisibleOpacity,
+          onMediaError,
         ),
       )}
     </div>

@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_phase7_studio_validation_polish_20260722`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `Claude`
 - Created at (UTC): `2026-07-22T00:00:00Z`
-- Last updated at (UTC): `2026-07-22T00:00:00Z`
+- Last updated at (UTC): `2026-07-23T00:00:00Z`
 - Related issue/ticket: none provided
 - Intention plan: `docs/architecture/under_construction/implementation/PLAN_presentation_capability_master_20260722.md` (master — Phase 7)
 
@@ -90,9 +90,17 @@ Permitted relational reads: everything built in Phases 1–6 (it is the subject 
 ## Review log
 
 - `2026-07-22` Claude: drafted from master Phase 7.
+- `2026-07-23` User: approved — Phases 1–6 complete and reviewed; creation side functionally complete. Split execution per master "Division of labor": Codex half first (lean brief; carries four accumulated advisories: `ApiEnvelopeSchema` fold into `@beyo/lib`, notification-host assessment, dashboard `has_more` handling, hardcoded `workspaceName`), then the Claude-builder fidelity/a11y half, then lifecycle close.
+- `2026-07-22` Codex (hardening/tests/audits half): completed all four carried advisories and the non-visual Phase 7 checklist. `@beyo/lib` is now `0.0.1`; its shared `ApiEnvelopeSchema` requires `ok: true`, builder consumes it, and the studio consumes the shared `NotificationHostProvider`. Dashboard truncation now emits an explicit once-per-filter overflow notice and the workspace label comes from the optional authenticated `workspace_name` claim (workspace ID/generic fallback only when absent). Added 401-mid-session and publish-409 Playwright cases, presigned-media error refetch while preserving dirty edits, and clean/dirty `beforeunload` coverage. Builder pure modules (`composition-mapping`, `presentation-dashboard`, `publish-form`, `timeline-geometry`) report 100% statements/branches/functions/lines with a persisted 100% branch threshold. Public roots were pruned of controller/store/mapping/geometry/publish internals; scans found no deep app package imports, runtime→builder dependency, package default exports, or `/history` wrapper. Production build emitted distinct dashboard/editor route entries, no `INEFFECTIVE_DYNAMIC_IMPORT`, and editor implementation only in the deferred builder chunk; the general >500 kB vendor/boot-chunk size warning remains outside this phase's acceptance gate. Hosting handoff written at `docs/handoff/from_frontend/HANDOFF_presentation_builder_hosting_20260722.md`. Validation: root typecheck exit 0; runtime 19/19, builder 94/94, Shopify 101/101; builder coverage 100% on all four named modules; desktop Playwright 10/10 green twice consecutively; presentation component-kit diff contains only additive optional media-error callbacks and no DOM/class changes. Master creation criteria 1–6 were re-audited against routes, dependency arrows, round-trip mapping tests, draft/read-only and 409 behavior, publish forms/errors, and renderer call sites. Plan intentionally remains `approved`; no archive or summary was written.
+
+## For Claude
+
+- No visual, token-fidelity, state-styling, contrast, or focus-order findings were identified during the behavior/test/audit half; this list is intentionally empty for handoff purposes.
+
+- `2026-07-23` Claude (builder, fidelity/a11y half): **complete.** Kit purity verified by diff against baseline `8a1e0614` — only 3 component files changed since, all purely additive (zero removed className lines); Codex's added DOM (card menu, archive button) audited and accepted as token-consistent. Independent a11y pass on top of Codex's empty For-Claude list produced three kit improvements: PublishDialogShell gains Escape-to-close + focus-into-dialog on open; PreviewOverlay gains Escape-to-exit; PublishErrorSummary gains role="alert". Keyboard operability audit: every interactive is a native button/input/textarea/range (tabbable + operable); timeline bars are Enter/Space-selectable (drag remains pointer-only, acceptable for v1 — the criterion-3 create→text→publish flow needs no bar drag). Validation after edits: tsc exit 0; 94/94 builder tests; full desktop Playwright suite 10/10. Both halves complete — archiving.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved`
-- Transition owner: `Claude`
+- Current state: `approved`
+- Next state: `archived` (after BOTH halves complete and validation is green; Codex writes summary/archives only then)
+- Transition owner: `Codex session (Phase 7)` + `Claude-builder (fidelity/a11y half)`

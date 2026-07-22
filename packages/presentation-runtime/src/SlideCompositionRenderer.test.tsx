@@ -1,5 +1,5 @@
-import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   REFERENCE_CANVAS_WIDTH,
@@ -60,6 +60,41 @@ function visibleText(container: HTMLElement): string {
 }
 
 describe("SlideCompositionRenderer backend recipes", () => {
+  it("reports failed backend media so a host can refresh presigned URLs", () => {
+    const onMediaError = vi.fn();
+    render(
+      <SlideCompositionRenderer
+        elements={[
+          element({
+            client_id: "aupe_image_error",
+            element_type: "media",
+            layer_index: 0,
+            media: IMAGE_MEDIA,
+            text_content: null,
+          }),
+          element({
+            client_id: "aupe_video_error",
+            element_type: "media",
+            layer_index: 1,
+            media: VIDEO_MEDIA,
+            text_content: null,
+          }),
+        ]}
+        timeMs={0}
+        containerWidth={390}
+        containerHeight={690}
+        onMediaError={onMediaError}
+      />,
+    );
+
+    const image = document.querySelector("img");
+    const video = document.querySelector("video");
+    if (!image || !video) throw new Error("Expected image and video media elements");
+    fireEvent.error(image);
+    fireEvent.error(video);
+    expect(onMediaError).toHaveBeenCalledTimes(2);
+  });
+
   it("renders the text-only timed recipe using [start_ms, end_ms) windows", () => {
     const elements = [
       element({ client_id: "aupe_a", text_content: "A faster workflow", start_ms: 0, end_ms: 3_000 }),

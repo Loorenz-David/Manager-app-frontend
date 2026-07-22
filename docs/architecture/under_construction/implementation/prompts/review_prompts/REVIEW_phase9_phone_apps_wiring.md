@@ -31,6 +31,9 @@ You are the **implementation reviewer** for Phase 9 of the ManagerBeyo presentat
 - Cross-app targeting matrix verified (an announcement targeted at one app_key appears only there); frontend performs zero eligibility logic.
 - Master close-out done correctly: all-phases entry in its Review log, status `archived`, moved to archives — the ONLY phase allowed to do this.
 
+
+> **Known-closed items — do not re-report:** `PLAN_presentation_phase4_corrections_20260722.md` is archived in `archives/implementation/` (verified repeatedly; this phantom appeared in three prior reviews). The `ApiEnvelopeSchema` fold, shared notification host, dashboard `has_more`, and `workspaceName` advisories were all resolved in Phase 7.
+
 ## General checklist (applies every phase)
 
 1. **Acceptance criteria** — every numbered criterion in the phase plan: met, with evidence (file/test).

@@ -3,6 +3,7 @@ import {
   ConfirmSlideMediaInputSchema,
   CreateMediaUploadUrlInputSchema,
   PresentationListItemSchema,
+  PresentationEnvelopeSchema,
   PresentationSchema,
   ReplaceAudienceInputSchema,
   ReplaceCompositionInputSchema,
@@ -10,6 +11,14 @@ import {
 import { fullPresentationFixture, presentationListItemFixture } from "./test/fixtures";
 
 describe("presentation schemas", () => {
+  it("uses the shared success-only API envelope", () => {
+    expect(PresentationEnvelopeSchema.safeParse({
+      ok: false,
+      data: { presentation: fullPresentationFixture },
+      warnings: [],
+    }).success).toBe(false);
+  });
+
   it("parses the full backend presentation graph including a synthesized legacy element", () => {
     const parsed = PresentationSchema.parse(fullPresentationFixture);
     expect(parsed.slides[0]?.elements[0]?.client_id).toBeNull();

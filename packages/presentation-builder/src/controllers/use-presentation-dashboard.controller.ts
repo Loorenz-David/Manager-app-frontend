@@ -76,6 +76,7 @@ export function usePresentationDashboardController({
   const [searchValue, setSearchValue] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const createLockRef = useRef(false);
+  const overflowNoticeKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -92,6 +93,20 @@ export function usePresentationDashboardController({
   const createAction = useCreatePresentation();
   const archiveAction = useArchivePresentation();
   const { canManagePresentations } = usePresentationBuilderPermissions();
+
+  useEffect(() => {
+    if (!listQuery.data?.has_more) {
+      overflowNoticeKeyRef.current = null;
+      return;
+    }
+    const noticeKey = JSON.stringify(listFilters);
+    if (overflowNoticeKeyRef.current === noticeKey) return;
+    overflowNoticeKeyRef.current = noticeKey;
+    notify.info(
+      `Only the first ${listQuery.data.limit} announcements are shown.`,
+      "Use search or a status filter to narrow the list.",
+    );
+  }, [listFilters, listQuery.data?.has_more, listQuery.data?.limit]);
 
   const cards = useMemo(() => {
     const now = new Date();
@@ -128,6 +143,10 @@ export function usePresentationDashboardController({
     void listQuery.refetch();
   }, [listQuery]);
 
+  const refreshMediaUrls = useCallback(() => {
+    void listQuery.refetch();
+  }, [listQuery]);
+
   const archive = useCallback(async (id: string) => {
     if (!canManagePresentations || !window.confirm("Archive this announcement?")) return;
     try {
@@ -159,6 +178,7 @@ export function usePresentationDashboardController({
     navigateToEditor,
     newAnnouncementDisabled: !canManagePresentations || createAction.isPending,
     retry,
+    refreshMediaUrls,
     searchValue,
     setActiveFilter,
     setSearchValue,

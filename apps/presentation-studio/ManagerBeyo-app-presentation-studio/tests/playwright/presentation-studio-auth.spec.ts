@@ -25,6 +25,7 @@ function createAccessToken(role: StudioRole): string {
     email: `${role}@example.com`,
     username: `${role}-user`,
     workspace_id: ids.workspace,
+    workspace_name: "Acme Workshop",
     role_name: role,
     workspace_role_id: ids.workspaceRole,
     workspace_role_name: role,
@@ -132,6 +133,10 @@ async function installAuthApi(page: Page): Promise<MockSession> {
   });
 
   await page.route("**/api/v1/app-update-presentations**", async (route) => {
+    if (!session.active) {
+      await json(route, 401, { detail: "Session expired." });
+      return;
+    }
     await json(route, 200, {
       ok: true,
       data: {
@@ -166,6 +171,7 @@ test.describe("presentation-studio-auth", () => {
       await expect(page).toHaveURL(/\/$/);
       await expect(page.getByTestId("presentation-dashboard-top-bar")).toBeAttached();
       await expect(page.getByText(`${role}-user`)).toBeVisible();
+      await expect(page.getByTestId("presentation-dashboard-top-bar").locator("span").first()).toHaveText("A");
 
       await page.reload();
       await expect(page).toHaveURL(/\/$/);
@@ -192,6 +198,18 @@ test.describe("presentation-studio-auth", () => {
     await expect(page).toHaveURL(/\/sign-in$/);
     await signIn(page, "manager");
     await expect(page).toHaveURL(/\/editor\/prs_01J00000000000000000000000$/);
-    await expect(page.getByTestId("editor-placeholder")).toBeAttached();
+    await expect(page.getByTestId("presentation-editor-error")).toBeAttached();
+  });
+
+  test("a 401 after sign-in clears the session and returns to sign-in", async ({ page }) => {
+    const session = await installAuthApi(page);
+    await page.goto("/");
+    await signIn(page, "manager");
+    await expect(page.getByTestId("presentation-dashboard-top-bar")).toBeVisible();
+
+    session.active = false;
+    await page.getByTestId("presentation-dashboard-filter-chip-drafts").click();
+    await expect(page).toHaveURL(/\/sign-in$/);
+    await expect(page.locator('input[type="email"]')).toBeVisible();
   });
 });

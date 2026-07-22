@@ -7,7 +7,7 @@ import { ROUTES } from "@/lib/routes";
 
 export function DashboardPage(): React.JSX.Element {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, workspaceId } = useAuth();
   const navigateToEditor = useCallback(
     (presentationId: string) => navigate(ROUTES.editor(presentationId)),
     [navigate],
@@ -16,7 +16,7 @@ export function DashboardPage(): React.JSX.Element {
   return (
     <DashboardView
       navigateToEditor={navigateToEditor}
-      workspaceName="ManagerBeyo"
+      workspaceName={user?.workspaceName ?? workspaceId ?? "Workspace"}
       userName={user?.username ?? user?.email ?? "User"}
     />
   );

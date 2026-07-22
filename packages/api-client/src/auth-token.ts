@@ -19,6 +19,7 @@ type TokenClaims = {
   user_id: string;
   username: string;
   workspace_id: string;
+  workspace_name?: string;
   workspace_role_id: string;
   role_name: "admin" | "manager" | "worker" | "seller";
   workspace_role_name:

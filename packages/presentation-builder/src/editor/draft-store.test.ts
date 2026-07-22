@@ -85,4 +85,45 @@ describe("editor draft store", () => {
       embeddedMedia.media_url,
     );
   });
+
+  it("refreshes presigned media URLs without discarding local dirty edits", () => {
+    const fixture = PresentationSchema.parse({
+      ...fullPresentationFixture,
+      slides: [{
+        ...fullPresentationFixture.slides[0],
+        media: [embeddedMedia],
+        elements: [{
+          ...fullPresentationFixture.slides[0].elements[0],
+          element_type: "media",
+          media: embeddedMedia,
+          text_content: null,
+          style: null,
+          layer_index: 0,
+        }],
+      }],
+    });
+    const store = createEditorDraftStore();
+    store.hydrate(fixture);
+    store.addTextElement(fixture.slides[0]!.client_id);
+
+    const refreshedUrl = "https://cdn.example.com/background.webp?signature=fresh";
+    const refreshed = PresentationSchema.parse({
+      ...fixture,
+      slides: [{
+        ...fixture.slides[0],
+        media: [{ ...embeddedMedia, media_url: refreshedUrl }],
+        elements: [{
+          ...fixture.slides[0]!.elements[0],
+          media: { ...embeddedMedia, media_url: refreshedUrl },
+        }],
+      }],
+    });
+    store.refreshMediaUrls(refreshed);
+
+    expect(store.getState().dirtySlideIds.has(fixture.slides[0]!.client_id)).toBe(true);
+    expect(store.getState().localCompositions[fixture.slides[0]!.client_id]).toHaveLength(2);
+    expect(
+      store.getState().localCompositions[fixture.slides[0]!.client_id]?.[0]?.media?.media_url,
+    ).toBe(refreshedUrl);
+  });
 });

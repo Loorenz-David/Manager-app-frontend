@@ -28,8 +28,12 @@
 
 ## Clarifications required
 
-- [ ] `manual` playback_mode slides can exist via legacy/backend-authored data even though the studio only writes `timed` — player must still handle `manual` (tap-next) and `media_driven` (video clock) per `09_slide_composition.md`. Confirm all three modes are in v1 player scope (recommended: yes — the backend can serve them).
-- [ ] Dismiss affordance placement/behavior for each presentation_type (e.g., X on modal, swipe-down on slide_page) — needs a small design decision from the user before implementation (no mockup exists for the phone player chrome).
+- [x] All three `playback_mode`s are in v1 player scope (`timed` auto-advance, `manual` tap-next, `media_driven` video clock) — standing recommendation, unobjected; the backend can serve all three even though the studio only writes `timed`.
+- [x] **Dismiss chrome — RESOLVED (user decision, 2026-07-23)**:
+  - **slide_page**: the surface's built-in left-to-right slide-to-close gesture IS the dismiss affordance when `is_dismissible: true` (gesture close records `dismissed`). When `is_dismissible: false`, the gesture is **deactivated via the surface's own controller** — `setSwipeDismissDisabled(true)` from the `SlidePageSurface` context (verified: `packages/ui/src/components/surfaces/SlidePageSurface.tsx`; a `closeInterceptor` is also available) — and the user must acknowledge through a **footer button** (records `completed`, then closes).
+  - **modal**: X top-right when dismissible; no X when not — acknowledge button on the final slide is the only exit (same principle, builder-proposed default standing).
+  - **full_screen**: "Skip" text button top-right when dismissible; absent when not — final-slide acknowledge button exits (builder-proposed default standing).
+  - In every type, the acknowledge/finish affordance records `completed`; dismiss affordances record `dismissed` and exist only when `is_dismissible`.
 
 ## Acceptance criteria
 

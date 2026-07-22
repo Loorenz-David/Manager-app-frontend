@@ -115,11 +115,11 @@ export function buildPublishPayloads(
     return invalidResult(["Some publish settings are invalid."], {});
   }
 
-  const summary: string[] = [];
+  const summary = new Set<string>();
   const fields: PublishFieldErrors = {};
   if (form.audienceMode === "selected_users_only" && form.userIds.length === 0) {
     fields.userIds = "Pick at least one workspace member.";
-    summary.push("Selected users only requires at least one member.");
+    summary.add("Selected users only requires at least one member.");
   }
 
   const trimmedPriority = form.priorityValue.trim();
@@ -128,24 +128,24 @@ export function buildPublishPayloads(
     : Number(trimmedPriority);
   if (!Number.isInteger(priority)) {
     fields.priority = "Priority must be a whole number.";
-    summary.push(fields.priority);
+    summary.add(fields.priority);
   }
 
   const startsAt = localInputToUtcIso(form.startsAtLocal);
   const expiresAt = localInputToUtcIso(form.expiresAtLocal);
   if (form.startsAtLocal !== "" && startsAt === null) {
     fields.startsAt = "Enter a valid start date and time.";
-    summary.push(fields.startsAt);
+    summary.add(fields.startsAt);
   }
   if (form.expiresAtLocal !== "" && expiresAt === null) {
     fields.expiresAt = "Enter a valid expiry date and time.";
-    summary.push(fields.expiresAt);
+    summary.add(fields.expiresAt);
   }
   if (expiresAt !== null && startsAt !== null && new Date(expiresAt) <= new Date(startsAt)) {
     fields.expiresAt = "Expiry must be after the start time.";
-    summary.push(fields.expiresAt);
+    summary.add(fields.expiresAt);
   }
-  if (summary.length > 0) return invalidResult([...new Set(summary)], fields);
+  if (summary.size > 0) return invalidResult([...summary], fields);
 
   return {
     success: true,
@@ -201,10 +201,8 @@ export function mapPublishFailure(error: unknown, step: PublishStep): PublishIss
   }
 
   const fields: PublishFieldErrors = {};
-  const summary: string[] = [];
-  const add = (message: string) => {
-    if (!summary.includes(message)) summary.push(message);
-  };
+  const summary = new Set<string>();
+  const add = (message: string) => summary.add(message);
   if (/no slides|at least one slide/.test(normalized)) add("Add at least one slide before publishing.");
   if (/empty slide|slide.*content|no content/.test(normalized)) add("Every slide needs media or a text block.");
   if (/media/.test(normalized) && /invalid|unsupported|storage|reference/.test(normalized)) {
@@ -221,7 +219,7 @@ export function mapPublishFailure(error: unknown, step: PublishStep): PublishIss
   if (/app.*key|role.*key|unknown key|unrecognized/.test(normalized)) {
     add("One or more audience app or role selections are not recognized.");
   }
-  if (summary.length === 0) {
+  if (summary.size === 0) {
     const prefix = step === "audience"
       ? "Audience could not be saved"
       : step === "metadata"
@@ -231,5 +229,5 @@ export function mapPublishFailure(error: unknown, step: PublishStep): PublishIss
           : "Publishing failed";
     add(`${prefix}: ${text}`);
   }
-  return { summary, fields, raced: false };
+  return { summary: [...summary], fields, raced: false };
 }

@@ -100,6 +100,7 @@ export function usePresentationEditorController(presentationId: string) {
   const lastUploadRef = useRef<{ file: File; role: UploadRole } | null>(null);
   const compositionFailureNotifiedRef = useRef(new Set<string>());
   const compositionFlushesRef = useRef(new Map<string, Promise<boolean>>());
+  const mediaRefreshRef = useRef<Promise<Slide[] | null> | null>(null);
   const flushAllRef = useRef<() => Promise<boolean>>(async () => true);
 
   const detail = usePresentationDetail(presentationId);
@@ -450,6 +451,30 @@ export function usePresentationEditorController(presentationId: string) {
     if (result.data) reconcile(result.data, store.getState().selectedSlideId);
   }, [detail, reconcile, store]);
 
+  const refreshMediaUrls = useCallback((): Promise<Slide[] | null> => {
+    if (mediaRefreshRef.current) return mediaRefreshRef.current;
+    const refresh = (async () => {
+      const result = await detail.refetch();
+      if (result.isError || !result.data) {
+        setNotice(`Media could not be refreshed: ${errorMessage(result.error)}`);
+        return null;
+      }
+      store.refreshMediaUrls(result.data);
+      const current = store.getState();
+      return current.presentation?.slides.map((slide) => ({
+        ...slide,
+        elements: current.localCompositions[slide.client_id] ?? slide.elements,
+      })) ?? null;
+    })().catch((error: unknown) => {
+      setNotice(`Media could not be refreshed: ${errorMessage(error)}`);
+      return null;
+    }).finally(() => {
+      mediaRefreshRef.current = null;
+    });
+    mediaRefreshRef.current = refresh;
+    return refresh;
+  }, [detail, store]);
+
   const openPreview = useCallback(async (): Promise<Slide[] | null> => {
     if (!(await flushAll())) {
       setNotice("Save the local timeline changes before previewing.");
@@ -600,6 +625,7 @@ export function usePresentationEditorController(presentationId: string) {
     cancelUpload,
     dismissUploadError,
     retryUpload,
+    onMediaError: refreshMediaUrls,
     refetch: detail.refetch,
   };
 }

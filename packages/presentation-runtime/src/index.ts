@@ -35,17 +35,6 @@ export type {
   TextRole,
   TextStyle,
 } from "./schemas";
-export { compareCompositionElements, sortCompositionElements } from "./ordering";
-export {
-  animationRegistry,
-  DEFAULT_ANIMATION_DURATION_MS,
-  DEFAULT_ANIMATION_OFFSET_PX,
-  easingFunctions,
-  getElementAnimationFrame,
-  mergeAnimationStyle,
-  type AnimationFrame,
-  type AnimationPhase,
-} from "./animation-registry";
 export {
   advancePlaybackTime,
   MAX_PLAYBACK_DELTA_MS,

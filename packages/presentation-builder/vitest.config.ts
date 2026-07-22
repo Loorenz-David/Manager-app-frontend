@@ -13,5 +13,15 @@ export default defineConfig({
       "packages/presentation-builder/src/**/*.test.tsx",
     ],
     setupFiles: ["packages/presentation-builder/src/test/setup.ts"],
+    coverage: {
+      provider: "v8",
+      include: [
+        "packages/presentation-builder/src/lib/composition-mapping.ts",
+        "packages/presentation-builder/src/lib/presentation-dashboard.ts",
+        "packages/presentation-builder/src/lib/publish-form.ts",
+        "packages/presentation-builder/src/lib/timeline-geometry.ts",
+      ],
+      thresholds: { branches: 100 },
+    },
   },
 });

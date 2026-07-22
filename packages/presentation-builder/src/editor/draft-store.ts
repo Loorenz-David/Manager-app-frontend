@@ -33,6 +33,7 @@ export type EditorDraftStore = {
   setSlideDuration: (slideId: string, durationMs: number) => void;
   setPlayback: (slideId: string, patch: Partial<{ playheadMs: number; playing: boolean }>) => void;
   reconcileAfterFlush: (presentation: Presentation, slideId: string) => void;
+  refreshMediaUrls: (presentation: Presentation) => void;
   reset: () => void;
 };
 
@@ -73,6 +74,29 @@ function compositionsFor(presentation: Presentation): Record<string, Composition
   return Object.fromEntries(
     presentation.slides.map((slide) => [slide.client_id, cloneElements(slide.elements)]),
   );
+}
+
+function mediaById(presentation: Presentation): Map<string, SlideMedia> {
+  const media = new Map<string, SlideMedia>();
+  for (const slide of presentation.slides) {
+    for (const item of slide.media) media.set(item.client_id, item);
+    for (const element of slide.elements) {
+      if (element.media) media.set(element.media.client_id, element.media);
+    }
+  }
+  return media;
+}
+
+function refreshElementMedia(
+  elements: readonly CompositionElement[],
+  refreshedMedia: ReadonlyMap<string, SlideMedia>,
+): CompositionElement[] {
+  return elements.map((element) => ({
+    ...element,
+    media: element.media
+      ? { ...(refreshedMedia.get(element.media.client_id) ?? element.media) }
+      : null,
+  }));
 }
 
 function firstExistingSlideId(presentation: Presentation, requested: string | null | undefined): string | null {
@@ -285,6 +309,37 @@ export function createEditorDraftStore(): EditorDraftStore {
         },
         dirtySlideIds,
         selectedElementIds: { ...state.selectedElementIds, [slideId]: null },
+        revision: state.revision + 1,
+      });
+    },
+    refreshMediaUrls: (presentation) => {
+      if (!state.presentation) return;
+      const refreshedMedia = mediaById(presentation);
+      const incomingSlides = new Map(
+        presentation.slides.map((slide) => [slide.client_id, slide]),
+      );
+      publish({
+        ...state,
+        presentation: {
+          ...state.presentation,
+          slides: state.presentation.slides.map((slide) => {
+            const incoming = incomingSlides.get(slide.client_id);
+            if (!incoming) return slide;
+            return {
+              ...slide,
+              media: slide.media.map((item) => ({
+                ...(refreshedMedia.get(item.client_id) ?? item),
+              })),
+              elements: refreshElementMedia(slide.elements, refreshedMedia),
+            };
+          }),
+        },
+        localCompositions: Object.fromEntries(
+          Object.entries(state.localCompositions).map(([slideId, elements]) => [
+            slideId,
+            refreshElementMedia(elements, refreshedMedia),
+          ]),
+        ),
         revision: state.revision + 1,
       });
     },

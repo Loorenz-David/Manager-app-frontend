@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildPublishPayloads,
+  initialPublishForm,
+  localInputToUtcIso,
   mapPublishFailure,
   priorityForCategory,
   type PublishFormState,
 } from "./publish-form";
+import { fullPresentationFixture } from "../test/fixtures";
+import { PresentationSchema } from "../types";
 
 const baseForm = (overrides: Partial<PublishFormState> = {}): PublishFormState => ({
   audienceMode: "all_matching",
@@ -91,6 +95,54 @@ describe("publish form mapping", () => {
     expect(invalid.success).toBe(false);
     if (!invalid.success) expect(invalid.issues.fields.expiresAt).toMatch(/after/i);
   });
+
+  it("initializes null/default and explicit publish settings", () => {
+    const presentation = PresentationSchema.parse(fullPresentationFixture);
+    expect(initialPublishForm(presentation)).toMatchObject({
+      category: "improvement",
+      priorityValue: "",
+      startsAtLocal: "",
+      expiresAtLocal: "",
+    });
+
+    expect(initialPublishForm({
+      ...presentation,
+      category: null,
+      display_priority: 42,
+      starts_at: "2026-07-23T09:30:00+00:00",
+      expires_at: "not-a-date",
+    })).toMatchObject({
+      category: "none",
+      priorityValue: "42",
+      startsAtLocal: "2026-07-23T11:30",
+      expiresAtLocal: "",
+    });
+  });
+
+  it("rejects malformed form fields, non-integer priority, and invalid dates", () => {
+    expect(buildPublishPayloads("aup_example", {
+      ...baseForm(),
+      priorityValue: 4 as unknown as string,
+    }).success).toBe(false);
+
+    const result = buildPublishPayloads("aup_example", baseForm({
+      audienceMode: "selected_users_only",
+      priorityValue: "4.5",
+      startsAtLocal: "invalid",
+      expiresAtLocal: "invalid",
+    }));
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.issues.fields).toMatchObject({
+        userIds: expect.any(String),
+        priority: expect.any(String),
+        startsAt: expect.any(String),
+        expiresAt: expect.any(String),
+      });
+    }
+    expect(localInputToUtcIso("   ")).toBeNull();
+    expect(localInputToUtcIso("invalid")).toBeNull();
+  });
 });
 
 describe("publish server error mapping", () => {
@@ -110,5 +162,40 @@ describe("publish server error mapping", () => {
     const issues = mapPublishFailure(Object.assign(new Error("not draft"), { status: 409 }), "publish");
     expect(issues.raced).toBe(true);
     expect(issues.summary[0]).toMatch(/reloaded/i);
+  });
+
+  it.each([
+    ["audience", "Audience could not be saved"],
+    ["metadata", "Publish settings could not be saved"],
+    ["flush", "Draft changes could not be saved"],
+    ["publish", "Publishing failed"],
+  ] as const)("adds a step-specific fallback for %s failures", (step, expected) => {
+    expect(mapPublishFailure("offline", step).summary[0]).toContain(expected);
+  });
+
+  it("accepts error-like objects and safely handles malformed status/message fields", () => {
+    expect(mapPublishFailure({ message: "No content" }, "publish").summary[0]).toContain(
+      "Every slide needs",
+    );
+    expect(mapPublishFailure({ status: "409", message: 42 }, "publish")).toMatchObject({
+      raced: false,
+      summary: ["Publishing failed: The publish request failed."],
+    });
+    expect(mapPublishFailure(null, "publish").raced).toBe(false);
+    expect(mapPublishFailure({ status: 409, message: "raced" }, "publish").raced).toBe(true);
+  });
+
+  it("combines every recognized backend cause without duplicates", () => {
+    const issues = mapPublishFailure(
+      Object.assign(new Error(
+        "At least one slide has no content; unsupported media reference; expires_at schedule; selected user_ids; unknown app key",
+      ), { status: 422 }),
+      "publish",
+    );
+    expect(issues.summary).toHaveLength(6);
+    expect(issues.fields).toMatchObject({
+      expiresAt: expect.any(String),
+      userIds: expect.any(String),
+    });
   });
 });

@@ -3,6 +3,10 @@ export { cn } from "./utils";
 export { durations, easings, transitions, tabVariants } from "./animation";
 
 export { notify } from "./notify";
+export {
+  NotificationHostProvider,
+  type NotificationHostProviderProps,
+} from "./NotificationHostProvider";
 
 export {
   CLIENT_ID_PREFIXES,

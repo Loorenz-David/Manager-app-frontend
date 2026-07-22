@@ -179,6 +179,32 @@ describe("usePresentationDashboardController", () => {
     expect(result.current.cards.map((card) => card.id)).toEqual(["aup_scheduled"]);
   });
 
+  it("signals a truncated list once per filter instead of silently hiding overflow", () => {
+    const notifyInfo = vi.spyOn(notify, "info").mockImplementation(() => undefined);
+    mocks.listQuery.mockReturnValue({
+      ...listResult(),
+      data: { items: [], has_more: true, limit: 200, offset: 0 },
+    });
+
+    const { result, rerender } = renderHook(() =>
+      usePresentationDashboardController({
+        navigateToEditor: vi.fn(),
+        workspaceName: "Acme Workshop",
+        userName: "Marta Karlsson",
+      }),
+    );
+
+    expect(notifyInfo).toHaveBeenCalledWith(
+      "Only the first 200 announcements are shown.",
+      "Use search or a status filter to narrow the list.",
+    );
+    rerender();
+    expect(notifyInfo).toHaveBeenCalledTimes(1);
+
+    act(() => result.current.setActiveFilter("drafts"));
+    expect(notifyInfo).toHaveBeenCalledTimes(2);
+  });
+
   it("creates once, uses the default title, and navigates only after success", async () => {
     let resolveCreate: ((value: typeof fullPresentationFixture) => void) | undefined;
     mocks.createPresentationAsync.mockImplementation(

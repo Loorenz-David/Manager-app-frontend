@@ -95,14 +95,15 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [ ] **Operator (you): commit the Phase 6 implementation**
 
 ### Phase 7 — hardening (split phase)
-- [ ] Ask Claude: flip plan to `approved`
-- [ ] Codex: paste `PROMPT_phase7_polish_validation.md` — Codex does tests/coverage/bundle/API-audit/handoff and **records** visual findings in a "For Claude" list, then stops without archiving
-- [ ] Ask Claude: **"run your Phase 7 half"** — design-fidelity + a11y fixes from the checklist + Codex's "For Claude" list
-- [ ] Codex (same prompt, new session — or ask Claude): finalize summary + archive once both halves are done
-- [ ] Opus reviewer: paste `review_prompts/REVIEW_phase7_studio_validation_polish.md` (confirms creation side complete)
+- [x] Ask Claude: flip plan to `approved` *(2026-07-23 — prompt rewritten as lean split-half brief; carries all four accumulated advisories)*
+- [x] Codex: paste `PROMPT_phase7_polish_validation.md` *(2026-07-23 — all 4 advisories resolved; hardening; 100% pure-module coverage; bundle + API audits; hosting handoff doc; For-Claude list explicitly empty)*
+- [x] Claude-builder half *(2026-07-23 — kit purity diff-verified vs `8a1e0614`; Codex DOM additions accepted; a11y: dialog Escape+focus-in, overlay Escape, error role="alert"; keyboard operability audited; summary written + plan archived)*
+- [x] Opus reviewer *(2026-07-23 — **PASS, clean, no notes**: all 7 criteria; re-ran full validation; kit edits confirmed Claude-lane-only; hosting handoff passes cold-host test; all carried advisories closed. Its one "housekeeping" item was the recurring phase4-corrections phantom — verified archived, review prompts 8/9 now inoculated)*
+- **Phase 7 COMPLETE — CREATION SIDE (Phases 1–7) DONE & RELEASABLE** ✅✅
+- [ ] **Operator (you): commit the Phase 7 batch** (still in the working tree)
 
 ### Phase 8 — phone player package
-- [ ] **Decision (you), before kit**: dismiss-affordance chrome per `presentation_type` (X on modal? swipe on slide_page? etc.) — decide with Claude ("propose dismiss chrome options for the player"), Claude records it. Also confirm all three playback modes in scope (recommended yes).
+- [x] **Decision**: dismiss chrome resolved *(2026-07-23 — slide_page: built-in slide-to-close gesture = dismiss, deactivated via `setSwipeDismissDisabled` + footer acknowledge button when `is_dismissible: false`; modal: X; full_screen: Skip; acknowledge always records `completed`. All three playback modes in scope.)*
 - [ ] Ask Claude: **re-validate the Phase 8 plan** against the shipped runtime package, then flip to `approved`
 - [ ] Ask Claude: **"build the Phase 8 player chrome kit"** → review → iterate
 - [ ] Codex: paste `PROMPT_phase8_player_package.md`

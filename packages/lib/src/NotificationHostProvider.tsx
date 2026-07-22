@@ -1,11 +1,14 @@
 import type { ReactNode } from "react";
 import { Toaster } from "sonner";
 
+export type NotificationHostProviderProps = {
+  children: ReactNode;
+};
+
+/** Repository notification host used by shells that consume `notify`. */
 export function NotificationHostProvider({
   children,
-}: {
-  children: ReactNode;
-}): React.JSX.Element {
+}: NotificationHostProviderProps): React.JSX.Element {
   return (
     <>
       {children}

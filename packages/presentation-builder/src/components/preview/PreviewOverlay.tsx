@@ -1,4 +1,5 @@
 import { Pause, Play, X } from "lucide-react";
+import { useEffect } from "react";
 import type { ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
@@ -29,6 +30,15 @@ export function PreviewOverlay({
   activeSlideIndex,
   onSelectSlide,
 }: PreviewOverlayProps): React.JSX.Element {
+  // Escape exits the takeover, matching the visible "✕ Exit" affordance.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onExit();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onExit]);
+
   return (
     <div
       data-testid="presentation-preview-overlay"

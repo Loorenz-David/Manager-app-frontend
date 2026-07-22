@@ -283,6 +283,87 @@ describe("presentation editor controller", () => {
     }, { timeout: 3_000 });
   });
 
+  it("does not guard beforeunload when the editor has no local changes", async () => {
+    installDetail();
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+
+    const beforeUnload = new Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(beforeUnload);
+    expect(beforeUnload.defaultPrevented).toBe(false);
+  });
+
+  it("refetches expired media URLs without discarding dirty local composition", async () => {
+    const asset = {
+      client_id: "aupm_expiring",
+      sequence_order: 1,
+      media_type: "image" as const,
+      media_url: "https://cdn.example.com/expired.png",
+      poster_url: null,
+      fallback_url: null,
+      alt_text: "Expiring media",
+      mime_type: "image/png",
+      width: 1080,
+      height: 1920,
+      duration_ms: null,
+      is_looping: false,
+    };
+    const mediaElement = {
+      ...fullPresentationFixture.slides[0].elements[0],
+      element_type: "media" as const,
+      layer_index: 0,
+      media: asset,
+      text_content: null,
+      style: null,
+    };
+    const expired = {
+      ...fullPresentationFixture,
+      slides: [{
+        ...fullPresentationFixture.slides[0],
+        media: [asset],
+        elements: [mediaElement],
+      }],
+    };
+    const freshUrl = "https://cdn.example.com/fresh.png";
+    const fresh = {
+      ...expired,
+      slides: [{
+        ...expired.slides[0],
+        media: [{ ...asset, media_url: freshUrl }],
+        elements: [{ ...mediaElement, media: { ...asset, media_url: freshUrl } }],
+      }],
+    };
+    let detailCalls = 0;
+    server.use(
+      http.get(`${API_PATTERN}/:id`, () => {
+        detailCalls += 1;
+        return HttpResponse.json(envelope({ presentation: detailCalls === 1 ? expired : fresh }));
+      }),
+    );
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    act(() => result.current.onAddText());
+
+    await act(async () => {
+      await result.current.onMediaError();
+    });
+
+    expect(detailCalls).toBe(2);
+    expect(result.current.dirty).toBe(true);
+    expect(result.current.localCompositions[expired.slides[0].client_id]).toHaveLength(2);
+    expect(
+      result.current.localCompositions[expired.slides[0].client_id]?.[0]?.media?.media_url,
+    ).toBe(freshUrl);
+  });
+
   it("clears a pending title PATCH when presentationId changes", async () => {
     const patchSpy = vi.fn();
     installDetail();

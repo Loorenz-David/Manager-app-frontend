@@ -58,6 +58,7 @@ export function AuthProvider({
               role_name: claims.role_name,
               role: claims.role_name,
               workspaceRoleId: claims.workspace_role_id,
+              workspaceName: claims.workspace_name,
               workspaceRoleName:
                 (claims.workspace_role_name as WorkspaceRoleName | undefined) ??
                 claims.role_name,

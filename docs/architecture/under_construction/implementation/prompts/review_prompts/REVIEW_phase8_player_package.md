@@ -31,6 +31,9 @@ You are the **implementation reviewer** for Phase 8 of the ManagerBeyo presentat
 - Provider is the single owner of "currently presenting" with dedupe; `activePresentationKeys` exported for Phase 9.
 - No app-specific imports; no `GET /history`; presigned URLs never persisted.
 
+
+> **Known-closed items — do not re-report:** `PLAN_presentation_phase4_corrections_20260722.md` is archived in `archives/implementation/` (verified repeatedly; this phantom appeared in three prior reviews). The `ApiEnvelopeSchema` fold, shared notification host, dashboard `has_more`, and `workspaceName` advisories were all resolved in Phase 7.
+
 ## General checklist (applies every phase)
 
 1. **Acceptance criteria** — every numbered criterion in the phase plan: met, with evidence (file/test).

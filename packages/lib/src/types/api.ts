@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const ApiEnvelopeSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
   z.object({
-    ok: z.boolean(),
+    ok: z.literal(true),
     data: dataSchema,
     warnings: z.array(z.string()),
   });
@@ -13,7 +13,7 @@ export const ApiErrorSchema = z.object({
 });
 
 export type ApiResponse<T> = {
-  ok: boolean;
+  ok: true;
   data: T;
   warnings: string[];
 };

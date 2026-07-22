@@ -10,7 +10,7 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL,
-    trace: "retain-on-failure",
+    trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
   projects: [

@@ -22,6 +22,7 @@ export type AuthUser = {
   role_name: AuthRole;
   role: AuthRole;
   workspaceRoleId: string;
+  workspaceName?: string;
   workspaceRoleName: WorkspaceRoleName;
   workspaceSpecialization: WorkspaceSpecializationName;
   appScope: AuthAppScope;

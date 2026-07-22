@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ApiEnvelopeSchema } from "@beyo/lib";
 
 import {
   CompositionElementSchema,
@@ -189,9 +190,6 @@ export const UploadUrlResponseSchema = z.object({
   expires_in: z.number().int().positive(),
 });
 export type UploadUrlResponse = z.infer<typeof UploadUrlResponseSchema>;
-
-export const ApiEnvelopeSchema = <T extends z.ZodType>(dataSchema: T) =>
-  z.object({ data: dataSchema, ok: z.literal(true), warnings: z.array(z.string()) });
 
 const PresentationPayloadSchema = z.object({ presentation: PresentationSchema });
 const PresentationPreviewPayloadSchema = z.object({ presentation: PresentationPreviewSchema });

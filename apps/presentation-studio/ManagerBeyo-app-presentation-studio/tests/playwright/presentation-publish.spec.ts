@@ -116,6 +116,7 @@ async function installApi(page: Page) {
   let v1 = draftV1();
   let v2: Deck | null = null;
   let audienceBody: Record<string, unknown> | null = null;
+  let publishRace = false;
 
   await page.route("**/api/v1/auth/refresh**", async (route) => {
     if (!signedIn) return json(route, 401, { detail: "No active session." });
@@ -191,6 +192,11 @@ async function installApi(page: Page) {
       return json(route, 200, { ok: true, data: { presentation: v1 }, warnings: [] });
     }
     if (method === "POST" && path.endsWith("/publish")) {
+      if (publishRace) {
+        publishRace = false;
+        v1 = { ...v1, status: "published", published_at: "2026-07-22T20:00:00+00:00" };
+        return json(route, 409, { ok: false, error: "Presentation is no longer a draft." });
+      }
       v1 = { ...v1, status: "published", published_at: "2026-07-22T20:00:00+00:00" };
       return json(route, 200, { ok: true, data: { presentation: v1 }, warnings: [] });
     }
@@ -205,7 +211,12 @@ async function installApi(page: Page) {
     return json(route, 404, { ok: false, error: `Unhandled ${method} ${path}` });
   });
 
-  return { audience: () => audienceBody };
+  return {
+    audience: () => audienceBody,
+    triggerPublishRace: () => {
+      publishRace = true;
+    },
+  };
 }
 
 test("presentation-publish full preview, publish, version, and archive lifecycle", async ({ page }) => {
@@ -251,4 +262,24 @@ test("presentation-publish full preview, publish, version, and archive lifecycle
   await expect(page.getByTestId("presentation-editor-read-only-banner")).toContainText("Archived — read-only · v1");
   expect(consoleErrors).toEqual([]);
   expect(pageErrors).toEqual([]);
+});
+
+test("presentation-publish reconciles a 409 race to the latest read-only state", async ({ page }) => {
+  const api = await installApi(page);
+  await page.goto(`/editor/${ids.v1}`);
+  await page.locator('input[type="email"]').fill("manager@example.com");
+  await page.locator('input[type="password"]').fill("studio-test-password");
+  await page.getByRole("button", { name: /sign in/i }).click();
+  await expect(page.getByTestId("presentation-editor-shell")).toBeVisible();
+
+  api.triggerPublishRace();
+  await page.getByTestId("presentation-editor-publish-button").click();
+  await page.getByTestId("presentation-publish-confirm-button").click();
+
+  await expect(page.getByTestId("presentation-editor-notice")).toContainText(
+    "changed in another session",
+  );
+  await expect(page.getByTestId("presentation-editor-read-only-banner")).toContainText(
+    "Published — read-only · v1",
+  );
 });

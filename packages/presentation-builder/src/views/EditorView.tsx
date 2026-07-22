@@ -53,7 +53,15 @@ export type EditorViewProps = {
 
 type EditorController = ReturnType<typeof usePresentationEditorController>;
 
-function EditorPreview({ slides, onExit }: { slides: Slide[]; onExit: () => void }) {
+function EditorPreview({
+  slides,
+  onExit,
+  onMediaError,
+}: {
+  slides: Slide[];
+  onExit: () => void;
+  onMediaError: () => void;
+}) {
   const durations = useMemo(() => slides.map((slide) => slide.duration_ms ?? 4_000), [slides]);
   const playback = usePresentationPreviewPlayback(durations);
   const slide = slides[playback.activeSlideIndex];
@@ -74,6 +82,7 @@ function EditorPreview({ slides, onExit }: { slides: Slide[]; onExit: () => void
           containerWidth={300}
           containerHeight={533}
           className="h-full w-full"
+          onMediaError={onMediaError}
         />
       ) : null}
     </PreviewOverlay>
@@ -82,9 +91,11 @@ function EditorPreview({ slides, onExit }: { slides: Slide[]; onExit: () => void
 
 const RailThumbnail = memo(function RailThumbnail({
   elements,
+  onMediaError,
 }: {
   elements: readonly CompositionElement[];
   revision: number;
+  onMediaError: () => void;
 }) {
   return (
     <SlideCompositionRenderer
@@ -93,6 +104,7 @@ const RailThumbnail = memo(function RailThumbnail({
       containerWidth={58}
       containerHeight={104}
       className="h-full w-full"
+      onMediaError={onMediaError}
     />
   );
 });
@@ -161,6 +173,7 @@ function TimelineCanvasWorkspace({
                 className="h-full w-full"
                 forceVisibleElementId={controller.selectedElementId}
                 forceVisibleOpacity={0.25}
+                onMediaError={() => void controller.onMediaError()}
               />
               {timedElements.map((element) => {
                 const id = compositionElementId(element);
@@ -352,7 +365,13 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
         id: slide.client_id,
         mediaLabel: mediaKind === "image" ? "IMAGE" : mediaKind === "video" ? "VIDEO" : null,
         textCountLabel: `${textCount} ${textCount === 1 ? "text" : "texts"}`,
-        thumbnail: <RailThumbnail elements={elements} revision={controller.slideRevisions[slide.client_id] ?? 0} />,
+        thumbnail: (
+          <RailThumbnail
+            elements={elements}
+            revision={controller.slideRevisions[slide.client_id] ?? 0}
+            onMediaError={() => void controller.onMediaError()}
+          />
+        ),
       };
     }) ?? [],
   [controller.localCompositions, controller.slideRevisions, controller.presentation?.slides]);
@@ -456,7 +475,17 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
         }}
       />
       </EditorShell>
-      {previewSlides && <EditorPreview slides={previewSlides} onExit={() => setPreviewSlides(null)} />}
+      {previewSlides && (
+        <EditorPreview
+          slides={previewSlides}
+          onExit={() => setPreviewSlides(null)}
+          onMediaError={() => {
+            void controller.onMediaError().then((slides) => {
+              if (slides) setPreviewSlides(slides);
+            });
+          }}
+        />
+      )}
       {surface === "publish" && !controller.readOnly && (
         <PublishDialog
           presentation={presentation}

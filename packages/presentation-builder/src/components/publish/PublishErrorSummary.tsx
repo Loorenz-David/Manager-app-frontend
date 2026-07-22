@@ -10,7 +10,7 @@ export function PublishErrorSummary({
   errors,
 }: PublishErrorSummaryProps): React.JSX.Element {
   return (
-    <div className="flex gap-2" data-testid="presentation-publish-error-summary">
+    <div role="alert" className="flex gap-2" data-testid="presentation-publish-error-summary">
       <CircleAlert aria-hidden className="mt-px size-4 shrink-0 text-[#a9791b]" strokeWidth={2} />
       <ul className="space-y-0.5 text-xs leading-4 text-[#8a5a00]">
         {errors.map((error) => (
