@@ -25,6 +25,7 @@ includes timeline fields and an `elements` array:
   "playback_mode": "timed",
   "duration_ms": 8000,
   "composition_schema_version": 1,
+  "background_color": null,
   "media": [ /* raw media assets on the slide (see below) */ ],
   "action": null,
   "elements": [
@@ -163,6 +164,7 @@ element set in one transaction — no partial states.
   "playback_mode": "timed",
   "duration_ms": 8000,
   "composition_schema_version": 1,
+  "background_color": "#102A43CC",
   "elements": [
     { "element_type": "media", "media_id": "aupm_...", "layer_index": 0, "start_ms": 0, "layout": { "x": 0, "y": 0, "width": 1, "height": 1, "fit": "cover" } },
     { "element_type": "text", "text_content": "Switch users instantly", "layer_index": 10, "start_ms": 1000, "end_ms": 4000,
@@ -172,6 +174,9 @@ element set in one transaction — no partial states.
   ]
 }
 ```
+
+`background_color` is nullable and accepts `#RRGGBB` or `#RRGGBBAA`; `null`
+means the slide has no solid background.
 
 - `elements` are stored in the **order you send them** (`sequence_order` is
   assigned by position, 0-based). Reorder by resending in the new order.

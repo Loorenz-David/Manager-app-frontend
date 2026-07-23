@@ -84,6 +84,7 @@ function slide(clientId: string, sequenceOrder: number, assets: ReturnType<typeo
     playback_mode: "timed" as const,
     duration_ms: 8_000,
     composition_schema_version: 1,
+    background_color: null,
     media: assets,
     action: null,
     elements: assets.map((asset, index) => element(asset, index)),

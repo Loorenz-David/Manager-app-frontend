@@ -66,6 +66,7 @@ function slide(clientId: string, sequenceOrder: number, text: string) {
     playback_mode: "timed" as const,
     duration_ms: 600,
     composition_schema_version: 1,
+    background_color: null,
     media: [],
     action: null,
     elements: [element(`aupe_${clientId}`, text)],

@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
 
+import { isEditorTypingTarget } from "../../lib/use-editor-transport-hotkey";
+
 type PreviewOverlayProps = {
   /** The rendered current slide (runtime renderer at the preview clock's time). */
   children: ReactNode;
@@ -34,10 +36,18 @@ export function PreviewOverlay({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") onExit();
+      if (
+        event.key === " " &&
+        !event.defaultPrevented &&
+        !isEditorTypingTarget(event.target)
+      ) {
+        event.preventDefault();
+        onTogglePlay();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onExit]);
+  }, [onExit, onTogglePlay]);
 
   return (
     <div

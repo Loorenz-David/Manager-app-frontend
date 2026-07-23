@@ -64,6 +64,7 @@ export { SlideRail } from "./components/editor/SlideRail";
 export { SlideRailCard } from "./components/editor/SlideRailCard";
 export { EditorCanvas } from "./components/editor/EditorCanvas";
 export { MediaUploadOverlay } from "./components/editor/MediaUploadOverlay";
+export { CanvasTextEditOverlay } from "./components/editor/CanvasTextEditOverlay";
 export { type SlideRailItemData } from "./components/editor/types";
 
 // Timeline & panels UI kit (presentational, props-only — see master plan "Division of labor")
@@ -78,7 +79,13 @@ export {
   type TimelineBarGestureKind,
 } from "./components/timeline/types";
 export { CanvasDraggableBox } from "./components/editor/CanvasDraggableBox";
+export { type CanvasResizeGesture, type CanvasResizeHandle } from "./components/editor/types";
+export { ANIMATION_OPTIONS, type AnimationChoice } from "./components/panels/animation-options";
 export { TextBlockPanel, type TextAnimationChoice } from "./components/panels/TextBlockPanel";
+export {
+  TextStylingSection,
+  type TextStylingSectionProps,
+} from "./components/panels/TextStylingSection";
 export { MediaElementPanel, type MediaFitChoice } from "./components/panels/MediaElementPanel";
 export { SlidePropertiesPanel } from "./components/panels/SlidePropertiesPanel";
 export {

@@ -7,6 +7,7 @@ import {
   PresentationSchema,
   ReplaceAudienceInputSchema,
   ReplaceCompositionInputSchema,
+  UpdateSlideInputSchema,
 } from "./types";
 import { fullPresentationFixture, presentationListItemFixture } from "./test/fixtures";
 
@@ -109,6 +110,35 @@ describe("presentation schemas", () => {
       elements: [{ element_type: "media", text_content: "wrong payload" }],
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it("validates nullable hex slide backgrounds on admin and composition writes", () => {
+    expect(UpdateSlideInputSchema.safeParse({
+      presentationId: "aup_01JPHASE1PRESENTATION",
+      slideId: "aups_01JSLIDE",
+      background_color: "#102A43CC",
+    }).success).toBe(true);
+    expect(ReplaceCompositionInputSchema.safeParse({
+      presentationId: "aup_01JPHASE1PRESENTATION",
+      slideId: "aups_01JSLIDE",
+      playback_mode: "timed",
+      duration_ms: 4_000,
+      background_color: null,
+      elements: [],
+    }).success).toBe(true);
+    expect(UpdateSlideInputSchema.safeParse({
+      presentationId: "aup_01JPHASE1PRESENTATION",
+      slideId: "aups_01JSLIDE",
+      background_color: "navy",
+    }).success).toBe(false);
+    expect(ReplaceCompositionInputSchema.safeParse({
+      presentationId: "aup_01JPHASE1PRESENTATION",
+      slideId: "aups_01JSLIDE",
+      playback_mode: "timed",
+      duration_ms: 4_000,
+      background_color: "#12345",
+      elements: [],
+    }).success).toBe(false);
   });
 
   it("requires direct users for selected_users_only audiences", () => {

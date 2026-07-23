@@ -1,5 +1,12 @@
 import { useState } from "react";
 
+import {
+  AlignmentPicker,
+  ColorSwatchPicker,
+  SliderFieldRow,
+  type TextAlignmentChoice,
+} from "@beyo/ui";
+
 import { EditorCanvas } from "../components/editor/EditorCanvas";
 import { EditorReadOnlyBanner } from "../components/editor/EditorReadOnlyBanner";
 import { EditorShell } from "../components/editor/EditorShell";
@@ -7,6 +14,7 @@ import { EditorTopBar } from "../components/editor/EditorTopBar";
 import { MediaUploadOverlay } from "../components/editor/MediaUploadOverlay";
 import { SlideRail } from "../components/editor/SlideRail";
 import type { SlideRailItemData } from "../components/editor/types";
+import { TextStylingSection } from "../components/panels/TextStylingSection";
 
 const INITIAL_SLIDES: SlideRailItemData[] = [
   { id: "aups_mock_1", mediaLabel: "IMAGE", textCountLabel: "2 texts" },
@@ -27,6 +35,11 @@ export function EditorKitPreview(): React.JSX.Element {
   const [selectedId, setSelectedId] = useState<string | null>("aups_mock_3");
   const [readOnly, setReadOnly] = useState(false);
   const [overlayMode, setOverlayMode] = useState<OverlayMode>("none");
+  const [align, setAlign] = useState<TextAlignmentChoice>("center");
+  const [textColor, setTextColor] = useState("#FFFFFF");
+  const [backgroundColor, setBackgroundColor] = useState<string | undefined>("#3F78A8");
+  const [borderRadius, setBorderRadius] = useState(12);
+  const [padding, setPadding] = useState(8);
   const noop = () => undefined;
 
   const addSlide = () => {
@@ -83,6 +96,49 @@ export function EditorKitPreview(): React.JSX.Element {
             onReorder={reorder}
             readOnly={readOnly}
           />
+        }
+        panel={
+          <div className="p-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#9a9a9a]">
+              Text styling kit
+            </p>
+            <TextStylingSection
+              align={align}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              borderRadius={borderRadius}
+              padding={padding}
+              onAlignChange={setAlign}
+              onTextColorChange={setTextColor}
+              onBackgroundColorChange={setBackgroundColor}
+              onBorderRadiusChange={setBorderRadius}
+              onPaddingChange={setPadding}
+              readOnly={readOnly}
+            />
+            <div className="mt-6 border-t border-[#e7e7e7] pt-4">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#9a9a9a]">
+                Standalone @beyo/ui primitives
+              </p>
+              <div className="space-y-3">
+                <AlignmentPicker value={align} onChange={setAlign} disabled={readOnly} />
+                <ColorSwatchPicker
+                  value={backgroundColor}
+                  onChange={setBackgroundColor}
+                  allowNone
+                  disabled={readOnly}
+                />
+                <SliderFieldRow
+                  label="Padding"
+                  value={padding}
+                  min={0}
+                  max={48}
+                  valueLabel={`${padding}px`}
+                  onChange={setPadding}
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+          </div>
         }
       >
         <EditorCanvas

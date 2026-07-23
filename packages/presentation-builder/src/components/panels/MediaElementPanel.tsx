@@ -5,6 +5,7 @@ import {
   PanelSection,
   SegmentedControl,
 } from "./PanelPrimitives";
+import { ANIMATION_OPTIONS, type AnimationChoice } from "./animation-options";
 
 export type MediaFitChoice = "cover" | "contain" | "fill";
 
@@ -19,6 +20,13 @@ type MediaElementPanelProps = {
   mediaLabel: string;
   fit: MediaFitChoice;
   onFitChange: (value: MediaFitChoice) => void;
+  /** In/out transitions. Sections render only when wired (timeline/media Stage C). */
+  appears?: AnimationChoice;
+  onAppearsChange?: (value: AnimationChoice) => void;
+  disappears?: AnimationChoice;
+  onDisappearsChange?: (value: AnimationChoice) => void;
+  /** Preformatted size/position readout, e.g. "100% × 56% at 50%, 32%". */
+  geometryLabel?: string;
   /** e.g. "On screen 0.0s → 4.0s". */
   windowLabel: string;
   onReplace: () => void;
@@ -33,6 +41,11 @@ export function MediaElementPanel({
   mediaLabel,
   fit,
   onFitChange,
+  appears,
+  onAppearsChange,
+  disappears,
+  onDisappearsChange,
+  geometryLabel,
   windowLabel,
   onReplace,
   onDelete,
@@ -58,6 +71,40 @@ export function MediaElementPanel({
           testId="presentation-panel-media-fit"
         />
       </PanelSection>
+      {appears !== undefined && onAppearsChange && (
+        <PanelSection>
+          <PanelFieldLabel>Appears</PanelFieldLabel>
+          <SegmentedControl
+            options={ANIMATION_OPTIONS}
+            value={appears}
+            onChange={onAppearsChange}
+            disabled={readOnly}
+            ariaLabel="Appear animation"
+            testId="presentation-panel-media-appears"
+          />
+        </PanelSection>
+      )}
+      {disappears !== undefined && onDisappearsChange && (
+        <PanelSection>
+          <PanelFieldLabel>Disappears</PanelFieldLabel>
+          <SegmentedControl
+            options={ANIMATION_OPTIONS}
+            value={disappears}
+            onChange={onDisappearsChange}
+            disabled={readOnly}
+            ariaLabel="Disappear animation"
+            testId="presentation-panel-media-disappears"
+          />
+        </PanelSection>
+      )}
+      {geometryLabel && (
+        <p
+          className="mt-3 font-mono text-[11px] text-[#767676]"
+          data-testid="presentation-panel-media-geometry"
+        >
+          {geometryLabel}
+        </p>
+      )}
       {!readOnly && (
         <PanelSection>
           <button

@@ -70,7 +70,7 @@ export const ElementLayoutSchema = z.strictObject({
 });
 export type ElementLayout = z.infer<typeof ElementLayoutSchema>;
 
-const HexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$/);
+export const HexColorSchema = z.string().regex(/^#[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$/);
 
 export const TextStyleSchema = z.strictObject({
   text_role: TextRoleSchema.optional(),

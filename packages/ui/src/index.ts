@@ -23,6 +23,7 @@ export { SlideParallaxUnderlay } from "./components/surfaces/slide-parallax";
 export { PageSkeleton } from "./components/ui/PageSkeleton";
 export { SurfaceSkeleton } from "./components/ui/SurfaceSkeleton";
 export { RouteErrorBoundary } from "./components/ui/RouteErrorBoundary";
+export * from "./components/text-styling";
 
 export { lazyRoute } from "./lib/lazy-route";
 export { lazyWithPreload } from "./lib/lazy-with-preload";

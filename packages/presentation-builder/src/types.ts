@@ -7,6 +7,7 @@ import {
   ElementAnimationSchema,
   ElementLayoutSchema,
   ElementTypeSchema,
+  HexColorSchema,
   MediaTypeSchema,
   PlaybackModeSchema,
   SlideMediaSchema,
@@ -23,6 +24,7 @@ export {
   ElementAnimationSchema,
   ElementLayoutSchema,
   ElementTypeSchema,
+  HexColorSchema,
   LayoutAnchorSchema,
   LayoutFitSchema,
   MediaTypeSchema,
@@ -94,6 +96,7 @@ export const SlideSchema = z.object({
   playback_mode: PlaybackModeSchema,
   duration_ms: z.number().int().positive().nullable(),
   composition_schema_version: CompositionSchemaVersionSchema,
+  background_color: HexColorSchema.nullable(),
   media: z.array(SlideMediaSchema),
   action: SlideActionSchema.nullable(),
   elements: z.array(CompositionElementSchema),
@@ -240,6 +243,7 @@ const SlideMutationFields = {
   playback_mode: PlaybackModeSchema.optional(),
   duration_ms: z.number().int().positive().nullable().optional(),
   composition_schema_version: CompositionSchemaVersionSchema.optional(),
+  background_color: HexColorSchema.nullable().optional(),
 } as const;
 
 export const CreateSlideInputSchema = z.strictObject({
@@ -384,6 +388,7 @@ export const ReplaceCompositionInputSchema = z
     playback_mode: PlaybackModeSchema,
     duration_ms: z.number().int().positive().nullable().optional(),
     composition_schema_version: CompositionSchemaVersionSchema.optional(),
+    background_color: HexColorSchema.nullable().optional(),
     elements: z.array(CompositionElementInputSchema),
   })
   .superRefine((input, context) => {

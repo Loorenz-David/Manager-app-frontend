@@ -14,8 +14,9 @@ Roles: **admin, manager**. Everything here works **only on `draft`** presentatio
 > animated** in the slide is the *timeline composition* — set separately via
 > `PUT /{id}/slides/{slide_id}/composition`. See
 > **[09_slide_composition.md](09_slide_composition.md)**. Slides also gained
-> `playback_mode`, `duration_ms`, and `composition_schema_version` (settable on
-> create/update slide or via the composition endpoint).
+> `playback_mode`, `duration_ms`, `composition_schema_version`, and nullable
+> `background_color` (hex `#RRGGBB` or `#RRGGBBAA`; `null` means no background),
+> settable on create/update slide or via the composition endpoint.
 
 ---
 
@@ -28,6 +29,7 @@ Roles: **admin, manager**. Everything here works **only on `draft`** presentatio
   "title": "Search from one place",
   "description": "Use SKU, article number, or customer name.",
   "layout_type": "media_top",
+  "background_color": null,
   "media": [ /* media objects, see below */ ],
   "action": { "label": "Try product search", "route": "/products/search" }
 }

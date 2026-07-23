@@ -6,6 +6,10 @@ import {
   SlideCompositionRenderer,
 } from "./SlideCompositionRenderer";
 import { compareCompositionElements, sortCompositionElements } from "./ordering";
+import {
+  renderingParityBackgroundColorFixture,
+  renderingParityCompositionFixture,
+} from "./rendering-parity-fixture";
 import type { CompositionElement, SlideMedia } from "./schemas";
 
 afterEach(cleanup);
@@ -60,6 +64,23 @@ function visibleText(container: HTMLElement): string {
 }
 
 describe("SlideCompositionRenderer backend recipes", () => {
+  it("paints the slide background behind every composition element", () => {
+    const { getByTestId, getByText } = render(
+      <SlideCompositionRenderer
+        elements={renderingParityCompositionFixture}
+        timeMs={0}
+        containerWidth={390}
+        containerHeight={690}
+        backgroundColor={renderingParityBackgroundColorFixture}
+      />,
+    );
+
+    expect(
+      getByTestId("slide-composition-renderer").style.backgroundColor,
+    ).toBe("rgb(16, 42, 67)");
+    expect(getByText("Shared parity headline")).not.toBeNull();
+  });
+
   it("reports failed backend media so a host can refresh presigned URLs", () => {
     const onMediaError = vi.fn();
     render(

@@ -5,11 +5,22 @@ import {
   clampCanvasPosition,
   clampWindowToDuration,
   generateTimelineTicks,
+  resizeElementLayout,
   scrubFractionToTime,
   timeToX,
   timelineWindowFractions,
   xToTime,
 } from "./timeline-geometry";
+
+function expectLayout(
+  actual: ReturnType<typeof resizeElementLayout>,
+  expected: { x: number; y: number; width: number; height: number },
+) {
+  expect(actual.x).toBeCloseTo(expected.x);
+  expect(actual.y).toBeCloseTo(expected.y);
+  expect(actual.width).toBeCloseTo(expected.width);
+  expect(actual.height).toBeCloseTo(expected.height);
+}
 
 describe("timeline geometry", () => {
   it("converts time and px across the lane", () => {
@@ -114,5 +125,123 @@ describe("timeline geometry", () => {
       { kind: "resize-end", deltaPx: 900, laneWidthPx: 800 },
       4_000,
     )).toEqual({ startMs: 1_000, endMs: 4_000 });
+  });
+});
+
+describe("canvas resize geometry", () => {
+  const landscape = { x: 0.5, y: 0.5, width: 0.4, height: 0.2 };
+
+  it.each([
+    ["e", 0.1, 0, { x: 0.55, y: 0.5, width: 0.5, height: 0.2 }],
+    ["w", -0.1, 0, { x: 0.45, y: 0.5, width: 0.5, height: 0.2 }],
+    ["s", 0, 0.1, { x: 0.5, y: 0.55, width: 0.4, height: 0.3 }],
+    ["n", 0, -0.1, { x: 0.5, y: 0.45, width: 0.4, height: 0.3 }],
+  ] as const)("resizes the %s edge freely", (handle, deltaXFraction, deltaYFraction, expected) => {
+    expectLayout(
+      resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
+      expected,
+    );
+  });
+
+  it.each([
+    ["se", 0.2, 0.02, { x: 0.6, y: 0.55, width: 0.6, height: 0.3 }],
+    ["sw", -0.2, 0.02, { x: 0.4, y: 0.55, width: 0.6, height: 0.3 }],
+    ["ne", 0.2, -0.02, { x: 0.6, y: 0.45, width: 0.6, height: 0.3 }],
+    ["nw", -0.2, -0.02, { x: 0.4, y: 0.45, width: 0.6, height: 0.3 }],
+  ] as const)(
+    "aspect-locks the %s corner from a horizontal-dominant landscape gesture",
+    (handle, deltaXFraction, deltaYFraction, expected) => {
+      expectLayout(
+        resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
+        expected,
+      );
+    },
+  );
+
+  it.each([
+    ["se", 0.02, 0.2, { x: 0.55, y: 0.6, width: 0.3, height: 0.6 }],
+    ["sw", -0.02, 0.2, { x: 0.45, y: 0.6, width: 0.3, height: 0.6 }],
+    ["ne", 0.02, -0.2, { x: 0.55, y: 0.4, width: 0.3, height: 0.6 }],
+    ["nw", -0.02, -0.2, { x: 0.45, y: 0.4, width: 0.3, height: 0.6 }],
+  ] as const)(
+    "aspect-locks the %s corner from a vertical-dominant portrait gesture",
+    (handle, deltaXFraction, deltaYFraction, expected) => {
+      expectLayout(
+        resizeElementLayout(
+          { x: 0.5, y: 0.5, width: 0.2, height: 0.4 },
+          { handle, deltaXFraction, deltaYFraction },
+        ),
+        expected,
+      );
+    },
+  );
+
+  it.each([
+    ["e", -1, 0, { x: 0.325, y: 0.5, width: 0.05, height: 0.2 }],
+    ["w", 1, 0, { x: 0.675, y: 0.5, width: 0.05, height: 0.2 }],
+    ["s", 0, -1, { x: 0.5, y: 0.425, width: 0.4, height: 0.05 }],
+    ["n", 0, 1, { x: 0.5, y: 0.575, width: 0.4, height: 0.05 }],
+  ] as const)("applies minimum size at the %s edge", (
+    handle,
+    deltaXFraction,
+    deltaYFraction,
+    expected,
+  ) => {
+    expectLayout(
+      resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
+      expected,
+    );
+  });
+
+  it.each([
+    ["e", 1, 0, { x: 0.65, y: 0.5, width: 0.7, height: 0.2 }],
+    ["w", -1, 0, { x: 0.35, y: 0.5, width: 0.7, height: 0.2 }],
+    ["s", 0, 1, { x: 0.5, y: 0.7, width: 0.4, height: 0.6 }],
+    ["n", 0, -1, { x: 0.5, y: 0.3, width: 0.4, height: 0.6 }],
+  ] as const)("clamps the %s edge to the canvas", (
+    handle,
+    deltaXFraction,
+    deltaYFraction,
+    expected,
+  ) => {
+    expectLayout(
+      resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
+      expected,
+    );
+  });
+
+  it.each([
+    ["se", 1, 1, { x: 0.65, y: 0.575, width: 0.7, height: 0.35 }],
+    ["sw", -1, 1, { x: 0.35, y: 0.575, width: 0.7, height: 0.35 }],
+    ["ne", 1, -1, { x: 0.65, y: 0.425, width: 0.7, height: 0.35 }],
+    ["nw", -1, -1, { x: 0.35, y: 0.425, width: 0.7, height: 0.35 }],
+  ] as const)("clamps the aspect-locked %s corner to the canvas", (
+    handle,
+    deltaXFraction,
+    deltaYFraction,
+    expected,
+  ) => {
+    expectLayout(
+      resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
+      expected,
+    );
+  });
+
+  it("applies the minimum to aspect-locked corners and normalizes an invalid base", () => {
+    expectLayout(
+      resizeElementLayout(landscape, {
+        handle: "se",
+        deltaXFraction: -1,
+        deltaYFraction: -1,
+      }),
+      { x: 0.35, y: 0.425, width: 0.1, height: 0.05 },
+    );
+    expectLayout(
+      resizeElementLayout(
+        { x: -1, y: 2, width: 2, height: 0.01 },
+        { handle: "e", deltaXFraction: 0, deltaYFraction: 0 },
+      ),
+      { x: 0.5, y: 0.975, width: 1, height: 0.05 },
+    );
   });
 });

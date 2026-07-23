@@ -1,3 +1,5 @@
+import { ColorSwatchPicker } from "@beyo/ui";
+
 import {
   PanelFieldLabel,
   PanelHeading,
@@ -10,6 +12,10 @@ type SlidePropertiesPanelProps = {
   onReplaceMedia: () => void;
   durationSeconds: number;
   onDurationChange: (seconds: number) => void;
+  /** Slide background color (hex, null = none). Field renders only when wired
+   * (slide-background-color plan). */
+  backgroundColor?: string | null;
+  onBackgroundColorChange?: (value: string | null) => void;
   ctaLabel: string;
   onCtaLabelChange: (value: string) => void;
   ctaRoute: string;
@@ -29,6 +35,8 @@ export function SlidePropertiesPanel({
   onReplaceMedia,
   durationSeconds,
   onDurationChange,
+  backgroundColor,
+  onBackgroundColorChange,
   ctaLabel,
   onCtaLabelChange,
   ctaRoute,
@@ -65,6 +73,19 @@ export function SlidePropertiesPanel({
           testId="presentation-panel-slide-duration"
         />
       </PanelSection>
+      {onBackgroundColorChange && (
+        <PanelSection>
+          <PanelFieldLabel>Background color</PanelFieldLabel>
+          <ColorSwatchPicker
+            value={backgroundColor ?? undefined}
+            onChange={(value) => onBackgroundColorChange(value ?? null)}
+            allowNone
+            disabled={readOnly}
+            ariaLabel="Slide background color"
+            testId="presentation-panel-slide-background-color"
+          />
+        </PanelSection>
+      )}
       <PanelSection>
         <PanelFieldLabel>Button label (optional)</PanelFieldLabel>
         <input

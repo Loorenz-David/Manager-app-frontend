@@ -1,4 +1,4 @@
-import { Pause, Play, Plus } from "lucide-react";
+import { ImagePlus, Pause, Play, Plus } from "lucide-react";
 
 type TimelineControlsProps = {
   isPlaying: boolean;
@@ -7,6 +7,9 @@ type TimelineControlsProps = {
   timecodeLabel: string;
   onAddText: () => void;
   addTextDisabled?: boolean;
+  /** Opens the media file picker (multi-select). Button renders only when provided. */
+  onAddMedia?: () => void;
+  addMediaDisabled?: boolean;
   helperText?: string;
 };
 
@@ -16,6 +19,8 @@ export function TimelineControls({
   timecodeLabel,
   onAddText,
   addTextDisabled,
+  onAddMedia,
+  addMediaDisabled,
   helperText = "Drag the bars to time each text · drag the playhead to scrub",
 }: TimelineControlsProps): React.JSX.Element {
   return (
@@ -49,6 +54,18 @@ export function TimelineControls({
         <Plus aria-hidden className="size-3.5" strokeWidth={2.5} />
         Text
       </button>
+      {onAddMedia && (
+        <button
+          type="button"
+          onClick={onAddMedia}
+          disabled={addMediaDisabled}
+          data-testid="presentation-timeline-add-media-button"
+          className="flex items-center gap-1 rounded-lg border border-[#dcdcdc] bg-white px-3 py-[6px] text-[13px] font-semibold text-[#303030] transition-colors duration-150 hover:bg-[#f4f4f4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3f78a8] disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <ImagePlus aria-hidden className="size-3.5" strokeWidth={2} />
+          Media
+        </button>
+      )}
       {helperText && (
         <span className="ml-auto hidden text-xs text-[#9a9a9a] lg:block">{helperText}</span>
       )}

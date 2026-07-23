@@ -5,6 +5,9 @@ use the **full** presentation shape (metadata + `slides` + `audience`).
 
 The full shape returned by create/get/update/publish/archive/new-version:
 
+Each slide in `presentation.slides` includes the nullable `background_color`
+field described in [05_admin_slides_media.md](05_admin_slides_media.md).
+
 ```json
 {
   "presentation": {

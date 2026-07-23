@@ -16,6 +16,7 @@ export type SlideCompositionRendererProps = {
   timeMs: number;
   containerWidth: number;
   containerHeight: number;
+  backgroundColor?: string | null;
   className?: string;
   /** Editor-only affordance: keep one selected element faintly renderable outside its timing window. */
   forceVisibleElementId?: string | null;
@@ -173,6 +174,7 @@ export function SlideCompositionRenderer({
   timeMs,
   containerWidth,
   containerHeight,
+  backgroundColor,
   className,
   forceVisibleElementId = null,
   forceVisibleOpacity = 0.25,
@@ -190,6 +192,7 @@ export function SlideCompositionRenderer({
         position: "relative",
         width: containerWidth,
         height: containerHeight,
+        backgroundColor: backgroundColor ?? undefined,
         overflow: "hidden",
       }}
     >

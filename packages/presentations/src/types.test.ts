@@ -14,4 +14,19 @@ describe("consumer presentation schema", () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it.each([
+    { label: "omitted", slide: { ...consumerPresentationFixture.slides[0] } },
+    {
+      label: "null",
+      slide: { ...consumerPresentationFixture.slides[0], background_color: null },
+    },
+  ])("parses a slide when background_color is $label", ({ slide }) => {
+    if (slide.background_color === undefined) delete slide.background_color;
+    const parsed = ConsumerPresentationSchema.safeParse({
+      ...consumerPresentationFixture,
+      slides: [slide],
+    });
+    expect(parsed.success).toBe(true);
+  });
 });

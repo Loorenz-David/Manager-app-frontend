@@ -16,6 +16,7 @@ const presentation = (): Presentation => ({
     playback_mode: "timed",
     duration_ms: 4_000,
     composition_schema_version: 1,
+    background_color: null,
     media: [],
     action: null,
     elements: [{
@@ -65,6 +66,39 @@ describe("editor draft store phase 5", () => {
       end_ms: 2_000,
     });
     expect(store.getState().playbackBySlide.aups_fixture).toEqual({ playheadMs: 2_000, playing: true });
+  });
+
+  it("marks slide background changes dirty and preserves other dirty slide colors", () => {
+    const first = presentation();
+    const secondSlide = {
+      ...first.slides[0]!,
+      client_id: "aups_fixture_second",
+      sequence_order: 2,
+    };
+    const fixture = { ...first, slides: [...first.slides, secondSlide] };
+    const store = createEditorDraftStore();
+    store.hydrate(fixture);
+
+    store.setSlideBackgroundColor("aups_fixture", "#102A43");
+    store.setSlideBackgroundColor("aups_fixture_second", "#ABCDEF");
+
+    expect(store.getState().dirtySlideIds).toEqual(new Set([
+      "aups_fixture",
+      "aups_fixture_second",
+    ]));
+    expect(store.getState().slideRevisions.aups_fixture).toBe(1);
+    expect(store.getState().presentation?.slides[0]?.background_color).toBe("#102A43");
+
+    store.reconcileAfterFlush({
+      ...fixture,
+      slides: [
+        { ...fixture.slides[0]!, background_color: "#102A43" },
+        { ...fixture.slides[1]!, background_color: null },
+      ],
+    }, "aups_fixture");
+
+    expect(store.getState().dirtySlideIds).toEqual(new Set(["aups_fixture_second"]));
+    expect(store.getState().presentation?.slides[1]?.background_color).toBe("#ABCDEF");
   });
 
   it("keeps failed local state dirty and only clears it after flush reconciliation", () => {

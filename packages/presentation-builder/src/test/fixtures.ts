@@ -28,6 +28,7 @@ export const fullPresentationFixture = {
       playback_mode: "timed",
       duration_ms: 8_000,
       composition_schema_version: 1,
+      background_color: null,
       media: [],
       action: null,
       elements: [

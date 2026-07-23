@@ -6,14 +6,14 @@ import {
   PanelSlider,
   SegmentedControl,
 } from "./PanelPrimitives";
+import {
+  TextStylingSection,
+  type TextStylingSectionProps,
+} from "./TextStylingSection";
+import { ANIMATION_OPTIONS, type AnimationChoice } from "./animation-options";
 
-export type TextAnimationChoice = "fade" | "slide" | "none";
-
-const ANIMATION_OPTIONS = [
-  { value: "fade", label: "Fade" },
-  { value: "slide", label: "Slide" },
-  { value: "none", label: "None" },
-] as const;
+/** Back-compat alias — the shared type now lives in animation-options.ts. */
+export type TextAnimationChoice = AnimationChoice;
 
 const STYLE_ROLE_OPTIONS = [
   { value: "body", label: "Body" },
@@ -33,6 +33,7 @@ type TextBlockPanelProps = {
   onSizeChange: (value: number) => void;
   styleRole: "body" | "heading";
   onStyleRoleChange: (value: "body" | "heading") => void;
+  styling: Omit<TextStylingSectionProps, "readOnly">;
   /** e.g. "On screen 0.4s → 3.4s". */
   windowLabel: string;
   onDelete: () => void;
@@ -54,6 +55,7 @@ export function TextBlockPanel({
   onSizeChange,
   styleRole,
   onStyleRoleChange,
+  styling,
   windowLabel,
   onDelete,
   onClose,
@@ -125,6 +127,7 @@ export function TextBlockPanel({
           testId="presentation-panel-text-style"
         />
       </PanelSection>
+      <TextStylingSection {...styling} readOnly={readOnly} />
       <p className="mt-4 text-xs text-[#9a9a9a]" data-testid="presentation-panel-window-label">
         {windowLabel}
       </p>

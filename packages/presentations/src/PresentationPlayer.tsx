@@ -107,6 +107,7 @@ export function PresentationPlayer({
               timeMs={playback.slideTimeMs}
               containerWidth={width}
               containerHeight={height}
+              backgroundColor={slide.background_color}
               className="h-full w-full"
               onMediaError={handleMediaError}
             />
@@ -147,4 +148,3 @@ export function PresentationPlayer({
     </PlayerViewport>
   );
 }
-

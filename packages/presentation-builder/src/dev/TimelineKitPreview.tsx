@@ -10,6 +10,7 @@ import { TimelineControls } from "../components/timeline/TimelineControls";
 import { TimelineDock } from "../components/timeline/TimelineDock";
 import { TimelineRuler } from "../components/timeline/TimelineRuler";
 import { TimelineTrack } from "../components/timeline/TimelineTrack";
+import type { CanvasResizeGesture } from "../components/editor/types";
 import type { TimelineBarGesture } from "../components/timeline/types";
 
 const DURATION_MS = 4000;
@@ -27,6 +28,9 @@ type MockElement = {
   sizePx: number;
   x: number;
   y: number;
+  /** Media only: box size as canvas fractions (resize handle demo). */
+  w?: number;
+  h?: number;
 };
 
 const INITIAL_ELEMENTS: MockElement[] = [
@@ -40,9 +44,32 @@ const INITIAL_ELEMENTS: MockElement[] = [
   },
   {
     id: "el_media_1", kind: "media", label: "sticker.png", content: "sticker.png",
-    startMs: 0, endMs: 2000, appears: "none", disappears: "none", sizePx: 0, x: 0.72, y: 0.14,
+    startMs: 0, endMs: 2000, appears: "none", disappears: "none", sizePx: 0,
+    x: 0.72, y: 0.14, w: 0.34, h: 0.16,
   },
 ];
+
+// Reference resize math for the kit's gesture contract (the production version
+// lives in the logic layer's geometry module): aspect-locked corners, free edges,
+// center-anchored — each moved edge shifts the center by half its travel.
+const applyResize = (
+  base: { x: number; y: number; w: number; h: number },
+  gesture: CanvasResizeGesture,
+) => {
+  const sx = gesture.handle.includes("e") ? 1 : gesture.handle.includes("w") ? -1 : 0;
+  const sy = gesture.handle.includes("s") ? 1 : gesture.handle.includes("n") ? -1 : 0;
+  let w = sx === 0 ? base.w : base.w + sx * gesture.deltaXFraction;
+  let h = sy === 0 ? base.h : base.h + sy * gesture.deltaYFraction;
+  if (sx !== 0 && sy !== 0) h = w * (base.h / base.w);
+  w = Math.min(1, Math.max(0.08, w));
+  h = Math.min(1, Math.max(0.08, h));
+  return {
+    w,
+    h,
+    x: base.x + sx * ((w - base.w) / 2),
+    y: base.y + sy * ((h - base.h) / 2),
+  };
+};
 
 const animLabel = (v: TextAnimationChoice) => v.charAt(0).toUpperCase() + v.slice(1);
 
@@ -56,7 +83,10 @@ export function TimelineKitPreview(): React.JSX.Element {
   const [isPlaying, setIsPlaying] = useState(false);
   const [durationS, setDurationS] = useState(DURATION_MS / 1000);
   const [gestureBase, setGestureBase] = useState<{ startMs: number; endMs: number } | null>(null);
+  const [resizeBase, setResizeBase] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [readOnly, setReadOnly] = useState(false);
+  const [mediaCount, setMediaCount] = useState(1);
+  const [slideBackground, setSlideBackground] = useState<string | null>(null);
   const noop = () => undefined;
 
   const durationMs = durationS * 1000;
@@ -125,6 +155,8 @@ export function TimelineKitPreview(): React.JSX.Element {
                 key={element.id}
                 centerXFraction={element.x}
                 centerYFraction={element.y}
+                widthFraction={element.w}
+                heightFraction={element.h}
                 isSelected={element.id === selectedId}
                 isOutsideWindow={element.id === selectedId && !isVisibleNow(element)}
                 onSelect={() => setSelectedId(element.id)}
@@ -135,6 +167,18 @@ export function TimelineKitPreview(): React.JSX.Element {
                   })
                 }
                 onDragEnd={noop}
+                onResize={
+                  element.kind === "media"
+                    ? (gesture) => {
+                        const base = resizeBase ?? {
+                          x: element.x, y: element.y, w: element.w ?? 0.3, h: element.h ?? 0.2,
+                        };
+                        if (resizeBase === null) setResizeBase(base);
+                        update(element.id, applyResize(base, gesture));
+                      }
+                    : undefined
+                }
+                onResizeEnd={() => setResizeBase(null)}
                 disabled={readOnly}
                 testId={`presentation-canvas-element-${element.id}`}
               >
@@ -146,7 +190,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                     {element.content}
                   </span>
                 ) : (
-                  <span className="block rounded bg-white/85 px-2 py-1 font-mono text-[9px] text-[#303030]">
+                  <span className="flex h-full w-full items-center justify-center rounded bg-white/85 font-mono text-[9px] text-[#303030]">
                     {element.content}
                   </span>
                 )}
@@ -161,6 +205,19 @@ export function TimelineKitPreview(): React.JSX.Element {
                 timecodeLabel={`${(playheadMs / 1000).toFixed(1)}s / ${durationS.toFixed(1)}s`}
                 onAddText={noop}
                 addTextDisabled={readOnly}
+                onAddMedia={() => {
+                  const next = mediaCount + 1;
+                  setMediaCount(next);
+                  const id = `el_media_${next}`;
+                  setElements((current) => [...current, {
+                    id, kind: "media", label: `photo-${next}.jpg`, content: `photo-${next}.jpg`,
+                    startMs: playheadMs, endMs: Math.min(durationMs, playheadMs + 2000),
+                    appears: "fade", disappears: "none", sizePx: 0,
+                    x: 0.5, y: 0.5, w: 0.4, h: 0.24,
+                  }]);
+                  setSelectedId(id);
+                }}
+                addMediaDisabled={readOnly}
               />
             }
             ruler={
@@ -190,6 +247,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                   leftFraction={element.startMs / durationMs}
                   widthFraction={(element.endMs - element.startMs) / durationMs}
                   isSelected={element.id === selectedId}
+                  variant={element.kind}
                   label={
                     element.kind === "text"
                       ? `${animLabel(element.appears)} · ${animLabel(element.disappears)}`
@@ -231,6 +289,8 @@ export function TimelineKitPreview(): React.JSX.Element {
               onReplaceMedia={noop}
               durationSeconds={durationS}
               onDurationChange={changeDuration}
+              backgroundColor={slideBackground}
+              onBackgroundColorChange={setSlideBackground}
               ctaLabel=""
               onCtaLabelChange={noop}
               ctaRoute=""
@@ -243,6 +303,11 @@ export function TimelineKitPreview(): React.JSX.Element {
               mediaLabel={`IMAGE · ${selected.label}`}
               fit="cover"
               onFitChange={noop}
+              appears={selected.appears}
+              onAppearsChange={(value) => update(selected.id, { appears: value })}
+              disappears={selected.disappears}
+              onDisappearsChange={(value) => update(selected.id, { disappears: value })}
+              geometryLabel={`${Math.round((selected.w ?? 0.3) * 100)}% × ${Math.round((selected.h ?? 0.2) * 100)}% at ${Math.round(selected.x * 100)}%, ${Math.round(selected.y * 100)}%`}
               windowLabel={windowLabel(selected)}
               onReplace={noop}
               onDelete={() => {
@@ -267,6 +332,18 @@ export function TimelineKitPreview(): React.JSX.Element {
               onSizeChange={(value) => update(selected.id, { sizePx: value })}
               styleRole="heading"
               onStyleRoleChange={noop}
+              styling={{
+                align: "center",
+                textColor: "#FFFFFF",
+                backgroundColor: undefined,
+                borderRadius: 0,
+                padding: 0,
+                onAlignChange: noop,
+                onTextColorChange: noop,
+                onBackgroundColorChange: noop,
+                onBorderRadiusChange: noop,
+                onPaddingChange: noop,
+              }}
               windowLabel={windowLabel(selected)}
               onDelete={() => {
                 setElements((current) => current.filter((e) => e.id !== selected.id));

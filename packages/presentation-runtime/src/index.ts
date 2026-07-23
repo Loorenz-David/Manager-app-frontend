@@ -7,6 +7,7 @@ export {
   ElementAnimationSchema,
   ElementLayoutSchema,
   ElementTypeSchema,
+  HexColorSchema,
   LayoutAnchorSchema,
   LayoutFitSchema,
   MediaTypeSchema,

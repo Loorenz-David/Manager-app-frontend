@@ -38,6 +38,7 @@ export const ConsumerPresentationSlideSchema = z
     playback_mode: PlaybackModeSchema,
     duration_ms: z.number().int().nonnegative().nullable(),
     composition_schema_version: CompositionSchemaVersionSchema,
+    background_color: z.string().nullable().optional(),
     media: z.array(SlideMediaSchema),
     action: ConsumerSlideActionSchema.nullable(),
     elements: z.array(CompositionElementSchema),
@@ -106,4 +107,3 @@ export type RecordViewStateInput = {
   lastSlideIndex?: number;
   isDismissible: boolean;
 };
-

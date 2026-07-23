@@ -1,4 +1,4 @@
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 
 import {
   SlideCompositionRenderer,
@@ -8,13 +8,14 @@ import {
 } from "@beyo/presentation-runtime";
 
 import { CanvasDraggableBox } from "../components/editor/CanvasDraggableBox";
+import { CanvasTextEditOverlay } from "../components/editor/CanvasTextEditOverlay";
 import { EditorCanvas } from "../components/editor/EditorCanvas";
 import { EditorReadOnlyBanner } from "../components/editor/EditorReadOnlyBanner";
 import { EditorShell } from "../components/editor/EditorShell";
 import { EditorTopBar } from "../components/editor/EditorTopBar";
 import { MediaUploadOverlay } from "../components/editor/MediaUploadOverlay";
 import { SlideRail } from "../components/editor/SlideRail";
-import type { SlideRailItemData } from "../components/editor/types";
+import type { CanvasResizeGesture, SlideRailItemData } from "../components/editor/types";
 import { MediaElementPanel, type MediaFitChoice } from "../components/panels/MediaElementPanel";
 import { SlidePropertiesPanel } from "../components/panels/SlidePropertiesPanel";
 import { TextBlockPanel } from "../components/panels/TextBlockPanel";
@@ -26,8 +27,10 @@ import { TimelineRuler } from "../components/timeline/TimelineRuler";
 import { TimelineTrack } from "../components/timeline/TimelineTrack";
 import type { TimelineBarGesture } from "../components/timeline/types";
 import { usePresentationEditorController } from "../controllers/use-presentation-editor.controller";
-import { compositionElementId, slideHasBackground } from "../editor/draft-store";
+import { compositionElementId } from "../editor/draft-store";
 import {
+  EDITOR_CANVAS_HEIGHT,
+  EDITOR_CANVAS_WIDTH,
   editorAnimationToWire,
   editorFontSizeToWire,
   wireAnimationToEditor,
@@ -38,9 +41,13 @@ import {
   applyTimelineGesture,
   clampCanvasPosition,
   generateTimelineTicks,
+  resizeElementLayout,
   scrubFractionToTime,
   timelineWindowFractions,
+  type CanvasElementLayout,
 } from "../lib/timeline-geometry";
+import { measureText } from "../lib/text-measurement";
+import { useEditorTransportHotkey } from "../lib/use-editor-transport-hotkey";
 import { PublishDialog } from "../publish/PublishDialog";
 import { usePresentationPreviewPlayback } from "../preview/use-presentation-preview-playback";
 import type { Slide } from "../types";
@@ -81,6 +88,7 @@ function EditorPreview({
           timeMs={playback.slideTimeMs}
           containerWidth={300}
           containerHeight={533}
+          backgroundColor={slide.background_color}
           className="h-full w-full"
           onMediaError={onMediaError}
         />
@@ -91,9 +99,11 @@ function EditorPreview({
 
 const RailThumbnail = memo(function RailThumbnail({
   elements,
+  backgroundColor,
   onMediaError,
 }: {
   elements: readonly CompositionElement[];
+  backgroundColor: string | null;
   revision: number;
   onMediaError: () => void;
 }) {
@@ -103,6 +113,7 @@ const RailThumbnail = memo(function RailThumbnail({
       timeMs={0}
       containerWidth={58}
       containerHeight={104}
+      backgroundColor={backgroundColor}
       className="h-full w-full"
       onMediaError={onMediaError}
     />
@@ -114,14 +125,38 @@ const animationLabel = (animation: ElementAnimation | null): string => {
   return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
+function canvasHitAreaHeightFraction(element: CompositionElement): number {
+  const layoutHeight = element.layout?.height ?? 0.1;
+  if (element.element_type !== "text") return layoutHeight;
+  const fontSizePx = wireFontSizeToEditor(element.style?.font_size ?? 44);
+  const padding = element.style?.padding ?? 0;
+  const measurement = measureText({
+    content: element.text_content ?? "",
+    fontSizePx,
+    fontWeight: element.style?.font_weight === 700 ? 700 : 400,
+    maxWidthPx: Math.max(1, (element.layout?.width ?? 0.5) * EDITOR_CANVAS_WIDTH),
+    paddingPx: padding,
+  });
+  return Math.min(
+    1,
+    Math.max(layoutHeight, measurement.heightPx / EDITOR_CANVAS_HEIGHT),
+  );
+}
+
 function TimelineCanvasWorkspace({
   controller,
   elements,
+  backgroundColor,
   onUploadClick,
+  transportHotkeyEnabled,
+  publishDialogOpen,
 }: {
   controller: EditorController;
   elements: readonly CompositionElement[];
+  backgroundColor: string | null;
   onUploadClick: () => void;
+  transportHotkeyEnabled: boolean;
+  publishDialogOpen: boolean;
 }) {
   const durationMs = controller.selectedSlide?.duration_ms ?? 4_000;
   const clock = usePlaybackClock({
@@ -130,9 +165,20 @@ function TimelineCanvasWorkspace({
     loop: true,
   });
   const gestureBases = useRef(new Map<string, { startMs: number; endMs: number }>());
+  const resizeBases = useRef(new Map<string, CanvasElementLayout>());
   const timedElements = elements.filter(
-    (element) => element.element_type === "text" || element.layer_index > 0,
+    (element) => element.element_type === "text" || element.element_type === "media",
   );
+  const inlineEditingElement = timedElements.find(
+    (element) =>
+      element.element_type === "text" &&
+      compositionElementId(element) === controller.inlineEditingElementId,
+  ) ?? null;
+  const renderedElements = inlineEditingElement
+    ? elements.filter(
+        (element) => compositionElementId(element) !== controller.inlineEditingElementId,
+      )
+    : elements;
 
   const scrub = (fraction: number) => {
     clock.pause();
@@ -140,6 +186,16 @@ function TimelineCanvasWorkspace({
     clock.seek(playheadMs);
     controller.onPlaybackCheckpoint({ playheadMs, playing: false });
   };
+
+  const togglePlayback = useCallback(() => {
+    clock.toggle();
+    controller.onPlaybackCheckpoint({ playing: !clock.isPlaying, playheadMs: clock.timeMs });
+  }, [clock, controller]);
+
+  useEditorTransportHotkey(togglePlayback, {
+    enabled: transportHotkeyEnabled && controller.selectedSlide !== null,
+    publishDialogOpen,
+  });
 
   const handleGesture = (element: CompositionElement, gesture: TimelineBarGesture) => {
     const id = compositionElementId(element);
@@ -150,7 +206,7 @@ function TimelineCanvasWorkspace({
     controller.onUpdateElement(id, (current) => ({
       ...current,
       start_ms: next.startMs,
-      end_ms: next.endMs,
+      end_ms: gesture.kind === "move" && current.end_ms === null ? null : next.endMs,
     }));
   };
 
@@ -163,32 +219,46 @@ function TimelineCanvasWorkspace({
           uploadDisabled={controller.readOnly || controller.isMutating}
           placeholderKind={controller.selectedSlide?.media[0]?.media_type === "video" ? "VIDEO" : "IMAGE"}
         >
-          {elements.length > 0 ? (
+          {elements.length > 0 || backgroundColor !== null ? (
             <>
-              <SlideCompositionRenderer
-                elements={elements}
-                timeMs={clock.timeMs}
-                containerWidth={264}
-                containerHeight={470}
-                className="h-full w-full"
-                forceVisibleElementId={controller.selectedElementId}
-                forceVisibleOpacity={0.25}
-                onMediaError={() => void controller.onMediaError()}
-              />
+              <div
+                data-testid="presentation-editor-renderer-layer"
+                className="pointer-events-none select-none"
+              >
+                <SlideCompositionRenderer
+                  elements={renderedElements}
+                  timeMs={clock.timeMs}
+                  containerWidth={264}
+                  containerHeight={470}
+                  backgroundColor={backgroundColor}
+                  className="h-full w-full"
+                  forceVisibleElementId={controller.selectedElementId}
+                  forceVisibleOpacity={0.25}
+                  onMediaError={() => void controller.onMediaError()}
+                />
+              </div>
               {timedElements.map((element) => {
                 const id = compositionElementId(element);
+                if (id === controller.inlineEditingElementId) return null;
                 const isSelected = controller.selectedElementId === id;
                 const endMs = element.end_ms ?? durationMs;
                 const visible = clock.timeMs >= element.start_ms && clock.timeMs < endMs;
+                const hitAreaHeight = canvasHitAreaHeightFraction(element);
                 return (
                   <CanvasDraggableBox
                     key={id}
                     centerXFraction={element.layout?.x ?? 0.5}
                     centerYFraction={element.layout?.y ?? 0.5}
                     widthFraction={element.layout?.width ?? 0.5}
+                    heightFraction={hitAreaHeight}
                     isSelected={isSelected}
                     isOutsideWindow={isSelected && !visible}
                     onSelect={() => controller.onSelectElement(id)}
+                    onDoubleClick={element.element_type === "text" ? () => {
+                      clock.pause();
+                      controller.onPlaybackCheckpoint({ playheadMs: clock.timeMs, playing: false });
+                      controller.onBeginInlineEdit(id);
+                    } : undefined}
                     onDrag={(x, y) => {
                       const position = clampCanvasPosition(x, y);
                       controller.onUpdateElement(id, (current) => ({
@@ -197,13 +267,58 @@ function TimelineCanvasWorkspace({
                       }));
                     }}
                     onDragEnd={() => undefined}
+                    {...(element.element_type === "media"
+                      ? {
+                          onResize: (gesture: CanvasResizeGesture) => {
+                            const base = resizeBases.current.get(id) ?? {
+                              x: element.layout?.x ?? 0.5,
+                              y: element.layout?.y ?? 0.5,
+                              width: element.layout?.width ?? 0.5,
+                              height: element.layout?.height ?? 0.1,
+                            };
+                            if (!resizeBases.current.has(id)) resizeBases.current.set(id, base);
+                            const next = resizeElementLayout(base, gesture);
+                            controller.onUpdateElement(id, (current) => ({
+                              ...current,
+                              layout: {
+                                ...(current.layout ?? {}),
+                                ...next,
+                                anchor: "center",
+                              },
+                            }));
+                          },
+                          onResizeEnd: () => resizeBases.current.delete(id),
+                        }
+                      : {})}
                     disabled={controller.readOnly}
                     testId={`presentation-canvas-element-${id}`}
                   >
-                    <div style={{ height: `${Math.max(18, (element.layout?.height ?? 0.1) * 470)}px` }} />
+                    <div className="h-full w-full" />
                   </CanvasDraggableBox>
                 );
               })}
+              {inlineEditingElement?.element_type === "text" && (
+                <CanvasTextEditOverlay
+                  centerXFraction={inlineEditingElement.layout?.x ?? 0.5}
+                  centerYFraction={inlineEditingElement.layout?.y ?? 0.5}
+                  widthFraction={inlineEditingElement.layout?.width ?? 0.5}
+                  heightFraction={canvasHitAreaHeightFraction(inlineEditingElement)}
+                  value={inlineEditingElement.text_content ?? ""}
+                  fontSizePx={wireFontSizeToEditor(inlineEditingElement.style?.font_size ?? 44)}
+                  fontWeight={inlineEditingElement.style?.font_weight ?? 400}
+                  textAlign={inlineEditingElement.style?.text_align ?? "center"}
+                  textColor={inlineEditingElement.style?.text_color}
+                  backgroundColor={inlineEditingElement.style?.background_color}
+                  borderRadius={inlineEditingElement.style?.border_radius}
+                  padding={inlineEditingElement.style?.padding}
+                  onChange={(content) => controller.onUpdateElement(
+                    compositionElementId(inlineEditingElement),
+                    (element) => ({ ...element, text_content: content }),
+                  )}
+                  onCommit={controller.onFinishInlineEdit}
+                  testId={`presentation-canvas-text-editor-${compositionElementId(inlineEditingElement)}`}
+                />
+              )}
             </>
           ) : undefined}
         </EditorCanvas>
@@ -222,13 +337,20 @@ function TimelineCanvasWorkspace({
         controls={
           <TimelineControls
             isPlaying={clock.isPlaying}
-            onTogglePlay={() => {
-              clock.toggle();
-              controller.onPlaybackCheckpoint({ playing: !clock.isPlaying, playheadMs: clock.timeMs });
-            }}
+            onTogglePlay={togglePlayback}
             timecodeLabel={`${(clock.timeMs / 1_000).toFixed(1)}s / ${(durationMs / 1_000).toFixed(1)}s`}
-            onAddText={controller.onAddText}
+            onAddText={() => {
+              clock.pause();
+              controller.onPlaybackCheckpoint({ playheadMs: clock.timeMs, playing: false });
+              controller.onAddText();
+            }}
             addTextDisabled={controller.readOnly || controller.selectedSlide === null}
+            onAddMedia={onUploadClick}
+            addMediaDisabled={
+              controller.readOnly ||
+              controller.isMutating ||
+              controller.selectedSlide === null
+            }
           />
         }
         ruler={<TimelineRuler ticks={generateTimelineTicks(durationMs)} onScrub={scrub} />}
@@ -259,6 +381,7 @@ function TimelineCanvasWorkspace({
                 onSelect={() => controller.onSelectElement(id)}
                 onGesture={(gesture) => handleGesture(element, gesture)}
                 onGestureEnd={() => gestureBases.current.delete(id)}
+                variant={element.element_type === "media" ? "media" : "text"}
                 disabled={controller.readOnly}
                 testId={`presentation-timeline-bar-${id}`}
               />
@@ -273,7 +396,7 @@ function TimelineCanvasWorkspace({
 function propertiesPanel(
   controller: EditorController,
   selected: CompositionElement | null,
-  openFilePicker: (role: "background" | "overlay") => void,
+  openFilePicker: (replaceElementId?: string) => void,
 ): React.JSX.Element {
   const durationMs = controller.selectedSlide?.duration_ms ?? 4_000;
   if (selected?.element_type === "text") {
@@ -302,6 +425,35 @@ function propertiesPanel(
             text_role: role === "heading" ? "headline" : "body",
           },
         }))}
+        styling={{
+          align: selected.style?.text_align === "center" || selected.style?.text_align === "right"
+            ? selected.style.text_align
+            : "left",
+          textColor: selected.style?.text_color,
+          backgroundColor: selected.style?.background_color,
+          borderRadius: selected.style?.border_radius ?? 0,
+          padding: selected.style?.padding ?? 0,
+          onAlignChange: (textAlign) => controller.onUpdateElement(id, (element) => ({
+            ...element,
+            style: { ...(element.style ?? {}), text_align: textAlign },
+          })),
+          onTextColorChange: (textColor) => controller.onUpdateElement(id, (element) => ({
+            ...element,
+            style: { ...(element.style ?? {}), text_color: textColor },
+          })),
+          onBackgroundColorChange: (backgroundColor) => controller.onUpdateElement(id, (element) => ({
+            ...element,
+            style: { ...(element.style ?? {}), background_color: backgroundColor },
+          })),
+          onBorderRadiusChange: (borderRadius) => controller.onUpdateElement(id, (element) => ({
+            ...element,
+            style: { ...(element.style ?? {}), border_radius: borderRadius },
+          })),
+          onPaddingChange: (padding) => controller.onUpdateElement(id, (element) => ({
+            ...element,
+            style: { ...(element.style ?? {}), padding },
+          })),
+        }}
         windowLabel={`On screen ${(selected.start_ms / 1_000).toFixed(1)}s → ${((selected.end_ms ?? durationMs) / 1_000).toFixed(1)}s`}
         onDelete={() => controller.onDeleteElement(id)}
         onClose={() => controller.onSelectElement(null)}
@@ -322,8 +474,19 @@ function propertiesPanel(
           ...element,
           layout: { ...(element.layout ?? {}), fit: value },
         }))}
+        appears={wireAnimationToEditor(selected.enter_animation)}
+        onAppearsChange={(choice) => controller.onUpdateElement(id, (element) => ({
+          ...element,
+          enter_animation: editorAnimationToWire(choice),
+        }))}
+        disappears={wireAnimationToEditor(selected.exit_animation)}
+        onDisappearsChange={(choice) => controller.onUpdateElement(id, (element) => ({
+          ...element,
+          exit_animation: editorAnimationToWire(choice),
+        }))}
+        geometryLabel={`${Math.round((selected.layout?.width ?? 1) * 100)}% × ${Math.round((selected.layout?.height ?? 1) * 100)}% at ${Math.round((selected.layout?.x ?? 0.5) * 100)}%, ${Math.round((selected.layout?.y ?? 0.5) * 100)}%`}
         windowLabel={`On screen ${(selected.start_ms / 1_000).toFixed(1)}s → ${((selected.end_ms ?? durationMs) / 1_000).toFixed(1)}s`}
-        onReplace={() => openFilePicker("overlay")}
+        onReplace={() => openFilePicker(id)}
         onDelete={() => {
           if (selected.media && window.confirm("Delete this media element?")) {
             void controller.onDeleteMedia(selected.media.client_id);
@@ -336,9 +499,18 @@ function propertiesPanel(
   }
   return (
     <SlidePropertiesPanel
-      onReplaceMedia={() => openFilePicker("background")}
+      onReplaceMedia={() => {
+        const slide = controller.selectedSlide;
+        const elements = slide
+          ? controller.localCompositions[slide.client_id] ?? slide.elements
+          : [];
+        const media = elements.find((element) => element.element_type === "media");
+        openFilePicker(media ? compositionElementId(media) : undefined);
+      }}
       durationSeconds={durationMs / 1_000}
       onDurationChange={(seconds) => controller.onDurationChange(seconds * 1_000)}
+      backgroundColor={controller.selectedSlide?.background_color ?? null}
+      onBackgroundColorChange={controller.onBackgroundColorChange}
       ctaLabel={controller.ctaLabel}
       onCtaLabelChange={controller.onCtaLabelChange}
       ctaRoute={controller.ctaRoute}
@@ -355,7 +527,7 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
   const [surface, setSurface] = useState<"none" | "publish">("none");
   const [previewSlides, setPreviewSlides] = useState<Slide[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const uploadRoleRef = useRef<"background" | "overlay">("background");
+  const replaceElementIdRef = useRef<string | null>(null);
   const railSlides: SlideRailItemData[] = useMemo(() =>
     controller.presentation?.slides.map((slide) => {
       const elements = controller.localCompositions[slide.client_id] ?? slide.elements;
@@ -368,6 +540,7 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
         thumbnail: (
           <RailThumbnail
             elements={elements}
+            backgroundColor={slide.background_color}
             revision={controller.slideRevisions[slide.client_id] ?? 0}
             onMediaError={() => void controller.onMediaError()}
           />
@@ -393,8 +566,8 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
   ) ?? null;
   const canMutate = !controller.readOnly && !controller.isMutating;
   const displayStatus = derivePresentationDisplayStatus(presentation, new Date());
-  const openFilePicker = (role: "background" | "overlay") => {
-    uploadRoleRef.current = role;
+  const openFilePicker = (replaceElementId?: string) => {
+    replaceElementIdRef.current = replaceElementId ?? null;
     fileInputRef.current?.click();
   };
 
@@ -460,18 +633,28 @@ export function EditorView({ presentationId, onBack, onPresentationIdChange }: E
         key={controller.selectedSlideId}
         controller={controller}
         elements={selectedElements}
-        onUploadClick={() => openFilePicker(slideHasBackground(selectedElements) ? "overlay" : "background")}
+        backgroundColor={controller.selectedSlide?.background_color ?? null}
+        onUploadClick={() => openFilePicker()}
+        transportHotkeyEnabled={previewSlides === null}
+        publishDialogOpen={surface === "publish"}
       />
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept="image/jpeg,image/png,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
         className="hidden"
         data-testid="presentation-editor-media-file-input"
         onChange={(event) => {
-          const file = event.currentTarget.files?.[0];
+          const files = Array.from(event.currentTarget.files ?? []);
+          const replaceElementId = replaceElementIdRef.current;
+          replaceElementIdRef.current = null;
           event.currentTarget.value = "";
-          if (file) void controller.onUploadFile(file, uploadRoleRef.current);
+          if (replaceElementId && files[0]) {
+            void controller.onUploadFile(files[0], replaceElementId);
+          } else {
+            controller.onFilesDropped(files);
+          }
         }}
       />
       </EditorShell>

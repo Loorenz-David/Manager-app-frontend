@@ -119,10 +119,11 @@ Codex archives the child plan itself after green validation (lifecycle skill). I
 - [x] Review *(2026-07-23 — DEFECTS FOUND: implementation absent + 2 real package gaps found (provider lacks auto-show gate seam; realtime types lack both events); wrote `PLAN_presentation_phase9_corrections_20260722`, all Codex-logic)*
 - [x] Claude-builder: corrections plan approved + split into three lean sessions *(2026-07-23)*
 - [x] Codex 9a *(2026-07-22 — seams delivered; 17/17)* · 9b *(managers end-to-end, all green + replication notes)* · 9c *(sellers+workers replicated incl. sellers Playwright setup; all per-app validation green; committed `4e91fd52` scoped away from the user's pause-reasons work)*
-- [ ] **Operator: fix the pause-reasons typecheck break** (`packages/stats/.../segment-adapter.test.ts:22`, user's parallel work) so the root gate goes green
-- [ ] **Live matrix + final chrome check (operator + Claude-builder together)**: user starts backend + studio + 3 apps, signs in with manager/seller/worker accounts; publish one announcement per app_key; verify receipt only in the matching app (realtime + cold boot); Claude records evidence in the corrections plan and performs the close-out (summary, Phase 9 plan + MASTER archival)
-- [ ] Re-review: `review_prompts/REVIEW_phase9_phone_apps_wiring.md` (also archives the corrections plan on pass); then ask Claude-builder for the final chrome check on real devices
-- [ ] End state: master archived — capability complete.
+- [x] Operator fixed the pause-reasons typecheck break *(2026-07-23 — root gate green)*
+- [x] **Live matrix + chrome check** *(2026-07-23, operator servers + Claude-builder driving: 12/12 matrix assertions; realtime push auto-opened without reload; off-home deferral released on home; acknowledge-only exit verified; CTA navigated; chrome kit-faithful. One live bug found+fixed: consumer `category` non-nullable → silent parse failure blocked the player; regression test added, committed `b16e4161`)*
+- [x] Close-out *(2026-07-23 — Phase 9 summary written; Phase 9 plan archived; **MASTER archived with the all-phases entry**)*
+- [ ] Optional: independent re-review via `review_prompts/REVIEW_phase9_phone_apps_wiring.md` (archives the corrections plan on pass)
+- **END STATE REACHED: master archived — CAPABILITY COMPLETE** 🎉
 
 ---
 

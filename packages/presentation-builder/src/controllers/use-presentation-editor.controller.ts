@@ -18,18 +18,17 @@ import { usePresentationPreview } from "../api/use-presentation-preview";
 import type { Presentation, Slide } from "../types";
 import type { CompositionElement } from "@beyo/presentation-runtime";
 import {
-  appendOverlayMediaElement,
+  appendMediaElement,
   createEditorDraftStore,
-  replaceBackgroundMediaElement,
+  replaceMediaElementSource,
   selectedSlideFromState,
-  slideHasBackground,
   useEditorDraftStore,
 } from "../editor/draft-store";
 import {
   editorCompositionToPutBody,
   serverElementsToEditorComposition,
-  type TextMeasurementAdapter,
 } from "../lib/composition-mapping";
+import { measureText } from "../lib/text-measurement";
 import {
   buildPublishPayloads,
   mapPublishFailure,
@@ -42,29 +41,14 @@ import { assertPreviewCompositionParity } from "../preview/preview-parity";
 const TITLE_DEBOUNCE_MS = 450;
 const COMPOSITION_AUTOSAVE_MS = 2_000;
 
-const measureText: TextMeasurementAdapter = ({ content, fontSizePx, fontWeight }) => {
-  if (typeof document !== "undefined") {
-    const node = document.createElement("span");
-    node.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font-size:${fontSizePx}px;font-weight:${fontWeight};line-height:1.2`;
-    node.textContent = content;
-    document.body.appendChild(node);
-    const rect = node.getBoundingClientRect();
-    node.remove();
-    if (rect.width > 0 && rect.height > 0) return { widthPx: rect.width, heightPx: rect.height };
-  }
-  const lines = content.split("\n");
-  return {
-    widthPx: Math.max(fontSizePx, ...lines.map((line) => line.length * fontSizePx * 0.58)),
-    heightPx: Math.max(1, lines.length) * fontSizePx * 1.2,
-  };
-};
-
-type UploadRole = "background" | "overlay";
-
 type UploadState = {
   fileName: string;
-  role: UploadRole;
   errorMessage: string | null;
+};
+
+type PendingUploadQueue = {
+  files: File[];
+  replaceElementId: string | null;
 };
 
 function errorMessage(error: unknown): string {
@@ -96,8 +80,10 @@ export function usePresentationEditorController(presentationId: string) {
   const [uploadState, setUploadState] = useState<UploadState | null>(null);
   const [ctaDraft, setCtaDraft] = useState({ label: "", route: "" });
   const [ctaRouteError, setCtaRouteError] = useState<string | null>(null);
+  const [inlineEditingElementId, setInlineEditingElementId] = useState<string | null>(null);
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastUploadRef = useRef<{ file: File; role: UploadRole } | null>(null);
+  const retryUploadQueueRef = useRef<PendingUploadQueue | null>(null);
+  const uploadQueueGenerationRef = useRef(0);
   const compositionFailureNotifiedRef = useRef(new Set<string>());
   const compositionFlushesRef = useRef(new Map<string, Promise<boolean>>());
   const mediaRefreshRef = useRef<Promise<Slide[] | null> | null>(null);
@@ -128,6 +114,7 @@ export function usePresentationEditorController(presentationId: string) {
     setTitleDraft("");
     setNotice(null);
     setUploadState(null);
+    setInlineEditingElementId(null);
   }, [presentationId, store]);
 
   useEffect(() => {
@@ -164,11 +151,16 @@ export function usePresentationEditorController(presentationId: string) {
     if (current.presentation?.status !== "draft" || !current.dirtySlideIds.has(slideId)) return true;
     const slide = slideById(current.presentation, slideId);
     const elements = current.localCompositions[slideId];
-    if (!slide || !elements || slide.duration_ms === null) return true;
+    if (!slide || !elements) return true;
     const flush = (async () => {
       try {
+        const effectiveDurationMs = slide.duration_ms ?? 4_000;
         const body = editorCompositionToPutBody(
-          serverElementsToEditorComposition(slide.duration_ms!, elements),
+          serverElementsToEditorComposition(
+            effectiveDurationMs,
+            elements,
+            slide.background_color,
+          ),
           measureText,
         );
         const response = await replaceComposition.replaceCompositionAsync({
@@ -212,6 +204,7 @@ export function usePresentationEditorController(presentationId: string) {
       const previousSlideId = store.getState().selectedSlideId;
       if (previousSlideId === slideId) return;
       if (previousSlideId) void flushSlide(previousSlideId);
+      setInlineEditingElementId(null);
       store.selectSlide(slideId);
     },
     [flushSlide, store],
@@ -227,10 +220,10 @@ export function usePresentationEditorController(presentationId: string) {
   }, [draft.selectedSlideId]);
 
   useEffect(() => {
-    if (readOnly || draft.dirtySlideIds.size === 0) return;
+    if (readOnly || inlineEditingElementId !== null || draft.dirtySlideIds.size === 0) return;
     const timer = setTimeout(() => void flushAllRef.current(), COMPOSITION_AUTOSAVE_MS);
     return () => clearTimeout(timer);
-  }, [draft.revision, draft.dirtySlideIds.size, readOnly]);
+  }, [draft.revision, draft.dirtySlideIds.size, inlineEditingElementId, readOnly]);
 
   useEffect(() => {
     const guard = (event: BeforeUnloadEvent) => {
@@ -279,7 +272,11 @@ export function usePresentationEditorController(presentationId: string) {
     setNotice(null);
     try {
       const previousIds = new Set(presentation.slides.map((slide) => slide.client_id));
-      const response = await addSlide.addSlideAsync({ presentationId });
+      const response = await addSlide.addSlideAsync({
+        presentationId,
+        duration_ms: 4_000,
+        playback_mode: "timed",
+      });
       const added = response.slides.find((slide) => !previousIds.has(slide.client_id));
       reconcile(response, added?.client_id ?? response.slides.at(-1)?.client_id ?? null);
     } catch (error) {
@@ -381,19 +378,16 @@ export function usePresentationEditorController(presentationId: string) {
   );
 
   const uploadFile = useCallback(
-    async (file: File, requestedRole?: UploadRole) => {
-      if (readOnly || !presentation) return;
-      await flushAll();
+    async (file: File, replaceElementId: string | null): Promise<boolean> => {
+      if (readOnly || !presentation) return false;
       const currentState = store.getState();
       const slide = selectedSlideFromState(currentState);
-      if (!slide) return;
+      if (!slide) return false;
       const elements = currentState.localCompositions[slide.client_id] ?? slide.elements;
-      const role = requestedRole ?? (slideHasBackground(elements) ? "overlay" : "background");
-      lastUploadRef.current = { file, role };
-      const oldBackgroundMediaId = elements.find(
-        (element) => element.element_type === "media" && element.layer_index === 0,
-      )?.media?.client_id;
-      setUploadState({ fileName: file.name, role, errorMessage: null });
+      const previousMediaIds = new Set(slide.media.map((item) => item.client_id));
+      const durationMs = slide.duration_ms ?? 4_000;
+      const playheadMs = currentState.playbackBySlide[slide.client_id]?.playheadMs ?? 0;
+      setUploadState({ fileName: file.name, errorMessage: null });
       setNotice(null);
       try {
         const response = await uploadMedia.uploadSlideMediaAsync({
@@ -404,58 +398,66 @@ export function usePresentationEditorController(presentationId: string) {
         });
         const responseSlide = slideById(response, slide.client_id);
         const uploadedMedia = responseSlide?.media.find(
-          (media) => !slide.media.some((previous) => previous.client_id === media.client_id),
+          (media) => !previousMediaIds.has(media.client_id),
         ) ?? responseSlide?.media.at(-1);
+        if (!uploadedMedia) throw new Error(`Upload completed without media for ${file.name}.`);
         reconcile(response, slide.client_id);
-        if (uploadedMedia) {
-          const serverElements = responseSlide?.elements ?? elements;
-          const serverHasUploadedElement = serverElements.some(
-            (element) => element.element_type === "media" && element.media?.client_id === uploadedMedia.client_id,
-          );
-          const legacyAllBackgrounds = serverElements.length > 1 && serverElements.every(
-            (element) => element.element_type === "media" && element.layer_index === 0,
-          );
-          const nextElements = role === "background"
-            ? replaceBackgroundMediaElement(elements, uploadedMedia)
-            : serverHasUploadedElement && !legacyAllBackgrounds
-              ? serverElements
-              : appendOverlayMediaElement(elements, uploadedMedia);
-          store.setLocalComposition(slide.client_id, nextElements);
-        }
-        if (role === "background" && oldBackgroundMediaId && oldBackgroundMediaId !== uploadedMedia?.client_id) {
-          const afterDelete = await deleteMedia.deleteSlideMediaAsync({
-            presentationId,
-            slideId: slide.client_id,
-            mediaId: oldBackgroundMediaId,
-          });
-          reconcile(afterDelete, slide.client_id);
-          if (uploadedMedia) store.setLocalComposition(slide.client_id, replaceBackgroundMediaElement(elements, uploadedMedia));
-        }
+        const nextElements = replaceElementId === null
+          ? appendMediaElement(elements, uploadedMedia, durationMs, playheadMs)
+          : replaceMediaElementSource(elements, replaceElementId, uploadedMedia);
+        store.setLocalComposition(slide.client_id, nextElements);
         setUploadState(null);
+        return true;
       } catch (error) {
         if (!isAbortError(error)) {
           setUploadState((current) => current ? { ...current, errorMessage: errorMessage(error) } : current);
           setNotice(errorMessage(error));
         }
+        return false;
       }
     },
-    [deleteMedia, flushAll, presentation, presentationId, readOnly, reconcile, store, uploadMedia],
+    [presentation, presentationId, readOnly, reconcile, store, uploadMedia],
+  );
+
+  const uploadFiles = useCallback(
+    async (files: readonly File[], replaceElementId: string | null = null) => {
+      if (files.length === 0 || readOnly || !presentation) return;
+      const queue = [...files];
+      const generation = ++uploadQueueGenerationRef.current;
+      retryUploadQueueRef.current = null;
+      await flushAll();
+      for (let index = 0; index < queue.length; index += 1) {
+        if (uploadQueueGenerationRef.current !== generation) return;
+        const succeeded = await uploadFile(queue[index]!, replaceElementId);
+        if (uploadQueueGenerationRef.current !== generation) return;
+        if (!succeeded) {
+          retryUploadQueueRef.current = {
+            files: queue.slice(index),
+            replaceElementId,
+          };
+          return;
+        }
+        replaceElementId = null;
+      }
+    },
+    [flushAll, presentation, readOnly, uploadFile],
   );
 
   const onFilesDropped = useCallback(
     (files: File[]) => {
-      const file = files[0];
-      if (file) void uploadFile(file);
+      void uploadFiles(files);
     },
-    [uploadFile],
+    [uploadFiles],
   );
 
   const retryUpload = useCallback(() => {
-    const lastUpload = lastUploadRef.current;
-    if (lastUpload) void uploadFile(lastUpload.file, lastUpload.role);
-  }, [uploadFile]);
+    const pending = retryUploadQueueRef.current;
+    if (pending) void uploadFiles(pending.files, pending.replaceElementId);
+  }, [uploadFiles]);
 
   const cancelUpload = useCallback(() => {
+    uploadQueueGenerationRef.current += 1;
+    retryUploadQueueRef.current = null;
     cancelUploadMutation();
     setUploadState(null);
   }, [cancelUploadMutation]);
@@ -591,23 +593,38 @@ export function usePresentationEditorController(presentationId: string) {
     onTitleCommit: commitTitle,
     onSelectSlide: selectSlide,
     selectedElementId: selectedSlide ? draft.selectedElementIds[selectedSlide.client_id] ?? null : null,
+    inlineEditingElementId,
     playback: selectedSlide ? draft.playbackBySlide[selectedSlide.client_id] ?? { playheadMs: 0, playing: false } : { playheadMs: 0, playing: false },
     onSelectElement: (elementId: string | null) => {
       const slideId = store.getState().selectedSlideId;
       if (slideId) store.selectElement(slideId, elementId);
     },
+    onBeginInlineEdit: (elementId: string) => {
+      if (!readOnly) setInlineEditingElementId(elementId);
+    },
+    onFinishInlineEdit: () => setInlineEditingElementId(null),
     onAddText: () => {
       const slideId = store.getState().selectedSlideId;
-      if (!readOnly && slideId) store.addTextElement(slideId);
+      if (!readOnly && slideId) {
+        const elementId = store.addTextElement(slideId);
+        if (elementId) setInlineEditingElementId(elementId);
+      }
     },
     onUpdateElement: updateElement,
     onDeleteElement: (elementId: string) => {
       const slideId = store.getState().selectedSlideId;
-      if (!readOnly && slideId) store.deleteElement(slideId, elementId);
+      if (!readOnly && slideId) {
+        store.deleteElement(slideId, elementId);
+        setInlineEditingElementId((current) => current === elementId ? null : current);
+      }
     },
     onDurationChange: (durationMs: number) => {
       const slideId = store.getState().selectedSlideId;
       if (!readOnly && slideId) store.setSlideDuration(slideId, durationMs);
+    },
+    onBackgroundColorChange: (color: string | null) => {
+      const slideId = store.getState().selectedSlideId;
+      if (!readOnly && slideId) store.setSlideBackgroundColor(slideId, color);
     },
     onPlaybackCheckpoint: (patch: Partial<{ playheadMs: number; playing: boolean }>) => {
       const slideId = store.getState().selectedSlideId;
@@ -635,7 +652,8 @@ export function usePresentationEditorController(presentationId: string) {
     onDeleteMedia: removeMedia,
     onReorder: reorder,
     onFilesDropped,
-    onUploadFile: uploadFile,
+    onUploadFile: (file: File, replaceElementId?: string) =>
+      uploadFiles([file], replaceElementId ?? null),
     uploadProgress: uploadMedia.progress,
     uploadState,
     cancelUpload,

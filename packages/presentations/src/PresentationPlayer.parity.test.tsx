@@ -1,4 +1,7 @@
-import { renderingParityCompositionFixture } from "../../presentation-runtime/src/rendering-parity-fixture";
+import {
+  renderingParityBackgroundColorFixture,
+  renderingParityCompositionFixture,
+} from "../../presentation-runtime/src/rendering-parity-fixture";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
@@ -15,6 +18,7 @@ describe("phone player rendering parity fixture", () => {
           ...consumerPresentationFixture,
           slides: [{
             ...consumerPresentationFixture.slides[0]!,
+            background_color: renderingParityBackgroundColorFixture,
             elements: [...renderingParityCompositionFixture],
           }],
         }}
@@ -28,5 +32,8 @@ describe("phone player rendering parity fixture", () => {
     const headline = screen.getByText("Shared parity headline");
     expect(headline).toHaveStyle({ left: "31.2px", fontSize: "32px" });
     expect(Number.parseFloat(headline.style.top)).toBeCloseTo(496.8);
+    expect(screen.getByTestId("slide-composition-renderer")).toHaveStyle({
+      backgroundColor: renderingParityBackgroundColorFixture,
+    });
   });
 });

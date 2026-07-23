@@ -31,6 +31,7 @@ export type EditorDraftStore = {
   ) => void;
   deleteElement: (slideId: string, elementId: string) => void;
   setSlideDuration: (slideId: string, durationMs: number) => void;
+  setSlideBackgroundColor: (slideId: string, color: string | null) => void;
   setPlayback: (slideId: string, patch: Partial<{ playheadMs: number; playing: boolean }>) => void;
   reconcileAfterFlush: (presentation: Presentation, slideId: string) => void;
   refreshMediaUrls: (presentation: Presentation) => void;
@@ -39,6 +40,14 @@ export type EditorDraftStore = {
 
 export function compositionElementId(element: CompositionElement): string {
   return element.client_id ?? `legacy-${element.sequence_order}`;
+}
+
+function windowStartingAtPlayhead(
+  durationMs: number,
+  playheadMs: number,
+): { startMs: number; endMs: number } {
+  const startMs = Math.min(Math.max(0, playheadMs), Math.max(0, durationMs - 400));
+  return { startMs, endMs: Math.min(durationMs, startMs + 2_500) };
 }
 
 function cloneElements(elements: readonly CompositionElement[]): CompositionElement[] {
@@ -178,8 +187,7 @@ export function createEditorDraftStore(): EditorDraftStore {
       const elements = state.localCompositions[slideId] ?? slide.elements;
       const durationMs = slide.duration_ms ?? 4_000;
       const playheadMs = state.playbackBySlide[slideId]?.playheadMs ?? 0;
-      const startMs = Math.min(Math.max(0, playheadMs), Math.max(0, durationMs - 400));
-      const endMs = Math.min(durationMs, startMs + 2_500);
+      const { startMs, endMs } = windowStartingAtPlayhead(durationMs, playheadMs);
       const id = `local-text-${++localElementSequence}`;
       const layerIndex = Math.max(9, ...elements.filter((element) => element.element_type === "text").map((element) => element.layer_index)) + 1;
       const next: CompositionElement = {
@@ -275,6 +283,29 @@ export function createEditorDraftStore(): EditorDraftStore {
         revision: state.revision + 1,
       });
     },
+    setSlideBackgroundColor: (slideId, color) => {
+      if (!state.presentation) return;
+      const slide = state.presentation.slides.find(
+        (candidate) => candidate.client_id === slideId,
+      );
+      if (!slide || slide.background_color === color) return;
+      publish({
+        ...state,
+        presentation: {
+          ...state.presentation,
+          slides: state.presentation.slides.map((candidate) =>
+            candidate.client_id === slideId
+              ? { ...candidate, background_color: color }
+              : candidate),
+        },
+        dirtySlideIds: new Set([...state.dirtySlideIds, slideId]),
+        slideRevisions: {
+          ...state.slideRevisions,
+          [slideId]: (state.slideRevisions[slideId] ?? 0) + 1,
+        },
+        revision: state.revision + 1,
+      });
+    },
     setPlayback: (slideId, patch) => {
       if (!(slideId in state.localCompositions)) return;
       const current = state.playbackBySlide[slideId] ?? { playheadMs: 0, playing: false };
@@ -295,7 +326,12 @@ export function createEditorDraftStore(): EditorDraftStore {
           if (!dirtySlideIds.has(slide.client_id)) return slide;
           const localSlide = state.presentation?.slides.find((candidate) => candidate.client_id === slide.client_id);
           return localSlide
-            ? { ...slide, playback_mode: localSlide.playback_mode, duration_ms: localSlide.duration_ms }
+            ? {
+                ...slide,
+                playback_mode: localSlide.playback_mode,
+                duration_ms: localSlide.duration_ms,
+                background_color: localSlide.background_color,
+              }
             : slide;
         }),
       };
@@ -372,53 +408,58 @@ export function selectedSlideFromState(state: EditorDraftState): Slide | null {
 }
 
 export function slideHasBackground(elements: readonly CompositionElement[]): boolean {
-  return elements.some((element) => element.element_type === "media" && element.layer_index === 0);
+  return elements.some((element) => element.element_type === "media");
 }
 
-export function mediaElementForAsset(media: SlideMedia, layerIndex: number): CompositionElement {
-  return {
+export function appendMediaElement(
+  elements: readonly CompositionElement[],
+  media: SlideMedia,
+  durationMs: number,
+  playheadMs: number,
+): CompositionElement[] {
+  const isFirstMedia = !slideHasBackground(elements);
+  const layerIndex = isFirstMedia
+    ? 0
+    : Math.max(0, ...elements.map((element) => element.layer_index)) + 1;
+  const window = isFirstMedia
+    ? { startMs: 0, endMs: null }
+    : windowStartingAtPlayhead(durationMs, playheadMs);
+  const next: CompositionElement = {
     client_id: null,
     element_type: "media",
-    sequence_order: 0,
+    sequence_order: elements.length,
     layer_index: layerIndex,
-    start_ms: 0,
-    end_ms: null,
+    start_ms: window.startMs,
+    end_ms: window.endMs,
     media,
     text_content: null,
     layout: {
-      x: 0,
-      y: 0,
-      width: 1,
-      height: 1,
-      fit: layerIndex === 0 ? "cover" : "contain",
+      x: 0.5,
+      y: 0.5,
+      width: isFirstMedia ? 1 : 0.6,
+      height: isFirstMedia ? 1 : 0.6,
+      fit: isFirstMedia ? "cover" : "contain",
+      anchor: "center",
     },
     style: null,
     enter_animation: null,
     exit_animation: null,
   };
+
+  return [...elements, next].map((element, sequence_order) => ({
+    ...element,
+    sequence_order,
+  }));
 }
 
-/** Replace only the background track; every overlay/text element survives. */
-export function replaceBackgroundMediaElement(
+export function replaceMediaElementSource(
   elements: readonly CompositionElement[],
+  elementId: string,
   media: SlideMedia,
 ): CompositionElement[] {
-  const overlays = elements.filter(
-    (element) => !(element.element_type === "media" && element.layer_index === 0),
+  return elements.map((element) =>
+    compositionElementId(element) === elementId && element.element_type === "media"
+      ? { ...element, media }
+      : element,
   );
-  return [mediaElementForAsset(media, 0), ...overlays].map((element, sequence_order) => ({
-    ...element,
-    sequence_order,
-  }));
-}
-
-export function appendOverlayMediaElement(
-  elements: readonly CompositionElement[],
-  media: SlideMedia,
-): CompositionElement[] {
-  const layerIndex = Math.max(0, ...elements.map((element) => element.layer_index)) + 1;
-  return [...elements, mediaElementForAsset(media, layerIndex)].map((element, sequence_order) => ({
-    ...element,
-    sequence_order,
-  }));
 }

@@ -9,7 +9,14 @@ import {
 } from "@beyo/presentation-runtime";
 
 import type { CompositionElementInput } from "../types";
+import type { TextMeasurementAdapter } from "./text-measurement";
 import { clampWindowToDuration } from "./timeline-geometry";
+
+export type {
+  TextMeasurement,
+  TextMeasurementAdapter,
+  TextMeasurementInput,
+} from "./text-measurement";
 
 export const EDITOR_CANVAS_WIDTH = 264;
 export const EDITOR_CANVAS_HEIGHT = 470;
@@ -39,34 +46,32 @@ export type EditorTextElement = EditorElementBase & {
   weight: 400 | 700;
   role: EditorTextRole;
   textAlign: TextAlign;
+  textColor?: string;
+  backgroundColor?: string;
+  borderRadius?: number;
+  padding?: number;
 };
 
 export type EditorMediaElement = EditorElementBase & {
   kind: "media";
   media: SlideMedia;
   fit: Exclude<LayoutFit, "none">;
+  anchor?: NonNullable<CompositionElement["layout"]>["anchor"];
 };
 
 export type EditorCompositionElement = EditorTextElement | EditorMediaElement;
 
 export type EditorComposition = {
   durationMs: number;
+  backgroundColor: string | null;
   elements: EditorCompositionElement[];
 };
-
-export type TextMeasurementInput = {
-  content: string;
-  fontSizePx: number;
-  fontWeight: 400 | 700;
-};
-
-export type TextMeasurement = { widthPx: number; heightPx: number };
-export type TextMeasurementAdapter = (input: TextMeasurementInput) => TextMeasurement;
 
 export type CompositionPutBody = {
   playback_mode: "timed";
   duration_ms: number;
   composition_schema_version: typeof COMPOSITION_SCHEMA_VERSION;
+  background_color?: string | null;
   elements: CompositionElementInput[];
 };
 
@@ -118,7 +123,9 @@ function editorElementToPutInput(
         width: element.width,
         height: element.height,
         fit: element.fit,
-        ...(element.layerIndex === 0 ? {} : { anchor: "center" as const }),
+        ...(element.anchor === undefined
+          ? element.layerIndex === 0 ? {} : { anchor: "center" as const }
+          : { anchor: element.anchor }),
       },
       enter_animation,
       exit_animation,
@@ -148,6 +155,14 @@ function editorElementToPutInput(
       text_align: element.textAlign,
       font_size: editorFontSizeToWire(element.sizePx),
       font_weight: element.weight,
+      ...(element.textColor === undefined ? {} : { text_color: element.textColor }),
+      ...(element.backgroundColor === undefined
+        ? {}
+        : { background_color: element.backgroundColor }),
+      ...(element.borderRadius === undefined
+        ? {}
+        : { border_radius: element.borderRadius }),
+      ...(element.padding === undefined ? {} : { padding: element.padding }),
     },
     enter_animation,
     exit_animation,
@@ -162,6 +177,7 @@ export function editorCompositionToPutBody(
     playback_mode: "timed",
     duration_ms: composition.durationMs,
     composition_schema_version: COMPOSITION_SCHEMA_VERSION,
+    background_color: composition.backgroundColor,
     elements: composition.elements.map((element) =>
       editorElementToPutInput(element, composition.durationMs, measureText)),
   };
@@ -174,9 +190,11 @@ function positiveDimension(value: number | undefined): number {
 export function serverElementsToEditorComposition(
   durationMs: number,
   elements: readonly CompositionElement[],
+  backgroundColor: string | null = null,
 ): EditorComposition {
   return {
     durationMs,
+    backgroundColor,
     elements: [...elements]
       .sort((a, b) => a.sequence_order - b.sequence_order)
       .flatMap<EditorCompositionElement>((element) => {
@@ -196,6 +214,9 @@ export function serverElementsToEditorComposition(
             fit: element.layout?.fit === "contain" || element.layout?.fit === "fill"
               ? element.layout.fit
               : "cover",
+            ...(element.layout?.anchor === undefined
+              ? {}
+              : { anchor: element.layout.anchor }),
             media: element.media,
             animIn: wireAnimationToEditor(element.enter_animation),
             animOut: wireAnimationToEditor(element.exit_animation),
@@ -221,6 +242,18 @@ export function serverElementsToEditorComposition(
           weight,
           role: weight === 700 ? "heading" : "body",
           textAlign: element.style?.text_align ?? "center",
+          ...(element.style?.text_color === undefined
+            ? {}
+            : { textColor: element.style.text_color }),
+          ...(element.style?.background_color === undefined
+            ? {}
+            : { backgroundColor: element.style.background_color }),
+          ...(element.style?.border_radius === undefined
+            ? {}
+            : { borderRadius: element.style.border_radius }),
+          ...(element.style?.padding === undefined
+            ? {}
+            : { padding: element.style.padding }),
           animIn: wireAnimationToEditor(element.enter_animation),
           animOut: wireAnimationToEditor(element.exit_animation),
         }];
