@@ -1,36 +1,45 @@
 import { describe, expect, it } from "vitest";
 
-import { humanizeReason, pauseReasonLabel } from "./pause-reason-labels";
+import type { PauseReasonLookupMap } from "../../types";
+import {
+  humanizeReason,
+  resolvePauseReasonLabel,
+} from "./pause-reason-labels";
 
-describe("pauseReasonLabel", () => {
-  it("maps every known reason to its display label", () => {
-    expect(pauseReasonLabel("pause_lunch_break")).toBe("Lunch break");
-    expect(pauseReasonLabel("pause_coffee_break")).toBe("Coffee break");
-    expect(pauseReasonLabel("pause_meeting")).toBe("Meeting");
-    expect(pauseReasonLabel("pause_case_created")).toBe("Case created");
-    expect(pauseReasonLabel("pause_other_task_priority")).toBe(
-      "Other task priority",
-    );
-    expect(pauseReasonLabel("pause_ended_shift")).toBe("Ended shift");
-    expect(pauseReasonLabel("waiting_for_upholstery")).toBe(
-      "Waiting for upholstery",
-    );
-    expect(pauseReasonLabel("unspecified")).toBe("Pause");
+const MAP: PauseReasonLookupMap = {
+  par_lunch: { name: "Lunch break", image_url: null, pause_type: "personal" },
+};
+
+describe("resolvePauseReasonLabel", () => {
+  it("resolves a known id to its name", () => {
+    expect(resolvePauseReasonLabel("par_lunch", MAP)).toBe("Lunch break");
   });
 
-  it("humanizes unknown reasons instead of failing", () => {
-    expect(pauseReasonLabel("waiting_for_material")).toBe(
-      "Waiting for material",
-    );
-    expect(pauseReasonLabel("pause_new_backend_reason")).toBe(
-      "New backend reason",
+  it("renders the unspecified sentinel as readable copy", () => {
+    expect(resolvePauseReasonLabel("unspecified", MAP)).toBe(
+      "No reason specified",
     );
   });
 
-  it("falls back to a generic label for null/empty values", () => {
-    expect(pauseReasonLabel(null)).toBe("Pause");
-    expect(pauseReasonLabel(undefined)).toBe("Pause");
-    expect(pauseReasonLabel("")).toBe("Pause");
-    expect(humanizeReason("pause_")).toBe("Pause");
+  it("falls back to the raw key for a missing id or free-text", () => {
+    // Deleted reason id — not in the map.
+    expect(resolvePauseReasonLabel("par_deleted", MAP)).toBe("par_deleted");
+    // Roster manual whole-shift pause free-text — already readable.
+    expect(resolvePauseReasonLabel("Waiting on manager", MAP)).toBe(
+      "Waiting on manager",
+    );
+  });
+
+  it("returns null for empty values", () => {
+    expect(resolvePauseReasonLabel(null, MAP)).toBeNull();
+    expect(resolvePauseReasonLabel(undefined, MAP)).toBeNull();
+    expect(resolvePauseReasonLabel("", MAP)).toBeNull();
+  });
+});
+
+describe("humanizeReason", () => {
+  it("humanizes a raw state token", () => {
+    expect(humanizeReason("ended_shift")).toBe("Ended shift");
+    expect(humanizeReason("paused")).toBe("Paused");
   });
 });

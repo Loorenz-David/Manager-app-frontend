@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { PullToRefresh, useScrollHide } from "@beyo/ui";
-import { cn, transitions } from "@beyo/lib";
+import { PullToRefresh, SlideStack, SlideStackPane } from "@beyo/ui";
+import { cn } from "@beyo/lib";
 
 import { UpholsteryCard } from "../components/UpholsteryCard";
 import { UpholsteryPickerHeader } from "../components/UpholsteryPickerHeader";
@@ -14,36 +13,13 @@ type UpholsteryPickerSlidePageProps = {
   onSelect?: (clientId: string) => void;
 };
 
-const bodyVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? "100%" : "-100%",
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: transitions.slide,
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? "-100%" : "100%",
-    opacity: 0,
-    transition: transitions.slide,
-  }),
-} as const;
-
-// Keep this in sync with the bottom padding used in the scroll content below.
-const BOTTOM_ACTIONS_EDGE_OFFSET_PX = 96;
+const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(100dvh-9rem)]";
 
 export function UpholsteryPickerSlidePage(): React.JSX.Element {
   const { currentClientId, onSelect } =
     useSurfaceProps<UpholsteryPickerSlidePageProps>();
   const header = useSurfaceHeader();
-  const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
-    useScrollHide({
-      revealAtEdge: "bottom",
-      edgeOffset: BOTTOM_ACTIONS_EDGE_OFFSET_PX,
-    });
-  const isFooterHidden = isHidden && !isAtEdge;
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [stagedClientId, setStagedClientId] = useState<string | null>(
@@ -53,6 +29,13 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
   const isSearchActive = searchQuery.trim().length > 0;
   const shouldShowSaveButton =
     stagedClientId !== null && stagedClientId !== (currentClientId ?? null);
+  // Deferred onSelect commit: consumers mutate lists on the page revealed
+  // beneath, so running it while the slide-out animates causes jank. The
+  // surface keeps this page mounted (usePresence) until the exit animation
+  // finishes, so the unmount effect fires exactly after the close.
+  const commitOnCloseRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => () => commitOnCloseRef.current?.(), []);
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -82,7 +65,8 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
     try {
       const resolvedClientId = await controller.selectUpholstery(stagedClientId);
-      onSelect?.(resolvedClientId);
+      // Close first, commit on unmount — after the slide-out has finished.
+      commitOnCloseRef.current = () => onSelect?.(resolvedClientId);
       header?.requestClose();
     } catch {
       return;
@@ -91,122 +75,110 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
   return (
     <div
-      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col"
       data-testid="upholstery-picker-slide-page"
     >
-      <div className="absolute inset-x-0 top-0 z-10">
-        <UpholsteryPickerHeader
-          activeFilter={controller.activeFilter}
-          activeProviderFilterCount={controller.activeProviderFilterCount}
-          isFilterDisabled={isSearchActive}
-          isSearchLoading={isSearchActive ? controller.isLoading : false}
-          onBackPress={header?.requestClose ?? (() => {})}
-          q={searchQuery}
-          onFilterChange={controller.onFilterChange}
-          onQChange={setSearchQuery}
-          onProviderFilterPress={controller.openProviderFilterSheet}
-        />
-      </div>
-
       <PullToRefresh
         className="absolute inset-0"
-        indicatorOffset={144}
-        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none scrollbar-none [&::-webkit-scrollbar]:hidden"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        <div className="pt-36" data-testid="upholstery-list-scroll">
-          <div className="relative flex min-h-[calc(100dvh-9rem)]">
-            <AnimatePresence
-              custom={controller.direction}
-              initial={false}
-              mode="sync"
+        <div data-testid="upholstery-list-scroll">
+          <UpholsteryPickerHeader
+            activeFilter={controller.activeFilter}
+            activeProviderFilterCount={controller.activeProviderFilterCount}
+            isFilterDisabled={isSearchActive}
+            isSearchLoading={isSearchActive ? controller.isLoading : false}
+            onBackPress={header?.requestClose ?? (() => {})}
+            q={searchQuery}
+            onFilterChange={controller.onFilterChange}
+            onQChange={setSearchQuery}
+            onProviderFilterPress={controller.openProviderFilterSheet}
+          />
+
+          {/* Positioned container for the body stack: panes overlap during a
+           * transition and drag ghosts pin inside it. The PullToRefresh scroll
+           * container above already clips horizontal overflow. */}
+          <div className="relative">
+            <SlideStack
+              activeId={controller.activeFilter}
+              // Search overrides the quick filters (the pills are disabled),
+              // so the drags stand down and the surface keeps its own
+              // slide-to-close for the whole page.
+              onBack={isSearchActive ? undefined : controller.goToPreviousFilter}
+              onForward={isSearchActive ? undefined : controller.goToNextFilter}
             >
-              <m.div
-                key={controller.activeFilter}
-                animate="center"
-                className="absolute inset-0 flex flex-col gap-3 px-4 py-4 pb-[calc(var(--safe-bottom,0)+10rem)]"
-                custom={controller.direction}
-                data-testid={`upholstery-picker-body-${controller.activeFilter}`}
-                exit="exit"
-                initial="enter"
-                variants={bodyVariants}
-              >
-                {controller.selectionError ? (
-                  <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                    {controller.selectionError}
-                  </p>
-                ) : null}
-                {controller.isLoading &&
-                controller.upholsteries.length === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    Loading upholstery…
-                  </p>
-                ) : controller.upholsteries.length > 0 ? (
-                  controller.upholsteries.map((record) => (
-                    <UpholsteryCard
-                      key={record.client_id}
-                      disabled={controller.isSelectionPending}
-                      isSaving={controller.selectingClientId === record.client_id}
-                      isSelected={record.client_id === stagedClientId}
-                      record={record}
-                      testId={`upholstery-card-${record.client_id}`}
-                      onSelect={handleSelect}
-                      onToggleFavorite={controller.toggleFavorite}
-                    />
-                  ))
-                ) : (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    No results.
-                  </p>
-                )}
-              </m.div>
-            </AnimatePresence>
+              {controller.filterOptions.map((option) => {
+                const records = controller.upholsteriesByFilter[option.value];
+                const isFilterLoading =
+                  controller.isLoadingByFilter[option.value];
+
+                return (
+                  <SlideStackPane
+                    key={option.value}
+                    className={cn(
+                      "flex flex-col gap-3 px-4 pt-4",
+                      shouldShowSaveButton
+                        ? "pb-[calc(var(--safe-bottom,0px)+6rem)]"
+                        : "pb-[calc(var(--safe-bottom,0px)+1rem)]",
+                      BODY_MIN_HEIGHT_CLASS,
+                    )}
+                    data-testid={`upholstery-picker-body-${option.value}`}
+                    id={option.value}
+                  >
+                    {controller.selectionError ? (
+                      <p className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                        {controller.selectionError}
+                      </p>
+                    ) : null}
+                    {isFilterLoading && records.length === 0 ? (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        Loading upholstery…
+                      </p>
+                    ) : records.length > 0 ? (
+                      records.map((record) => (
+                        <UpholsteryCard
+                          key={record.client_id}
+                          disabled={controller.isSelectionPending}
+                          isSaving={
+                            controller.selectingClientId === record.client_id
+                          }
+                          isSelected={record.client_id === stagedClientId}
+                          record={record}
+                          testId={`upholstery-card-${record.client_id}`}
+                          onSelect={handleSelect}
+                          onToggleFavorite={controller.toggleFavorite}
+                        />
+                      ))
+                    ) : (
+                      <p className="py-8 text-center text-sm text-muted-foreground">
+                        No results.
+                      </p>
+                    )}
+                  </SlideStackPane>
+                );
+              })}
+            </SlideStack>
           </div>
         </div>
       </PullToRefresh>
 
-      <div
-        className={cn(
-          "absolute inset-x-0 bottom-0 z-20 will-change-transform",
-          isFooterHidden ? "pointer-events-none" : null,
-        )}
-        style={{
-          transform:
-            "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
-          opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
-          transition:
-            "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
-        }}
-        data-testid="upholstery-picker-bottom-actions"
-      >
-        {shouldShowSaveButton ? (
-          <div className="px-4 pb-3">
-            <button
-              className="w-full rounded-2xl bg-primary py-3.5 text-card text-md shadow-sm disabled:opacity-50"
-              disabled={controller.isSelectionPending}
-              type="button"
-              onClick={() => void handleSaveSelection()}
-            >
-              Save selection
-            </button>
-          </div>
-        ) : null}
-
-        <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-          <div className="px-4 pb-4 pt-3">
-            <button
-              className="w-full rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
-              type="button"
-              onClick={() => header?.requestClose()}
-            >
-              Close & Back
-            </button>
-          </div>
-          <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+      {shouldShowSaveButton ? (
+        <div
+          className="absolute inset-x-0 bottom-0 z-20 px-4 pb-[calc(var(--safe-bottom,0px)+0.75rem)]"
+          data-testid="upholstery-picker-bottom-actions"
+        >
+          <button
+            className="w-full rounded-2xl bg-primary py-3.5 text-card text-md shadow-sm disabled:opacity-50"
+            disabled={controller.isSelectionPending}
+            type="button"
+            onClick={() => void handleSaveSelection()}
+          >
+            Save selection
+          </button>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

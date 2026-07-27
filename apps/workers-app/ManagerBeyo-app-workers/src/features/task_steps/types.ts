@@ -6,6 +6,7 @@ import type {
   WorkingSectionId,
   UserId,
 } from "@beyo/lib";
+import { PauseReasonSchema } from "@beyo/pause-reasons";
 import {
   ImageAnnotationSchema,
   toImageAnnotationViewModels,
@@ -76,11 +77,10 @@ export type StepDependencyEntry = z.infer<typeof StepDependencyEntrySchema>;
 
 export const LastStateRecordSchema = z.object({
   state: StepStateSchema,
-  pause_reason_id: z
-    .string()
-    .transform((value) => value as PauseReasonId)
-    .nullable()
-    .optional(),
+  // The pause reason as a full nested object (renamed from the old flat
+  // `pause_reason_id`); populated for paused/ended-shift records, null
+  // otherwise. Optional for resilience against older cached payloads.
+  pause_reason: PauseReasonSchema.nullable().optional(),
   entered_at: z.string(),
   exited_at: z.string().nullable(),
   last_action_by: UserRefSchema.nullable().optional(),

@@ -52,6 +52,16 @@ generic `@beyo/ui` `AlignmentPicker`, `ColorSwatchPicker`, and `SliderFieldRow`
 primitives; those primitives have no presentation imports and are demonstrated
 standalone in the editor kit preview.
 
+`PanelDrawer` is a controlled, props-only collapsible group: logic supplies
+`isOpen` and `onToggle`; the header retains button semantics and exposes
+`aria-expanded`, the body animates open/closed, and `errorBadge` surfaces validation
+hidden inside a closed drawer. Its stable header selector is
+`presentation-panel-drawer-<id>`. Each properties panel accepts the shared optional
+`drawers: { open: readonly string[]; onToggle(id): void }` convention. When omitted,
+the panel renders its controls flat in the legacy order; consumers must opt in by
+wiring controller-owned state. Read-only panels still receive drawer controls so
+users can browse their fields.
+
 ### `components/preview/` + `components/publish/`
 `PreviewOverlay` (phone-framed playback stage). Publish kit: `PublishDialogShell`
 (+`PublishDialogSection`), `ChipCheckboxGroup`, `UserPickerList`,

@@ -23,6 +23,7 @@ export const TASK_DETAIL_SURFACE_ID = "task-detail-slide";
 export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";
 export const TASK_FILTER_SHEET_SURFACE_ID = "task-filter-sheet";
 export const ITEM_QUANTITY_SHEET_SURFACE_ID = "item-quantity-sheet";
+export const ITEM_IDENTITY_SHEET_SURFACE_ID = "item-identity-sheet";
 export const ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID =
   "item-upholstery-amount-sheet";
 export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
@@ -76,6 +77,15 @@ export type ItemQuantitySurfaceProps = {
   itemId: string;
   prefill?: {
     quantity: number;
+  };
+};
+
+export type ItemIdentitySurfaceProps = {
+  taskId: string;
+  itemId: string;
+  prefill?: {
+    article_number: string;
+    sku: string;
   };
 };
 

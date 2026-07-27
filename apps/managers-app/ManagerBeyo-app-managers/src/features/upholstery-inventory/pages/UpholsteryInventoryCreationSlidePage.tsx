@@ -16,6 +16,7 @@ import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
 import { ApiRequestError } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
 import { useCreateInventory } from "../actions/use-create-inventory";
@@ -54,7 +55,6 @@ function normalizeOptionalText(value: string | null | undefined): string | null 
 type FooterProps = {
   activeStepId: string;
   isPending: boolean;
-  onClose: () => void;
   onBack: () => void;
   onContinue: () => void;
   onSubmit: () => void;
@@ -64,7 +64,6 @@ type FooterProps = {
 function InventoryCreationFooter({
   activeStepId,
   isPending,
-  onClose,
   onBack,
   onContinue,
   onSubmit,
@@ -75,12 +74,19 @@ function InventoryCreationFooter({
   return (
     <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
       <div className="flex gap-3 px-4 pb-4 pt-3">
+        {/* No close action: the surface header's back arrow and the
+         * slide-to-close gesture both dismiss the page. On the first step the
+         * button is kept for layout only, matching StagedFormNavigation. */}
         <button
-          className="flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
+          className={cn(
+            "flex-1 rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm",
+            isCategoryStep && "pointer-events-none opacity-0",
+          )}
+          disabled={isCategoryStep}
           type="button"
-          onClick={isCategoryStep ? onClose : onBack}
+          onClick={onBack}
         >
-          {isCategoryStep ? "Close & Back" : "Back"}
+          Back
         </button>
         <button
           className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm disabled:opacity-50"
@@ -298,7 +304,6 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
             activeStepId={staged.activeStepId}
             isPending={isPending}
             onBack={staged.back}
-            onClose={() => header?.requestClose()}
             onContinue={() => {
               staged.setStepStatus("category", "completed");
               staged.navigateTo("details");

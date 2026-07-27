@@ -144,6 +144,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     scrollContent = (
       <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
         <TaskDetailHeader
+          onBack={() => header?.requestClose()}
           onOpenMenu={controller.openMenu}
           onOpenReadyByAt={controller.openReadyByAtSheet}
           taskDetail={controller.taskDetail}
@@ -241,7 +242,6 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       </PullToRefresh>
       <TaskDetailBottomActions
         isHidden={isHidden}
-        onEdit={controller.openEditTask}
         onOpenWorkingSections={controller.openWorkingSectionsSlide}
         shouldRenderAssignStages={shouldRenderAssignStages}
       />

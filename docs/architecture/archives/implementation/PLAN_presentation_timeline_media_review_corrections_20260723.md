@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_timeline_media_review_corrections_20260723`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex`
 - Created at (UTC): `2026-07-23T11:10:00Z`
-- Last updated at (UTC): `2026-07-23T11:10:00Z`
+- Last updated at (UTC): `2026-07-23T11:30:00Z`
 - Related issue/ticket: Opus review of `PLAN_presentation_timeline_media_corrections_20260723`
 - Intention plan: `docs/architecture/under_construction/intention/presentation_capability_improvments.md`
 - Reviewed plan (archived): `docs/architecture/archives/implementation/PLAN_presentation_timeline_media_corrections_20260723.md`
@@ -41,7 +41,7 @@
 ## Clarifications required
 
 - [ ] None. The remedy is mechanical and the reviewed plan's criterion already
-  states the required outcome.
+      states the required outcome.
 
 ## Acceptance criteria
 
@@ -140,9 +140,59 @@ work. These belong to the adjacent in-flight sessions, not here:
 
 - 2026-07-23 Claude (Opus review of the timeline/media plan): created this
   fixes-only plan for the single defect found (finding 1 of that review).
+- 2026-07-23 Codex: defect closed. Added old-wire layer-0 media to the shared
+  runtime fixture; runtime, builder preview, and phone player now pin its
+  `0px` position, `390px × 690px` size, and `object-fit: cover`. Removed the
+  identical-render self-comparison and added builder `afterEach(cleanup)`.
+  The three package suites and root typecheck are green. Non-vacuity was
+  verified by temporarily changing the builder width expectation from
+  `390px` to `391px`: the targeted parity test failed with actual `390px`,
+  then passed after restoration.
+- 2026-07-23 Claude (Opus review — closes the finding I raised): **PASS.** All six
+  review-focus items verified. **(1) The pin is real.** The shared
+  `rendering-parity-fixture.ts` now leads with a legacy layer-0 media element in
+  genuine old wire shape — `layer_index: 0`, `start_ms: 0`, `end_ms: null`,
+  `layout {x:0, y:0, width:1, height:1, fit:"cover"}` — which matches backend
+  `09_slide_composition.md`'s own full-bleed media example exactly (x/y are
+  top-left, untimed via `end_ms: null`) and reproduces what the retired
+  `replaceBackgroundMediaElement` used to emit. The self-comparison test is
+  **gone**, replaced by `renders legacy layer-0 media at reference scale`
+  asserting concrete output (`left 0px`, `top 0px`, `width 390px`,
+  `height 690px`, `objectFit cover`). All **three** suites pin the same element
+  from the one fixture: runtime `SlideCompositionRenderer.test.tsx:82-87` (raw
+  `.style` reads), builder `rendering-parity.test.tsx` (`toHaveStyle`), and
+  player `PresentationPlayer.parity.test.tsx:35-42` (`toHaveStyle`) — so editor,
+  preview, and player are now genuinely covered, which is what the original
+  criterion required and the old test never delivered. **(2) It can fail.** The
+  implementing entry documents the required non-vacuity check (`390px` → `391px`
+  flipped, targeted test failed with actual `390px`, restored), so I did not
+  repeat the mutation; independently, the assertions are concrete literals
+  against a real render and `getByAltText` throws if the element is absent, so
+  they are falsifiable by construction — the defining difference from the
+  tautological version. **(3) No leak.** `afterEach(cleanup)` is registered in
+  the builder parity file, and the sibling test additionally scopes its query via
+  `view.container.querySelector` instead of a global `getByTestId`; the
+  `Found multiple elements by: [data-testid="slide-composition-renderer"]`
+  failure is gone. **(4) Scope discipline holds** — changes are the shared
+  fixture plus test files only; the sole non-test edit is type-only (the
+  `import type` in `composition-mapping.ts` now pulls just
+  `TextMeasurementAdapter`, leaving the independent `export type … from
+  "./text-measurement"` intact), with zero runtime behavior. Per-plan diff
+  isolation is not possible while the tree is uncommitted, but no behavior diff
+  exists in the parity surface. **(5) Validation re-run by me:**
+  `npm run typecheck` exit 0; `test:presentation-builder` 19 files / **150
+  passed**; `test:presentation-runtime` 4 files / **20 passed**;
+  `test:presentations` 7 files / **20 passed**. **(6) Bookkeeping complete** —
+  plan archived, summary and archive record present, and a closing entry landed
+  on the archived timeline/media plan's Review log. Note (no action): the three
+  pre-existing red items I had recorded as operator notes in this plan
+  (`TS6196` unused imports, the `text-measurement` float assertion, and the
+  runtime `toHaveStyle` matcher) are all resolved in the current tree as well —
+  test-only or type-only fixes, so no behavior risk, though I cannot attribute
+  them to this session versus an adjacent one. The defect is closed.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved` (operator)
-- Transition owner: operator → codex
+- Current state: `archived`
+- Next state: none; create a nested debug plan only if another defect is found
+- Transition owner: complete

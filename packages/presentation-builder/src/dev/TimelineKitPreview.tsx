@@ -2,6 +2,10 @@ import { useState } from "react";
 
 import { CanvasDraggableBox } from "../components/editor/CanvasDraggableBox";
 import { EditorCanvas } from "../components/editor/EditorCanvas";
+import {
+  MEDIA_PANEL_DRAWERS,
+  TEXT_PANEL_DRAWERS,
+} from "../components/panels/PanelDrawer";
 import { MediaElementPanel } from "../components/panels/MediaElementPanel";
 import { SlidePropertiesPanel } from "../components/panels/SlidePropertiesPanel";
 import { TextBlockPanel, type TextAnimationChoice } from "../components/panels/TextBlockPanel";
@@ -87,6 +91,40 @@ export function TimelineKitPreview(): React.JSX.Element {
   const [readOnly, setReadOnly] = useState(false);
   const [mediaCount, setMediaCount] = useState(1);
   const [slideBackground, setSlideBackground] = useState<string | null>(null);
+  // Reference drawer state for the kit contract (production version is
+  // controller-owned): per panel type, multi-open, all closed by default.
+  const [drawersEnabled, setDrawersEnabled] = useState(true);
+  const [openDrawers, setOpenDrawers] = useState<Record<"slide" | "text" | "media", string[]>>({
+    slide: [],
+    text: [],
+    media: [],
+  });
+  const toggleDrawer = (panel: "slide" | "text" | "media") => (id: string) =>
+    setOpenDrawers((current) => ({
+      ...current,
+      [panel]: current[panel].includes(id)
+        ? current[panel].filter((open) => open !== id)
+        : [...current[panel], id],
+    }));
+  // Ensure-open (resolved clarification 3): auto-open never closes others.
+  const ensureDrawerOpen = (panel: "slide" | "text" | "media", id: string) =>
+    setOpenDrawers((current) => ({
+      ...current,
+      [panel]: current[panel].includes(id) ? current[panel] : [...current[panel], id],
+    }));
+  // Source-aware auto-open (resolved clarification 2): timeline → animations,
+  // canvas → the block's primary drawer.
+  const selectElement = (element: MockElement, source: "timeline" | "canvas") => {
+    setSelectedId(element.id);
+    const panel = element.kind;
+    if (source === "timeline") {
+      ensureDrawerOpen(panel, panel === "text" ? TEXT_PANEL_DRAWERS.animations : MEDIA_PANEL_DRAWERS.animations);
+    } else {
+      ensureDrawerOpen(panel, panel === "text" ? TEXT_PANEL_DRAWERS.content : MEDIA_PANEL_DRAWERS.media);
+    }
+  };
+  const drawersFor = (panel: "slide" | "text" | "media") =>
+    drawersEnabled ? { open: openDrawers[panel], onToggle: toggleDrawer(panel) } : undefined;
   const noop = () => undefined;
 
   const durationMs = durationS * 1000;
@@ -159,7 +197,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                 heightFraction={element.h}
                 isSelected={element.id === selectedId}
                 isOutsideWindow={element.id === selectedId && !isVisibleNow(element)}
-                onSelect={() => setSelectedId(element.id)}
+                onSelect={() => selectElement(element, "canvas")}
                 onDrag={(x, y) =>
                   update(element.id, {
                     x: Math.min(0.95, Math.max(0.05, x)),
@@ -240,7 +278,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                 key={element.id}
                 label={element.label}
                 isSelected={element.id === selectedId}
-                onSelectLabel={() => setSelectedId(element.id)}
+                onSelectLabel={() => selectElement(element, "timeline")}
                 testId={`presentation-timeline-track-${element.id}`}
               >
                 <TimelineBar
@@ -253,7 +291,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                       ? `${animLabel(element.appears)} · ${animLabel(element.disappears)}`
                       : element.label
                   }
-                  onSelect={() => setSelectedId(element.id)}
+                  onSelect={() => selectElement(element, "timeline")}
                   onGesture={(gesture) => handleGesture(element, gesture)}
                   onGestureEnd={() => setGestureBase(null)}
                   disabled={readOnly}
@@ -274,6 +312,14 @@ export function TimelineKitPreview(): React.JSX.Element {
               />
               Read-only mode
             </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="checkbox"
+                checked={drawersEnabled}
+                onChange={(event) => setDrawersEnabled(event.target.checked)}
+              />
+              Drawers (off = flat fallback)
+            </label>
             <button
               type="button"
               className="rounded border border-[#dcdcdc] px-2 py-1 hover:bg-[#f4f4f4]"
@@ -291,6 +337,7 @@ export function TimelineKitPreview(): React.JSX.Element {
               onDurationChange={changeDuration}
               backgroundColor={slideBackground}
               onBackgroundColorChange={setSlideBackground}
+              drawers={drawersFor("slide")}
               ctaLabel=""
               onCtaLabelChange={noop}
               ctaRoute=""
@@ -308,6 +355,7 @@ export function TimelineKitPreview(): React.JSX.Element {
               disappears={selected.disappears}
               onDisappearsChange={(value) => update(selected.id, { disappears: value })}
               geometryLabel={`${Math.round((selected.w ?? 0.3) * 100)}% × ${Math.round((selected.h ?? 0.2) * 100)}% at ${Math.round(selected.x * 100)}%, ${Math.round(selected.y * 100)}%`}
+              drawers={drawersFor("media")}
               windowLabel={windowLabel(selected)}
               onReplace={noop}
               onDelete={() => {
@@ -344,6 +392,7 @@ export function TimelineKitPreview(): React.JSX.Element {
                 onBorderRadiusChange: noop,
                 onPaddingChange: noop,
               }}
+              drawers={drawersFor("text")}
               windowLabel={windowLabel(selected)}
               onDelete={() => {
                 setElements((current) => current.filter((e) => e.id !== selected.id));

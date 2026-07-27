@@ -32,6 +32,14 @@ describe("phone player rendering parity fixture", () => {
     const headline = screen.getByText("Shared parity headline");
     expect(headline).toHaveStyle({ left: "31.2px", fontSize: "32px" });
     expect(Number.parseFloat(headline.style.top)).toBeCloseTo(496.8);
+    const image = screen.getByAltText("Shared parity layer zero");
+    expect(image).toHaveStyle({
+      left: "0px",
+      top: "0px",
+      width: "390px",
+      height: "690px",
+      objectFit: "cover",
+    });
     expect(screen.getByTestId("slide-composition-renderer")).toHaveStyle({
       backgroundColor: renderingParityBackgroundColorFixture,
     });

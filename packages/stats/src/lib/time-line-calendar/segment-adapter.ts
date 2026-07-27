@@ -12,8 +12,9 @@ import {
   minuteOfLocalDay,
   parseLocalDateKey,
 } from "./local-date";
-import { pauseReasonLabel } from "./pause-reason-labels";
+import { resolvePauseReasonLabel } from "./pause-reason-labels";
 import type {
+  PauseReasonLookupMap,
   WorkerLinearTimeline,
   WorkerLinearTimelineSegment,
   WorkerTimelineSegmentState,
@@ -108,7 +109,8 @@ function toCalendarEventRecord(
     workingSectionName: record.working_section_name,
     articleLabel: record.item?.article_number ?? record.item?.sku ?? null,
     state: record.state,
-    reasonLabel: record.reason ? pauseReasonLabel(record.reason) : null,
+    // Per-step detail carries the full nested pause reason object directly.
+    reasonLabel: record.pause_reason?.name ?? null,
     description: record.description?.trim() || null,
     enteredAtLabel: formatLocalTime(new Date(record.entered_at)),
     exitedAtLabel: record.exited_at
@@ -187,9 +189,10 @@ function clusterSteps(
 
 export function toCalendarTimelineEvents(
   segments: WorkerLinearTimelineSegment[],
-  options: { now: Date },
+  options: { now: Date; pauseReasons?: PauseReasonLookupMap },
 ): CalendarTimelineEvent[] {
   const events: CalendarTimelineEvent[] = [];
+  const pauseReasons = options.pauseReasons ?? {};
 
   for (const segment of segments) {
     const start = new Date(segment.start);
@@ -337,10 +340,11 @@ export function toCalendarTimelineEvents(
             durationLabel: secondsToHM(sliceSeconds),
             isOpen: isOpenSlice,
             // Only paused blocks reach here with a reason (shift states are
-            // markers handled above).
+            // markers handled above). Segment `reason` is a flat id resolved
+            // against the response's `pause_reasons` lookup map.
             reasonLabel:
               segment.state === "paused"
-                ? pauseReasonLabel(segment.reason)
+                ? resolvePauseReasonLabel(segment.reason, pauseReasons)
                 : null,
             primaryLabel:
               primary?.articleLabel ?? primary?.workingSectionName ?? null,

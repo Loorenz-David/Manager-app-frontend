@@ -6,14 +6,12 @@ type TaskStepDetailFooterProps = {
   unreadCount: number;
   isScrollHidden: boolean;
   onOpenCases: () => void;
-  onClose: () => void;
 };
 
 export function TaskStepDetailFooter({
   unreadCount,
   isScrollHidden,
   onOpenCases,
-  onClose,
 }: TaskStepDetailFooterProps): React.JSX.Element {
   const [badgeVisible, setBadgeVisible] = useState(false);
   const lastCountRef = useRef(0);
@@ -55,16 +53,10 @@ export function TaskStepDetailFooter({
 
   return (
     <div className="border-t border-border bg-background">
-      <div className="flex gap-3 px-4 pb-3 pt-3">
-        <button
-          type="button"
-          className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-card shadow-sm text-primary border border-between-border px-4 py-3.5 text-md font-semibold  transition"
-          data-testid="task-detail-footer-close-button"
-          onClick={onClose}
-        >
-          Close &amp; Back
-        </button>
-        <div className="relative flex-1">
+      {/* The page is dismissed with the surface's slide-to-close gesture, so
+       * Help is the only action here and spans the full width. */}
+      <div className="px-4 pb-3 pt-3">
+        <div className="relative">
           <NavTabBadge
             items={[{ icon: MessageCircle, count: unreadCount }]}
             visible={badgeVisible}

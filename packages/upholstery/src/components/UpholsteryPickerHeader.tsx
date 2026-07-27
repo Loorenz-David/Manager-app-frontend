@@ -19,13 +19,6 @@ type UpholsteryPickerHeaderProps = {
   onProviderFilterPress?: () => void;
 };
 
-const SLIDE_HIDE_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-
 export function UpholsteryPickerHeader({
   q,
   activeFilter,
@@ -47,8 +40,7 @@ export function UpholsteryPickerHeader({
       className="relative flex flex-col bg-background"
       data-testid="upholstery-picker-header"
     >
-      {/* Search bar row — z-10 bg-background acts as mask for the pills (Pattern C) */}
-      <div className="relative z-10  bg-background px-4 pb-3.5 pt-3">
+      <div className="bg-background px-4 pb-3.5 pt-3">
         <div className="flex items-center gap-2">
           <button
             aria-label="Go back"
@@ -71,11 +63,7 @@ export function UpholsteryPickerHeader({
         </div>
       </div>
 
-      {/* Pills — absolute at top:100%, slides up behind search bar row (Pattern C) */}
-      <div
-        className="absolute inset-x-0 bg-background"
-        style={{ top: "100%", ...SLIDE_HIDE_STYLE }}
-      >
+      <div className="bg-background">
         <HorizontalScrollArea className="pb-1">
           <BoxPicker
             className={cn(

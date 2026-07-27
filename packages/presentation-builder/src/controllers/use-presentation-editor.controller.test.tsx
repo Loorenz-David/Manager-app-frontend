@@ -8,6 +8,12 @@ import { fullPresentationFixture, envelope } from "../test/fixtures";
 import { server } from "../test/server";
 import { createTestContext } from "../test/test-utils";
 import type { CompositionElementInput, Presentation } from "../types";
+import { compositionElementId } from "../editor/draft-store";
+import {
+  MEDIA_PANEL_DRAWERS,
+  SLIDE_PANEL_DRAWERS,
+  TEXT_PANEL_DRAWERS,
+} from "../components/panels/PanelDrawer";
 import { usePresentationEditorController } from "./use-presentation-editor.controller";
 
 const API_PATTERN = "*/api/v1/app-update-presentations";
@@ -46,6 +52,45 @@ function emptyMediaPresentation(): Presentation {
       ...fullPresentationFixture.slides[0]!,
       media: [],
       elements: [],
+    }],
+  };
+}
+
+function selectionPresentation(): Presentation {
+  const media: SlideMedia = {
+    client_id: "aupm_drawer_selection",
+    sequence_order: 0,
+    media_type: "image",
+    media_url: "https://cdn.example.com/drawer-selection.png",
+    poster_url: null,
+    fallback_url: null,
+    alt_text: "Drawer selection",
+    mime_type: "image/png",
+    width: 1080,
+    height: 1920,
+    duration_ms: null,
+    is_looping: false,
+  };
+  const mediaElement: CompositionElement = {
+    client_id: "aupe_drawer_media",
+    element_type: "media",
+    sequence_order: 1,
+    layer_index: 1,
+    start_ms: 0,
+    end_ms: null,
+    media,
+    text_content: null,
+    layout: { x: 0.5, y: 0.5, width: 0.4, height: 0.2, fit: "cover", anchor: "center" },
+    style: null,
+    enter_animation: null,
+    exit_animation: null,
+  };
+  return {
+    ...fullPresentationFixture,
+    slides: [{
+      ...fullPresentationFixture.slides[0]!,
+      media: [media],
+      elements: [...fullPresentationFixture.slides[0]!.elements, mediaElement],
     }],
   };
 }
@@ -148,6 +193,111 @@ function installUploadQueueHarness(
 afterEach(() => cleanup());
 
 describe("presentation editor controller", () => {
+  it("toggles drawers independently for each panel type", async () => {
+    installDetail();
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+
+    expect([...result.current.openDrawersByPanel.slide]).toEqual([]);
+    expect([...result.current.openDrawersByPanel.text]).toEqual([]);
+    expect([...result.current.openDrawersByPanel.media]).toEqual([]);
+
+    act(() => {
+      result.current.toggleDrawer("text", TEXT_PANEL_DRAWERS.style);
+      result.current.toggleDrawer("slide", SLIDE_PANEL_DRAWERS.timing);
+    });
+    expect([...result.current.openDrawersByPanel.text]).toEqual([TEXT_PANEL_DRAWERS.style]);
+    expect([...result.current.openDrawersByPanel.slide]).toEqual([SLIDE_PANEL_DRAWERS.timing]);
+    expect([...result.current.openDrawersByPanel.media]).toEqual([]);
+
+    act(() => result.current.toggleDrawer("text", TEXT_PANEL_DRAWERS.style));
+    expect([...result.current.openDrawersByPanel.text]).toEqual([]);
+    expect([...result.current.openDrawersByPanel.slide]).toEqual([SLIDE_PANEL_DRAWERS.timing]);
+  });
+
+  it("resets session-local drawer state when the controller remounts", async () => {
+    installDetail();
+    const { Wrapper } = createTestContext();
+    const first = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(first.result.current.hydrated).toBe(true));
+    act(() => first.result.current.toggleDrawer("text", TEXT_PANEL_DRAWERS.content));
+    expect(first.result.current.openDrawersByPanel.text.has(TEXT_PANEL_DRAWERS.content)).toBe(true);
+    first.unmount();
+
+    const second = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(second.result.current.hydrated).toBe(true));
+    expect([...second.result.current.openDrawersByPanel.text]).toEqual([]);
+  });
+
+  it("auto-opens the text concern drawer by selection source without closing others", async () => {
+    installDetail();
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(fullPresentationFixture.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+    const textElement = fullPresentationFixture.slides[0]!.elements.find(
+      (element) => element.element_type === "text",
+    );
+    if (!textElement) throw new Error("Expected the text fixture element");
+    const textElementId = compositionElementId(textElement);
+
+    act(() => {
+      result.current.toggleDrawer("text", TEXT_PANEL_DRAWERS.style);
+      result.current.toggleDrawer("slide", SLIDE_PANEL_DRAWERS.background);
+      result.current.onSelectElement(textElementId, "timeline");
+    });
+    expect(result.current.openDrawersByPanel.text).toEqual(
+      new Set([TEXT_PANEL_DRAWERS.style, TEXT_PANEL_DRAWERS.animations]),
+    );
+
+    act(() => result.current.onSelectElement(textElementId, "canvas"));
+    expect(result.current.openDrawersByPanel.text).toEqual(
+      new Set([
+        TEXT_PANEL_DRAWERS.style,
+        TEXT_PANEL_DRAWERS.animations,
+        TEXT_PANEL_DRAWERS.content,
+      ]),
+    );
+
+    act(() => result.current.onDeselectElement());
+    expect(result.current.openDrawersByPanel.slide).toEqual(
+      new Set([SLIDE_PANEL_DRAWERS.background]),
+    );
+  });
+
+  it("auto-opens media or animations for canvas and timeline selection", async () => {
+    const presentation = selectionPresentation();
+    installDetail(presentation);
+    const { Wrapper } = createTestContext();
+    const { result } = renderHook(
+      () => usePresentationEditorController(presentation.client_id),
+      { wrapper: Wrapper },
+    );
+    await waitFor(() => expect(result.current.hydrated).toBe(true));
+
+    act(() => result.current.onSelectElement("aupe_drawer_media", "canvas"));
+    expect(result.current.openDrawersByPanel.media).toEqual(
+      new Set([MEDIA_PANEL_DRAWERS.media]),
+    );
+
+    act(() => result.current.onSelectElement("aupe_drawer_media", "timeline"));
+    expect(result.current.openDrawersByPanel.media).toEqual(
+      new Set([MEDIA_PANEL_DRAWERS.media, MEDIA_PANEL_DRAWERS.animations]),
+    );
+  });
+
   it("uploads all queued files sequentially and preserves element order", async () => {
     const initial = emptyMediaPresentation();
     const { uploadUrlCalls } = installUploadQueueHarness(initial);
@@ -563,6 +713,9 @@ describe("presentation editor controller", () => {
     act(() => result.current.onCtaRouteChange("products"));
     await act(async () => result.current.onCtaCommit());
     expect(result.current.ctaRouteError).toMatch(/start with/);
+    await waitFor(() =>
+      expect(result.current.openDrawersByPanel.slide.has(SLIDE_PANEL_DRAWERS.button)).toBe(true),
+    );
     expect(patchSpy).not.toHaveBeenCalled();
 
     act(() => {
@@ -589,6 +742,10 @@ describe("presentation editor controller", () => {
       result.current.onAddText();
       result.current.onFinishInlineEdit();
     });
+    const addedElementId = compositionElementId(
+      result.current.localCompositions[fullPresentationFixture.slides[0].client_id]!.at(-1)!,
+    );
+    act(() => result.current.onSelectElement(addedElementId, "canvas"));
     const beforeUnload = new Event("beforeunload", { cancelable: true });
     window.dispatchEvent(beforeUnload);
     expect(beforeUnload.defaultPrevented).toBe(true);
@@ -596,6 +753,8 @@ describe("presentation editor controller", () => {
       expect(putSpy).toHaveBeenCalledTimes(1);
       expect(result.current.dirty).toBe(false);
     }, { timeout: 3_000 });
+    expect(result.current.selectedElementId).toBe(addedElementId);
+    expect(result.current.openDrawersByPanel.text.has(TEXT_PANEL_DRAWERS.content)).toBe(true);
   });
 
   it("does not guard beforeunload when the editor has no local changes", async () => {

@@ -31,6 +31,11 @@ export type InventoryCardActionsSurfaceProps = {
 
 export type InventoryDetailActionsSurfaceProps = {
   inventoryId: UpholsteryInventoryId;
+  /**
+   * Opens the edit form. Injected by the detail page because the edit prefill
+   * is built from detail data the sheet does not load itself.
+   */
+  onEdit?: () => void;
 };
 
 export type StoredAmountSurfaceProps = {

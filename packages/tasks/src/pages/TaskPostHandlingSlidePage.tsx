@@ -1,15 +1,20 @@
 import { useEffect, useRef } from "react";
-import { AnimatePresence, m } from "framer-motion";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { transitions } from "@beyo/lib";
-import { PullToRefresh, useScrollHide } from "@beyo/ui";
+import {
+  AnimatedRemovalGroup,
+  AnimatedRemovalItem,
+  PullToRefresh,
+  SlideStack,
+  SlideStackPane,
+} from "@beyo/ui";
 
 import { usePostHandlingCountsQuery } from "../api/use-post-handling-counts-query";
 import { PostHandlingBottomAction } from "../components/PostHandlingBottomAction";
 import { TaskListCard } from "../components/TaskListCard";
 import { TaskPostHandlingHeader } from "../components/TaskPostHandlingHeader";
 import { useTaskPostHandlingController } from "../controllers/use-task-post-handling.controller";
+import { getPostHandlingMissingRequirements } from "../lib/post-handling-requirements";
 import {
   humanizeSnakeCase,
   POST_HANDLING_STATE_VARIANT,
@@ -17,30 +22,7 @@ import {
 import type { TaskPostHandlingSlideSurfaceProps } from "../surface-ids";
 import type { TaskListItemRaw } from "../types";
 
-const HEADER_INDICATOR_OFFSET = 144;
-const CONTENT_TOP_OFFSET_CLASS = "pt-36";
-const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-const bodyVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? "100%" : "-100%",
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-    transition: transitions.slide,
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? "-100%" : "100%",
-    opacity: 0,
-    transition: transitions.slide,
-  }),
-} as const;
+const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(100dvh-9rem)]";
 
 function resolveImageUrl(
   images: TaskListItemRaw["item_images"],
@@ -102,85 +84,101 @@ function renderTaskPane({
               </button>
             </div>
           </div>
-        ) : tasks.length === 0 ? (
+        ) : (
+          // The group stays mounted when the last row leaves so its exit can
+          // finish before the empty message takes over.
+          <AnimatedRemovalGroup>
+            {tasks.map((task) => {
+              const activeInstance = controller.resolveActiveInstance(
+                task.task.post_handling,
+              );
+              const completedInstance =
+                activeInstance === null
+                  ? (task.task.post_handling?.find(
+                      (instance) => instance.state === "completed",
+                    ) ?? null)
+                  : null;
+              const displayInstance = activeInstance ?? completedInstance;
+              const statePill = displayInstance
+                ? {
+                    label:
+                      humanizeSnakeCase(displayInstance.state) ??
+                      displayInstance.state,
+                    variant: POST_HANDLING_STATE_VARIANT[displayInstance.state],
+                  }
+                : undefined;
+
+              const missingValues =
+                activeInstance?.state === "pending"
+                  ? getPostHandlingMissingRequirements(task.task).map(
+                      (requirement) => requirement.label,
+                    )
+                  : [];
+
+              return (
+                <AnimatedRemovalItem key={task.task.client_id} gapPx={12}>
+                  <TaskListCard
+                    detachedAction={
+                      activeInstance !== null &&
+                      activeInstance.state !== "pending" ? (
+                        <PostHandlingBottomAction
+                          instance={activeInstance}
+                          isCompleting={
+                            controller.completingTaskId === task.task.client_id
+                          }
+                          taskId={task.task.client_id}
+                          onComplete={() =>
+                            void controller.handleComplete(
+                              task.task.client_id,
+                              activeInstance,
+                              false,
+                            )
+                          }
+                        />
+                      ) : undefined
+                    }
+                    imageUrl={resolveImageUrl(task.item_images)}
+                    item={
+                      task.primary_item
+                        ? {
+                            itemId: task.primary_item.client_id,
+                            article_number: task.primary_item.article_number,
+                            sku: task.primary_item.sku,
+                            item_major_category_snapshot:
+                              task.primary_item.item_major_category_snapshot,
+                            quantity: task.primary_item.quantity,
+                          }
+                        : null
+                    }
+                    missingValues={missingValues}
+                    onMissingValuesPress={() =>
+                      controller.openPendingWarning(task)
+                    }
+                    onTapActions={controller.openTaskActions}
+                    onTapCard={controller.openTaskDetail}
+                    onTapImage={() => controller.openImageViewer(task)}
+                    showAssortment
+                    statePill={statePill}
+                    task={{
+                      task_type: task.task.task_type,
+                      state: task.task.state,
+                      return_source: task.task.return_source,
+                      ready_by_at: task.task.ready_by_at,
+                      assortment: task.task.assortment,
+                    }}
+                    taskId={task.task.client_id}
+                  />
+                </AnimatedRemovalItem>
+              );
+            })}
+          </AnimatedRemovalGroup>
+        )}
+
+        {!isInitialLoading && !isError && tasks.length === 0 ? (
           <div className="mx-4 rounded-xl bg-card px-4 py-6 shadow-sm">
             <p className="text-sm text-muted-foreground">{emptyMessage}</p>
           </div>
-        ) : (
-          tasks.map((task) => {
-            const activeInstance = controller.resolveActiveInstance(
-              task.task.post_handling,
-            );
-            const completedInstance =
-              activeInstance === null
-                ? (task.task.post_handling?.find(
-                    (instance) => instance.state === "completed",
-                  ) ?? null)
-                : null;
-            const displayInstance = activeInstance ?? completedInstance;
-            const statePill = displayInstance
-              ? {
-                  label:
-                    humanizeSnakeCase(displayInstance.state) ??
-                    displayInstance.state,
-                  variant: POST_HANDLING_STATE_VARIANT[displayInstance.state],
-                }
-              : undefined;
-
-            return (
-              <TaskListCard
-                key={task.task.client_id}
-                bottomAction={
-                  activeInstance !== null ? (
-                    <PostHandlingBottomAction
-                      instance={activeInstance}
-                      isCompleting={
-                        controller.completingTaskId === task.task.client_id
-                      }
-                      taskId={task.task.client_id}
-                      onComplete={() =>
-                        void controller.handleComplete(
-                          task.task.client_id,
-                          activeInstance,
-                          false,
-                        )
-                      }
-                      onRequestPendingWarning={() =>
-                        controller.openPendingWarning(task, activeInstance)
-                      }
-                    />
-                  ) : undefined
-                }
-                imageUrl={resolveImageUrl(task.item_images)}
-                item={
-                  task.primary_item
-                    ? {
-                        itemId: task.primary_item.client_id,
-                        article_number: task.primary_item.article_number,
-                        sku: task.primary_item.sku,
-                        item_major_category_snapshot:
-                          task.primary_item.item_major_category_snapshot,
-                        quantity: task.primary_item.quantity,
-                      }
-                    : null
-                }
-                onTapActions={controller.openTaskActions}
-                onTapCard={controller.openTaskDetail}
-                onTapImage={() => controller.openImageViewer(task)}
-                showAssortment
-                statePill={statePill}
-                task={{
-                  task_type: task.task.task_type,
-                  state: task.task.state,
-                  return_source: task.task.return_source,
-                  ready_by_at: task.task.ready_by_at,
-                  assortment: task.task.assortment,
-                }}
-                taskId={task.task.client_id}
-              />
-            );
-          })
-        )}
+        ) : null}
       </div>
 
       {hasMore || isFetchingMore ? (
@@ -223,8 +221,10 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
     initialTab: props.defaultTab,
   });
   const countsQuery = usePostHandlingCountsQuery("pending,filled");
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // The page renders its own back arrow in the search row, so the surface
+  // header stays hidden on every breakpoint.
   useEffect(() => {
     header?.setHeaderHidden(true);
 
@@ -235,14 +235,16 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
 
   return (
     <div
-      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col bg-background"
       data-testid="task-post-handling-slide-page"
     >
-      <div
-        className="absolute inset-x-0 top-0 z-10"
-        style={{ pointerEvents: isHidden ? "none" : undefined }}
+      <PullToRefresh
+        className="absolute inset-0"
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
+        onRefresh={controller.refetch}
       >
+        {/* Header scrolls with the body — no scroll-visibility on this page. */}
         <TaskPostHandlingHeader
           activeTab={controller.activeTab}
           completedFilterCount={controller.completedFilterCount}
@@ -250,73 +252,52 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
           isPillsDisabled={controller.isPillsDisabled}
           q={controller.q}
           stateCounts={countsQuery.data}
+          onBack={header?.requestClose ?? controller.closeSurface ?? (() => {})}
           onFilterPress={controller.openFilterSheet}
           onQChange={controller.setQ}
           onTabChange={controller.setTab}
         />
-      </div>
 
-      <PullToRefresh
-        className="absolute inset-0"
-        indicatorOffset={HEADER_INDICATOR_OFFSET}
-        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
-        scrollRef={scrollRef}
-        onRefresh={controller.refetch}
-      >
-        <div
-          className={CONTENT_TOP_OFFSET_CLASS}
-          data-testid="task-post-handling-scroll"
-        >
+        <div data-testid="task-post-handling-scroll">
           {controller.mode === "carousel" ? (
-            <div className="relative flex min-h-[calc(100dvh-9rem)]">
-              <AnimatePresence
-                custom={controller.direction}
-                initial={false}
-                mode="sync"
+            // The positioned wrapper anchors overlapping panes and drag
+            // ghosts; PullToRefresh clips their horizontal overflow.
+            <div className="relative">
+              <SlideStack
+                activeId={controller.activeTab}
+                onBack={controller.goToPreviousTab}
+                onForward={controller.goToNextTab}
               >
-                <m.div
-                  key={controller.activeTab}
-                  animate="center"
-                  className="absolute inset-0"
-                  custom={controller.direction}
-                  data-testid={`task-post-handling-body-${controller.activeTab}`}
-                  exit="exit"
-                  initial="enter"
-                  variants={bodyVariants}
-                >
-                  {renderTaskPane({
-                    tasks:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.tasks
-                        : controller.filledPane.tasks,
-                    isInitialLoading:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.isInitialLoading
-                        : controller.filledPane.isInitialLoading,
-                    isError:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.isError
-                        : controller.filledPane.isError,
-                    hasMore:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.hasMore
-                        : controller.filledPane.hasMore,
-                    isFetchingMore:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.isFetchingMore
-                        : controller.filledPane.isFetchingMore,
-                    onLoadMore:
-                      controller.activeTab === "pending"
-                        ? controller.pendingPane.loadMore
-                        : controller.filledPane.loadMore,
-                    emptyMessage:
-                      controller.activeTab === "pending"
-                        ? "No pending post-handling tasks."
-                        : "No filled post-handling tasks.",
-                    controller,
-                  })}
-                </m.div>
-              </AnimatePresence>
+                {controller.tabs.map((tab) => {
+                  const pane =
+                    tab === "pending"
+                      ? controller.pendingPane
+                      : controller.filledPane;
+
+                  return (
+                    <SlideStackPane
+                      key={tab}
+                      className={BODY_MIN_HEIGHT_CLASS}
+                      data-testid={`task-post-handling-body-${tab}`}
+                      id={tab}
+                    >
+                      {renderTaskPane({
+                        tasks: pane.tasks,
+                        isInitialLoading: pane.isInitialLoading,
+                        isError: pane.isError,
+                        hasMore: pane.hasMore,
+                        isFetchingMore: pane.isFetchingMore,
+                        onLoadMore: pane.loadMore,
+                        emptyMessage:
+                          tab === "pending"
+                            ? "No pending post-handling tasks."
+                            : "No filled post-handling tasks.",
+                        controller,
+                      })}
+                    </SlideStackPane>
+                  );
+                })}
+              </SlideStack>
             </div>
           ) : (
             renderTaskPane({
@@ -335,30 +316,6 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
           )}
         </div>
       </PullToRefresh>
-
-      <div
-        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
-        style={{ ...FOOTER_STYLE, pointerEvents: isHidden ? "none" : undefined }}
-      >
-        <div className="border-t border-border bg-background px-4 py-3.5">
-          <button
-            className="w-full rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-            data-testid="task-post-handling-close-button"
-            type="button"
-            onClick={() => {
-              if (controller.closeSurface) {
-                controller.closeSurface();
-                return;
-              }
-
-              header?.requestClose();
-            }}
-          >
-            Close &amp; Back
-          </button>
-        </div>
-        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
-      </div>
     </div>
   );
 }

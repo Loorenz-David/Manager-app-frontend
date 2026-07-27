@@ -4,9 +4,9 @@ import { useSurface } from "@/hooks/use-surface";
 
 import {
   useOrderNeedsCountQuery,
-  useOrderNeedsQuery,
+  useOrderNeedsPagesQueries,
   useOrdersCountQuery,
-  useOrdersQuery,
+  useOrdersPagesQueries,
 } from "../api/use-upholstery-ordering-queries";
 import {
   ACTIVE_ORDER_STATES,
@@ -30,7 +30,17 @@ import {
 
 const PAGE_LIMIT = 50;
 
-type OrderingMode = "needs" | "orders";
+export const UPHOLSTERY_ORDERING_MODES = ["needs", "orders"] as const;
+export type OrderingMode = (typeof UPHOLSTERY_ORDERING_MODES)[number];
+
+type PageOffsetsByMode = Record<OrderingMode, number[]>;
+
+function getInitialPageOffsets(): PageOffsetsByMode {
+  return {
+    needs: [0],
+    orders: [0],
+  };
+}
 
 function appendDeduped<T>(
   current: T[],
@@ -46,91 +56,102 @@ export function useUpholsteryOrderingController() {
   const [mode, setMode] = useState<OrderingMode>("needs");
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [needsOffset, setNeedsOffset] = useState(0);
-  const [ordersOffset, setOrdersOffset] = useState(0);
-  const [needsRows, setNeedsRows] = useState<OrderNeedRow[]>([]);
-  const [orderRows, setOrderRows] = useState<OrderRow[]>([]);
+  const [pageOffsetsByMode, setPageOffsetsByMode] =
+    useState<PageOffsetsByMode>(getInitialPageOffsets);
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedQ(searchInput), 300);
+    const timeout = window.setTimeout(() => {
+      setDebouncedQ(searchInput);
+      setPageOffsetsByMode(getInitialPageOffsets());
+    }, 300);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
-
-  useEffect(() => {
-    setNeedsOffset(0);
-    setOrdersOffset(0);
-    setNeedsRows([]);
-    setOrderRows([]);
-  }, [debouncedQ]);
 
   const needsParams = useMemo(
     () => ({
       limit: PAGE_LIMIT,
-      offset: needsOffset,
       q: debouncedQ.trim() || undefined,
     }),
-    [debouncedQ, needsOffset],
+    [debouncedQ],
   );
   const ordersParams = useMemo(
     () => ({
       limit: PAGE_LIMIT,
-      offset: ordersOffset,
       q: debouncedQ.trim() || undefined,
       states: ACTIVE_ORDER_STATES,
     }),
-    [debouncedQ, ordersOffset],
+    [debouncedQ],
   );
 
-  const needsQuery = useOrderNeedsQuery(needsParams, mode === "needs");
-  const ordersQuery = useOrdersQuery(ordersParams, mode === "orders");
+  // Both mode queries stay live because SlideStack renders the destination
+  // pane as a drag ghost before navigation commits.
+  const needsQueries = useOrderNeedsPagesQueries(
+    needsParams,
+    pageOffsetsByMode.needs,
+  );
+  const ordersQueries = useOrdersPagesQueries(
+    ordersParams,
+    pageOffsetsByMode.orders,
+  );
   const needsCountQuery = useOrderNeedsCountQuery();
   const ordersCountQuery = useOrdersCountQuery(ACTIVE_ORDER_STATES);
-
-  useEffect(() => {
-    if (!needsQuery.data) return;
-    setNeedsRows((current) =>
-      needsOffset === 0
-        ? needsQuery.data.items
-        : appendDeduped(current, needsQuery.data.items, (row) => row.upholstery_id),
-    );
-  }, [needsOffset, needsQuery.data]);
-
-  useEffect(() => {
-    if (!ordersQuery.data) return;
-    setOrderRows((current) =>
-      ordersOffset === 0
-        ? ordersQuery.data.items
-        : appendDeduped(current, ordersQuery.data.items, (row) => row.client_id),
-    );
-  }, [ordersOffset, ordersQuery.data]);
-
-  const shortageCards = useMemo(
-    () => needsRows.map((row) => toShortageCardViewModel(row)),
-    [needsRows],
+  const needsRows = needsQueries.reduce(
+    (rows, query) =>
+      query.data
+        ? appendDeduped(
+            rows,
+            query.data.items,
+            (row) => row.upholstery_id,
+          )
+        : rows,
+    [] as OrderNeedRow[],
   );
-  const orderCards = useMemo(
-    () => orderRows.map((row) => toOrderCardViewModel(row)),
-    [orderRows],
+  const orderRows = ordersQueries.reduce(
+    (rows, query) =>
+      query.data
+        ? appendDeduped(rows, query.data.items, (row) => row.client_id)
+        : rows,
+    [] as OrderRow[],
   );
+  const shortageCards = needsRows.map((row) => toShortageCardViewModel(row));
+  const orderCards = orderRows.map((row) => toOrderCardViewModel(row));
+  const queriesByMode = { needs: needsQueries, orders: ordersQueries } as const;
+  const activeQueries = queriesByMode[mode];
+
+  function goToAdjacentMode(offset: 1 | -1): void {
+    const nextMode =
+      UPHOLSTERY_ORDERING_MODES[
+        UPHOLSTERY_ORDERING_MODES.indexOf(mode) + offset
+      ];
+    if (nextMode) {
+      setMode(nextMode);
+    }
+  }
 
   async function refetch(): Promise<void> {
     if (mode === "needs") {
-      setNeedsOffset(0);
-      await Promise.all([needsQuery.refetch(), needsCountQuery.refetch()]);
+      setPageOffsetsByMode((current) => ({ ...current, needs: [0] }));
+      await Promise.all([
+        needsQueries[0]?.refetch(),
+        needsCountQuery.refetch(),
+      ]);
       return;
     }
-    setOrdersOffset(0);
-    await Promise.all([ordersQuery.refetch(), ordersCountQuery.refetch()]);
+    setPageOffsetsByMode((current) => ({ ...current, orders: [0] }));
+    await Promise.all([
+      ordersQueries[0]?.refetch(),
+      ordersCountQuery.refetch(),
+    ]);
   }
 
-  function loadMore(): void {
-    if (mode === "needs") {
-      if (!needsQuery.data?.hasMore || needsQuery.isFetching) return;
-      setNeedsOffset(needsQuery.data.offset + needsQuery.data.limit);
-      return;
-    }
-    if (!ordersQuery.data?.hasMore || ordersQuery.isFetching) return;
-    setOrdersOffset(ordersQuery.data.offset + ordersQuery.data.limit);
+  function loadMoreFor(targetMode: OrderingMode): void {
+    const query = queriesByMode[targetMode].at(-1);
+    if (!query?.data?.hasMore || query.isFetching) return;
+    const nextOffset = query.data.offset + query.data.limit;
+    setPageOffsetsByMode((current) => ({
+      ...current,
+      [targetMode]: [...current[targetMode], nextOffset],
+    }));
   }
 
   function openShortageDetail(card: (typeof shortageCards)[number]): void {
@@ -139,11 +160,15 @@ export function useUpholsteryOrderingController() {
     } satisfies ShortageDetailSurfaceProps);
   }
 
-  function openCreateOrder(card: (typeof shortageCards)[number]): void {
+  function openCreateOrder(
+    card: (typeof shortageCards)[number],
+    amountMeters: number | null = null,
+  ): void {
     surface.open(UPHOLSTERY_CREATE_ORDER_SLIDE_ID, {
       upholsteryId: card.upholsteryId,
       upholsteryName: card.name,
-      defaultAmountMeters: card.totalAmountMeters,
+      // Carry the amount staged inline so the form opens where the user left it.
+      defaultAmountMeters: amountMeters ?? card.totalAmountMeters,
       priorityItemUpholsteryIds: [],
     } satisfies CreateOrderSurfaceProps);
   }
@@ -164,16 +189,12 @@ export function useUpholsteryOrderingController() {
     } satisfies ReceiveOrderSurfaceProps);
   }
 
-  const activeQuery =
-    mode === "needs"
-      ? (needsQuery as typeof needsQuery | typeof ordersQuery)
-      : ordersQuery;
-  const activeRowsLength = mode === "needs" ? needsRows.length : orderRows.length;
-  const activeOffset = mode === "needs" ? needsOffset : ordersOffset;
-
   return {
     mode,
+    modes: UPHOLSTERY_ORDERING_MODES,
     setMode,
+    goToPreviousMode: () => goToAdjacentMode(-1),
+    goToNextMode: () => goToAdjacentMode(1),
     searchInput,
     setSearchInput,
     shortageCards,
@@ -181,15 +202,46 @@ export function useUpholsteryOrderingController() {
     needsCount: needsCountQuery.data ?? null,
     ordersCount: ordersCountQuery.data ?? null,
     countsError: needsCountQuery.isError || ordersCountQuery.isError,
-    isInitialLoading: activeQuery.isPending && activeRowsLength === 0,
-    isBackgroundLoading: activeQuery.isFetching && activeRowsLength > 0,
-    isError: activeQuery.isError && activeRowsLength === 0,
-    isFetchingMore: activeQuery.isFetching && activeOffset > 0,
-    isPaginationError: activeQuery.isError && activeOffset > 0,
-    hasMore: activeQuery.data?.hasMore ?? false,
-    retry: activeQuery.refetch,
+    isInitialLoadingByMode: {
+      needs: needsQueries[0]?.isPending === true && needsRows.length === 0,
+      orders: ordersQueries[0]?.isPending === true && orderRows.length === 0,
+    },
+    isErrorByMode: {
+      needs: needsQueries[0]?.isError === true && needsRows.length === 0,
+      orders: ordersQueries[0]?.isError === true && orderRows.length === 0,
+    },
+    isFetchingMoreByMode: {
+      needs:
+        needsQueries.at(-1)?.isFetching === true &&
+        (pageOffsetsByMode.needs.at(-1) ?? 0) > 0,
+      orders:
+        ordersQueries.at(-1)?.isFetching === true &&
+        (pageOffsetsByMode.orders.at(-1) ?? 0) > 0,
+    },
+    isPaginationErrorByMode: {
+      needs:
+        needsQueries.at(-1)?.isError === true &&
+        (pageOffsetsByMode.needs.at(-1) ?? 0) > 0,
+      orders:
+        ordersQueries.at(-1)?.isError === true &&
+        (pageOffsetsByMode.orders.at(-1) ?? 0) > 0,
+    },
+    hasMoreByMode: {
+      needs: needsQueries.at(-1)?.data?.hasMore ?? false,
+      orders: ordersQueries.at(-1)?.data?.hasMore ?? false,
+    },
+    retryByMode: {
+      needs: () => needsQueries.at(-1)?.refetch(),
+      orders: () => ordersQueries.at(-1)?.refetch(),
+    },
+    loadMoreByMode: {
+      needs: () => loadMoreFor("needs"),
+      orders: () => loadMoreFor("orders"),
+    },
+    isBackgroundLoading:
+      activeQueries.some((query) => query.isFetching) &&
+      (mode === "needs" ? needsRows.length > 0 : orderRows.length > 0),
     refetch,
-    loadMore,
     close: surface.closeTop,
     openShortageDetail,
     openCreateOrder,

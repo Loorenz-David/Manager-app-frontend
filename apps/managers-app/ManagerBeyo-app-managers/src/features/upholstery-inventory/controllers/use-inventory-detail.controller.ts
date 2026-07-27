@@ -77,6 +77,7 @@ export function useInventoryDetailController(
   function openDetailActions(): void {
     useSurfaceStore.getState().open(INVENTORY_DETAIL_ACTIONS_SHEET_ID, {
       inventoryId,
+      onEdit: openEdit,
     } satisfies InventoryDetailActionsSurfaceProps);
   }
 

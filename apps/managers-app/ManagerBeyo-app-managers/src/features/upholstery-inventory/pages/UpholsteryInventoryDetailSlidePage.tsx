@@ -1,8 +1,8 @@
-import { useEffect } from "react";
-import { PullToRefresh, useScrollVisibility } from "@beyo/ui";
+import { useRef } from "react";
+import { useHeaderlessSlidePage } from "@beyo/hooks";
+import { PullToRefresh } from "@beyo/ui";
 
 import { ContentCard } from "@/components/primitives";
-import { useSurfaceHeader } from "@/hooks/use-surface-header";
 import { useSurfaceProps } from "@/hooks/use-surface-props";
 import type { UpholsteryInventoryId } from "@/types/common";
 
@@ -11,23 +11,15 @@ import {
   useInventoryDetailContext,
 } from "../providers/InventoryDetailProvider";
 import type { InventoryDetailSurfaceProps } from "../surfaces";
-import { InventoryDetailFooter } from "../components/InventoryDetailFooter";
 import { InventoryDetailHeader } from "../components/InventoryDetailHeader";
 import { InventoryHistorySection } from "../components/InventoryHistorySection";
 import { InventoryQuantityOverview } from "../components/InventoryQuantityOverview";
 
 function DetailContent(): React.JSX.Element {
-  const header = useSurfaceHeader();
   const controller = useInventoryDetailContext();
-  const { scrollRef, isHidden } = useScrollVisibility({
-    mode: "relative",
-    hideThreshold: 40,
-    showThreshold: 24,
-  });
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    header?.setHeaderHidden(true);
-  }, [header]);
+  useHeaderlessSlidePage();
 
   let scrollContent: React.ReactNode;
 
@@ -56,7 +48,7 @@ function DetailContent(): React.JSX.Element {
     );
   } else {
     scrollContent = (
-      <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
+      <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0px)+1.5rem)] pt-2">
         <InventoryDetailHeader />
         <div className="mx-4">
           <ContentCard>
@@ -79,7 +71,6 @@ function DetailContent(): React.JSX.Element {
       >
         {scrollContent}
       </PullToRefresh>
-      <InventoryDetailFooter isHidden={isHidden} onEdit={controller.openEdit} />
     </div>
   );
 }

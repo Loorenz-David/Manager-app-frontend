@@ -33,7 +33,11 @@ export type EditorDraftStore = {
   setSlideDuration: (slideId: string, durationMs: number) => void;
   setSlideBackgroundColor: (slideId: string, color: string | null) => void;
   setPlayback: (slideId: string, patch: Partial<{ playheadMs: number; playing: boolean }>) => void;
-  reconcileAfterFlush: (presentation: Presentation, slideId: string) => void;
+  reconcileAfterFlush: (
+    presentation: Presentation,
+    slideId: string,
+    flushedRevision: number,
+  ) => void;
   refreshMediaUrls: (presentation: Presentation) => void;
   reset: () => void;
 };
@@ -315,11 +319,12 @@ export function createEditorDraftStore(): EditorDraftStore {
         revision: state.revision + 1,
       });
     },
-    reconcileAfterFlush: (presentation, slideId) => {
+    reconcileAfterFlush: (presentation, slideId, flushedRevision) => {
       const nextPresentation = clonePresentation(presentation);
-      const serverSlide = nextPresentation.slides.find((slide) => slide.client_id === slideId);
+      const hasNewerLocalEdits =
+        (state.slideRevisions[slideId] ?? 0) !== flushedRevision;
       const dirtySlideIds = new Set(state.dirtySlideIds);
-      dirtySlideIds.delete(slideId);
+      if (!hasNewerLocalEdits) dirtySlideIds.delete(slideId);
       const presentationWithLocalDurations = {
         ...nextPresentation,
         slides: nextPresentation.slides.map((slide) => {
@@ -339,12 +344,7 @@ export function createEditorDraftStore(): EditorDraftStore {
         ...state,
         presentation: presentationWithLocalDurations,
         selectedSlideId: firstExistingSlideId(presentationWithLocalDurations, state.selectedSlideId),
-        localCompositions: {
-          ...state.localCompositions,
-          ...(serverSlide ? { [slideId]: cloneElements(serverSlide.elements) } : {}),
-        },
         dirtySlideIds,
-        selectedElementIds: { ...state.selectedElementIds, [slideId]: null },
         revision: state.revision + 1,
       });
     },

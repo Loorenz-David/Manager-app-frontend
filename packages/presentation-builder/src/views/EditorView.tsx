@@ -253,7 +253,7 @@ function TimelineCanvasWorkspace({
                     heightFraction={hitAreaHeight}
                     isSelected={isSelected}
                     isOutsideWindow={isSelected && !visible}
-                    onSelect={() => controller.onSelectElement(id)}
+                    onSelect={() => controller.onSelectElement(id, "canvas")}
                     onDoubleClick={element.element_type === "text" ? () => {
                       clock.pause();
                       controller.onPlaybackCheckpoint({ playheadMs: clock.timeMs, playing: false });
@@ -369,7 +369,7 @@ function TimelineCanvasWorkspace({
               key={id}
               label={element.element_type === "text" ? element.text_content ?? "Text" : mediaName}
               isSelected={controller.selectedElementId === id}
-              onSelectLabel={() => controller.onSelectElement(id)}
+              onSelectLabel={() => controller.onSelectElement(id, "timeline")}
               testId={`presentation-timeline-track-${id}`}
             >
               <TimelineBar
@@ -378,7 +378,7 @@ function TimelineCanvasWorkspace({
                 label={element.element_type === "text"
                   ? `${animationLabel(element.enter_animation)} · ${animationLabel(element.exit_animation)}`
                   : mediaName}
-                onSelect={() => controller.onSelectElement(id)}
+                onSelect={() => controller.onSelectElement(id, "timeline")}
                 onGesture={(gesture) => handleGesture(element, gesture)}
                 onGestureEnd={() => gestureBases.current.delete(id)}
                 variant={element.element_type === "media" ? "media" : "text"}
@@ -454,9 +454,13 @@ function propertiesPanel(
             style: { ...(element.style ?? {}), padding },
           })),
         }}
+        drawers={{
+          open: [...controller.openDrawersByPanel.text],
+          onToggle: (drawerId) => controller.toggleDrawer("text", drawerId),
+        }}
         windowLabel={`On screen ${(selected.start_ms / 1_000).toFixed(1)}s → ${((selected.end_ms ?? durationMs) / 1_000).toFixed(1)}s`}
         onDelete={() => controller.onDeleteElement(id)}
-        onClose={() => controller.onSelectElement(null)}
+        onClose={controller.onDeselectElement}
         readOnly={controller.readOnly}
       />
     );
@@ -484,6 +488,10 @@ function propertiesPanel(
           ...element,
           exit_animation: editorAnimationToWire(choice),
         }))}
+        drawers={{
+          open: [...controller.openDrawersByPanel.media],
+          onToggle: (drawerId) => controller.toggleDrawer("media", drawerId),
+        }}
         geometryLabel={`${Math.round((selected.layout?.width ?? 1) * 100)}% × ${Math.round((selected.layout?.height ?? 1) * 100)}% at ${Math.round((selected.layout?.x ?? 0.5) * 100)}%, ${Math.round((selected.layout?.y ?? 0.5) * 100)}%`}
         windowLabel={`On screen ${(selected.start_ms / 1_000).toFixed(1)}s → ${((selected.end_ms ?? durationMs) / 1_000).toFixed(1)}s`}
         onReplace={() => openFilePicker(id)}
@@ -492,7 +500,7 @@ function propertiesPanel(
             void controller.onDeleteMedia(selected.media.client_id);
           }
         }}
-        onClose={() => controller.onSelectElement(null)}
+        onClose={controller.onDeselectElement}
         readOnly={controller.readOnly}
       />
     );
@@ -517,6 +525,10 @@ function propertiesPanel(
       onCtaRouteChange={controller.onCtaRouteChange}
       onCtaCommit={controller.onCtaCommit}
       ctaRouteError={controller.ctaRouteError}
+      drawers={{
+        open: [...controller.openDrawersByPanel.slide],
+        onToggle: (drawerId) => controller.toggleDrawer("slide", drawerId),
+      }}
       readOnly={controller.readOnly}
     />
   );

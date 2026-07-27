@@ -1,6 +1,8 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -14,6 +16,7 @@ import {
   useTransform,
 } from "framer-motion";
 import { transitions } from "@beyo/lib";
+import { useUiTransitionToken } from "../../lib/use-ui-transition-token";
 import { SurfaceHeaderContext } from "../../providers/SurfaceProvider";
 import {
   registerSlidePanel,
@@ -54,6 +57,10 @@ export function SlidePageSurface({
   const panelRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const [isPresent, safeToRemove] = usePresence();
+
+  // Hold the transition gate while the panel slides away, so list work queued
+  // with `runWhenUiSettled` runs on the settled list rather than mid-close.
+  useUiTransitionToken(!isPresent);
 
   // Single source of truth for the panel's horizontal position (px):
   // enter animates width→0, the drag writes it live, exit animates →width.
@@ -134,9 +141,9 @@ export function SlidePageSurface({
     }
   }, [isTopmost]);
 
-  const setCloseInterceptor = (fn: (() => void) | null) => {
+  const setCloseInterceptor = useCallback((fn: (() => void) | null) => {
     setCloseInterceptorState(() => fn);
-  };
+  }, []);
 
   // Returns true if the surface is actually closing, false if intercepted.
   const requestClose = (): boolean => {
@@ -164,18 +171,24 @@ export function SlidePageSurface({
     onDismiss: requestClose,
   });
 
+  // Stable identity: consumers register controls (close interceptor, swipe
+  // muting) from effects keyed on this value — a per-render object would
+  // re-trigger those effects off their own setState, looping forever.
+  const headerContextValue = useMemo(
+    () => ({
+      setTitle,
+      setActions,
+      requestClose: onClose,
+      setHeaderHidden,
+      setCloseInterceptor,
+      setSwipeDismissDisabled,
+      setBackdropHidden,
+    }),
+    [onClose, setCloseInterceptor],
+  );
+
   return (
-    <SurfaceHeaderContext.Provider
-      value={{
-        setTitle,
-        setActions,
-        requestClose: onClose,
-        setHeaderHidden,
-        setCloseInterceptor,
-        setSwipeDismissDisabled,
-        setBackdropHidden,
-      }}
-    >
+    <SurfaceHeaderContext.Provider value={headerContextValue}>
       {/* Dimming backdrop revealed beneath the panel — a pure derivation of
        * panelX, so it fades through enter, drag and exit with no extra
        * choreography. A page can suppress it (setBackdropHidden) when it renders

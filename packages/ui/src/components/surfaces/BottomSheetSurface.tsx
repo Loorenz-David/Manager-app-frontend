@@ -3,6 +3,7 @@ import { m } from "framer-motion";
 import { Drawer } from "vaul";
 import { transitions } from "@beyo/lib";
 import { cn } from "@beyo/lib";
+import { useUiTransitionToken } from "../../lib/use-ui-transition-token";
 import { SurfaceHeaderContext } from "../../providers/SurfaceProvider";
 
 type Props = {
@@ -42,6 +43,10 @@ export function BottomSheetSurface({
   const [actions, setActions] = useState<ReactNode>(null);
   const [headerHidden, setHeaderHidden] = useState(false);
   const closeTimeoutRef = useRef<number | null>(null);
+
+  // Hold the transition gate while the sheet slides down, so list work queued
+  // with `runWhenUiSettled` runs on the settled list rather than mid-close.
+  useUiTransitionToken(!isOpen);
 
   function handleClose(): void {
     onStartClose?.();

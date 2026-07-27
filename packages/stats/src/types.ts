@@ -1,8 +1,25 @@
 import { z } from "zod";
 
 import { ApiEnvelopeSchema } from "@beyo/lib";
+import { PauseReasonSchema } from "@beyo/pause-reasons";
 import { TASK_RETURN_SOURCE, TASK_TYPE } from "@beyo/tasks";
 import type { StepState } from "@beyo/tasks";
+
+// Trimmed pause-reason lookup map returned alongside the linear-timeline
+// responses. Analytics endpoints key `pause_by_reason` and segment-level
+// `reason` by opaque `pause_reason_id`; resolve those ids against this map.
+// See HANDOFF_TO_FRONTEND_pause_reasons_analytics_breakdown_20260722.md.
+export const PauseReasonLookupSchema = z.object({
+  name: z.string(),
+  image_url: z.string().nullable(),
+  pause_type: z.string(),
+});
+export type PauseReasonLookup = z.infer<typeof PauseReasonLookupSchema>;
+
+export const PauseReasonLookupMapSchema = z
+  .record(z.string(), PauseReasonLookupSchema)
+  .default({});
+export type PauseReasonLookupMap = z.infer<typeof PauseReasonLookupMapSchema>;
 
 export const StepStateSchema = z.enum([
   "pending",
@@ -39,11 +56,14 @@ export const WorkerLastStepSchema = z.object({
   last_state_record: z
     .object({
       entered_at: z.string(),
-      // Why the step entered this state (StepTransitionReason enum value);
-      // populated for paused/ended-shift transitions. Kept as a tolerant string.
-      reason: z.string().nullable().optional(),
+      // The pause reason the step entered this state with, as a full nested
+      // object (renamed from the old flat `pause_reason_id`); populated for
+      // paused/ended-shift transitions, null otherwise. Optional for resilience
+      // against older cached payloads.
+      pause_reason: PauseReasonSchema.nullable().optional(),
       // Free-text detail the worker typed alongside the reason (e.g. why they
-      // paused). Optional for resilience against older cached payloads.
+      // paused) — a sibling of `pause_reason`, NOT the reason's own catalog
+      // description. Optional for resilience against older cached payloads.
       description: z.string().nullable().optional(),
     })
     .nullable(),
@@ -211,8 +231,10 @@ export const WorkerLinearTimelineSchema = z.object({
   // only when the completion falls inside a recorded shift interval (bounds
   // inclusive); a day with no recorded shift contributes 0. Shape unchanged.
   completed_count: z.number().int(),
-  // Splits `pause_seconds` exactly. Keys are an open set (reason enum values,
-  // `"unspecified"`, or future/unknown reasons) — render defensively.
+  // Splits `pause_seconds` exactly. Keys are an open set of opaque
+  // `pause_reason_id`s, the literal `"unspecified"`, or (roster only) raw
+  // free-text from a manual whole-shift pause — resolve via the sibling
+  // `pause_reasons` lookup map on the response; render defensively.
   pause_by_reason: z.record(z.string(), z.number()).default({}),
 });
 export type WorkerLinearTimeline = z.infer<typeof WorkerLinearTimelineSchema>;
@@ -229,6 +251,8 @@ export const WorkerLinearTimelineResponseSchema = ApiEnvelopeSchema(
   z.object({
     workers: z.array(WorkerLinearTimelineRowSchema),
     workers_pagination: WorkerStatsPaginationSchema,
+    // Reason ids aggregated across every worker on the page → display fields.
+    pause_reasons: PauseReasonLookupMapSchema,
   }),
 );
 export type WorkerLinearTimelineResponse = z.infer<
@@ -274,9 +298,12 @@ export const WorkerLinearTimelineStepRecordSchema = z.object({
     })
     .nullable(),
   state: z.string(),
-  reason: z.string().nullable(),
-  // Free-text detail the worker typed alongside the pause reason. Optional for
-  // resilience against older cached payloads.
+  // Per-step detail carries the FULL nested pause reason object (renamed from
+  // the old flat `reason` id) — unlike the segment level one row up, which
+  // keeps a flat id resolved via the `pause_reasons` map. Null when no reason.
+  pause_reason: PauseReasonSchema.nullable(),
+  // Free-text detail the worker typed alongside the pause reason (sibling of
+  // `pause_reason`). Optional for resilience against older cached payloads.
   description: z.string().nullable().optional(),
   entered_at: z.string(),
   exited_at: z.string().nullable(),
@@ -316,6 +343,9 @@ export const WorkerLinearTimelineBreakdownResponseSchema = ApiEnvelopeSchema(
     // True only when the (pathological) window exceeded the backend's
     // 5000-segment cap — narrow the window, never render partial as complete.
     segments_truncated: z.boolean().default(false),
+    // Lookup for the flat `pause_reason_id`s used by `timeline.pause_by_reason`
+    // and each segment's `reason` (NOT the per-step nested objects).
+    pause_reasons: PauseReasonLookupMapSchema,
   }),
 );
 export type WorkerLinearTimelineBreakdownResponse = z.infer<

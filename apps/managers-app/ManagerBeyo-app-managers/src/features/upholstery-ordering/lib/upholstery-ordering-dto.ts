@@ -5,7 +5,12 @@ import {
 } from "@/features/pending-upholstery";
 import { toTaskViewModel } from "@/features/tasks/types";
 
-import { formatLocalDate, formatMetersValue, toTitleCaseLabel } from "./format";
+import {
+  formatLocalDate,
+  formatMetersNumber,
+  formatMetersValue,
+  toTitleCaseLabel,
+} from "./format";
 import type {
   OrderCardViewModel,
   OrderingImage,
@@ -55,6 +60,7 @@ export function toShortageCardViewModel(
     itemCount: row.item_count,
     totalAmountMeters: row.amount_to_order_meters,
     totalAmountLabel: formatMetersValue(row.amount_to_order_meters),
+    totalAmountValueLabel: formatMetersNumber(row.amount_to_order_meters),
     earliestDueDate: row.earliest_due_date,
     earliestDueDateLabel: formatLocalDate(row.earliest_due_date),
   };
@@ -78,6 +84,7 @@ export function toOrderCardViewModel(row: OrderRow): OrderCardViewModel {
     receivedAmountLabel: formatMetersValue(received),
     remainingReceivableMeters: remaining,
     remainingReceivableLabel: formatMetersValue(remaining),
+    remainingReceivableValueLabel: formatMetersNumber(remaining),
     expectedReceiveAt: row.expected_receive_at,
     receivedAt: row.received_at,
     dateLabel: formatLocalDate(date),

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { runWhenUiSettled } from "@beyo/ui";
 import { notify, type WorkingSectionId } from "@beyo/lib";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { transitionStepState } from "../api/transition-step-state";
@@ -317,14 +318,18 @@ export function useTransitionStepState() {
         return;
       }
 
-      void queryClient.invalidateQueries({
-        queryKey: taskStepKeys.sectionListsBySection(working_section_id),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: workerWorkingSectionKeys.mine(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: taskStepKeys.userLastActive(),
+      // Let the surface finish closing and the row finish animating out
+      // before the refetch storm hits the list underneath.
+      runWhenUiSettled(() => {
+        void queryClient.invalidateQueries({
+          queryKey: taskStepKeys.sectionListsBySection(working_section_id),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: workerWorkingSectionKeys.mine(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: taskStepKeys.userLastActive(),
+        });
       });
     },
   });

@@ -1,5 +1,5 @@
 import { m } from "framer-motion";
-import { Calendar } from "lucide-react";
+import { Calendar, ChevronLeft } from "lucide-react";
 
 import { daysUntil, formatShortDate } from "@beyo/lib";
 import { StatePill } from "@beyo/ui";
@@ -47,12 +47,14 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 }
 
 type TaskDetailHeaderProps = {
+  onBack: () => void;
   onOpenMenu: () => void;
   onOpenReadyByAt?: () => void;
   taskDetail: TaskDetailRaw | null;
 };
 
 export function TaskDetailHeader({
+  onBack,
   onOpenMenu,
   onOpenReadyByAt,
   taskDetail,
@@ -89,6 +91,16 @@ export function TaskDetailHeader({
   return (
     <div className="flex flex-col gap-1  px-4 py-3">
       <div className="flex items-center gap-2">
+        {/* Page-native close: the slide surface renders no header here. */}
+        <button
+          aria-label="Go back"
+          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors duration-150 hover:bg-muted"
+          data-testid="task-detail-back-button"
+          type="button"
+          onClick={onBack}
+        >
+          <ChevronLeft aria-hidden="true" className="size-5" />
+        </button>
         <span className="min-w-0 flex-1 truncate text-md font-semibold text-foreground">
           {articleLabel}
         </span>

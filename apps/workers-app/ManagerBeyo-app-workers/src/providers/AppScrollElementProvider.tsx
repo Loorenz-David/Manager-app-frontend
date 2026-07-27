@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
@@ -23,11 +24,22 @@ export function AppScrollElementProvider({
   children: React.ReactNode;
 }): React.JSX.Element {
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  // Registrations overlap whenever two scroll containers are mounted at once —
+  // a page transition, or a slide-stack drag rendering the pane beneath the
+  // active one. Keeping them as a stack means the newest live container is
+  // always current, and unregistering it falls back to the previous one rather
+  // than leaving the app with none.
+  const registrationsRef = useRef<HTMLElement[]>([]);
 
   const registerScrollElement = useCallback((element: HTMLElement) => {
+    registrationsRef.current = [...registrationsRef.current, element];
     setScrollElement(element);
+
     return () => {
-      setScrollElement((prev) => (prev === element ? null : prev));
+      registrationsRef.current = registrationsRef.current.filter(
+        (registered) => registered !== element,
+      );
+      setScrollElement(registrationsRef.current.at(-1) ?? null);
     };
   }, []);
 

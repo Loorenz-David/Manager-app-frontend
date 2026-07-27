@@ -1,6 +1,8 @@
-import { useEffect } from "react";
-
-import { useStagedForm, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import {
+  useHeaderlessSlidePage,
+  useStagedForm,
+  useSurfaceProps,
+} from "@beyo/hooks";
 import { cn } from "@beyo/lib";
 import { TaskListCard } from "@beyo/tasks";
 import { ContentCard, StagedForm, StagedFormStep } from "@beyo/ui";
@@ -33,7 +35,6 @@ function CustomerCoordinationFooter({
   selectedCount,
   isSending,
   sendDisabled,
-  onClose,
   onBack,
   onNext,
   onSend,
@@ -42,31 +43,28 @@ function CustomerCoordinationFooter({
   selectedCount: number;
   isSending: boolean;
   sendDisabled: boolean;
-  onClose: () => void;
   onBack: () => void;
   onNext: () => void;
   onSend: () => void;
 }): React.JSX.Element {
+  const isFirstStep = activeStepId === "tasks";
+
   return (
     <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
       <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
-        {activeStepId === "tasks" ? (
-          <button
-            className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-            type="button"
-            onClick={onClose}
-          >
-            Close & Back
-          </button>
-        ) : (
-          <button
-            className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-            type="button"
-            onClick={onBack}
-          >
-            Back
-          </button>
-        )}
+        {/* No close action: the slide-to-close gesture dismisses the page. On
+         * the first step the button is kept for layout only. */}
+        <button
+          className={cn(
+            "rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition",
+            isFirstStep && "pointer-events-none opacity-0",
+          )}
+          disabled={isFirstStep}
+          type="button"
+          onClick={onBack}
+        >
+          Back
+        </button>
 
         {activeStepId === "tasks" ? (
           <button
@@ -101,7 +99,6 @@ function CustomerCoordinationFooter({
 
 export function CustomerCoordinationEmailSlidePage(): React.JSX.Element {
   const props = useSurfaceProps<CustomerCoordinationEmailSlideSurfaceProps>();
-  const header = useSurfaceHeader();
   const controller = useCustomerCoordinationEmailSlideController({
     surfaceOpeners: props.surfaceOpeners,
   });
@@ -110,12 +107,7 @@ export function CustomerCoordinationEmailSlidePage(): React.JSX.Element {
     mode: "free",
   });
 
-  useEffect(() => {
-    header?.setHeaderHidden(true);
-    return () => {
-      header?.setHeaderHidden(false);
-    };
-  }, [header]);
+  useHeaderlessSlidePage();
 
   async function handleSend(): Promise<void> {
     const result = await controller.handleSend();
@@ -144,9 +136,6 @@ export function CustomerCoordinationEmailSlidePage(): React.JSX.Element {
             sendDisabled={controller.sendDisabled}
             onBack={() => {
               staged.navigateTo("tasks");
-            }}
-            onClose={() => {
-              controller.closeSurface?.();
             }}
             onNext={() => {
               staged.navigateTo("email");

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { notify } from "@beyo/lib";
 import { useSurfaceStore } from "@beyo/ui";
@@ -20,10 +20,8 @@ type UseTaskPostHandlingControllerInput = {
   initialTab?: "pending" | "filled";
 };
 
-const TAB_INDEXES: Record<"pending" | "filled", number> = {
-  pending: 0,
-  filled: 1,
-};
+export const POST_HANDLING_TABS = ["pending", "filled"] as const;
+export type PostHandlingTab = (typeof POST_HANDLING_TABS)[number];
 
 function toViewerImages(
   images: TaskListItemRaw["item_images"],
@@ -54,11 +52,9 @@ export function useTaskPostHandlingController({
 }: UseTaskPostHandlingControllerInput) {
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [activeTab, setActiveTab] = useState<"pending" | "filled">(
+  const [activeTab, setActiveTab] = useState<PostHandlingTab>(
     initialTab ?? "pending",
   );
-  const previousTabIndexRef = useRef(TAB_INDEXES[initialTab ?? "pending"]);
-  const [direction, setDirection] = useState<1 | -1>(1);
   const [completedFilterActive, setCompletedFilterActive] = useState(false);
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const completeMutation = useCompletePostHandling();
@@ -130,16 +126,16 @@ export function useTaskPostHandlingController({
     return [];
   }, [completedQueryRaw.data, mode, searchQueryRaw.data]);
 
-  function setTab(tab: "pending" | "filled"): void {
-    const nextIndex = TAB_INDEXES[tab];
-    const previousIndex = previousTabIndexRef.current;
-
-    if (nextIndex !== previousIndex) {
-      setDirection(nextIndex > previousIndex ? 1 : -1);
-      previousTabIndexRef.current = nextIndex;
-    }
-
+  function setTab(tab: PostHandlingTab): void {
     setActiveTab(tab);
+  }
+
+  function goToAdjacentTab(offset: 1 | -1): void {
+    const nextTab =
+      POST_HANDLING_TABS[POST_HANDLING_TABS.indexOf(activeTab) + offset];
+    if (nextTab) {
+      setActiveTab(nextTab);
+    }
   }
 
   function openFilterSheet(): void {
@@ -206,10 +202,7 @@ export function useTaskPostHandlingController({
     );
   }
 
-  function openPendingWarning(
-    task: TaskListItemRaw,
-    _instance: TaskPostHandling | null,
-  ): void {
+  function openPendingWarning(task: TaskListItemRaw): void {
     surfaceOpeners?.openPendingWarning?.({
       taskId: task.task.client_id,
       onOpenCalendarRangePicker: surfaceOpeners?.openCalendarRangePicker,
@@ -240,8 +233,10 @@ export function useTaskPostHandlingController({
 
   return {
     activeTab,
-    direction,
+    tabs: POST_HANDLING_TABS,
     setTab,
+    goToPreviousTab: () => goToAdjacentTab(-1),
+    goToNextTab: () => goToAdjacentTab(1),
     completedFilterActive,
     openFilterSheet,
     completedFilterCount: completedFilterActive ? 1 : 0,

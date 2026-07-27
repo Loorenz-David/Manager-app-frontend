@@ -68,7 +68,7 @@ function cancelDescendantGestures(target: EventTarget | null): void {
  * left/right-swipeable control that owns horizontal gestures. Explicit
  * attribute match only (walked to the panel); never a computed-style guess.
  */
-function startsInIgnoredRegion(
+export function startsInIgnoredRegion(
   target: EventTarget | null,
   panel: HTMLElement,
 ): boolean {

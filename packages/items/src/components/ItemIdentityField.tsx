@@ -21,8 +21,18 @@ const IDENTITY_TABS = ["article_number", "sku"] as const;
 type IdentityTab = (typeof IDENTITY_TABS)[number];
 
 type ItemIdentityFieldProps = {
+  /**
+   * Overrides the remembered tab when a consumer needs a specific opening tab.
+   */
+  defaultTab?: IdentityTab;
   onOpenScanner?: (tab: IdentityTab) => void;
   onLookupResult?: (items: ItemLookupResult[]) => boolean | "invalid";
+  /**
+   * Skip the inventory lookup entirely. Use when the field only edits the raw
+   * identity values (e.g. correcting an existing item) and no item resolution
+   * is wanted.
+   */
+  disableLookup?: boolean;
 };
 
 const PADDED_ARTICLE_NUMBER_MIN_RAW_LENGTH = 3;
@@ -86,8 +96,10 @@ function readStoredTab(): IdentityTab {
 }
 
 export function ItemIdentityField({
+  defaultTab,
   onOpenScanner,
   onLookupResult,
+  disableLookup = false,
 }: ItemIdentityFieldProps): React.JSX.Element {
   const {
     register,
@@ -98,7 +110,9 @@ export function ItemIdentityField({
   const articleNumberError = itemErrors.item?.article_number?.message;
   const skuError = itemErrors.item?.sku?.message;
 
-  const [activeTab, setActiveTab] = useState<IdentityTab>(readStoredTab);
+  const [activeTab, setActiveTab] = useState<IdentityTab>(
+    defaultTab ?? readStoredTab,
+  );
   const [direction, setDirection] = useState<1 | -1>(1);
   const [lookupStatus, setLookupStatus] = useState<"valid" | "invalid" | null>(null);
   const articleNumber = useWatch({
@@ -123,11 +137,12 @@ export function ItemIdentityField({
       ? { article_number: normalizedDebouncedArticleNumber }
       : { sku: debouncedSku };
   const isLookupEnabled =
-    activeTab === "article_number"
+    !disableLookup &&
+    (activeTab === "article_number"
       ? /^\d+$/.test(debouncedArticleNumber)
         ? debouncedArticleNumber.length >= PADDED_ARTICLE_NUMBER_MIN_RAW_LENGTH
         : debouncedArticleNumber.length >= ARTICLE_NUMBER_MIN_LENGTH
-      : debouncedSku.length >= SKU_MIN_LENGTH;
+      : debouncedSku.length >= SKU_MIN_LENGTH);
   const lookupQuery = useItemLookupQuery(lookupParams, {
     enabled: isLookupEnabled,
   });
@@ -239,7 +254,7 @@ export function ItemIdentityField({
     >
       <X className="size-4" />
     </button>
-  ) : (
+  ) : onOpenScanner ? (
     <button
       aria-label={
         activeTab === "article_number" ? "Scan article number" : "Scan SKU"
@@ -255,7 +270,7 @@ export function ItemIdentityField({
     >
       <ScanLine className="size-4" />
     </button>
-  );
+  ) : null;
 
   return (
     <div className="flex flex-col gap-2" data-testid="item-identity-field">

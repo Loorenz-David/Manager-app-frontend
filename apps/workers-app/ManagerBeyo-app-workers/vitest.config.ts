@@ -16,6 +16,7 @@ export default defineConfig({
       path.resolve(__dirname, "src/features/task_steps/**/*.test.ts"),
       path.resolve(__dirname, "src/pages/**/*.test.tsx"),
       path.resolve(__dirname, "src/app/**/*.test.ts"),
+      path.resolve(__dirname, "src/providers/**/*.test.tsx"),
     ],
   },
 });

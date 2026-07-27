@@ -20,13 +20,6 @@ type Props = {
   onSearchChange: (value: string) => void;
 };
 
-const SLIDE_HIDE_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-
 export function UpholsteryOrderingHeader({
   isLoading,
   mode,
@@ -47,13 +40,14 @@ export function UpholsteryOrderingHeader({
       ? `Orders (${formatCompactCount(ordersCount.total)})`
       : "Orders";
 
+  // Scrolls away with the body: the page has no scroll-visibility behaviour,
+  // so the search row and the mode pills are plain in-flow content.
   return (
     <div
-      className="relative flex flex-col bg-background"
+      className="flex flex-col bg-background"
       data-testid="upholstery-ordering-header"
     >
-      {/* Search bar row — z-10 bg-background acts as mask for the pills (Pattern C) */}
-      <div className="relative z-10 flex items-center gap-2 bg-background px-4 py-2">
+      <div className="flex items-center gap-2 bg-background px-4 py-2">
         <button
           aria-label="Close"
           className="flex size-10 shrink-0 items-center justify-center rounded-full text-foreground"
@@ -74,11 +68,7 @@ export function UpholsteryOrderingHeader({
         />
       </div>
 
-      {/* Pills — absolute at top:100%, slides up behind search bar row (Pattern C) */}
-      <div
-        className="absolute inset-x-0 bg-background"
-        style={{ top: "100%", ...SLIDE_HIDE_STYLE }}
-      >
+      <div className="bg-background">
         <HorizontalScrollArea className="pb-1">
           <BoxPicker<Mode>
             className="flex flex-nowrap flex-row gap-1.5 px-4"

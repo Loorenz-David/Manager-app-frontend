@@ -8,23 +8,10 @@ import {
 import { TASK_STATE_FILTER_OPTIONS, TASK_TYPE_PICKER_OPTIONS } from "../types";
 import type { TaskState, TaskTypeFilter } from "../types";
 
-const HIDE_STYLE: React.CSSProperties = {
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition: "opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-
-const SLIDE_HIDE_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-
 type TasksHeaderProps = {
   taskType: TaskTypeFilter;
   taskStates: TaskState[];
   q: string;
-  isHidden: boolean;
   isLoading: boolean;
   activeFilterCount: number;
   onTaskTypeChange: (value: TaskTypeFilter) => void;
@@ -38,7 +25,6 @@ export function TasksHeader({
   taskType,
   taskStates,
   q,
-  isHidden,
   isLoading,
   activeFilterCount,
   onTaskTypeChange,
@@ -52,10 +38,7 @@ export function TasksHeader({
       className="relative flex flex-col bg-background"
       data-testid="tasks-header"
     >
-      <div
-        className="px-4 pb-2 pt-3 will-change-[opacity]"
-        style={{ ...HIDE_STYLE, pointerEvents: isHidden ? "none" : undefined }}
-      >
+      <div className="px-4 pb-2 pt-3">
         <BoxSlidePicker
           dataTestId="tasks-type-picker"
           options={TASK_TYPE_PICKER_OPTIONS}
@@ -79,14 +62,7 @@ export function TasksHeader({
         />
       </div>
 
-      <div
-        className="absolute inset-x-0 bg-background [will-change:transform,opacity]"
-        style={{
-          top: "100%",
-          ...SLIDE_HIDE_STYLE,
-          pointerEvents: isHidden ? "none" : undefined,
-        }}
-      >
+      <div className="bg-background">
         <HorizontalScrollArea className="pb-1">
           <BoxPicker
             className="flex flex-nowrap flex-row gap-1.5 px-4"

@@ -1,39 +1,26 @@
 import type { ReactNode } from 'react';
-import { m } from 'framer-motion';
 
-import { transitions } from '@beyo/lib';
 import { cn } from '@beyo/lib';
 
-import { useStagedFormContext } from './StagedFormContext';
+import { SlideStackPane } from '../slide-stack';
 
 type StagedFormStepProps = {
   id: string;
   children: ReactNode;
   className?: string;
+  /** Forwarded by AnimatePresence (popLayout) to measure the exiting step. */
+  ref?: React.Ref<HTMLDivElement>;
 };
 
-const stepVariants = {
-  enter: (direction: 1 | -1) => ({ x: direction > 0 ? '100%' : '-100%', opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit: (direction: 1 | -1) => ({ x: direction > 0 ? '-100%' : '100%', opacity: 0 }),
-} as const;
-
-export function StagedFormStep({ id, children, className }: StagedFormStepProps): React.JSX.Element {
-  const { direction } = useStagedFormContext();
-
+export function StagedFormStep({ id, children, className, ref }: StagedFormStepProps): React.JSX.Element {
   return (
-    <m.div
-      key={id}
-      animate="center"
-      className={cn('w-full min-h-full p-6', className)}
-      custom={direction}
+    <SlideStackPane
+      id={id}
+      ref={ref}
+      className={cn('min-h-full p-6', className)}
       data-testid={`staged-form-step-${id}`}
-      exit="exit"
-      initial="enter"
-      transition={transitions.slide}
-      variants={stepVariants}
     >
       {children}
-    </m.div>
+    </SlideStackPane>
   );
 }

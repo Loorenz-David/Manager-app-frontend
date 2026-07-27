@@ -3,14 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TaskDetailBottomActions } from "./TaskDetailBottomActions";
 
-const requestCloseMock = vi.fn();
-
-vi.mock("@beyo/hooks", () => ({
-  useSurfaceHeader: () => ({
-    requestClose: requestCloseMock,
-  }),
-}));
-
 function buildProps({
   shouldRenderAssignStages = true,
 }: {
@@ -18,7 +10,6 @@ function buildProps({
 } = {}) {
   return {
     shouldRenderAssignStages,
-    onEdit: vi.fn(),
     onOpenWorkingSections: vi.fn(),
   };
 }
@@ -26,7 +17,6 @@ function buildProps({
 describe("TaskDetailBottomActions", () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    requestCloseMock.mockReset();
   });
 
   afterEach(() => {
@@ -50,7 +40,9 @@ describe("TaskDetailBottomActions", () => {
     expect(ctaLayer).toHaveAttribute("data-visible", "true");
   });
 
-  it("does not show Assign Stages when disabled", () => {
+  it("renders nothing at all when Assign Stages is not applicable", () => {
+    // No Close & Back / Edit bar remains, so with no CTA there is no footer:
+    // the page is dismissed by the surface's slide-to-close gesture.
     render(
       <TaskDetailBottomActions
         {...buildProps({ shouldRenderAssignStages: false })}
@@ -59,6 +51,9 @@ describe("TaskDetailBottomActions", () => {
 
     expect(
       screen.queryByTestId("task-detail-assign-stages-button"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("task-detail-bottom-actions"),
     ).not.toBeInTheDocument();
   });
 
@@ -72,15 +67,12 @@ describe("TaskDetailBottomActions", () => {
     expect(props.onOpenWorkingSections).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps Edit and Close & Back working", () => {
-    const props = buildProps({ shouldRenderAssignStages: false });
+  it("no longer renders a Close & Back or Edit action", () => {
+    render(<TaskDetailBottomActions {...buildProps()} />);
 
-    render(<TaskDetailBottomActions {...props} />);
-
-    screen.getByRole("button", { name: "Edit" }).click();
-    screen.getByRole("button", { name: "Close & Back" }).click();
-
-    expect(props.onEdit).toHaveBeenCalledTimes(1);
-    expect(requestCloseMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByRole("button", { name: "Close & Back" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
   });
 });

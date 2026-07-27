@@ -28,6 +28,13 @@ export type StagedFormReturn = {
   back: () => void;
   navigateTo: (stepId: string) => void;
   setStepStatus: (stepId: string, status: StepStatus) => void;
+  /**
+   * Runs the onBeforeAdvance guard for the active step WITHOUT navigating.
+   * Suited as a StagedForm/SlideStack `canAdvance` condition: the forward
+   * drag only engages when the guard allows it, and any error statuses the
+   * guard sets still surface. Resolves true when no guard is configured.
+   */
+  validateAdvance: () => Promise<boolean>;
 };
 
 export function useStagedForm({
@@ -117,6 +124,33 @@ export function useStagedForm({
     })();
   }, [isAdvancing, isLastStep, onBeforeAdvance, onSubmit, safeActiveStepIndex, setStepStatus, steps]);
 
+  const validateAdvance = useCallback(async (): Promise<boolean> => {
+    if (steps.length === 0 || isAdvancing) {
+      return false;
+    }
+
+    const currentStepId = steps[safeActiveStepIndex]?.id;
+
+    if (!currentStepId) {
+      return false;
+    }
+
+    if (!onBeforeAdvance) {
+      return true;
+    }
+
+    const nextStepId = isLastStep ? null : (steps[safeActiveStepIndex + 1]?.id ?? null);
+
+    try {
+      return await onBeforeAdvance(currentStepId, nextStepId, setStepStatus);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('useStagedForm validateAdvance failed', error);
+      }
+      return false;
+    }
+  }, [isAdvancing, isLastStep, onBeforeAdvance, safeActiveStepIndex, setStepStatus, steps]);
+
   const back = useCallback(() => {
     if (isFirstStep) {
       return;
@@ -163,6 +197,7 @@ export function useStagedForm({
       back,
       navigateTo,
       setStepStatus,
+      validateAdvance,
     }),
     [
       steps,
@@ -178,6 +213,7 @@ export function useStagedForm({
       back,
       navigateTo,
       setStepStatus,
+      validateAdvance,
     ],
   );
 }

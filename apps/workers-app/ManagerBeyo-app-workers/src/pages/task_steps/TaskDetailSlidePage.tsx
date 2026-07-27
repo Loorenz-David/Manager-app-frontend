@@ -1,5 +1,9 @@
-import { useCallback, useEffect } from "react";
-import { usePreloadSurface, useSurface, useSurfaceHeader } from "@beyo/hooks";
+import { useCallback } from "react";
+import {
+  useHeaderlessSlidePage,
+  usePreloadSurface,
+  useSurface,
+} from "@beyo/hooks";
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
 import { ItemPositionZonePreview } from "@beyo/items";
 import {
@@ -87,7 +91,6 @@ function TaskStepCategoryPositionRow(): React.JSX.Element | null {
 }
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
-  const header = useSurfaceHeader();
   const surface = useSurface();
   const controller = useTaskStepDetailContext();
   const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
@@ -97,9 +100,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     });
   const isFooterHidden = isHidden && !isAtEdge;
 
-  useEffect(() => {
-    header?.setHeaderHidden(true);
-  }, [header]);
+  useHeaderlessSlidePage();
 
   usePreloadSurface(preloadCompleteTaskStepConfirmationSlideSurface);
   usePreloadSurface(preloadTaskNotesSheetSurface);
@@ -235,7 +236,6 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           unreadCount={controller.liveCasesSummary.totalUnread}
           isScrollHidden={isFooterHidden}
           onOpenCases={controller.handleOpenCasesForTask}
-          onClose={() => header?.requestClose()}
         />
       </div>
     </div>

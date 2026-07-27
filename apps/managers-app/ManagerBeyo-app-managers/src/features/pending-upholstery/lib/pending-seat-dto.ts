@@ -54,6 +54,15 @@ export function toPendingSeatCardViewModel(
     firstImage: images[0] ?? null,
     images,
     pendingReason: row.pending_upholstery_reason,
-    itemUpholsteryId: row.item_upholstery_id,
+    itemUpholsteryId:
+      row.item_upholstery_id ?? row.item_upholstery?.client_id ?? null,
+    upholstery: row.item_upholstery
+      ? {
+          clientId: row.item_upholstery.client_id,
+          name: row.item_upholstery.name,
+          imageUrl: row.item_upholstery.image_url,
+          amountMeters: row.item_upholstery.amount_meters,
+        }
+      : null,
   };
 }

@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { runWhenUiSettled } from "@beyo/ui";
 
 import { useUpdatePostHandling } from "../actions/use-update-post-handling";
 import { useGetTaskQuery } from "../api/use-get-task-query";
@@ -69,20 +70,25 @@ export function PostHandlingPendingWarningSheetPage(): React.JSX.Element {
     }
 
     const values = form.getValues();
-    updatePostHandling.mutate({
-      taskId,
-      ...(showFulfillmentAndDelivery
-        ? {
-            fulfillment_method: values.fulfillment_method ?? null,
-            scheduled_start_at: values.scheduled_start_at ?? null,
-            scheduled_end_at: values.scheduled_end_at ?? null,
-          }
-        : {}),
-      ...(showAssortment
-        ? { assortment: values.assortment?.trim() || null }
-        : {}),
-    });
+
+    // Close first, mutate after the sheet is gone: the optimistic patch drops
+    // the row from the list underneath, and doing that mid-close janks it.
     header?.requestClose();
+    runWhenUiSettled(() => {
+      updatePostHandling.mutate({
+        taskId,
+        ...(showFulfillmentAndDelivery
+          ? {
+              fulfillment_method: values.fulfillment_method ?? null,
+              scheduled_start_at: values.scheduled_start_at ?? null,
+              scheduled_end_at: values.scheduled_end_at ?? null,
+            }
+          : {}),
+        ...(showAssortment
+          ? { assortment: values.assortment?.trim() || null }
+          : {}),
+      });
+    });
   }
 
   if (taskQuery.isPending) {

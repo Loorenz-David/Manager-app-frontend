@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { runWhenUiSettled } from "@beyo/ui";
 import { itemUpholsteryKeys } from "@beyo/tasks";
 
 import { pendingSeatUpholsteryKeys } from "@/features/pending-upholstery/api/pending-seat-keys";
@@ -57,20 +58,24 @@ export function useReceiveUpholsteryOrder() {
         });
     },
     onSettled: () => {
-      void queryClient.invalidateQueries({
-        queryKey: upholsteryOrderingKeys.all,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: itemUpholsteryKeys.all,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: upholsteryKeys.pickerLists(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: pendingSeatUpholsteryKeys.counts(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: upholsteryInventoryKeys.lists(),
+      // Let the surface finish closing and the row finish animating out
+      // before the refetch storm hits the list underneath.
+      runWhenUiSettled(() => {
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryOrderingKeys.all,
+        });
+        void queryClient.invalidateQueries({
+          queryKey: itemUpholsteryKeys.all,
+        });
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryKeys.pickerLists(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: pendingSeatUpholsteryKeys.counts(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryInventoryKeys.lists(),
+        });
       });
     },
   });

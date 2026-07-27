@@ -2,14 +2,16 @@ import { useEffect } from "react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { ConfirmActionButton, useSurfaceStore } from "@beyo/ui";
-import { Pin, Replace, Trash2 } from "lucide-react";
+import { Barcode, Pin, Replace, Trash2 } from "lucide-react";
 
 import { useDeleteTask } from "../actions/use-delete-task";
 import {
+  ITEM_IDENTITY_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_TYPE_SHEET_SURFACE_ID,
+  type ItemIdentitySurfaceProps,
   type PinNotificationsSlideSurfaceProps,
   type TaskActionsSurfaceProps,
   type TaskTypeSheetSurfaceProps,
@@ -25,6 +27,17 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
     header?.setActions(null);
   }, [header]);
 
+  // This menu is a launcher, not a stop on the way back: the destination opens
+  // on top immediately while the menu plays its own dismiss animation
+  // underneath, so closing the destination returns to the task detail.
+  function openAndDismiss(
+    surfaceId: string,
+    props: Record<string, unknown>,
+  ): void {
+    useSurfaceStore.getState().open(surfaceId, props);
+    header?.requestClose();
+  }
+
   return (
     <div className="flex flex-col gap-4 p-6">
       <button
@@ -35,7 +48,7 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
         onClick={() => {
           if (!taskId) return;
 
-          useSurfaceStore.getState().open(PIN_NOTIFICATIONS_SLIDE_SURFACE_ID, {
+          openAndDismiss(PIN_NOTIFICATIONS_SLIDE_SURFACE_ID, {
             taskId,
             itemId: itemId ?? null,
           } satisfies PinNotificationsSlideSurfaceProps);
@@ -52,13 +65,30 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
         onClick={() => {
           if (!taskId) return;
 
-          useSurfaceStore.getState().open(TASK_TYPE_SHEET_SURFACE_ID, {
+          openAndDismiss(TASK_TYPE_SHEET_SURFACE_ID, {
             taskId,
           } satisfies TaskTypeSheetSurfaceProps);
         }}
       >
         <Replace className="size-4" />
         Change task type
+      </button>
+      <button
+        type="button"
+        className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-sm font-semibold text-foreground"
+        data-testid="task-actions-change-item-identity"
+        disabled={!taskId || !itemId}
+        onClick={() => {
+          if (!taskId || !itemId) return;
+
+          openAndDismiss(ITEM_IDENTITY_SHEET_SURFACE_ID, {
+            taskId,
+            itemId,
+          } satisfies ItemIdentitySurfaceProps);
+        }}
+      >
+        <Barcode className="size-4" />
+        Change article number
       </button>
       <ConfirmActionButton
         backgroundColor="var(--color-card)"

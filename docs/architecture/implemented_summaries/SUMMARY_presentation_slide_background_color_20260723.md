@@ -48,8 +48,10 @@
 
 ## Known gaps or deferred items
 
-- Studio desktop Playwright run pending the next operator-hosted batch (to be
-  covered together with the timeline/media review-corrections pass).
+- None. The deferred studio desktop Playwright run completed 2026-07-23
+  (operator-hosted): 10/10 green, including the background-color editor
+  scenario. (A stale dashboard-spec mock predating auto-first-slide was
+  repaired in the same pass — see the archived plan's Review log.)
 
 ## Lifecycle transition
 

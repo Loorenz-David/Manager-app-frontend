@@ -14,7 +14,7 @@ import {
 import { UPHOLSTERY_PICKER_SLIDE_ID } from "@beyo/upholstery";
 
 import { usePendingSeatCountsQuery } from "../api/use-pending-seat-counts-query";
-import { usePendingSeatTasksQuery } from "../api/use-pending-seat-tasks-query";
+import { usePendingSeatTaskPagesQueries } from "../api/use-pending-seat-tasks-query";
 import { toPendingSeatCardViewModel } from "../lib/pending-seat-dto";
 import {
   PENDING_UPHOLSTERY_TASK_ACTIONS_SHEET_ID,
@@ -26,7 +26,21 @@ import type {
 } from "../types";
 
 const PAGE_LIMIT = 50;
-type PendingUpholsteryFilter = "missing_selection" | "missing_quantity";
+export const PENDING_UPHOLSTERY_FILTERS = [
+  "missing_selection",
+  "missing_quantity",
+] as const;
+export type PendingUpholsteryFilter =
+  (typeof PENDING_UPHOLSTERY_FILTERS)[number];
+
+type PageOffsetsByFilter = Record<PendingUpholsteryFilter, number[]>;
+
+function getInitialPageOffsets(): PageOffsetsByFilter {
+  return {
+    missing_selection: [0],
+    missing_quantity: [0],
+  };
+}
 
 function appendDeduped(
   current: PendingSeatTaskRow[],
@@ -37,68 +51,120 @@ function appendDeduped(
   return [...current, ...appended];
 }
 
+function mergeQueryItems(
+  queries: ReturnType<typeof usePendingSeatTaskPagesQueries>,
+): PendingSeatTaskRow[] {
+  return queries.reduce(
+    (items, query) =>
+      query.data ? appendDeduped(items, query.data.items) : items,
+    [] as PendingSeatTaskRow[],
+  );
+}
+
 export function usePendingUpholsteryController() {
-  const [missingSelection, setMissingSelection] = useState(true);
-  const [missingQuantity, setMissingQuantity] = useState(false);
+  const [activeFilter, setActiveFilter] =
+    useState<PendingUpholsteryFilter>("missing_selection");
   const [searchInput, setSearchInput] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
-  const [offset, setOffset] = useState(0);
-  const [accumulatedItems, setAccumulatedItems] = useState<
-    PendingSeatTaskRow[]
-  >([]);
+  const [pageOffsetsByFilter, setPageOffsetsByFilter] =
+    useState<PageOffsetsByFilter>(getInitialPageOffsets);
   const surface = useSurface();
 
   useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedQ(searchInput), 300);
+    const timeout = window.setTimeout(() => {
+      setDebouncedQ(searchInput);
+      setPageOffsetsByFilter(getInitialPageOffsets());
+    }, 300);
     return () => window.clearTimeout(timeout);
   }, [searchInput]);
 
-  useEffect(() => {
-    setOffset(0);
-    setAccumulatedItems([]);
-  }, [debouncedQ, missingQuantity, missingSelection]);
-
-  const params = useMemo(
+  const selectionParams = useMemo(
     () => ({
       limit: PAGE_LIMIT,
-      offset,
       q: debouncedQ.trim() || undefined,
-      missing_selection: missingSelection,
-      missing_quantity: missingQuantity,
+      missing_selection: true,
+      missing_quantity: false,
     }),
-    [debouncedQ, missingQuantity, missingSelection, offset],
+    [debouncedQ],
+  );
+  const quantityParams = useMemo(
+    () => ({
+      limit: PAGE_LIMIT,
+      q: debouncedQ.trim() || undefined,
+      missing_selection: false,
+      missing_quantity: true,
+    }),
+    [debouncedQ],
   );
 
-  const listQuery = usePendingSeatTasksQuery(params);
+  // Both pane queries stay resolved: SlideStack mounts the destination pane as
+  // a drag ghost before navigation commits, so that pane needs real content.
+  const selectionQueries = usePendingSeatTaskPagesQueries(
+    selectionParams,
+    pageOffsetsByFilter.missing_selection,
+  );
+  const quantityQueries = usePendingSeatTaskPagesQueries(
+    quantityParams,
+    pageOffsetsByFilter.missing_quantity,
+  );
   const countsQuery = usePendingSeatCountsQuery();
+  const itemsByFilter = {
+    missing_selection: mergeQueryItems(selectionQueries),
+    missing_quantity: mergeQueryItems(quantityQueries),
+  };
 
-  useEffect(() => {
-    if (!listQuery.data) return;
-    setAccumulatedItems((current) =>
-      offset === 0
-        ? listQuery.data.items
-        : appendDeduped(current, listQuery.data.items),
-    );
-  }, [listQuery.data, offset]);
-
-  const cards = useMemo<PendingSeatCardViewModel[]>(
-    () => accumulatedItems.map((row) => toPendingSeatCardViewModel(row)),
-    [accumulatedItems],
-  );
+  const cardsByFilter: Record<
+    PendingUpholsteryFilter,
+    PendingSeatCardViewModel[]
+  > = {
+    missing_selection: itemsByFilter.missing_selection.map((row) =>
+      toPendingSeatCardViewModel(row),
+    ),
+    missing_quantity: itemsByFilter.missing_quantity.map((row) =>
+      toPendingSeatCardViewModel(row),
+    ),
+  };
+  const queriesByFilter = {
+    missing_selection: selectionQueries,
+    missing_quantity: quantityQueries,
+  } as const;
+  const activeQueries = queriesByFilter[activeFilter];
+  const missingSelection = activeFilter === "missing_selection";
+  const missingQuantity = activeFilter === "missing_quantity";
 
   function setFilters(value: PendingUpholsteryFilter): void {
-    setMissingSelection(value === "missing_selection");
-    setMissingQuantity(value === "missing_quantity");
+    setActiveFilter(value);
+  }
+
+  function goToAdjacentFilter(offset: 1 | -1): void {
+    const nextFilter =
+      PENDING_UPHOLSTERY_FILTERS[
+        PENDING_UPHOLSTERY_FILTERS.indexOf(activeFilter) + offset
+      ];
+    if (nextFilter) {
+      setActiveFilter(nextFilter);
+    }
   }
 
   async function refetch(): Promise<void> {
-    setOffset(0);
-    await Promise.all([listQuery.refetch(), countsQuery.refetch()]);
+    setPageOffsetsByFilter((current) => ({
+      ...current,
+      [activeFilter]: [0],
+    }));
+    await Promise.all([
+      activeQueries[0]?.refetch(),
+      countsQuery.refetch(),
+    ]);
   }
 
-  function loadMore(): void {
-    if (!listQuery.data?.hasMore || listQuery.isFetching) return;
-    setOffset(listQuery.data.offset + listQuery.data.limit);
+  function loadMoreFor(filter: PendingUpholsteryFilter): void {
+    const query = queriesByFilter[filter].at(-1);
+    if (!query?.data?.hasMore || query.isFetching) return;
+    const nextOffset = query.data.offset + query.data.limit;
+    setPageOffsetsByFilter((current) => ({
+      ...current,
+      [filter]: [...current[filter], nextOffset],
+    }));
   }
 
   function openTaskDetail(taskId: string): void {
@@ -143,23 +209,75 @@ export function usePendingUpholsteryController() {
   }
 
   return {
+    activeFilter,
+    filters: PENDING_UPHOLSTERY_FILTERS,
     missingSelection,
     missingQuantity,
     setFilters,
+    goToPreviousFilter: () => goToAdjacentFilter(-1),
+    goToNextFilter: () => goToAdjacentFilter(1),
     searchInput,
     setSearchInput,
-    isInitialLoading: listQuery.isPending && accumulatedItems.length === 0,
-    isBackgroundLoading: listQuery.isFetching && accumulatedItems.length > 0,
-    isError: listQuery.isError && accumulatedItems.length === 0,
-    isFetchingMore: listQuery.isFetching && offset > 0,
-    isPaginationError: listQuery.isError && offset > 0,
-    hasMore: listQuery.data?.hasMore ?? false,
-    cards,
+    isInitialLoadingByFilter: {
+      missing_selection:
+        selectionQueries[0]?.isPending === true &&
+        itemsByFilter.missing_selection.length === 0,
+      missing_quantity:
+        quantityQueries[0]?.isPending === true &&
+        itemsByFilter.missing_quantity.length === 0,
+    },
+    isBackgroundLoadingByFilter: {
+      missing_selection:
+        selectionQueries.some((query) => query.isFetching) &&
+        itemsByFilter.missing_selection.length > 0,
+      missing_quantity:
+        quantityQueries.some((query) => query.isFetching) &&
+        itemsByFilter.missing_quantity.length > 0,
+    },
+    isErrorByFilter: {
+      missing_selection:
+        selectionQueries[0]?.isError === true &&
+        itemsByFilter.missing_selection.length === 0,
+      missing_quantity:
+        quantityQueries[0]?.isError === true &&
+        itemsByFilter.missing_quantity.length === 0,
+    },
+    isFetchingMoreByFilter: {
+      missing_selection:
+        selectionQueries.at(-1)?.isFetching === true &&
+        (pageOffsetsByFilter.missing_selection.at(-1) ?? 0) > 0,
+      missing_quantity:
+        quantityQueries.at(-1)?.isFetching === true &&
+        (pageOffsetsByFilter.missing_quantity.at(-1) ?? 0) > 0,
+    },
+    isPaginationErrorByFilter: {
+      missing_selection:
+        selectionQueries.at(-1)?.isError === true &&
+        (pageOffsetsByFilter.missing_selection.at(-1) ?? 0) > 0,
+      missing_quantity:
+        quantityQueries.at(-1)?.isError === true &&
+        (pageOffsetsByFilter.missing_quantity.at(-1) ?? 0) > 0,
+    },
+    hasMoreByFilter: {
+      missing_selection:
+        selectionQueries.at(-1)?.data?.hasMore ?? false,
+      missing_quantity: quantityQueries.at(-1)?.data?.hasMore ?? false,
+    },
+    retryByFilter: {
+      missing_selection: () => selectionQueries.at(-1)?.refetch(),
+      missing_quantity: () => quantityQueries.at(-1)?.refetch(),
+    },
+    loadMoreByFilter: {
+      missing_selection: () => loadMoreFor("missing_selection"),
+      missing_quantity: () => loadMoreFor("missing_quantity"),
+    },
+    isBackgroundLoading:
+      activeQueries.some((query) => query.isFetching) &&
+      cardsByFilter[activeFilter].length > 0,
+    cardsByFilter,
     counts: countsQuery.data ?? null,
     countsError: countsQuery.isError,
-    retry: listQuery.refetch,
     refetch,
-    loadMore,
     openTaskDetail,
     openTaskActions,
     openImageViewer,

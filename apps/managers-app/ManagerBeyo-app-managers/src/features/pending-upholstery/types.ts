@@ -2,11 +2,7 @@ import { z } from "zod";
 
 import type { ImageViewModel } from "@beyo/images";
 import type { Item } from "@/features/items/types";
-import {
-  ITEM_CURRENCY,
-  ITEM_STATE,
-  ItemSchema,
-} from "@/features/items/types";
+import { ITEM_CURRENCY, ITEM_STATE, ItemSchema } from "@/features/items/types";
 import {
   TASK_FULFILLMENT_METHOD,
   TASK_ITEM_LOCATION,
@@ -25,9 +21,7 @@ export const PENDING_UPHOLSTERY_REASON = [
 ] as const;
 export type PendingUpholsteryReason =
   (typeof PENDING_UPHOLSTERY_REASON)[number];
-export const PendingUpholsteryReasonSchema = z.enum(
-  PENDING_UPHOLSTERY_REASON,
-);
+export const PendingUpholsteryReasonSchema = z.enum(PENDING_UPHOLSTERY_REASON);
 
 export const PendingSeatImageSchema = z
   .object({
@@ -99,11 +93,27 @@ export const PendingSeatRawItemSchema = z
   .passthrough();
 export type PendingSeatRawItem = z.infer<typeof PendingSeatRawItemSchema>;
 
+// Upholstery display payload for the pending card body + amount quick action.
+// Optional until the backend list endpoint ships it alongside
+// item_upholstery_id; the UI degrades gracefully while it is absent.
+export const PendingSeatUpholsterySchema = z
+  .object({
+    client_id: z.string(),
+    name: z.string().nullable(),
+    image_url: z.string().nullable(),
+    amount_meters: z.coerce.number().nullable(),
+  })
+  .passthrough();
+export type PendingSeatUpholstery = z.infer<typeof PendingSeatUpholsterySchema>;
+
 export const PendingSeatTaskRowSchema = z.object({
   task: PendingSeatRawTaskSchema,
   primary_item: PendingSeatRawItemSchema.nullable(),
   pending_upholstery_reason: PendingUpholsteryReasonSchema,
-  item_upholstery_id: z.string().nullable(),
+  // The backend replaced the bare id with the item_upholstery object; the id
+  // stays accepted for compatibility and is derived from the object otherwise.
+  item_upholstery_id: z.string().nullable().optional(),
+  item_upholstery: PendingSeatUpholsterySchema.nullable().optional(),
   item_images: z.array(PendingSeatImageSchema),
 });
 export type PendingSeatTaskRow = z.infer<typeof PendingSeatTaskRowSchema>;
@@ -129,6 +139,12 @@ export type PendingSeatCardViewModel = {
   images: ImageViewModel[];
   pendingReason: PendingUpholsteryReason;
   itemUpholsteryId: string | null;
+  upholstery: {
+    clientId: string;
+    name: string | null;
+    imageUrl: string | null;
+    amountMeters: number | null;
+  } | null;
 };
 
 export function toTaskFromPendingRaw(raw: PendingSeatRawTask): Task {

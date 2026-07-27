@@ -36,6 +36,13 @@ controller. Owns:
   double-click enters the same mode for existing text. The view pauses playback,
   suppresses dragging for the active element, live-syncs content through
   `updateElement`, and commits on Escape or blur.
+- Session-local properties-panel drawer state: separate open sets for slide, text,
+  and media panels. Selection carries a `"canvas"` or `"timeline"` source so the
+  controller can ensure-open the relevant concern without closing other drawers:
+  canvas → text `content` / media `media`; timeline bar or label → `animations`.
+  Deselecting or changing slides does not rewrite drawer arrangements; remounting
+  the editor resets every set. CTA route validation ensure-opens slide `button`
+  when the error first appears.
 - Publish flow state: builds `PublishFormState`, runs `buildPublishPayloads`,
   maps failures via `mapPublishFailure` into `PublishIssueState`.
 - Preview: gates it behind `assertPreviewCompositionParity` (dev safety that the
@@ -71,6 +78,10 @@ controller change.
   `title` is metadata only (V2 resolution; the backend once 422'd on this).
 - Autosave writes must survive reconcile: server responses are merged through
   `reconcileAfterFlush`, not blind re-hydration — don't replace it with a refetch.
+  A flush acknowledgement must preserve the live local composition and selected
+  element so panels and gestures remain stable. It may clear a slide's dirty flag
+  only when the acknowledged slide revision is still current; a response for an
+  older revision leaves newer local edits dirty for the next autosave.
 - Slide `background_color` is part of the same atomic composition aggregate as
   duration/elements. Color changes mark the slide dirty, increment its revision,
   and flush through the existing composition PUT; `null` explicitly clears it.

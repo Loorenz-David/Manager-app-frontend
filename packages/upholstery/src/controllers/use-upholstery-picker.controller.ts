@@ -21,11 +21,10 @@ import {
   isExternalUpholsteryOrigin,
 } from "../types";
 
-const FILTER_INDEXES: Record<UpholsteryQuickFilter, number> = {
-  favorite: 0,
-  in_stock: 1,
-  out_of_stock: 2,
-};
+// Pane order for the picker body stack — the pills and the slide stack share
+// this order, so "next"/"previous" mean the same thing in both.
+const FILTER_ORDER: UpholsteryQuickFilter[] =
+  UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS.map((option) => option.value);
 
 function getExternalIdentity(record: UpholsteryPickerOption): string {
   return [
@@ -90,8 +89,6 @@ function toDatabaseRecords(items: UpholsteryPickerOption[]): UpholsteryPickerRec
 export function useUpholsteryPickerController(searchQuery: string) {
   const [activeFilter, setActiveFilter] =
     useState<UpholsteryQuickFilter>("favorite");
-  const previousFilterIndexRef = useRef(FILTER_INDEXES.favorite);
-  const [direction, setDirection] = useState<1 | -1>(1);
   const [pendingExternalFavorites, setPendingExternalFavorites] = useState<Set<string>>(
     () => new Set(),
   );
@@ -147,79 +144,103 @@ export function useUpholsteryPickerController(searchQuery: string) {
   }, []);
 
   function handleFilterChange(nextFilter: UpholsteryQuickFilter) {
-    const nextIndex = FILTER_INDEXES[nextFilter];
-    const previousIndex = previousFilterIndexRef.current;
-
-    if (nextIndex !== previousIndex) {
-      setDirection(nextIndex > previousIndex ? 1 : -1);
-      previousFilterIndexRef.current = nextIndex;
-    }
-
     setActiveFilter(nextFilter);
   }
 
-  const { upholsteries: mergedUpholsteries, isLoading } = useMemo(() => {
-    if (searchQuery.trim().length > 0) {
-      const dbItems = filterItemsBySelectedProviders(
-        searchResultsQuery.data?.upholsteries ?? [],
-        selectedExternalProviders,
-      );
+  function goToAdjacentFilter(offset: 1 | -1) {
+    const nextFilter = FILTER_ORDER[FILTER_ORDER.indexOf(activeFilter) + offset];
 
-      return {
-        upholsteries: mergePickerResults(
+    if (nextFilter) {
+      setActiveFilter(nextFilter);
+    }
+  }
+
+  // Every filter's records are kept resolved, not just the active one: the body
+  // slide stack renders the incoming pane while the finger drags, so it needs
+  // that pane's real content before the navigation commits.
+  const { upholsteriesByFilter: baseUpholsteriesByFilter, isLoadingByFilter } =
+    useMemo((): {
+      upholsteriesByFilter: Record<UpholsteryQuickFilter, UpholsteryPickerRecord[]>;
+      isLoadingByFilter: Record<UpholsteryQuickFilter, boolean>;
+    } => {
+      if (searchQuery.trim().length > 0) {
+        const dbItems = filterItemsBySelectedProviders(
+          searchResultsQuery.data?.upholsteries ?? [],
+          selectedExternalProviders,
+        );
+        // Search overrides the quick filters (the pills are disabled while
+        // searching), so every pane resolves to the same result set.
+        const searchRecords = mergePickerResults(
           dbItems,
           externalSearchQuery.upholsteries,
           getClientIdForExternal,
-        ),
-        isLoading:
-          searchResultsQuery.isFetching || externalSearchQuery.isFetching,
+        );
+        const isSearching =
+          searchResultsQuery.isFetching || externalSearchQuery.isFetching;
+
+        return {
+          upholsteriesByFilter: {
+            favorite: searchRecords,
+            in_stock: searchRecords,
+            out_of_stock: searchRecords,
+          },
+          isLoadingByFilter: {
+            favorite: isSearching,
+            in_stock: isSearching,
+            out_of_stock: isSearching,
+          },
+        };
+      }
+
+      return {
+        upholsteriesByFilter: {
+          favorite: toDatabaseRecords(favoritesQuery.data?.upholsteries ?? []),
+          in_stock: toDatabaseRecords(inStockQuery.data?.upholsteries ?? []),
+          out_of_stock: toDatabaseRecords(outOfStockQuery.data?.upholsteries ?? []),
+        },
+        isLoadingByFilter: {
+          favorite: favoritesQuery.isPending,
+          in_stock: inStockQuery.isPending,
+          out_of_stock: outOfStockQuery.isPending,
+        },
       };
+    }, [
+      searchQuery,
+      searchResultsQuery.data,
+      searchResultsQuery.isFetching,
+      externalSearchQuery.isFetching,
+      externalSearchQuery.upholsteries,
+      selectedExternalProviders,
+      inStockQuery.data,
+      inStockQuery.isPending,
+      outOfStockQuery.data,
+      outOfStockQuery.isPending,
+      favoritesQuery.data,
+      favoritesQuery.isPending,
+      getClientIdForExternal,
+    ]);
+
+  const upholsteriesByFilter = useMemo(() => {
+    if (pendingExternalFavorites.size === 0) {
+      return baseUpholsteriesByFilter;
     }
 
-    switch (activeFilter) {
-      case "out_of_stock":
-        return {
-          upholsteries: toDatabaseRecords(outOfStockQuery.data?.upholsteries ?? []),
-          isLoading: outOfStockQuery.isPending,
-        };
-      case "favorite":
-        return {
-          upholsteries: toDatabaseRecords(favoritesQuery.data?.upholsteries ?? []),
-          isLoading: favoritesQuery.isPending,
-        };
-      case "in_stock":
-      default:
-        return {
-          upholsteries: toDatabaseRecords(inStockQuery.data?.upholsteries ?? []),
-          isLoading: inStockQuery.isPending,
-        };
-    }
-  }, [
-    searchQuery,
-    activeFilter,
-    searchResultsQuery.data,
-    searchResultsQuery.isFetching,
-    externalSearchQuery.isFetching,
-    externalSearchQuery.upholsteries,
-    selectedExternalProviders,
-    inStockQuery.data,
-    inStockQuery.isPending,
-    outOfStockQuery.data,
-    outOfStockQuery.isPending,
-    favoritesQuery.data,
-    favoritesQuery.isPending,
-    getClientIdForExternal,
-  ]);
-
-  const upholsteries = useMemo(
-    () =>
-      mergedUpholsteries.map((record) =>
+    const applyPendingFavorites = (records: UpholsteryPickerRecord[]) =>
+      records.map((record) =>
         pendingExternalFavorites.has(record.client_id)
           ? { ...record, favorite: true }
           : record,
-      ),
-    [mergedUpholsteries, pendingExternalFavorites],
-  );
+      );
+
+    return {
+      favorite: applyPendingFavorites(baseUpholsteriesByFilter.favorite),
+      in_stock: applyPendingFavorites(baseUpholsteriesByFilter.in_stock),
+      out_of_stock: applyPendingFavorites(baseUpholsteriesByFilter.out_of_stock),
+    };
+  }, [baseUpholsteriesByFilter, pendingExternalFavorites]);
+
+  const upholsteries = upholsteriesByFilter[activeFilter];
+  const isLoading = isLoadingByFilter[activeFilter];
   const activeProviderFilterCount = selectedExternalProviders.length > 0 ? 1 : 0;
 
   useEffect(() => {
@@ -228,7 +249,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
     }
 
     const activeExternalIds = new Set(
-      mergedUpholsteries
+      upholsteries
         .filter((record) => isExternalUpholsteryOrigin(record.origin))
         .map((record) => record.client_id),
     );
@@ -246,7 +267,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
       staleIds.forEach((id) => next.delete(id));
       return next;
     });
-  }, [mergedUpholsteries, pendingExternalFavorites]);
+  }, [upholsteries, pendingExternalFavorites]);
 
   async function refetch() {
     if (searchQuery.trim().length > 0) {
@@ -402,10 +423,13 @@ export function useUpholsteryPickerController(searchQuery: string) {
 
   return {
     activeFilter,
-    direction,
     filterOptions: UPHOLSTERY_QUICK_FILTER_PILL_OPTIONS,
     upholsteries,
+    upholsteriesByFilter,
     isLoading,
+    isLoadingByFilter,
+    goToPreviousFilter: () => goToAdjacentFilter(-1),
+    goToNextFilter: () => goToAdjacentFilter(1),
     selectUpholstery,
     isSelectionPending: selectingClientId !== null,
     selectingClientId,

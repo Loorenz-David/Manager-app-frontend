@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_presentation_editor_panel_drawers_20260723`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: `codex` (logic) + `claude-builder` (drawer kit + panel regrouping, pre-built)
 - Created at (UTC): `2026-07-23T13:30:00Z`
-- Last updated at (UTC): `2026-07-23T13:30:00Z`
+- Last updated at (UTC): `2026-07-23T15:45:45Z`
 - Related issue/ticket: operator intention (editor panel drawers), 2026-07-23
 - Intention plan: `docs/architecture/under_construction/intention/presentation_capability_improvments.md`
 - Knowledge base (READ FIRST): `packages/presentation-builder/presentation_documentation/frontend/INDEX.md`
@@ -75,16 +75,14 @@ label, delete button, slide-panel hint.
 
 ## Clarifications required
 
-- [ ] **1 — Grouping**: confirm the table above (or amend).
-- [ ] **2 — Auto-open mapping (source-aware, recommended)**: timeline tap
-  (bar OR track label) → open `animations` (the timeline's concern is
-  timing/animation, per the operator's stated intent "tools concerning this
-  block"); canvas tap → open the block's primary drawer (`content` for text,
-  `media` for media). Alternative: any selection opens the primary drawer
-  regardless of source. Recommend source-aware.
-- [ ] **3 — Auto-open behavior**: auto-open ENSURES the concern drawer is open
-  and leaves other open drawers untouched (recommended), vs. exclusive
-  (closes the rest).
+All resolved 2026-07-23 — operator confirmed the recommended defaults.
+
+- [x] **1 — Grouping**: confirmed as tabled above.
+- [x] **2 — Auto-open mapping**: SOURCE-AWARE — timeline tap (bar OR track
+  label) → open `animations`; canvas tap → open the block's primary drawer
+  (`content` for text, `media` for media).
+- [x] **3 — Auto-open behavior**: ENSURE-OPEN — the concern drawer opens;
+  other open drawers stay untouched.
 - Resolved by the operator's brief: multi-open allowed; default all closed;
   drawer state is session-local (not persisted), kept per panel type so
   reopening a text block restores the last text-panel arrangement.
@@ -188,10 +186,31 @@ drawer-id constants per panel; kit preview demos drawers + a flat fallback.
 
 ## Review log
 
-- (pending)
+- 2026-07-23 operator: clarifications 1–3 resolved (grouping confirmed;
+  source-aware auto-open; ensure-open behavior); plan flipped to `approved`.
+  Kit pre-build next (claude-builder), then Codex via
+  `prompts/PROMPT_editor_panel_drawers.md`.
+- 2026-07-23 claude-builder: drawer kit pre-built (read-only for Codex) —
+  `PanelDrawer` (controlled, animated, `aria-expanded`, error-badge support,
+  header testId `presentation-panel-drawer-<id>`), drawer-id constants
+  (`SLIDE/TEXT/MEDIA_PANEL_DRAWERS`), all three panels regrouped behind
+  optional `drawers` prop (absent → flat, exact current order preserved; CTA
+  route error badges the button drawer), `PanelDrawersProp` + constants
+  exported from the package index. `TimelineKitPreview` is the reference
+  consumer: per-panel multi-open state, source-aware ensure-open auto-open
+  demo, drawers/flat toggle. Builder typecheck clean, 150/150 tests green
+  (flat fallback verified by the untouched suites). Codex prompt gates pass.
+- 2026-07-23 codex: implementation and review complete — controller owns
+  independent slide/text/media drawer sets; canvas, timeline-bar, and
+  timeline-label selections carry their source and ensure-open the resolved
+  concern; CTA validation opens the button drawer; `EditorView`, unit tests,
+  Playwright interactions, and KB docs 21/22 were updated. Validation passed:
+  root typecheck, 155/155 builder tests, and the desktop studio editor
+  Playwright spec (1/1). Summary and archive record written; no debug loop
+  required.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved` (operator resolves clarifications 1–3, then flips)
-- Transition owner: operator
+- Current state: `archived`
+- Next state: none; reopen through a nested debug plan if a defect is found
+- Transition owner: codex / operator

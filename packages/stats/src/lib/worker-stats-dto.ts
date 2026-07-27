@@ -110,7 +110,7 @@ export function toWorkerStepSectionViewModel(
     workingSectionName: step?.working_section_name_snapshot ?? null,
     pauseReason:
       step?.state === "paused"
-        ? (step.last_state_record?.reason?.trim() || null)
+        ? (step.last_state_record?.pause_reason?.name?.trim() || null)
         : null,
     pauseDescription:
       step?.state === "paused"

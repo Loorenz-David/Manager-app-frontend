@@ -211,6 +211,85 @@ pre-built by the builder agent and read-only for Codex.
   timeline/media review's operator notes are all fixed). Summary + archive
   record written; plan archived. Studio Playwright deferred to the next
   operator-hosted batch.
+- 2026-07-23 claude-builder: operator-hosted Playwright batch run — studio
+  desktop suite 10/10 green (dashboard, editor shell, editor timeline incl.
+  background color scenario, publish, auth). One stale spec repaired in the
+  process: presentation-dashboard's create-navigation mock predated the
+  empty-draft auto-first-slide behavior; its catch-all trapped the editor's
+  `POST /slides` and failed a limit assertion. Added a slides-POST branch that
+  also asserts the timed create defaults (`duration_ms: 4000`,
+  `playback_mode: "timed"`). Validation for this plan is now complete.
+
+- 2026-07-23 Claude (Opus independent review): **PASS-WITH-NOTES.** Acceptance
+  criteria 1–5 all met with evidence; no defects; no corrections plan. Re-ran
+  validation myself: `npm run typecheck` exit 0; `test:presentation-runtime`
+  20/20; `test:presentation-builder` **155/155** (higher than the summary's 150
+  because the sibling parity-fixes plan landed after close-out — not a
+  discrepancy); `test:presentations` 20/20. Playwright not re-run (10/10 already
+  evidenced above). **Renderer**: `backgroundColor` is painted on the renderer's
+  own container div (`SlideCompositionRenderer.tsx`), behind all
+  `sortCompositionElements` output and inside the clipped canvas — not on a host
+  frame, so no double-paint or rounded-corner seam; `backgroundColor ?? undefined`
+  means null/omitted correctly lets the editor's dark canvas or the player frame
+  show through. The background-coloured slide is pinned in **all three** parity
+  suites (runtime asserts `rgb(16, 42, 67)`, builder preview and
+  `PresentationPlayer.parity.test.tsx` both assert
+  `renderingParityBackgroundColorFixture`). **All four builder render sites plus
+  the player pass it** — preview overlay (`EditorView.tsx:91`), rail thumbnail
+  (`:116`, with the value supplied at the call site `:543`), canvas workspace
+  (`:233`), and `PresentationPlayer.tsx:110`; the classic missed-thumbnail
+  partial wiring did not occur. The canvas render guard was also widened to
+  `elements.length > 0 || backgroundColor !== null`, so a background-only slide
+  still renders — a good catch. **Write path**: both `strictObject` inputs gained
+  the field (`types.ts:246` update-slide, `:391` composition PUT) so it can
+  finally be SENT, `SlideSchema` types it hex-validated (`:99`),
+  `editorCompositionToPutBody` emits `background_color`
+  (`composition-mapping.ts:180`) through the untouched autosave/flush.
+  `setSlideBackgroundColor` mirrors `setSlideDuration` exactly — writes the store
+  presentation slide, marks dirty, bumps both `slideRevisions` (so the memoised
+  `RailThumbnail` actually refreshes) and the global revision, and no-ops when
+  unchanged. Reconcile is correct **including the subtle cross-slide case**:
+  `reconcileAfterFlush` preserves `background_color` for other still-dirty slides
+  alongside `playback_mode`/`duration_ms` (`draft-store.ts:333`), so flushing one
+  slide cannot clobber another's unsaved colour. **Consumer leniency**: schema is
+  `z.string().nullable().optional()` (`presentations/src/types.ts:41`, correctly
+  NOT hex-validated inbound), and the regression test genuinely asserts the
+  **omitted** case — `types.test.ts:25` does `delete slide.background_color` so
+  the key is truly absent, not `undefined`, then asserts `parsed.success`. That
+  is the doc-50 rule properly applied. **Kit purity**: `SlidePropertiesPanel`
+  imports only `@beyo/ui`'s `ColorSwatchPicker` plus local panel primitives, is
+  props-only (`backgroundColor?` / `onBackgroundColorChange?`), renders the
+  picker conditionally so omitting the prop leaves DOM unchanged, and honours
+  `readOnly` — criterion 4's read-only requirement included. **Step 7 hardening
+  (my carried text-block notes) is properly closed**: `lib/text-measurement.ts`
+  is now the single source consumed by both the controller/mapping
+  (`controller:31`) and the canvas hit area (`EditorView:49`), the view's
+  re-implemented `0.58`/`1.2`/wrap constants are gone, and — importantly — the
+  module models wrapping via `maxWidthPx` + `white-space: pre-wrap` (with a
+  matching wrap model in the approximate fallback), which is exactly the trap I
+  flagged: a naive reuse of the old adapter would have shrunk hit areas back to
+  one line. The serialization gap is closed too: `composition-mapping.test.ts:353`
+  asserts a style-free element emits **no** style keys via
+  `not.toHaveProperty(...)` (absence, not `undefined` — the thing `toEqual`
+  masked) and round-trips background→none. **KB docs 10/21/40 accurate** against
+  the code (renderer prop + transparency semantics; store mutator +
+  text-measurement's new home + composition state; consumer leniency with the
+  silent-parse warning and player pass-through). Two **notes, neither a defect of
+  this plan**: (1) **Codex (logic), low — carried residue, out of this plan's
+  scope.** The mapping still calls `measureText` without `maxWidthPx`
+  (`composition-mapping.ts:135`), so the persisted `layout.height` measures text
+  as one unwrapped line, while the view's hit area now models wrapping. The
+  plumbing divergence I originally reported is fixed; what remains is a semantic
+  divergence by parameterisation, and it is a genuine design constraint —
+  `editorElementToPutInput` derives `layout.width` *from* the measurement, so it
+  cannot pass a max width on the first pass. Remedy when it matters: two-pass
+  measure (intrinsic → clamp width → re-measure height at the clamped width).
+  Consequence, as traced in the text-block review: element-level
+  `background_color` behind wrapping text under-covers. Step 7 asked only for
+  single-source plus the serialization assertions, and both were delivered. (2)
+  **Bookkeeping, trivial** — this plan's Lifecycle transition block below still
+  reads `approved` while Metadata reads `archived`; the close-out updated the
+  latter only.
 
 ## Lifecycle transition
 

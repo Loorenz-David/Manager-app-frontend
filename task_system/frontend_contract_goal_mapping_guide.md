@@ -32,6 +32,9 @@ This is the core discipline. The two questions have different answers:
 | Why is my dynamic import ineffective / landing in the main chunk? | `35_shared_packages.md §14` |
 | How do I make an input float above the mobile keyboard? | `37_keyboard_aware_inputs.md` |
 | How do I keep a custom scroll container clear of the keyboard? | `37_keyboard_aware_inputs.md` |
+| How do I build multi-pane forward/back slide navigation (containers sliding over each other)? | `38_slide_stack.md` |
+| How does swipe-back interact with a slide page's slide-to-close? | `38_slide_stack.md` |
+| How do I gate a forward swipe on validation (staged form or otherwise)? | `38_slide_stack.md` |
 | How do I hide a shell element on scroll (global pattern)? | `36_scroll_visibility.md` |
 | How do I hide a surface/slide element on scroll (local pattern)? | `36_scroll_visibility.md` |
 | How does a page register its scroll container? | `36_scroll_visibility.md` |
@@ -145,6 +148,7 @@ Add:
 - `../architecture/33_vaul_drawer.md`
 - `../architecture/36_scroll_visibility.md` — if the feature includes elements that hide on scroll or registers a scroll container
 - `../architecture/37_keyboard_aware_inputs.md` — if the feature has text inputs on mobile surfaces, a custom scroll container with inputs, or an input that floats above the keyboard
+- `../architecture/38_slide_stack.md` — if the feature has multiple containers sliding forward/back over each other (staged forms, drill-downs, wizard-like pane flows)
 
 ### Performance + dynamic loading
 
@@ -180,6 +184,7 @@ Add:
 - "scroll", "overflow", "scrollbar", "ScrollArea" → `29`
 - "keyboard", "software keyboard", "on-screen keyboard", "visualViewport", "keyboard inset", "--keyboard-inset", "keyboard aware", "input above keyboard", "floating input", "FloatingKeyboardBar", "useKeyboardInset", "KeyboardInsetProvider", "keyboard covers input", "input hidden by keyboard", "onCloseAutoFocus keyboard flash" → `37`
 - "hide on scroll", "scroll visibility", "useScrollVisibility", "useScrollVisibilityContext", "isHidden", "hide on scroll", "scroll-driven hide", "AppScrollElementProvider", "registerScrollElement", "ScrollVisibilityProvider", "PullToRefresh registration", "shell card scroll", "fixed element scroll" → `36`
+- "slide stack", "SlideStack", "SlideStackPane", "pane navigation", "container slide", "slide between containers", "swipe forward", "swipe back", "staged step slide", "book page transition", "drill-down panes", "canForward", "canBack", "validateAdvance", "swipe blocked by validation", "ghost pane", "slide-to-close inside form" → `38`
 - "lazy load", "code split", "bundle", "dynamic import", "lazyRoute", "lazyWithPreload", "usePreloadSurface", "preload surface", "surface preload", "skeleton flash" → `30`, `18`
 - "file upload", "attachment", "multipart", "XHR progress" → `22`
 - "notification", "toast", "notify", "useNotify" → `20`

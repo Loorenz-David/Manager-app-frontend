@@ -350,6 +350,11 @@ async function openUpholsteryPicker(page: Page) {
 
   await expect(page.getByTestId('task-detail-upholstery-section')).toBeVisible();
   await page.getByTestId('upholstery-field-item_upholstery_1').click();
+
+  // The picker opens on the Favorites filter; this spec's fixtures put the
+  // reorder-affordance cards in the In Stock list, so select it explicitly.
+  await expect(page.getByTestId('upholstery-picker-body-favorite')).toBeVisible();
+  await page.getByRole('button', { name: 'In Stock' }).click();
   await expect(page.getByTestId('upholstery-picker-body-in_stock')).toBeVisible();
 }
 

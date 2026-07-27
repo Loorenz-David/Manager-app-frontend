@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 
 import {
   ACTIVE_ORDER_STATES,
@@ -49,6 +49,38 @@ export function useOrdersQuery(params: ListOrdersParams, enabled = true) {
     queryFn: () => fetchOrders(params),
     enabled,
     placeholderData: keepPreviousData,
+  });
+}
+
+export function useOrderNeedsPagesQueries(
+  params: Omit<ListOrderNeedsParams, "offset">,
+  offsets: number[],
+) {
+  return useQueries({
+    queries: offsets.map((offset) => {
+      const pageParams = { ...params, offset };
+      return {
+        queryKey: upholsteryOrderingKeys.needsList(pageParams),
+        queryFn: () => fetchOrderNeeds(pageParams),
+        placeholderData: keepPreviousData,
+      };
+    }),
+  });
+}
+
+export function useOrdersPagesQueries(
+  params: Omit<ListOrdersParams, "offset">,
+  offsets: number[],
+) {
+  return useQueries({
+    queries: offsets.map((offset) => {
+      const pageParams = { ...params, offset };
+      return {
+        queryKey: upholsteryOrderingKeys.ordersList(pageParams),
+        queryFn: () => fetchOrders(pageParams),
+        placeholderData: keepPreviousData,
+      };
+    }),
   });
 }
 

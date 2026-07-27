@@ -19,6 +19,10 @@ import { createPortal } from "react-dom";
 
 import { cn, transitions } from "@beyo/lib";
 import { useKeyboardInset } from "../../../providers/KeyboardInsetProvider";
+import {
+  KEYBOARD_TRAY_ANCHOR,
+  KEYBOARD_TRAY_SURFACE,
+} from "../shared/keyboard-tray";
 import { useBodyScrollLock } from "./use-body-scroll-lock";
 
 export type FloatingKeyboardBarProps = {
@@ -32,6 +36,12 @@ export type FloatingKeyboardBarProps = {
     isPanelOpening: boolean;
   }) => ReactNode;
   className?: string;
+  /**
+   * `bar` variant only: stretch the docked surface from the top of the screen
+   * to the keyboard instead of hugging its content, so nothing behind shows
+   * through. The controls stay bottom-aligned, just above the keys.
+   */
+  fullHeight?: boolean;
 };
 
 type FocusOwner = {
@@ -67,6 +77,7 @@ export function FloatingKeyboardBar({
   renderControls,
   className,
   variant = "bar",
+  fullHeight = false,
 }: FloatingKeyboardBarProps): React.JSX.Element | null {
   const { isKeyboardOpen } = useKeyboardInset();
   const floatingInputRef = useRef<HTMLInputElement>(null);
@@ -322,13 +333,29 @@ export function FloatingKeyboardBar({
       {createPortal(
         <div
           className={cn(
-            "pointer-events-none fixed inset-x-0 z-[9999]",
-            "bottom-[var(--keyboard-inset)]",
+            KEYBOARD_TRAY_ANCHOR,
+            fullHeight &&
+              "pointer-events-auto top-0 flex flex-col justify-center overflow-y-auto bg-card pt-(--safe-top)",
           )}
+          data-testid="floating-keyboard-bar-surface"
+          onClick={(event) => {
+            // Tapping the empty area above the controls finishes the edit:
+            // blurring the field lets the owner commit through its own handler.
+            if (!fullHeight || event.target !== event.currentTarget) {
+              return;
+            }
+
+            floatingInputRef.current?.blur();
+          }}
         >
           <div
             className={cn(
-              "pointer-events-auto border-t border-border bg-card px-4 pb-[calc(var(--safe-bottom)_+_0.5rem)] pt-3 shadow-xl",
+              KEYBOARD_TRAY_SURFACE,
+              "pt-3",
+              // Stretched to the top there is nothing behind to divide from,
+              // and the padding turns symmetric so the controls land on the
+              // true centre of the space the keyboard leaves.
+              fullHeight && "border-t-0 py-3 shadow-none",
               className,
             )}
           >

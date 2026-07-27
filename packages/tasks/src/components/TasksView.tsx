@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
-import { PullToRefresh, useScrollHide } from "@beyo/ui";
+import { PullToRefresh } from "@beyo/ui";
 import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 
 import { useTasksViewContext } from "../providers/TasksViewProvider";
@@ -9,7 +9,7 @@ import { TasksHeader } from "./TasksHeader";
 
 export function TasksView(): React.JSX.Element {
   const controller = useTasksViewContext();
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const scrollRef = useRef<HTMLDivElement>(null);
   const taskCards = useMemo(
     () =>
       controller.renderRows.map((entry) => {
@@ -71,38 +71,26 @@ export function TasksView(): React.JSX.Element {
 
   return (
     <div className="relative flex-1 min-h-0" data-testid="tasks-view">
-      <div
-        ref={hideProgressContainerRef}
-        className="absolute inset-x-0 top-0 z-10 will-change-transform"
-        style={{
-          transform:
-            "translateY(calc(-1 * var(--type-picker-height, 56px) * var(--scroll-hide-progress, 0)))",
-          transition: "transform var(--scroll-snap-duration, 0ms) ease-out",
-        }}
-      >
-        <TasksHeader
-          activeFilterCount={controller.activeFilterCount}
-          isHidden={isHidden}
-          isLoading={controller.isLoading}
-          q={controller.q}
-          taskStates={controller.taskStates}
-          taskType={controller.taskType}
-          onFilterPress={controller.openFilterSheet}
-          onQChange={controller.setQ}
-          onSortPress={controller.openSortSheet}
-          onTaskStatesChange={controller.setTaskStates}
-          onTaskTypeChange={controller.setTaskType}
-        />
-      </div>
-
       <PullToRefresh
         className="absolute inset-0"
         scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
-        indicatorOffset={176}
       >
-        <div className="pt-44" data-testid="tasks-list-scroll">
+        <div data-testid="tasks-list-scroll">
+          <TasksHeader
+            activeFilterCount={controller.activeFilterCount}
+            isLoading={controller.isLoading}
+            q={controller.q}
+            taskStates={controller.taskStates}
+            taskType={controller.taskType}
+            onFilterPress={controller.openFilterSheet}
+            onQChange={controller.setQ}
+            onSortPress={controller.openSortSheet}
+            onTaskStatesChange={controller.setTaskStates}
+            onTaskTypeChange={controller.setTaskType}
+          />
+
           <div
             className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2"
             data-testid="tasks-list"

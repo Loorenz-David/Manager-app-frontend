@@ -15,7 +15,7 @@ import {
 export function InventoryDetailActionsSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const surface = useSurface();
-  const { inventoryId } =
+  const { inventoryId, onEdit } =
     useSurfaceProps<InventoryDetailActionsSurfaceProps>();
   const deleteInventory = useDeleteUpholsteryInventory();
 
@@ -26,6 +26,20 @@ export function InventoryDetailActionsSheetPage(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-3 p-6">
+      {onEdit ? (
+        <button
+          className="w-full rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
+          data-testid="inventory-detail-actions-edit"
+          type="button"
+          onClick={() => {
+            surface.close(INVENTORY_DETAIL_ACTIONS_SHEET_ID);
+            onEdit();
+          }}
+        >
+          Edit inventory
+        </button>
+      ) : null}
+
       <ConfirmActionButton
         className="w-full"
         confirmLabel="Tap again to delete"

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImgHTMLAttributes, ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
@@ -17,6 +17,25 @@ export type BackendImageProps = Omit<
    */
   fallback?: ReactNode;
 };
+
+/**
+ * URLs that have fully decoded once this session. A remounted BackendImage
+ * (e.g. a slide-stack pane or list row returning to the screen) skips the
+ * skeleton for these and paints straight from the browser cache — without
+ * this, every remount replays the shimmer over already-loaded images.
+ * FIFO-capped so a very long session cannot grow it unboundedly.
+ */
+const decodedOnceUrls = new Set<string>();
+const DECODED_ONCE_CAP = 1000;
+
+function rememberDecoded(url: string | null | undefined): void {
+  if (!url) return;
+  if (decodedOnceUrls.size >= DECODED_ONCE_CAP && !decodedOnceUrls.has(url)) {
+    const oldest = decodedOnceUrls.values().next().value;
+    if (oldest !== undefined) decodedOnceUrls.delete(oldest);
+  }
+  decodedOnceUrls.add(url);
+}
 
 /**
  * Centralized renderer for images whose URL comes from the backend.
@@ -51,7 +70,11 @@ export function BackendImage({
   // until the incoming one is decoded.
   const [displayedSrc, setDisplayedSrc] = useState<string | null | undefined>(src);
   const [didFail, setDidFail] = useState(false);
-  const [isDisplayedDecoded, setIsDisplayedDecoded] = useState(false);
+  // An image that already decoded this session reveals immediately on mount —
+  // the bytes are in the browser cache; a skeleton would just flash.
+  const [isDisplayedDecoded, setIsDisplayedDecoded] = useState(
+    () => Boolean(src && decodedOnceUrls.has(src)),
+  );
   const displayedImageRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
@@ -72,7 +95,7 @@ export function BackendImage({
     // and the browser cache apply, and errors surface through the element's onError.
     if (!displayedSrc) {
       setDidFail(false);
-      setIsDisplayedDecoded(false);
+      setIsDisplayedDecoded(decodedOnceUrls.has(src));
       setDisplayedSrc(src);
       return;
     }
@@ -82,6 +105,7 @@ export function BackendImage({
 
     const commit = () => {
       if (cancelled) return;
+      rememberDecoded(src);
       setDidFail(false);
       setIsDisplayedDecoded(true);
       setDisplayedSrc(src);
@@ -119,6 +143,23 @@ export function BackendImage({
     // displayedSrc intentionally omitted: this effect reacts to incoming `src` changes only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [src]);
+
+  // Already-cached images: a freshly created <img> whose bytes are in the
+  // browser cache is `complete` right away, and may never fire `load` at all.
+  // Checking in a layout effect reveals it before the browser paints, so a
+  // remount (a slide-stack pane returning, a list row recycling) shows no
+  // skeleton. This backs up `decodedOnceUrls`, which only records URLs whose
+  // async decode() resolved while still mounted — a pane left quickly, or the
+  // short-lived ghost copy rendered during a drag, never gets that far.
+  useLayoutEffect(() => {
+    if (isDisplayedDecoded || didFail) return;
+
+    const image = displayedImageRef.current;
+    if (!image?.complete || image.naturalWidth === 0) return;
+
+    rememberDecoded(displayedSrc);
+    setIsDisplayedDecoded(true);
+  }, [displayedSrc, isDisplayedDecoded, didFail]);
 
   const showImage = Boolean(displayedSrc) && !didFail;
 
@@ -165,6 +206,7 @@ export function BackendImage({
 
           const image = event.currentTarget;
           if (typeof image.decode !== "function") {
+            rememberDecoded(displayedSrc);
             setIsDisplayedDecoded(true);
             return;
           }
@@ -172,6 +214,7 @@ export function BackendImage({
           const revealCurrentImage = () => {
             // Ignore a late decode from an image that failed or was replaced in the meantime.
             if (displayedImageRef.current === image) {
+              rememberDecoded(displayedSrc);
               setIsDisplayedDecoded(true);
             }
           };

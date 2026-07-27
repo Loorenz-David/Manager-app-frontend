@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Calendar } from "lucide-react";
 import {
+  useHeaderlessSlidePage,
   usePreloadSurface,
-  useSurfaceHeader,
   useSurfaceProps,
 } from "@beyo/hooks";
 import { notify } from "@beyo/lib";
@@ -11,11 +11,7 @@ import {
   TASK_DETAIL_SURFACE_ID,
   type TaskDetailSurfaceProps,
 } from "@beyo/tasks";
-import {
-  PullToRefresh,
-  useScrollHide,
-  useSurfaceStore,
-} from "@beyo/ui";
+import { PullToRefresh, useSurfaceStore } from "@beyo/ui";
 
 import { useWorkerStatsRoster } from "../hooks/use-worker-stats-roster";
 import { WorkerStatsCard } from "../components/WorkerStatsCard";
@@ -58,16 +54,6 @@ function openLastStepTaskDetail(taskId: string | null): void {
   } satisfies TaskDetailSurfaceProps);
 }
 
-// Footer — Pattern A (relative-mode scroll hide): slides down + fades out as the
-// list scrolls, driven by the --scroll-hide-progress CSS var from useScrollHide().
-// See architecture/36_scroll_visibility.md.
-const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
-
 function WorkerStatsCardSkeleton(): React.JSX.Element {
   return (
     <div aria-hidden="true" className="overflow-hidden rounded-2xl bg-card shadow-sm">
@@ -93,26 +79,19 @@ function WorkerStatsCardSkeleton(): React.JSX.Element {
 }
 
 export function WorkerStatsSlidePage(): React.JSX.Element {
-  const header = useSurfaceHeader();
   const rawProps = useSurfaceProps<WorkerStatsSlideSurfaceProps>();
   const [range, setRange] = useState<WorkerStatsDateRange>(() => todayRange());
   const roster = useWorkerStatsRoster(range);
-  const { hideProgressContainerRef, scrollRef, isHidden } = useScrollHide();
+  const scrollRef = useRef<HTMLDivElement>(null);
   usePreloadSurface(preloadWorkerTimelineSlideSurface);
   const today = useMemo(() => todayRange().from, []);
 
-  useEffect(() => {
-    // This page renders its own in-scroll title; hide the surface header.
-    header?.setHeaderHidden(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // This page renders its own in-scroll title, so the surface header is hidden
+  // wherever slide-to-close is available.
+  useHeaderlessSlidePage();
 
   async function handleRefresh(): Promise<void> {
     await roster.refetchAll();
-  }
-
-  function handleClose(): void {
-    header?.requestClose();
   }
 
   function updateRange(side: "from" | "to", value: string | null): void {
@@ -142,7 +121,6 @@ export function WorkerStatsSlidePage(): React.JSX.Element {
     <div
       className="relative flex h-full min-h-0 flex-col bg-background"
       data-testid="worker-stats-slide-page"
-      ref={hideProgressContainerRef}
     >
       <PullToRefresh
         className="min-h-0 flex-1"
@@ -152,7 +130,7 @@ export function WorkerStatsSlidePage(): React.JSX.Element {
       >
         <section
           aria-busy={roster.isPending}
-          className="flex flex-col gap-4 px-4 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-4"
+          className="flex flex-col gap-4 px-4 pb-[calc(var(--safe-bottom,0px)+1.5rem)] pt-4"
           data-testid="worker-stats-list"
         >
           <div className="flex items-center justify-between gap-3">
@@ -219,23 +197,6 @@ export function WorkerStatsSlidePage(): React.JSX.Element {
           )}
         </section>
       </PullToRefresh>
-
-      {/* Footer — Pattern A: slides down to hide on scroll (relative mode) */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
-        style={{ ...FOOTER_STYLE, pointerEvents: isHidden ? "none" : undefined }}
-      >
-        <div className="border-t border-border bg-background px-4 py-3.5">
-          <button
-            className="w-full rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
-            type="button"
-            onClick={handleClose}
-          >
-            Close &amp; Back
-          </button>
-        </div>
-        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
-      </div>
     </div>
   );
 }

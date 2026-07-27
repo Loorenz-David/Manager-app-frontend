@@ -1,7 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { tabVariants, transitions } from "@beyo/lib";
 import { PullToRefresh, usePrefetchOnCondition } from "@beyo/ui";
 import { usePreloadSurface, useSurface } from "@beyo/hooks";
 import {
@@ -10,80 +8,19 @@ import {
   prefetchTaskCreationFormData,
 } from "@beyo/task-creation";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
-import {
-  WorkingSectionsHomeProvider,
-  useWorkingSectionsHomeContext,
-} from "../../../working_sections";
+import { useWorkingSectionsHomeContext } from "../../../working_sections";
 import type { WorkingSectionViewModel } from "../../../working_sections";
 import { WorkingSectionCard } from "../../../working_sections/components/WorkingSectionCard";
-import {
-  WorkingSectionStepsProvider,
-  WorkingSectionStepsView,
-} from "../../../task_steps";
+import { WorkerHomeSectionStack } from "../WorkerHomeSectionStack";
 
 export function WoodWorkerHomeView(): React.JSX.Element {
-  const [selectedSection, setSelectedSection] =
-    useState<WorkingSectionViewModel | null>(null);
-  const [direction, setDirection] = useState(0);
-
-  function handleSelectSection(section: WorkingSectionViewModel) {
-    setDirection(1);
-    setSelectedSection(section);
-  }
-
-  function handleBack() {
-    setDirection(-1);
-    setSelectedSection(null);
-  }
-
   return (
-    <WorkingSectionsHomeProvider>
-      <div
-        className="relative h-full overflow-hidden"
-        data-testid="home-page-wood-worker"
-      >
-        <AnimatePresence custom={direction} initial={false}>
-          {selectedSection === null ? (
-            <m.div
-              key="sections"
-              animate="center"
-              className="absolute inset-0 overflow-hidden transform-gpu backface-hidden will-change-transform"
-              custom={direction}
-              exit="exit"
-              initial="enter"
-              transition={transitions.tab}
-              variants={tabVariants}
-            >
-              <div className="h-full overflow-y-auto">
-                <WoodWorkerSectionsView onSelectSection={handleSelectSection} />
-              </div>
-            </m.div>
-          ) : (
-            <m.div
-              key={`steps-${selectedSection.sectionId}`}
-              animate="center"
-              className="absolute inset-0 overflow-hidden transform-gpu backface-hidden will-change-transform"
-              custom={direction}
-              exit="exit"
-              initial="enter"
-              transition={transitions.tab}
-              variants={tabVariants}
-            >
-              <div className="h-full overflow-hidden">
-                <WorkingSectionStepsProvider
-                  sectionId={selectedSection.sectionId}
-                >
-                  <WorkingSectionStepsView
-                    section={selectedSection}
-                    onBack={handleBack}
-                  />
-                </WorkingSectionStepsProvider>
-              </div>
-            </m.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </WorkingSectionsHomeProvider>
+    <WorkerHomeSectionStack
+      data-testid="home-page-wood-worker"
+      renderSections={(onSelectSection) => (
+        <WoodWorkerSectionsView onSelectSection={onSelectSection} />
+      )}
+    />
   );
 }
 

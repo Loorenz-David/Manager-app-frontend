@@ -1,13 +1,8 @@
+import { ChevronLeft } from "lucide-react";
+
 import { cn } from "@beyo/lib";
 import { SearchBar } from "@beyo/ui";
 
-const FILTER_ROW_STYLE: React.CSSProperties = {
-  transform:
-    "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
-};
 
 type TaskPostHandlingHeaderProps = {
   q: string;
@@ -16,6 +11,7 @@ type TaskPostHandlingHeaderProps = {
   stateCounts?: Partial<Record<"pending" | "filled", number>>;
   isPillsDisabled: boolean;
   completedFilterCount: number;
+  onBack: () => void;
   onQChange: (value: string) => void;
   onTabChange: (tab: "pending" | "filled") => void;
   onFilterPress: () => void;
@@ -28,13 +24,16 @@ export function TaskPostHandlingHeader({
   stateCounts,
   isPillsDisabled,
   completedFilterCount,
+  onBack,
   onQChange,
   onTabChange,
   onFilterPress,
 }: TaskPostHandlingHeaderProps): React.JSX.Element {
+  // Scrolls away with the body: the page has no scroll-visibility behaviour,
+  // so the search row and the filter row are plain in-flow content.
   return (
     <div
-      className="relative flex flex-col bg-background"
+      className="flex flex-col bg-background"
       data-testid="task-post-handling-header"
       style={
         {
@@ -42,7 +41,17 @@ export function TaskPostHandlingHeader({
         } as React.CSSProperties
       }
     >
-      <div className="relative z-10 flex items-center gap-2 bg-background px-4 py-2">
+      <div className="flex items-center gap-2 bg-background px-4 py-2">
+        {/* Page-native close: the slide surface renders no header here. */}
+        <button
+          aria-label="Go back"
+          className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors duration-150 hover:bg-muted"
+          data-testid="task-post-handling-back-button"
+          type="button"
+          onClick={onBack}
+        >
+          <ChevronLeft aria-hidden="true" className="size-5" />
+        </button>
         <SearchBar
           activeFilterCount={completedFilterCount}
           data-testid="task-post-handling-search"
@@ -57,10 +66,7 @@ export function TaskPostHandlingHeader({
         />
       </div>
 
-      <div
-        className="absolute inset-x-0 bg-background px-4 pb-1"
-        style={{ top: "100%", ...FILTER_ROW_STYLE }}
-      >
+      <div className="bg-background px-4 pb-1">
         <div
           className="flex gap-2 pb-1"
           data-testid="task-post-handling-filters"

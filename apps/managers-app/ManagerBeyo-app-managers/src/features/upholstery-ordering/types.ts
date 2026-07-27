@@ -150,6 +150,8 @@ export type ShortageCardViewModel = {
   itemCount: number;
   totalAmountMeters: number;
   totalAmountLabel: string;
+  /** The amount without its unit, for the card's big "needed" figure. */
+  totalAmountValueLabel: string;
   earliestDueDate: string | null;
   earliestDueDateLabel: string | null;
 };
@@ -166,6 +168,8 @@ export type OrderCardViewModel = {
   receivedAmountLabel: string;
   remainingReceivableMeters: number;
   remainingReceivableLabel: string;
+  /** The amount without its unit, for the card's big "awaiting" figure. */
+  remainingReceivableValueLabel: string;
   expectedReceiveAt: string | null;
   receivedAt: string | null;
   dateLabel: string | null;

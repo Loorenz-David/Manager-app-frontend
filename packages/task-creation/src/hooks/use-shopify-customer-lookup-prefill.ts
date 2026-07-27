@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useMemo, useRef } from "react";
+import { useCallback, useEffect, useEffectEvent, useMemo, useRef } from "react";
 
 import type {
   FieldPath,
@@ -90,8 +90,10 @@ export function useShopifyCustomerLookupPrefill<
   enabled,
 }: UseShopifyCustomerLookupPrefillOptions<TFormValues>): {
   status: ShopifyCustomerStatus;
+  retry: () => void;
 } {
   const lastInjectedValuesRef = useRef<LastInjectedValues>({});
+  const retryInFlightRef = useRef(false);
   const eligibleLookupParams = useMemo(
     () => buildEligibleLookupParams(articleNumber, sku),
     [articleNumber, sku],
@@ -103,6 +105,21 @@ export function useShopifyCustomerLookupPrefill<
   const query = useShopifyCustomerLookupQuery(eligibleLookupParams, {
     enabled: enabled && hasEligibleLookupParams,
   });
+  const retry = useCallback(() => {
+    if (
+      !enabled ||
+      !hasEligibleLookupParams ||
+      query.isFetching ||
+      retryInFlightRef.current
+    ) {
+      return;
+    }
+
+    retryInFlightRef.current = true;
+    void Promise.resolve(query.refetch()).finally(() => {
+      retryInFlightRef.current = false;
+    });
+  }, [enabled, hasEligibleLookupParams, query.isFetching, query.refetch]);
 
   const injectMappedFields = useEffectEvent(
     (
@@ -174,20 +191,20 @@ export function useShopifyCustomerLookupPrefill<
   ]);
 
   if (!enabled || !hasEligibleLookupParams) {
-    return { status: "idle" };
+    return { status: "idle", retry };
   }
 
   if (query.isPending || query.isFetching) {
-    return { status: "loading" };
+    return { status: "loading", retry };
   }
 
   if (query.isSuccess && query.data.customer_matches.length > 0) {
-    return { status: "found" };
+    return { status: "found", retry };
   }
 
   if (query.isError || query.isSuccess) {
-    return { status: "not_found" };
+    return { status: "not_found", retry };
   }
 
-  return { status: "idle" };
+  return { status: "idle", retry };
 }

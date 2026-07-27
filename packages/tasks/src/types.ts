@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { AddressSchema, DateOnlySchema } from "@beyo/lib";
+import { PauseReasonSchema } from "@beyo/pause-reasons";
 import {
   UpholsteryGroupFieldsSchema,
   type UpholsteryGroupFields,
@@ -106,7 +107,7 @@ export const LatestStateRecordSchema = z.object({
   id: z.string(),
   step_id: z.string(),
   state: StepStateSchema,
-  reason: z.string().nullable(),
+  pause_reason: PauseReasonSchema.nullable(),
   entered_at: z.string().datetime({ offset: true }).nullable(),
   exited_at: z.string().datetime({ offset: true }).nullable(),
   created_at: z.string().datetime({ offset: true }).nullable(),

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import useEmblaCarousel from "embla-carousel-react";
 import { useAuth } from "@beyo/auth";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { IMAGE_VIEWER_SURFACE_ID } from "@beyo/images";
@@ -7,6 +6,8 @@ import { cn } from "@beyo/lib";
 import {
   ContentCard,
   ScrollVisibilityProvider,
+  SlideStack,
+  SlideStackPane,
   UserPill,
   useScrollVisibilityContext,
 } from "@beyo/ui";
@@ -56,10 +57,6 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
   const [acknowledgedIds, setAcknowledgedIds] = useState<Set<string>>(
     new Set(),
   );
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    loop: false,
-  });
   const slideRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeScrollElement, setActiveScrollElement] =
@@ -77,23 +74,6 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
     hasLockedRef.current = true;
     setLockedEntries(unread);
   }, [notesQuery.data, notesQuery.isPending, user?.id]);
-
-  useEffect(() => {
-    if (!emblaApi) {
-      return;
-    }
-
-    const syncIndex = () => {
-      setActiveIndex(emblaApi.selectedScrollSnap());
-    };
-
-    syncIndex();
-    emblaApi.on("select", syncIndex);
-
-    return () => {
-      emblaApi.off("select", syncIndex);
-    };
-  }, [emblaApi]);
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -123,7 +103,7 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
 
     if (acknowledgedIds.has(noteId)) {
       if (activeIndex < lockedEntries.length - 1) {
-        emblaApi?.scrollTo(activeIndex + 1);
+        setActiveIndex((currentIndex) => currentIndex + 1);
       }
       return;
     }
@@ -132,17 +112,30 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
     setAcknowledgedIds((previous) => new Set([...previous, noteId]));
 
     if (activeIndex < lockedEntries.length - 1) {
-      emblaApi?.scrollTo(activeIndex + 1);
+      setActiveIndex((currentIndex) => currentIndex + 1);
     }
   }, [
     acknowledgedIds,
     activeIndex,
-    emblaApi,
     lockedEntries,
     markReadBy,
     taskId,
     user?.id,
   ]);
+
+  const handleBack = useCallback(() => {
+    setActiveIndex((currentIndex) => Math.max(0, currentIndex - 1));
+  }, []);
+
+  const handleForward = useCallback(() => {
+    setActiveIndex((currentIndex) => {
+      if (!lockedEntries) {
+        return currentIndex;
+      }
+
+      return Math.min(lockedEntries.length - 1, currentIndex + 1);
+    });
+  }, [lockedEntries]);
 
   const handleOpenImageViewer = useCallback(
     (entry: TaskNoteApiEntry, imageClientId: string) => {
@@ -225,52 +218,55 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
     >
       <div
         ref={containerRef}
-        className="relative bg-background"
+        className="relative overflow-x-hidden bg-background"
         data-testid="task-note-unread-viewer"
         style={{ height: NOTES_PANEL_HEIGHT }}
       >
-        <div className="h-full overflow-hidden" ref={emblaRef}>
-          <div className="flex h-full">
-            {lockedEntries.map((entry) => (
-              <div
-                key={entry.note.client_id}
-                ref={(element) => {
-                  slideRefs.current.set(entry.note.client_id, element);
-                }}
-                className="min-w-0 flex-[0_0_100%] overflow-y-auto px-4 pt-4 pb-28"
-                data-testid={`task-note-unread-slide-${entry.note.client_id}`}
-              >
-                {entry.note.created_by ? (
-                  <div className="mb-3 flex items-center justify-between gap-3 px-1">
-                    <UserPill
-                      userName={entry.note.created_by.username}
-                      imageSrc={entry.note.created_by.profile_picture}
-                      className="bg-card shadow-sm  text-foreground text-sm font-medium py-1.5 px-2.5"
-                    />
-                    <span className="shrink-0 text-xs text-muted-foreground">
-                      {formatNoteTime(entry.note.created_at)}
-                    </span>
-                  </div>
-                ) : null}
-                <ContentCard gapClassName="gap-4">
-                  <TaskNoteContentView
-                    content={entry.note.content}
-                    plainText={entry.note.plain_text}
+        <SlideStack
+          activeId={activeEntry?.note.client_id ?? ""}
+          onBack={handleBack}
+          onForward={handleForward}
+        >
+          {lockedEntries.map((entry) => (
+            <SlideStackPane
+              key={entry.note.client_id}
+              className="h-full overflow-y-auto px-4 pt-4 pb-28"
+              data-testid={`task-note-unread-slide-${entry.note.client_id}`}
+              id={entry.note.client_id}
+              ref={(element) => {
+                slideRefs.current.set(entry.note.client_id, element);
+              }}
+            >
+              {entry.note.created_by ? (
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <UserPill
+                    userName={entry.note.created_by.username}
+                    imageSrc={entry.note.created_by.profile_picture}
+                    className="bg-card shadow-sm  text-foreground text-sm font-medium py-1.5 px-2.5"
                   />
-                  {entry.note_images.length > 0 ? (
-                    <TaskNoteReadonlyImages
-                      images={entry.note_images}
-                      onOpen={(imageClientId) =>
-                        handleOpenImageViewer(entry, imageClientId)
-                      }
-                      testId="task-note-unread-images"
-                    />
-                  ) : null}
-                </ContentCard>
-              </div>
-            ))}
-          </div>
-        </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {formatNoteTime(entry.note.created_at)}
+                  </span>
+                </div>
+              ) : null}
+              <ContentCard gapClassName="gap-4">
+                <TaskNoteContentView
+                  content={entry.note.content}
+                  plainText={entry.note.plain_text}
+                />
+                {entry.note_images.length > 0 ? (
+                  <TaskNoteReadonlyImages
+                    images={entry.note_images}
+                    onOpen={(imageClientId) =>
+                      handleOpenImageViewer(entry, imageClientId)
+                    }
+                    testId="task-note-unread-images"
+                  />
+                ) : null}
+              </ContentCard>
+            </SlideStackPane>
+          ))}
+        </SlideStack>
 
         <UnreadViewerFooter
           acknowledgedIds={acknowledgedIds}

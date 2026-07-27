@@ -1,5 +1,11 @@
-import { useEffect } from "react";
-import { PullToRefresh, useScrollHide } from "@beyo/ui";
+import { useEffect, useRef } from "react";
+import {
+  AnimatedRemovalGroup,
+  AnimatedRemovalItem,
+  PullToRefresh,
+  SlideStack,
+  SlideStackPane,
+} from "@beyo/ui";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
@@ -12,25 +18,111 @@ import {
 import { ShortageCard } from "../components/ShortageCard";
 import { UpholsteryOrderingHeader } from "../components/UpholsteryOrderingHeader";
 import {
+  type OrderingMode,
+  type UpholsteryOrderingController,
+} from "../controllers/use-upholstery-ordering.controller";
+import {
   UpholsteryOrderingProvider,
   useUpholsteryOrderingContext,
 } from "../providers/UpholsteryOrderingProvider";
 
-const HEADER_INDICATOR_OFFSET = 120;
-const CONTENT_TOP_OFFSET_CLASS = "pt-[122px]";
+const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(100dvh-7rem)]";
 
-const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+type OrderingPaneProps = {
+  controller: UpholsteryOrderingController;
+  mode: OrderingMode;
 };
+
+function OrderingPane({
+  controller,
+  mode,
+}: OrderingPaneProps): React.JSX.Element {
+  const isNeeds = mode === "needs";
+  const hasCards = isNeeds
+    ? controller.shortageCards.length > 0
+    : controller.orderCards.length > 0;
+
+  if (controller.isInitialLoadingByMode[mode]) {
+    return (
+      <div className="flex flex-col gap-3 pt-2">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <OrderingSkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (controller.isErrorByMode[mode]) {
+    return (
+      <OrderingErrorState
+        onRetry={() => void controller.retryByMode[mode]()}
+      />
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3 pt-2">
+      <AnimatedRemovalGroup>
+        {isNeeds
+          ? controller.shortageCards.map((card) => (
+              <AnimatedRemovalItem key={card.upholsteryId} gapPx={12}>
+                <ShortageCard
+                  card={card}
+                  onOpen={controller.openShortageDetail}
+                />
+              </AnimatedRemovalItem>
+            ))
+          : controller.orderCards.map((card) => (
+              <AnimatedRemovalItem key={card.orderId} gapPx={12}>
+                <OrderCard card={card} onOpen={controller.openOrderDetail} />
+              </AnimatedRemovalItem>
+            ))}
+      </AnimatedRemovalGroup>
+
+      {!hasCards ? (
+        <OrderingEmptyState
+          hasSearch={controller.searchInput.trim().length > 0}
+          mode={mode}
+        />
+      ) : controller.hasMoreByMode[mode] &&
+        !controller.isPaginationErrorByMode[mode] ? (
+        <div className="flex justify-center pb-6">
+          <button
+            className="rounded-full bg-card px-6 py-2 text-sm font-medium text-foreground shadow-sm disabled:opacity-50"
+            disabled={controller.isFetchingMoreByMode[mode]}
+            type="button"
+            onClick={controller.loadMoreByMode[mode]}
+          >
+            {controller.isFetchingMoreByMode[mode]
+              ? "Loading..."
+              : "Load more"}
+          </button>
+        </div>
+      ) : controller.isPaginationErrorByMode[mode] ? (
+        <div className="flex justify-center gap-2 pb-6">
+          <span className="text-sm text-muted-foreground">
+            Failed to load more.
+          </span>
+          <button
+            className="text-sm text-primary"
+            type="button"
+            onClick={() => void controller.retryByMode[mode]()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function Content(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useUpholsteryOrderingContext();
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // The page carries its own back chevron in the header, so the surface header
+  // stays hidden on every breakpoint.
   useEffect(() => {
     header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -38,11 +130,16 @@ function Content(): React.JSX.Element {
 
   return (
     <div
-      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col bg-background"
       data-testid="upholstery-ordering-slide-page"
     >
-      <div className="absolute inset-x-0 top-0 z-10">
+      <PullToRefresh
+        className="absolute inset-0"
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
+        onRefresh={controller.refetch}
+      >
+        {/* Header scrolls with the body — no scroll-visibility on this page. */}
         <UpholsteryOrderingHeader
           countsError={controller.countsError}
           isLoading={controller.isBackgroundLoading}
@@ -50,93 +147,36 @@ function Content(): React.JSX.Element {
           needsCount={controller.needsCount}
           ordersCount={controller.ordersCount}
           searchInput={controller.searchInput}
-          onBack={controller.close}
+          onBack={header?.requestClose ?? controller.close}
           onModeChange={controller.setMode}
           onSearchChange={controller.setSearchInput}
         />
-      </div>
 
-      <PullToRefresh
-        className="absolute inset-0"
-        indicatorOffset={HEADER_INDICATOR_OFFSET}
-        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
-        scrollRef={scrollRef}
-        onRefresh={controller.refetch}
-      >
-        <div className={CONTENT_TOP_OFFSET_CLASS}>
-          {controller.isInitialLoading ? (
-            <div className="flex flex-col gap-3 px-0 pb-32 pt-2">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <OrderingSkeleton key={index} />
-              ))}
-            </div>
-          ) : controller.isError ? (
-            <OrderingErrorState onRetry={controller.retry} />
-          ) : controller.mode === "needs" &&
-            controller.shortageCards.length === 0 ? (
-            <OrderingEmptyState
-              hasSearch={controller.searchInput.trim().length > 0}
-              mode="needs"
-            />
-          ) : controller.mode === "orders" &&
-            controller.orderCards.length === 0 ? (
-            <OrderingEmptyState
-              hasSearch={controller.searchInput.trim().length > 0}
-              mode="orders"
-            />
-          ) : (
-            <div className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2">
-              {controller.mode === "needs"
-                ? controller.shortageCards.map((card) => (
-                    <ShortageCard
-                      key={card.upholsteryId}
-                      card={card}
-                      onCreate={controller.openCreateOrder}
-                      onOpen={controller.openShortageDetail}
-                    />
-                  ))
-                : controller.orderCards.map((card) => (
-                    <OrderCard
-                      key={card.orderId}
-                      card={card}
-                      onOpen={controller.openOrderDetail}
-                      onReceive={controller.openReceiveOrder}
-                    />
-                  ))}
-
-              {controller.hasMore && !controller.isPaginationError ? (
-                <div className="flex justify-center pb-6">
-                  <button
-                    className="rounded-full bg-card px-6 py-2 text-sm font-medium text-foreground shadow-sm disabled:opacity-50"
-                    disabled={controller.isFetchingMore}
-                    type="button"
-                    onClick={controller.loadMore}
-                  >
-                    {controller.isFetchingMore ? "Loading..." : "Load more"}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          )}
+        {/* The header and both independent list panes share one scroll body.
+         * This positioned wrapper anchors overlapping panes and drag ghosts;
+         * PullToRefresh clips their horizontal overflow. */}
+        <div className="relative" data-testid="upholstery-ordering-scroll">
+          <SlideStack
+            activeId={controller.mode}
+            onBack={controller.goToPreviousMode}
+            onForward={controller.goToNextMode}
+          >
+            {controller.modes.map((mode) => (
+              <SlideStackPane
+                key={mode}
+                className={`${BODY_MIN_HEIGHT_CLASS} pb-[calc(var(--safe-bottom,0px)+1.5rem)]`}
+                data-testid={`upholstery-ordering-body-${mode}`}
+                id={mode}
+              >
+                <OrderingPane
+                  controller={controller}
+                  mode={mode}
+                />
+              </SlideStackPane>
+            ))}
+          </SlideStack>
         </div>
       </PullToRefresh>
-
-      {/* Footer — Pattern A: slides down to hide */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
-        style={{ ...FOOTER_STYLE, pointerEvents: isHidden ? "none" : undefined }}
-      >
-        <div className="px-4 py-3.5">
-          <button
-            className="w-full rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
-            type="button"
-            onClick={controller.close}
-          >
-            Close &amp; Back
-          </button>
-        </div>
-        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
-      </div>
     </div>
   );
 }

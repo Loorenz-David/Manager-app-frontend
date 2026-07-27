@@ -9,6 +9,7 @@ import {
   type ItemPositionSheetSurfaceProps,
 } from "@beyo/items";
 import {
+  ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
@@ -26,6 +27,7 @@ import {
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
   TASK_TYPE_SHEET_SURFACE_ID,
+  loadItemIdentitySheetPage,
   loadItemQuantitySheetPage,
   loadItemUpholsteryAmountSheetPage,
   loadPinNotificationsSlidePage,
@@ -96,6 +98,7 @@ const emailMessageDetailsSheet = lazyWithPreload(
   loadEmailMessageDetailsSheetPage,
 );
 const itemQuantitySheet = lazyWithPreload(loadItemQuantitySheetPage);
+const itemIdentitySheet = lazyWithPreload(loadItemIdentitySheetPage);
 const itemPositionSheet = lazyWithPreload(() =>
   import("@beyo/items").then((module) => ({
     default: module.ItemPositionSheetPage,
@@ -146,6 +149,7 @@ export const preloadTaskPostHandlingPendingWarningSheetSurface =
   taskPostHandlingPendingWarningSheet.preload;
 
 export {
+  ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
@@ -179,6 +183,7 @@ export {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "@beyo/task-working-sections";
 export type {
+  ItemIdentitySurfaceProps,
   ItemQuantitySurfaceProps,
   ItemUpholsteryAmountSurfaceProps,
   PinNotificationsSlideSurfaceProps,
@@ -265,6 +270,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [ITEM_QUANTITY_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: itemQuantitySheet.Component,
+  },
+  [ITEM_IDENTITY_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: itemIdentitySheet.Component,
   },
   [ITEM_POSITION_SHEET_SURFACE_ID]: {
     surface: "sheet",

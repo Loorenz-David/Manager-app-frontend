@@ -25,10 +25,18 @@ export { SurfaceSkeleton } from "./components/ui/SurfaceSkeleton";
 export { RouteErrorBoundary } from "./components/ui/RouteErrorBoundary";
 export * from "./components/text-styling";
 
+export {
+  beginUiTransition,
+  isUiTransitioning,
+  resetUiTransitionGate,
+  runWhenUiSettled,
+} from "./lib/ui-transition-gate";
+export { useUiTransitionToken } from "./lib/use-ui-transition-token";
 export { lazyRoute } from "./lib/lazy-route";
 export { lazyWithPreload } from "./lib/lazy-with-preload";
 export { usePrefetchOnCondition } from "./lib/use-prefetch-on-condition";
 
+export * from "./components/primitives/amount-quick-action";
 export * from "./components/primitives/animated-removal";
 export * from "./components/primitives/box-picker";
 export * from "./components/primitives/box-slide-picker";
@@ -55,6 +63,7 @@ export * from "./components/primitives/pull-to-refresh";
 export * from "./components/primitives/scroll-visibility";
 export * from "./components/primitives/search-bar";
 export * from "./components/primitives/shared";
+export * from "./components/primitives/slide-stack";
 export * from "./components/primitives/staged-form";
 export * from "./components/primitives/state-pill";
 export * from "./components/primitives/switch";

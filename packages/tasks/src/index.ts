@@ -140,6 +140,7 @@ export { TaskFulfillmentMethodField } from "./components/fields/TaskFulfillmentM
 export { TaskReadyByDateField } from "./components/fields/TaskReadyByDateField";
 export { TaskReturnSourceField } from "./components/fields/TaskReturnSourceField";
 export {
+  ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
@@ -156,6 +157,7 @@ export {
   TASK_TYPE_SHEET_SURFACE_ID,
 } from "./surface-ids";
 export type {
+  ItemIdentitySurfaceProps,
   ItemQuantitySurfaceProps,
   ItemUpholsteryAmountSurfaceProps,
   PinNotificationsSlideSurfaceProps,
@@ -267,6 +269,11 @@ export function loadTaskFilterSheetPage() {
 export function loadItemQuantitySheetPage() {
   return import("./pages/ItemQuantitySheetPage").then((m) => ({
     default: m.ItemQuantitySheetPage,
+  }));
+}
+export function loadItemIdentitySheetPage() {
+  return import("./pages/ItemIdentitySheetPage").then((m) => ({
+    default: m.ItemIdentitySheetPage,
   }));
 }
 export function loadItemUpholsteryAmountSheetPage() {

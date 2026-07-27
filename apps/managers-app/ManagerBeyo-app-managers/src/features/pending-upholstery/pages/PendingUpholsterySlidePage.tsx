@@ -1,5 +1,11 @@
-import { useEffect } from "react";
-import { PullToRefresh, useScrollHide } from "@beyo/ui";
+import { useEffect, useRef } from "react";
+import {
+  AnimatedRemovalGroup,
+  AnimatedRemovalItem,
+  PullToRefresh,
+  SlideStack,
+  SlideStackPane,
+} from "@beyo/ui";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
 
@@ -9,25 +15,112 @@ import { PendingUpholsteryErrorState } from "../components/PendingUpholsteryErro
 import { PendingUpholsteryHeader } from "../components/PendingUpholsteryHeader";
 import { PendingUpholsterySkeleton } from "../components/PendingUpholsterySkeleton";
 import {
+  type PendingUpholsteryController,
+  type PendingUpholsteryFilter,
+} from "../controllers/use-pending-upholstery.controller";
+import {
   PendingUpholsteryProvider,
   usePendingUpholsteryContext,
 } from "../providers/PendingUpholsteryProvider";
 
-const HEADER_INDICATOR_OFFSET = 120;
-const CONTENT_TOP_OFFSET_CLASS = "pt-[122px]";
+const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(100dvh-7rem)]";
 
-const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-  transition:
-    "transform var(--scroll-snap-duration, 0ms) ease-out, opacity var(--scroll-snap-duration, 0ms) ease-out",
+type PendingUpholsteryPaneProps = {
+  filter: PendingUpholsteryFilter;
+  controller: PendingUpholsteryController;
 };
+
+function PendingUpholsteryPane({
+  filter,
+  controller,
+}: PendingUpholsteryPaneProps): React.JSX.Element {
+  const cards = controller.cardsByFilter[filter];
+  const isPaginationError = controller.isPaginationErrorByFilter[filter];
+
+  if (controller.isInitialLoadingByFilter[filter]) {
+    return (
+      <div className="flex flex-col gap-3 pt-2">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <PendingUpholsterySkeleton key={index} />
+        ))}
+      </div>
+    );
+  }
+
+  if (controller.isErrorByFilter[filter]) {
+    return (
+      <PendingUpholsteryErrorState
+        onRetry={() => void controller.retryByFilter[filter]()}
+      />
+    );
+  }
+
+  // Keep the removal group mounted when the last row leaves so its exit can
+  // finish before the empty state takes over.
+  return (
+    <div className="flex flex-col gap-3 pt-2">
+      <AnimatedRemovalGroup>
+        {cards.map((card) => (
+          <AnimatedRemovalItem key={card.taskId} gapPx={12}>
+            <PendingUpholsteryCard
+              card={card}
+              onOpenUpholsteryPicker={controller.openUpholsteryPicker}
+              onTapActions={controller.openTaskActions}
+              onTapCard={controller.openTaskDetail}
+              onTapImage={controller.openImageViewer}
+            />
+          </AnimatedRemovalItem>
+        ))}
+      </AnimatedRemovalGroup>
+
+      {cards.length === 0 ? (
+        <PendingUpholsteryEmptyState
+          hasSearch={controller.searchInput.trim().length > 0}
+          missingQuantity={filter === "missing_quantity"}
+          missingSelection={filter === "missing_selection"}
+        />
+      ) : controller.hasMoreByFilter[filter] && !isPaginationError ? (
+        <div className="flex justify-center pb-6">
+          <button
+            className="rounded-full bg-card px-6 py-2 text-sm font-medium text-foreground shadow-sm disabled:opacity-50"
+            disabled={controller.isFetchingMoreByFilter[filter]}
+            type="button"
+            onClick={controller.loadMoreByFilter[filter]}
+          >
+            {controller.isFetchingMoreByFilter[filter]
+              ? "Loading..."
+              : "Load more"}
+          </button>
+        </div>
+      ) : isPaginationError ? (
+        <div className="flex justify-center gap-2 pb-6">
+          <span className="text-sm text-muted-foreground">
+            Failed to load more.
+          </span>
+          <button
+            className="text-sm text-primary"
+            type="button"
+            onClick={() => void controller.retryByFilter[filter]()}
+          >
+            Retry
+          </button>
+        </div>
+      ) : (
+        <div className="flex justify-center pb-6">
+          <span className="text-xs text-muted-foreground">End of list</span>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PendingUpholsterySlideContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = usePendingUpholsteryContext();
-  const { scrollRef, isHidden, hideProgressContainerRef } = useScrollHide();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
+  // The page carries its own back chevron in the header, so the surface header
+  // stays hidden on every breakpoint.
   useEffect(() => {
     header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -35,11 +128,16 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
 
   return (
     <div
-      ref={hideProgressContainerRef}
       className="relative flex h-full min-h-0 flex-col bg-background"
       data-testid="pending-upholstery-slide-page"
     >
-      <div className="absolute inset-x-0 top-0 z-10">
+      <PullToRefresh
+        className="absolute inset-0"
+        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
+        scrollRef={scrollRef}
+        onRefresh={controller.refetch}
+      >
+        {/* Header scrolls with the body — no scroll-visibility on this page. */}
         <PendingUpholsteryHeader
           counts={controller.counts}
           countsError={controller.countsError}
@@ -47,103 +145,36 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
           missingQuantity={controller.missingQuantity}
           missingSelection={controller.missingSelection}
           searchInput={controller.searchInput}
-          onBack={controller.close}
+          onBack={header?.requestClose ?? controller.close}
           onFiltersChange={controller.setFilters}
           onSearchChange={controller.setSearchInput}
         />
-      </div>
 
-      <PullToRefresh
-        className="absolute inset-0"
-        indicatorOffset={HEADER_INDICATOR_OFFSET}
-        scrollClassName="overflow-x-hidden overflow-y-auto overscroll-y-none"
-        scrollRef={scrollRef}
-        onRefresh={controller.refetch}
-      >
-        <div
-          className={CONTENT_TOP_OFFSET_CLASS}
-          data-testid="pending-upholstery-scroll"
-        >
-          {controller.isInitialLoading ? (
-            <div className="flex flex-col gap-3 px-0 pb-32 pt-2">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <PendingUpholsterySkeleton key={index} />
-              ))}
-            </div>
-          ) : controller.isError ? (
-            <PendingUpholsteryErrorState onRetry={controller.retry} />
-          ) : controller.cards.length === 0 ? (
-            <PendingUpholsteryEmptyState
-              hasSearch={controller.searchInput.trim().length > 0}
-              missingQuantity={controller.missingQuantity}
-              missingSelection={controller.missingSelection}
-            />
-          ) : (
-            <div className="flex flex-col gap-3 pb-[calc(var(--safe-bottom,0)+5.5rem)] pt-2">
-              {controller.cards.map((card) => (
-                <PendingUpholsteryCard
-                  key={card.taskId}
-                  card={card}
-                  onOpenAmountSheet={controller.openAmountSheet}
-                  onOpenUpholsteryPicker={controller.openUpholsteryPicker}
-                  onTapActions={controller.openTaskActions}
-                  onTapCard={controller.openTaskDetail}
-                  onTapImage={controller.openImageViewer}
+        {/* The header and both independent list panes form one scroll body.
+         * This positioned wrapper anchors overlapping panes and drag ghosts;
+         * PullToRefresh clips their horizontal overflow. */}
+        <div className="relative" data-testid="pending-upholstery-scroll">
+          <SlideStack
+            activeId={controller.activeFilter}
+            onBack={controller.goToPreviousFilter}
+            onForward={controller.goToNextFilter}
+          >
+            {controller.filters.map((filter) => (
+              <SlideStackPane
+                key={filter}
+                className={`${BODY_MIN_HEIGHT_CLASS} pb-[calc(var(--safe-bottom,0px)+1.5rem)]`}
+                data-testid={`pending-upholstery-body-${filter}`}
+                id={filter}
+              >
+                <PendingUpholsteryPane
+                  controller={controller}
+                  filter={filter}
                 />
-              ))}
-
-              {controller.hasMore && !controller.isPaginationError ? (
-                <div className="flex justify-center pb-6">
-                  <button
-                    className="rounded-full bg-card px-6 py-2 text-sm font-medium text-foreground shadow-sm disabled:opacity-50"
-                    disabled={controller.isFetchingMore}
-                    type="button"
-                    onClick={controller.loadMore}
-                  >
-                    {controller.isFetchingMore ? "Loading..." : "Load more"}
-                  </button>
-                </div>
-              ) : controller.isPaginationError ? (
-                <div className="flex justify-center gap-2 pb-6">
-                  <span className="text-sm text-muted-foreground">
-                    Failed to load more.
-                  </span>
-                  <button
-                    className="text-sm text-primary"
-                    type="button"
-                    onClick={controller.loadMore}
-                  >
-                    Retry
-                  </button>
-                </div>
-              ) : (
-                <div className="flex justify-center pb-6">
-                  <span className="text-xs text-muted-foreground">
-                    End of list
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
+              </SlideStackPane>
+            ))}
+          </SlideStack>
         </div>
       </PullToRefresh>
-
-      {/* Footer — Pattern A: slides down to hide */}
-      <div
-        className="absolute inset-x-0 bottom-0 z-10 will-change-transform"
-        style={{ ...FOOTER_STYLE, pointerEvents: isHidden ? "none" : undefined }}
-      >
-        <div className="border-t border-border bg-background px-4 py-3.5">
-          <button
-            className="w-full rounded-2xl border border-between-border bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm"
-            type="button"
-            onClick={controller.close}
-          >
-            Close &amp; Back
-          </button>
-        </div>
-        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
-      </div>
     </div>
   );
 }

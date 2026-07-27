@@ -65,7 +65,7 @@ function visibleText(container: HTMLElement): string {
 
 describe("SlideCompositionRenderer backend recipes", () => {
   it("paints the slide background behind every composition element", () => {
-    const { getByTestId, getByText } = render(
+    const { getByAltText, getByTestId, getByText } = render(
       <SlideCompositionRenderer
         elements={renderingParityCompositionFixture}
         timeMs={0}
@@ -79,6 +79,12 @@ describe("SlideCompositionRenderer backend recipes", () => {
       getByTestId("slide-composition-renderer").style.backgroundColor,
     ).toBe("rgb(16, 42, 67)");
     expect(getByText("Shared parity headline")).not.toBeNull();
+    const image = getByAltText("Shared parity layer zero");
+    expect(image.style.objectFit).toBe("cover");
+    expect(image.style.left).toBe("0px");
+    expect(image.style.top).toBe("0px");
+    expect(image.style.width).toBe("390px");
+    expect(image.style.height).toBe("690px");
   });
 
   it("reports failed backend media so a host can refresh presigned URLs", () => {

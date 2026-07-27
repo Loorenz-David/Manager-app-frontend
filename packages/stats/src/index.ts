@@ -152,7 +152,8 @@ export type {
 } from "./types";
 export {
   humanizeReason,
-  pauseReasonLabel,
+  resolvePauseReasonLabel,
+  UNSPECIFIED_REASON_KEY,
 } from "./lib/time-line-calendar/pause-reason-labels";
 export type { TimelineViewMode } from "./lib/time-line-calendar/window";
 export type {

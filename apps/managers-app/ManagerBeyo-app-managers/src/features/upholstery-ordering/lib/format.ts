@@ -1,9 +1,14 @@
-export function formatMetersValue(value: number | null | undefined): string {
+/** Formats a meters amount without its unit, e.g. "3" or "4,25". */
+export function formatMetersNumber(value: number | null | undefined): string {
   const safeValue = Number.isFinite(value ?? NaN) ? Number(value) : 0;
-  return `${new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat("sv-SE", {
     maximumFractionDigits: 2,
     minimumFractionDigits: safeValue % 1 === 0 ? 0 : 1,
-  }).format(safeValue)} m`;
+  }).format(safeValue);
+}
+
+export function formatMetersValue(value: number | null | undefined): string {
+  return `${formatMetersNumber(value)} m`;
 }
 
 /** Formats a meters value with exactly 3 decimal places, e.g. "1.250 m". */

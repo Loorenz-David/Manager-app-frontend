@@ -77,6 +77,14 @@ export const TASK_CREATION_FORM_TYPE = [
 ] as const;
 export type TaskCreationFormType = (typeof TASK_CREATION_FORM_TYPE)[number];
 
+export const SkuReservationSchema = z.object({
+  client_id: z.string(),
+  task_type: z.enum(TASK_CREATION_FORM_TYPE),
+  reserved_scalar: z.number().int().nonnegative(),
+  sku: z.string().min(1),
+});
+export type SkuReservation = z.infer<typeof SkuReservationSchema>;
+
 export const SHOPIFY_CUSTOMER_MATCH_TYPE = ["sku", "barcode"] as const;
 export type ShopifyCustomerMatchType =
   (typeof SHOPIFY_CUSTOMER_MATCH_TYPE)[number];

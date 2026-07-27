@@ -1,73 +1,36 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 
-import { useAuthStore, selectUser } from "@beyo/auth";
-import { generateClientId } from "@beyo/lib";
-
+import {
+  useTaskCreationFormController,
+  type TaskCreationFormController,
+} from "../controllers/use-task-creation-form.controller";
 import type { TaskCreationCallbacks } from "../surfaces";
-
-type TaskCreationFormContextValue = {
-  taskClientId: string;
-  itemClientId: string;
-  customerClientId: string;
-  noteClientId: string;
-  currentUserClientId: string;
-  regenerateIds: () => void;
-  callbacks: TaskCreationCallbacks;
-};
+import type { TaskCreationFormType } from "../types";
 
 const TaskCreationFormContext =
-  createContext<TaskCreationFormContextValue | null>(null);
+  createContext<TaskCreationFormController | null>(null);
 
 type TaskCreationFormProviderProps = {
   children: ReactNode;
   callbacks?: TaskCreationCallbacks;
+  taskType?: TaskCreationFormType;
 };
 
 export function TaskCreationFormProvider({
   children,
   callbacks,
+  taskType,
 }: TaskCreationFormProviderProps): React.JSX.Element {
-  const user = useAuthStore(selectUser);
-  const currentUserClientId = String(user?.id ?? "");
-
-  const [taskClientId, setTaskClientId] = useState(() =>
-    generateClientId("ExecutionTask"),
-  );
-  const [itemClientId, setItemClientId] = useState(() =>
-    generateClientId("Item"),
-  );
-  const [customerClientId, setCustomerClientId] = useState(() =>
-    generateClientId("Customer"),
-  );
-  const [noteClientId, setNoteClientId] = useState(() =>
-    generateClientId("TaskNote"),
-  );
-
-  function regenerateIds(): void {
-    setTaskClientId(generateClientId("ExecutionTask"));
-    setItemClientId(generateClientId("Item"));
-    setCustomerClientId(generateClientId("Customer"));
-    setNoteClientId(generateClientId("TaskNote"));
-  }
+  const controller = useTaskCreationFormController({ callbacks, taskType });
 
   return (
-    <TaskCreationFormContext.Provider
-      value={{
-        taskClientId,
-        itemClientId,
-        customerClientId,
-        noteClientId,
-        currentUserClientId,
-        regenerateIds,
-        callbacks: callbacks ?? {},
-      }}
-    >
+    <TaskCreationFormContext.Provider value={controller}>
       {children}
     </TaskCreationFormContext.Provider>
   );
 }
 
-export function useTaskCreationFormContext(): TaskCreationFormContextValue {
+export function useTaskCreationFormContext(): TaskCreationFormController {
   const context = useContext(TaskCreationFormContext);
 
   if (!context) {

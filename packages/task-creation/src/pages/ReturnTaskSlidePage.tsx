@@ -15,7 +15,7 @@ export function ReturnTaskSlidePage(): React.JSX.Element {
   }, [header]);
 
   return (
-    <TaskCreationFormProvider callbacks={callbacks}>
+    <TaskCreationFormProvider callbacks={callbacks} taskType="return">
       <ReturnFormContent />
     </TaskCreationFormProvider>
   );

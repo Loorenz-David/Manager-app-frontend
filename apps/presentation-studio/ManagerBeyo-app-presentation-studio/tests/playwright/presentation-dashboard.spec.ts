@@ -212,19 +212,58 @@ async function installApi(page: Page): Promise<void> {
       user_ids: [],
     },
   };
+  // The editor auto-creates the first slide on an empty draft, with timed
+  // defaults sent by the controller's add() (text-block corrections plan).
+  const createdFirstSlide = {
+    client_id: "aups_created_01",
+    sequence_order: 1,
+    title: null,
+    description: null,
+    layout_type: "media_top",
+    playback_mode: "timed",
+    duration_ms: 4_000,
+    composition_schema_version: 1,
+    background_color: null,
+    media: [],
+    action: null,
+    elements: [],
+  };
+  let createdSlides: Array<typeof createdFirstSlide> = [];
 
   await page.route("**/api/v1/app-update-presentations**", async (route) => {
     const request = route.request();
     if (request.method() === "PUT") {
       expect(request.postDataJSON()).toEqual({ title: "Untitled announcement" });
-      await json(route, 200, { ok: true, data: { presentation: createdPresentation }, warnings: [] });
+      createdSlides = [];
+      await json(route, 200, {
+        ok: true,
+        data: { presentation: { ...createdPresentation, slides: createdSlides } },
+        warnings: [],
+      });
+      return;
+    }
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname.endsWith("/app-update-presentations/aup_created/slides")
+    ) {
+      expect(request.postDataJSON()).toMatchObject({ duration_ms: 4_000, playback_mode: "timed" });
+      createdSlides = [createdFirstSlide];
+      await json(route, 200, {
+        ok: true,
+        data: { presentation: { ...createdPresentation, slides: createdSlides } },
+        warnings: [],
+      });
       return;
     }
     if (
       request.method() === "GET" &&
       new URL(request.url()).pathname.endsWith("/app-update-presentations/aup_created")
     ) {
-      await json(route, 200, { ok: true, data: { presentation: createdPresentation }, warnings: [] });
+      await json(route, 200, {
+        ok: true,
+        data: { presentation: { ...createdPresentation, slides: createdSlides } },
+        warnings: [],
+      });
       return;
     }
 

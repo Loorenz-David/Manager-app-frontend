@@ -10,6 +10,10 @@ import { createPortal } from "react-dom";
 import { cn } from "@beyo/lib";
 import { useKeyboardInset } from "../../../providers/KeyboardInsetProvider";
 import { preventFocusSteal } from "../floating-keyboard-bar";
+import {
+  KEYBOARD_TRAY_ANCHOR,
+  KEYBOARD_TRAY_SURFACE,
+} from "../shared/keyboard-tray";
 import { useKeyboardAccessorySuppressed } from "./keyboardAccessoryPriority";
 
 type EligibleKeyboardField = HTMLInputElement | HTMLTextAreaElement;
@@ -208,17 +212,9 @@ export function KeyboardAccessoryBar({
       <div ref={containerRef}>{children}</div>
       {shouldShowBar
         ? createPortal(
-            <div
-              className={cn(
-                "pointer-events-none fixed inset-x-0 z-[9999]",
-                "bottom-[var(--keyboard-inset)]",
-              )}
-            >
+            <div className={KEYBOARD_TRAY_ANCHOR}>
               <div
-                className={cn(
-                  "pointer-events-auto border-t border-border bg-card px-4 pb-[calc(var(--safe-bottom)_+_0.5rem)] pt-2 shadow-xl",
-                  className,
-                )}
+                className={cn(KEYBOARD_TRAY_SURFACE, "pt-2", className)}
                 aria-label="Keyboard field navigation"
                 role="toolbar"
               >

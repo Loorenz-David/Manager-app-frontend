@@ -11,6 +11,7 @@
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/lib": "*",
+    "@beyo/pause-reasons": "*",
     "@beyo/tasks": "*",
     "@beyo/ui": "*",
     "@tanstack/react-query": ">=5.0.0",

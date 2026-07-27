@@ -21,6 +21,7 @@ type QueryState = {
   isFetching?: boolean;
   isSuccess?: boolean;
   isError?: boolean;
+  refetch?: ReturnType<typeof vi.fn>;
 };
 
 function createDefaultValues(): PreOrderFormValues {
@@ -76,6 +77,7 @@ function buildQueryState(overrides: QueryState = {}) {
     isFetching: false,
     isSuccess: false,
     isError: false,
+    refetch: vi.fn(),
     ...overrides,
   };
 }
@@ -341,5 +343,157 @@ describe("useShopifyCustomerLookupPrefill", () => {
     });
 
     expect(result.current.status).toBe("not_found");
+  });
+
+  it("refetches the active lookup once while retry is in flight", () => {
+    const refetch = vi.fn(() => new Promise(() => {}));
+    vi.mocked(useShopifyCustomerLookupQuery).mockReturnValue(
+      buildQueryState({
+        isSuccess: true,
+        refetch,
+      }) as never,
+    );
+
+    const { result } = renderHook(() => {
+      const form = useForm<PreOrderFormValues>({
+        defaultValues: createDefaultValues(),
+      });
+
+      return useShopifyCustomerLookupPrefill({
+        form,
+        articleNumber: "BAR-1234567",
+        sku: "SKU-123456",
+        enabled: true,
+      });
+    });
+
+    act(() => {
+      result.current.retry();
+      result.current.retry();
+    });
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    {
+      name: "the lookup is disabled",
+      articleNumber: "BAR-1234567",
+      sku: "SKU-123456",
+      enabled: false,
+      isFetching: false,
+    },
+    {
+      name: "the identity is ineligible",
+      articleNumber: "BAR",
+      sku: "SKU",
+      enabled: true,
+      isFetching: false,
+    },
+    {
+      name: "a request is already running",
+      articleNumber: "BAR-1234567",
+      sku: "SKU-123456",
+      enabled: true,
+      isFetching: true,
+    },
+  ])(
+    "does not refetch when $name",
+    ({ articleNumber, sku, enabled, isFetching }) => {
+      const refetch = vi.fn();
+      vi.mocked(useShopifyCustomerLookupQuery).mockReturnValue(
+        buildQueryState({
+          isFetching,
+          refetch,
+        }) as never,
+      );
+
+      const { result } = renderHook(() => {
+        const form = useForm<PreOrderFormValues>({
+          defaultValues: createDefaultValues(),
+        });
+
+        return useShopifyCustomerLookupPrefill({
+          form,
+          articleNumber,
+          sku,
+          enabled,
+        });
+      });
+
+      act(() => {
+        result.current.retry();
+      });
+
+      expect(refetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("injects retry results without overwriting manual customer edits", async () => {
+    const refetch = vi.fn();
+    let queryState = buildQueryState({
+      data: {
+        customer_matches: [],
+        failed_shops: [],
+      },
+      isSuccess: true,
+      refetch,
+    });
+
+    vi.mocked(useShopifyCustomerLookupQuery).mockImplementation(
+      (() => queryState) as typeof useShopifyCustomerLookupQuery,
+    );
+
+    const { result, rerender } = renderHook(() => {
+      const form = useForm<PreOrderFormValues>({
+        defaultValues: createDefaultValues(),
+      });
+      const prefill = useShopifyCustomerLookupPrefill({
+        form,
+        articleNumber: "BAR-1234567",
+        sku: "SKU-123456",
+        enabled: true,
+      });
+
+      return { form, prefill };
+    });
+
+    act(() => {
+      result.current.form.setValue(
+        "customer.display_name",
+        "Manual Customer",
+        { shouldDirty: true },
+      );
+      result.current.prefill.retry();
+    });
+
+    expect(refetch).toHaveBeenCalledTimes(1);
+
+    queryState = buildQueryState({
+      data: {
+        customer_matches: [
+          {
+            match_type: "sku",
+            matched_value: "SKU-123456",
+            display_name: "Shopify Customer",
+            primary_email: "retry@example.com",
+          },
+        ],
+        failed_shops: [],
+      },
+      isSuccess: true,
+      refetch,
+    });
+    rerender();
+
+    await waitFor(() =>
+      expect(result.current.form.getValues("customer.primary_email")).toBe(
+        "retry@example.com",
+      ),
+    );
+    expect(result.current.form.getValues("customer.display_name")).toBe(
+      "Manual Customer",
+    );
+    expect(result.current.prefill.status).toBe("found");
   });
 });

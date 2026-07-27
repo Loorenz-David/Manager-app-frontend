@@ -112,7 +112,13 @@ export function WorkerTimelineSlidePage(): React.JSX.Element {
   const now = useCurrentMinute(window.includesToday);
 
   const events = useMemo(
-    () => (data ? toCalendarTimelineEvents(data.segments, { now }) : []),
+    () =>
+      data
+        ? toCalendarTimelineEvents(data.segments, {
+            now,
+            pauseReasons: data.pause_reasons,
+          })
+        : [],
     [data, now],
   );
   const totals = useMemo(

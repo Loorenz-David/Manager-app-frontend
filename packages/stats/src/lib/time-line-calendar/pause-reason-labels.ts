@@ -1,21 +1,42 @@
-// Central pause-reason display mapping for the worker timeline calendar.
-// The backend reason set is OPEN — unknown values must render a readable
-// fallback, never crash (see linear-timeline handoff).
+// Central pause-reason display resolution for the worker timeline calendar.
+//
+// Segment-level `reason` and `pause_by_reason` keys are opaque `pause_reason_id`s
+// (or the reserved `"unspecified"` sentinel, or — roster only — raw free-text
+// from a manual whole-shift pause). Resolve them against the response's sibling
+// `pause_reasons` lookup map. See
+// HANDOFF_TO_FRONTEND_pause_reasons_analytics_breakdown_20260722.md.
 
-const KNOWN_REASON_LABELS: Record<string, string> = {
-  pause_lunch_break: "Lunch break",
-  pause_coffee_break: "Coffee break",
-  pause_meeting: "Meeting",
-  pause_case_created: "Case created",
-  pause_other_task_priority: "Other task priority",
-  pause_ended_shift: "Ended shift",
-  waiting_for_upholstery: "Waiting for upholstery",
-  unspecified: "Pause",
-};
+import type { PauseReasonLookupMap } from "../../types";
 
-// "waiting_for_material" → "Waiting for material".
-export function humanizeReason(reason: string): string {
-  const stripped = reason
+// The backend substitutes this literal for a paused segment with no recorded
+// reason. It never appears in the lookup map — render it as its own case.
+export const UNSPECIFIED_REASON_KEY = "unspecified";
+const UNSPECIFIED_REASON_LABEL = "No reason specified";
+
+// Resolve a bucket/segment reason key to a display label:
+//  1. present in the map         → the reason's name
+//  2. the `"unspecified"` key    → "No reason specified"
+//  3. absent and not unspecified → the raw key (deleted reason, or roster
+//     free-text) — never crash, never fabricate a name.
+export function resolvePauseReasonLabel(
+  key: string | null | undefined,
+  reasons: PauseReasonLookupMap,
+): string | null {
+  if (!key) {
+    return null;
+  }
+
+  if (key === UNSPECIFIED_REASON_KEY) {
+    return UNSPECIFIED_REASON_LABEL;
+  }
+
+  return reasons[key]?.name ?? key;
+}
+
+// Generic token humanizer, e.g. a raw step-state string "ended_shift" →
+// "Ended shift". Used for state labels in the event sheet, not for reasons.
+export function humanizeReason(token: string): string {
+  const stripped = token
     .replace(/^pause_/, "")
     .replace(/_/g, " ")
     .trim();
@@ -25,12 +46,4 @@ export function humanizeReason(reason: string): string {
   }
 
   return stripped.charAt(0).toUpperCase() + stripped.slice(1);
-}
-
-export function pauseReasonLabel(reason: string | null | undefined): string {
-  if (!reason) {
-    return "Pause";
-  }
-
-  return KNOWN_REASON_LABELS[reason] ?? humanizeReason(reason);
 }

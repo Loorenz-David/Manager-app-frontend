@@ -15,6 +15,7 @@
     "@beyo/items": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
+    "@beyo/pause-reasons": "*",
     "@beyo/task-notes": "*",
     "@beyo/task-working-sections": "*",
     "@beyo/upholstery": "*",

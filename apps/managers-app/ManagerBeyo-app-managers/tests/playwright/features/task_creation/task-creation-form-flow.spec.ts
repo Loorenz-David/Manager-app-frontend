@@ -5,6 +5,23 @@ const hasCredentials = Boolean(
   process.env.PLAYWRIGHT_TEST_EMAIL && process.env.PLAYWRIGHT_TEST_PASSWORD,
 );
 
+type SkuReservationMockOptions = {
+  status?: 200 | 404;
+  sku?: string;
+};
+
+type SkuReservationMockState = {
+  requestBody: string | null;
+  requestCount: number;
+  requestMethod: string | null;
+  shopifyLookup: ShopifyCustomerLookupMockState;
+};
+
+type ShopifyCustomerLookupMockState = {
+  requestCount: number;
+  shouldReturnMatch: boolean;
+};
+
 test.describe('Task creation staged forms', () => {
   test.beforeEach(async ({ page, auth }) => {
     test.skip(!hasCredentials, 'Set PLAYWRIGHT_TEST_EMAIL and PLAYWRIGHT_TEST_PASSWORD in .env to run');
@@ -18,9 +35,128 @@ test.describe('Task creation staged forms', () => {
   async function openTaskCreationForm(
     page: Page,
     formType: 'internal' | 'pre_order' | 'return',
-  ) {
-    await page.getByTestId('task-creation-fab').click();
-    await page.getByTestId(`task-creation-fab-action-${formType}`).click();
+    skuReservationOptions?: SkuReservationMockOptions,
+  ): Promise<SkuReservationMockState | null> {
+    const skuReservationMock =
+      formType === 'pre_order'
+        ? await mockPreOrderSkuReservation(page, skuReservationOptions)
+        : null;
+
+    await page.getByTestId('task-creation-fab').last().click();
+    await page
+      .getByTestId(`task-creation-fab-action-${formType}`)
+      .last()
+      .click();
+
+    return skuReservationMock;
+  }
+
+  async function mockPreOrderSkuReservation(
+    page: Page,
+    options: SkuReservationMockOptions = {},
+  ): Promise<SkuReservationMockState> {
+    const shopifyLookup = await mockShopifyCustomerLookup(page);
+    const state: SkuReservationMockState = {
+      requestBody: null,
+      requestCount: 0,
+      requestMethod: null,
+      shopifyLookup,
+    };
+
+    await page.route(
+      '**/api/v1/sku-templates/by-task-type/pre_order/reserve',
+      async (route) => {
+        const request = route.request();
+        state.requestCount += 1;
+        state.requestMethod = request.method();
+        state.requestBody = request.postData();
+
+        if (options.status === 404) {
+          await route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({
+              error: 'SKU template not found.',
+              ok: false,
+            }),
+          });
+          return;
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ok: true,
+            data: {
+              client_id: 'skt_playwright_pre_order',
+              task_type: 'pre_order',
+              reserved_scalar: 42,
+              sku: options.sku ?? 'PRE_ORDER-0042',
+            },
+            warnings: [],
+          }),
+        });
+      },
+    );
+
+    return state;
+  }
+
+  async function mockShopifyCustomerLookup(
+    page: Page,
+  ): Promise<ShopifyCustomerLookupMockState> {
+    const state: ShopifyCustomerLookupMockState = {
+      requestCount: 0,
+      shouldReturnMatch: false,
+    };
+
+    await page.route(
+      '**/api/v1/integrations/shopify/customers/by-product-identity',
+      async (route) => {
+        state.requestCount += 1;
+        const requestBody = route.request().postDataJSON() as {
+          article_number?: string;
+          sku?: string;
+        };
+        const matchedValue =
+          requestBody.sku ?? requestBody.article_number ?? null;
+
+        if (state.shouldReturnMatch) {
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
+
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ok: true,
+            data: {
+              customer_matches:
+                state.shouldReturnMatch && matchedValue
+                  ? [
+                      {
+                        shop_integration_id: 'shopify_playwright',
+                        shop_domain: 'playwright.myshopify.com',
+                        match_type: requestBody.sku ? 'sku' : 'barcode',
+                        matched_value: matchedValue,
+                        customer_id: 'customer_playwright',
+                        display_name: 'Shopify Retry Customer',
+                        primary_email: 'retry@example.com',
+                        primary_phone_number: '+46701234567',
+                        address: null,
+                      },
+                    ]
+                  : [],
+              failed_shops: [],
+            },
+            warnings: [],
+          }),
+        });
+      },
+    );
+
+    return state;
   }
 
   async function completeItemStep(page: Page) {
@@ -78,6 +214,85 @@ test.describe('Task creation staged forms', () => {
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
   });
 
+  test('pre-order form reserves one server-formatted editable SKU on open', async ({
+    page,
+  }) => {
+    const reservation = await openTaskCreationForm(page, 'pre_order', {
+      sku: 'PRE_ORDER-0042',
+    });
+    if (!reservation) {
+      throw new Error('Expected the pre-order SKU reservation mock.');
+    }
+
+    await expect(page.getByTestId('pre-order-form')).toBeVisible();
+    await expect.poll(() => reservation.requestCount).toBe(1);
+    expect(reservation.requestMethod).toBe('POST');
+    expect(reservation.requestBody).toBeNull();
+
+    await page.getByTestId('item-identity-sku-tab').click();
+    const skuInput = page.getByTestId('item-sku-input');
+    await expect(skuInput).toHaveValue('PRE_ORDER-0042');
+
+    await skuInput.fill('MANUAL-SKU-9000');
+    await expect(skuInput).toHaveValue('MANUAL-SKU-9000');
+    expect(reservation.requestCount).toBe(1);
+  });
+
+  test('pre-order form remains usable when no SKU template is configured', async ({
+    page,
+  }) => {
+    const reservation = await openTaskCreationForm(page, 'pre_order', {
+      status: 404,
+    });
+    if (!reservation) {
+      throw new Error('Expected the pre-order SKU reservation mock.');
+    }
+
+    await expect(page.getByTestId('pre-order-form')).toBeVisible();
+    await expect.poll(() => reservation.requestCount).toBe(1);
+
+    await page.getByTestId('item-identity-sku-tab').click();
+    const skuInput = page.getByTestId('item-sku-input');
+    await expect(skuInput).toHaveValue('');
+    await skuInput.fill('MANUAL-SKU-404');
+    await expect(skuInput).toHaveValue('MANUAL-SKU-404');
+  });
+
+  test('pre-order customer lookup can be retried from the not-found pill', async ({
+    page,
+  }) => {
+    const reservation = await openTaskCreationForm(page, 'pre_order');
+    if (!reservation) {
+      throw new Error('Expected the pre-order SKU reservation mock.');
+    }
+
+    await expect(page.getByTestId('pre-order-form')).toBeVisible();
+    await completeItemStep(page);
+
+    const retryButton = page.getByTestId('shopify-customer-retry-button');
+    await expect(retryButton).toBeVisible();
+    const requestCountBeforeRetry = reservation.shopifyLookup.requestCount;
+    reservation.shopifyLookup.shouldReturnMatch = true;
+
+    await retryButton.click();
+
+    await expect(page.getByTestId('shopify-customer-status-pill')).toContainText(
+      'Looking up Shopify customer',
+    );
+    await expect
+      .poll(() => reservation.shopifyLookup.requestCount)
+      .toBeGreaterThan(requestCountBeforeRetry);
+    await expect(page.getByTestId('shopify-customer-status-pill')).toContainText(
+      'Shopify customer',
+    );
+    await expect(page.getByTestId('customer-display-name-input')).toHaveValue(
+      'Shopify Retry Customer',
+    );
+    await expect(page.getByTestId('customer-email-input')).toHaveValue(
+      'retry@example.com',
+    );
+  });
+
   test('return form advances past customer step when all visible required fields are filled', async ({
     page,
   }) => {
@@ -88,6 +303,38 @@ test.describe('Task creation staged forms', () => {
     await completeCustomerStep(page);
 
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
+  });
+
+  test('return customer lookup can be retried from the not-found pill', async ({
+    page,
+  }) => {
+    const shopifyLookup = await mockShopifyCustomerLookup(page);
+    await openTaskCreationForm(page, 'return');
+    await expect(page.getByTestId('return-form')).toBeVisible();
+    await completeItemStep(page);
+
+    const retryButton = page.getByTestId('shopify-customer-retry-button');
+    await expect(retryButton).toBeVisible();
+    const requestCountBeforeRetry = shopifyLookup.requestCount;
+    shopifyLookup.shouldReturnMatch = true;
+
+    await retryButton.click();
+
+    await expect(page.getByTestId('shopify-customer-status-pill')).toContainText(
+      'Looking up Shopify customer',
+    );
+    await expect
+      .poll(() => shopifyLookup.requestCount)
+      .toBeGreaterThan(requestCountBeforeRetry);
+    await expect(page.getByTestId('shopify-customer-status-pill')).toContainText(
+      'Shopify customer',
+    );
+    await expect(page.getByTestId('customer-display-name-input')).toHaveValue(
+      'Shopify Retry Customer',
+    );
+    await expect(page.getByTestId('customer-email-input')).toHaveValue(
+      'retry@example.com',
+    );
   });
 
   test('pre-order form still advances after selecting an item issue', async ({ page }) => {

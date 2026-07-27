@@ -6,7 +6,7 @@
 - Status: `archived`
 - Owner agent: `codex` (logic) + `claude-builder` (component kits, pre-built per stage)
 - Created at (UTC): `2026-07-23T09:00:00Z`
-- Last updated at (UTC): `2026-07-23T10:42:01Z`
+- Last updated at (UTC): `2026-07-23T11:30:00Z`
 - Related issue/ticket: operator live-testing feedback (timeline + media), 2026-07-23
 - Intention plan: `docs/architecture/under_construction/intention/presentation_capability_improvments.md`
 - Knowledge base (READ FIRST): `packages/presentation-builder/presentation_documentation/frontend/INDEX.md`
@@ -360,6 +360,18 @@ and a read-only size/position line; kit previews updated.
   three are recorded as operator notes in the fixes plan, not charged to this plan.
   Note-level: the summary is thin (no file list, omits Stage A/B deliverables and
   the KB updates) and its filename carries the known stray `PLAN_` prefix.
+
+- 2026-07-23 Codex corrections close-out: **DEFECT CLOSED.** The shared
+  `rendering-parity-fixture.ts` now includes an old-wire layer-0 image
+  (`start_ms: 0`, `end_ms: null`, full-bleed cover layout), and runtime,
+  builder preview, and phone player assert its concrete 390×690 output. The
+  tautological two-render comparison was removed and builder cleanup added.
+  Root typecheck plus all three presentation package suites are green. A
+  deliberate `390px` → `391px` expectation flip failed the targeted builder
+  parity test before restoration. Corrections plan:
+  `docs/architecture/archives/implementation/PLAN_presentation_timeline_media_review_corrections_20260723.md`;
+  summary:
+  `docs/architecture/implemented_summaries/SUMMARY_presentation_timeline_media_review_corrections_20260723.md`.
 
 ## Lifecycle transition
 

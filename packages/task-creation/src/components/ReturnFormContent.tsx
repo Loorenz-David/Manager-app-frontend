@@ -10,12 +10,7 @@ import {
   CustomerPhoneField,
   CustomerTypeField,
 } from "@beyo/customers";
-import {
-  EntityImagesProvider,
-  imageKeys,
-  ImagePreviewGrid,
-  useCreateImagesFromUrl,
-} from "@beyo/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
 import {
@@ -31,9 +26,9 @@ import {
   type ItemLookupResult,
 } from "@beyo/items";
 import {
+  CameraPrewarm,
   SCANNER_SESSION_ID,
   SCANNER_SLIDE_SURFACE_ID,
-  useCameraPrewarm,
   type ScanFormat,
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
@@ -65,11 +60,11 @@ import {
 } from "react-hook-form";
 
 import {
-  buildCreateImagesFromUrlBatch,
   createLookupResultSignature,
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
@@ -159,9 +154,8 @@ export function ReturnFormContent(): React.JSX.Element {
     callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
-  const createImagesFromUrl = useCreateImagesFromUrl();
+  const applyLookupImages = useLookupItemImages(itemClientId);
   const surface = useSurface();
-  useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<ReturnFormValues>({
     resolver: zodResolver(ReturnFormSchema),
     mode: "onChange",
@@ -229,13 +223,15 @@ export function ReturnFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.sku",
   });
-  const { status: shopifyCustomerLookupStatus } =
-    useShopifyCustomerLookupPrefill({
-      form,
-      articleNumber: itemArticleNumber,
-      sku: itemSku,
-      enabled: returnSource !== "store_return",
-    });
+  const {
+    status: shopifyCustomerLookupStatus,
+    retry: retryShopifyCustomerLookup,
+  } = useShopifyCustomerLookupPrefill({
+    form,
+    articleNumber: itemArticleNumber,
+    sku: itemSku,
+    enabled: returnSource !== "store_return",
+  });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
 
@@ -270,21 +266,7 @@ export function ReturnFormContent(): React.JSX.Element {
       shouldDirty: true,
     });
 
-    if (selectedItem.images.length > 0) {
-      void createImagesFromUrl
-        .mutateAsync(
-          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
-        )
-        .then(() =>
-          queryClient.invalidateQueries({
-            queryKey: imageKeys.list({
-              entity_type: "item",
-              entity_client_id: itemClientId,
-            }),
-          }),
-        )
-        .catch(() => {});
-    }
+    applyLookupImages(selectedItem.images);
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;
@@ -507,6 +489,7 @@ export function ReturnFormContent(): React.JSX.Element {
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
           navigationMode={staged.navigationMode}
+          canAdvance={staged.validateAdvance}
           onAdvance={staged.advance}
           onBack={staged.back}
           onNavigate={staged.navigateTo}
@@ -517,6 +500,7 @@ export function ReturnFormContent(): React.JSX.Element {
           <StagedFormStep id="task" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
+                <CameraPrewarm delayMs={200} sessionId={SCANNER_SESSION_ID} />
                 <TaskReturnSourceField />
                 <ItemIdentityField
                   onLookupResult={handleLookupResult}
@@ -552,6 +536,7 @@ export function ReturnFormContent(): React.JSX.Element {
             <StagedFormStep id="customer" className="px-0">
               <div className="flex flex-col gap-4">
                 <ShopifyCustomerStatusPill
+                  onRetry={retryShopifyCustomerLookup}
                   status={shopifyCustomerLookupStatus}
                 />
                 <ContentCard>

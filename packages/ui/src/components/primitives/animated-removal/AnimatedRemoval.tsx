@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, useIsPresent } from "framer-motion";
 import { durations, easings } from "@beyo/lib";
+
+import { useUiTransitionToken } from "../../../lib/use-ui-transition-token";
 
 /**
  * Animated removal for list rows: the removed row slides out to the right and
@@ -48,6 +50,13 @@ export function AnimatedRemovalItem({
   gapPx = 16,
   className,
 }: AnimatedRemovalItemProps): React.JSX.Element {
+  // Hold the transition gate for as long as this row is leaving, so a refetch
+  // queued through `runWhenUiSettled` lands after the animation, not during it.
+  // `useIsPresent` only observes — `usePresence` would make AnimatePresence
+  // wait for this component to call safeToRemove, stranding the row forever.
+  const isPresent = useIsPresent();
+  useUiTransitionToken(!isPresent);
+
   return (
     // Outer layer: height collapse. `overflow: hidden` is part of the exit
     // target (applied instantly at exit start), so card shadows are never

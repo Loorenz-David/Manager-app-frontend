@@ -5,6 +5,10 @@ import { cn } from "@beyo/lib";
 
 import { useKeyboardInset } from "../../../providers/KeyboardInsetProvider";
 import { useKeyboardAccessoryPriority } from "../keyboard-accessory-bar";
+import {
+  KEYBOARD_TRAY_ANCHOR,
+  KEYBOARD_TRAY_SURFACE,
+} from "../shared/keyboard-tray";
 
 type NumericKeyboardBarProps = {
   value: string;
@@ -39,18 +43,8 @@ export function NumericKeyboardBar({
   }
 
   return createPortal(
-    <div
-      className={cn(
-        "pointer-events-none fixed inset-x-0 z-[9999]",
-        "bottom-[var(--keyboard-inset)]",
-      )}
-    >
-      <div
-        className={cn(
-          "pointer-events-auto border-t border-border bg-card px-4 pb-[calc(var(--safe-bottom)_+_0.5rem)] pt-3 shadow-xl",
-          className,
-        )}
-      >
+    <div className={KEYBOARD_TRAY_ANCHOR}>
+      <div className={cn(KEYBOARD_TRAY_SURFACE, "pt-3", className)}>
         <div className="flex gap-1.5">
           {DIGITS.map((digit) => (
             <button

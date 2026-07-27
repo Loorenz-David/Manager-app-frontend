@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
 import { m } from "framer-motion";
 
-import { useSurfaceHeader } from "@beyo/hooks";
 import { cn, durations, easings } from "@beyo/lib";
 
 type TaskDetailBottomActionsProps = {
   isHidden?: boolean;
   shouldRenderAssignStages?: boolean;
-  onEdit: () => void;
   onOpenWorkingSections: () => void;
 };
 
+/**
+ * Floating Assign Stages call to action. There is no Close & Back bar: the
+ * page is dismissed with the surface's slide-to-close gesture (and the
+ * surface header's back arrow on desktop).
+ */
 export function TaskDetailBottomActions({
   isHidden = false,
   shouldRenderAssignStages = false,
-  onEdit,
   onOpenWorkingSections,
-}: TaskDetailBottomActionsProps): React.JSX.Element {
-  const header = useSurfaceHeader();
+}: TaskDetailBottomActionsProps): React.JSX.Element | null {
   const [showAssignStagesCta, setShowAssignStagesCta] = useState(false);
 
   useEffect(() => {
@@ -34,6 +35,10 @@ export function TaskDetailBottomActions({
     return () => window.clearTimeout(timeout);
   }, [shouldRenderAssignStages]);
 
+  if (!shouldRenderAssignStages) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -46,52 +51,28 @@ export function TaskDetailBottomActions({
         transition:
           "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
       }}
+      data-testid="task-detail-bottom-actions"
     >
-      {shouldRenderAssignStages ? (
-        <div className="pointer-events-none px-4 pb-3">
-          <m.div
-            animate={
-              showAssignStagesCta ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }
-            }
-            className="pointer-events-auto"
-            data-visible={showAssignStagesCta ? "true" : "false"}
-            data-testid="task-detail-assign-stages-layer"
-            initial={false}
-            transition={{ duration: durations.slow, ease: easings.slideIn }}
-          >
-            <button
-              className="w-full rounded-xl bg-(--color-primary) px-5 py-3.5 text-center text-md font-semibold text-card shadow-sm"
-              data-testid="task-detail-assign-stages-button"
-              type="button"
-              onClick={onOpenWorkingSections}
-            >
-              Assign Stages
-            </button>
-          </m.div>
-        </div>
-      ) : null}
-
-      <div
-        className="bg-background shadow-[0_-1px_0_0_var(--color-border)]"
-        data-testid="task-detail-bottom-actions"
-      >
-        <div className="flex gap-3 px-4 pb-4 pt-3">
+      <div className="pointer-events-none px-4 pb-[calc(var(--safe-bottom,0px)+0.75rem)]">
+        <m.div
+          animate={
+            showAssignStagesCta ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }
+          }
+          className="pointer-events-auto"
+          data-visible={showAssignStagesCta ? "true" : "false"}
+          data-testid="task-detail-assign-stages-layer"
+          initial={false}
+          transition={{ duration: durations.slow, ease: easings.slideIn }}
+        >
           <button
-            className="flex-1 rounded-2xl bg-card px-4 py-3.5 text-md font-medium text-primary shadow-sm border border-between-border"
+            className="w-full rounded-xl bg-(--color-primary) px-5 py-3.5 text-center text-md font-semibold text-card shadow-sm"
+            data-testid="task-detail-assign-stages-button"
             type="button"
-            onClick={() => header?.requestClose()}
+            onClick={onOpenWorkingSections}
           >
-            Close & Back
+            Assign Stages
           </button>
-          <button
-            type="button"
-            className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm"
-            onClick={onEdit}
-          >
-            Edit
-          </button>
-        </div>
-        <div aria-hidden="true" className="h-(--safe-bottom,0px) bg-background" />
+        </m.div>
       </div>
     </div>
   );

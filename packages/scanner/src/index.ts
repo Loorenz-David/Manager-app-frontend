@@ -41,6 +41,7 @@ export {
   type UseQrScannerResult,
 } from "./flows/use-qr-scanner";
 
+export { CameraPrewarm } from "./ui/CameraPrewarm";
 export { ScannerCloseControl } from "./ui/ScannerCloseControl";
 export { FrozenFrameCanvas } from "./ui/FrozenFrameCanvas";
 export { ScannerGuideOverlay } from "./ui/ScannerGuideOverlay";

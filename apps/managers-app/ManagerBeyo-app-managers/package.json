@@ -29,6 +29,7 @@
     "@beyo/item-categories": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
+    "@beyo/pause-reasons": "*",
     "@beyo/presentation-runtime": "*",
     "@beyo/presentations": "*",
     "@beyo/pwa": "*",

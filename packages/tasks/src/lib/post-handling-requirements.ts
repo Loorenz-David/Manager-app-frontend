@@ -39,7 +39,7 @@ export function getPostHandlingMissingRequirements(
     if (!hasValue(task.scheduled_start_at) && !hasValue(task.scheduled_end_at)) {
       missing.push({
         key: "schedule",
-        label: "Delivery date (start or end)",
+        label: "Delivery date",
       });
     }
 
@@ -49,7 +49,7 @@ export function getPostHandlingMissingRequirements(
   if (task.task_type === "return") {
     return hasValue(task.assortment)
       ? []
-      : [{ key: "assortment", label: "Assortment" }];
+      : [{ key: "assortment", label: "Final placement" }];
   }
 
   return [];

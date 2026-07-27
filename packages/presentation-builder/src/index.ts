@@ -81,6 +81,13 @@ export {
 export { CanvasDraggableBox } from "./components/editor/CanvasDraggableBox";
 export { type CanvasResizeGesture, type CanvasResizeHandle } from "./components/editor/types";
 export { ANIMATION_OPTIONS, type AnimationChoice } from "./components/panels/animation-options";
+export {
+  MEDIA_PANEL_DRAWERS,
+  PanelDrawer,
+  SLIDE_PANEL_DRAWERS,
+  TEXT_PANEL_DRAWERS,
+  type PanelDrawersProp,
+} from "./components/panels/PanelDrawer";
 export { TextBlockPanel, type TextAnimationChoice } from "./components/panels/TextBlockPanel";
 export {
   TextStylingSection,

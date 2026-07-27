@@ -2,6 +2,7 @@ import type React from "react";
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { LazyMotion, domAnimation } from "framer-motion";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { UpholsteryPickerSlidePage } from "./UpholsteryPickerSlidePage";
@@ -10,14 +11,16 @@ const requestCloseMock = vi.fn();
 const useSurfacePropsMock = vi.fn();
 const useUpholsteryPickerControllerMock = vi.fn();
 
-vi.mock("framer-motion", () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => children,
-  m: {
-    div: ({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-      <div {...props}>{children}</div>
-    ),
-  },
-}));
+// framer-motion is used for real here: the body is a SlideStack, whose pane
+// switching and drag machinery depend on the actual motion primitives. The
+// apps load LazyMotion with domAnimation at their root, so mirror that.
+function renderPage(): { unmount: () => void } {
+  return render(
+    <LazyMotion features={domAnimation}>
+      <UpholsteryPickerSlidePage />
+    </LazyMotion>,
+  );
+}
 
 vi.mock("@beyo/ui", async () => {
   const actual = await vi.importActual<typeof import("@beyo/ui")>("@beyo/ui");
@@ -93,9 +96,20 @@ function makeController() {
   return {
     activeFilter: "favorite" as const,
     activeProviderFilterCount: 0,
-    direction: 1 as const,
+    filterOptions: [
+      { value: "favorite" as const, label: "Favorites" },
+      { value: "in_stock" as const, label: "In Stock" },
+      { value: "out_of_stock" as const, label: "Out of Stock" },
+    ],
     isLoading: false,
+    isLoadingByFilter: {
+      favorite: false,
+      in_stock: false,
+      out_of_stock: false,
+    },
     isSelectionPending: false,
+    goToPreviousFilter: vi.fn(),
+    goToNextFilter: vi.fn(),
     onFilterChange: vi.fn(),
     openProviderFilterSheet: vi.fn(),
     refetch: vi.fn(),
@@ -104,6 +118,11 @@ function makeController() {
     selectionError: null,
     toggleFavorite: vi.fn(),
     upholsteries: TEST_UPHOLSTERIES,
+    upholsteriesByFilter: {
+      favorite: TEST_UPHOLSTERIES,
+      in_stock: [],
+      out_of_stock: [],
+    },
   };
 }
 
@@ -124,7 +143,7 @@ describe("UpholsteryPickerSlidePage", () => {
   it("stages selection with card taps and only shows Save for a staged choice", async () => {
     const user = userEvent.setup();
 
-    render(<UpholsteryPickerSlidePage />);
+    renderPage();
 
     expect(
       screen.queryByRole("button", { name: "Save selection" }),
@@ -154,7 +173,7 @@ describe("UpholsteryPickerSlidePage", () => {
       onSelect: vi.fn(),
     });
 
-    render(<UpholsteryPickerSlidePage />);
+    renderPage();
 
     expect(
       screen.queryByRole("button", { name: "Save selection" }),
@@ -166,7 +185,7 @@ describe("UpholsteryPickerSlidePage", () => {
     ).toBeVisible();
   });
 
-  it("saves only from the bottom action and closes after selection resolves", async () => {
+  it("saves only from the bottom action and defers onSelect to the close", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     const controller = makeController();
@@ -178,7 +197,7 @@ describe("UpholsteryPickerSlidePage", () => {
     });
     useUpholsteryPickerControllerMock.mockReturnValue(controller);
 
-    render(<UpholsteryPickerSlidePage />);
+    const { unmount } = renderPage();
 
     await user.click(screen.getByRole("button", { name: "Birka" }));
     expect(controller.selectUpholstery).not.toHaveBeenCalled();
@@ -186,7 +205,39 @@ describe("UpholsteryPickerSlidePage", () => {
     await user.click(screen.getByRole("button", { name: "Save selection" }));
 
     expect(controller.selectUpholstery).toHaveBeenCalledWith("uph_b");
-    expect(onSelect).toHaveBeenCalledWith("uph_b_saved");
     expect(requestCloseMock).toHaveBeenCalled();
+    // The commit is deferred past the close animation (page unmount) so the
+    // consumer's list mutation cannot jank the slide-out.
+    expect(onSelect).not.toHaveBeenCalled();
+
+    unmount();
+    expect(onSelect).toHaveBeenCalledWith("uph_b_saved");
+  });
+
+  it("does not fire onSelect when closed without saving", async () => {
+    const onSelect = vi.fn();
+    useSurfacePropsMock.mockReturnValue({
+      currentClientId: null,
+      onSelect,
+    });
+
+    const { unmount } = renderPage();
+
+    unmount();
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("scrolls the header with the body and does not render a close footer", () => {
+    renderPage();
+
+    expect(screen.getByTestId("upholstery-list-scroll")).toContainElement(
+      screen.getByTestId("upholstery-picker-header"),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Close & Back" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("upholstery-picker-bottom-actions"),
+    ).not.toBeInTheDocument();
   });
 });

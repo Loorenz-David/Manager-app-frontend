@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AuthRole, useAuth, useRole } from "@beyo/auth";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { IMAGE_VIEWER_SURFACE_ID } from "@beyo/images";
-import { cn } from "@beyo/lib";
+import { SlideStack, SlideStackPane } from "@beyo/ui";
 
 import { useDeleteTaskNote } from "../api/use-delete-task-note";
 import { useTaskNotesQuery } from "../api/use-task-notes-query";
@@ -134,73 +134,66 @@ export function TaskNotesSheetPage(): React.JSX.Element {
 
   return (
     <div
-      className="relative overflow-hidden bg-background"
+      className="relative overflow-x-hidden bg-background"
       data-testid="task-notes-sheet-page"
       style={{ height: NOTES_PANEL_HEIGHT }}
     >
-      <div
-        className={cn(
-          "absolute inset-0 px-4 pb-2  transition-transform duration-300",
-          activePanel === "list" ? "translate-x-0" : "-translate-x-full",
-        )}
+      <SlideStack
+        activeId={activePanel}
+        direction={activePanel === "list" ? -1 : 1}
+        onBack={activePanel === "list" ? undefined : handleBackFromDetail}
       >
-        <TaskNoteListPanel
-          canCreate={canManageNotes}
-          entries={entries}
-          deletingNoteId={deletingNoteId}
-          isError={notesQuery.isError}
-          isLoading={notesQuery.isPending}
-          onCreate={handleOpenCreate}
-          onDelete={handleDelete}
-          onOpenDetail={handleOpenDetail}
-          onRetry={() => {
-            void notesQuery.refetch();
-          }}
-        />
-      </div>
-
-      <div
-        className={cn(
-          "absolute inset-0 px-4 pb-2  transition-transform duration-300",
-          activePanel === "detail" ? "translate-x-0" : "translate-x-full",
-        )}
-      >
-        {selectedEntry ? (
-          <TaskNoteDetailPanel
-            canEdit={canManageNotes}
-            entry={selectedEntry}
-            taskId={taskId}
-            onBack={handleBackFromDetail}
-            onRequestClose={() => header?.requestClose()}
-            onOpenViewer={(imageClientId) => {
-              const images = toTaskNoteViewerImages(selectedEntry);
-
-              surface.open(IMAGE_VIEWER_SURFACE_ID, {
-                images,
-                initialImageClientId: imageClientId,
-                entityType: "note",
-                entityClientId: selectedEntry.note.client_id,
-                mode: "preview-only",
-                enableOnDemandImageLoad: false,
-              });
+        <SlideStackPane className="h-full px-4 pb-2" id="list">
+          <TaskNoteListPanel
+            canCreate={canManageNotes}
+            entries={entries}
+            deletingNoteId={deletingNoteId}
+            isError={notesQuery.isError}
+            isLoading={notesQuery.isPending}
+            onCreate={handleOpenCreate}
+            onDelete={handleDelete}
+            onOpenDetail={handleOpenDetail}
+            onRetry={() => {
+              void notesQuery.refetch();
             }}
           />
-        ) : null}
-      </div>
+        </SlideStackPane>
 
-      <div
-        className={cn(
-          "absolute inset-0 px-4 pb-2 transition-transform duration-300",
-          activePanel === "create" ? "translate-x-0" : "translate-x-full",
-        )}
-      >
-        <TaskNoteCreatePanel
-          currentUserId={user?.id ?? null}
-          taskId={taskId}
-          onBack={handleBackFromCreate}
-          onRequestClose={() => header?.requestClose()}
-        />
-      </div>
+        {activePanel === "detail" && selectedEntry ? (
+          <SlideStackPane className="h-full px-4 pb-2" id="detail">
+            <TaskNoteDetailPanel
+              canEdit={canManageNotes}
+              entry={selectedEntry}
+              taskId={taskId}
+              onBack={handleBackFromDetail}
+              onRequestClose={() => header?.requestClose()}
+              onOpenViewer={(imageClientId) => {
+                const images = toTaskNoteViewerImages(selectedEntry);
+
+                surface.open(IMAGE_VIEWER_SURFACE_ID, {
+                  images,
+                  initialImageClientId: imageClientId,
+                  entityType: "note",
+                  entityClientId: selectedEntry.note.client_id,
+                  mode: "preview-only",
+                  enableOnDemandImageLoad: false,
+                });
+              }}
+            />
+          </SlideStackPane>
+        ) : null}
+
+        {activePanel === "create" ? (
+          <SlideStackPane className="h-full px-4 pb-2" id="create">
+            <TaskNoteCreatePanel
+              currentUserId={user?.id ?? null}
+              taskId={taskId}
+              onBack={handleBackFromCreate}
+              onRequestClose={() => header?.requestClose()}
+            />
+          </SlideStackPane>
+        ) : null}
+      </SlideStack>
     </div>
   );
 }

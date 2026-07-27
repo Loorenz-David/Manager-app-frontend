@@ -78,6 +78,61 @@ describe("BackendImage", () => {
     delete (HTMLImageElement.prototype as unknown as { decode?: unknown }).decode;
   });
 
+  it("skips the shimmer on remount for an image that already decoded once", async () => {
+    (HTMLImageElement.prototype as unknown as { decode: () => Promise<void> }).decode =
+      () => Promise.resolve();
+
+    const { unmount } = render(
+      <BackendImage src="https://cdn.test/session-cached.jpg" data-testid="img" />,
+    );
+    fireEvent.load(screen.getByTestId("img"));
+    await waitFor(() => {
+      expect(document.querySelector("[data-backend-image-skeleton]")).toBeNull();
+    });
+
+    unmount();
+
+    // Remount (e.g. a slide-stack pane returning to screen): the session
+    // registry knows this URL decoded already — no skeleton, image visible
+    // immediately from the browser cache.
+    render(
+      <BackendImage src="https://cdn.test/session-cached.jpg" data-testid="img" />,
+    );
+    const remounted = screen.getByTestId("img") as HTMLImageElement;
+    expect(document.querySelector("[data-backend-image-skeleton]")).toBeNull();
+    expect(remounted.style.opacity).toBe("");
+
+    delete (HTMLImageElement.prototype as unknown as { decode?: unknown }).decode;
+  });
+
+  it("shows no skeleton for a browser-cached image the registry never recorded", () => {
+    // A pane left before its decode() resolved (or the short-lived ghost copy
+    // rendered during a slide-stack drag) never registers its URL — but the
+    // bytes are still cached, so a remounted <img> is `complete` immediately
+    // and may never fire `load`. It must reveal without a skeleton.
+    Object.defineProperty(HTMLImageElement.prototype, "complete", {
+      configurable: true,
+      get: () => true,
+    });
+    Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", {
+      configurable: true,
+      get: () => 800,
+    });
+
+    render(
+      <BackendImage src="https://cdn.test/never-registered.jpg" data-testid="img" />,
+    );
+
+    const img = screen.getByTestId("img") as HTMLImageElement;
+    expect(document.querySelector("[data-backend-image-skeleton]")).toBeNull();
+    expect(img.style.opacity).toBe("");
+
+    delete (HTMLImageElement.prototype as unknown as { complete?: unknown })
+      .complete;
+    delete (HTMLImageElement.prototype as unknown as { naturalWidth?: unknown })
+      .naturalWidth;
+  });
+
   it("falls back to the placeholder after a load error", async () => {
     render(<BackendImage src="https://cdn.test/broken.jpg" data-testid="img" />);
 

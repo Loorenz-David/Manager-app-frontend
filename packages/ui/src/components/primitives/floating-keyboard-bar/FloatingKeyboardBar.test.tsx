@@ -367,4 +367,67 @@ describe("FloatingKeyboardBar", () => {
       screen.getByTestId("first-floating-input"),
     );
   });
+
+  it("stretches the docked surface to the top of the screen when fullHeight", async () => {
+    const view = render(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    const surface = await screen.findByTestId("floating-keyboard-bar-surface");
+    // Anchored top and bottom, opaque, with the controls centred in the space
+    // the keyboard leaves.
+    expect(surface.className).toContain("top-0");
+    expect(surface.className).toContain("bg-card");
+    expect(surface.className).toContain("justify-center");
+    // Opaque means it swallows taps instead of letting the list behind take them.
+    expect(surface.className).toContain("pointer-events-auto");
+  });
+
+  it("finishes the edit when the area above the controls is tapped", async () => {
+    const view = render(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    const floatingInput = await screen.findByTestId("floating-input");
+    await waitFor(() => {
+      expect(document.activeElement).toBe(floatingInput);
+    });
+
+    screen.getByTestId("floating-keyboard-bar-surface").click();
+
+    expect(document.activeElement).not.toBe(floatingInput);
+  });
+
+  it("leaves the controls alone when the tap lands inside them", async () => {
+    const view = render(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(
+      <FloatingKeyboardBar fullHeight renderControls={renderControls} />,
+    );
+
+    const floatingInput = await screen.findByTestId("floating-input");
+    await waitFor(() => {
+      expect(document.activeElement).toBe(floatingInput);
+    });
+
+    screen.getByTestId("floating-controls").click();
+
+    expect(document.activeElement).toBe(floatingInput);
+  });
 });

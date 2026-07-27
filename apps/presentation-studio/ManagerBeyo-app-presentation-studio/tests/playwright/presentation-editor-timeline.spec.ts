@@ -191,6 +191,7 @@ test("presentation-editor-timeline edits, flushes, reloads, and plays without er
   const canvasRenderer = page
     .getByTestId("presentation-editor-renderer-layer")
     .getByTestId("slide-composition-renderer");
+  await page.getByTestId("presentation-panel-drawer-background").click();
   await page
     .getByTestId("presentation-panel-slide-background-color-swatch-3f78a8")
     .click();
@@ -232,6 +233,7 @@ test("presentation-editor-timeline edits, flushes, reloads, and plays without er
   await expect(inlineTextEditor).toHaveValue("Hello");
   await page.keyboard.press("Escape");
   await expect(inlineTextEditor).toBeHidden();
+  await page.getByTestId("presentation-panel-drawer-content").click();
   await expect(page.getByTestId("presentation-panel-text-content")).toHaveValue("Hello");
   const bar = page.locator('[data-testid^="presentation-timeline-bar-local-text-"]:not([data-testid$="handle-start"]):not([data-testid$="handle-end"])');
   await expect(bar).toBeVisible();
@@ -268,6 +270,12 @@ test("presentation-editor-timeline edits, flushes, reloads, and plays without er
     page.evaluate(() => window.getSelection()?.toString() ?? ""),
   ).toBe("");
 
+  await bar.click();
+  await expect(page.getByTestId("presentation-panel-drawer-animations")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await page.getByTestId("presentation-panel-drawer-style").click();
   await page.getByTestId("presentation-panel-appears-fade").click();
   await page.getByTestId("presentation-panel-disappears-slide").click();
   await page.getByTestId("presentation-panel-text-alignment-right").click();
@@ -311,6 +319,11 @@ test("presentation-editor-timeline edits, flushes, reloads, and plays without er
   const savedBar = page.locator('[data-testid^="presentation-timeline-bar-aupe_timeline_text_"]:not([data-testid$="handle-start"]):not([data-testid$="handle-end"])');
   await expect(savedBar).toBeVisible();
   await savedBar.click();
+  await expect(page.getByTestId("presentation-panel-drawer-animations")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await page.getByTestId("presentation-panel-drawer-style").click();
   await expect(page.getByTestId("presentation-panel-appears-fade")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("presentation-panel-disappears-slide")).toHaveAttribute("aria-checked", "true");
   await expect(page.getByTestId("presentation-panel-text-size")).toHaveValue("36");
@@ -331,6 +344,7 @@ test("presentation-editor-timeline edits, flushes, reloads, and plays without er
 
   await page.getByTestId("presentation-panel-text-close-button").click();
   const putCountBeforeClear = compositionPutCount;
+  await page.getByTestId("presentation-panel-drawer-background").click();
   await page
     .getByTestId("presentation-panel-slide-background-color-none")
     .click();

@@ -1,28 +1,15 @@
-import { AnimatePresence } from "framer-motion";
-import { Children, isValidElement, useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollHide } from "../scroll-visibility";
 import { cn } from "@beyo/lib";
 
 import { KeyboardAccessoryBar } from "../keyboard-accessory-bar";
+import { SlideStack } from "../slide-stack";
 import { StagedFormContext } from "./StagedFormContext";
 import { StagedFormNavigation } from "./StagedFormNavigation";
 import { StagedFormTimeline } from "./StagedFormTimeline";
 import type { StagedFormProps } from "./staged-form.types";
-
-function getActiveStepChild(
-  children: React.ReactNode,
-  activeStepId: string,
-): React.ReactNode {
-  return (
-    Children.toArray(children).find(
-      (child) =>
-        isValidElement(child) &&
-        (child as React.ReactElement<{ id: string }>).props.id === activeStepId,
-    ) ?? null
-  );
-}
 
 const STAGED_FORM_TIMELINE_OFFSET_CLASS = "pt-14";
 
@@ -49,6 +36,8 @@ export function StagedForm({
   footerEdgeOffset,
   navigationMode = "sequential",
   stepStatusMap = {},
+  canAdvance,
+  canBack,
   direction = 1,
   className,
   children,
@@ -116,9 +105,19 @@ export function StagedForm({
   } as const;
 
   const stepContent = (
-    <AnimatePresence custom={direction} mode="wait">
-      {getActiveStepChild(children, activeStepId)}
-    </AnimatePresence>
+    <SlideStack
+      activeId={activeStepId}
+      animateInitial
+      direction={direction}
+      canBack={canBack}
+      canForward={canAdvance}
+      onBack={onBack}
+      // Forward drag advances like the Next button (consumer validation runs
+      // inside onAdvance); paused while an advance is already in flight.
+      onForward={isAdvancing ? undefined : onAdvance}
+    >
+      {children}
+    </SlideStack>
   );
 
   return (

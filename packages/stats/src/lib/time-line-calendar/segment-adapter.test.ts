@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import type { PauseReasonId } from "@beyo/lib";
+
 import { localDateKey } from "./local-date";
 import {
   computeVisibleTotals,
@@ -8,10 +10,40 @@ import {
   validateTimelineTotals,
 } from "./segment-adapter";
 import type {
+  PauseReasonLookupMap,
   WorkerLinearTimeline,
   WorkerLinearTimelineSegment,
   WorkerLinearTimelineStepRecord,
 } from "../../types";
+
+// A full nested pause-reason object, as steps[] now carry it.
+function pauseReason(
+  name: string,
+): NonNullable<WorkerLinearTimelineStepRecord["pause_reason"]> {
+  return {
+    client_id: "par_test" as PauseReasonId,
+    name,
+    image_url: null,
+    pause_type: "personal",
+    description: null,
+    requires_description: false,
+    is_system_managed: false,
+    slug: "pause_test",
+    created_at: "2026-07-15T00:00:00Z",
+    created_by_id: null,
+    updated_at: null,
+    updated_by_id: null,
+  };
+}
+
+// Segment-level `reason`/`pause_by_reason` keys are ids resolved via this map.
+const PAUSE_REASONS: PauseReasonLookupMap = {
+  pause_lunch_break: {
+    name: "Lunch break",
+    image_url: null,
+    pause_type: "personal",
+  },
+};
 
 // Build ISO strings from LOCAL wall-clock components so expectations hold in
 // any host timezone (the adapter converts back to local for display).
@@ -38,7 +70,7 @@ function makeRecord(
     working_section_name: "Upholstery",
     item: { client_id: "itm_1", article_number: "ART-100", sku: "SKU-100" },
     state: "working",
-    reason: null,
+    pause_reason: null,
     entered_at: iso(2026, 7, 15, 9, 30),
     exited_at: iso(2026, 7, 15, 10, 15),
     is_open: false,
@@ -93,40 +125,66 @@ describe("toCalendarTimelineEvents", () => {
           state: "paused",
           reason: "pause_lunch_break",
           manually_recorded: true,
-          steps: [makeRecord({ state: "paused", reason: "pause_lunch_break" })],
+          steps: [
+            makeRecord({
+              state: "paused",
+              pause_reason: pauseReason("Lunch break"),
+            }),
+          ],
         }),
       ],
-      { now: NOW },
+      { now: NOW, pauseReasons: PAUSE_REASONS },
     );
 
     expect(event.manuallyRecorded).toBe(true);
     expect(event.isMarker).toBe(false);
   });
 
-  it("maps paused segments with known and unknown reasons", () => {
-    const [known, unknown] = toCalendarTimelineEvents(
+  it("resolves segment reasons via the map, unspecified, and raw-id fallback", () => {
+    const [known, unspecified, missing] = toCalendarTimelineEvents(
       [
         makeSegment({
           state: "paused",
           reason: "pause_lunch_break",
-          steps: [makeRecord({ state: "paused", reason: "pause_lunch_break" })],
+          steps: [
+            makeRecord({
+              state: "paused",
+              pause_reason: pauseReason("Lunch break"),
+            }),
+          ],
         }),
         makeSegment({
           start: iso(2026, 7, 15, 11, 0),
           end: iso(2026, 7, 15, 11, 30),
           state: "paused",
-          reason: "waiting_for_material",
+          reason: "unspecified",
           steps: [
-            makeRecord({ state: "paused", reason: "waiting_for_material" }),
+            makeRecord({
+              state: "paused",
+              pause_reason: null,
+              entered_at: iso(2026, 7, 15, 11, 0),
+              exited_at: iso(2026, 7, 15, 11, 30),
+            }),
           ],
         }),
+        makeSegment({
+          start: iso(2026, 7, 15, 12, 0),
+          end: iso(2026, 7, 15, 12, 30),
+          state: "paused",
+          reason: "par_deleted",
+          steps: [makeRecord({ state: "paused", pause_reason: null })],
+        }),
       ],
-      { now: NOW },
+      { now: NOW, pauseReasons: PAUSE_REASONS },
     );
 
+    // Segment label: map hit → name, "unspecified" → sentinel copy, missing id → raw key.
     expect(known.reasonLabel).toBe("Lunch break");
-    expect(unknown.reasonLabel).toBe("Waiting for material");
+    expect(unspecified.reasonLabel).toBe("No reason specified");
+    expect(missing.reasonLabel).toBe("par_deleted");
+    // Per-record label comes from the nested object, not the map.
     expect(known.records[0].reasonLabel).toBe("Lunch break");
+    expect(unspecified.records[0].reasonLabel).toBeNull();
   });
 
   it("keeps idle events inert with empty records", () => {
@@ -475,16 +533,16 @@ describe("toCalendarTimelineEvents — step clustering", () => {
           steps: [
             stepAt("p1", "tsk_a", "ART-A", iso(2026, 7, 15, 9, 0), iso(2026, 7, 15, 10, 0), {
               state: "paused",
-              reason: "pause_lunch_break",
+              pause_reason: pauseReason("Lunch break"),
             }),
             stepAt("p2", "tsk_b", "ART-B", iso(2026, 7, 15, 10, 0), iso(2026, 7, 15, 11, 0), {
               state: "paused",
-              reason: "pause_lunch_break",
+              pause_reason: pauseReason("Lunch break"),
             }),
           ],
         }),
       ],
-      { now: NOW },
+      { now: NOW, pauseReasons: PAUSE_REASONS },
     );
 
     expect(events).toHaveLength(2);

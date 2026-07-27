@@ -15,10 +15,16 @@ import { useUpdatePresentationMetadata } from "../actions/use-update-presentatio
 import { useUploadSlideMedia } from "../actions/use-upload-slide-media";
 import { usePresentationDetail } from "../api/use-presentation-detail";
 import { usePresentationPreview } from "../api/use-presentation-preview";
+import {
+  MEDIA_PANEL_DRAWERS,
+  SLIDE_PANEL_DRAWERS,
+  TEXT_PANEL_DRAWERS,
+} from "../components/panels/PanelDrawer";
 import type { Presentation, Slide } from "../types";
 import type { CompositionElement } from "@beyo/presentation-runtime";
 import {
   appendMediaElement,
+  compositionElementId,
   createEditorDraftStore,
   replaceMediaElementSource,
   selectedSlideFromState,
@@ -40,6 +46,19 @@ import { assertPreviewCompositionParity } from "../preview/preview-parity";
 
 const TITLE_DEBOUNCE_MS = 450;
 const COMPOSITION_AUTOSAVE_MS = 2_000;
+
+export type EditorPanelType = "slide" | "text" | "media";
+export type EditorSelectionSource = "timeline" | "canvas";
+
+type OpenDrawersByPanel = Record<EditorPanelType, ReadonlySet<string>>;
+
+function createInitialOpenDrawers(): OpenDrawersByPanel {
+  return {
+    slide: new Set(),
+    text: new Set(),
+    media: new Set(),
+  };
+}
 
 type UploadState = {
   fileName: string;
@@ -81,6 +100,9 @@ export function usePresentationEditorController(presentationId: string) {
   const [ctaDraft, setCtaDraft] = useState({ label: "", route: "" });
   const [ctaRouteError, setCtaRouteError] = useState<string | null>(null);
   const [inlineEditingElementId, setInlineEditingElementId] = useState<string | null>(null);
+  const [openDrawersByPanel, setOpenDrawersByPanel] = useState<OpenDrawersByPanel>(
+    createInitialOpenDrawers,
+  );
   const titleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const retryUploadQueueRef = useRef<PendingUploadQueue | null>(null);
   const uploadQueueGenerationRef = useRef(0);
@@ -105,6 +127,25 @@ export function usePresentationEditorController(presentationId: string) {
   const archivePresentation = useArchivePresentation();
   const createNewVersion = useCreateNewVersion();
 
+  const ensureDrawerOpen = useCallback((panel: EditorPanelType, drawerId: string) => {
+    setOpenDrawersByPanel((current) => {
+      if (current[panel].has(drawerId)) return current;
+      return {
+        ...current,
+        [panel]: new Set([...current[panel], drawerId]),
+      };
+    });
+  }, []);
+
+  const toggleDrawer = useCallback((panel: EditorPanelType, drawerId: string) => {
+    setOpenDrawersByPanel((current) => {
+      const next = new Set(current[panel]);
+      if (next.has(drawerId)) next.delete(drawerId);
+      else next.add(drawerId);
+      return { ...current, [panel]: next };
+    });
+  }, []);
+
   useEffect(() => {
     if (titleTimerRef.current !== null) {
       clearTimeout(titleTimerRef.current);
@@ -115,6 +156,7 @@ export function usePresentationEditorController(presentationId: string) {
     setNotice(null);
     setUploadState(null);
     setInlineEditingElementId(null);
+    setOpenDrawersByPanel(createInitialOpenDrawers());
   }, [presentationId, store]);
 
   useEffect(() => {
@@ -152,6 +194,7 @@ export function usePresentationEditorController(presentationId: string) {
     const slide = slideById(current.presentation, slideId);
     const elements = current.localCompositions[slideId];
     if (!slide || !elements) return true;
+    const flushedRevision = current.slideRevisions[slideId] ?? 0;
     const flush = (async () => {
       try {
         const effectiveDurationMs = slide.duration_ms ?? 4_000;
@@ -168,7 +211,7 @@ export function usePresentationEditorController(presentationId: string) {
           slideId,
           ...body,
         });
-        store.reconcileAfterFlush(response, slideId);
+        store.reconcileAfterFlush(response, slideId, flushedRevision);
         compositionFailureNotifiedRef.current.delete(slideId);
         setNotice(null);
         return true;
@@ -257,6 +300,12 @@ export function usePresentationEditorController(presentationId: string) {
       setNotice(errorMessage(error));
     }
   }, [ctaDraft, flushSlide, presentationId, readOnly, reconcile, store, updateSlide]);
+
+  useEffect(() => {
+    if (ctaRouteError) {
+      ensureDrawerOpen("slide", SLIDE_PANEL_DRAWERS.button);
+    }
+  }, [ctaRouteError, ensureDrawerOpen]);
 
   const updateElement = useCallback(
     (elementId: string, update: (element: CompositionElement) => CompositionElement) => {
@@ -572,6 +621,38 @@ export function usePresentationEditorController(presentationId: string) {
     }
   }, [createNewVersion, presentation, presentationId, refetchLatest]);
 
+  const selectElement = useCallback(
+    (elementId: string, source: EditorSelectionSource) => {
+      const current = store.getState();
+      const slideId = current.selectedSlideId;
+      if (!slideId) return;
+      store.selectElement(slideId, elementId);
+
+      const elements =
+        current.localCompositions[slideId] ??
+        slideById(current.presentation, slideId)?.elements ??
+        [];
+      const element = elements.find((candidate) => compositionElementId(candidate) === elementId);
+      if (!element) return;
+
+      const panel = element.element_type === "text" ? "text" : "media";
+      const drawerId = source === "timeline"
+        ? element.element_type === "text"
+          ? TEXT_PANEL_DRAWERS.animations
+          : MEDIA_PANEL_DRAWERS.animations
+        : element.element_type === "text"
+          ? TEXT_PANEL_DRAWERS.content
+          : MEDIA_PANEL_DRAWERS.media;
+      ensureDrawerOpen(panel, drawerId);
+    },
+    [ensureDrawerOpen, store],
+  );
+
+  const deselectElement = useCallback(() => {
+    const slideId = store.getState().selectedSlideId;
+    if (slideId) store.selectElement(slideId, null);
+  }, [store]);
+
   return {
     presentation,
     selectedSlide,
@@ -594,11 +675,11 @@ export function usePresentationEditorController(presentationId: string) {
     onSelectSlide: selectSlide,
     selectedElementId: selectedSlide ? draft.selectedElementIds[selectedSlide.client_id] ?? null : null,
     inlineEditingElementId,
+    openDrawersByPanel,
+    toggleDrawer,
     playback: selectedSlide ? draft.playbackBySlide[selectedSlide.client_id] ?? { playheadMs: 0, playing: false } : { playheadMs: 0, playing: false },
-    onSelectElement: (elementId: string | null) => {
-      const slideId = store.getState().selectedSlideId;
-      if (slideId) store.selectElement(slideId, elementId);
-    },
+    onSelectElement: selectElement,
+    onDeselectElement: deselectElement,
     onBeginInlineEdit: (elementId: string) => {
       if (!readOnly) setInlineEditingElementId(elementId);
     },

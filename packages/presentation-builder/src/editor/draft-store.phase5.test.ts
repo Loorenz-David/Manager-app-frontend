@@ -95,21 +95,56 @@ describe("editor draft store phase 5", () => {
         { ...fixture.slides[0]!, background_color: "#102A43" },
         { ...fixture.slides[1]!, background_color: null },
       ],
-    }, "aups_fixture");
+    }, "aups_fixture", 1);
 
     expect(store.getState().dirtySlideIds).toEqual(new Set(["aups_fixture_second"]));
     expect(store.getState().presentation?.slides[1]?.background_color).toBe("#ABCDEF");
   });
 
-  it("keeps failed local state dirty and only clears it after flush reconciliation", () => {
+  it("clears acknowledged dirty state without replacing the live local composition", () => {
     const store = createEditorDraftStore();
     const fixture = presentation();
     store.hydrate(fixture);
     store.updateElement("aups_fixture", "aupe_existing", (element) => ({ ...element, text_content: "Changed" }));
     expect(store.getState().dirtySlideIds.has("aups_fixture")).toBe(true);
     expect(store.getState().localCompositions.aups_fixture?.[0]?.text_content).toBe("Changed");
-    store.reconcileAfterFlush(fixture, "aups_fixture");
+    store.reconcileAfterFlush(fixture, "aups_fixture", 1);
     expect(store.getState().dirtySlideIds.has("aups_fixture")).toBe(false);
-    expect(store.getState().localCompositions.aups_fixture?.[0]?.text_content).toBe("Existing");
+    expect(store.getState().localCompositions.aups_fixture?.[0]?.text_content).toBe("Changed");
+  });
+
+  it("preserves selection and newer edits when an older flush response arrives", () => {
+    const store = createEditorDraftStore();
+    const fixture = presentation();
+    store.hydrate(fixture);
+    store.selectElement("aups_fixture", "aupe_existing");
+    store.updateElement("aups_fixture", "aupe_existing", (element) => ({
+      ...element,
+      text_content: "Sent",
+    }));
+    const flushedRevision = store.getState().slideRevisions.aups_fixture!;
+
+    store.updateElement("aups_fixture", "aupe_existing", (element) => ({
+      ...element,
+      text_content: "Still editing",
+    }));
+    store.reconcileAfterFlush({
+      ...fixture,
+      slides: [{
+        ...fixture.slides[0]!,
+        elements: [{
+          ...fixture.slides[0]!.elements[0]!,
+          client_id: "aupe_recreated_by_server",
+          text_content: "Sent",
+        }],
+      }],
+    }, "aups_fixture", flushedRevision);
+
+    expect(store.getState().dirtySlideIds.has("aups_fixture")).toBe(true);
+    expect(store.getState().selectedElementIds.aups_fixture).toBe("aupe_existing");
+    expect(store.getState().localCompositions.aups_fixture?.[0]).toMatchObject({
+      client_id: "aupe_existing",
+      text_content: "Still editing",
+    });
   });
 });

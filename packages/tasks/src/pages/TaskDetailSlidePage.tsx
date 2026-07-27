@@ -5,7 +5,7 @@ import {
   useSurfaceHeader,
   useSurfaceProps,
 } from "@beyo/hooks";
-import { generateClientId } from "@beyo/lib";
+import { cn, generateClientId } from "@beyo/lib";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
   useTaskNotesUnreadController,
@@ -48,8 +48,9 @@ import {
 } from "../providers/TaskDetailProvider";
 import type { TaskDetailSurfaceProps } from "../surface-ids";
 
-// Keep this in sync with the 9.5rem bottom padding used in the scroll content below.
-const BOTTOM_ACTIONS_EDGE_OFFSET_PX = 90;
+// Only the floating Assign Stages CTA remains at the bottom. Keep this in sync
+// with the bottom padding applied to the scroll content below.
+const BOTTOM_ACTIONS_EDGE_OFFSET_PX = 72;
 
 function toRequirementState(value: string | null) {
   return value && isUpholsteryRequirementState(value) ? value : null;
@@ -66,6 +67,8 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     });
   const isFooterHidden = isHidden && !isAtEdge;
 
+  // The page renders its own back arrow in the title row, so the surface
+  // header stays hidden on every breakpoint.
   useEffect(() => {
     header?.setHeaderHidden(true);
   }, [header]);
@@ -142,8 +145,16 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     );
   } else {
     scrollContent = (
-      <div className="flex flex-col gap-4 pb-[calc(var(--safe-bottom,0)+9.5rem)] pt-2">
+      <div
+        className={cn(
+          "flex flex-col gap-4 pt-2",
+          shouldRenderAssignStages
+            ? "pb-[calc(var(--safe-bottom,0px)+5.5rem)]"
+            : "pb-[calc(var(--safe-bottom,0px)+1.5rem)]",
+        )}
+      >
         <TaskDetailHeader
+          onBack={() => header?.requestClose()}
           onOpenMenu={controller.openMenu}
           onOpenReadyByAt={controller.openReadyByAtSheet}
           taskDetail={controller.taskDetail}
@@ -239,7 +250,6 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       </PullToRefresh>
       <TaskDetailBottomActions
         isHidden={isFooterHidden}
-        onEdit={controller.openEditTask}
         onOpenWorkingSections={controller.openWorkingSectionsSlide}
         shouldRenderAssignStages={shouldRenderAssignStages}
       />

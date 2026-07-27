@@ -13,7 +13,7 @@ export function WorkerInternalTaskSlidePage(): React.JSX.Element {
   }, [header]);
 
   return (
-    <TaskCreationFormProvider>
+    <TaskCreationFormProvider taskType="internal">
       <WorkerInternalFormContent />
     </TaskCreationFormProvider>
   );

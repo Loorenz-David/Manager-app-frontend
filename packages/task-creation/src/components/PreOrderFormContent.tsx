@@ -10,11 +10,7 @@ import {
   CustomerPhoneField,
   CustomerTypeField,
 } from "@beyo/customers";
-import {
-  EntityImagesProvider,
-  ImagePreviewGrid,
-  useCreateImagesFromUrl,
-} from "@beyo/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
 import {
@@ -30,9 +26,9 @@ import {
   type ItemLookupResult,
 } from "@beyo/items";
 import {
+  CameraPrewarm,
   SCANNER_SESSION_ID,
   SCANNER_SLIDE_SURFACE_ID,
-  useCameraPrewarm,
   type ScanFormat,
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
@@ -62,13 +58,14 @@ import {
 } from "react-hook-form";
 
 import {
-  buildCreateImagesFromUrlBatch,
   createLookupResultSignature,
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
+import { buildPreOrderFormDefaultValues } from "../lib/pre-order-form-default-values";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
@@ -156,55 +153,16 @@ export function PreOrderFormContent(): React.JSX.Element {
     noteClientId,
     currentUserClientId,
     callbacks,
+    initialItemSku,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
-  const createImagesFromUrl = useCreateImagesFromUrl();
+  const applyLookupImages = useLookupItemImages(itemClientId);
   const surface = useSurface();
-  useCameraPrewarm(SCANNER_SESSION_ID, 200);
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: {
-      item: {
-        designer: "",
-        article_number: "",
-        sku: "",
-        quantity: 1,
-        item_position: "",
-        item_zone: "",
-        item_currency: undefined,
-        item_category_id: undefined,
-        major_category: undefined,
-      },
-      item_upholstery: {
-        upholstery_client_id: null,
-        upholstery_amount_meters: null,
-      },
-      item_issues: [],
-      customer: {
-        display_name: "",
-        customer_type: undefined,
-        primary_email: "",
-        primary_phone_number: "",
-        address: {
-          street: "",
-          city: "",
-          postal_code: "",
-          coordinates: {
-            latitude: null,
-            longitude: null,
-          },
-        },
-      },
-      return_source: undefined,
-      fulfillment_method: undefined,
-      scheduled_start_at: null,
-      scheduled_end_at: null,
-      working_section_assignments: [],
-      ready_by_at: null,
-      note_content: null,
-    },
+    defaultValues: buildPreOrderFormDefaultValues(initialItemSku),
   });
   const majorCategory = useWatch({
     control: form.control,
@@ -223,13 +181,15 @@ export function PreOrderFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.sku",
   });
-  const { status: shopifyCustomerLookupStatus } =
-    useShopifyCustomerLookupPrefill({
-      form,
-      articleNumber: itemArticleNumber,
-      sku: itemSku,
-      enabled: true,
-    });
+  const {
+    status: shopifyCustomerLookupStatus,
+    retry: retryShopifyCustomerLookup,
+  } = useShopifyCustomerLookupPrefill({
+    form,
+    articleNumber: itemArticleNumber,
+    sku: itemSku,
+    enabled: true,
+  });
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
 
@@ -264,13 +224,7 @@ export function PreOrderFormContent(): React.JSX.Element {
       shouldDirty: true,
     });
 
-    if (selectedItem.images.length > 0) {
-      void createImagesFromUrl
-        .mutateAsync(
-          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
-        )
-        .catch(() => {});
-    }
+    applyLookupImages(selectedItem.images);
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;
@@ -372,46 +326,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           result,
           hadUpholstery: Boolean(payload.item_upholstery),
         });
-        form.reset({
-          item: {
-            designer: "",
-            article_number: "",
-            sku: "",
-            quantity: 1,
-            item_position: "",
-            item_zone: "",
-            item_currency: undefined,
-            item_category_id: undefined,
-            major_category: undefined,
-          },
-          item_upholstery: {
-            upholstery_client_id: null,
-            upholstery_amount_meters: null,
-          },
-          item_issues: [],
-          customer: {
-            display_name: "",
-            customer_type: undefined,
-            primary_email: "",
-            primary_phone_number: "",
-            address: {
-              street: "",
-              city: "",
-              postal_code: "",
-              coordinates: {
-                latitude: null,
-                longitude: null,
-              },
-            },
-          },
-          return_source: undefined,
-          fulfillment_method: undefined,
-          scheduled_start_at: null,
-          scheduled_end_at: null,
-          working_section_assignments: [],
-          ready_by_at: null,
-          note_content: null,
-        });
+        form.reset(buildPreOrderFormDefaultValues(initialItemSku));
         surface.close(TASK_CREATION_PRE_ORDER_SURFACE_ID);
       })(),
   });
@@ -483,6 +398,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
           navigationMode={staged.navigationMode}
+          canAdvance={staged.validateAdvance}
           onAdvance={staged.advance}
           onBack={staged.back}
           onNavigate={staged.navigateTo}
@@ -493,7 +409,9 @@ export function PreOrderFormContent(): React.JSX.Element {
           <StagedFormStep id="task" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
+                <CameraPrewarm delayMs={200} sessionId={SCANNER_SESSION_ID} />
                 <ItemIdentityField
+                  defaultTab="sku"
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
                 />
@@ -519,7 +437,10 @@ export function PreOrderFormContent(): React.JSX.Element {
 
           <StagedFormStep id="customer" className="px-0">
             <div className="flex flex-col gap-4">
-              <ShopifyCustomerStatusPill status={shopifyCustomerLookupStatus} />
+              <ShopifyCustomerStatusPill
+                onRetry={retryShopifyCustomerLookup}
+                status={shopifyCustomerLookupStatus}
+              />
               <ContentCard>
                 <CustomerDisplayNameField />
                 <CustomerTypeField />

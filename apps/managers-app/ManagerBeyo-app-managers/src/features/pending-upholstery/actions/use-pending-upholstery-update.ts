@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { runWhenUiSettled } from "@beyo/ui";
 import {
   updateItemUpholstery,
   type UpdateItemUpholsteryInput,
@@ -86,24 +87,28 @@ export function usePendingUpholsteryUpdate(itemId: string | null) {
       );
     },
     onSettled: (_data, _error, input) => {
-      void queryClient.invalidateQueries({
-        queryKey: pendingSeatUpholsteryKeys.all,
-      });
-      void queryClient.invalidateQueries({
-        queryKey: taskKeys.detail(input.taskId as never),
-      });
-      void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
-      void queryClient.invalidateQueries({
-        queryKey: upholsteryKeys.pickerLists(),
-      });
-      void queryClient.invalidateQueries({
-        queryKey: upholsteryInventoryKeys.lists(),
-      });
-      if (itemId) {
+      // Let the surface finish closing and the row finish animating out
+      // before the refetch storm hits the list underneath.
+      runWhenUiSettled(() => {
         void queryClient.invalidateQueries({
-          queryKey: itemUpholsteryKeys.byItem(itemId),
+          queryKey: pendingSeatUpholsteryKeys.all,
         });
-      }
+        void queryClient.invalidateQueries({
+          queryKey: taskKeys.detail(input.taskId as never),
+        });
+        void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryKeys.pickerLists(),
+        });
+        void queryClient.invalidateQueries({
+          queryKey: upholsteryInventoryKeys.lists(),
+        });
+        if (itemId) {
+          void queryClient.invalidateQueries({
+            queryKey: itemUpholsteryKeys.byItem(itemId),
+          });
+        }
+      });
     },
   });
 }

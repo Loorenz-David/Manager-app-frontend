@@ -2,12 +2,7 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  EntityImagesProvider,
-  imageKeys,
-  ImagePreviewGrid,
-  useCreateImagesFromUrl,
-} from "@beyo/images";
+import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import {
   ContentCard,
@@ -23,9 +18,9 @@ import {
 } from "@beyo/items";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
 import {
+  CameraPrewarm,
   SCANNER_SESSION_ID,
   SCANNER_SLIDE_SURFACE_ID,
-  useCameraPrewarm,
   type ScanFormat,
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
@@ -52,9 +47,9 @@ import {
 import {
   createLookupResultSignature,
   findCachedItemCategoryOption,
-  buildCreateImagesFromUrlBatch,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
@@ -134,8 +129,7 @@ export function InternalFormContent(): React.JSX.Element {
     callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
-  const createImagesFromUrl = useCreateImagesFromUrl();
-  useCameraPrewarm(SCANNER_SESSION_ID, 200);
+  const applyLookupImages = useLookupItemImages(itemClientId);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
     mode: "onChange",
@@ -213,21 +207,7 @@ export function InternalFormContent(): React.JSX.Element {
       shouldDirty: true,
     });
 
-    if (selectedItem.images.length > 0) {
-      void createImagesFromUrl
-        .mutateAsync(
-          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
-        )
-        .then(() =>
-          queryClient.invalidateQueries({
-            queryKey: imageKeys.list({
-              entity_type: "item",
-              entity_client_id: itemClientId,
-            }),
-          }),
-        )
-        .catch(() => {});
-    }
+    applyLookupImages(selectedItem.images);
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;
@@ -399,6 +379,7 @@ export function InternalFormContent(): React.JSX.Element {
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
           navigationMode={staged.navigationMode}
+          canAdvance={staged.validateAdvance}
           onAdvance={staged.advance}
           onBack={staged.back}
           onNavigate={staged.navigateTo}
@@ -409,6 +390,7 @@ export function InternalFormContent(): React.JSX.Element {
           <StagedFormStep id="item" className="px-0">
             <div className="flex flex-col gap-4">
               <ContentCard>
+                <CameraPrewarm delayMs={200} sessionId={SCANNER_SESSION_ID} />
                 <ItemIdentityField
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}

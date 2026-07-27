@@ -338,3 +338,4 @@ Lazy-loaded features and surfaces may use Framer Motion after their chunk loads.
 - **Never animate large virtualized lists with `layout`.** Virtualization owns positioning.
 - **Never define surface animation inside a feature.** Surface shells own drawer/modal animation.
 - **Never dynamically import Framer Motion per feature.** It is shared UI infrastructure.
+- **Never hand-roll an `AnimatePresence` pane switcher for multi-container forward/back navigation.** That interaction (containers sliding over each other, swipe forward/back, staged steps) is owned by the `SlideStack` primitive — see `38_slide_stack.md`.

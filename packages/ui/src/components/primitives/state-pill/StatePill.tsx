@@ -1,4 +1,5 @@
 import { cn } from "@beyo/lib";
+import type { LucideIcon } from "lucide-react";
 
 export type StatePillVariant =
   | "neutral"
@@ -30,6 +31,7 @@ export type StatePillProps = {
   variant: StatePillVariant;
   style?: StatePillStyle;
   className?: string;
+  icon?: LucideIcon;
 };
 
 export function StatePill({
@@ -37,15 +39,27 @@ export function StatePill({
   variant,
   style = "pill",
   className,
+  icon: Icon,
 }: StatePillProps): React.JSX.Element {
   const baseClass =
     style === "text"
-      ? "inline text-xs font-medium"
+      ? Icon
+        ? "inline-flex items-center text-xs font-medium"
+        : "inline text-xs font-medium"
       : "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium";
   const variantClass =
     style === "text" ? TEXT_VARIANT_CLASS[variant] : VARIANT_CLASS[variant];
 
   return (
-    <span className={cn(baseClass, variantClass, className)}>{label}</span>
+    <span className={cn(baseClass, Icon && "gap-1", variantClass, className)}>
+      {Icon ? (
+        <Icon
+          aria-hidden="true"
+          className="h-3 w-3 shrink-0"
+          data-testid="state-pill-icon"
+        />
+      ) : null}
+      {label}
+    </span>
   );
 }
