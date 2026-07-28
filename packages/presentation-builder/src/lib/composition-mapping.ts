@@ -9,7 +9,6 @@ import {
 } from "@beyo/presentation-runtime";
 
 import type { CompositionElementInput } from "../types";
-import type { TextMeasurementAdapter } from "./text-measurement";
 import { clampWindowToDuration } from "./timeline-geometry";
 
 export type {
@@ -75,8 +74,9 @@ export type CompositionPutBody = {
   elements: CompositionElementInput[];
 };
 
-const normalizedDimension = (pixels: number, canvasPixels: number): number =>
-  Math.min(1, Math.max(Number.EPSILON, pixels / canvasPixels));
+/** Backend `LayoutConfig` accepts width/height in (0, 1]. */
+const normalizedFraction = (value: number): number =>
+  Math.min(1, Math.max(Number.EPSILON, value));
 
 export function editorAnimationToWire(choice: EditorAnimationChoice): ElementAnimation {
   if (choice === "none") return { type: "none" };
@@ -102,7 +102,6 @@ export function wireFontSizeToEditor(fontSize: number): number {
 function editorElementToPutInput(
   element: EditorCompositionElement,
   durationMs: number,
-  measureText: TextMeasurementAdapter,
 ): CompositionElementInput {
   const timing = element.endMs === null
     ? { startMs: Math.max(0, Math.min(element.startMs, durationMs)), endMs: null }
@@ -132,11 +131,9 @@ function editorElementToPutInput(
     };
   }
 
-  const measured = measureText({
-    content: element.content,
-    fontSizePx: element.sizePx,
-    fontWeight: element.weight,
-  });
+  // The authored box IS the box on both axes — measuring either back from the text would
+  // throw away what the author dragged. Auto-height is resolved upstream, in
+  // `text-box-layout.withMeasuredTextHeight`, so by here the height is already correct.
   return {
     element_type: "text",
     text_content: element.content,
@@ -146,8 +143,8 @@ function editorElementToPutInput(
     layout: {
       x: element.x,
       y: element.y,
-      width: normalizedDimension(measured.widthPx, EDITOR_CANVAS_WIDTH),
-      height: normalizedDimension(measured.heightPx, EDITOR_CANVAS_HEIGHT),
+      width: normalizedFraction(element.width),
+      height: normalizedFraction(element.height),
       anchor: "center",
     },
     style: {
@@ -169,9 +166,12 @@ function editorElementToPutInput(
   };
 }
 
+/**
+ * Text geometry is authored, never re-measured here — auto-height is resolved upstream by
+ * `text-box-layout.withMeasuredTextHeight`, so this mapping is a pure translation.
+ */
 export function editorCompositionToPutBody(
   composition: EditorComposition,
-  measureText: TextMeasurementAdapter,
 ): CompositionPutBody {
   return {
     playback_mode: "timed",
@@ -179,7 +179,7 @@ export function editorCompositionToPutBody(
     composition_schema_version: COMPOSITION_SCHEMA_VERSION,
     background_color: composition.backgroundColor,
     elements: composition.elements.map((element) =>
-      editorElementToPutInput(element, composition.durationMs, measureText)),
+      editorElementToPutInput(element, composition.durationMs)),
   };
 }
 

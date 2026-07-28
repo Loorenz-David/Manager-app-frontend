@@ -17,6 +17,10 @@ type SlidePropertiesPanelProps = {
   onReplaceMedia: () => void;
   durationSeconds: number;
   onDurationChange: (seconds: number) => void;
+  /** Formatted duration for the editable field (the slider handle only spans 2–12 s). */
+  durationLabel?: string;
+  /** Raw typed duration, parsed by the logic layer — supports values past the handle. */
+  onDurationLabelCommit?: (rawValue: string) => void;
   /** Slide background color (hex, null = none). Field renders only when wired
    * (slide-background-color plan). */
   backgroundColor?: string | null;
@@ -42,6 +46,8 @@ export function SlidePropertiesPanel({
   onReplaceMedia,
   durationSeconds,
   onDurationChange,
+  durationLabel,
+  onDurationLabelCommit,
   backgroundColor,
   onBackgroundColorChange,
   ctaLabel,
@@ -93,12 +99,14 @@ export function SlidePropertiesPanel({
         <PanelSection>
           <PanelSlider
             label="Slide duration"
-            valueLabel={`${durationSeconds.toFixed(1)}s`}
+            valueLabel={durationLabel ?? `${durationSeconds.toFixed(1)}s`}
             min={2}
             max={12}
             step={0.5}
             value={durationSeconds}
             onChange={onDurationChange}
+            onValueLabelCommit={onDurationLabelCommit}
+            valueLabelHint="Type any length — 8, 90s, 1:30, 2m"
             disabled={readOnly}
             testId="presentation-panel-slide-duration"
           />

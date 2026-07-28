@@ -50,20 +50,41 @@ before writing code.
     videos use the same timed media-element model; "background" and "overlay" are
     retired authoring concepts. Full-bleed is a first-media layout default, not a
     separate role.
+12. **A text element's box is authored on both axes and must survive the round trip.**
+    The save path used to re-derive width *and* height from an unwrapped `measureText`
+    (no `maxWidthPx`), silently discarding the authored box on every flush and leaving the
+    phone to render at the natural single-line width. `editorCompositionToPutBody` is now
+    a pure translation — it measures nothing. Auto-height is resolved upstream, in
+    `text-box-layout.withMeasuredTextHeight`. Regression: `composition-mapping.test.ts`
+    "keeps the authored text box on both axes".
+13. **Text wrapping has exactly one definition: runtime `compositionTextStyle`.** The
+    inline editor spreads it verbatim; `text-measurement` mirrors it (same
+    `TEXT_LINE_HEIGHT`, `pre-wrap`, `break-word`) because the measured height IS the
+    box height. Historic drift, all of which made the editor lie about the final render:
+    the renderer set no `line-height` (measurement assumed 1.2), collapsed authored
+    newlines (no `pre-wrap`), never broke long words while the textarea's UA style did,
+    and left `padding`/`border_radius` unscaled so the 264-wide canvas and the 390-wide
+    phone wrapped differently. Regression: `CanvasTextEditOverlay.test.tsx`.
+14. **Element placement is bounded by the backend, not by taste.** `LayoutConfig`
+    validates `x`/`y` in **0..1** and `width`/`height` in **(0, 1]** — out-of-range is a
+    `422`. Since layouts are centre-anchored, a centre on the edge already puts half the
+    box off-frame, and that is the most overhang available. Fully off-canvas placement
+    (a centre outside the frame, e.g. for a slide-in keyframe) requires relaxing
+    `_pos_range` backend-side first.
 
 ## Architecture invariants
 
-12. Dependency direction: `runtime ← builder`, `runtime ← presentations`; builder ⇄
+15. Dependency direction: `runtime ← builder`, `runtime ← presentations`; builder ⇄
     presentations never import each other; apps import package indexes only.
-13. Kit components (builder `components/`, player `components/player/`) are
+16. Kit components (builder `components/`, player `components/player/`) are
     props-only and styling-read-only for logic work; all arithmetic lives in `lib/`
     logic modules (gesture contracts: timeline bars emit raw pixels; canvas resize
     handles emit raw delta fractions).
-14. One renderer. Any per-consumer rendering fork breaks the editor↔phone parity
+17. One renderer. Any per-consumer rendering fork breaks the editor↔phone parity
     guarantee that the parity tests pin.
-15. No default exports in `@beyo/presentations`; lazy hosts go through the
+18. No default exports in `@beyo/presentations`; lazy hosts go through the
     `preload*Surface` named→default loaders.
-16. **A dirty composition flush must never silently no-op.** Draft slides can arrive
+19. **A dirty composition flush must never silently no-op.** Draft slides can arrive
     with `duration_ms: null`; use the editor's 4,000 ms effective duration and issue
     the composition PUT. Returning success without persisting leaves the backend
     slide empty and causes publish to reject an otherwise valid text-only deck.

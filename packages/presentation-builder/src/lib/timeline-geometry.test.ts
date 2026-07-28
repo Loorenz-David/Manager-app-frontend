@@ -6,6 +6,7 @@ import {
   clampWindowToDuration,
   generateTimelineTicks,
   resizeElementLayout,
+  resizeTextBox,
   scrubFractionToTime,
   timeToX,
   timelineWindowFractions,
@@ -91,9 +92,17 @@ describe("timeline geometry", () => {
     ]);
     expect(scrubFractionToTime(1.5, 4_000)).toBe(4_000);
     expect(scrubFractionToTime(-1, -4_000)).toBe(0);
-    expect(clampCanvasPosition(-1, 2)).toEqual({ x: 0.05, y: 0.94 });
+    // Centres run the full 0..1 the backend accepts, so a box can hang off the frame.
+    expect(clampCanvasPosition(-1, 2)).toEqual({ x: 0, y: 1 });
     expect(clampCanvasPosition(0.5, 0.5)).toEqual({ x: 0.5, y: 0.5 });
     expect(generateTimelineTicks(0)).toEqual([]);
+    // Spacing scales with the slide so a minutes-long ruler stays readable.
+    expect(generateTimelineTicks(12_000)).toHaveLength(13);
+    const twoMinutes = generateTimelineTicks(120_000);
+    expect(twoMinutes.length).toBeLessThanOrEqual(13);
+    expect(twoMinutes[0]).toEqual({ label: "0s", fraction: 0 });
+    expect(twoMinutes.at(-1)).toEqual({ label: "2:00", fraction: 1 });
+    expect(generateTimelineTicks(600_000).length).toBeLessThanOrEqual(13);
     expect(timelineWindowFractions({ startMs: -500, endMs: 9_000 }, 8_000)).toEqual({
       leftFraction: 0,
       widthFraction: 1,
@@ -225,6 +234,49 @@ describe("canvas resize geometry", () => {
       resizeElementLayout(landscape, { handle, deltaXFraction, deltaYFraction }),
       expected,
     );
+  });
+
+  it("resizes a text box on both axes, holding the opposite edge, without aspect lock", () => {
+    const box = { x: 0.5, y: 0.5, width: 0.4, height: 0.2 };
+    // East drag: left edge (0.3) stays, width grows, height untouched.
+    expectLayout(
+      resizeTextBox(box, { handle: "e", deltaXFraction: 0.2, deltaYFraction: 0 }),
+      { x: 0.6, y: 0.5, width: 0.6, height: 0.2 },
+    );
+    // South drag: top edge (0.4) stays, height grows, width untouched.
+    expectLayout(
+      resizeTextBox(box, { handle: "s", deltaXFraction: 0, deltaYFraction: 0.2 }),
+      { x: 0.5, y: 0.6, width: 0.4, height: 0.4 },
+    );
+    // North drag: bottom edge (0.6) stays.
+    expectLayout(
+      resizeTextBox(box, { handle: "n", deltaXFraction: 0, deltaYFraction: -0.2 }),
+      { x: 0.5, y: 0.4, width: 0.4, height: 0.4 },
+    );
+    // Corner: both axes move independently — text must never aspect-lock.
+    expectLayout(
+      resizeTextBox(box, { handle: "se", deltaXFraction: 0.2, deltaYFraction: 0.1 }),
+      { x: 0.6, y: 0.55, width: 0.6, height: 0.3 },
+    );
+  });
+
+  it("lets a text box overhang the frame but keeps size and centre in backend range", () => {
+    // Size caps at the full canvas, not at the distance to the edge.
+    expectLayout(
+      resizeTextBox(
+        { x: 0.8, y: 0.9, width: 0.4, height: 0.2 },
+        { handle: "se", deltaXFraction: 5, deltaYFraction: 5 },
+      ),
+      { x: 1, y: 1, width: 1, height: 1 },
+    );
+    const shrunk = resizeTextBox(
+      { x: 0.5, y: 0.5, width: 0.4, height: 0.2 },
+      { handle: "nw", deltaXFraction: 5, deltaYFraction: 5 },
+    );
+    expect(shrunk.width).toBeCloseTo(0.05);
+    expect(shrunk.height).toBeCloseTo(0.05);
+    expect(shrunk.x).toBeGreaterThanOrEqual(0);
+    expect(shrunk.y).toBeLessThanOrEqual(1);
   });
 
   it("applies the minimum to aspect-locked corners and normalizes an invalid base", () => {

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { cn } from "@beyo/lib";
 
@@ -132,6 +132,12 @@ type PanelSliderProps = {
   step: number;
   value: number;
   onChange: (value: number) => void;
+  /**
+   * Makes the value display an editable field, so the value can be set past the handle's
+   * range. The raw text is passed up **unparsed** — parsing belongs in the logic layer.
+   */
+  onValueLabelCommit?: (rawValue: string) => void;
+  valueLabelHint?: string;
   disabled?: boolean;
   testId: string;
 };
@@ -144,21 +150,60 @@ export function PanelSlider({
   step,
   value,
   onChange,
+  onValueLabelCommit,
+  valueLabelHint,
   disabled,
   testId,
 }: PanelSliderProps): React.JSX.Element {
+  // null = mirror `valueLabel`; a string = the author is mid-edit.
+  const [draft, setDraft] = useState<string | null>(null);
+
+  const commit = () => {
+    if (draft !== null) onValueLabelCommit?.(draft);
+    setDraft(null);
+  };
+
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
         <span className="text-xs font-semibold text-[#767676]">{label}</span>
-        <span className="font-mono text-[11px] text-[#9a9a9a]">{valueLabel}</span>
+        {onValueLabelCommit
+          ? (
+            <input
+              type="text"
+              inputMode="decimal"
+              value={draft ?? valueLabel}
+              disabled={disabled}
+              title={valueLabelHint}
+              aria-label={`${label} value`}
+              data-testid={`${testId}-value`}
+              onFocus={(event) => {
+                setDraft(valueLabel);
+                event.target.select();
+              }}
+              onChange={(event) => setDraft(event.target.value)}
+              onBlur={commit}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  event.currentTarget.blur();
+                }
+                if (event.key === "Escape") {
+                  setDraft(null);
+                  event.currentTarget.blur();
+                }
+              }}
+              className="w-16 rounded border border-transparent bg-transparent px-1 py-0.5 text-right font-mono text-[11px] text-[#767676] hover:border-[#dcdcdc] focus:border-[#3f78a8] focus:bg-white focus:text-[#303030] focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+            />
+          )
+          : <span className="font-mono text-[11px] text-[#9a9a9a]">{valueLabel}</span>}
       </div>
       <input
         type="range"
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={Math.min(max, Math.max(min, value))}
         disabled={disabled}
         onChange={(event) => onChange(Number(event.target.value))}
         aria-label={label}

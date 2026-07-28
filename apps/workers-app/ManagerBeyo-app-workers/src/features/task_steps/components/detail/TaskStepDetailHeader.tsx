@@ -1,5 +1,11 @@
 import { m } from "framer-motion";
-import { Calendar, RotateCcw, ShoppingBag, Wrench } from "lucide-react";
+import {
+  Calendar,
+  ChevronLeft,
+  RotateCcw,
+  ShoppingBag,
+  Wrench,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { daysUntil, formatShortDate } from "@beyo/lib";
 import { STEP_STATE_VARIANT, humanizeStepState } from "@beyo/tasks";
@@ -67,7 +73,11 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
   return <span className={className}>{label}</span>;
 }
 
-export function TaskStepDetailHeader(): React.JSX.Element | null {
+export function TaskStepDetailHeader({
+  onBack,
+}: {
+  onBack: () => void;
+}): React.JSX.Element | null {
   const { step, vm, handleOpenActionsSheet } = useTaskStepDetailContext();
 
   if (!vm) {
@@ -92,6 +102,15 @@ export function TaskStepDetailHeader(): React.JSX.Element | null {
       data-testid="task-step-detail-header"
     >
       <div className="flex items-center gap-2">
+        <button
+          aria-label="Go back"
+          className="-ml-2 flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors duration-150 hover:bg-muted"
+          data-testid="task-step-detail-back-button"
+          type="button"
+          onClick={onBack}
+        >
+          <ChevronLeft aria-hidden="true" className="size-5" />
+        </button>
         <span className="min-w-0 flex-1 truncate text-md font-semibold text-foreground">
           {vm.articleLabel}
         </span>

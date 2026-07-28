@@ -77,16 +77,82 @@ export function applyTimelineGesture(
   };
 }
 
+/** Coarsest-first ladder; one second stays the finest step so short slides read as before. */
+const TICK_STEPS_MS = [
+  1_000, 2_000, 5_000, 10_000, 15_000, 30_000,
+  60_000, 120_000, 300_000, 600_000, 900_000, 1_800_000, 3_600_000,
+];
+const TARGET_TICK_COUNT = 12;
+
+const tickLabel = (timeMs: number): string => {
+  const seconds = timeMs / 1_000;
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(Math.round(seconds - minutes * 60)).padStart(2, "0")}`;
+};
+
+/**
+ * Tick spacing scales with the slide: durations are unbounded, and one label per second
+ * turns a minutes-long slide's ruler into an unreadable smear.
+ */
 export function generateTimelineTicks(durationMs: number): { label: string; fraction: number }[] {
   if (durationMs <= 0) return [];
-  return Array.from({ length: Math.floor(durationMs / 1_000) + 1 }, (_, second) => ({
-    label: `${second}s`,
-    fraction: (second * 1_000) / durationMs,
-  }));
+  const ideal = durationMs / TARGET_TICK_COUNT;
+  const stepMs = TICK_STEPS_MS.find((step) => step >= ideal) ?? TICK_STEPS_MS.at(-1)!;
+  const ticks: { label: string; fraction: number }[] = [];
+  for (let timeMs = 0; timeMs <= durationMs; timeMs += stepMs) {
+    ticks.push({ label: tickLabel(timeMs), fraction: timeMs / durationMs });
+  }
+  return ticks;
 }
 
+/**
+ * Elements may hang off the frame — layouts are center-anchored, so a centre on the edge
+ * puts half the box outside. 0..1 is the full range the backend accepts for `x`/`y`
+ * (`LayoutConfig._pos_range`); a centre beyond the frame would 422.
+ */
 export function clampCanvasPosition(x: number, y: number): CanvasPosition {
-  return { x: clamp(x, 0.05, 0.95), y: clamp(y, 0.06, 0.94) };
+  return { x: clamp(x, 0, 1), y: clamp(y, 0, 1) };
+}
+
+/**
+ * Text boxes resize on both axes and never aspect-lock: width sets the wrap column,
+ * height is the author's. Each dragged edge moves while its opposite edge stays put, and
+ * the box may extend past the frame (size capped at the canvas, centre clamped to 0..1 —
+ * the range the backend's `LayoutConfig` accepts).
+ */
+export function resizeTextBox(
+  layout: CanvasElementLayout,
+  gesture: CanvasResizeGesture,
+  minimumSize = MIN_CANVAS_ELEMENT_SIZE,
+): CanvasElementLayout {
+  const minimum = clamp(minimumSize, Number.EPSILON, 1);
+  const width = clamp(layout.width, minimum, 1);
+  const height = clamp(layout.height, minimum, 1);
+  const growsWest = gesture.handle.includes("w");
+  const growsEast = gesture.handle.includes("e");
+  const growsNorth = gesture.handle.includes("n");
+  const growsSouth = gesture.handle.includes("s");
+
+  const nextWidth = growsEast || growsWest
+    ? clamp(width + (growsEast ? gesture.deltaXFraction : -gesture.deltaXFraction), minimum, 1)
+    : width;
+  const nextHeight = growsSouth || growsNorth
+    ? clamp(height + (growsSouth ? gesture.deltaYFraction : -gesture.deltaYFraction), minimum, 1)
+    : height;
+
+  const x = growsEast
+    ? layout.x - width / 2 + nextWidth / 2
+    : growsWest
+      ? layout.x + width / 2 - nextWidth / 2
+      : layout.x;
+  const y = growsSouth
+    ? layout.y - height / 2 + nextHeight / 2
+    : growsNorth
+      ? layout.y + height / 2 - nextHeight / 2
+      : layout.y;
+
+  return { x: clamp(x, 0, 1), y: clamp(y, 0, 1), width: nextWidth, height: nextHeight };
 }
 
 function normalizeCanvasLayout(

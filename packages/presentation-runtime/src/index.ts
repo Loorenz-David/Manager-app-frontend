@@ -44,7 +44,9 @@ export {
   type PlaybackClockOptions,
 } from "./usePlaybackClock";
 export {
+  compositionTextStyle,
   REFERENCE_CANVAS_WIDTH,
   SlideCompositionRenderer,
+  TEXT_LINE_HEIGHT,
   type SlideCompositionRendererProps,
 } from "./SlideCompositionRenderer";

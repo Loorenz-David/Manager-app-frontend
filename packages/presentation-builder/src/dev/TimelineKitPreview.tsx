@@ -16,6 +16,7 @@ import { TimelineRuler } from "../components/timeline/TimelineRuler";
 import { TimelineTrack } from "../components/timeline/TimelineTrack";
 import type { CanvasResizeGesture } from "../components/editor/types";
 import type { TimelineBarGesture } from "../components/timeline/types";
+import { formatSlideDuration, parseSlideDuration } from "../lib/slide-duration";
 
 const DURATION_MS = 4000;
 const MIN_WINDOW_MS = 400;
@@ -335,6 +336,11 @@ export function TimelineKitPreview(): React.JSX.Element {
               onReplaceMedia={noop}
               durationSeconds={durationS}
               onDurationChange={changeDuration}
+              durationLabel={formatSlideDuration(durationS)}
+              onDurationLabelCommit={(raw) => {
+                const seconds = parseSlideDuration(raw);
+                if (seconds !== null) changeDuration(seconds);
+              }}
               backgroundColor={slideBackground}
               onBackgroundColorChange={setSlideBackground}
               drawers={drawersFor("slide")}

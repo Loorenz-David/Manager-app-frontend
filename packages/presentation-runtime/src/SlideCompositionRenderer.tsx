@@ -69,24 +69,39 @@ function elementFrame(
   };
 }
 
-function textElementStyle(
+/**
+ * Line box every consumer must use. Text height is derived from it (builder
+ * `text-measurement`), so a mismatch here silently mis-sizes every text box.
+ */
+export const TEXT_LINE_HEIGHT = 1.2;
+
+/**
+ * The complete text style for an element at a given container width — the single
+ * definition of where its lines break. The studio's inline text editor applies this
+ * verbatim; anything it styles differently is a wrap the author edits against but never
+ * gets. Sizes are authored at `REFERENCE_CANVAS_WIDTH`, so padding scales with the font.
+ */
+export function compositionTextStyle(
   element: CompositionElement,
   containerWidth: number,
 ): CSSProperties {
   const style: TextStyle | null = element.style;
   const overflow = style?.overflow;
   const maxLines = style?.max_lines;
+  const scale = containerWidth / REFERENCE_CANVAS_WIDTH;
 
   return {
-    fontSize:
-      style?.font_size === undefined
-        ? undefined
-        : style.font_size * (containerWidth / REFERENCE_CANVAS_WIDTH),
+    boxSizing: "border-box",
+    fontSize: style?.font_size === undefined ? undefined : style.font_size * scale,
     fontWeight: style?.font_weight,
+    lineHeight: TEXT_LINE_HEIGHT,
+    // Authored newlines survive, and a word longer than the box wraps instead of escaping it.
+    whiteSpace: "pre-wrap",
+    overflowWrap: "break-word",
     color: style?.text_color,
     backgroundColor: style?.background_color,
-    borderRadius: style?.border_radius,
-    padding: style?.padding,
+    borderRadius: style?.border_radius === undefined ? undefined : style.border_radius * scale,
+    padding: style?.padding === undefined ? undefined : style.padding * scale,
     textAlign: style?.text_align ?? element.layout?.align,
     overflow: overflow === "visible" ? "visible" : overflow === undefined ? undefined : "hidden",
     textOverflow: overflow === "ellipsis" ? "ellipsis" : undefined,
@@ -161,7 +176,7 @@ function renderElement(
       {...sharedProps}
       style={{
         ...sharedProps.style,
-        ...textElementStyle(element, containerWidth),
+        ...compositionTextStyle(element, containerWidth),
       }}
     >
       {element.text_content}

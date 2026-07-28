@@ -32,10 +32,23 @@ controller. Owns:
   measurement source with an approximation fallback. It feeds both persisted
   text-element sizing in `composition-mapping` and `EditorView` canvas hit-area
   heights, so wrapped-text selection geometry cannot drift from save geometry.
+- **Text box sizing (`src/lib/text-box-layout.ts`)**: a text element's `layout.width` is
+  the **wrap column the author dragged**, and its `layout.height` is the box height —
+  both authored, both round-tripped. Height starts as **auto (hug)**: while the stored
+  height still equals the measured wrapped height, `withMeasuredTextHeight` re-hugs the
+  box on every edit through the controller's `updateElement` choke point (text, width,
+  font size, padding). The moment the author drags a vertical handle the height stops
+  matching the measurement, `isHuggingTextHeight` reads false, and the height is theirs —
+  **no stored mode flag is needed, the box describes itself**. Hug detection reads the
+  *pre-edit* element, or a font-size change would read as "the author fixed it". Dragging
+  back onto the measured height returns the box to auto.
 - Inline text editing: adding text selects it and enters canvas edit mode immediately;
   double-click enters the same mode for existing text. The view pauses playback,
   suppresses dragging for the active element, live-syncs content through
-  `updateElement`, and commits on Escape or blur.
+  `updateElement`, and commits on Escape or blur. **The textarea is styled only by the
+  runtime's `compositionTextStyle`** so it breaks lines exactly where the render will;
+  its focus ring is an `outline` (a border would eat content width and shift every wrap),
+  and the wrap-parity regression is `CanvasTextEditOverlay.test.tsx`.
 - Session-local properties-panel drawer state: separate open sets for slide, text,
   and media panels. Selection carries a `"canvas"` or `"timeline"` source so the
   controller can ensure-open the relevant concern without closing other drawers:
@@ -56,8 +69,8 @@ controller change.
 | File | Role | Touch when… |
 |---|---|---|
 | `src/editor/draft-store.ts` | Hand-rolled external store (`useSyncExternalStore`): presentation snapshot, per-slide local compositions, dirty-slide set, selection (slide + element per slide), per-slide playback state, revisions. Exposes semantic mutators (`addTextElement`, `updateElement`, `setSlideDuration`, `setSlideBackgroundColor`, `appendMediaElement`, `replaceMediaElementSource`, …), `hydrate`/`reconcile`/`reconcileAfterFlush`/`refreshMediaUrls` | Editor state semantics: what's dirty, what survives a server reconcile, selection rules. Deep-clones on write — keep that; components rely on snapshot immutability. Two test files (incl. `.phase5` media cases). |
-| `src/lib/composition-mapping.ts` | **The editor↔server translator.** Editor composition state includes nullable `backgroundColor` plus the element model (px on a 264×470 canvas, `EditorAnimationChoice` "fade"/"slide"/"none") ↔ runtime/server composition (`background_color`, 0..1 center-anchored fractions at reference width 390, `fade`/`fade_up`, ms). Owns `EDITOR_CANVAS_WIDTH/HEIGHT`, `EDITOR_ANIMATION_DURATION_MS = 450`, `editorCompositionToPutBody`, and `serverElementsToEditorComposition`; text sizing comes from `text-measurement.ts` | Units, anchors, animation naming, slide composition fields, new element kinds. Errors here corrupt saved compositions **silently** — always extend `composition-mapping.test.ts` with a round-trip case. |
-| `src/lib/timeline-geometry.ts` | Pure timeline and canvas math: `timeToX`/`xToTime`, scrub fractions, `clampWindowToDuration`, `MIN_TIMELINE_WINDOW_MS = 400`, timeline gesture → window resolution, and `resizeElementLayout` for center-anchored media layout | Bar drag/trim and media resize feel. Corner resize preserves aspect ratio; edge resize is free-axis; minimum size and 0..1 canvas bounds are resolved here from raw kit deltas. **All arithmetic lives here**, tested in `timeline-geometry.test.ts`. |
+| `src/lib/composition-mapping.ts` | **The editor↔server translator.** Editor composition state includes nullable `backgroundColor` plus the element model (px on a 264×470 canvas, `EditorAnimationChoice` "fade"/"slide"/"none") ↔ runtime/server composition (`background_color`, 0..1 center-anchored fractions at reference width 390, `fade`/`fade_up`, ms). Owns `EDITOR_CANVAS_WIDTH/HEIGHT`, `EDITOR_ANIMATION_DURATION_MS = 450`, `editorCompositionToPutBody`, and `serverElementsToEditorComposition`. **It measures nothing** — text geometry is authored and translated as-is; auto-height is resolved upstream in `text-box-layout.ts` | Units, anchors, animation naming, slide composition fields, new element kinds. Errors here corrupt saved compositions **silently** — always extend `composition-mapping.test.ts` with a round-trip case. |
+| `src/lib/timeline-geometry.ts` | Pure timeline and canvas math: `timeToX`/`xToTime`, scrub fractions, `clampWindowToDuration`, `MIN_TIMELINE_WINDOW_MS = 400`, timeline gesture → window resolution, `resizeElementLayout` for center-anchored media layout, and `resizeTextBox` for text | Bar drag/trim and resize feel. Media: corner resize preserves aspect ratio, edge resize is free-axis, box stays inside the canvas. Text: all eight handles, **never aspect-locked** (a wrap column must not scale with height), opposite edge held, and the box **may overhang the frame** (size ≤ 1, centre clamped 0..1). `clampCanvasPosition` allows the full 0..1 the backend accepts. **All arithmetic lives here**, tested in `timeline-geometry.test.ts`. |
 | `src/lib/publish-form.ts` | Publish dialog logic: `PublishFormState`, `CATEGORY_DEFAULT_PRIORITY` (alert 300 / workflow 200 / improvement 100 / news 0), field validation, local-datetime ↔ ISO, `buildPublishPayloads` (metadata + audience + publish calls), `mapPublishFailure` (backend 422 keyword → per-field/summary errors) | Any publish-time field, audience rule, or error-message mapping. |
 | `src/lib/presentation-dashboard.ts` + `src/controllers/use-presentation-dashboard.controller.ts` + `src/providers/PresentationDashboardProvider.tsx` | Dashboard logic: list → `AnnouncementCardData` derivation (display status, media kinds, cover), filter state (`DASHBOARD_FILTERS`), create-navigate flow, archive from card | Dashboard behavior/derivations (visuals → doc 22). |
 | `src/preview/use-presentation-preview-playback.ts` | Multi-slide preview playback over the runtime clock (slide advancing, restart) | Preview overlay behavior. |

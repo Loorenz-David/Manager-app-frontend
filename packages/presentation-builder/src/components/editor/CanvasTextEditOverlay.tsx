@@ -1,18 +1,18 @@
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type CSSProperties } from "react";
 
 type CanvasTextEditOverlayProps = {
   centerXFraction: number;
   centerYFraction: number;
   widthFraction: number;
   heightFraction: number;
+  canvasHeightPx: number;
   value: string;
-  fontSizePx: number;
-  fontWeight: number;
-  textAlign: "left" | "center" | "right" | "justify";
-  textColor?: string;
-  backgroundColor?: string;
-  borderRadius?: number;
-  padding?: number;
+  /**
+   * The element's `compositionTextStyle` at this canvas width, applied verbatim so the
+   * textarea breaks lines exactly where the renderer will. Never restyle text here —
+   * every deviation is a wrap the author edits against but never gets.
+   */
+  textStyle: CSSProperties;
   onChange: (value: string) => void;
   onCommit: () => void;
   testId: string;
@@ -23,19 +23,15 @@ export function CanvasTextEditOverlay({
   centerYFraction,
   widthFraction,
   heightFraction,
+  canvasHeightPx,
   value,
-  fontSizePx,
-  fontWeight,
-  textAlign,
-  textColor,
-  backgroundColor,
-  borderRadius,
-  padding,
+  textStyle,
   onChange,
   onCommit,
   testId,
 }: CanvasTextEditOverlayProps): React.JSX.Element {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const boxHeightPx = Math.max(18, heightFraction * canvasHeightPx);
 
   useLayoutEffect(() => {
     const input = inputRef.current;
@@ -47,9 +43,9 @@ export function CanvasTextEditOverlay({
   useLayoutEffect(() => {
     const input = inputRef.current;
     if (!input) return;
-    input.style.height = `${Math.max(18, heightFraction * 470)}px`;
-    input.style.height = `${Math.max(input.scrollHeight, heightFraction * 470, 18)}px`;
-  }, [heightFraction, value]);
+    input.style.height = `${boxHeightPx}px`;
+    input.style.height = `${Math.max(input.scrollHeight, boxHeightPx)}px`;
+  }, [boxHeightPx, value]);
 
   return (
     <textarea
@@ -66,20 +62,16 @@ export function CanvasTextEditOverlay({
       onPointerDown={(event) => event.stopPropagation()}
       aria-label="Edit text on canvas"
       data-testid={testId}
-      className="absolute z-50 -translate-x-1/2 -translate-y-1/2 resize-none overflow-hidden border border-[#3f78a8] outline-none ring-2 ring-[#3f78a8]/30"
+      // Outline, never border: a border would consume content width and shift every wrap.
+      className="absolute z-50 -translate-x-1/2 -translate-y-1/2 resize-none overflow-hidden border-0 outline-1 outline-[#3f78a8] ring-2 ring-[#3f78a8]/30"
       style={{
+        ...textStyle,
         left: `${centerXFraction * 100}%`,
         top: `${centerYFraction * 100}%`,
         width: `${widthFraction * 100}%`,
-        minHeight: `${Math.max(18, heightFraction * 470)}px`,
-        fontSize: fontSizePx,
-        fontWeight,
-        lineHeight: 1.2,
-        textAlign,
-        color: textColor,
-        backgroundColor: backgroundColor ?? "transparent",
-        borderRadius,
-        padding,
+        minHeight: `${boxHeightPx}px`,
+        backgroundColor: textStyle.backgroundColor ?? "transparent",
+        color: textStyle.color ?? "inherit",
       }}
     />
   );

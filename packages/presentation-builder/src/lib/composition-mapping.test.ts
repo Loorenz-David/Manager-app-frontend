@@ -10,7 +10,6 @@ import {
   wireAnimationToEditor,
   wireFontSizeToEditor,
   type EditorComposition,
-  type TextMeasurementAdapter,
 } from "./composition-mapping";
 
 const media: SlideMedia = {
@@ -27,8 +26,6 @@ const media: SlideMedia = {
   duration_ms: null,
   is_looping: false,
 };
-
-const measure: TextMeasurementAdapter = () => ({ widthPx: 132, heightPx: 47 });
 
 const editorFixture: EditorComposition = {
   durationMs: 4_000,
@@ -78,7 +75,7 @@ const editorFixture: EditorComposition = {
 
 describe("composition mapping", () => {
   it("maps the authoritative ms/layout/font/animation contract", () => {
-    const body = editorCompositionToPutBody(editorFixture, measure);
+    const body = editorCompositionToPutBody(editorFixture);
     expect(body).toMatchObject({
       playback_mode: "timed",
       duration_ms: 4_000,
@@ -105,7 +102,7 @@ describe("composition mapping", () => {
   });
 
   it("round-trips editor state → PUT body → server response → hydrate with deep equality", () => {
-    const body = editorCompositionToPutBody(editorFixture, measure);
+    const body = editorCompositionToPutBody(editorFixture);
     const mediaById = new Map([[media.client_id, media]]);
     const serverElements = body.elements.map((element, index) =>
       putElementToServerElement(
@@ -145,7 +142,7 @@ describe("composition mapping", () => {
         backgroundColor: null,
         elements: [element],
       };
-      const body = editorCompositionToPutBody(composition, measure);
+      const body = editorCompositionToPutBody(composition);
       const serverElement = putElementToServerElement(body.elements[0]!, {
         clientId: element.id,
         sequenceOrder: 0,
@@ -154,10 +151,7 @@ describe("composition mapping", () => {
 
       expect(serverElementsToEditorComposition(4_000, [serverElement])).toEqual(composition);
     }
-    expect(editorCompositionToPutBody(
-      { durationMs: 4_000, backgroundColor: null, elements: [firstMedia] },
-      measure,
-    ).elements[0]).toMatchObject({
+    expect(editorCompositionToPutBody({ durationMs: 4_000, backgroundColor: null, elements: [firstMedia] }).elements[0]).toMatchObject({
       layer_index: 0,
       start_ms: 0,
       end_ms: null,
@@ -188,7 +182,7 @@ describe("composition mapping", () => {
       exit_animation: null,
     };
     const hydrated = serverElementsToEditorComposition(4_000, [existingLayerZero]);
-    const body = editorCompositionToPutBody(hydrated, measure);
+    const body = editorCompositionToPutBody(hydrated);
 
     expect(body.elements[0]?.layout).toEqual(existingLayerZero.layout);
   });
@@ -204,7 +198,7 @@ describe("composition mapping", () => {
     expect(wireFontSizeToEditor(editorFontSizeToWire(30))).toBe(30);
   });
 
-  it("clamps measured text dimensions and maps body/default timing", () => {
+  it("keeps the authored text box on both axes and maps body/default timing", () => {
     const body = editorCompositionToPutBody({
       durationMs: 4_000,
       backgroundColor: null,
@@ -215,15 +209,29 @@ describe("composition mapping", () => {
         weight: 400,
         endMs: null,
         startMs: 9_000,
+        width: 0.35,
+        height: 0.42,
       }],
-    }, () => ({ widthPx: 0, heightPx: 10_000 }));
+    });
 
     expect(body.elements[0]).toMatchObject({
       start_ms: 4_000,
       end_ms: null,
-      layout: { width: Number.EPSILON, height: 1 },
+      // Both dimensions are the box the author dragged — never re-measured from the text.
+      layout: { width: 0.35, height: 0.42 },
       style: { text_role: "body", font_weight: 400 },
     });
+  });
+
+  it("clamps an out-of-range authored text box into the backend's (0, 1]", () => {
+    const layoutOf = (width: number, height: number) => editorCompositionToPutBody({
+      durationMs: 4_000,
+      backgroundColor: null,
+      elements: [{ ...editorFixture.elements[1]!, kind: "text", width, height }],
+    }).elements[0]!.layout;
+
+    expect(layoutOf(0, 0)).toMatchObject({ width: Number.EPSILON, height: Number.EPSILON });
+    expect(layoutOf(4, 9)).toMatchObject({ width: 1, height: 1 });
   });
 
   it("maps overlay media with a centered anchor", () => {
@@ -236,7 +244,7 @@ describe("composition mapping", () => {
         layerIndex: 2,
         endMs: 3_000,
       }],
-    }, measure);
+    });
     expect(overlay.elements[0]?.layout).toMatchObject({ anchor: "center" });
   });
 
@@ -345,7 +353,7 @@ describe("composition mapping", () => {
       input,
     );
     expect(hydrated.backgroundColor).toBe(expected);
-    expect(editorCompositionToPutBody(hydrated, measure).background_color).toBe(
+    expect(editorCompositionToPutBody(hydrated).background_color).toBe(
       expected,
     );
   });
@@ -367,7 +375,6 @@ describe("composition mapping", () => {
     };
     const styleFreePut = editorCompositionToPutBody(
       serverElementsToEditorComposition(4_000, [styleFree]),
-      measure,
     );
     const style = styleFreePut.elements[0]?.style;
     expect(style).not.toHaveProperty("text_color");
@@ -384,7 +391,6 @@ describe("composition mapping", () => {
     delete text.backgroundColor;
     const clearedStyle = editorCompositionToPutBody(
       withBackground,
-      measure,
     ).elements[0]?.style;
     expect(clearedStyle).not.toHaveProperty("background_color");
   });

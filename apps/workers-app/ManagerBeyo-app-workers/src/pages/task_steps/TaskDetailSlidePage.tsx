@@ -1,8 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import {
-  useHeaderlessSlidePage,
   usePreloadSurface,
   useSurface,
+  useSurfaceHeader,
 } from "@beyo/hooks";
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
 import { ItemPositionZonePreview } from "@beyo/items";
@@ -91,6 +91,7 @@ function TaskStepCategoryPositionRow(): React.JSX.Element | null {
 }
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
+  const header = useSurfaceHeader();
   const surface = useSurface();
   const controller = useTaskStepDetailContext();
   const { scrollRef, isHidden, isAtEdge, hideProgressContainerRef } =
@@ -100,7 +101,13 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     });
   const isFooterHidden = isHidden && !isAtEdge;
 
-  useHeaderlessSlidePage();
+  // The page renders its own back arrow in the title row, so the surface
+  // header stays hidden on every breakpoint.
+  useEffect(() => {
+    header?.setHeaderHidden(true);
+
+    return () => header?.setHeaderHidden(false);
+  }, [header]);
 
   usePreloadSurface(preloadCompleteTaskStepConfirmationSlideSurface);
   usePreloadSurface(preloadTaskNotesSheetSurface);
@@ -160,7 +167,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         onRefresh={controller.refetch}
       >
         <div data-testid="task-detail-slide-page">
-          <TaskStepDetailHeader />
+          <TaskStepDetailHeader onBack={() => header?.requestClose()} />
 
           {!controller.isStepTerminal ? (
             <div className="flex flex-col items-center gap-2 px-6 py-4">
@@ -206,7 +213,10 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             pointerEvents: isFooterHidden ? "none" : undefined,
           }}
         >
-          <div className="px-4 pb-27 pt-3">
+          {/* The footer below carries its own `--safe-bottom` spacer, so this
+           * bar has to clear the footer height *plus* the home-indicator inset;
+           * a fixed padding sits ~34px too low on iPhone. */}
+          <div className="px-4 pb-[calc(var(--safe-bottom,0px)+6.75rem)] pt-3">
             <button
               className="w-full rounded-xl py-3 text-center font-semibold transition-opacity disabled:opacity-60"
               data-testid="task-step-complete-button"

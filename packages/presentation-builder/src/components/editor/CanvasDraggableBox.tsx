@@ -37,6 +37,8 @@ type CanvasDraggableBoxProps = {
    * aspect lock, minimum size, and canvas clamping). */
   onResize?: (gesture: CanvasResizeGesture) => void;
   onResizeEnd?: () => void;
+  /** Subset of handles to show, in place of all eight (text boxes resize width only). */
+  resizeHandles?: readonly CanvasResizeHandle[];
   disabled?: boolean;
   children: ReactNode;
   testId: string;
@@ -57,6 +59,7 @@ export function CanvasDraggableBox({
   onDragEnd,
   onResize,
   onResizeEnd,
+  resizeHandles,
   disabled,
   children,
   testId,
@@ -142,7 +145,9 @@ export function CanvasDraggableBox({
       {children}
       {isSelected && !disabled && onResize && (
         <>
-          {RESIZE_HANDLES.map(({ handle, left, top, cursor }) => (
+          {RESIZE_HANDLES.filter(
+            ({ handle }) => resizeHandles === undefined || resizeHandles.includes(handle),
+          ).map(({ handle, left, top, cursor }) => (
             <span
               key={handle}
               onPointerDown={(event) => handleResizePointerDown(event, handle)}

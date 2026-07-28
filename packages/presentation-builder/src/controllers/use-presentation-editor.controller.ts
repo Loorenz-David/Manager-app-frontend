@@ -34,7 +34,7 @@ import {
   editorCompositionToPutBody,
   serverElementsToEditorComposition,
 } from "../lib/composition-mapping";
-import { measureText } from "../lib/text-measurement";
+import { withMeasuredTextHeight } from "../lib/text-box-layout";
 import {
   buildPublishPayloads,
   mapPublishFailure,
@@ -204,7 +204,6 @@ export function usePresentationEditorController(presentationId: string) {
             elements,
             slide.background_color,
           ),
-          measureText,
         );
         const response = await replaceComposition.replaceCompositionAsync({
           presentationId,
@@ -310,7 +309,13 @@ export function usePresentationEditorController(presentationId: string) {
   const updateElement = useCallback(
     (elementId: string, update: (element: CompositionElement) => CompositionElement) => {
       const slideId = store.getState().selectedSlideId;
-      if (!readOnly && slideId) store.updateElement(slideId, elementId, update);
+      // Single choke point for every element edit, so an auto-height text box re-hugs its
+      // wrapped content — whether the change was the text, the width, or the font size.
+      // A box the author has resized vertically keeps the height they gave it.
+      if (!readOnly && slideId) {
+        store.updateElement(slideId, elementId, (element) =>
+          withMeasuredTextHeight(element, update(element)));
+      }
     },
     [readOnly, store],
   );

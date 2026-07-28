@@ -96,6 +96,14 @@ export {
 export { MediaElementPanel, type MediaFitChoice } from "./components/panels/MediaElementPanel";
 export { SlidePropertiesPanel } from "./components/panels/SlidePropertiesPanel";
 export {
+  formatSlideDuration,
+  parseSlideDuration,
+  roundSlideDurationMs,
+  SLIDE_DURATION_MIN_MS,
+  SLIDE_DURATION_SLIDER_MAX_SECONDS,
+  SLIDE_DURATION_STEP_MS,
+} from "./lib/slide-duration";
+export {
   PanelDeleteButton,
   PanelFieldLabel,
   PanelHeading,

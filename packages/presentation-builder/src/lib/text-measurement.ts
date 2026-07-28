@@ -1,3 +1,5 @@
+import { TEXT_LINE_HEIGHT } from "@beyo/presentation-runtime";
+
 export type TextMeasurementInput = {
   content: string;
   fontSizePx: number;
@@ -10,7 +12,6 @@ export type TextMeasurement = { widthPx: number; heightPx: number };
 export type TextMeasurementAdapter = (input: TextMeasurementInput) => TextMeasurement;
 
 const APPROXIMATE_CHARACTER_WIDTH_FACTOR = 0.58;
-const TEXT_LINE_HEIGHT = 1.2;
 
 function approximateTextMeasurement({
   content,
@@ -57,6 +58,8 @@ export const measureText: TextMeasurementAdapter = (input) => {
       "position:absolute",
       "visibility:hidden",
       `white-space:${maxWidthPx === undefined ? "pre" : "pre-wrap"}`,
+      // Must mirror `compositionTextStyle`, or the measured height is not the rendered one.
+      "overflow-wrap:break-word",
       `font-size:${fontSizePx}px`,
       `font-weight:${fontWeight}`,
       `line-height:${TEXT_LINE_HEIGHT}`,

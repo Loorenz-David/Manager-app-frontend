@@ -1,6 +1,7 @@
 import type { CompositionElement, SlideMedia } from "@beyo/presentation-runtime";
 import { useSyncExternalStore } from "react";
 
+import { roundSlideDurationMs } from "../lib/slide-duration";
 import type { Presentation, Slide } from "../types";
 
 export type EditorDraftState = {
@@ -259,7 +260,7 @@ export function createEditorDraftStore(): EditorDraftStore {
     },
     setSlideDuration: (slideId, durationMs) => {
       if (!state.presentation) return;
-      const roundedDuration = Math.min(12_000, Math.max(2_000, Math.round(durationMs / 500) * 500));
+      const roundedDuration = roundSlideDurationMs(durationMs);
       const elements = state.localCompositions[slideId];
       if (!elements) return;
       const nextElements = elements.map((element) => {

@@ -187,15 +187,23 @@ describe("EditorView text canvas interactions", () => {
       target: { value: "10" },
     });
 
-    const rendered = document.querySelector<HTMLElement>(
-      "[data-element-id='local-text-1']",
-    );
+    // Scope to the canvas: the slide-rail thumbnail renders the same element id at a
+    // different width, and sizes now scale with the container.
+    const rendered = screen
+      .getByTestId("presentation-editor-canvas")
+      .querySelector<HTMLElement>("[data-element-id='local-text-1']");
+    const canvasScale = 264 / 390;
     expect(rendered).toHaveStyle({
       textAlign: "right",
       color: "#123456",
       backgroundColor: "#3F78A8",
-      borderRadius: "16px",
-      padding: "10px",
+      // Padding and radius are authored at the reference width and scale like the font,
+      // so the editor canvas and the phone break lines in the same places.
+      borderRadius: `${16 * canvasScale}px`,
+      padding: `${10 * canvasScale}px`,
+      lineHeight: "1.2",
+      whiteSpace: "pre-wrap",
+      overflowWrap: "break-word",
     });
   });
 

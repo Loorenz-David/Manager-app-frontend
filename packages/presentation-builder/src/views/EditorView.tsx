@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 
 import {
+  compositionTextStyle,
   SlideCompositionRenderer,
   usePlaybackClock,
   type CompositionElement,
@@ -37,16 +38,18 @@ import {
   wireFontSizeToEditor,
 } from "../lib/composition-mapping";
 import { derivePresentationDisplayStatus } from "../lib/presentation-dashboard";
+import { formatSlideDuration, parseSlideDuration } from "../lib/slide-duration";
+import { textBoxHeightFraction } from "../lib/text-box-layout";
 import {
   applyTimelineGesture,
   clampCanvasPosition,
   generateTimelineTicks,
   resizeElementLayout,
+  resizeTextBox,
   scrubFractionToTime,
   timelineWindowFractions,
   type CanvasElementLayout,
 } from "../lib/timeline-geometry";
-import { measureText } from "../lib/text-measurement";
 import { useEditorTransportHotkey } from "../lib/use-editor-transport-hotkey";
 import { PublishDialog } from "../publish/PublishDialog";
 import { usePresentationPreviewPlayback } from "../preview/use-presentation-preview-playback";
@@ -126,21 +129,11 @@ const animationLabel = (animation: ElementAnimation | null): string => {
 };
 
 function canvasHitAreaHeightFraction(element: CompositionElement): number {
-  const layoutHeight = element.layout?.height ?? 0.1;
-  if (element.element_type !== "text") return layoutHeight;
-  const fontSizePx = wireFontSizeToEditor(element.style?.font_size ?? 44);
-  const padding = element.style?.padding ?? 0;
-  const measurement = measureText({
-    content: element.text_content ?? "",
-    fontSizePx,
-    fontWeight: element.style?.font_weight === 700 ? 700 : 400,
-    maxWidthPx: Math.max(1, (element.layout?.width ?? 0.5) * EDITOR_CANVAS_WIDTH),
-    paddingPx: padding,
-  });
-  return Math.min(
-    1,
-    Math.max(layoutHeight, measurement.heightPx / EDITOR_CANVAS_HEIGHT),
-  );
+  // The stored height IS the box: auto while hugging (kept in sync by the controller),
+  // the author's once they drag a vertical handle. Text may then overflow it, as in any
+  // fixed-size text frame — the renderer does not clip unless `overflow` says so.
+  if (element.layout?.height !== undefined) return element.layout.height;
+  return element.element_type === "text" ? textBoxHeightFraction(element) : 0.1;
 }
 
 function TimelineCanvasWorkspace({
@@ -267,29 +260,30 @@ function TimelineCanvasWorkspace({
                       }));
                     }}
                     onDragEnd={() => undefined}
-                    {...(element.element_type === "media"
-                      ? {
-                          onResize: (gesture: CanvasResizeGesture) => {
-                            const base = resizeBases.current.get(id) ?? {
-                              x: element.layout?.x ?? 0.5,
-                              y: element.layout?.y ?? 0.5,
-                              width: element.layout?.width ?? 0.5,
-                              height: element.layout?.height ?? 0.1,
-                            };
-                            if (!resizeBases.current.has(id)) resizeBases.current.set(id, base);
-                            const next = resizeElementLayout(base, gesture);
-                            controller.onUpdateElement(id, (current) => ({
-                              ...current,
-                              layout: {
-                                ...(current.layout ?? {}),
-                                ...next,
-                                anchor: "center",
-                              },
-                            }));
+                    {...{
+                      onResize: (gesture: CanvasResizeGesture) => {
+                        const base = resizeBases.current.get(id) ?? {
+                          x: element.layout?.x ?? 0.5,
+                          y: element.layout?.y ?? 0.5,
+                          width: element.layout?.width ?? 0.5,
+                          height: element.layout?.height ?? 0.1,
+                        };
+                        if (!resizeBases.current.has(id)) resizeBases.current.set(id, base);
+                        // Text rewraps to the new width; the controller re-measures its height.
+                        const next = element.element_type === "text"
+                          ? resizeTextBox(base, gesture)
+                          : resizeElementLayout(base, gesture);
+                        controller.onUpdateElement(id, (current) => ({
+                          ...current,
+                          layout: {
+                            ...(current.layout ?? {}),
+                            ...next,
+                            anchor: "center",
                           },
-                          onResizeEnd: () => resizeBases.current.delete(id),
-                        }
-                      : {})}
+                        }));
+                      },
+                      onResizeEnd: () => resizeBases.current.delete(id),
+                    }}
                     disabled={controller.readOnly}
                     testId={`presentation-canvas-element-${id}`}
                   >
@@ -303,14 +297,9 @@ function TimelineCanvasWorkspace({
                   centerYFraction={inlineEditingElement.layout?.y ?? 0.5}
                   widthFraction={inlineEditingElement.layout?.width ?? 0.5}
                   heightFraction={canvasHitAreaHeightFraction(inlineEditingElement)}
+                  canvasHeightPx={EDITOR_CANVAS_HEIGHT}
                   value={inlineEditingElement.text_content ?? ""}
-                  fontSizePx={wireFontSizeToEditor(inlineEditingElement.style?.font_size ?? 44)}
-                  fontWeight={inlineEditingElement.style?.font_weight ?? 400}
-                  textAlign={inlineEditingElement.style?.text_align ?? "center"}
-                  textColor={inlineEditingElement.style?.text_color}
-                  backgroundColor={inlineEditingElement.style?.background_color}
-                  borderRadius={inlineEditingElement.style?.border_radius}
-                  padding={inlineEditingElement.style?.padding}
+                  textStyle={compositionTextStyle(inlineEditingElement, EDITOR_CANVAS_WIDTH)}
                   onChange={(content) => controller.onUpdateElement(
                     compositionElementId(inlineEditingElement),
                     (element) => ({ ...element, text_content: content }),
@@ -517,6 +506,11 @@ function propertiesPanel(
       }}
       durationSeconds={durationMs / 1_000}
       onDurationChange={(seconds) => controller.onDurationChange(seconds * 1_000)}
+      durationLabel={formatSlideDuration(durationMs / 1_000)}
+      onDurationLabelCommit={(raw) => {
+        const seconds = parseSlideDuration(raw);
+        if (seconds !== null) controller.onDurationChange(seconds * 1_000);
+      }}
       backgroundColor={controller.selectedSlide?.background_color ?? null}
       onBackgroundColorChange={controller.onBackgroundColorChange}
       ctaLabel={controller.ctaLabel}
