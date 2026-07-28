@@ -8,7 +8,7 @@ import {
   ItemDetailsFieldsSchema,
   type ItemLookupResult,
 } from "@beyo/items";
-import { ShopifyProductSyncInventoryAdjustmentSchema } from "@beyo/shopify";
+import { ShopifyProductSyncInventoryQuantitySchema } from "@beyo/shopify";
 import type { TaskNoteComposerValue } from "@beyo/task-notes";
 import {
   TASK_FULFILLMENT_METHOD,
@@ -227,7 +227,7 @@ export const PreOrderFormSchema = z
       .gt(0, "Enter the price per piece.")
       .nullable(),
     shopIntegrationIds: z.array(z.string()),
-    inventoryAdjustments: z.array(ShopifyProductSyncInventoryAdjustmentSchema),
+    inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema),
   })
   .superRefine((data, ctx) => {
     addItemIdentityIssue(data.item, ctx);
@@ -259,14 +259,14 @@ export const PreOrderFormSchema = z
         path: ["shopIntegrationIds"],
       });
     } else if (
-      !data.inventoryAdjustments.some(
+      !data.inventoryQuantities.some(
         (entry) => entry.shopIntegrationId === shopIntegrationId,
       )
     ) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Select at least one inventory location.",
-        path: ["inventoryAdjustments"],
+        path: ["inventoryQuantities"],
       });
     }
 

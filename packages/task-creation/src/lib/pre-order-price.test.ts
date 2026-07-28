@@ -20,8 +20,8 @@ function buildValues(
     ...overrides,
     item: { ...defaults.item, ...overrides.item },
     shopIntegrationIds: overrides.shopIntegrationIds ?? ["shop-1"],
-    inventoryAdjustments: overrides.inventoryAdjustments ?? [
-      { shopIntegrationId: "shop-1", locationId: "loc-1", quantityToAdd: 3 },
+    inventoryQuantities: overrides.inventoryQuantities ?? [
+      { shopIntegrationId: "shop-1", locationId: "loc-1", quantity: 3 },
     ],
   };
 }
@@ -97,5 +97,48 @@ describe("buildShopifyPreorderSection price", () => {
     expect(
       buildShopifyPreorderSection(buildValues({ product_unit_price: null })),
     ).toBeUndefined();
+  });
+
+  it("sends the item quantity as a string metafield", () => {
+    const section = buildShopifyPreorderSection(
+      buildValues({
+        product_unit_price: 100,
+        item: { sku: "SKU-1", quantity: 12 },
+      }),
+    );
+
+    expect(section?.metafields).toEqual({ quantity: "12" });
+  });
+
+  it("tags the Shopify product as a pre-order", () => {
+    const section = buildShopifyPreorderSection(
+      buildValues({
+        product_unit_price: 100,
+        item: { sku: "SKU-1", quantity: 12 },
+      }),
+    );
+
+    expect(section?.product).toMatchObject({ tags: ["preorder"] });
+  });
+
+  it("keeps the item metafield quantity separate from inventory quantities", () => {
+    const section = buildShopifyPreorderSection(
+      buildValues({
+        product_unit_price: 100,
+        item: { sku: "SKU-1", quantity: 12 },
+        inventoryQuantities: [
+          {
+            shopIntegrationId: "shop-1",
+            locationId: "loc-1",
+            quantity: 3,
+          },
+        ],
+      }),
+    );
+
+    expect(section?.metafields).toEqual({ quantity: "12" });
+    expect(section?.inventory).toEqual([
+      { location_id: "loc-1", quantity: 3 },
+    ]);
   });
 });

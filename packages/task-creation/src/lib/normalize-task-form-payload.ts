@@ -204,9 +204,9 @@ export function normalizeReturnFormPayload(
  * undefined when the form has no complete Shopify selection — the endpoint
  * then behaves exactly as before. `price` is the pre-order total
  * (`item.quantity × the price per piece the form collects`) and must be a
- * decimal string, never a number; `quantity` is the only quantity collected
- * (the `custom.quantity` metafield is derived server-side and must not be
- * sent).
+ * decimal string, never a number. The item's quantity is also sent separately
+ * as the string-valued `custom.quantity` metafield; it does not affect the
+ * independently selected inventory quantities.
  *
  * `imageClientId` becomes `product.image_id` — never `image_url`, which is a
  * pass-through for externally hosted images only and skips size validation
@@ -230,11 +230,11 @@ export function buildShopifyPreorderSection(
     return undefined;
   }
 
-  const inventory = (values.inventoryAdjustments ?? [])
+  const inventory = (values.inventoryQuantities ?? [])
     .filter((entry) => entry.shopIntegrationId === shopIntegrationId)
     .map((entry) => ({
       location_id: entry.locationId,
-      quantity: entry.quantityToAdd > 0 ? entry.quantityToAdd : 1,
+      quantity: entry.quantity > 0 ? entry.quantity : 1,
     }));
 
   if (inventory.length === 0) {
@@ -249,10 +249,14 @@ export function buildShopifyPreorderSection(
       title: sku,
       sku,
       price: price.toFixed(2),
+      tags: ["preorder"],
       ...(description ? { description } : {}),
       ...(imageClientId
         ? { image_id: imageClientId, image_alt_text: sku }
         : {}),
+    },
+    metafields: {
+      quantity: String(values.item.quantity ?? 1),
     },
     inventory,
   };

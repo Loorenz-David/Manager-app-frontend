@@ -51,13 +51,13 @@ function makeShop(
 }
 
 function makeFormValues(
-  inventoryAdjustments: ShopifyProductSyncFormValues["inventoryAdjustments"] = [],
+  inventoryQuantities: ShopifyProductSyncFormValues["inventoryQuantities"] = [],
 ): ShopifyProductSyncFormValues {
   return {
     shopIntegrationIds: ["shop-1"],
     sku: "",
     metafields: [],
-    inventoryAdjustments,
+    inventoryQuantities,
     title: "",
     description: "",
   };
@@ -68,7 +68,7 @@ function ValuesOutput({
 }: {
   control: Parameters<typeof useWatch>[0]["control"];
 }): React.JSX.Element {
-  const value = useWatch({ control, name: "inventoryAdjustments" });
+  const value = useWatch({ control, name: "inventoryQuantities" });
   return <output data-testid="inventory-values">{JSON.stringify(value)}</output>;
 }
 
@@ -113,7 +113,7 @@ describe("ShopifyProductSyncInventoryField", () => {
     vi.clearAllMocks();
   });
 
-  it("toggles a location into a quantity-one adjustment and remembers the selection", async () => {
+  it("toggles a location into an absolute quantity and remembers the selection", async () => {
     setQuery([makeShop("shop-1")]);
     readStorageMock.mockReturnValue(null);
     const user = userEvent.setup();
@@ -123,14 +123,18 @@ describe("ShopifyProductSyncInventoryField", () => {
     const option = await screen.findByRole("button", {
       name: "Main warehouse",
     });
-    expect(screen.getByText("Inactive — will be activated at 0 before adding units.")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Inactive — will be activated before its absolute quantity is set.",
+      ),
+    ).toBeVisible();
 
     await user.click(option);
     expect(JSON.parse(screen.getByTestId("inventory-values").textContent ?? "null")).toEqual([
       {
         shopIntegrationId: "shop-1",
         locationId: "gid://shopify/Location/1",
-        quantityToAdd: 1,
+        quantity: 1,
       },
     ]);
     expect(writeStorageMock).toHaveBeenCalledWith("shop-1", [
@@ -142,7 +146,7 @@ describe("ShopifyProductSyncInventoryField", () => {
     expect(writeStorageMock).toHaveBeenLastCalledWith("shop-1", []);
   });
 
-  it("keeps another shop's adjustments when one shop changes", async () => {
+  it("keeps another shop's quantities when one shop changes", async () => {
     setQuery([makeShop("shop-1"), makeShop("shop-2")]);
     readStorageMock.mockReturnValue(null);
     const user = userEvent.setup();
@@ -150,7 +154,7 @@ describe("ShopifyProductSyncInventoryField", () => {
       {
         shopIntegrationId: "shop-2",
         locationId: "gid://shopify/Location/2",
-        quantityToAdd: 1,
+        quantity: 1,
       },
     ]);
     defaultValues.shopIntegrationIds = ["shop-1", "shop-2"];
@@ -171,12 +175,12 @@ describe("ShopifyProductSyncInventoryField", () => {
       {
         shopIntegrationId: "shop-2",
         locationId: "gid://shopify/Location/2",
-        quantityToAdd: 1,
+        quantity: 1,
       },
       {
         shopIntegrationId: "shop-1",
         locationId: "gid://shopify/Location/1",
-        quantityToAdd: 1,
+        quantity: 1,
       },
     ]);
     expect(screen.getAllByText("shop-1.myshopify.com")).toHaveLength(1);
@@ -197,7 +201,7 @@ describe("ShopifyProductSyncInventoryField", () => {
         {
           shopIntegrationId: "shop-1",
           locationId: "gid://shopify/Location/2",
-          quantityToAdd: 1,
+          quantity: 1,
         },
       ]);
     });

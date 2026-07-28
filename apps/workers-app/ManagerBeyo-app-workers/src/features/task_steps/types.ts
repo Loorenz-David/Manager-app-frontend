@@ -418,6 +418,7 @@ export type ReassignmentAckViewModel = {
   stepId: TaskStepId;
   taskId: TaskId;
   articleLabel: string;
+  workingSectionName: string;
   reason: string | null;
   firstImageUrl: string | null;
   firstImageAnnotations: ImageAnnotationViewModel[];
@@ -437,6 +438,7 @@ export function toReassignmentAckViewModel(
     stepId: card.stepId,
     taskId: card.taskId,
     articleLabel: card.articleLabel,
+    workingSectionName: item.working_section_name_snapshot,
     reason: item.acknowledgment.reason,
     firstImageUrl: card.firstImageUrl,
     firstImageAnnotations: card.firstImageAnnotations,

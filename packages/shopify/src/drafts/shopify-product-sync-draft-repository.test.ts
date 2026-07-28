@@ -17,7 +17,7 @@ const values: ShopifyProductSyncFormValues = {
   shopIntegrationIds: [],
   sku: "SKU-1",
   metafields: [],
-  inventoryAdjustments: [],
+  inventoryQuantities: [],
   title: "Draft product",
   description: "Partial description",
 };
@@ -84,5 +84,54 @@ describe("shopify product sync draft repository", () => {
 
     await expect(getShopifyProductSyncDraft("task-1")).resolves.toBeNull();
     expect(await shopifyDraftsDb.productSyncDrafts.get("task-1")).toBeUndefined();
+  });
+
+  it("migrates version-one additive field names as absolute quantities", async () => {
+    const now = new Date();
+    await shopifyDraftsDb.productSyncDrafts.put({
+      taskClientId: "task-legacy",
+      schemaVersion: 1,
+      values: {
+        shopIntegrationIds: [],
+        sku: "SKU-1",
+        metafields: [],
+        inventoryAdjustments: [
+          {
+            shopIntegrationId: "shop-1",
+            locationId: "gid://shopify/Location/1",
+            quantityToAdd: 0,
+          },
+        ],
+        title: "Draft product",
+        description: "Partial description",
+      },
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + 60_000).toISOString(),
+    } as never);
+
+    await expect(getShopifyProductSyncDraft("task-legacy")).resolves.toMatchObject({
+      inventoryQuantities: [
+        {
+          shopIntegrationId: "shop-1",
+          locationId: "gid://shopify/Location/1",
+          quantity: 0,
+        },
+      ],
+    });
+    await expect(
+      shopifyDraftsDb.productSyncDrafts.get("task-legacy"),
+    ).resolves.toMatchObject({
+      schemaVersion: SHOPIFY_PRODUCT_SYNC_DRAFT_SCHEMA_VERSION,
+      values: {
+        inventoryQuantities: [
+          {
+            shopIntegrationId: "shop-1",
+            locationId: "gid://shopify/Location/1",
+            quantity: 0,
+          },
+        ],
+      },
+    });
   });
 });

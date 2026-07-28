@@ -87,12 +87,20 @@ const ReassignmentAckRow = memo(function ReassignmentAckRow({
 
         {/* Body */}
         <div className="flex min-w-0 flex-1 flex-col justify-center px-3">
-          <span
-            className="truncate text-md font-semibold text-current"
-            data-testid={`reassignment-ack-row-${vm.stepId}-label`}
-          >
-            {vm.articleLabel}
-          </span>
+          <div className="flex min-w-0 items-baseline gap-2">
+            <span
+              className="max-w-[50%] shrink-0 truncate text-md font-semibold text-current"
+              data-testid={`reassignment-ack-row-${vm.stepId}-label`}
+            >
+              {vm.articleLabel}
+            </span>
+            <span
+              className="min-w-0 flex-1 truncate text-sm text-current opacity-80"
+              data-testid={`reassignment-ack-row-${vm.stepId}-working-section`}
+            >
+              {vm.workingSectionName}
+            </span>
+          </div>
           <span
             className="truncate text-sm text-current opacity-80"
             data-testid={`reassignment-ack-row-${vm.stepId}-reason`}

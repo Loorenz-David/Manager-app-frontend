@@ -38,7 +38,7 @@ export function PreOrderShopifySection(): React.JSX.Element {
     }
   }, [shopIntegrationIds, setValue]);
 
-  const inventoryError = errors.inventoryAdjustments?.message;
+  const inventoryError = errors.inventoryQuantities?.message;
 
   return (
     <ShopifyProductSyncFormProvider

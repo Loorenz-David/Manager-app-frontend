@@ -11,6 +11,8 @@ const ResponseDataSchema = z.object({
   steps_pagination: TaskStepsPaginationSchema,
 });
 
+export const WORKING_SECTION_STEPS_PAGE_SIZE = 20;
+
 export async function fetchWorkingSectionSteps(
   params: ListWorkingSectionStepsParams,
 ): Promise<TaskStepsPagination> {

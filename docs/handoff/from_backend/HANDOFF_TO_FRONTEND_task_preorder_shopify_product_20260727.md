@@ -14,7 +14,7 @@
 
 ## What this adds
 
-`POST /api/v1/tasks` now accepts an **optional** `shopify_preorder` section. When present, creating
+`PUT /api/v1/tasks` now accepts an **optional** `shopify_preorder` section. When present, creating
 the task also provisions a product in Shopify — title, SKU, price, metafields, image, and stock at
 the location(s) you choose — so staff can sell it in Zettle at the till.
 
@@ -38,7 +38,7 @@ Both checks run **before anything is written**, so a rejected request leaves no 
 ## Request — the new keys
 
 ```jsonc
-POST /api/v1/tasks
+PUT /api/v1/tasks
 {
   "task_type": "pre_order",
   "title": "Custom TC3 sofa",
@@ -53,11 +53,11 @@ POST /api/v1/tasks
       "description": "Optional long description",
       "product_category": "Sofa",
       "tags": ["custom", "preorder"],
-      "metafields": {                                 // see "Metafields" below
-        "notes": "handle with care"                   // do NOT send "quantity" — derived
-      },
       "image_id": "img_01XYZ…",                       // or image_url — never both
       "image_alt_text": "Custom TC3 in green"
+    },
+    "metafields": {                                   // optional; see "Metafields" below
+      "notes": "handle with care"                     // do NOT send "quantity" — derived
     },
     "inventory": [                                    // required, at least one entry
       { "location_id": "gid://shopify/Location/99221471562", "quantity": 1 }
@@ -111,20 +111,25 @@ multiplied or divided by anything.
 
 ### Metafields
 
-Same shape the product-sync endpoint already accepts: a flat object keyed by metafield key. Use the
-`{type, value}` form when the metafield needs a specific type; a bare string works otherwise.
+Send metafields at `shopify_preorder.metafields`. It uses the same shape the product-sync endpoint
+already accepts: a flat object keyed by metafield key. Use the `{type, value}` form when the
+metafield needs a specific type; a bare string works otherwise.
 
 ```json
-"metafields": {
-  "notes": "handle with care",
-  "finish": { "type": "single_line_text_field", "value": "oiled oak" }
+"shopify_preorder": {
+  "metafields": {
+    "notes": "handle with care",
+    "finish": { "type": "single_line_text_field", "value": "oiled oak" }
+  }
 }
 ```
 
 They land in Shopify's `custom` namespace.
 
 **The `quantity` key is reserved** — the backend owns it (see the box above). Every other key passes
-through untouched.
+through untouched. The older `shopify_preorder.product.metafields` location remains accepted for
+compatibility, but new clients should use the section-level field and must not send the same key in
+both locations.
 
 ### The location selector
 
@@ -182,8 +187,11 @@ a pending state and wait for the socket event.
 
 The task and the Shopify intent are written in **one database transaction**, so a task never exists
 without its pre-order intent, and vice versa. A background worker then picks it up and talks to
-Shopify: it finds or creates the product by SKU, sets the variant's SKU and price, attaches the
-image, writes the metafields, and sets the stock at your chosen location(s).
+Shopify: it takes the task item's `article_number` as the Shopify barcode, finds or creates the
+product by that barcode, sets the variant's SKU and price, attaches the image, writes the
+metafields, and sets the stock at your chosen location(s). SKU is product data, not identity:
+different products may share it. If the task item has no article number, the worker creates a new
+product without an identity lookup.
 
 Two consequences worth designing for:
 
@@ -244,8 +252,10 @@ That is all you need. The durability, idempotency and retry mechanics are backen
   created a real product, so don't render it as "nothing happened".
 - **`media_status`** may be `PROCESSING` on success. That's normal — Shopify transcodes images
   asynchronously and the product is usable regardless. Don't gate anything on `READY`.
-- **`requested_operation: "update"`** means an existing Shopify product with that SKU was reused and
-  its price overwritten, rather than a new one created. Worth surfacing.
+- **`requested_operation: "update"`** means an existing Shopify variant with that exact barcode was
+  reused and its product data overwritten, rather than a new one being created. A retry can also
+  report `update` when the worker recovers its own earlier create through the internal operation
+  tag. Worth surfacing.
 
 ### Correlating
 
@@ -268,10 +278,9 @@ Everything below arrives as `error_code` in the socket event unless marked as an
 | Code | Meaning | Can the seller fix it? |
 |---|---|---|
 | `preorder_inventory_location_invalid` | The chosen location is gone, inactive, or a fulfillment-service location | Yes — create a new pre-order against a valid location |
-| `ambiguous_product_match` | **Two or more Shopify products already share this SKU.** We refuse to guess which to update | No — someone must merge or re-SKU them in Shopify Admin. **Expect this in production**; the merchant's catalogue already contains duplicate SKUs |
+| `ambiguous_product_match` | Two or more Shopify variants already share the exact barcode, including variants under the same product. We refuse to guess which to update | No — someone must make the barcode unique in Shopify Admin |
 | `product_image_unresolved` | The `image_id` doesn't exist or was deleted | Yes — re-attach the image |
 | `invalid_product_image_url` | The resolved image URL isn't an absolute `https://` URL | Yes |
-| `conflicting_identity_match` | The SKU and barcode resolve to different existing products | No — merchant data fix |
 
 **Configuration / operational — surface as "contact an admin":**
 
@@ -315,3 +324,15 @@ Nothing else here is expected to move. Build against it.
 
 Anything ambiguous in this document is a backend bug, not something to guess at — ask and it gets
 fixed here rather than diverging in two codebases.
+# 2026-07-28 inventory-contract addendum
+
+All Shopify product creation/update requests now use authoritative absolute inventory:
+`inventory_quantities[].quantity`. The legacy
+`inventory_adjustments[].quantity_to_add` request remains accepted for one release but is
+interpreted as absolute, not additive. Do not send both shapes. Selected quantity `0` must be
+preserved to clear a location; omitted locations remain unchanged.
+
+Ordinary and pre-order products share the same worker execution. Their completion events remain
+distinct because the backend now persists an explicit sync origin rather than inferring pre-orders
+from inventory behavior. For `shopify.products.synced`, canonical inventory results contain
+`quantities`; clients may accept historical `adjustments` results during the compatibility release.

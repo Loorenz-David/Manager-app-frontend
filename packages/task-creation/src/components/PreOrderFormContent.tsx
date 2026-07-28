@@ -117,7 +117,7 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item_upholstery.upholstery_amount_meters",
     "product_unit_price",
     "shopIntegrationIds",
-    "inventoryAdjustments",
+    "inventoryQuantities",
   ],
   customer: [
     "customer",
@@ -307,7 +307,7 @@ export function PreOrderFormContent(): React.JSX.Element {
             errors.item_upholstery ??
             errors.product_unit_price ??
             errors.shopIntegrationIds ??
-            errors.inventoryAdjustments
+            errors.inventoryQuantities
           ) {
             setStatus("task", "error");
             firstErrorStep ??= "task";
@@ -398,7 +398,7 @@ export function PreOrderFormContent(): React.JSX.Element {
         errors.item_upholstery ??
         errors.product_unit_price ??
         errors.shopIntegrationIds ??
-        errors.inventoryAdjustments,
+        errors.inventoryQuantities,
       ),
       customer: Boolean(
         errors.customer ??

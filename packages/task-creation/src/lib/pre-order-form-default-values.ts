@@ -44,6 +44,6 @@ export function buildPreOrderFormDefaultValues(
     note_content: null,
     product_unit_price: null,
     shopIntegrationIds: [],
-    inventoryAdjustments: [],
+    inventoryQuantities: [],
   };
 }

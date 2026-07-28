@@ -10,7 +10,7 @@ import {
 } from "../../lib/shopify-product-sync-inventory-storage";
 import type {
   ShopifyProductSyncFormValues,
-  ShopifyProductSyncInventoryAdjustment,
+  ShopifyProductSyncInventoryQuantity,
 } from "../../types";
 
 type ShopifyProductSyncInventoryFieldProps = {
@@ -24,15 +24,15 @@ export function ShopifyProductSyncInventoryField({
 }: ShopifyProductSyncInventoryFieldProps): React.JSX.Element {
   const { control, getValues } = useFormContext<ShopifyProductSyncFormValues>();
   const { field } = useController({
-    name: "inventoryAdjustments",
+    name: "inventoryQuantities",
     control,
   });
   const query = useListShopifyLocationsQuery(shopIntegrationIds);
   const shop = query.data?.shops.find(
     (entry) => entry.shop_integration_id === shopIntegrationId,
   );
-  const adjustments = field.value ?? [];
-  const selectedLocationIds = adjustments
+  const quantities = field.value ?? [];
+  const selectedLocationIds = quantities
     .filter((entry) => entry.shopIntegrationId === shopIntegrationId)
     .map((entry) => entry.locationId);
   const hasAppliedStoredSelectionRef = useRef(false);
@@ -40,8 +40,8 @@ export function ShopifyProductSyncInventoryField({
   useEffect(() => {
     if (hasAppliedStoredSelectionRef.current) return;
 
-    const currentAdjustments = getValues("inventoryAdjustments") ?? [];
-    const hasExistingSelection = currentAdjustments.some(
+    const currentQuantities = getValues("inventoryQuantities") ?? [];
+    const hasExistingSelection = currentQuantities.some(
       (entry) => entry.shopIntegrationId === shopIntegrationId,
     );
     if (hasExistingSelection) {
@@ -65,35 +65,35 @@ export function ShopifyProductSyncInventoryField({
 
     if (!rememberedLocationIds.length) return;
 
-    const nextAdjustments = [
-      ...currentAdjustments,
+    const nextQuantities = [
+      ...currentQuantities,
       ...rememberedLocationIds.map(
-        (locationId): ShopifyProductSyncInventoryAdjustment => ({
+        (locationId): ShopifyProductSyncInventoryQuantity => ({
           shopIntegrationId,
           locationId,
-          quantityToAdd: 1,
+          quantity: 1,
         }),
       ),
     ];
-    field.onChange(nextAdjustments);
+    field.onChange(nextQuantities);
   }, [field, getValues, query.isError, query.isLoading, shop, shopIntegrationId]);
 
   function handleSelectionChange(nextLocationIds: string[]): void {
-    const currentAdjustments = getValues("inventoryAdjustments") ?? [];
-    const nextAdjustments = [
-      ...currentAdjustments.filter(
+    const currentQuantities = getValues("inventoryQuantities") ?? [];
+    const nextQuantities = [
+      ...currentQuantities.filter(
         (entry) => entry.shopIntegrationId !== shopIntegrationId,
       ),
       ...nextLocationIds.map(
-        (locationId): ShopifyProductSyncInventoryAdjustment => ({
+        (locationId): ShopifyProductSyncInventoryQuantity => ({
           shopIntegrationId,
           locationId,
-          quantityToAdd: 1,
+          quantity: 1,
         }),
       ),
     ];
 
-    field.onChange(nextAdjustments);
+    field.onChange(nextQuantities);
     writeLastSelectedInventoryLocationIds(shopIntegrationId, nextLocationIds);
   }
 
@@ -150,7 +150,7 @@ export function ShopifyProductSyncInventoryField({
             label: location.name,
             description: location.is_active
               ? undefined
-              : "Inactive — will be activated at 0 before adding units.",
+              : "Inactive — will be activated before its absolute quantity is set.",
             testId: `shopify-inventory-location-${shopIntegrationId}-${location.location_id}`,
           }))}
           data-testid={`shopify-product-sync-inventory-picker-${shopIntegrationId}`}

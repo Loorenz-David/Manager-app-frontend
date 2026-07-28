@@ -24,7 +24,7 @@ export function isFormFilled(values: ShopifyProductSyncFormValues): boolean {
       ) ||
       values.title?.trim() ||
       values.description?.trim() ||
-      (values.inventoryAdjustments ?? []).some((entry) => entry.quantityToAdd > 0),
+      (values.inventoryQuantities ?? []).length > 0,
   );
 }
 
@@ -78,19 +78,18 @@ export function resolveShopifyProductSyncSubmit({
     sku: values.sku?.trim() || undefined,
     item_article_number: itemArticleNumber ?? undefined,
   };
-  function inventoryAdjustmentsForShop(shopIntegrationId?: string) {
-    const adjustments = (values.inventoryAdjustments ?? [])
+  function inventoryQuantitiesForShop(shopIntegrationId?: string) {
+    const quantities = (values.inventoryQuantities ?? [])
       .filter(
         (entry) =>
-          entry.quantityToAdd > 0 &&
           (shopIntegrationId === undefined || entry.shopIntegrationId === shopIntegrationId),
       )
       .map((entry) => ({
         shop_integration_id: entry.shopIntegrationId,
         location_id: entry.locationId,
-        quantity_to_add: entry.quantityToAdd,
+        quantity: entry.quantity,
       }));
-    return adjustments.length ? adjustments : undefined;
+    return quantities.length ? quantities : undefined;
   }
   const hasMetafields = values.metafields.length > 0;
   const items = hasMetafields
@@ -108,7 +107,7 @@ export function resolveShopifyProductSyncSubmit({
           ...baseItem,
           target_shop_integration_ids: [shopIntegrationId],
           metafields: Object.keys(metafields).length ? metafields : undefined,
-          inventory_adjustments: inventoryAdjustmentsForShop(shopIntegrationId),
+          inventory_quantities: inventoryQuantitiesForShop(shopIntegrationId),
         };
       })
     : [
@@ -116,7 +115,7 @@ export function resolveShopifyProductSyncSubmit({
           ...baseItem,
           target_shop_integration_ids: values.shopIntegrationIds,
           metafields: undefined,
-          inventory_adjustments: inventoryAdjustmentsForShop(),
+          inventory_quantities: inventoryQuantitiesForShop(),
         },
       ];
 

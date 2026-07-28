@@ -9,7 +9,7 @@ const base = {
   shopIntegrationIds: [] as string[],
   sku: "",
   metafields: [],
-  inventoryAdjustments: [],
+  inventoryQuantities: [],
   title: "",
   description: "",
 };
@@ -23,6 +23,21 @@ describe("resolveShopifyProductSyncSubmit", () => {
         itemArticleNumber: "A-1",
       }),
     ).toEqual({ kind: "skip" });
+  });
+
+  it("treats a selected zero quantity as an intentional inventory clear", () => {
+    expect(
+      isFormFilled({
+        ...base,
+        inventoryQuantities: [
+          {
+            shopIntegrationId: "shop_1",
+            locationId: "gid://shopify/Location/1",
+            quantity: 0,
+          },
+        ],
+      }),
+    ).toBe(true);
   });
 
   it("counts valid dynamic metafields as filled but rejects invalid URLs", () => {
@@ -223,15 +238,15 @@ describe("resolveShopifyProductSyncSubmit", () => {
       .toThrow();
   });
 
-  it("routes positive inventory adjustments by shop and drops zero quantities", () => {
+  it("routes absolute inventory quantities by shop and preserves zero", () => {
     const result = resolveShopifyProductSyncSubmit({
       values: {
         ...base,
         shopIntegrationIds: ["shop_1", "shop_2"],
         sku: "SKU-1",
-        inventoryAdjustments: [
-          { shopIntegrationId: "shop_1", locationId: "gid://shopify/Location/1", quantityToAdd: 3 },
-          { shopIntegrationId: "shop_2", locationId: "gid://shopify/Location/2", quantityToAdd: 0 },
+        inventoryQuantities: [
+          { shopIntegrationId: "shop_1", locationId: "gid://shopify/Location/1", quantity: 3 },
+          { shopIntegrationId: "shop_2", locationId: "gid://shopify/Location/2", quantity: 0 },
         ],
       },
       itemClientId: "item_1",
@@ -244,11 +259,16 @@ describe("resolveShopifyProductSyncSubmit", () => {
         items: [
           {
             target_shop_integration_ids: ["shop_1", "shop_2"],
-            inventory_adjustments: [
+            inventory_quantities: [
               {
                 shop_integration_id: "shop_1",
                 location_id: "gid://shopify/Location/1",
-                quantity_to_add: 3,
+                quantity: 3,
+              },
+              {
+                shop_integration_id: "shop_2",
+                location_id: "gid://shopify/Location/2",
+                quantity: 0,
               },
             ],
           },

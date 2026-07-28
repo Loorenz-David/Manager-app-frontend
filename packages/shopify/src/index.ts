@@ -15,8 +15,8 @@ export {
   ShopifyLocationsResponseSchema,
   ShopifyLocationsShopSchema,
   ShopifyLocationSchema,
-  InventoryAdjustmentRequestSchema,
-  ShopifyProductSyncInventoryAdjustmentSchema,
+  InventoryQuantityRequestSchema,
+  ShopifyProductSyncInventoryQuantitySchema,
   ShopifyScopeStatusesResponseSchema,
   ShopifySyncWebhooksForShopResponseSchema,
   ShopifyUserReferenceSchema,
@@ -69,7 +69,7 @@ export type {
   ShopifyLocationsShop,
   ShopifyLocation,
   ShopifyLocationsStatus,
-  InventoryAdjustmentRequest,
+  InventoryQuantityRequest,
   ShopifyScopeStatusesResponse,
   ShopifySyncWebhooksForShopResponse,
   ShopifyUserReference,
@@ -93,7 +93,7 @@ export type {
   ShopifyMetafieldField,
   GetShopifyMetafieldPreferencesParams,
 } from "./types";
-export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode, ShopifyProductSyncInventoryAdjustment } from "./types";
+export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode, ShopifyProductSyncInventoryQuantity } from "./types";
 export { processShopifyProducts } from "./api/process-shopify-products";
 export { useProcessShopifyProducts } from "./actions/use-process-shopify-products";
 export { getShopifyMetafieldPreferences } from "./api/get-shopify-metafield-preferences";

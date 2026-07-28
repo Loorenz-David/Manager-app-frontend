@@ -3,7 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { fetchIssueTypes, issueTypeKeys } from "@beyo/item-issues";
 import { usePrefetchOnCondition } from "@beyo/ui";
 
-import { fetchWorkingSectionSteps } from "../../task_steps/api/fetch-working-section-steps";
+import {
+  fetchWorkingSectionSteps,
+  WORKING_SECTION_STEPS_PAGE_SIZE,
+} from "../../task_steps/api/fetch-working-section-steps";
 import { taskStepKeys } from "../../task_steps/api/task-step-keys";
 import {
   preloadItemIssueSelectionSheetSurface,
@@ -61,13 +64,13 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
         queryClient.prefetchQuery({
           queryKey: taskStepKeys.sectionList({
             working_section_id: section.client_id,
-            limit: 50,
+            limit: WORKING_SECTION_STEPS_PAGE_SIZE,
             offset: 0,
           }),
           queryFn: () =>
             fetchWorkingSectionSteps({
               working_section_id: section.client_id,
-              limit: 50,
+              limit: WORKING_SECTION_STEPS_PAGE_SIZE,
               offset: 0,
             }),
           staleTime: 30_000,

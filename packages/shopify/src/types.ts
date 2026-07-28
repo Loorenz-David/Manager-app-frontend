@@ -468,12 +468,12 @@ export const ShopifyProductSyncMetafieldsSchema = z.record(
   z.string(),
   ShopifyProductSyncMetafieldWireValueSchema,
 );
-export const InventoryAdjustmentRequestSchema = z.object({
+export const InventoryQuantityRequestSchema = z.object({
   shop_integration_id: z.string().min(1),
   location_id: z.string().regex(/^gid:\/\/shopify\/Location\/[0-9]+$/),
-  quantity_to_add: z.number().int().nonnegative().max(1_000_000),
+  quantity: z.number().int().nonnegative().max(1_000_000),
 });
-export type InventoryAdjustmentRequest = z.infer<typeof InventoryAdjustmentRequestSchema>;
+export type InventoryQuantityRequest = z.infer<typeof InventoryQuantityRequestSchema>;
 export const ProcessShopifyProductItemRequestSchema = z.object({
   client_id: z.string(),
   target_shop_integration_ids: z.array(z.string()).optional(),
@@ -483,35 +483,49 @@ export const ProcessShopifyProductItemRequestSchema = z.object({
   sku: z.string().optional(),
   item_article_number: z.string().optional(),
   metafields: ShopifyProductSyncMetafieldsSchema.optional(),
-  inventory_adjustments: z.array(InventoryAdjustmentRequestSchema).optional(),
+  inventory_quantities: z.array(InventoryQuantityRequestSchema).optional(),
 });
 export type ProcessShopifyProductItemRequest = z.infer<typeof ProcessShopifyProductItemRequestSchema>;
 export const ProcessShopifyProductsRequestSchema = z.object({ items: z.array(ProcessShopifyProductItemRequestSchema).min(1).max(200) });
 export type ProcessShopifyProductsRequest = z.infer<typeof ProcessShopifyProductsRequestSchema>;
 export const ProcessShopifyProductsResponseSchema = z.object({ queued: z.boolean(), task_id: z.string(), sync_item_client_ids: z.array(z.string()), target_count: z.number() });
 export type ProcessShopifyProductsResponse = z.infer<typeof ProcessShopifyProductsResponseSchema>;
-export const ShopifyProductSyncInventoryOutcomeSchema = z.object({
+export const ShopifyProductSyncInventoryQuantityOutcomeSchema = z.object({
+  location_id: z.string(),
+  quantity: z.number().int().nonnegative(),
+  before_available: z.number().int().optional(),
+  compare_protection: z.string().optional(),
+  outcome: z.enum(["pending", "applied", "failed"]),
+  available: z.number().int().optional(),
+  shopify_error_code: z.string().nullable().optional(),
+});
+export const ShopifyProductSyncLegacyInventoryOutcomeSchema = z.object({
   location_id: z.string(),
   requested_delta: z.number().int(),
   outcome: z.enum(["applied", "already_applied", "failed"]),
   shopify_error_code: z.string().nullable(),
 });
-export const ShopifyProductSyncInventoryResultSchema = z.object({
-  adjustments: z.array(ShopifyProductSyncInventoryOutcomeSchema),
-});
+export const ShopifyProductSyncInventoryResultSchema = z.union([
+  z.object({
+    quantities: z.array(ShopifyProductSyncInventoryQuantityOutcomeSchema),
+  }),
+  z.object({
+    adjustments: z.array(ShopifyProductSyncLegacyInventoryOutcomeSchema),
+  }),
+]);
 export const ShopifyProductSyncSucceededResultSchema = z.object({ frontend_client_id: z.string(), shop_integration_id: z.string(), sync_item_client_id: z.string(), requested_operation: z.enum(["create", "update"]), shopify_product_id: z.string(), shopify_variant_id: z.string(), inventory: ShopifyProductSyncInventoryResultSchema.optional() });
 export type ShopifyProductSyncSucceededResult = z.infer<typeof ShopifyProductSyncSucceededResultSchema>;
 export const ShopifyProductSyncFailedResultSchema = z.object({ frontend_client_id: z.string(), shop_integration_id: z.string(), sync_item_client_id: z.string(), requested_operation: z.enum(["create", "update"]), error_code: z.string(), error_message: z.string(), inventory: ShopifyProductSyncInventoryResultSchema.optional() });
 export type ShopifyProductSyncFailedResult = z.infer<typeof ShopifyProductSyncFailedResultSchema>;
 export const ShopifyProductsSyncedEventSchema = z.object({ task_id: z.string(), succeeded: z.array(ShopifyProductSyncSucceededResultSchema), failed: z.array(ShopifyProductSyncFailedResultSchema) });
 export type ShopifyProductsSyncedEvent = z.infer<typeof ShopifyProductsSyncedEventSchema>;
-export const ShopifyProductSyncInventoryAdjustmentSchema = z.object({
+export const ShopifyProductSyncInventoryQuantitySchema = z.object({
   shopIntegrationId: z.string().min(1),
   locationId: z.string().min(1),
-  quantityToAdd: z.number().int().nonnegative(),
+  quantity: z.number().int().nonnegative().max(1_000_000),
 });
-export type ShopifyProductSyncInventoryAdjustment = z.infer<typeof ShopifyProductSyncInventoryAdjustmentSchema>;
-export const ShopifyProductSyncFormSchema = z.object({ shopIntegrationIds: z.array(z.string()), sku: z.string().optional(), metafields: z.array(ShopifyProductSyncMetafieldValueSchema), inventoryAdjustments: z.array(ShopifyProductSyncInventoryAdjustmentSchema), title: z.string().optional(), description: z.string().optional() });
+export type ShopifyProductSyncInventoryQuantity = z.infer<typeof ShopifyProductSyncInventoryQuantitySchema>;
+export const ShopifyProductSyncFormSchema = z.object({ shopIntegrationIds: z.array(z.string()), sku: z.string().optional(), metafields: z.array(ShopifyProductSyncMetafieldValueSchema), inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema), title: z.string().optional(), description: z.string().optional() });
 export type ShopifyProductSyncFormValues = z.infer<typeof ShopifyProductSyncFormSchema>;
 export type ShopifyProductSyncFormMode = "submit" | "keep";
 

@@ -37,7 +37,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
       shopIntegrationIds: [],
       sku: ctx.itemSku ?? "",
       metafields: [],
-      inventoryAdjustments: [],
+      inventoryQuantities: [],
       title: ctx.defaultTitle ?? "",
       description: "",
     },

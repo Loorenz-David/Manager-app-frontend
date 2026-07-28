@@ -57,14 +57,13 @@ export async function getShopifyProductSyncDraft(
       await shopifyDraftsDb.productSyncDrafts.delete(taskClientId).catch(() => {});
       return null;
     }
-    if (record.schemaVersion !== SHOPIFY_PRODUCT_SYNC_DRAFT_SCHEMA_VERSION) {
-      await shopifyDraftsDb.productSyncDrafts.delete(taskClientId).catch(() => {});
-      return null;
-    }
     const parsed = ShopifyProductSyncDraftRecordSchema.safeParse(record);
     if (!parsed.success) {
       await shopifyDraftsDb.productSyncDrafts.delete(taskClientId).catch(() => {});
       return null;
+    }
+    if (record.schemaVersion !== SHOPIFY_PRODUCT_SYNC_DRAFT_SCHEMA_VERSION) {
+      await shopifyDraftsDb.productSyncDrafts.put(parsed.data).catch(() => {});
     }
     return parsed.data.values;
   } catch {

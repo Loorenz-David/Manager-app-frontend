@@ -49,6 +49,10 @@ import {
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import {
+  readRememberedInternalItemPosition,
+  writeRememberedInternalItemPosition,
+} from "../lib/internal-item-position-memory";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
@@ -127,6 +131,9 @@ export function InternalFormContent(): React.JSX.Element {
     regenerateIds,
     callbacks,
   } = useTaskCreationFormContext();
+  const [initialItemPosition] = useState(() =>
+    readRememberedInternalItemPosition(currentUserClientId),
+  );
   const createTask = useCreateTask();
   const applyLookupImages = useLookupItemImages(itemClientId);
   const form = useForm<InternalFormValues>({
@@ -139,7 +146,7 @@ export function InternalFormContent(): React.JSX.Element {
         article_number: "",
         sku: "",
         quantity: 1,
-        item_position: "",
+        item_position: initialItemPosition ?? "",
         item_zone: "",
         item_currency: undefined,
         item_category_id: undefined,
@@ -286,6 +293,10 @@ export function InternalFormContent(): React.JSX.Element {
         });
 
         const result = await createTask.mutateAsync(payload);
+        writeRememberedInternalItemPosition(
+          currentUserClientId,
+          values.item.item_position,
+        );
         callbacks.onTaskCreated?.({
           result,
           hadUpholstery: Boolean(payload.item_upholstery),

@@ -31,7 +31,8 @@ import {
   type ImageViewModel,
 } from "@beyo/images";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
-import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
+import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
+import { usePaginatedWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import { preloadPinNotificationsSlideSurface } from "../surfaces";
 import {
@@ -132,6 +133,8 @@ export type WorkingSectionStepsController = {
   isPending: boolean;
   isError: boolean;
   hasMore: boolean;
+  isFetchingMore: boolean;
+  loadMore: () => Promise<void>;
   search: string;
   setSearch: (value: string) => void;
   stateFilters: StepState[];
@@ -206,7 +209,7 @@ export function useWorkingSectionStepsController(
         taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
       item_position: itemPositionFilter || undefined,
       group_by_upholstery: groupByUpholstery || undefined,
-      limit: 50,
+      limit: WORKING_SECTION_STEPS_PAGE_SIZE,
       offset: 0,
     }),
     [
@@ -220,7 +223,7 @@ export function useWorkingSectionStepsController(
     ],
   );
 
-  const query = useWorkingSectionStepsQuery(queryParams);
+  const query = usePaginatedWorkingSectionStepsQuery(queryParams);
 
   async function refetch(): Promise<void> {
     await query.refetch();
@@ -509,7 +512,9 @@ export function useWorkingSectionStepsController(
     nonTerminalCounts,
     isPending,
     isError: query.isError,
-    hasMore: query.data?.has_more ?? false,
+    hasMore: query.hasMore,
+    isFetchingMore: query.isFetchingMore,
+    loadMore: query.loadMore,
     search,
     setSearch,
     stateFilters,

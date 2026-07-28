@@ -57,6 +57,7 @@ import { useCancelPendingStepCompletion } from "../actions/use-cancel-pending-st
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
+import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import { COMPLETION_FEEDBACK_ENABLED } from "../lib/completion-feedback";
 import {
@@ -154,7 +155,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     () =>
       listQueryParams ?? {
         working_section_id: resolvedWorkingSectionId,
-        limit: 50,
+        limit: WORKING_SECTION_STEPS_PAGE_SIZE,
         offset: 0,
       },
     [listQueryParams, resolvedWorkingSectionId],
