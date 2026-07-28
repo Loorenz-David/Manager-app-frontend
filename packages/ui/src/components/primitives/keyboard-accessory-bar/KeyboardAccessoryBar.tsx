@@ -24,6 +24,13 @@ type KeyboardAccessoryBarProps = {
   nextLabel?: string;
   doneLabel?: string;
   className?: string;
+  /**
+   * Classes for the wrapper around `children`. Without this the wrapper is an
+   * unstyled, auto-height block that severs any height chain between the
+   * consumer's layout and its content — so a consumer that needs its content
+   * to stretch (a flex column) must be able to style it.
+   */
+  containerClassName?: string;
 };
 
 type ActiveFieldState = {
@@ -101,6 +108,7 @@ export function KeyboardAccessoryBar({
   nextLabel = "Next field",
   doneLabel = "Done",
   className,
+  containerClassName,
 }: KeyboardAccessoryBarProps): React.JSX.Element {
   const { isKeyboardOpen } = useKeyboardInset();
   const isSuppressed = useKeyboardAccessorySuppressed();
@@ -209,7 +217,9 @@ export function KeyboardAccessoryBar({
 
   return (
     <>
-      <div ref={containerRef}>{children}</div>
+      <div ref={containerRef} className={containerClassName}>
+        {children}
+      </div>
       {shouldShowBar
         ? createPortal(
             <div className={KEYBOARD_TRAY_ANCHOR}>

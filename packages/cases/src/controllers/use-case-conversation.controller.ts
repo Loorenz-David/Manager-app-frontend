@@ -327,23 +327,17 @@ export function useCaseConversationController(
         }
       | undefined;
 
+    // No transition state to pass: the background tab stayed mounted under the
+    // conversation, so returning to it swaps nothing in the shell's stack.
     if (state?.background) {
       navigate(`${state.background.pathname}${state.background.search}`, {
         replace: true,
-        state: {
-          skipTabAnimation: true,
-        },
       });
       return;
     }
 
     if (location.pathname.startsWith("/cases/")) {
-      navigate("/cases", {
-        replace: true,
-        state: {
-          skipTabAnimation: true,
-        },
-      });
+      navigate("/cases", { replace: true });
       return;
     }
   };

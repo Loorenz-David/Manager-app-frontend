@@ -42,6 +42,12 @@ vi.mock("../components/PendingUpholsteryHeader", () => ({
       </button>
       <button
         type="button"
+        onClick={() => onFiltersChange("missing_selection")}
+      >
+        Selection
+      </button>
+      <button
+        type="button"
         onClick={() => onFiltersChange("missing_quantity")}
       >
         Quantity
@@ -70,6 +76,7 @@ vi.mock("../components/PendingUpholsterySkeleton", () => ({
 
 vi.mock("@beyo/ui", async () => {
   const actual = await vi.importActual<typeof import("@beyo/ui")>("@beyo/ui");
+  const ActualSlideStack = actual.SlideStack;
   return {
     ...actual,
     AnimatedRemovalGroup: ({ children }: { children: React.ReactNode }) => (
@@ -80,6 +87,16 @@ vi.mock("@beyo/ui", async () => {
     ),
     PullToRefresh: ({ children }: { children: React.ReactNode }) => (
       <div>{children}</div>
+    ),
+    SlideStack: (
+      props: React.ComponentProps<typeof ActualSlideStack>,
+    ) => (
+      <div
+        data-back-enabled={props.onBack ? "true" : "false"}
+        data-testid="pending-upholstery-stack"
+      >
+        <ActualSlideStack {...props} />
+      </div>
     ),
   };
 });
@@ -205,5 +222,70 @@ describe("PendingUpholsterySlidePage", () => {
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(mocks.requestClose).toHaveBeenCalledOnce();
     expect(controller.close).not.toHaveBeenCalled();
+  });
+
+  it("releases the back gesture only when the first pane is confirmed empty", () => {
+    const emptyController = makeController("missing_quantity");
+    emptyController.searchInput = "no matches";
+    emptyController.cardsByFilter.missing_selection = [];
+    mocks.useController.mockReturnValue(emptyController);
+    const { rerender } = renderPage();
+
+    expect(screen.getByTestId("pending-upholstery-stack")).toHaveAttribute(
+      "data-back-enabled",
+      "false",
+    );
+
+    const loadingController = makeController("missing_quantity");
+    loadingController.cardsByFilter.missing_selection = [];
+    loadingController.isInitialLoadingByFilter.missing_selection = true;
+    mocks.useController.mockReturnValue(loadingController);
+    rerender(
+      <LazyMotion features={domAnimation}>
+        <PendingUpholsterySlidePage />
+      </LazyMotion>,
+    );
+    expect(screen.getByTestId("pending-upholstery-stack")).toHaveAttribute(
+      "data-back-enabled",
+      "true",
+    );
+
+    const errorController = makeController("missing_quantity");
+    errorController.cardsByFilter.missing_selection = [];
+    errorController.isErrorByFilter.missing_selection = true;
+    mocks.useController.mockReturnValue(errorController);
+    rerender(
+      <LazyMotion features={domAnimation}>
+        <PendingUpholsterySlidePage />
+      </LazyMotion>,
+    );
+    expect(screen.getByTestId("pending-upholstery-stack")).toHaveAttribute(
+      "data-back-enabled",
+      "true",
+    );
+
+    const populatedController = makeController("missing_quantity");
+    mocks.useController.mockReturnValue(populatedController);
+    rerender(
+      <LazyMotion features={domAnimation}>
+        <PendingUpholsterySlidePage />
+      </LazyMotion>,
+    );
+    expect(screen.getByTestId("pending-upholstery-stack")).toHaveAttribute(
+      "data-back-enabled",
+      "true",
+    );
+  });
+
+  it("keeps the first-pane pill selectable when that pane is empty", async () => {
+    const user = userEvent.setup();
+    const controller = makeController("missing_quantity");
+    controller.cardsByFilter.missing_selection = [];
+    mocks.useController.mockReturnValue(controller);
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Selection" }));
+
+    expect(controller.setFilters).toHaveBeenCalledWith("missing_selection");
   });
 });

@@ -20,6 +20,20 @@ export const settingsPageRoute = lazyWithPreload(() =>
   })),
 );
 
+/**
+ * The component behind each tab. The app shell renders these directly (see
+ * TabSlideStack) instead of through the router's Outlet: a swipe has to mount
+ * the neighbouring tab as its drag preview, and the router only ever renders
+ * the matched route.
+ */
+export const TAB_ROUTE_COMPONENTS: Record<TabPath, React.ComponentType> = {
+  [ROUTES.home]: homePageRoute.Component,
+  [ROUTES.tasks]: tasksPageRoute.Component,
+  [ROUTES.cases]: casesPageRoute.Component,
+  [ROUTES.stats]: statsPageRoute.Component,
+  [ROUTES.settings]: settingsPageRoute.Component,
+};
+
 const tabPreloaders: Partial<Record<TabPath, () => Promise<void>>> = {
   [ROUTES.home]: homePageRoute.preload,
   [ROUTES.tasks]: tasksPageRoute.preload,

@@ -101,13 +101,15 @@ function SurfaceStack({
   surface,
   onBack,
   onForward,
+  onCommit,
   canBack,
   canForward,
 }: {
   activeId: string;
   surface: SurfaceHeaderValue;
-  onBack: () => void;
+  onBack?: () => void;
   onForward?: () => void;
+  onCommit?: (type: "back" | "forward") => void;
   canBack?: boolean | (() => boolean);
   canForward?: boolean | (() => boolean);
 }): React.JSX.Element {
@@ -121,6 +123,7 @@ function SurfaceStack({
             canForward={canForward}
             onBack={onBack}
             onForward={onForward}
+            onCommit={onCommit}
           >
             <SlideStackPane id="one">
               <div />
@@ -202,6 +205,62 @@ describe("SlideStack surface close interception", () => {
     expect(vi.mocked(surface.setCloseInterceptor).mock.lastCall?.[0]).toBeNull();
     expect(surface.setSwipeDismissDisabled).toHaveBeenLastCalledWith(false);
   });
+
+  it("releases the surface controls when back navigation becomes unavailable", () => {
+    const surface = makeSurface();
+    const onBack = vi.fn();
+    const { rerender } = render(
+      <SurfaceStack activeId="two" surface={surface} onBack={onBack} />,
+    );
+
+    expect(
+      vi.mocked(surface.setCloseInterceptor).mock.lastCall?.[0],
+    ).toBeTypeOf("function");
+    expect(surface.setSwipeDismissDisabled).toHaveBeenLastCalledWith(true);
+
+    rerender(
+      <SurfaceStack activeId="two" surface={surface} onBack={undefined} />,
+    );
+
+    expect(vi.mocked(surface.setCloseInterceptor).mock.lastCall?.[0]).toBeNull();
+    expect(surface.setSwipeDismissDisabled).toHaveBeenLastCalledWith(false);
+  });
+
+  it("lets the real surface close gesture own a deep-pane swipe when onBack is absent", async () => {
+    const onClose = vi.fn();
+    render(
+      <LazyMotion features={domAnimation}>
+        <SlidePageSurface onClose={onClose} zIndex={10} isTopmost>
+          <div style={{ position: "relative", overflow: "hidden" }}>
+            <SlideStack activeId="two">
+              <SlideStackPane id="one">
+                <div />
+              </SlideStackPane>
+              <SlideStackPane id="two">
+                <div />
+              </SlideStackPane>
+            </SlideStack>
+          </div>
+        </SlidePageSurface>
+      </LazyMotion>,
+    );
+
+    // Let the surface's entrance settle so the gesture starts from x=0.
+    await act(async () => {
+      await new Promise((resolve) => window.setTimeout(resolve, 300));
+    });
+
+    const pane = screen.getByTestId("slide-stack-pane-two");
+    dispatchTouch(pane, "touchstart", 10, 100);
+    dispatchTouch(pane, "touchmove", 10 + commitTravel(), 104);
+
+    expect(screen.queryByTestId("slide-stack-pane-one-ghost")).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+
+    dispatchTouch(pane, "touchend", 10 + commitTravel(), 104);
+
+    expect(onClose).toHaveBeenCalledOnce();
+  });
 });
 
 function dispatchTouch(
@@ -275,10 +334,48 @@ describe("SlideStack interactive drag", () => {
     });
   });
 
+  it("signals the commit at the release, one settle before it navigates", async () => {
+    const order: string[] = [];
+    const onForward = vi.fn(() => order.push("navigate"));
+    const onCommit = vi.fn((type: "back" | "forward") =>
+      order.push(`commit:${type}`),
+    );
+    render(
+      <SurfaceStack
+        activeId="one"
+        surface={makeSurface()}
+        onBack={() => {}}
+        onForward={onForward}
+        onCommit={onCommit}
+      />,
+    );
+
+    const pane = screen.getByTestId("slide-stack-pane-one");
+    const startX = 10 + commitTravel();
+    dispatchTouch(pane, "touchstart", startX, 100);
+    dispatchTouch(pane, "touchmove", startX - commitTravel(), 104);
+    dispatchTouch(pane, "touchend", startX - commitTravel(), 104);
+
+    // Released: chrome already knows, while the ghost is still travelling.
+    expect(onCommit).toHaveBeenCalledWith("forward");
+    expect(onForward).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(onForward).toHaveBeenCalledTimes(1), {
+      timeout: 3000,
+    });
+    expect(order).toEqual(["commit:forward", "navigate"]);
+  });
+
   it("springs back without navigating when released below the threshold", async () => {
     const onBack = vi.fn();
+    const onCommit = vi.fn();
     render(
-      <SurfaceStack activeId="two" surface={makeSurface()} onBack={onBack} />,
+      <SurfaceStack
+        activeId="two"
+        surface={makeSurface()}
+        onBack={onBack}
+        onCommit={onCommit}
+      />,
     );
 
     const pane = screen.getByTestId("slide-stack-pane-two");
@@ -300,6 +397,7 @@ describe("SlideStack interactive drag", () => {
       { timeout: 3000 },
     );
     expect(onBack).not.toHaveBeenCalled();
+    expect(onCommit).not.toHaveBeenCalled();
   });
 
   it("does not engage a drag whose condition resolves false", async () => {

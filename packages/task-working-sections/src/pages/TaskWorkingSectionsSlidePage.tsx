@@ -21,10 +21,6 @@ import {
 } from "../providers/TaskWorkingSectionsProvider";
 import type { TaskWorkingSectionsSurfaceProps } from "../surface-ids";
 
-// Fixed edge-reveal distance for the working-sections footer, mirroring the
-// task-creation staged-form footer pattern.
-const TASK_WORKING_SECTIONS_FOOTER_EDGE_OFFSET_PX = 50;
-
 function TaskWorkingSectionsStagedFormHeader(): React.JSX.Element {
   return (
     <div className="flex min-h-14 items-center px-4">
@@ -121,9 +117,6 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
     ],
     mode: "free",
   });
-  const showShortcutBar =
-    staged.activeStepId === "selected" && controller.sectionEntries.length > 0;
-
   usePreloadSurface(
     controller.surfaceOpeners?.preloadWorkerPickerSurface ?? (async () => {}),
   );
@@ -173,7 +166,6 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
       data-testid="task-working-sections-slide-page"
       direction={staged.direction}
       header={<TaskWorkingSectionsStagedFormHeader />}
-      footerEdgeOffset={TASK_WORKING_SECTIONS_FOOTER_EDGE_OFFSET_PX}
       isAdvancing={staged.isAdvancing}
       isFirstStep={staged.isFirstStep}
       isLastStep={staged.isLastStep}
@@ -181,18 +173,21 @@ function TaskWorkingSectionsSlidePageContent(): React.JSX.Element {
       onAdvance={staged.advance}
       onBack={staged.back}
       onNavigate={staged.navigateTo}
-      footer={
+      footer={({ stepId }) => (
         <TaskWorkingSectionsFooter
           availableSections={availableSections}
           selectedSectionIds={selectedSectionIds}
-          canShowShortcuts={showShortcutBar}
+          canShowShortcuts={
+            stepId === "selected" &&
+            controller.sectionEntries.length > 0
+          }
           hasUnsavedChanges={controller.hasUnsavedChanges}
           isSaving={controller.isSaving}
           onClose={controller.handleCloseWithGuard}
           onShortcutPress={controller.handleShortcutPress}
           onSaveAndClose={controller.handleSaveAndClose}
         />
-      }
+      )}
       showNavigation={false}
       stepStatusMap={staged.stepStatusMap}
       steps={staged.steps}

@@ -14,7 +14,10 @@ export function CustomerAddressFieldGroup(): React.JSX.Element {
   ).customer?.address;
 
   return (
-    <div className="flex flex-col gap-3" data-testid="customer-address-field-group">
+    <div
+      className="flex flex-col gap-3"
+      data-testid="customer-address-field-group"
+    >
       <FieldLabelRow label="Address" optional />
       <TextInput
         data-testid="customer-address-street-input"
@@ -27,15 +30,6 @@ export function CustomerAddressFieldGroup(): React.JSX.Element {
       />
       <div className="grid grid-cols-2 gap-3">
         <TextInput
-          data-testid="customer-address-city-input"
-          id="customer-address-city"
-          type="text"
-          autoComplete="address-level2"
-          placeholder="City"
-          invalid={Boolean(addressErrors?.city?.message)}
-          {...register("customer.address.city")}
-        />
-        <TextInput
           data-testid="customer-address-postal-code-input"
           id="customer-address-postal"
           type="text"
@@ -43,6 +37,15 @@ export function CustomerAddressFieldGroup(): React.JSX.Element {
           placeholder="Postal code"
           invalid={Boolean(addressErrors?.postal_code?.message)}
           {...register("customer.address.postal_code")}
+        />
+        <TextInput
+          data-testid="customer-address-city-input"
+          id="customer-address-city"
+          type="text"
+          autoComplete="address-level2"
+          placeholder="City"
+          invalid={Boolean(addressErrors?.city?.message)}
+          {...register("customer.address.city")}
         />
       </div>
     </div>

@@ -15,6 +15,7 @@ const GetPostHandlingCountsResponseSchema = ApiEnvelopeSchema(
 
 export type GetPostHandlingCountsParams = {
   post_handling_states?: string;
+  task_states?: string;
 };
 
 export type PostHandlingCounts = z.infer<typeof PostHandlingCountsSchema>;
@@ -26,6 +27,10 @@ export async function getPostHandlingCounts(
 
   if (params.post_handling_states) {
     queryParams.post_handling_states = params.post_handling_states;
+  }
+
+  if (params.task_states) {
+    queryParams.task_states = params.task_states;
   }
 
   const parsed = await apiClient.get(

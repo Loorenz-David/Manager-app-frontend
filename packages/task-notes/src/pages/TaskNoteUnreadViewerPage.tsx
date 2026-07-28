@@ -9,6 +9,7 @@ import {
   SlideStack,
   SlideStackPane,
   UserPill,
+  useCommittedPaneId,
   useScrollVisibilityContext,
 } from "@beyo/ui";
 
@@ -154,6 +155,16 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
   const activeEntry =
     lockedEntries?.[activeIndex] ?? lockedEntries?.[0] ?? null;
 
+  // The paginator dots follow the finger: a committed swipe moves them at the
+  // release, one settle before activeIndex catches up. Only the dots use this
+  // — acknowledging still acts on the real active note.
+  const noteIds = (lockedEntries ?? []).map((entry) => entry.note.client_id);
+  const { paneId: displayedNoteId, onCommit } = useCommittedPaneId({
+    activeId: activeEntry?.note.client_id ?? "",
+    paneIds: noteIds,
+  });
+  const displayedIndex = Math.max(0, noteIds.indexOf(displayedNoteId));
+
   useEffect(() => {
     if (!activeEntry) {
       setActiveScrollElement(null);
@@ -225,6 +236,7 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
         <SlideStack
           activeId={activeEntry?.note.client_id ?? ""}
           onBack={handleBack}
+          onCommit={onCommit}
           onForward={handleForward}
         >
           {lockedEntries.map((entry) => (
@@ -270,7 +282,7 @@ export function TaskNoteUnreadViewerPage(): React.JSX.Element {
 
         <UnreadViewerFooter
           acknowledgedIds={acknowledgedIds}
-          activeIndex={activeIndex}
+          activeIndex={displayedIndex}
           currentNoteId={activeEntry?.note.client_id ?? null}
           disableAcknowledge={markReadBy.isPending}
           entries={lockedEntries}

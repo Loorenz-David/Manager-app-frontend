@@ -3,8 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   beginUiTransition,
   isUiTransitioning,
+  LIST_COMMIT_DELAY_MS,
   resetUiTransitionGate,
   runWhenUiSettled,
+  scheduleListCommit,
 } from "./ui-transition-gate";
 
 afterEach(() => {
@@ -83,5 +85,27 @@ describe("ui transition gate", () => {
     releaseSecond();
     await flushFrames();
     expect(work).toHaveBeenCalledOnce();
+  });
+
+  it("commits list work alongside a closing surface, not behind it", async () => {
+    const commit = vi.fn();
+    // A surface is mid-close; the commit must NOT wait for it, unlike the
+    // refetch queued through runWhenUiSettled.
+    const releaseSurface = beginUiTransition();
+
+    scheduleListCommit(commit);
+
+    if (LIST_COMMIT_DELAY_MS <= 0) {
+      // Same tick as the close, so React batches both into one commit.
+      expect(commit).toHaveBeenCalledOnce();
+    } else {
+      expect(commit).not.toHaveBeenCalled();
+      await new Promise((resolve) =>
+        setTimeout(resolve, LIST_COMMIT_DELAY_MS + 20),
+      );
+      expect(commit).toHaveBeenCalledOnce();
+    }
+
+    releaseSurface();
   });
 });

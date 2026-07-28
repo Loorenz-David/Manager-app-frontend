@@ -16,6 +16,33 @@ export type ServerToClientEvents = {
     succeeded: Array<{ frontend_client_id: string; shop_integration_id: string; sync_item_client_id: string; requested_operation: "create" | "update"; shopify_product_id: string; shopify_variant_id: string }>;
     failed: Array<{ frontend_client_id: string; shop_integration_id: string; sync_item_client_id: string; requested_operation: "create" | "update"; error_code: string; error_message: string }>;
   }) => void;
+  // Emitted once per pre-order (success AND failure) after the background worker
+  // finished provisioning the Shopify product for a `shopify_preorder` task
+  // section. `task_id` is the ManagerBeyo task client_id — the correlation key.
+  "shopify.preorder.processed": (payload: {
+    task_id: string;
+    preorder_operation_id: string;
+    shopify_task_id: string;
+    shop_integration_id: string;
+    status: "succeeded" | "failed";
+    requested_operation: "create" | "update" | null;
+    shopify_product_id: string | null;
+    shopify_variant_id: string | null;
+    shopify_media_id: string | null;
+    media_status: "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | null;
+    inventory: {
+      quantities: Array<{
+        location_id: string;
+        quantity: number;
+        before_available: number | null;
+        compare_protection: string | null;
+        outcome: string;
+        available: number | null;
+      }>;
+    } | null;
+    error_code: string | null;
+    error_message: string | null;
+  }) => void;
   "task:created": (payload: {
     client_id: string;
     working_section_ids: string[];

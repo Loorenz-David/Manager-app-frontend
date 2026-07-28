@@ -1,5 +1,6 @@
 import type {
   InternalFormValues,
+  PreOrderFormValues,
   ReturnFormValues,
   WorkerInternalFormValues,
   WorkerItemIssueSelectionDraft,
@@ -9,6 +10,9 @@ import {
   toTaskNoteContentBlocks,
   type TaskNoteComposerValue,
 } from "@beyo/task-notes";
+
+import { resolvePreOrderTotalPrice } from "./pre-order-price";
+import { toShopifyProductDescription } from "./to-shopify-product-description";
 
 type BaseIds = {
   taskClientId: string;
@@ -191,6 +195,66 @@ export function normalizeReturnFormPayload(
     ...(upholsteryFields ? { item_upholstery: upholsteryFields } : {}),
     ...(steps.length > 0 ? { steps } : {}),
     ...(notePayload ? { notes: [notePayload] } : {}),
+  };
+}
+
+/**
+ * Builds the optional `shopify_preorder` request section
+ * (HANDOFF_TO_FRONTEND_task_preorder_shopify_product_20260727). Returns
+ * undefined when the form has no complete Shopify selection — the endpoint
+ * then behaves exactly as before. `price` is the pre-order total
+ * (`item.quantity × the price per piece the form collects`) and must be a
+ * decimal string, never a number; `quantity` is the only quantity collected
+ * (the `custom.quantity` metafield is derived server-side and must not be
+ * sent).
+ *
+ * `imageClientId` becomes `product.image_id` — never `image_url`, which is a
+ * pass-through for externally hosted images only and skips size validation
+ * (HANDOFF_TO_FRONTEND_item_image_urls_and_preorder_images_20260728). The two
+ * are mutually exclusive; sending both is a 400. `product_category` is
+ * deliberately omitted so Shopify's product type derives from the item's
+ * category server-side.
+ */
+export function buildShopifyPreorderSection(
+  values: PreOrderFormValues,
+  { imageClientId }: { imageClientId?: string | null } = {},
+): Record<string, unknown> | undefined {
+  const shopIntegrationId = values.shopIntegrationIds?.[0];
+  const sku = toOptionalString(values.item.sku);
+  const price = resolvePreOrderTotalPrice(
+    values.product_unit_price,
+    values.item.quantity,
+  );
+
+  if (!shopIntegrationId || !sku || price == null || price <= 0) {
+    return undefined;
+  }
+
+  const inventory = (values.inventoryAdjustments ?? [])
+    .filter((entry) => entry.shopIntegrationId === shopIntegrationId)
+    .map((entry) => ({
+      location_id: entry.locationId,
+      quantity: entry.quantityToAdd > 0 ? entry.quantityToAdd : 1,
+    }));
+
+  if (inventory.length === 0) {
+    return undefined;
+  }
+
+  const description = toShopifyProductDescription(values.note_content);
+
+  return {
+    shop_integration_id: shopIntegrationId,
+    product: {
+      title: sku,
+      sku,
+      price: price.toFixed(2),
+      ...(description ? { description } : {}),
+      ...(imageClientId
+        ? { image_id: imageClientId, image_alt_text: sku }
+        : {}),
+    },
+    inventory,
   };
 }
 

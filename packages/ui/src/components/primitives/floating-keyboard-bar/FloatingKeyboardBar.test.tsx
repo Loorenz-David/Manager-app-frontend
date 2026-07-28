@@ -362,10 +362,92 @@ describe("FloatingKeyboardBar", () => {
       expect(document.activeElement).toBe(
         screen.getByTestId("second-floating-input"),
       );
+      expect(screen.queryByTestId("first-floating-input")).toBeNull();
     });
-    expect(document.activeElement).not.toBe(
-      screen.getByTestId("first-floating-input"),
+  });
+
+  it("stays inline while the keyboard belongs to another field", async () => {
+    const outsideInput = document.createElement("input");
+    document.body.append(outsideInput);
+    const view = render(<FloatingKeyboardBar renderControls={renderControls} />);
+
+    outsideInput.focus();
+    keyboardState.isOpen = true;
+    view.rerender(<FloatingKeyboardBar renderControls={renderControls} />);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("floating-input")).toBeNull();
+    });
+    // The inline copy keeps its place in the document instead of being
+    // hidden for a tray the user never asked for.
+    expect(screen.getByTestId("inline-controls").parentElement?.className).not.toContain(
+      "invisible",
     );
+
+    outsideInput.remove();
+  });
+
+  it("freezes the field's own scroll container while docked with lockScroll", async () => {
+    function ScrollHost({ locked }: { locked: boolean }): React.JSX.Element {
+      return (
+        <div data-testid="scroller" style={{ overflowY: "auto" }}>
+          <FloatingKeyboardBar lockScroll={locked} renderControls={renderControls} />
+        </div>
+      );
+    }
+
+    const view = render(<ScrollHost locked />);
+    const scroller = screen.getByTestId("scroller");
+    // jsdom reports every element as unscrollable, so the overflowing content
+    // the lock looks for has to be stated outright.
+    Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: 500 });
+    Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 100 });
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(<ScrollHost locked />);
+
+    await waitFor(() => {
+      expect(scroller.style.overflowY).toBe("hidden");
+    });
+
+    // A drag on the tray never reaches that container — it is portaled to
+    // `body` — so the tray must refuse pans of its own.
+    expect(
+      screen.getByTestId("floating-controls").parentElement?.className,
+    ).toContain("touch-none");
+
+    keyboardState.isOpen = false;
+    view.rerender(<ScrollHost locked />);
+
+    await waitFor(() => {
+      expect(scroller.style.overflowY).toBe("auto");
+    });
+  });
+
+  it("leaves the scroll container alone without lockScroll", async () => {
+    function ScrollHost(): React.JSX.Element {
+      return (
+        <div data-testid="scroller" style={{ overflowY: "auto" }}>
+          <FloatingKeyboardBar renderControls={renderControls} />
+        </div>
+      );
+    }
+
+    const view = render(<ScrollHost />);
+    const scroller = screen.getByTestId("scroller");
+    Object.defineProperty(scroller, "scrollHeight", { configurable: true, value: 500 });
+    Object.defineProperty(scroller, "clientHeight", { configurable: true, value: 100 });
+
+    screen.getByTestId("inline-input").focus();
+    keyboardState.isOpen = true;
+    view.rerender(<ScrollHost />);
+
+    await screen.findByTestId("floating-input");
+    expect(scroller.style.overflowY).toBe("auto");
+    expect(
+      screen.getByTestId("floating-controls").parentElement?.className,
+    ).not.toContain("touch-none");
   });
 
   it("stretches the docked surface to the top of the screen when fullHeight", async () => {

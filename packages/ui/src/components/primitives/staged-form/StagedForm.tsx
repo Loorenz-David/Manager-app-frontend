@@ -1,24 +1,18 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Children, cloneElement, isValidElement, useEffect } from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollHide } from "../scroll-visibility";
 import { cn } from "@beyo/lib";
 
 import { KeyboardAccessoryBar } from "../keyboard-accessory-bar";
-import { SlideStack } from "../slide-stack";
+import { SlideStack, useCommittedPaneId } from "../slide-stack";
 import { StagedFormContext } from "./StagedFormContext";
 import { StagedFormNavigation } from "./StagedFormNavigation";
+import type { StagedFormStepProps } from "./StagedFormStep";
 import { StagedFormTimeline } from "./StagedFormTimeline";
 import type { StagedFormProps } from "./staged-form.types";
 
 const STAGED_FORM_TIMELINE_OFFSET_CLASS = "pt-14";
-
-const FOOTER_STYLE: React.CSSProperties = {
-  transform: "translateY(calc(var(--scroll-hide-progress-footer, 0) * 100%))",
-  opacity: "calc(1 - var(--scroll-hide-progress-footer, 0))",
-  transition:
-    "transform var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out, opacity var(--scroll-snap-duration-footer, var(--scroll-snap-duration, 0ms)) ease-out",
-};
 
 export function StagedForm({
   steps,
@@ -33,7 +27,6 @@ export function StagedForm({
   enableKeyboardAccessory = false,
   header,
   footer,
-  footerEdgeOffset,
   navigationMode = "sequential",
   stepStatusMap = {},
   canAdvance,
@@ -45,40 +38,26 @@ export function StagedForm({
 }: StagedFormProps): React.JSX.Element {
   const hasHeader = Boolean(header);
   const hasFooter = Boolean(footer) || showNavigation;
+  const stepIds = steps.map((step) => step.id);
 
-  // Measure the absolute-positioned footer so the scroll container can pad itself.
-  const footerObserverRef = useRef<ResizeObserver | null>(null);
-  const [footerHeight, setFooterHeight] = useState(0);
-
+  // Scroll-hide drives only the timeline's compact state. Each footer lives
+  // inside its slide pane and needs no separate visibility tracking.
   const {
     scrollRef,
     hideProgressContainerRef,
     isHidden: isCompact,
-    isAtEdge,
     reset,
     suspend,
-  } = useScrollHide({
-    revealAtEdge: hasFooter ? "bottom" : undefined,
-    edgeOffset: footerEdgeOffset ?? footerHeight,
-  });
-  const isFooterHidden = isCompact && !isAtEdge;
+  } = useScrollHide();
 
-  const footerCallbackRef = useCallback((el: HTMLDivElement | null) => {
-    footerObserverRef.current?.disconnect();
-    footerObserverRef.current = null;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      setFooterHeight(entry.contentRect.height);
+  // A committed drag only navigates once its settle animation finishes, so
+  // chrome painted from activeStepId would trail the gesture by a whole
+  // transition. The stack signals the visual commit at release instead.
+  const { paneId: timelineStepId, onCommit: handleDragCommit } =
+    useCommittedPaneId({
+      activeId: activeStepId,
+      paneIds: stepIds,
     });
-    observer.observe(el);
-    footerObserverRef.current = observer;
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      footerObserverRef.current?.disconnect();
-    };
-  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -91,6 +70,7 @@ export function StagedForm({
   const contextValue = {
     steps,
     activeStepId,
+    timelineStepId,
     isFirstStep,
     isLastStep,
     isAdvancing,
@@ -104,6 +84,40 @@ export function StagedForm({
     onNavigate,
   } as const;
 
+  const stepPanes = Children.map(children, (child) => {
+    if (!isValidElement<StagedFormStepProps>(child)) {
+      return child;
+    }
+
+    const stepId = child.props.id;
+    const stepIndex = stepIds.indexOf(stepId);
+    const stepIsFirst = stepIndex === 0;
+    const stepIsLast = stepIndex === stepIds.length - 1;
+    const stepContextValue = {
+      ...contextValue,
+      activeStepId: stepId,
+      timelineStepId: stepId,
+      isFirstStep: stepIsFirst,
+      isLastStep: stepIsLast,
+    };
+    const stepFooter =
+      typeof footer === "function"
+        ? footer({
+            stepId,
+            isFirstStep: stepIsFirst,
+            isLastStep: stepIsLast,
+          })
+        : footer ?? <StagedFormNavigation />;
+
+    return cloneElement(child, {
+      footer: hasFooter ? (
+        <StagedFormContext.Provider value={stepContextValue}>
+          {stepFooter}
+        </StagedFormContext.Provider>
+      ) : undefined,
+    });
+  });
+
   const stepContent = (
     <SlideStack
       activeId={activeStepId}
@@ -115,8 +129,9 @@ export function StagedForm({
       // Forward drag advances like the Next button (consumer validation runs
       // inside onAdvance); paused while an advance is already in flight.
       onForward={isAdvancing ? undefined : onAdvance}
+      onCommit={handleDragCommit}
     >
-      {children}
+      {stepPanes}
     </SlideStack>
   );
 
@@ -124,7 +139,10 @@ export function StagedForm({
     <StagedFormContext.Provider value={contextValue}>
       <div
         ref={hideProgressContainerRef}
-        className={cn("relative flex h-full flex-col", className)}
+        className={cn(
+          "relative flex h-full flex-col overflow-hidden",
+          className,
+        )}
         data-testid={testId}
       >
         {!hasHeader ? (
@@ -134,7 +152,7 @@ export function StagedForm({
         ) : null}
 
         <ScrollVisibilityContext.Provider
-          value={{ isHidden: isFooterHidden, reset, suspend }}
+          value={{ isHidden: false, reset, suspend }}
         >
           <div
             ref={scrollRef}
@@ -143,50 +161,37 @@ export function StagedForm({
               hasHeader ? null : STAGED_FORM_TIMELINE_OFFSET_CLASS,
             )}
             style={{
+              // The footer node carries its own safe-bottom spacer, so only
+              // the keyboard inset is padded here when a footer renders.
               paddingBottom: hasFooter
-                ? `calc(${footerHeight}px + var(--safe-bottom, 0px) + var(--keyboard-inset, 0px))`
+                ? "var(--keyboard-inset, 0px)"
                 : "calc(var(--safe-bottom, 0px) + var(--keyboard-inset, 0px))",
             }}
             data-testid="staged-form-scroll-container"
           >
-            {hasHeader ? (
-              <>
-                {header}
-                <StagedFormTimeline />
-              </>
-            ) : null}
-            {enableKeyboardAccessory ? (
-              <KeyboardAccessoryBar>{stepContent}</KeyboardAccessoryBar>
-            ) : (
-              stepContent
-            )}
+            {/* min-h-full + mt-auto keep the footer at the screen bottom even
+             * when a step is shorter than the viewport. */}
+            <div className="flex min-h-full flex-col">
+              {hasHeader ? (
+                <>
+                  {header}
+                  <StagedFormTimeline />
+                </>
+              ) : null}
+              {/* The accessory bar's wrapper must stay a growing flex column:
+               * the step pane fills it, and an opaque full-height pane is what
+               * hides the outgoing (popLayout-absolute) step during a
+               * transition. An auto-height wrapper leaves a gap below a short
+               * step through which the previous, longer step shows. */}
+              {enableKeyboardAccessory ? (
+                <KeyboardAccessoryBar containerClassName="flex grow flex-col">
+                  {stepContent}
+                </KeyboardAccessoryBar>
+              ) : (
+                stepContent
+              )}
+            </div>
           </div>
-
-          {footer ? (
-            <div
-              ref={footerCallbackRef}
-              className={cn(
-                "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
-                isFooterHidden ? "pointer-events-none" : null,
-              )}
-              data-testid="staged-form-footer"
-              style={FOOTER_STYLE}
-            >
-              {footer}
-            </div>
-          ) : showNavigation ? (
-            <div
-              ref={footerCallbackRef}
-              className={cn(
-                "absolute bottom-0 left-0 right-0 z-10 will-change-transform",
-                isFooterHidden ? "pointer-events-none" : null,
-              )}
-              data-testid="staged-form-footer"
-              style={FOOTER_STYLE}
-            >
-              <StagedFormNavigation />
-            </div>
-          ) : null}
         </ScrollVisibilityContext.Provider>
       </div>
     </StagedFormContext.Provider>

@@ -10,8 +10,8 @@ import {
 } from "lucide-react";
 import { NavTabBadge } from "@beyo/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
+import { useTabNavigation } from "@/app/TabNavigationProvider";
 import { MoreTabsPopup } from "@/components/shell/MoreTabsPopup";
 import { useMoreTabLastSelected } from "@/components/shell/use-more-tab-last-selected";
 import { preloadPrimaryTabRoute } from "@/lib/primary-tab-preload";
@@ -20,7 +20,6 @@ import {
   MORE_TABS,
   PRIMARY_TABS,
   ROUTES,
-  TAB_ORDER,
   type MoreTabPath,
   type TabPath,
 } from "@/lib/routes";
@@ -55,60 +54,54 @@ function isMoreTabPath(pathname: string): pathname is MoreTabPath {
 }
 
 function useTabNav() {
-  const navigate = useNavigate();
-  const location = useLocation();
+  // The slide stack derives the direction from the tab's place in TAB_ORDER,
+  // so a tap animates exactly like a swipe to the same tab.
+  const { goToTab } = useTabNavigation();
   const { dismissBadge } = useTabBadgeCountsContext();
 
   return function handleTabPress(targetPath: TabPath): void {
     dismissBadge(targetPath);
-
-    if (location.pathname === targetPath) {
-      return;
-    }
-
-    const fromIndex = TAB_ORDER.indexOf(location.pathname as TabPath);
-    const toIndex = TAB_ORDER.indexOf(targetPath);
-    const direction = toIndex > fromIndex ? 1 : -1;
-
-    navigate(targetPath, { state: { direction } });
+    goToTab(targetPath);
   };
 }
 
 export function BottomTabBar(): React.JSX.Element {
-  const location = useLocation();
+  // `displayTab` runs ahead of the route while a committed swipe settles, so
+  // the indicator moves when the finger lifts rather than a transition later.
+  const { displayTab } = useTabNavigation();
   const handleTabPress = useTabNav();
   const { badgeState } = useTabBadgeCountsContext();
   const { lastSelected, selectMoreTab } = useMoreTabLastSelected();
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreWrapperRef = useRef<HTMLDivElement>(null);
 
-  const activeMoreTabPath = isMoreTabPath(location.pathname)
-    ? location.pathname
+  const activeMoreTabPath = isMoreTabPath(displayTab)
+    ? displayTab
     : lastSelected;
   const dynamicTab = MORE_TAB_META[activeMoreTabPath];
   const activeIndex = useMemo(() => {
-    if (location.pathname === ROUTES.tasks) {
+    if (displayTab === ROUTES.tasks) {
       return 0;
     }
-    if (location.pathname === ROUTES.cases) {
+    if (displayTab === ROUTES.cases) {
       return 1;
     }
-    if (location.pathname === ROUTES.home) {
+    if (displayTab === ROUTES.home) {
       return 2;
     }
-    if (isMoreTabPath(location.pathname)) {
+    if (isMoreTabPath(displayTab)) {
       return 3;
     }
 
     return -1;
-  }, [location.pathname]);
+  }, [displayTab]);
   const hasMoreBadge = MORE_TABS.some((path) => badgeState[path]?.visible);
 
   useEffect(() => {
-    if (isMoreTabPath(location.pathname) && location.pathname !== lastSelected) {
-      selectMoreTab(location.pathname);
+    if (isMoreTabPath(displayTab) && displayTab !== lastSelected) {
+      selectMoreTab(displayTab);
     }
-  }, [lastSelected, location.pathname, selectMoreTab]);
+  }, [lastSelected, displayTab, selectMoreTab]);
 
   useEffect(() => {
     if (!isMoreOpen) {
@@ -158,7 +151,7 @@ export function BottomTabBar(): React.JSX.Element {
           }}
         />
         {PRIMARY_TAB_META.map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = displayTab === tab.path;
           const Icon = tab.icon;
 
           return (
@@ -191,10 +184,10 @@ export function BottomTabBar(): React.JSX.Element {
         })}
 
         <button
-          aria-current={location.pathname === dynamicTab.path ? "page" : undefined}
+          aria-current={displayTab === dynamicTab.path ? "page" : undefined}
           className={[
             "relative z-10 flex flex-1 flex-col items-center justify-center gap-0.5 bg-background text-xs transition-colors",
-            location.pathname === dynamicTab.path ? "text-primary" : "text-icon",
+            displayTab === dynamicTab.path ? "text-primary" : "text-icon",
           ].join(" ")}
           data-testid={`tab-${dynamicTab.label.toLowerCase()}`}
           type="button"

@@ -78,6 +78,10 @@ export function HorizontalScrollArea({
     <div className="flex flex-col" data-testid={testId}>
       <div
         ref={scrollRef}
+        // A horizontal drag started in here scrolls this row — it must never
+        // reach the enclosing horizontal gestures (slide-page dismiss, tab /
+        // pane slide-stack swipes).
+        data-slide-dismiss-ignore=""
         className={cn(
           'overflow-x-auto overflow-y-hidden scrollbar-none [&::-webkit-scrollbar]:hidden',
           className,

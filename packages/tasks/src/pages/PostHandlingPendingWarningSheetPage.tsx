@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { runWhenUiSettled } from "@beyo/ui";
+import { scheduleListCommit } from "@beyo/ui";
 
 import { useUpdatePostHandling } from "../actions/use-update-post-handling";
 import { useGetTaskQuery } from "../api/use-get-task-query";
@@ -71,10 +71,11 @@ export function PostHandlingPendingWarningSheetPage(): React.JSX.Element {
 
     const values = form.getValues();
 
-    // Close first, mutate after the sheet is gone: the optimistic patch drops
-    // the row from the list underneath, and doing that mid-close janks it.
+    // Close first, then commit: the row starts animating out of the list
+    // underneath as the sheet slides away (see LIST_COMMIT_DELAY_MS). Only the
+    // refetch waits for both animations, which is what used to cause the lag.
     header?.requestClose();
-    runWhenUiSettled(() => {
+    scheduleListCommit(() => {
       updatePostHandling.mutate({
         taskId,
         ...(showFulfillmentAndDelivery

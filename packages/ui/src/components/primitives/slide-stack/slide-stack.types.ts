@@ -55,6 +55,31 @@ export type SlideStackProps = {
   canBack?: SlideStackCondition;
   /** Condition for the forward drag (e.g. current step validated). */
   canForward?: SlideStackCondition;
+  /**
+   * Set when honoring `onBack`/`onForward` changes `activeId` **asynchronously**
+   * — the react-router data router is the case that matters: `navigate()`
+   * resolves a tick later, so the pane swap cannot land in the same render
+   * batch as the committed drag.
+   *
+   * The stand-in ghost is then kept until `activeId` actually changes, instead
+   * of being removed with the navigation request. Without it the outgoing pane
+   * is exposed for a frame between the two commits and flashes as a snapshot of
+   * the page just left. Leave off for synchronous consumers (a plain
+   * `setState`): they would hold the ghost — and with it the next pane's
+   * content — visible for the fallback window whenever they *decline* to
+   * navigate.
+   */
+  awaitNavigation?: boolean;
+  /**
+   * Fired the instant a drag commits (finger released past the threshold) —
+   * one settle animation *before* `onBack`/`onForward` run. The pane swap
+   * cannot move earlier (the ghost is still travelling), but chrome around
+   * the stack can: use this to advance a progress indicator, stepper, or
+   * title in the same frame the user let go, instead of ~240 ms later.
+   * Never fired for a drag that springs back, and a commit can still be
+   * declined by the consumer inside `onForward` — treat it as optimistic.
+   */
+  onCommit?: (type: SlideStackDragType) => void;
   children: ReactNode;
 };
 

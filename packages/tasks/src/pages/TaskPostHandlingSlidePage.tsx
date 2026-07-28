@@ -7,6 +7,7 @@ import {
   PullToRefresh,
   SlideStack,
   SlideStackPane,
+  useCommittedPaneId,
 } from "@beyo/ui";
 
 import { usePostHandlingCountsQuery } from "../api/use-post-handling-counts-query";
@@ -222,6 +223,18 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
   });
   const countsQuery = usePostHandlingCountsQuery("pending,filled");
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The header pills follow the finger: a committed swipe repaints them at the
+  // release, one settle before the tab actually changes.
+  const { paneId: displayedTab, onCommit } = useCommittedPaneId({
+    activeId: controller.activeTab,
+    paneIds: controller.tabs,
+  });
+  const shouldDismissInsteadOfGoingBack =
+    controller.mode === "carousel" &&
+    controller.activeTab === "filled" &&
+    !controller.pendingPane.isInitialLoading &&
+    !controller.pendingPane.isError &&
+    controller.pendingPane.tasks.length === 0;
 
   // The page renders its own back arrow in the search row, so the surface
   // header stays hidden on every breakpoint.
@@ -246,7 +259,7 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
       >
         {/* Header scrolls with the body — no scroll-visibility on this page. */}
         <TaskPostHandlingHeader
-          activeTab={controller.activeTab}
+          activeTab={displayedTab}
           completedFilterCount={controller.completedFilterCount}
           isLoading={controller.isBackgroundLoading}
           isPillsDisabled={controller.isPillsDisabled}
@@ -265,7 +278,12 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
             <div className="relative">
               <SlideStack
                 activeId={controller.activeTab}
-                onBack={controller.goToPreviousTab}
+                onBack={
+                  shouldDismissInsteadOfGoingBack
+                    ? undefined
+                    : controller.goToPreviousTab
+                }
+                onCommit={onCommit}
                 onForward={controller.goToNextTab}
               >
                 {controller.tabs.map((tab) => {

@@ -8,10 +8,11 @@ This behavior is **infrastructure**: it lives in shared chrome (`@beyo/ui` surfa
 
 ```
 window.visualViewport  (the only observer)
-        ↓  useVisualViewport()  — @beyo/hooks
+        ↓
 KeyboardInsetProvider  (one per app, at the root)
         ↓
-  ┌─ --keyboard-inset  (CSS var on <html>, continuous px, imperative — no re-render)
+  ┌─ --keyboard-inset       (CSS var on <html>, continuous px, imperative — no re-render)
+  ├─ --viewport-offset-top  (CSS var on <html>, continuous px, imperative — no re-render)
   └─ useKeyboardInset() → { isKeyboardOpen }  (boolean, low-frequency, React-reactive)
         ↓
 Shared surfaces + app shell consume the var automatically
@@ -25,18 +26,20 @@ Opt-in: KeyboardAccessoryBar / StagedForm keyboard accessory for multi-field nav
 
 | Concern | Owner |
 |---|---|
-| Observing the keyboard (height, open/closed) | `useVisualViewport` (`@beyo/hooks`) — **single observer** |
+| Observing the keyboard (height, open/closed, viewport shift) | `KeyboardInsetProvider` (`@beyo/ui`) — **single `visualViewport` observer** |
 | Publishing keyboard state app-wide | `KeyboardInsetProvider` (`@beyo/ui`), mounted once at the app root |
 | `--keyboard-inset` CSS variable (px, on `<html>`) | `KeyboardInsetProvider` (written imperatively) |
+| `--viewport-offset-top` CSS variable (px, on `<html>`) | `KeyboardInsetProvider` (written imperatively) |
 | `isKeyboardOpen` boolean | `useKeyboardInset()` (`@beyo/ui`) |
 | Lifting a bottom sheet above the keyboard | `BottomSheetSurface` (`@beyo/ui`) — `bottom: var(--keyboard-inset)` |
 | Padding full-height surfaces clear of the keyboard | `ModalSurface`, `SlidePageSurface` (`@beyo/ui`) |
-| Padding the main app shell clear of the keyboard | each app's `TabOutlet` |
+| Padding the main app shell clear of the keyboard | each app's `TabSlideStack` |
 | Close-time focus safety (no keyboard flash on close) | `BottomSheetSurface` (`@beyo/ui`) |
 | An input pinned above the keyboard | `FloatingKeyboardBar` (`@beyo/ui`) — opt-in |
 | Full-height input/content takeover while the keyboard is open | `FloatingKeyboardBar variant="panel"` (`@beyo/ui`) — opt-in |
 | Document scroll lock during a raw keyboard panel takeover | `FloatingKeyboardBar` (`@beyo/ui`) — panel variant only |
-| Default `--keyboard-inset: 0px` | `@beyo/styles` |
+| Scroll lock of the field's own container behind a docked bar | `FloatingKeyboardBar` (`@beyo/ui`) — bar variant, `lockScroll` opt-in |
+| Defaults `--keyboard-inset: 0px`, `--viewport-offset-top: 0px` | `@beyo/styles` |
 
 ---
 
@@ -44,12 +47,25 @@ Opt-in: KeyboardAccessoryBar / StagedForm keyboard accessory for multi-field nav
 
 ### The provider (one per app)
 
-`KeyboardInsetProvider` is mounted once near the app root, wrapping everything (so both the app shell and all portaled surfaces sit inside one observer). It runs `useVisualViewport()` a single time and exposes keyboard state two ways, deliberately split by update frequency:
+`KeyboardInsetProvider` is mounted once near the app root, wrapping everything (so both the app shell and all portaled surfaces sit inside one observer). It subscribes to `window.visualViewport` a single time and exposes keyboard state three ways, deliberately split by update frequency:
 
-- **`--keyboard-inset`** — the live keyboard height in pixels, written **imperatively** to `document.documentElement` on every viewport frame. Because it is a CSS variable and not React state, continuous keyboard animation does **not** re-render the React tree. Anything that needs the pixel value reads it in CSS.
+- **`--keyboard-inset`** — the distance, in pixels, from the bottom of the **layout** viewport to the top of the keyboard, written **imperatively** to `document.documentElement` on every viewport frame. Because it is a CSS variable and not React state, continuous keyboard animation does **not** re-render the React tree. Anything that needs the pixel value reads it in CSS.
+- **`--viewport-offset-top`** — `visualViewport.offsetTop`, same imperative write. Non-zero only while the browser has shifted the visual viewport (see below).
 - **`useKeyboardInset() → { isKeyboardOpen }`** — a boolean that flips at most twice per interaction (open / close). This is the only keyboard value that flows through React context. Use it for conditional logic, never for layout pixels.
 
-> There is exactly one `visualViewport` observer in the app — the provider. Never add another; never call `useVisualViewport()` from a feature page. Read `--keyboard-inset` (CSS) or `useKeyboardInset()` (boolean) instead.
+#### Why two pixel variables
+
+`html, body` are `overflow: hidden` in these apps, so the document cannot scroll. When iOS needs to reveal a focused field that the keyboard would cover and finds no scrollable ancestor, it shifts the **visual** viewport instead — `visualViewport.offsetTop` becomes non-zero. `position: fixed` stays anchored to the **layout** viewport, so in that state the two coordinate systems differ by `offsetTop`, and anything pinned to the keyboard lands that far off. Hence:
+
+| Anchor | Use |
+|---|---|
+| `position: fixed; bottom:` (sits on the keyboard) | `var(--keyboard-inset)` — already has the shift subtracted |
+| `position: fixed; top:` (aligns with the visible top) | `var(--viewport-offset-top)` |
+| `padding-bottom` on an in-flow scroll container | `var(--keyboard-inset)` |
+
+`isKeyboardOpen` is derived from the real keyboard height (`innerHeight - visualViewport.height`), never from the inset — a full-height shift drives the inset to `0px` while the keyboard is very much open.
+
+> There is exactly one `visualViewport` observer in the app — the provider. Never add another; never call `useVisualViewport()` (`@beyo/hooks`) from a feature page. Read `--keyboard-inset` / `--viewport-offset-top` (CSS) or `useKeyboardInset()` (boolean) instead.
 
 ### Surfaces are keyboard-aware by default
 
@@ -59,7 +75,7 @@ Every shared surface already consumes `--keyboard-inset`, so any page rendered i
 |---|---|
 | `BottomSheetSurface` (bottom-anchored, `position: fixed`) | **Lifts**: `bottom: var(--keyboard-inset)` raises the whole sheet above the keyboard |
 | `SlidePageSurface`, `ModalSurface` (full-height scroll) | **Pads**: scroll area uses `pb-[calc(var(--safe-bottom)_+_var(--keyboard-inset))]` so the focused field scrolls clear |
-| Main app shell (`TabOutlet`) | **Pads**: the tab scroll wrapper uses `pb-[var(--keyboard-inset)]` |
+| Main app shell (`TabSlideStack`) | **Pads**: the tab scroll wrapper uses `pb-[var(--keyboard-inset)]` |
 
 The rule of thumb: a **bottom-anchored** container must be **lifted**; a **full-height scrolling** container must be **padded**.
 
@@ -89,7 +105,7 @@ This is the only situation where a normal (non-floating) input needs page-level 
 
 ### Case C — an input that floats directly above the keyboard
 
-Use `FloatingKeyboardBar` and `preventFocusSteal` from `@beyo/ui`. The primitive owns the entire pattern — it renders your controls inline when the keyboard is closed, mirrors them into a portal pinned above the keyboard when it opens, transfers focus to the floating copy, and tears down cleanly. You declare your controls **once** through the `renderControls` render-prop:
+Use `FloatingKeyboardBar` and `preventFocusSteal` from `@beyo/ui`. The primitive owns the entire pattern — it renders your controls inline when the keyboard is closed, mirrors them into a portal pinned above the keyboard when the keyboard opens **for its own input**, transfers focus to the floating copy, and tears down cleanly. You declare your controls **once** through the `renderControls` render-prop:
 
 ```tsx
 import { FloatingKeyboardBar } from '@beyo/ui';
@@ -122,10 +138,15 @@ Rules for `renderControls`:
 - Attach the provided **`inputRef`** to the input that should hold focus while the keyboard is open. Do not create your own ref for it.
 - Put **`onMouseDown={preventFocusSteal}`** on every button/interactive element inside the bar, so tapping it does not blur the input and dismiss the keyboard.
 - Bind your controls to your own state as usual. The primitive renders the controls in two places bound to the same state; you do not manage the duplication or the focus transfer.
+- Everything you render travels together, so put the context that belongs with the field — a running total, a unit breakdown — inside `renderControls` rather than next to the bar. Content left outside stays behind the keyboard.
+- The bar docks **only while its own input holds focus**. Other fields on the same page open the keyboard without disturbing it, which is what makes the bar safe inside a multi-field form.
+- Pass **`lockScroll`** when nothing may scroll while the bar is docked. It does two things, because a docked bar is reached by two different gestures: it freezes the field's own scroll container (the nested `overflow-y-auto` element inside the surface — not `document.body`, which does not scroll in a surface) for drags on the content behind, and sets `touch-action: none` on the tray for drags on the tray itself, which is portaled to `body` and would otherwise pan the document. Leave it off when the bar is meant to be scrolled past. The `panel` variant always locks and ignores the prop.
+- Inside a region wrapped by `KeyboardAccessoryBar` (including a `StagedForm` with `enableKeyboardAccessory`), call `useKeyboardAccessoryPriority(isFloating)` from the docked copy. Both trays share the `--keyboard-inset` anchor, and the claim keeps the generic `Next`/`Done` bar from stacking on top of yours.
 
 The only dependency is that `KeyboardInsetProvider` is mounted at the app root — it already is in every app.
 
-**Canonical reference implementation:** `apps/managers-app/.../pages/tasks/ItemUpholsteryAmountSheetPage.tsx`.
+**Canonical reference implementations:** `packages/tasks/src/pages/ItemUpholsteryAmountSheetPage.tsx` (bare sheet) and
+`packages/task-creation/src/components/ProductPriceField.tsx` (form field with a docked total, inside a staged form).
 
 #### `variant="panel"`: an input plus full-height takeover
 
@@ -156,8 +177,9 @@ performs a second layout-effect focus handoff after the panel portal commits; th
 remains for the synchronous `variant="bar"` copy. Do not hide the inline copy or assume focus has
 transferred until this panel-mounted handoff has completed.
 
-The panel is fixed from the safe-area-adjusted top of the viewport to
-`bottom: var(--keyboard-inset)`. Opening and closing are driven by one `progress` motion
+The panel is fixed from `top: var(--viewport-offset-top)` (plus whatever part of the safe-area top
+it still reaches) to `bottom: var(--keyboard-inset)`, so it covers the visible viewport whether or
+not the browser has shifted it. Opening and closing are driven by one `progress` motion
 value: `transitions.surface` opens slowly with the emphasized easing and `transitions.base`
 closes faster. The panel background fades across that same value, composed content fades in over
 the final part of the range, and a `clip-path` inset uses the measured input travel distance as
@@ -231,7 +253,7 @@ The prop defaults to `false`. Forms without it behave exactly as before.
 ## Edge cases and modification points
 
 - **Adding a new app.** Mount `KeyboardInsetProvider` once at the root, wrapping the whole tree (above the surface layer). Without it, `--keyboard-inset` stays `0px` and `isKeyboardOpen` is always `false` — nothing is keyboard-aware.
-- **Adding a new surface type.** Decide lift vs. pad by anchoring: bottom-anchored (`position: fixed; bottom`) → set `bottom: var(--keyboard-inset)` on the content; full-height scroll → add the inset padding to the scroll area. If the surface traps focus or is a dialog, also add the close-time focus safety (`onCloseAutoFocus` prevent + blur on close), matching `BottomSheetSurface`.
+- **Adding a new surface type.** Decide lift vs. pad by anchoring: bottom-anchored (`position: fixed; bottom`) → set `bottom: var(--keyboard-inset)` on the content; full-height scroll → add the inset padding to the scroll area. If it is also **top**-anchored while the keyboard is open, anchor that edge to `var(--viewport-offset-top)` — `top: 0` is wrong whenever the browser has shifted the visual viewport. If the surface traps focus or is a dialog, also add the close-time focus safety (`onCloseAutoFocus` prevent + blur on close), matching `BottomSheetSurface`.
 - **Custom scroll containers.** See Case B — the inset only reaches the surface's primary scroll wrapper; nested scroll regions must opt in.
 - **Staged forms.** Prefer `enableKeyboardAccessory` on `StagedForm` over wrapping individual steps by hand when the whole form should opt in.
 - **Reading the pixel height.** It is **not** on the context. `useKeyboardInset()` returns only `{ isKeyboardOpen }`. For pixels, consume `var(--keyboard-inset)` in CSS/Tailwind (`bottom-[var(--keyboard-inset)]`, `pb-[var(--keyboard-inset)]`). This split is intentional — it keeps continuous keyboard motion out of React.

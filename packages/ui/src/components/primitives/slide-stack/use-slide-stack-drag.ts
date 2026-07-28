@@ -23,6 +23,21 @@ const VELOCITY_THRESHOLD = 0.35;
  * restoring itself to rest. Longer than the settle transition. */
 const RESTORE_CHECK_DELAY_MS = 400;
 
+/**
+ * Ownership of the touch currently driving a drag, shared by every stack on
+ * the page. Stacks nest (a drill-down stack inside an app-shell tab stack),
+ * and touch events bubble through both panes — without this the same finger
+ * would drive the inner *and* the outer stack at once.
+ *
+ * The innermost stack always locks the axis first (bubble order runs
+ * descendant listeners before ancestor ones, within the same event dispatch),
+ * so claiming at lock time gives the inner stack priority. A stack that
+ * *refuses* the direction never claims, so the touch falls through to the
+ * stack above it — swiping back on the first pane of a nested stack still
+ * navigates the outer one.
+ */
+let touchOwner: { hook: symbol; identifier: number } | null = null;
+
 type UseSlideStackDragOptions = {
   /** Element the gesture listens on and is measured against (the pane). */
   targetRef: RefObject<HTMLDivElement | null>;
@@ -69,10 +84,26 @@ export function useSlideStackDrag({
   controllerRef.current = controller;
   const isActiveRef = useRef(isActive);
   isActiveRef.current = isActive;
+  // Stable identity for the shared touch-ownership slot (see `touchOwner`).
+  const hookIdRef = useRef<symbol | null>(null);
+  hookIdRef.current ??= Symbol('slide-stack-drag');
 
   useEffect(() => {
     const target = targetRef.current;
     if (!target) return;
+    const hookId = hookIdRef.current as symbol;
+
+    const claimTouch = (identifier: number) => {
+      touchOwner = { hook: hookId, identifier };
+    };
+    const releaseTouch = () => {
+      if (touchOwner?.hook === hookId) touchOwner = null;
+    };
+    /** Another (inner) stack already owns this finger. */
+    const isClaimedByOther = (identifier: number): boolean =>
+      touchOwner !== null &&
+      touchOwner.hook !== hookId &&
+      touchOwner.identifier === identifier;
 
     // idle → pending (finger down) → dragging (locked horizontal) | awaiting
     // (locked, async condition still resolving — finger tracked, nothing
@@ -86,6 +117,7 @@ export function useSlideStackDrag({
     let lastTime = 0;
     let velocity = 0; // px/ms, from the most recent move sample
     let progress = 0; // 0..1 of pane width
+    let touchId = -1;
     let restoreTimer: number | undefined;
     // Invalidates an in-flight async condition when the touch that asked for
     // it is no longer alive (lifted, cancelled, or a new touch started).
@@ -151,6 +183,10 @@ export function useSlideStackDrag({
       }
       const touch = event.touches[0];
       mode = 'pending';
+      touchId = touch.identifier ?? -1;
+      // A touch whose touchend never arrived would otherwise hold the shared
+      // ownership slot forever; this gesture re-claims it at axis lock.
+      releaseTouch();
       startX = touch.clientX;
       startY = touch.clientY;
       lastX = touch.clientX;
@@ -188,6 +224,12 @@ export function useSlideStackDrag({
           mode = 'rejected';
           return;
         }
+        // A stack nested inside this one locked the same finger first (its
+        // listener ran earlier in the bubble): that drag owns the gesture.
+        if (isClaimedByOther(touchId)) {
+          mode = 'rejected';
+          return;
+        }
         const type: SlideStackDragType = dx > 0 ? 'back' : 'forward';
         const verdict = controllerRef.current.check(type);
         if (verdict === false) {
@@ -203,6 +245,7 @@ export function useSlideStackDrag({
             mode = 'rejected';
             return;
           }
+          claimTouch(touchId);
           mode = 'dragging';
           x.stop(); // take over from any in-flight settle
           opacity.stop();
@@ -210,7 +253,10 @@ export function useSlideStackDrag({
           // Async condition (e.g. form validation): keep tracking the finger
           // but move nothing until it allows the drag. If it resolves after
           // the finger lifted (or a new touch started), do nothing.
+          // The finger is claimed up front — an outer stack must not start
+          // dragging while this one is still deciding.
           mode = 'awaiting';
+          claimTouch(touchId);
           const requestingGesture = gestureId;
           void verdict.then((allowed) => {
             if (gestureId !== requestingGesture || mode !== 'awaiting') return;
@@ -223,6 +269,7 @@ export function useSlideStackDrag({
               controllerRef.current.update(progress);
             } else {
               mode = 'rejected';
+              releaseTouch();
             }
           });
         }
@@ -251,6 +298,7 @@ export function useSlideStackDrag({
 
     const handleTouchEnd = () => {
       gestureId += 1;
+      releaseTouch();
       if (mode === 'dragging') {
         const directionalVelocity = dragType === 'back' ? velocity : -velocity;
         const committed =
@@ -281,6 +329,7 @@ export function useSlideStackDrag({
 
     const handleTouchCancel = () => {
       gestureId += 1;
+      releaseTouch();
       // The system took the touch (e.g. an incoming call sheet): never commit.
       if (mode === 'dragging') {
         settleSelf(false);
@@ -301,6 +350,7 @@ export function useSlideStackDrag({
       if (mode === 'dragging') {
         controllerRef.current.end(false);
       }
+      releaseTouch();
       gestureId += 1;
       target.removeEventListener('touchstart', handleTouchStart);
       target.removeEventListener('touchmove', handleTouchMove);

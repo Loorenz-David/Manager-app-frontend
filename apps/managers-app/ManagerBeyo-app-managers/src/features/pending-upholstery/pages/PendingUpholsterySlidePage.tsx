@@ -5,6 +5,7 @@ import {
   PullToRefresh,
   SlideStack,
   SlideStackPane,
+  useCommittedPaneId,
 } from "@beyo/ui";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
@@ -118,6 +119,17 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = usePendingUpholsteryContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The header filter pills follow the finger: a committed swipe repaints them
+  // at the release, one settle before the filter actually changes.
+  const { paneId: displayedFilter, onCommit } = useCommittedPaneId({
+    activeId: controller.activeFilter,
+    paneIds: controller.filters,
+  });
+  const shouldDismissInsteadOfGoingBack =
+    controller.activeFilter === "missing_quantity" &&
+    !controller.isInitialLoadingByFilter.missing_selection &&
+    !controller.isErrorByFilter.missing_selection &&
+    controller.cardsByFilter.missing_selection.length === 0;
 
   // The page carries its own back chevron in the header, so the surface header
   // stays hidden on every breakpoint.
@@ -142,8 +154,8 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
           counts={controller.counts}
           countsError={controller.countsError}
           isLoading={controller.isBackgroundLoading}
-          missingQuantity={controller.missingQuantity}
-          missingSelection={controller.missingSelection}
+          missingQuantity={displayedFilter === "missing_quantity"}
+          missingSelection={displayedFilter === "missing_selection"}
           searchInput={controller.searchInput}
           onBack={header?.requestClose ?? controller.close}
           onFiltersChange={controller.setFilters}
@@ -156,7 +168,12 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
         <div className="relative" data-testid="pending-upholstery-scroll">
           <SlideStack
             activeId={controller.activeFilter}
-            onBack={controller.goToPreviousFilter}
+            onBack={
+              shouldDismissInsteadOfGoingBack
+                ? undefined
+                : controller.goToPreviousFilter
+            }
+            onCommit={onCommit}
             onForward={controller.goToNextFilter}
           >
             {controller.filters.map((filter) => (

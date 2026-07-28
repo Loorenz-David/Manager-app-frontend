@@ -128,9 +128,9 @@ export function CustomerCoordinationEmailSlidePage(): React.JSX.Element {
       <StagedForm
         activeStepId={staged.activeStepId}
         direction={staged.direction}
-        footer={
+        footer={({ stepId }) => (
           <CustomerCoordinationFooter
-            activeStepId={staged.activeStepId}
+            activeStepId={stepId}
             isSending={controller.isSending}
             selectedCount={controller.selectedTaskIds.length}
             sendDisabled={controller.sendDisabled}
@@ -144,7 +144,7 @@ export function CustomerCoordinationEmailSlidePage(): React.JSX.Element {
               void handleSend();
             }}
           />
-        }
+        )}
         isAdvancing={staged.isAdvancing}
         isFirstStep={staged.isFirstStep}
         isLastStep={staged.isLastStep}

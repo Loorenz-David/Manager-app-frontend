@@ -1,7 +1,7 @@
-import { TabOutlet } from "@/app/TabOutlet";
+import { TabSlideStack } from "@/app/TabSlideStack";
+import { TabNavigationProvider } from "@/app/TabNavigationProvider";
 import { PresentationMount } from "@/app/PresentationMount";
 import { useEffect } from "react";
-import { useLocation } from "react-router-dom";
 import { SlideParallaxUnderlay } from "@beyo/ui";
 import { BottomTabBar } from "@/components/shell/BottomTabBar";
 // import { NotificationBadge } from "@beyo/notifications";
@@ -12,6 +12,7 @@ import {
   ReassignmentAcknowledgmentPanel,
   ReassignmentAcknowledgmentsProvider,
 } from "@/features/task_steps";
+import { useTabNavigation } from "@/app/TabNavigationProvider";
 import { preloadPrimaryTabRoutes } from "@/lib/primary-tab-preload";
 import { useBootstrapPrefetch } from "@/hooks/use-bootstrap-prefetch";
 import { ROUTES } from "@/lib/routes";
@@ -22,20 +23,15 @@ import {
 } from "@/providers/BatchSelectionOverlayProvider";
 import { TabBadgeCountsProvider } from "@/providers/TabBadgeCountsProvider";
 
-const LAST_ACTIVE_STEP_CARD_HIDDEN_ROUTE_ROOTS = [
+const LAST_ACTIVE_STEP_CARD_HIDDEN_TABS: string[] = [
   ROUTES.stats,
   ROUTES.settings,
 ];
 
-function isPathInHiddenCardSection(pathname: string): boolean {
-  return LAST_ACTIVE_STEP_CARD_HIDDEN_ROUTE_ROOTS.some(
-    (routeRoot) =>
-      pathname === routeRoot || pathname.startsWith(`${routeRoot}/`),
-  );
-}
-
 function AppShellInner(): React.JSX.Element {
-  const location = useLocation();
+  // The tab on screen, not the raw pathname: a surface opened over Stats keeps
+  // Stats mounted underneath, and the card must stay hidden with it.
+  const { activeTab } = useTabNavigation();
   const { isSelecting } = useBatchSelectionOverlay();
   useBootstrapPrefetch();
 
@@ -44,7 +40,7 @@ function AppShellInner(): React.JSX.Element {
   }, []);
 
   const shouldHideLastActiveStepCard =
-    isSelecting || isPathInHiddenCardSection(location.pathname);
+    isSelecting || LAST_ACTIVE_STEP_CARD_HIDDEN_TABS.includes(activeTab);
 
   return (
     <AppScrollElementProvider>
@@ -71,7 +67,7 @@ function AppShellInner(): React.JSX.Element {
                     </div>
                     <NotificationBadge className="pointer-events-auto" />
                   </div> */}
-                  <TabOutlet />
+                  <TabSlideStack />
                 </main>
                 {/* <RealtimeDebugPanel /> */}
                 <ReassignmentAcknowledgmentPanel
@@ -95,7 +91,9 @@ export function AppShell(): React.JSX.Element {
   return (
     <PresentationMount>
       <BatchSelectionOverlayProvider>
-        <AppShellInner />
+        <TabNavigationProvider>
+          <AppShellInner />
+        </TabNavigationProvider>
       </BatchSelectionOverlayProvider>
     </PresentationMount>
   );

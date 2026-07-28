@@ -26,6 +26,7 @@ describe("phone player rendering parity fixture", () => {
         onProgress={vi.fn()}
         onDismiss={vi.fn()}
         onComplete={vi.fn()}
+        onClose={vi.fn()}
         onMediaExpired={async () => null}
       />,
     );

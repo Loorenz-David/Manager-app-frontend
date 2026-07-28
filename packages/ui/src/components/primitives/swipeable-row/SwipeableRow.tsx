@@ -149,7 +149,13 @@ export function SwipeableRow({
   const bindProps = bind() as React.HTMLAttributes<HTMLDivElement>;
 
   return (
-    <div ref={containerRef} className={cn("relative overflow-hidden", className)}>
+    <div
+      ref={containerRef}
+      // The row owns horizontal drags started on it — they must never also
+      // reach the enclosing slide-page dismiss or tab/pane slide-stack swipe.
+      data-slide-dismiss-ignore=""
+      className={cn("relative overflow-hidden", className)}
+    >
       {leftToRightAction ? (
         <m.div
           aria-hidden="true"

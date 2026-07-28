@@ -21,6 +21,10 @@ export function NumberStepperButton({
       disabled={disabled}
       type="button"
       onClick={onPress}
+      // Stepping is an edit of the field next to it, so the press must not pull
+      // focus off that input — on a phone that would dismiss the keyboard (and
+      // any tray docked to it) mid-edit.
+      onMouseDown={(event) => event.preventDefault()}
     >
       <Icon className="size-4" />
     </button>

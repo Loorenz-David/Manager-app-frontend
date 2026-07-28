@@ -9,6 +9,12 @@ import { useScrollState } from "./use-scroll-state";
 
 type UseScrollVisibilityResult = ScrollVisibilityContextValue & {
   isAtEdge: boolean;
+  /**
+   * The secondary (footer) channel's hidden state. Prefer this over deriving
+   * `isHidden && !isAtEdge`, which cannot express `revealOnlyAtEdge`'s sticky
+   * reveal.
+   */
+  isFooterHidden: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
   hideProgressContainerRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -42,6 +48,7 @@ export function useScrollVisibility({
   revealAtEdgeRef.current = revealAtEdge;
   const {
     isHidden,
+    isFooterHidden,
     progressRef,
     footerProgressRef,
     isAtEdge,
@@ -52,17 +59,16 @@ export function useScrollVisibility({
     onScroll,
     resetState,
     initialize,
-  } =
-    useScrollState({
-      threshold,
-      topOffset,
-      hideThreshold,
-      showThreshold,
-      revealAtEdge,
-      edgeOffset,
-      hysteresis,
-      mode,
-    });
+  } = useScrollState({
+    threshold,
+    topOffset,
+    hideThreshold,
+    showThreshold,
+    revealAtEdge,
+    edgeOffset,
+    hysteresis,
+    mode,
+  });
 
   const onSnapComplete = useCallback(
     (snapTo: 0 | 1, footerSnapTo?: 0 | 1) => {
@@ -73,7 +79,7 @@ export function useScrollVisibility({
     [inverted, snap],
   );
 
-  const { onProgress, onTouchStart, onTouchEnd, onTouchCancel } =
+  const { onProgress, onTouchStart, onTouchEnd, onTouchCancel, syncProgress } =
     useScrollProgressCssVar({
       containerRef: hideProgressContainerRef,
       progressRef,
@@ -94,6 +100,15 @@ export function useScrollVisibility({
     }
 
     initialize(getScrollValue(element, inverted));
+    // initialize repositions the state machine without a scroll event (e.g.
+    // reveal-only-at-edge starts the footer channel hidden) — push that
+    // position into the CSS vars so the DOM starts where the state is.
+    syncProgress(
+      progressRef.current,
+      revealAtEdgeRef.current !== undefined
+        ? footerProgressRef.current
+        : undefined,
+    );
 
     if (shouldDebugScroll()) {
       console.log("[scroll-debug][visibility] init", {
@@ -148,6 +163,7 @@ export function useScrollVisibility({
       }
     };
   }, [
+    footerProgressRef,
     initialize,
     inverted,
     mode,
@@ -157,6 +173,7 @@ export function useScrollVisibility({
     onTouchEnd,
     onTouchStart,
     progressRef,
+    syncProgress,
   ]);
 
   const reset = useCallback(() => {
@@ -167,12 +184,19 @@ export function useScrollVisibility({
       });
     }
     resetState(element ? getScrollValue(element, inverted) : 0);
-  }, [inverted, resetState]);
+    syncProgress(
+      progressRef.current,
+      revealAtEdgeRef.current !== undefined
+        ? footerProgressRef.current
+        : undefined,
+    );
+  }, [footerProgressRef, inverted, progressRef, resetState, syncProgress]);
 
   return {
     scrollRef,
     hideProgressContainerRef,
     isHidden,
+    isFooterHidden,
     isAtEdge,
     reset,
     suspend,

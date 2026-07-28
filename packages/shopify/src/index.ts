@@ -129,6 +129,9 @@ export { useCreateShopifyInstallUrl } from "./actions/use-create-shopify-install
 export { useCreateShopifyReauthorizeUrl } from "./actions/use-create-shopify-reauthorize-url";
 export { useDisconnectShopifyShop } from "./actions/use-disconnect-shopify-shop";
 export { useSyncShopifyWebhooksForShop } from "./actions/use-sync-shopify-webhooks-for-shop";
+export { ShopifyProductSyncFormProvider } from "./providers/ShopifyProductSyncFormProvider";
+export { ShopifyProductSyncShopField } from "./components/fields/ShopifyProductSyncShopField";
+export { ShopifyProductSyncInventoryField } from "./components/fields/ShopifyProductSyncInventoryField";
 export { ShopifyConnectFab } from "./components/ShopifyConnectFab";
 export { ShopifyCreateBottomActions } from "./components/ShopifyCreateBottomActions";
 export { ShopifyDetailBottomActions } from "./components/ShopifyDetailBottomActions";

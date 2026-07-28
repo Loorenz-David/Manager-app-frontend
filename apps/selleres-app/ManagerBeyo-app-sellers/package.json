@@ -34,6 +34,7 @@
     "@beyo/pwa": "*",
     "@beyo/realtime": "*",
     "@beyo/scanner": "*",
+    "@beyo/shopify": "*",
     "@beyo/styles": "*",
     "@beyo/task-creation": "*",
     "@beyo/task-customer-coordination": "*",

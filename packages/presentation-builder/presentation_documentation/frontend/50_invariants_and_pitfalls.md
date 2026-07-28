@@ -74,7 +74,14 @@ before writing code.
   Current local layout: studio 5176, managers 5173, workers 5174, sellers 5175.
 - Dismiss-chrome matrix: modal=X, full_screen=Skip, slide_page=built-in
   slide-to-close; `is_dismissible:false` disables all of it
-  (`setSwipeDismissDisabled(true)`) and shows the acknowledge footer only.
+  (`setSwipeDismissDisabled(true)`) **until the deck has looped once**, which is
+  when the footer Close button appears and the gesture unlocks (doc 40, "Loop &
+  exit matrix").
+- **The deck loops until the user quits.** `onComplete` records `completed` at the
+  end of the first loop and must never close the surface — closing is `onClose`
+  (records nothing, because `dismissed` after `completed` is a `409`). Every slide
+  auto-advances: authored `manual` slides fall back to 4,000 ms, or the loop would
+  stall on a tap and the exits would never unlock.
 - Auto-show policy is **home-route-only in all three apps** — a product decision,
   not an accident; changing it means changing `is<App>PresentationHome` in every app
   deliberately.

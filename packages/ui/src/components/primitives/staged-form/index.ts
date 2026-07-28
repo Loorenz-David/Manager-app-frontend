@@ -13,6 +13,7 @@ export {
 } from './staged-form.variants';
 export type {
   StagedFormContextValue,
+  StagedFormFooterRenderProps,
   StagedFormProps,
   StepConfig,
   StepStatus,

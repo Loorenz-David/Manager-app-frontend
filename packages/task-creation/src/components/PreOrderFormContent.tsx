@@ -10,9 +10,14 @@ import {
   CustomerPhoneField,
   CustomerTypeField,
 } from "@beyo/customers";
-import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
+import {
+  EntityImagesProvider,
+  ImagePreviewGrid,
+  useEntityImagesQuery,
+} from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
+import { useSocket } from "@beyo/realtime";
 import {
   ContentCard,
   StagedForm,
@@ -64,14 +69,23 @@ import {
 } from "../lib/item-lookup-prefill";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
-import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
+import {
+  buildShopifyPreorderSection,
+  normalizeReturnFormPayload,
+} from "../lib/normalize-task-form-payload";
 import { buildPreOrderFormDefaultValues } from "../lib/pre-order-form-default-values";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
+import { selectPreorderProductImage } from "../lib/select-preorder-product-image";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
+import { PreOrderShopifySection } from "./PreOrderShopifySection";
+import { ProductPriceField } from "./ProductPriceField";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
-import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
+import {
+  TaskCreationSubmitOverlay,
+  type TaskCreationSubmitOverlayPhase,
+} from "./TaskCreationSubmitOverlay";
 import { PreOrderFormSchema, type PreOrderFormValues } from "../types";
 import {
   // CALENDAR_RANGE_PICKER_SURFACE_ID,
@@ -82,6 +96,7 @@ import {
   preloadItemCategoryPickerSurface,
   preloadPhoneCountryPickerSurface,
   preloadScannerSlideSurface,
+  preloadShopifyShopPickerSheetSurface,
 } from "../surfaces";
 
 const PRE_ORDER_STEP_FIELDS_MAP: Record<
@@ -100,6 +115,9 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item.major_category",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
+    "product_unit_price",
+    "shopIntegrationIds",
+    "inventoryAdjustments",
   ],
   customer: [
     "customer",
@@ -134,6 +152,13 @@ export function PreOrderFormContent(): React.JSX.Element {
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
+  const [submitOverlayPhase, setSubmitOverlayPhase] =
+    useState<TaskCreationSubmitOverlayPhase | null>(null);
+  const [submittedSku, setSubmittedSku] = useState<string | null>(null);
+  const [shopifyOrderErrorMessage, setShopifyOrderErrorMessage] = useState<
+    string | null
+  >(null);
+  const socket = useSocket();
   const { hasRole } = useRole();
   const isSeller = hasRole(AuthRole.Seller);
 
@@ -144,6 +169,7 @@ export function PreOrderFormContent(): React.JSX.Element {
   usePreloadSurface(preloadPhoneCountryPickerSurface);
   usePreloadSurface(preloadWorkingSectionWorkerPickerSurface);
   usePreloadSurface(preloadUpholsteryPickerSurface);
+  usePreloadSurface(preloadShopifyShopPickerSheetSurface);
   usePrefetchOnCondition(true, () => prefetchTaskCreationFormData(queryClient));
 
   const {
@@ -157,6 +183,14 @@ export function PreOrderFormContent(): React.JSX.Element {
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const applyLookupImages = useLookupItemImages(itemClientId);
+  // Same query key the Details step's image grid uses, so this shares its cache
+  // rather than issuing a second request. Only confirmed (server-side) images
+  // appear here, which is exactly what `image_id` may reference.
+  const itemImagesQuery = useEntityImagesQuery({
+    entity_type: "item",
+    entity_client_id: itemClientId,
+  });
+  const productImage = selectPreorderProductImage(itemImagesQuery.data);
   const surface = useSurface();
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
@@ -249,18 +283,18 @@ export function PreOrderFormContent(): React.JSX.Element {
 
   const steps = [
     { id: "task", title: "Task" },
-    { id: "customer", title: "Customer" },
     ...(!isSeller
       ? ([{ id: "assignment", title: "Assignment" }] as const)
       : []),
     { id: "details", title: "Details" },
+    { id: "customer", title: "Customer" },
   ];
 
   const staged = useStagedForm({
     steps,
     mode: "free",
     onBeforeAdvance: async (currentStepId, _nextStepId, setStatus) => {
-      if (currentStepId === "details") {
+      if (currentStepId === "customer") {
         const allValid = await form.trigger();
 
         if (!allValid) {
@@ -268,9 +302,23 @@ export function PreOrderFormContent(): React.JSX.Element {
           const { errors } = form.formState;
           let firstErrorStep: string | null = null;
 
-          if (errors.item ?? errors.item_upholstery) {
+          if (
+            errors.item ??
+            errors.item_upholstery ??
+            errors.product_unit_price ??
+            errors.shopIntegrationIds ??
+            errors.inventoryAdjustments
+          ) {
             setStatus("task", "error");
             firstErrorStep ??= "task";
+          }
+          if (!isSeller && errors.working_section_assignments) {
+            setStatus("assignment", "error");
+            firstErrorStep ??= "assignment";
+          }
+          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
+            setStatus("details", "error");
+            firstErrorStep ??= "details";
           }
           if (
             errors.customer ??
@@ -279,14 +327,6 @@ export function PreOrderFormContent(): React.JSX.Element {
             errors.scheduled_end_at
           ) {
             setStatus("customer", "error");
-            firstErrorStep ??= "customer";
-          }
-          if (!isSeller && errors.working_section_assignments) {
-            setStatus("assignment", "error");
-            firstErrorStep ??= "assignment";
-          }
-          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
-            setStatus("details", "error");
           }
 
           if (firstErrorStep) {
@@ -309,25 +349,43 @@ export function PreOrderFormContent(): React.JSX.Element {
     },
     onSubmit: () =>
       form.handleSubmit(async (values) => {
-        const payload = normalizeReturnFormPayload(
-          values,
-          {
-            taskClientId,
-            itemClientId,
-            customerClientId,
-            noteClientId,
-            currentUserClientId,
-          },
-          "pre_order",
-        );
-
-        const result = await createTask.mutateAsync(payload);
-        callbacks.onTaskCreated?.({
-          result,
-          hadUpholstery: Boolean(payload.item_upholstery),
+        const shopifyPreorderSection = buildShopifyPreorderSection(values, {
+          imageClientId: productImage.imageClientId,
         });
-        form.reset(buildPreOrderFormDefaultValues(initialItemSku));
-        surface.close(TASK_CREATION_PRE_ORDER_SURFACE_ID);
+        const payload: Record<string, unknown> = {
+          ...normalizeReturnFormPayload(
+            values,
+            {
+              taskClientId,
+              itemClientId,
+              customerClientId,
+              noteClientId,
+              currentUserClientId,
+            },
+            "pre_order",
+          ),
+          ...(shopifyPreorderSection
+            ? { shopify_preorder: shopifyPreorderSection }
+            : {}),
+        };
+
+        // The overlay goes up before the request so the socket listener is
+        // mounted before the backend can possibly emit the processed event.
+        setSubmittedSku(values.item.sku?.trim() || initialItemSku);
+        setSubmitOverlayPhase("creating");
+
+        try {
+          const result = await createTask.mutateAsync(payload);
+          callbacks.onTaskCreated?.({
+            result,
+            hadUpholstery: Boolean(payload.item_upholstery),
+          });
+        } catch {
+          // useCreateTask already notifies; drop the overlay so the form
+          // stays editable — the task was not created.
+          setSubmitOverlayPhase(null);
+          setSubmittedSku(null);
+        }
       })(),
   });
 
@@ -335,7 +393,13 @@ export function PreOrderFormContent(): React.JSX.Element {
 
   useEffect(() => {
     const stepErrorMap = {
-      task: Boolean(errors.item ?? errors.item_upholstery),
+      task: Boolean(
+        errors.item ??
+        errors.item_upholstery ??
+        errors.product_unit_price ??
+        errors.shopIntegrationIds ??
+        errors.inventoryAdjustments,
+      ),
       customer: Boolean(
         errors.customer ??
         errors.fulfillment_method ??
@@ -373,10 +437,89 @@ export function PreOrderFormContent(): React.JSX.Element {
     }
   }, [errors, staged]);
 
+  const handlePreorderProcessed = useEffectEvent(
+    (payload: {
+      task_id: string;
+      status: "succeeded" | "failed";
+      error_message: string | null;
+    }) => {
+      if (payload.task_id !== taskClientId) {
+        return;
+      }
+
+      setShopifyOrderErrorMessage(payload.error_message ?? null);
+      setSubmitOverlayPhase(
+        payload.status === "succeeded" ? "succeeded" : "failed",
+      );
+    },
+  );
+  const isAwaitingShopifyOrder = submitOverlayPhase === "creating";
+
+  useEffect(() => {
+    if (!isAwaitingShopifyOrder) {
+      return;
+    }
+
+    // No event after this long means the order is still in flight (backend
+    // retries are automatic) — release the user instead of blocking forever.
+    // Armed even without a socket so a dropped connection can't trap the user.
+    const fallbackTimer = setTimeout(
+      () => setSubmitOverlayPhase("still_processing"),
+      30_000,
+    );
+
+    if (!socket) {
+      return () => clearTimeout(fallbackTimer);
+    }
+
+    const handleProcessed = (payload: {
+      task_id: string;
+      status: "succeeded" | "failed";
+      error_message: string | null;
+    }) => handlePreorderProcessed(payload);
+
+    socket.on("shopify.preorder.processed", handleProcessed);
+
+    return () => {
+      socket.off("shopify.preorder.processed", handleProcessed);
+      clearTimeout(fallbackTimer);
+    };
+  }, [socket, isAwaitingShopifyOrder]);
+
+  function closeAfterShopifyResult(): void {
+    setSubmitOverlayPhase(null);
+    setSubmittedSku(null);
+    setShopifyOrderErrorMessage(null);
+    form.reset(buildPreOrderFormDefaultValues(initialItemSku));
+    surface.close(TASK_CREATION_PRE_ORDER_SURFACE_ID);
+  }
+
+  const submitOverlayContent =
+    submitOverlayPhase === null
+      ? null
+      : {
+          creating: {
+            title: "Creating pre-order and Shopify order…",
+            description: undefined as string | undefined,
+          },
+          succeeded: {
+            title: "Pre-order and Shopify order created",
+            description: undefined,
+          },
+          failed: {
+            title: "Pre-order created — Shopify order failed",
+            description: shopifyOrderErrorMessage ?? undefined,
+          },
+          still_processing: {
+            title: "Still processing",
+            description: "The Shopify order will finish in the background.",
+          },
+        }[submitOverlayPhase];
+
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col "
+        className="relative flex h-full flex-col "
         data-testid="pre-order-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -387,13 +530,12 @@ export function PreOrderFormContent(): React.JSX.Element {
           direction={staged.direction}
           enableKeyboardAccessory
           header={<TaskCreationStagedFormHeader title="Pre-Order" />}
-          footer={
+          footer={({ stepId }) => (
             <TaskCreationAssignmentFooter
-              activeStepId={staged.activeStepId}
+              activeStepId={stepId}
               majorCategory={majorCategory}
             />
-          }
-          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
+          )}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}
@@ -432,31 +574,8 @@ export function PreOrderFormContent(): React.JSX.Element {
                   <ItemUpholsteryAmountField quantity={itemQuantity ?? 0} />
                 </ContentCard>
               ) : null}
-            </div>
-          </StagedFormStep>
-
-          <StagedFormStep id="customer" className="px-0">
-            <div className="flex flex-col gap-4">
-              <ShopifyCustomerStatusPill
-                onRetry={retryShopifyCustomerLookup}
-                status={shopifyCustomerLookupStatus}
-              />
-              <ContentCard>
-                <CustomerDisplayNameField />
-                <CustomerTypeField />
-                <CustomerEmailField />
-                <CustomerPhoneField />
-              </ContentCard>
-              <ContentCard>
-                <CustomerAddressFieldGroup />
-              </ContentCard>
-              <ContentCard>
-                <TaskFulfillmentMethodField />
-                {/* <TaskDeliveryDateField
-                  onOpenCalendarRangePicker={(props) =>
-                    surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
-                  }
-                /> */}
+              <ContentCard data-testid="pre-order-form-price-section">
+                <ProductPriceField />
               </ContentCard>
             </div>
           </StagedFormStep>
@@ -494,6 +613,16 @@ export function PreOrderFormContent(): React.JSX.Element {
                       testId="pre-order-form-images-grid"
                     />
                   </EntityImagesProvider>
+                  {productImage.hasOnlyOversizedImages ? (
+                    <p
+                      className="text-sm text-muted-foreground"
+                      data-testid="pre-order-form-image-too-large"
+                    >
+                      These photos are too large for Shopify (max 20 MB and 25
+                      MP), so the pre-order product will be created without one.
+                      Add a smaller photo to include it.
+                    </p>
+                  ) : null}
                 </ContentCard>
                 <ContentCard>
                   <Controller
@@ -514,10 +643,55 @@ export function PreOrderFormContent(): React.JSX.Element {
                     }
                   />
                 </ContentCard>
+                <ContentCard data-testid="pre-order-form-shopify-section">
+                  <PreOrderShopifySection />
+                </ContentCard>
               </div>
             </EntityImagesProvider>
           </StagedFormStep>
+
+          {/* Last step. SlideStack derives pane order from child order, so this
+           * must stay in sync with the `steps` array above. */}
+          <StagedFormStep id="customer" className="px-0">
+            <div className="flex flex-col gap-4">
+              <ShopifyCustomerStatusPill
+                onRetry={retryShopifyCustomerLookup}
+                status={shopifyCustomerLookupStatus}
+              />
+              <ContentCard>
+                <CustomerDisplayNameField />
+                <CustomerTypeField />
+                <CustomerEmailField />
+                <CustomerPhoneField />
+              </ContentCard>
+              <ContentCard>
+                <CustomerAddressFieldGroup />
+              </ContentCard>
+              <ContentCard>
+                <TaskFulfillmentMethodField />
+                {/* <TaskDeliveryDateField
+                  onOpenCalendarRangePicker={(props) =>
+                    surface.open(CALENDAR_RANGE_PICKER_SURFACE_ID, props)
+                  }
+                /> */}
+              </ContentCard>
+            </div>
+          </StagedFormStep>
         </StagedForm>
+
+        {submitOverlayPhase && submitOverlayContent ? (
+          <TaskCreationSubmitOverlay
+            phase={submitOverlayPhase}
+            title={submitOverlayContent.title}
+            description={submitOverlayContent.description}
+            sku={submittedSku ?? initialItemSku}
+            onDismiss={
+              submitOverlayPhase === "creating"
+                ? undefined
+                : closeAfterShopifyResult
+            }
+          />
+        ) : null}
       </form>
     </FormProvider>
   );

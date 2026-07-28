@@ -31,6 +31,8 @@ type RelativeChannel = {
 
 type ScrollStateResult = {
   isHidden: boolean;
+  /** The secondary (footer) channel's own hidden state. */
+  isFooterHidden: boolean;
   progressRef: React.MutableRefObject<number>;
   footerProgressRef: React.MutableRefObject<number>;
   isAtEdge: boolean;
@@ -91,8 +93,10 @@ export function useScrollState({
   mode,
 }: ScrollStateOptions): ScrollStateResult {
   const [isHidden, setIsHidden] = useState(false);
+  const [isFooterHidden, setIsFooterHidden] = useState(false);
   const [isAtEdge, setIsAtEdge] = useState(false);
   const hiddenTargetRef = useRef(false);
+  const footerHiddenTargetRef = useRef(false);
   const suppressedUntilRef = useRef(0);
 
   // Relative mode: track the position where the user last changed direction.
@@ -111,6 +115,15 @@ export function useScrollState({
   const edgeOffsetRef = useRef(edgeOffset);
   edgeOffsetRef.current = edgeOffset;
 
+  const applyFooterHidden = useCallback((hidden: boolean) => {
+    if (footerHiddenTargetRef.current === hidden) {
+      return;
+    }
+
+    footerHiddenTargetRef.current = hidden;
+    setIsFooterHidden(hidden);
+  }, []);
+
   const applyEdgeOverride = useCallback(
     (value: number, edgeMeta?: ScrollEdgeMeta): boolean => {
       const currentRevealAtEdge = revealAtEdgeRef.current;
@@ -122,8 +135,9 @@ export function useScrollState({
         currentRevealAtEdge === "top"
           ? edgeMeta.distanceFromStart
           : edgeMeta.distanceFromEnd;
+      const isWithinEdge = distanceToEdge <= (edgeOffsetRef.current ?? 0);
 
-      if (distanceToEdge <= (edgeOffsetRef.current ?? 0)) {
+      if (isWithinEdge) {
         if (!isAtEdgeRef.current) {
           isAtEdgeRef.current = true;
           setIsAtEdge(true);
@@ -132,6 +146,7 @@ export function useScrollState({
         footerProgressAtAnchorRef.current = 0;
         footerDirectionAnchorRef.current = value;
         footerMovingForwardRef.current = false;
+        applyFooterHidden(false);
         return true;
       }
 
@@ -142,11 +157,14 @@ export function useScrollState({
         footerMovingForwardRef.current = false;
         footerProgressRef.current = 0;
         footerProgressAtAnchorRef.current = 0;
+        // Leaving the edge re-anchors at visible so the element rides along
+        // until a scroll in the hide direction pushes it back out.
+        applyFooterHidden(false);
       }
 
       return false;
     },
-    [],
+    [applyFooterHidden],
   );
 
   const applyHidden = useCallback((hidden: boolean) => {
@@ -241,7 +259,7 @@ export function useScrollState({
         return;
       }
 
-      stepRelativeChannel(
+      const footerProgress = stepRelativeChannel(
         {
           directionAnchorRef: footerDirectionAnchorRef,
           movingForwardRef: footerMovingForwardRef,
@@ -253,10 +271,17 @@ export function useScrollState({
         effectiveHideThreshold,
         effectiveShowThreshold,
       );
+
+      if (footerProgress >= 1) {
+        applyFooterHidden(true);
+      } else if (footerProgress <= 0) {
+        applyFooterHidden(false);
+      }
     },
     [
       applyHidden,
       applyEdgeOverride,
+      applyFooterHidden,
       threshold,
       topOffset,
       hideThreshold,
@@ -296,9 +321,10 @@ export function useScrollState({
         footerProgressRef.current = 0;
         footerProgressAtAnchorRef.current = 0;
         applyHidden(false);
+        applyFooterHidden(false);
       }
     },
-    [applyHidden, topOffset, hysteresis, mode],
+    [applyHidden, applyFooterHidden, topOffset, hysteresis, mode],
   );
 
   const getSnapDirection = useCallback((): 0 | 1 => {
@@ -325,10 +351,11 @@ export function useScrollState({
         footerProgressAtAnchorRef.current = footerSnapTo;
         footerDirectionAnchorRef.current = currentScrollValue;
         footerMovingForwardRef.current = false;
+        applyFooterHidden(footerSnapTo === 1);
       }
       applyHidden(snapTo === 1);
     },
-    [applyHidden],
+    [applyHidden, applyFooterHidden],
   );
 
   const initialize = useCallback(
@@ -338,6 +365,7 @@ export function useScrollState({
       lastScrollValueRef.current = value;
       isAtEdgeRef.current = false;
       setIsAtEdge(false);
+      applyFooterHidden(false);
 
       if (shouldDebugScroll()) {
         console.log("[scroll-debug][state] initialize", {
@@ -369,11 +397,20 @@ export function useScrollState({
         footerProgressAtAnchorRef.current = 0;
       }
     },
-    [threshold, topOffset, mode, hysteresis, hideThreshold, showThreshold],
+    [
+      applyFooterHidden,
+      threshold,
+      topOffset,
+      mode,
+      hysteresis,
+      hideThreshold,
+      showThreshold,
+    ],
   );
 
   return {
     isHidden,
+    isFooterHidden,
     progressRef,
     footerProgressRef,
     isAtEdge,

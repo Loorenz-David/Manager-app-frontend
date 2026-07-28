@@ -5,6 +5,7 @@ import {
   PullToRefresh,
   SlideStack,
   SlideStackPane,
+  useCommittedPaneId,
 } from "@beyo/ui";
 
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
@@ -120,6 +121,17 @@ function Content(): React.JSX.Element {
   const header = useSurfaceHeader();
   const controller = useUpholsteryOrderingContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // The header mode pills follow the finger: a committed swipe repaints them
+  // at the release, one settle before the mode actually changes.
+  const { paneId: displayedMode, onCommit } = useCommittedPaneId({
+    activeId: controller.mode,
+    paneIds: controller.modes,
+  });
+  const shouldDismissInsteadOfGoingBack =
+    controller.mode === "orders" &&
+    !controller.isInitialLoadingByMode.needs &&
+    !controller.isErrorByMode.needs &&
+    controller.shortageCards.length === 0;
 
   // The page carries its own back chevron in the header, so the surface header
   // stays hidden on every breakpoint.
@@ -143,7 +155,7 @@ function Content(): React.JSX.Element {
         <UpholsteryOrderingHeader
           countsError={controller.countsError}
           isLoading={controller.isBackgroundLoading}
-          mode={controller.mode}
+          mode={displayedMode}
           needsCount={controller.needsCount}
           ordersCount={controller.ordersCount}
           searchInput={controller.searchInput}
@@ -158,7 +170,12 @@ function Content(): React.JSX.Element {
         <div className="relative" data-testid="upholstery-ordering-scroll">
           <SlideStack
             activeId={controller.mode}
-            onBack={controller.goToPreviousMode}
+            onBack={
+              shouldDismissInsteadOfGoingBack
+                ? undefined
+                : controller.goToPreviousMode
+            }
+            onCommit={onCommit}
             onForward={controller.goToNextMode}
           >
             {controller.modes.map((mode) => (

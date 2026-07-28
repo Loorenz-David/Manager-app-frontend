@@ -1,6 +1,7 @@
 export { SlideStack } from './SlideStack';
 export { SlideStackContext, useSlideStackContext } from './SlideStackContext';
 export { SlideStackPane } from './SlideStackPane';
+export { useCommittedPaneId } from './use-committed-pane-id';
 export {
   slideStackPaneTransition,
   slideStackPaneVariants,

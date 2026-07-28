@@ -1,24 +1,42 @@
-import { Fragment, useEffect, useRef } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { Fragment, useEffect, useRef } from "react";
+import { AlertTriangle, Check } from "lucide-react";
 
-import { cn } from '@beyo/lib';
+import { cn } from "@beyo/lib";
 
-import { useStagedFormContext } from './StagedFormContext';
-import type { StepStatus } from './staged-form.types';
+import { useStagedFormContext } from "./StagedFormContext";
+import {
+  connectorVariants,
+  stepIndicatorVariants,
+  stepLabelVariants,
+} from "./staged-form.variants";
+import type { StepStatus } from "./staged-form.types";
+
+/**
+ * Titles longer than this are dropped from the timeline — the step keeps its
+ * numbered badge only, so a wordy title can never squeeze the row.
+ */
+const MAX_TIMELINE_LABEL_CHARS = 12;
 
 function resolveStepStatus(
-  stepId: string,
-  activeStepId: string,
+  step: { id: string; index: number },
+  activeIndex: number,
   stepStatusMap: Record<string, StepStatus>,
 ): StepStatus {
-  if (stepId === activeStepId) return 'active';
-  return stepStatusMap[stepId] ?? 'pending';
+  if (step.index === activeIndex) return "active";
+  // An explicit status always wins; otherwise position decides — everything
+  // behind the active step has been passed through, so it reads as done. That
+  // keeps a step from blinking back to pending during the optimistic window
+  // between a drag committing and the consumer marking it completed.
+  return (
+    stepStatusMap[step.id] ??
+    (step.index < activeIndex ? "completed" : "pending")
+  );
 }
 
 export function StagedFormTimeline(): React.JSX.Element {
   const {
     steps,
-    activeStepId,
+    timelineStepId,
     navigationMode,
     stepStatusMap,
     onNavigate,
@@ -26,35 +44,41 @@ export function StagedFormTimeline(): React.JSX.Element {
     isTimelineStatic,
   } = useStagedFormContext();
   const stepRefs = useRef<Record<string, HTMLElement | null>>({});
-  const activeStepIndex = Math.max(0, steps.findIndex((s) => s.id === activeStepId));
-  const progressPercent = steps.length > 1 ? (activeStepIndex / (steps.length - 1)) * 100 : 0;
+  const activeStepIndex = Math.max(
+    0,
+    steps.findIndex((s) => s.id === timelineStepId),
+  );
   const compact = !isTimelineStatic && isTimelineCompact;
 
   useEffect(() => {
-    stepRefs.current[activeStepId]?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'nearest',
-      inline: 'center',
+    stepRefs.current[timelineStepId]?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
     });
-  }, [activeStepId]);
+  }, [timelineStepId]);
 
   return (
     <div
-      className="overflow-x-auto scrollbar-none"
-      data-compact={compact ? 'true' : 'false'}
+      className="overflow-x-auto scroll-px-6 scrollbar-none"
+      data-compact={compact ? "true" : "false"}
       data-testid="staged-form-timeline"
       style={
         isTimelineStatic
           ? undefined
           : {
               opacity: "calc(1 - var(--scroll-hide-progress, 0))",
-              transform: "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
+              transform:
+                "translateY(calc(-100% * var(--scroll-hide-progress, 0)))",
               transition:
                 "opacity var(--scroll-snap-duration, 0ms) ease-out, transform var(--scroll-snap-duration, 0ms) ease-out",
             }
       }
     >
-      <div className="px-6">
+      {/* The timeline is a full-bleed header affordance. Step panes own their
+          content padding; adding it here makes the horizontally scrolled row
+          get clipped before it reaches the panel edges. */}
+      <div className="w-full">
         {/*
           grid-template-rows: 0fr -> 1fr is the CSS-native way to animate height: auto.
           The inner div needs overflow-hidden + min-h-0 so the grid cell can collapse fully.
@@ -62,95 +86,115 @@ export function StagedFormTimeline(): React.JSX.Element {
         */}
         <div
           className={cn(
-            'grid transition-[grid-template-rows] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
-            compact ? 'grid-rows-[0fr]' : 'grid-rows-[1fr]',
+            "grid transition-[grid-template-rows] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            compact ? "grid-rows-[0fr]" : "grid-rows-[1fr]",
           )}
         >
           <div className="min-h-0 overflow-hidden">
-            <div className="flex items-center">
+            <div className="flex items-center py-1">
+              <span aria-hidden="true" className="w-6 shrink-0" />
               {steps.map((step, index) => {
-                const isActive = step.id === activeStepId;
-                const resolvedStatus = resolveStepStatus(step.id, activeStepId, stepStatusMap);
-                const isInteractive = navigationMode === 'free' && resolvedStatus !== 'locked';
-                const showAlert = resolvedStatus === 'error' || resolvedStatus === 'warning';
+                const isActive = index === activeStepIndex;
+                const resolvedStatus = resolveStepStatus(
+                  { id: step.id, index },
+                  activeStepIndex,
+                  stepStatusMap,
+                );
+                const isInteractive =
+                  navigationMode === "free" && resolvedStatus !== "locked";
+                const showAlert =
+                  resolvedStatus === "error" || resolvedStatus === "warning";
+                const showLabel = step.title.length <= MAX_TIMELINE_LABEL_CHARS;
 
-                const labelContent = (
-                  <span className="inline-flex items-center gap-1">
-                    {showAlert && (
-                      <AlertTriangle className="size-2.5 shrink-0 text-destructive" />
-                    )}
+                const badgeContent = showAlert ? (
+                  <AlertTriangle className="size-3.5" />
+                ) : resolvedStatus === "completed" ? (
+                  <Check className="size-3.5" strokeWidth={3} />
+                ) : (
+                  index + 1
+                );
+
+                const stepContent = (
+                  <>
                     <span
-                      className={cn(
-                        'text-xs',
-                        isActive && 'font-semibold text-foreground',
-                        !isActive && resolvedStatus === 'completed' && 'font-medium text-foreground',
-                        !isActive &&
-                          (resolvedStatus === 'pending' || resolvedStatus === 'locked') &&
-                          'font-medium text-muted-foreground',
-                        showAlert && 'font-medium text-destructive',
-                      )}
-                      data-testid={`staged-form-step-${step.id}-label`}
+                      className={stepIndicatorVariants({
+                        status: resolvedStatus,
+                        interactive: isInteractive,
+                      })}
                     >
-                      {step.title}
+                      {badgeContent}
                     </span>
-                  </span>
+                    {showLabel ? (
+                      <span
+                        className={stepLabelVariants({
+                          status: resolvedStatus,
+                        })}
+                        data-testid={`staged-form-step-${step.id}-label`}
+                      >
+                        {step.title}
+                      </span>
+                    ) : (
+                      <span className="sr-only">{step.title}</span>
+                    )}
+                  </>
                 );
 
                 const sharedProps = {
-                  'aria-current': isActive ? ('step' as const) : undefined,
-                  'data-status': resolvedStatus,
-                  'data-testid': `staged-form-step-${step.id}-indicator`,
+                  "aria-current": isActive ? ("step" as const) : undefined,
+                  "data-status": resolvedStatus,
+                  "data-testid": `staged-form-step-${step.id}-indicator`,
+                  className: cn(
+                    "flex shrink-0 items-center rounded-full",
+                    showLabel && "gap-2 pr-1",
+                  ),
+                  title: showLabel ? undefined : step.title,
                 } as const;
 
                 return (
                   <Fragment key={step.id}>
                     {index > 0 && (
-                      <div className="flex flex-1 items-center justify-center">
-                        <span className="text-sm text-icon">›</span>
+                      <div
+                        className="mx-2 h-0.5 min-w-3 flex-1 overflow-hidden rounded-full bg-border"
+                        data-testid={`staged-form-connector-${step.id}`}
+                      >
+                        <div
+                          className={connectorVariants({
+                            filled: index <= activeStepIndex,
+                          })}
+                        />
                       </div>
                     )}
-                    <div className="shrink-0">
-                      {isInteractive ? (
-                        <button
-                          {...sharedProps}
-                          ref={(node) => {
-                            stepRefs.current[step.id] = node;
-                          }}
-                          className="rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1"
-                          type="button"
-                          onClick={() => onNavigate(step.id)}
-                        >
-                          {labelContent}
-                        </button>
-                      ) : (
-                        <div
-                          {...sharedProps}
-                          ref={(node) => {
-                            stepRefs.current[step.id] = node;
-                          }}
-                        >
-                          {labelContent}
-                        </div>
-                      )}
-                    </div>
+                    {isInteractive ? (
+                      <button
+                        {...sharedProps}
+                        ref={(node) => {
+                          stepRefs.current[step.id] = node;
+                        }}
+                        className={cn(
+                          sharedProps.className,
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1",
+                        )}
+                        type="button"
+                        onClick={() => onNavigate(step.id)}
+                      >
+                        {stepContent}
+                      </button>
+                    ) : (
+                      <div
+                        {...sharedProps}
+                        ref={(node) => {
+                          stepRefs.current[step.id] = node;
+                        }}
+                      >
+                        {stepContent}
+                      </div>
+                    )}
                   </Fragment>
                 );
               })}
+              <span aria-hidden="true" className="w-6 shrink-0" />
             </div>
           </div>
-        </div>
-
-        <div
-          className={cn(
-            'relative h-0.5 w-full overflow-hidden rounded-full bg-border',
-            'transition-[margin-top] duration-250 ease-[cubic-bezier(0.22,1,0.36,1)]',
-            compact ? 'mt-0' : 'mt-3',
-          )}
-        >
-          <div
-            className="absolute inset-y-0 left-0 rounded-full bg-foreground transition-[width] duration-300 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
         </div>
       </div>
     </div>

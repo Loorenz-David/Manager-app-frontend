@@ -25,6 +25,11 @@ type ItemIdentityFieldProps = {
    * Overrides the remembered tab when a consumer needs a specific opening tab.
    */
   defaultTab?: IdentityTab;
+  /**
+   * Restricts which identity tabs are offered. With a single entry the tab
+   * picker is hidden and that tab remains active.
+   */
+  availableTabs?: readonly IdentityTab[];
   onOpenScanner?: (tab: IdentityTab) => void;
   onLookupResult?: (items: ItemLookupResult[]) => boolean | "invalid";
   /**
@@ -97,6 +102,7 @@ function readStoredTab(): IdentityTab {
 
 export function ItemIdentityField({
   defaultTab,
+  availableTabs,
   onOpenScanner,
   onLookupResult,
   disableLookup = false,
@@ -110,8 +116,13 @@ export function ItemIdentityField({
   const articleNumberError = itemErrors.item?.article_number?.message;
   const skuError = itemErrors.item?.sku?.message;
 
-  const [activeTab, setActiveTab] = useState<IdentityTab>(
-    defaultTab ?? readStoredTab,
+  const tabs = availableTabs ?? IDENTITY_TABS;
+  const isSingleTab = tabs.length === 1;
+  const tabOptions = availableTabs
+    ? TAB_OPTIONS.filter((option) => tabs.includes(option.value))
+    : TAB_OPTIONS;
+  const [activeTab, setActiveTab] = useState<IdentityTab>(() =>
+    defaultTab ?? (isSingleTab ? tabs[0]! : readStoredTab()),
   );
   const [direction, setDirection] = useState<1 | -1>(1);
   const [lookupStatus, setLookupStatus] = useState<"valid" | "invalid" | null>(null);
@@ -188,9 +199,11 @@ export function ItemIdentityField({
     setDirection(nextIndex > currentIndex ? 1 : -1);
     setActiveTab(nextTab);
 
-    try {
-      localStorage.setItem(STORAGE_KEY, nextTab);
-    } catch {}
+    if (!isSingleTab) {
+      try {
+        localStorage.setItem(STORAGE_KEY, nextTab);
+      } catch {}
+    }
   }
 
   const activeError =
@@ -274,15 +287,17 @@ export function ItemIdentityField({
 
   return (
     <div className="flex flex-col gap-2" data-testid="item-identity-field">
-      <BoxSlidePicker
-        className="w-auto self-start bg-[var(--color-between-border)]/60"
-        dataTestId="item-identity-tab-picker"
-        distribution="content"
-        options={TAB_OPTIONS}
-        size="sm"
-        value={activeTab}
-        onValueChange={handleTabChange}
-      />
+      {isSingleTab ? null : (
+        <BoxSlidePicker
+          className="w-auto self-start bg-[var(--color-between-border)]/60"
+          dataTestId="item-identity-tab-picker"
+          distribution="content"
+          options={tabOptions}
+          size="sm"
+          value={activeTab}
+          onValueChange={handleTabChange}
+        />
+      )}
       <div className="overflow-hidden">
         <AnimatePresence custom={direction} initial={false} mode="wait">
           <m.div

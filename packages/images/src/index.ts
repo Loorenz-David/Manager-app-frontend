@@ -33,6 +33,8 @@ export {
   toImageAnnotationViewModels,
 } from "./types";
 export type {
+  EntityImage,
+  Image,
   ImageAnnotationType,
   ImageLinkEntityType,
   ImageUploadState,

@@ -12,10 +12,6 @@ import {
 } from "../providers/TaskWorkingSectionsProvider";
 import type { TaskWorkingSectionsReassignSlideSurfaceProps } from "../surface-ids";
 
-// Fixed edge-reveal distance for the reassign footer, mirroring the
-// task-creation staged-form footer pattern.
-const TASK_WORKING_SECTIONS_REASSIGN_FOOTER_EDGE_OFFSET_PX = 50;
-
 function TaskWorkingSectionsReassignStagedFormHeader(): React.JSX.Element {
   return (
     <div className="flex min-h-14 items-center px-4">
@@ -178,7 +174,6 @@ function TaskWorkingSectionsReassignSlidePageContent({
       data-testid="task-working-sections-reassign-slide-page"
       direction={staged.direction}
       header={<TaskWorkingSectionsReassignStagedFormHeader />}
-      footerEdgeOffset={TASK_WORKING_SECTIONS_REASSIGN_FOOTER_EDGE_OFFSET_PX}
       isAdvancing={staged.isAdvancing}
       isFirstStep={staged.isFirstStep}
       isLastStep={staged.isLastStep}
@@ -186,9 +181,9 @@ function TaskWorkingSectionsReassignSlidePageContent({
       onAdvance={staged.advance}
       onBack={staged.back}
       onNavigate={staged.navigateTo}
-      footer={
+      footer={({ stepId }) => (
         <TaskWorkingSectionsReassignFooter
-          activeStepId={staged.activeStepId as "sections" | "note"}
+          activeStepId={stepId as "sections" | "note"}
           availableSections={availableSections}
           selectedSectionIds={selectedSectionIds}
           hideShortcuts={hideShortcuts}
@@ -200,7 +195,7 @@ function TaskWorkingSectionsReassignSlidePageContent({
           onSaveAndClose={controller.handleSaveAndClose}
           onShortcutPress={controller.handleShortcutPress}
         />
-      }
+      )}
       showNavigation={false}
       stepStatusMap={staged.stepStatusMap}
       steps={staged.steps}

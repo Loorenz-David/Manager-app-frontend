@@ -51,10 +51,88 @@ test.describe('Task creation staged forms', () => {
     return skuReservationMock;
   }
 
+  const PLAYWRIGHT_SHOP_INTEGRATION_ID = 'shpint_playwright';
+  const PLAYWRIGHT_LOCATION_GID = 'gid://shopify/Location/99221471562';
+
+  async function mockShopifyPreOrderCatalog(page: Page): Promise<void> {
+    await page.route('**/api/v1/integrations/shopify/shops*', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            shops: [
+              {
+                client_id: PLAYWRIGHT_SHOP_INTEGRATION_ID,
+                workspace_id: 'ws_playwright',
+                shop_domain: 'playwright.myshopify.com',
+                shop_name: 'Playwright Shop',
+                provider: 'shopify',
+                status: 'active',
+                access_token_expires_at: null,
+                granted_scopes: [],
+                requested_scopes: [],
+                api_version: '2025-07',
+                installed_at: null,
+                uninstalled_at: null,
+                last_connected_at: null,
+                last_health_check_at: null,
+                last_health_check_status: null,
+                last_error_code: null,
+                last_error_message: null,
+                scopes_status: 'up_to_date',
+                webhooks_status: 'synced',
+                created_by: null,
+                updated_by: null,
+                created_at: '2026-07-27T00:00:00Z',
+                updated_at: '2026-07-27T00:00:00Z',
+                is_deleted: false,
+              },
+            ],
+            shops_pagination: { limit: 50, offset: 0, has_more: false },
+          },
+          warnings: [],
+        }),
+      });
+    });
+
+    await page.route(
+      '**/api/v1/integrations/shopify/locations*',
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ok: true,
+            data: {
+              shops: [
+                {
+                  shop_integration_id: PLAYWRIGHT_SHOP_INTEGRATION_ID,
+                  shop_domain: 'playwright.myshopify.com',
+                  status: 'ok',
+                  locations: [
+                    {
+                      location_id: PLAYWRIGHT_LOCATION_GID,
+                      name: 'Playwright Warehouse',
+                      is_active: true,
+                    },
+                  ],
+                },
+              ],
+            },
+            warnings: [],
+          }),
+        });
+      },
+    );
+  }
+
   async function mockPreOrderSkuReservation(
     page: Page,
     options: SkuReservationMockOptions = {},
   ): Promise<SkuReservationMockState> {
+    await mockShopifyPreOrderCatalog(page);
     const shopifyLookup = await mockShopifyCustomerLookup(page);
     const state: SkuReservationMockState = {
       requestBody: null,
@@ -184,6 +262,51 @@ test.describe('Task creation staged forms', () => {
     await page.getByTestId('staged-form-advance-button').click();
   }
 
+  /**
+   * Fills the pre-order Shopify section on the Task step: product price plus
+   * the (auto-selected single) shop and one inventory location.
+   */
+  async function fillPreOrderShopifySection(page: Page) {
+    await page.getByTestId('pre-order-product-price-input').fill('5200');
+    await expect(
+      page.getByTestId('shopify-product-sync-shop-field-trigger'),
+    ).toContainText('1 shop selected');
+    await page
+      .getByTestId(
+        `shopify-inventory-location-${PLAYWRIGHT_SHOP_INTEGRATION_ID}-${PLAYWRIGHT_LOCATION_GID}`,
+      )
+      .click();
+  }
+
+  async function completePreOrderTaskStep(page: Page) {
+    await expect(page.getByTestId('staged-form-advance-button')).toBeVisible();
+    await page.getByTestId('item-article-number-input').fill('ABC-123');
+    await fillPreOrderShopifySection(page);
+    await page.getByTestId('staged-form-advance-button').click();
+    await expect(page.getByTestId('staged-form-step-assignment')).toBeVisible();
+  }
+
+  async function completePreOrderTaskStepWithIssue(page: Page) {
+    await expect(page.getByTestId('staged-form-advance-button')).toBeVisible();
+    await page.getByTestId('item-article-number-input').fill('ABC-123');
+    await page.getByTestId('item-major-category-wood-option').click();
+    await expect(page.getByTestId('item-category-picker-sheet')).toBeVisible();
+    await page.getByTestId('item-category-cat_wood_table-option').click();
+    await expect(page.getByTestId('item-category-picker-sheet')).not.toBeVisible();
+    await page.getByTestId('item-issue-issue_scratches-option').click();
+    await fillPreOrderShopifySection(page);
+    await page.getByTestId('staged-form-advance-button').click();
+    await expect(page.getByTestId('staged-form-step-assignment')).toBeVisible();
+  }
+
+  /** Advances Assignment → Details → Customer (the last pre-order step). */
+  async function advanceToPreOrderCustomerStep(page: Page) {
+    await page.getByTestId('staged-form-advance-button').click();
+    await expect(page.getByTestId('staged-form-step-details')).toBeVisible();
+    await page.getByTestId('staged-form-advance-button').click();
+    await expect(page.getByTestId('staged-form-step-customer')).toBeVisible();
+  }
+
   async function scrollToBottomWithoutReversing(page: Page) {
     const scrollContainer = page.getByTestId('staged-form-scroll-container');
     const metrics = await scrollContainer.evaluate((el) => ({
@@ -202,16 +325,16 @@ test.describe('Task creation staged forms', () => {
     await page.waitForTimeout(250);
   }
 
-  test('pre-order form advances past customer step when all visible required fields are filled', async ({
+  test('pre-order form reaches the customer step last with the shopify section filled', async ({
     page,
   }) => {
     await openTaskCreationForm(page, 'pre_order');
     await expect(page.getByTestId('pre-order-form')).toBeVisible();
 
-    await completeItemStep(page);
-    await completeCustomerStep(page);
+    await completePreOrderTaskStep(page);
+    await advanceToPreOrderCustomerStep(page);
 
-    await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
+    await expect(page.getByTestId('customer-display-name-input')).toBeVisible();
   });
 
   test('pre-order form reserves one server-formatted editable SKU on open', async ({
@@ -267,7 +390,8 @@ test.describe('Task creation staged forms', () => {
     }
 
     await expect(page.getByTestId('pre-order-form')).toBeVisible();
-    await completeItemStep(page);
+    await completePreOrderTaskStep(page);
+    await advanceToPreOrderCustomerStep(page);
 
     const retryButton = page.getByTestId('shopify-customer-retry-button');
     await expect(retryButton).toBeVisible();
@@ -341,10 +465,10 @@ test.describe('Task creation staged forms', () => {
     await openTaskCreationForm(page, 'pre_order');
     await expect(page.getByTestId('pre-order-form')).toBeVisible();
 
-    await completeItemStepWithIssue(page);
-    await completeCustomerStep(page);
+    await completePreOrderTaskStepWithIssue(page);
+    await advanceToPreOrderCustomerStep(page);
 
-    await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
+    await expect(page.getByTestId('staged-form-step-customer')).toBeVisible();
   });
 
   test('return form still advances after selecting an item issue', async ({ page }) => {
@@ -357,29 +481,18 @@ test.describe('Task creation staged forms', () => {
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
   });
 
-  test('internal task footer reveals at the bottom edge and hides again after scrolling back up', async ({
+  test('internal task footer sits at the end of the form and scrolls into view', async ({
     page,
   }) => {
     await openTaskCreationForm(page, 'internal');
     await expect(page.getByTestId('internal-form')).toBeVisible();
 
-    const timeline = page.getByTestId('staged-form-timeline');
-    const scrollContainer = page.getByTestId('staged-form-scroll-container');
+    // Static footer: the last element of the step content, reached by
+    // scrolling like anything else.
     const footer = page.getByTestId('staged-form-footer');
 
-    await expect(timeline).toHaveAttribute('data-compact', 'false');
-    await expect(footer).toHaveClass(/pointer-events-none/);
-
     await scrollToBottomWithoutReversing(page);
-    await expect(timeline).toHaveAttribute('data-compact', 'false');
-    await expect(footer).not.toHaveClass(/pointer-events-none/);
-
-    await scrollContainer.evaluate((el) => {
-      el.scrollTop = Math.max(0, el.scrollTop - 80);
-    });
-    await page.waitForTimeout(250);
-
-    await expect(timeline).toHaveAttribute('data-compact', 'false');
-    await expect(footer).toHaveClass(/pointer-events-none/);
+    await expect(footer).toBeInViewport();
+    await expect(page.getByTestId('staged-form-advance-button')).toBeVisible();
   });
 });

@@ -14,7 +14,8 @@ export function PresentationModalSurface(props: PresentationSurfaceProps): React
         {...props}
         surfaceType="modal"
         onDismiss={(index) => closeAfter(() => props.onDismiss(index))}
-        onComplete={(index) => closeAfter(() => props.onComplete(index))}
+        onComplete={props.onComplete}
+        onClose={() => closeAfter(() => undefined)}
       />
     </PlayerModalFrame>
   );

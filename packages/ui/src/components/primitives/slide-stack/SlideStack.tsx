@@ -63,6 +63,10 @@ type DragState = {
   settleTarget?: 0 | 1;
   /** Finalizer (navigation + cleanup) — idempotent; settleNow calls it early. */
   finish?: () => void;
+  /** Guards the finalizer against running its navigation twice. */
+  finished?: boolean;
+  /** `awaitNavigation`: the ghost stays until `activeId` catches up. */
+  awaitingNavigation?: boolean;
 };
 
 /**
@@ -86,6 +90,8 @@ export function SlideStack({
   onForward,
   canBack,
   canForward,
+  awaitNavigation = false,
+  onCommit,
   children,
 }: SlideStackProps): React.JSX.Element {
   const paneIds = collectPaneIds(children);
@@ -115,6 +121,10 @@ export function SlideStack({
   canBackRef.current = canBack;
   const canForwardRef = useRef(canForward);
   canForwardRef.current = canForward;
+  const awaitNavigationRef = useRef(awaitNavigation);
+  awaitNavigationRef.current = awaitNavigation;
+  const onCommitRef = useRef(onCommit);
+  onCommitRef.current = onCommit;
   const paneIdsRef = useRef(paneIds);
   paneIdsRef.current = paneIds;
   const activeIdRef = useRef(activeId);
@@ -132,8 +142,15 @@ export function SlideStack({
   const settleControlsRef = useRef<{ stop: () => void } | null>(null);
 
   // A real navigation consumed the suppress flag; clear it after that render.
+  // This is also where an awaited async navigation lands: the new pane has
+  // just rendered (settled, under the ghost), so the stand-in can go now.
   useEffect(() => {
     suppressEnterRef.current = false;
+    const pending = dragRef.current;
+    if (pending?.awaitingNavigation) {
+      dragRef.current = null;
+      setDrag(null);
+    }
   }, [activeId]);
 
   const dragController = useRef({
@@ -172,8 +189,13 @@ export function SlideStack({
       current.settling = true;
       current.settleTarget = committed ? 1 : 0;
 
+      // Chrome outside the stack (steppers, progress lines) reacts here — at
+      // the release — rather than waiting out the settle below.
+      if (committed) onCommitRef.current?.(current.type);
+
       const finish = () => {
-        if (dragRef.current !== current) return;
+        if (dragRef.current !== current || current.finished) return;
+        current.finished = true;
         settleControlsRef.current = null;
         if (committed) {
           // The ghost now sits exactly where the real pane will render;
@@ -190,6 +212,20 @@ export function SlideStack({
           window.setTimeout(() => {
             suppressEnterRef.current = false;
           }, SUPPRESS_ENTER_FALLBACK_MS);
+
+          if (awaitNavigationRef.current) {
+            // The consumer navigates asynchronously: the ghost has to keep
+            // standing in until `activeId` changes, or this render — ghost
+            // gone, pane not swapped yet — exposes the outgoing pane.
+            current.awaitingNavigation = true;
+            setDrag({ ...current });
+            window.setTimeout(() => {
+              if (dragRef.current !== current) return;
+              dragRef.current = null;
+              setDrag(null);
+            }, SUPPRESS_ENTER_FALLBACK_MS);
+            return;
+          }
         }
         dragRef.current = null;
         setDrag(null);
@@ -212,6 +248,13 @@ export function SlideStack({
       dragProgress.jump(current.settleTarget ?? 0);
       settleControlsRef.current?.stop();
       current.finish?.();
+      // A new touch arrived while a ghost was still standing in for a pending
+      // async navigation: drop it so this gesture can engage rather than being
+      // refused for the length of the fallback window.
+      if (dragRef.current === current && current.awaitingNavigation) {
+        dragRef.current = null;
+        setDrag(null);
+      }
     },
   }).current;
 

@@ -5,9 +5,7 @@ import { useScrollState } from "./use-scroll-state";
 
 type HookOptions = Parameters<typeof useScrollState>[0];
 
-function buildOptions(
-  overrides: Partial<HookOptions> = {},
-): HookOptions {
+function buildOptions(overrides: Partial<HookOptions> = {}): HookOptions {
   return {
     threshold: 40,
     topOffset: 0,

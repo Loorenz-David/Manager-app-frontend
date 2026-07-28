@@ -9,6 +9,7 @@ export function usePostHandlingCountsQuery(postHandlingStates?: string) {
     queryFn: () =>
       getPostHandlingCounts({
         post_handling_states: postHandlingStates,
+        task_states: "ready",
       }),
   });
 }

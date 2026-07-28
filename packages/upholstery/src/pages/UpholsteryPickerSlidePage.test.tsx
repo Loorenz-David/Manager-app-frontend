@@ -185,7 +185,7 @@ describe("UpholsteryPickerSlidePage", () => {
     ).toBeVisible();
   });
 
-  it("saves only from the bottom action and defers onSelect to the close", async () => {
+  it("saves only from the bottom action and commits alongside the close", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     const controller = makeController();
@@ -197,7 +197,7 @@ describe("UpholsteryPickerSlidePage", () => {
     });
     useUpholsteryPickerControllerMock.mockReturnValue(controller);
 
-    const { unmount } = renderPage();
+    renderPage();
 
     await user.click(screen.getByRole("button", { name: "Birka" }));
     expect(controller.selectUpholstery).not.toHaveBeenCalled();
@@ -205,12 +205,12 @@ describe("UpholsteryPickerSlidePage", () => {
     await user.click(screen.getByRole("button", { name: "Save selection" }));
 
     expect(controller.selectUpholstery).toHaveBeenCalledWith("uph_b");
+    // Close first, then commit, so the row animates out of the list beneath
+    // while this slide closes.
     expect(requestCloseMock).toHaveBeenCalled();
-    // The commit is deferred past the close animation (page unmount) so the
-    // consumer's list mutation cannot jank the slide-out.
-    expect(onSelect).not.toHaveBeenCalled();
-
-    unmount();
+    expect(requestCloseMock.mock.invocationCallOrder[0]).toBeLessThan(
+      onSelect.mock.invocationCallOrder[0]!,
+    );
     expect(onSelect).toHaveBeenCalledWith("uph_b_saved");
   });
 

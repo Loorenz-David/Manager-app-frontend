@@ -28,8 +28,10 @@ export * from "./components/text-styling";
 export {
   beginUiTransition,
   isUiTransitioning,
+  LIST_COMMIT_DELAY_MS,
   resetUiTransitionGate,
   runWhenUiSettled,
+  scheduleListCommit,
 } from "./lib/ui-transition-gate";
 export { useUiTransitionToken } from "./lib/use-ui-transition-token";
 export { lazyRoute } from "./lib/lazy-route";

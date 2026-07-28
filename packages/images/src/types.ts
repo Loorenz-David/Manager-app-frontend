@@ -281,7 +281,9 @@ export type UpdateImageAnnotationResponse = z.infer<typeof UpdateImageAnnotation
 export const ImageDownloadUrlResponseSchema = ApiEnvelopeSchema(
   z.object({
     download_url: z.string(),
-    expires_in: z.number().int(),
+    // null for public (item) images, whose URLs are unsigned and never expire.
+    // Distinct from 0, which would mean already expired.
+    expires_in: z.number().int().nullable(),
   }),
 ).extend({
   ok: z.literal(true),

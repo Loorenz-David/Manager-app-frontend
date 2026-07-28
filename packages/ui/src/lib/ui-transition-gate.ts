@@ -20,6 +20,15 @@
  * own options or in a `mutateAsync().then()`.
  */
 
+/**
+ * How long after a surface starts closing the list commit fires — i.e. how
+ * much later the row's removal animation begins than the surface's close.
+ *
+ * 0 starts both at the same instant. Raise it to stagger the removal into the
+ * close; it is the one knob for that timing.
+ */
+export const LIST_COMMIT_DELAY_MS = 0;
+
 let activeTransitions = 0;
 let queue: Array<() => void> = [];
 let flushHandle: number | null = null;
@@ -77,6 +86,25 @@ export function beginUiTransition(): () => void {
 export function runWhenUiSettled(work: () => void): void {
   queue.push(work);
   scheduleFlush();
+}
+
+/**
+ * Commits list-mutating work (the optimistic patch that makes a row leave)
+ * alongside a closing surface, rather than after it: call `requestClose()`
+ * first, then this. With `LIST_COMMIT_DELAY_MS` at 0 the row starts animating
+ * out in the same tick the surface starts closing.
+ *
+ * Note this is the opposite of `runWhenUiSettled`, which is for the expensive
+ * follow-up — the refetch — and must stay behind every animation.
+ */
+export function scheduleListCommit(work: () => void): void {
+  if (LIST_COMMIT_DELAY_MS <= 0) {
+    // Same tick as the close, so React batches both into one commit.
+    work();
+    return;
+  }
+
+  setTimeout(work, LIST_COMMIT_DELAY_MS);
 }
 
 /** True while any surface or row animation holds the gate. Test/debug aid. */

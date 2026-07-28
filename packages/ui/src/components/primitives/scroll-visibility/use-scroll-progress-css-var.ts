@@ -29,6 +29,13 @@ type UseScrollProgressCssVarResult = {
   onTouchStart: () => void;
   onTouchEnd: () => void;
   onTouchCancel: () => void;
+  /**
+   * Writes the given progress values straight to the CSS vars (duration 0)
+   * and aligns the visual trackers. For initialize/reset, where the state
+   * machine repositions without a scroll event — without this the DOM keeps
+   * stale vars and the next touchstart resumes from the wrong position.
+   */
+  syncProgress: (progress: number, footerProgress?: number) => void;
 };
 
 export function useScrollProgressCssVar({
@@ -224,9 +231,7 @@ export function useScrollProgressCssVar({
 
       snapTimeoutRef.current = window.setTimeout(() => {
         const resolvedFooterSnapTo =
-          footerSnapTo === undefined
-            ? undefined
-            : footerSnapTargetRef.current;
+          footerSnapTo === undefined ? undefined : footerSnapTargetRef.current;
         visualProgressRef.current = snapTo;
         if (resolvedFooterSnapTo !== undefined) {
           visualFooterProgressRef.current = resolvedFooterSnapTo;
@@ -335,5 +340,32 @@ export function useScrollProgressCssVar({
     triggerSnap();
   }, [triggerSnap]);
 
-  return { onProgress, onTouchStart, onTouchEnd, onTouchCancel };
+  const syncProgress = useCallback(
+    (progress: number, footerProgress?: number) => {
+      if (animRafRef.current !== null) {
+        cancelAnimationFrame(animRafRef.current);
+        animRafRef.current = null;
+      }
+
+      visualProgressRef.current = progress;
+      if (footerProgress !== undefined) {
+        visualFooterProgressRef.current = footerProgress;
+      }
+
+      const el = containerRef.current;
+      if (!el) {
+        return;
+      }
+
+      setDuration(el, 0);
+      setVar(el, progress);
+      if (footerProgress !== undefined) {
+        setFooterDuration(el, 0);
+        setFooterVar(el, footerProgress);
+      }
+    },
+    [containerRef, setDuration, setFooterDuration, setFooterVar, setVar],
+  );
+
+  return { onProgress, onTouchStart, onTouchEnd, onTouchCancel, syncProgress };
 }

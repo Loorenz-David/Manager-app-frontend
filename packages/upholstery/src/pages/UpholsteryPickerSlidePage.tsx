@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { PullToRefresh, SlideStack, SlideStackPane } from "@beyo/ui";
+import {
+  PullToRefresh,
+  scheduleListCommit,
+  SlideStack,
+  SlideStackPane,
+  useCommittedPaneId,
+} from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
 import { UpholsteryCard } from "../components/UpholsteryCard";
@@ -27,16 +33,14 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
   );
   const controller = useUpholsteryPickerController(debouncedQuery);
   const isSearchActive = searchQuery.trim().length > 0;
+  // The quick-filter pills follow the finger: a committed swipe repaints them
+  // at the release, one settle before the filter actually changes.
+  const { paneId: displayedFilter, onCommit } = useCommittedPaneId({
+    activeId: controller.activeFilter,
+    paneIds: controller.filterOptions.map((option) => option.value),
+  });
   const shouldShowSaveButton =
     stagedClientId !== null && stagedClientId !== (currentClientId ?? null);
-  // Deferred onSelect commit: consumers mutate lists on the page revealed
-  // beneath, so running it while the slide-out animates causes jank. The
-  // surface keeps this page mounted (usePresence) until the exit animation
-  // finishes, so the unmount effect fires exactly after the close.
-  const commitOnCloseRef = useRef<(() => void) | null>(null);
-
-  useEffect(() => () => commitOnCloseRef.current?.(), []);
-
   useEffect(() => {
     header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,9 +69,11 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
     try {
       const resolvedClientId = await controller.selectUpholstery(stagedClientId);
-      // Close first, commit on unmount — after the slide-out has finished.
-      commitOnCloseRef.current = () => onSelect?.(resolvedClientId);
+      // Close first, then commit: the row starts animating out of the list
+      // beneath as this slide closes (see LIST_COMMIT_DELAY_MS). Only the
+      // refetch waits for both animations, which is what used to cause the lag.
       header?.requestClose();
+      scheduleListCommit(() => onSelect?.(resolvedClientId));
     } catch {
       return;
     }
@@ -86,7 +92,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
       >
         <div data-testid="upholstery-list-scroll">
           <UpholsteryPickerHeader
-            activeFilter={controller.activeFilter}
+            activeFilter={displayedFilter}
             activeProviderFilterCount={controller.activeProviderFilterCount}
             isFilterDisabled={isSearchActive}
             isSearchLoading={isSearchActive ? controller.isLoading : false}
@@ -107,6 +113,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
               // so the drags stand down and the surface keeps its own
               // slide-to-close for the whole page.
               onBack={isSearchActive ? undefined : controller.goToPreviousFilter}
+              onCommit={onCommit}
               onForward={isSearchActive ? undefined : controller.goToNextFilter}
             >
               {controller.filterOptions.map((option) => {

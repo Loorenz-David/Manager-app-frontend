@@ -241,7 +241,7 @@ Use route transitions only when they clarify hierarchy:
 - auth page → app shell
 - list → detail
 - parent section → nested section
-- mobile bottom-tab transitions
+- mobile bottom-tab transitions — in the three phone apps these are **not** hand-rolled: the shell's main pages are panes of one `SlideStack` (38_slide_stack.md), which also gives them the swipe gesture
 
 Avoid route transitions for high-frequency workflows, tables, forms, and dashboards where motion slows repeated use.
 

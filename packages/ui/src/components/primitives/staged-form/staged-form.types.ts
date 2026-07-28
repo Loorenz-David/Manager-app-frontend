@@ -6,6 +6,13 @@ import type { SlideStackCondition } from '../slide-stack';
 
 export type { StepConfig, StepStatus, StepStatusMap };
 
+export type StagedFormFooterRenderProps = {
+  /** Pane that owns this footer instance. */
+  stepId: string;
+  isFirstStep: boolean;
+  isLastStep: boolean;
+};
+
 export type StagedFormProps = {
   steps: StepConfig[];
   activeStepId: string;
@@ -18,12 +25,13 @@ export type StagedFormProps = {
   showNavigation?: boolean;
   enableKeyboardAccessory?: boolean;
   header?: ReactNode;
-  footer?: ReactNode;
   /**
-   * Manual override for the footer's bottom-edge reveal threshold. When omitted,
-   * the staged form falls back to the footer's live measured height.
+   * Static content, or a render function for per-step content. The footer is
+   * rendered inside every slide pane so it shares the pane's drag and settle.
    */
-  footerEdgeOffset?: number;
+  footer?:
+    | ReactNode
+    | ((props: StagedFormFooterRenderProps) => ReactNode);
   navigationMode?: 'sequential' | 'free';
   stepStatusMap?: StepStatusMap;
   /**
@@ -44,6 +52,13 @@ export type StagedFormProps = {
 export type StagedFormContextValue = {
   steps: StepConfig[];
   activeStepId: string;
+  /**
+   * Step the timeline paints as active. Equals activeStepId at rest; while a
+   * drag's settle animation is still running it is already the step that drag
+   * committed to, so the progress line reacts at the release instead of a
+   * transition later.
+   */
+  timelineStepId: string;
   isFirstStep: boolean;
   isLastStep: boolean;
   isAdvancing: boolean;

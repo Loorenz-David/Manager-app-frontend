@@ -26,6 +26,7 @@
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --keyboard-inset: 0px;
+  --viewport-offset-top: 0px;
 }
 /*  */
 *,

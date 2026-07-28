@@ -8,6 +8,7 @@ import {
   ItemDetailsFieldsSchema,
   type ItemLookupResult,
 } from "@beyo/items";
+import { ShopifyProductSyncInventoryAdjustmentSchema } from "@beyo/shopify";
 import type { TaskNoteComposerValue } from "@beyo/task-notes";
 import {
   TASK_FULFILLMENT_METHOD,
@@ -216,10 +217,58 @@ export const PreOrderFormSchema = z
       WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
     ready_by_at: DateOnlySchema.nullable().optional(),
     note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
+    // Shopify pre-order product section (HANDOFF_TO_FRONTEND_task_preorder_
+    // shopify_product_20260727): full product price, one shop, at least one
+    // inventory location. Sent as `shopify_preorder` on POST /api/v1/tasks.
+    // Collected per piece; the price sent is `item.quantity × this`
+    // (see `lib/pre-order-price`).
+    product_unit_price: z
+      .number()
+      .gt(0, "Enter the price per piece.")
+      .nullable(),
+    shopIntegrationIds: z.array(z.string()),
+    inventoryAdjustments: z.array(ShopifyProductSyncInventoryAdjustmentSchema),
   })
   .superRefine((data, ctx) => {
     addItemIdentityIssue(data.item, ctx);
-    addSeatLocationIssue(data.item, ctx);
+    // No seat position/zone requirement here, deliberately: a pre-ordered item
+    // is not in the building yet, so it has nowhere to be. Return and internal
+    // tasks still require it.
+
+    if (data.product_unit_price == null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter the price per piece.",
+        path: ["product_unit_price"],
+      });
+    }
+
+    if (!data.item.sku?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "A SKU is required for the Shopify product.",
+        path: ["item", "sku"],
+      });
+    }
+
+    const shopIntegrationId = data.shopIntegrationIds[0];
+    if (!shopIntegrationId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a Shopify shop.",
+        path: ["shopIntegrationIds"],
+      });
+    } else if (
+      !data.inventoryAdjustments.some(
+        (entry) => entry.shopIntegrationId === shopIntegrationId,
+      )
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select at least one inventory location.",
+        path: ["inventoryAdjustments"],
+      });
+    }
 
     if (!data.customer.primary_email?.trim()) {
       ctx.addIssue({

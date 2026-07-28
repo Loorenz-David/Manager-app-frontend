@@ -299,9 +299,9 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
       <StagedForm
         activeStepId={staged.activeStepId}
         direction={staged.direction}
-        footer={
+        footer={({ stepId }) => (
           <InventoryCreationFooter
-            activeStepId={staged.activeStepId}
+            activeStepId={stepId}
             isPending={isPending}
             onBack={staged.back}
             onContinue={() => {
@@ -311,7 +311,7 @@ export function UpholsteryInventoryCreationSlidePage(): React.JSX.Element {
             onSubmit={form.handleSubmit(handleSubmit)}
             submitLabel={isEditMode ? "Save" : "Create"}
           />
-        }
+        )}
         isAdvancing={staged.isAdvancing}
         isFirstStep={staged.isFirstStep}
         isLastStep={staged.isLastStep}

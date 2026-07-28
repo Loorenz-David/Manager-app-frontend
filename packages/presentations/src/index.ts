@@ -5,6 +5,7 @@ export {
   PlayerAcknowledgeFooter,
   PlayerCtaButton,
   PlayerDismissButton,
+  PlayerPausedIndicator,
   PlayerTapZones,
 } from "./components/player/PlayerAffordances";
 export { PlayerFullScreenFrame, PlayerModalFrame } from "./components/player/PlayerFrames";
@@ -30,7 +31,11 @@ export type {
 } from "./types";
 export { activePresentationKeys, getActivePresentation, useActivePresentation } from "./api/active-presentation";
 export { recordPresentationViewState, useRecordViewState } from "./actions/useRecordViewState";
-export { usePresentationPlayback, type PresentationPlayback } from "./playback/usePresentationPlayback";
+export {
+  DEFAULT_SLIDE_DURATION_MS,
+  usePresentationPlayback,
+  type PresentationPlayback,
+} from "./playback/usePresentationPlayback";
 export { PresentationPlayer, type PresentationPlayerProps } from "./PresentationPlayer";
 export {
   PRESENTATION_FULL_SCREEN_SURFACE_ID,

@@ -78,9 +78,15 @@ export function useTaskPostHandlingController({
       : "carousel";
 
   const { query: pendingQueryRaw, loadMore: pendingLoadMore } =
-    useListPostHandlingTasksQuery({ post_handling_states: "pending" });
+    useListPostHandlingTasksQuery({
+      task_states: "ready",
+      post_handling_states: "pending",
+    });
   const { query: filledQueryRaw, loadMore: filledLoadMore } =
-    useListPostHandlingTasksQuery({ post_handling_states: "filled" });
+    useListPostHandlingTasksQuery({
+      task_states: "ready",
+      post_handling_states: "filled",
+    });
 
   const searchParams = useMemo(
     () => ({

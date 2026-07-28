@@ -1,19 +1,28 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FormProvider } from "react-hook-form";
 
 import { useStagedForm, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import type { StepStatus } from "@beyo/lib";
 import { TaskListCard } from "@beyo/tasks";
-import { ArrowLeft } from "lucide-react";
-import {
-  ContentCard,
-  StagedForm,
-  StagedFormStep,
-  WorkingSectionShortcutBar,
-} from "@beyo/ui";
-import { cn } from "@beyo/lib";
-import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "@beyo/working-sections";
+import { ContentCard, StagedForm, StagedFormStep } from "@beyo/ui";
 
+import { QuickPreOrderItemStep } from "../components/QuickPreOrderItemStep";
+import { QuickTaskAssignFooter } from "../components/QuickTaskAssignFooter";
 import { TaskWorkingSectionsStepList } from "../components/TaskWorkingSectionsStepList";
-import { useQuickTaskAssignController } from "../controllers/use-quick-task-assign.controller";
+import {
+  useQuickPreOrderItemController,
+  type QuickPreOrderItemController,
+} from "../controllers/use-quick-pre-order-item.controller";
+import {
+  useQuickTaskAssignController,
+  type QuickTaskAssignController,
+} from "../controllers/use-quick-task-assign.controller";
 import {
   TaskWorkingSectionsProvider,
   useTaskWorkingSectionsContext,
@@ -33,110 +42,6 @@ function resolveImageUrl(
   }
 
   return typeof first.image_url === "string" ? first.image_url : null;
-}
-
-function QuickTaskUnifiedFooter({
-  activeStepId,
-  selectedCount,
-  onClose,
-  onAssign,
-  onBack,
-  onSaveAndClose,
-  isSaving = false,
-  hasUnsavedChanges = false,
-  availableSections = [],
-  selectedSectionIds = [],
-  onShortcutPress,
-}: {
-  activeStepId: string;
-  selectedCount: number;
-  onClose: () => void;
-  onAssign: () => void;
-  onBack: () => void;
-  onSaveAndClose?: () => Promise<void>;
-  isSaving?: boolean;
-  hasUnsavedChanges?: boolean;
-  availableSections?: Array<{ client_id: string; name: string }>;
-  selectedSectionIds?: string[];
-  onShortcutPress?: (matchedIds: string[]) => void;
-}): React.JSX.Element {
-  return (
-    <div className="bg-background shadow-[0_-1px_0_0_var(--color-border)]">
-      {activeStepId === "assign" &&
-      availableSections.length > 0 &&
-      onShortcutPress ? (
-        <div className="px-4 pt-3">
-          <WorkingSectionShortcutBar
-            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
-            availableSections={availableSections}
-            selectedSectionIds={selectedSectionIds}
-            onShortcutPress={onShortcutPress}
-            animationMode="translate"
-            data-testid="quick-task-assign-shortcut-bar"
-            className="py-2"
-            trackClassName="mt-3"
-          />
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-2 gap-3 px-4 pb-4 pt-3">
-        {activeStepId === "list" ? (
-          <button
-            className="rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-            data-testid="quick-task-list-back-button"
-            type="button"
-            onClick={onClose}
-          >
-            Close & Back
-          </button>
-        ) : (
-          <button
-            className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-5 py-3.5 text-md font-semibold text-primary shadow-sm transition"
-            data-testid="quick-task-assign-back-button"
-            type="button"
-            onClick={onBack}
-          >
-            <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
-            Back
-          </button>
-        )}
-
-        {activeStepId === "list" ? (
-          <button
-            className={cn(
-              "rounded-2xl px-5 py-3.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed",
-              selectedCount > 0
-                ? "bg-(--color-primary) text-card"
-                : "bg-muted text-muted-foreground opacity-50",
-            )}
-            data-testid="quick-task-list-assign-button"
-            disabled={selectedCount === 0}
-            type="button"
-            onClick={onAssign}
-          >
-            {selectedCount > 0 ? `Assign (${selectedCount})` : "Assign"}
-          </button>
-        ) : activeStepId === "assign" && onSaveAndClose ? (
-          <button
-            className="rounded-2xl bg-(--color-primary) px-5 py-3.5 text-md font-semibold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
-            data-testid="quick-task-assign-save-button"
-            disabled={isSaving || !hasUnsavedChanges}
-            type="button"
-            onClick={() => {
-              void onSaveAndClose();
-            }}
-          >
-            {isSaving ? "Saving..." : "Save"}
-          </button>
-        ) : null}
-      </div>
-
-      <div
-        aria-hidden="true"
-        className="h-(--safe-bottom,0px) bg-background"
-      />
-    </div>
-  );
 }
 
 function QuickTaskAssignWorkingSectionsPanel(): React.JSX.Element {
@@ -177,11 +82,12 @@ function QuickTaskAssignWorkingSectionsPanel(): React.JSX.Element {
 }
 
 type QuickTaskAssignStagedFormProps = {
-  controller: ReturnType<typeof useQuickTaskAssignController>;
+  controller: QuickTaskAssignController;
+  itemController: QuickPreOrderItemController;
   staged: ReturnType<typeof useStagedForm>;
+  isPreOrder: boolean;
   onAssign: () => void;
   onBack: () => void;
-  // assign-step footer data (only available in Provider path)
   onSaveAndClose?: () => Promise<void>;
   isSaving?: boolean;
   hasUnsavedChanges?: boolean;
@@ -192,7 +98,9 @@ type QuickTaskAssignStagedFormProps = {
 
 function QuickTaskAssignStagedForm({
   controller,
+  itemController,
   staged,
+  isPreOrder,
   onAssign,
   onBack,
   onSaveAndClose,
@@ -205,31 +113,36 @@ function QuickTaskAssignStagedForm({
   return (
     <StagedForm
       activeStepId={staged.activeStepId}
+      canAdvance={isPreOrder ? staged.validateAdvance : undefined}
       data-testid="quick-task-assign-slide-page"
       direction={staged.direction}
-      footer={
-        <QuickTaskUnifiedFooter
-          activeStepId={staged.activeStepId}
-          selectedCount={controller.selectedTaskIds.length}
-          onClose={() => controller.closeSurface?.()}
+      footer={({ stepId }) => (
+        <QuickTaskAssignFooter
+          activeStepId={stepId}
+          availableSections={availableSections}
+          hasItem={itemController.hasItem}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isAdvancing={staged.isAdvancing}
+          isPatching={itemController.isPatching}
+          isSaving={isSaving}
+          isSelectionValidForSubmit={controller.isSelectionValidForSubmit}
           onAssign={onAssign}
           onBack={onBack}
+          onClose={() => controller.closeSurface?.()}
+          onItemContinue={isPreOrder ? staged.advance : undefined}
           onSaveAndClose={onSaveAndClose}
-          isSaving={isSaving}
-          hasUnsavedChanges={hasUnsavedChanges}
-          availableSections={availableSections}
-          selectedSectionIds={selectedSectionIds}
           onShortcutPress={onShortcutPress}
+          selectedCount={controller.selectedTaskIds.length}
+          selectedSectionIds={selectedSectionIds}
+          selectionMode={controller.selectionMode}
         />
-      }
+      )}
       isAdvancing={staged.isAdvancing}
       isFirstStep={staged.isFirstStep}
       isLastStep={staged.isLastStep}
       navigationMode="free"
-      onAdvance={() => {}}
-      onBack={() => {
-        staged.navigateTo("list");
-      }}
+      onAdvance={isPreOrder ? staged.advance : () => {}}
+      onBack={onBack}
       onNavigate={staged.navigateTo}
       showNavigation={false}
       stepStatusMap={staged.stepStatusMap}
@@ -291,17 +204,18 @@ function QuickTaskAssignStagedForm({
                 onTapCard={controller.openTaskDetail}
                 onTapImage={(tappedTaskId) => {
                   const tappedTask = controller.tasks.find(
-                    (t) => t.task.client_id === tappedTaskId,
+                    (candidate) =>
+                      candidate.task.client_id === tappedTaskId,
                   );
                   const images = (tappedTask?.item_images ?? []).flatMap(
-                    (img) => {
+                    (image) => {
                       const clientId =
-                        typeof img.client_id === "string"
-                          ? img.client_id
+                        typeof image.client_id === "string"
+                          ? image.client_id
                           : null;
                       const imageUrl =
-                        typeof img.image_url === "string"
-                          ? img.image_url
+                        typeof image.image_url === "string"
+                          ? image.image_url
                           : null;
                       return clientId && imageUrl
                         ? [{ client_id: clientId, image_url: imageUrl }]
@@ -330,6 +244,23 @@ function QuickTaskAssignStagedForm({
         </div>
       </StagedFormStep>
 
+      {isPreOrder ? (
+        <StagedFormStep id="item" className="px-0">
+          <QuickPreOrderItemStep
+            hasItem={itemController.hasItem}
+            itemPreview={{
+              articleNumber:
+                controller.selectedTask?.primary_item?.article_number ?? null,
+              imageUrl: resolveImageUrl(
+                controller.selectedTask?.item_images ?? [],
+              ),
+              sku: controller.selectedTask?.primary_item?.sku ?? null,
+            }}
+            onLookupResult={itemController.handleLookupResult}
+          />
+        </StagedFormStep>
+      ) : null}
+
       <StagedFormStep id="assign" className="px-0">
         {controller.selectedTaskIds[0] && controller.selectedTask ? (
           <QuickTaskAssignWorkingSectionsPanel />
@@ -349,14 +280,20 @@ function QuickTaskAssignStagedForm({
 
 function QuickTaskAssignStagedFormWithProvider({
   controller,
+  itemController,
   staged,
+  isPreOrder,
   onAssign,
   onBack,
+  onItemOnlySaved,
 }: {
-  controller: ReturnType<typeof useQuickTaskAssignController>;
+  controller: QuickTaskAssignController;
+  itemController: QuickPreOrderItemController;
   staged: ReturnType<typeof useStagedForm>;
+  isPreOrder: boolean;
   onAssign: () => void;
   onBack: () => void;
+  onItemOnlySaved: () => void;
 }): React.JSX.Element {
   const workingSectionsController = useTaskWorkingSectionsContext();
 
@@ -373,17 +310,61 @@ function QuickTaskAssignStagedFormWithProvider({
     [workingSectionsController.sectionEntries],
   );
 
+  const handlePreOrderSave = useCallback(async (): Promise<void> => {
+    if (controller.selectedTaskIds.length !== 1) {
+      return;
+    }
+
+    if (!(await itemController.validate())) {
+      staged.navigateTo("item");
+      return;
+    }
+
+    if (!(await itemController.submitItemPatch())) {
+      staged.setStepStatus("item", "error");
+      staged.navigateTo("item");
+      return;
+    }
+
+    // Item-only save: `handleSaveAndClose` early-returns without unsaved
+    // section changes, but still fires closeSlide() — which optimistically
+    // drops the task from the list and never completes a save. Finish here.
+    if (!workingSectionsController.hasUnsavedChanges) {
+      onItemOnlySaved();
+      return;
+    }
+
+    await workingSectionsController.handleSaveAndClose();
+  }, [
+    controller.selectedTaskIds.length,
+    itemController,
+    onItemOnlySaved,
+    staged,
+    workingSectionsController,
+  ]);
+
   return (
     <QuickTaskAssignStagedForm
+      availableSections={availableSections}
       controller={controller}
+      hasUnsavedChanges={
+        isPreOrder
+          ? workingSectionsController.hasUnsavedChanges ||
+            itemController.hasItemChanges
+          : workingSectionsController.hasUnsavedChanges
+      }
+      isPreOrder={isPreOrder}
+      isSaving={workingSectionsController.isSaving}
+      itemController={itemController}
       onAssign={onAssign}
       onBack={onBack}
-      onSaveAndClose={workingSectionsController.handleSaveAndClose}
-      isSaving={workingSectionsController.isSaving}
-      hasUnsavedChanges={workingSectionsController.hasUnsavedChanges}
-      availableSections={availableSections}
-      selectedSectionIds={selectedSectionIds}
+      onSaveAndClose={
+        isPreOrder
+          ? handlePreOrderSave
+          : workingSectionsController.handleSaveAndClose
+      }
       onShortcutPress={workingSectionsController.handleShortcutPress}
+      selectedSectionIds={selectedSectionIds}
       staged={staged}
     />
   );
@@ -393,21 +374,75 @@ export function QuickTaskAssignSlidePage(): React.JSX.Element {
   const props = useSurfaceProps<QuickTaskAssignSurfaceProps>();
   const header = useSurfaceHeader();
   const taskType = props.taskType ?? "return";
+  const isPreOrder = taskType === "pre_order";
+  const [primaryTaskId, setPrimaryTaskId] = useState<string | null>(null);
+
+  // `staged` needs the controller (its advance guard reads the selection), and
+  // the selection callback needs `staged` — the ref breaks that cycle without
+  // depending on declaration order.
+  const stagedRef = useRef<ReturnType<typeof useStagedForm> | null>(null);
+
+  const handleSelectAndAdvance = useCallback((taskId: string): void => {
+    setPrimaryTaskId(taskId);
+    stagedRef.current?.setStepStatus("list", "completed");
+    stagedRef.current?.navigateTo("item");
+  }, []);
+
   const controller = useQuickTaskAssignController({
     taskType,
     surfaceOpeners: props.surfaceOpeners,
+    selectionMode: isPreOrder ? "single" : "multi",
+    onSelect: isPreOrder ? handleSelectAndAdvance : undefined,
   });
+  const itemController = useQuickPreOrderItemController({
+    task: isPreOrder ? controller.selectedTask : null,
+  });
+
   const stagedSteps = useMemo(
-    () => [
-      { id: "list", title: controller.taskTypeLabel },
-      { id: "assign", title: "Assign" },
-    ],
-    [controller.taskTypeLabel],
+    () =>
+      isPreOrder
+        ? [
+            { id: "list", title: "Pre-orders" },
+            { id: "item", title: "Item" },
+            { id: "assign", title: "Assign" },
+          ]
+        : [
+            { id: "list", title: "Returns" },
+            { id: "assign", title: "Assign" },
+          ],
+    [isPreOrder],
   );
+
+  const handleBeforeAdvance = useCallback(
+    async (
+      currentStepId: string,
+      _nextStepId: string | null,
+      setStepStatus: (
+        stepId: string,
+        status: StepStatus,
+      ) => void,
+    ): Promise<boolean> => {
+      if (currentStepId === "list") {
+        return controller.selectedTaskIds.length === 1;
+      }
+
+      if (currentStepId === "item") {
+        const isValid = await itemController.validate();
+        setStepStatus("item", isValid ? "completed" : "error");
+        return isValid;
+      }
+
+      return true;
+    },
+    [controller.selectedTaskIds.length, itemController],
+  );
+
   const staged = useStagedForm({
     steps: stagedSteps,
     mode: "free",
+    onBeforeAdvance: isPreOrder ? handleBeforeAdvance : undefined,
   });
+  stagedRef.current = staged;
 
   useEffect(() => {
     header?.setHeaderHidden(true);
@@ -416,19 +451,45 @@ export function QuickTaskAssignSlidePage(): React.JSX.Element {
     };
   }, [header]);
 
-  const [primaryTaskId, setPrimaryTaskId] = useState<string | null>(null);
-  const primaryTask =
-    controller.tasks.find((t) => t.task.client_id === primaryTaskId) ?? null;
-
   const handleCloseToList = useCallback(() => {
     setPrimaryTaskId(null);
+    if (isPreOrder) {
+      itemController.reset();
+      controller.clearSelection();
+    }
     staged.navigateTo("list");
-  }, [staged.navigateTo]);
+  }, [controller, isPreOrder, itemController, staged.navigateTo]);
+
+  const handleBack = useCallback(() => {
+    if (!isPreOrder) {
+      handleCloseToList();
+      return;
+    }
+
+    // Pre-order back — including the swipe-back gesture — only moves the pane.
+    // Clearing primaryTaskId here would unmount TaskWorkingSectionsProvider,
+    // swapping the rendered tree and remounting SlideStack; the fresh stack
+    // replays its enter animation (StagedForm always passes animateInitial)
+    // right after the gesture settled, and the selection would be lost too.
+    staged.back();
+  }, [handleCloseToList, isPreOrder, staged]);
 
   const handleAssign = useCallback(() => {
-    setPrimaryTaskId(controller.selectedTaskIds[0] ?? null);
+    const selectedTaskId = controller.selectedTaskIds[0] ?? null;
+    setPrimaryTaskId(selectedTaskId);
+
+    if (isPreOrder) {
+      staged.advance();
+      return;
+    }
+
     staged.navigateTo("assign");
-  }, [controller.selectedTaskIds, staged.navigateTo]);
+  }, [
+    controller.selectedTaskIds,
+    isPreOrder,
+    staged.advance,
+    staged.navigateTo,
+  ]);
 
   const workingSectionSurfaceOpeners =
     useMemo<TaskWorkingSectionsSurfaceOpeners>(
@@ -456,13 +517,27 @@ export function QuickTaskAssignSlidePage(): React.JSX.Element {
             return 0;
           }
 
+          if (isPreOrder) {
+            itemController.reset();
+          }
           setPrimaryTaskId(null);
           staged.navigateTo("list");
           return remainingTaskCount;
         },
       }),
-      [controller, primaryTaskId, staged.navigateTo],
+      [
+        controller,
+        isPreOrder,
+        itemController,
+        primaryTaskId,
+        staged.navigateTo,
+      ],
     );
+
+  const handleItemOnlySaved = useCallback(() => {
+    handleCloseToList();
+    void controller.refetch();
+  }, [controller, handleCloseToList]);
 
   if (!props.taskType) {
     return (
@@ -472,33 +547,50 @@ export function QuickTaskAssignSlidePage(): React.JSX.Element {
     );
   }
 
-  if (primaryTaskId && primaryTask) {
-    return (
-      <div className="flex h-full flex-col py-4">
-        <TaskWorkingSectionsProvider
-          key={primaryTaskId}
-          surfaceOpeners={workingSectionSurfaceOpeners}
-          taskId={primaryTaskId}
-        >
-          <QuickTaskAssignStagedFormWithProvider
-            controller={controller}
-            onAssign={handleAssign}
-            onBack={handleCloseToList}
-            staged={staged}
-          />
-        </TaskWorkingSectionsProvider>
-      </div>
-    );
-  }
+  const form = (
+    <QuickTaskAssignStagedForm
+      controller={controller}
+      isPreOrder={isPreOrder}
+      itemController={itemController}
+      onAssign={handleAssign}
+      onBack={handleBack}
+      staged={staged}
+    />
+  );
+
+  // Mount on the id alone: deriving this from the selected task as well made
+  // the tree flip (and SlideStack remount) whenever the selection momentarily
+  // cleared — on deselect, and mid-save once the task was optimistically
+  // removed. The provider resolves the task from the id by itself.
+  const formWithProvider = primaryTaskId ? (
+    <TaskWorkingSectionsProvider
+      key={primaryTaskId}
+      surfaceOpeners={workingSectionSurfaceOpeners}
+      taskId={primaryTaskId}
+    >
+      <QuickTaskAssignStagedFormWithProvider
+        controller={controller}
+        isPreOrder={isPreOrder}
+        itemController={itemController}
+        onAssign={handleAssign}
+        onBack={handleBack}
+        onItemOnlySaved={handleItemOnlySaved}
+        staged={staged}
+      />
+    </TaskWorkingSectionsProvider>
+  ) : (
+    form
+  );
 
   return (
     <div className="flex h-full flex-col py-4">
-      <QuickTaskAssignStagedForm
-        controller={controller}
-        onAssign={handleAssign}
-        onBack={handleCloseToList}
-        staged={staged}
-      />
+      {isPreOrder ? (
+        <FormProvider {...itemController.form}>
+          {formWithProvider}
+        </FormProvider>
+      ) : (
+        formWithProvider
+      )}
     </div>
   );
 }

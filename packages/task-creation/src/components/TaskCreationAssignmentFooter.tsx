@@ -12,10 +12,6 @@ import {
 
 import type { WorkingSectionAssignment } from "../types";
 
-// Fixed edge-reveal distance for staged task-creation footers. The footer's
-// actual padding still tracks live height via ResizeObserver inside StagedForm.
-export const TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX = 50;
-
 type TaskCreationAssignmentFooterProps = {
   activeStepId: string;
   majorCategory?: string;

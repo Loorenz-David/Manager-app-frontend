@@ -3,6 +3,7 @@
   "scripts": {
     "test:ui": "vitest run --config packages/ui/vitest.config.ts",
     "test:task-creation": "vitest run --config packages/task-creation/vitest.config.ts",
+    "test:task-working-sections": "vitest run --config packages/task-working-sections/vitest.config.ts",
     "test:shopify": "vitest run --config packages/shopify/vitest.config.ts",
     "test:presentation-builder": "vitest run --config packages/presentation-builder/vitest.config.ts",
     "test:presentation-runtime": "vitest run --config packages/presentation-runtime/vitest.config.ts",

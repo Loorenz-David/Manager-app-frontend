@@ -5,6 +5,7 @@ import {
   PlayerAcknowledgeFooter,
   PlayerCtaButton,
   PlayerDismissButton,
+  PlayerPausedIndicator,
   PlayerTapZones,
 } from "./components/player/PlayerAffordances";
 import { PlayerSegmentedProgress } from "./components/player/PlayerSegmentedProgress";
@@ -17,8 +18,15 @@ export type PresentationPlayerProps = {
   surfaceType?: PresentationType;
   navigate: (route: string) => void;
   onProgress: (lastSlideIndex: number) => void | Promise<void>;
+  /** Early exit, before the deck has played through once — records `dismissed` and closes. */
   onDismiss: (lastSlideIndex: number) => void | Promise<void>;
+  /**
+   * Fires once, the moment the first loop wraps — records `completed`.
+   * It must NOT close the surface: the deck keeps looping until the user quits.
+   */
   onComplete: (lastSlideIndex: number) => void | Promise<void>;
+  /** Closes the surface without recording anything (the deck is already `completed`). */
+  onClose: () => void | Promise<void>;
   onMediaExpired: () => Promise<ConsumerPresentation | null>;
 };
 
@@ -29,12 +37,14 @@ export function PresentationPlayer({
   onProgress,
   onDismiss,
   onComplete,
+  onClose,
   onMediaExpired,
 }: PresentationPlayerProps): React.JSX.Element {
   const [currentPresentation, setCurrentPresentation] = useState(presentation);
-  const [terminalPending, setTerminalPending] = useState(false);
+  const [exitPending, setExitPending] = useState(false);
   const refreshingMediaRef = useRef(false);
   const furthestReportedRef = useRef(0);
+  const completeStartedRef = useRef(false);
 
   useEffect(() => {
     if (
@@ -43,24 +53,23 @@ export function PresentationPlayer({
     ) {
       setCurrentPresentation(presentation);
       furthestReportedRef.current = 0;
+      completeStartedRef.current = false;
     }
   }, [currentPresentation.client_id, currentPresentation.version, presentation]);
 
-  const handleComplete = useCallback(async () => {
-    if (terminalPending) return;
-    setTerminalPending(true);
-    try {
-      await onComplete(furthestReportedRef.current);
-    } finally {
-      setTerminalPending(false);
-    }
-  }, [onComplete, terminalPending]);
+  /** Recorded in the background — completing must never block the still-running deck. */
+  const handleFirstLoopComplete = useCallback(() => {
+    if (completeStartedRef.current) return;
+    completeStartedRef.current = true;
+    void onComplete(furthestReportedRef.current);
+  }, [onComplete]);
 
-  const playback = usePresentationPlayback(currentPresentation.slides, () => {
-    void handleComplete();
-  });
+  const playback = usePresentationPlayback(
+    currentPresentation.slides,
+    handleFirstLoopComplete,
+  );
   const slide = currentPresentation.slides[playback.activeSlideIndex];
-  const isLast = playback.activeSlideIndex === currentPresentation.slides.length - 1;
+  const hasSeenFullDeck = playback.loopCount > 0;
 
   useEffect(() => {
     if (playback.activeSlideIndex <= furthestReportedRef.current) return;
@@ -69,14 +78,24 @@ export function PresentationPlayer({
   }, [onProgress, playback.activeSlideIndex]);
 
   const handleDismiss = useCallback(async () => {
-    if (!currentPresentation.is_dismissible || terminalPending) return;
-    setTerminalPending(true);
+    if (!currentPresentation.is_dismissible || exitPending) return;
+    setExitPending(true);
     try {
       await onDismiss(furthestReportedRef.current);
     } finally {
-      setTerminalPending(false);
+      setExitPending(false);
     }
-  }, [currentPresentation.is_dismissible, onDismiss, terminalPending]);
+  }, [currentPresentation.is_dismissible, exitPending, onDismiss]);
+
+  const handleClose = useCallback(async () => {
+    if (exitPending) return;
+    setExitPending(true);
+    try {
+      await onClose();
+    } finally {
+      setExitPending(false);
+    }
+  }, [exitPending, onClose]);
 
   const handleMediaError = useCallback(() => {
     if (refreshingMediaRef.current) return;
@@ -94,8 +113,17 @@ export function PresentationPlayer({
 
   if (!slide) return <div data-testid="presentation-player-empty" />;
 
-  const showAcknowledge = !currentPresentation.is_dismissible
-    && (surfaceType === "slide_page" || isLast);
+  // Before the first loop wraps, only a dismissible deck may be left early (records `dismissed`);
+  // after it, every affordance is a plain close because `completed` is already recorded.
+  const showDismissButton = currentPresentation.is_dismissible && surfaceType !== "slide_page";
+  const cta = slide.action
+    ? (
+      <PlayerCtaButton
+        label={slide.action.label}
+        onClick={() => navigate(slide.action!.route)}
+      />
+    )
+    : null;
 
   return (
     <PlayerViewport>
@@ -120,29 +148,31 @@ export function PresentationPlayer({
           <PlayerTapZones
             onPrev={playback.previous}
             onNext={playback.next}
-            disabled={terminalPending}
+            onTogglePause={playback.togglePause}
+            isPaused={playback.isPaused}
+            disabled={exitPending}
           />
-          {currentPresentation.is_dismissible && surfaceType !== "slide_page" && (
+          {playback.isPaused && <PlayerPausedIndicator />}
+          {showDismissButton && (
             <PlayerDismissButton
               variant={surfaceType === "full_screen" ? "skip" : "x"}
-              onDismiss={() => void handleDismiss()}
+              onDismiss={() => void (hasSeenFullDeck ? handleClose() : handleDismiss())}
             />
           )}
-          {slide.action && !(!currentPresentation.is_dismissible && isLast) && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-              <PlayerCtaButton
-                label={slide.action.label}
-                onClick={() => navigate(slide.action!.route)}
+          {hasSeenFullDeck
+            ? (
+              <PlayerAcknowledgeFooter
+                label="Close"
+                disabled={exitPending}
+                onAcknowledge={() => void handleClose()}
+                above={cta}
               />
-            </div>
-          )}
-          {showAcknowledge && (
-            <PlayerAcknowledgeFooter
-              label="Got it"
-              disabled={terminalPending}
-              onAcknowledge={() => void handleComplete()}
-            />
-          )}
+            )
+            : cta && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+                {cta}
+              </div>
+            )}
         </>
       )}
     </PlayerViewport>

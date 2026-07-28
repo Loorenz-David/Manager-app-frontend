@@ -18,6 +18,8 @@ const QUICK_TASK_LIMIT = 50;
 type UseQuickTaskAssignControllerArgs = {
   taskType: TaskType;
   surfaceOpeners?: QuickTaskAssignSurfaceOpeners;
+  selectionMode?: "single" | "multi";
+  onSelect?: (taskId: string) => void;
 };
 
 function getTaskTypeLabel(taskType: TaskType): string {
@@ -34,6 +36,8 @@ function getTaskTypeLabel(taskType: TaskType): string {
 export function useQuickTaskAssignController({
   taskType,
   surfaceOpeners,
+  selectionMode = "multi",
+  onSelect,
 }: UseQuickTaskAssignControllerArgs) {
   const queryClient = useQueryClient();
   const listQuery = useQuickTaskListQuery({
@@ -69,6 +73,17 @@ export function useQuickTaskAssignController({
 
   function handleToggleTask(taskId: string): void {
     if (savingTaskId) {
+      return;
+    }
+
+    if (selectionMode === "single") {
+      if (selectedTaskIds[0] === taskId) {
+        setSelectedTaskIds([]);
+        return;
+      }
+
+      setSelectedTaskIds([taskId]);
+      onSelect?.(taskId);
       return;
     }
 
@@ -114,6 +129,8 @@ export function useQuickTaskAssignController({
       ...savedTaskIds.filter((id) => !current.includes(id)),
     ]);
 
+    // Multi-mode only: fan the selected working sections out to the remaining
+    // return tasks. Single-mode pre-orders never enter this branch.
     if (remainingTaskIds.length > 0 && appliedAdds.length > 0) {
       void Promise.allSettled(
         remainingTaskIds.map((id) =>
@@ -154,6 +171,11 @@ export function useQuickTaskAssignController({
     tasks,
     selectedTaskIds,
     selectedTask,
+    selectionMode,
+    isSelectionValidForSubmit:
+      selectionMode === "single"
+        ? selectedTaskIds.length === 1
+        : selectedTaskIds.length > 0,
     savingTaskId,
     isInitialLoading: listQuery.isPending,
     isRefreshing: listQuery.isFetching || countsQuery.isFetching,

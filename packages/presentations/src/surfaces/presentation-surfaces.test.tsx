@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { useMemo, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
-import { consumerPresentationFixture } from "../test/fixtures";
+import { consumerPresentationFixture, makeConsumerSlide } from "../test/fixtures";
 import {
   preloadPresentationFullScreenSurface,
   preloadPresentationModalSurface,
@@ -78,7 +78,7 @@ describe("presentation surface dismiss matrix", () => {
     expect(screen.getByRole("button", { name: "Dismiss announcement" })).toHaveTextContent("Skip");
   });
 
-  it("disables slide-page swipe and shows acknowledge when non-dismissible", () => {
+  it("locks a non-dismissible slide page until the deck has looped once", () => {
     vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
     vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(690);
     const controller = {
@@ -93,11 +93,56 @@ describe("presentation surface dismiss matrix", () => {
         })} />
       </ContextHarness>,
     );
+    // No exit at all before the first loop: swipe locked, no chrome, no footer.
     expect(controller.setSwipeDismissDisabled).toHaveBeenCalledWith(true);
-    expect(screen.getByTestId("presentation-player-acknowledge-footer")).toBeInTheDocument();
+    expect(screen.queryByTestId("presentation-player-acknowledge-footer")).not.toBeInTheDocument();
     expect(screen.queryByTestId("presentation-player-dismiss-button")).not.toBeInTheDocument();
     view.unmount();
     expect(controller.setSwipeDismissDisabled).toHaveBeenLastCalledWith(false);
+  });
+
+  it("reveals the close footer and re-enables swipe once the first loop completes", async () => {
+    vi.spyOn(HTMLElement.prototype, "clientWidth", "get").mockReturnValue(390);
+    vi.spyOn(HTMLElement.prototype, "clientHeight", "get").mockReturnValue(690);
+    const controller = {
+      setSwipeDismissDisabled: vi.fn(),
+      setCloseInterceptor: vi.fn(),
+      requestClose: vi.fn(),
+    };
+    const onComplete = vi.fn();
+    const onDismiss = vi.fn();
+    render(
+      <ContextHarness controller={controller}>
+        <PresentationSlidePageSurface {...baseProps({
+          onComplete,
+          onDismiss,
+          presentation: {
+            ...consumerPresentationFixture,
+            is_dismissible: false,
+            slides: [
+              makeConsumerSlide("timed", 40, 1),
+              makeConsumerSlide("timed", 40, 2),
+            ],
+          },
+        })} />
+      </ContextHarness>,
+    );
+
+    const footer = await screen.findByTestId("presentation-player-acknowledge-footer", {}, {
+      timeout: 2_000,
+    });
+    expect(footer).toHaveTextContent("Close");
+    // `completed` is recorded by the loop itself — and it must not have closed the surface.
+    await waitFor(() => expect(onComplete).toHaveBeenCalledTimes(1));
+    expect(controller.requestClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(controller.setSwipeDismissDisabled).toHaveBeenLastCalledWith(false));
+
+    // The unlocked exits are plain closes: `dismissed` after `completed` would 409.
+    act(() => {
+      screen.getByTestId("presentation-player-acknowledge-button").click();
+    });
+    await waitFor(() => expect(controller.requestClose).toHaveBeenCalled());
+    expect(onDismiss).not.toHaveBeenCalled();
   });
 
   it("intercepts slide-page gesture close to record dismissed before closing", async () => {

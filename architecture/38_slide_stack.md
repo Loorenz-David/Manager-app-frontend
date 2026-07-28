@@ -15,9 +15,12 @@ Never hand-roll an `AnimatePresence` pane switcher for this interaction pattern.
 | Staged/step form navigation | `StagedForm` (already built on SlideStack) |
 | Any other multi-pane forward/back composition (browse → detail, wizard-like flows, drill-downs inside one surface) | `SlideStack` directly |
 | Whole-page overlay that opens over the app | `SlidePageSurface` (28_surfaces.md) — not a stack pane |
-| Horizontal tab switching with parallel content | Tab patterns (31_animations.md `tabVariants`) — tabs are peers, not a stack |
+| The app shell's main pages (nav-bar tabs) | `SlideStack`, one pane per `TAB_ORDER` entry — see *App-shell tab stack* below |
+| Horizontal switching between peers *inside* a page | Tab patterns (31_animations.md `tabVariants`) |
 
 The mental model: a stack is **hierarchical** (later panes sit *on top of* earlier ones); tabs are peers. If "back" reveals something that was underneath, it is a stack.
+
+The shell's main pages are the deliberate exception: they are peers, but they are ordered, and modelling them as a stack is what gives them one shared transition and a swipe that agrees with the nav bar.
 
 ---
 
@@ -59,6 +62,8 @@ Only the **active pane is mounted**. Inactive panes unmount — see *Unmount sem
 | `canForward` | `SlideStackCondition` | allowed | Gate for the forward drag (e.g. current step valid). |
 | `direction` | `1 \| -1` | inferred | Controlled navigation direction. When omitted, inferred from pane child order (later child = forward). |
 | `animateInitial` | `boolean` | `false` | Animate the first pane in on mount. |
+| `awaitNavigation` | `boolean` | `false` | Set when honoring `onBack`/`onForward` changes `activeId` **asynchronously** (react-router data router). See *Navigation ownership*. |
+| `onCommit` | `(type) => void` | — | Fired at the release of a committed drag, one settle before the navigation — for chrome outside the stack (steppers, indicators). |
 
 `SlideStackCondition = boolean | (() => boolean | Promise<boolean>)` — see *Drag conditions*.
 
@@ -77,6 +82,8 @@ Only the **active pane is mounted**. Inactive panes unmount — see *Unmount sem
 The stack **never owns navigation state**. The consumer owns `activeId`; `onBack`/`onForward` are requests (from a committed drag, or from the surface's back arrow). The consumer decides whether to honor them by updating `activeId` — declining is legal (e.g. validation failed inside the callback) and the stack recovers the pane to rest on its own.
 
 `onBack`/`onForward` must update state **synchronously** when they do navigate (a plain `setState`), so the ghost handoff and the navigation land in the same render batch.
+
+**If they cannot** — a react-router data router's `navigate()` resolves a tick later — pass `awaitNavigation`. The stand-in ghost is then held until `activeId` actually changes (or ~400 ms, if the navigation never lands). Without it, the render that removes the ghost still shows the *outgoing* pane parked at its drag pose, which reads as the page you just left flashing back for a frame. Do not set it for synchronous consumers: they would keep the ghost — the next pane's content — on screen for the fallback window every time they decline to navigate.
 
 ---
 
@@ -130,6 +137,30 @@ Outside any surface, all of this no-ops safely; the drags still work.
 
 ---
 
+## Nested stacks
+
+Stacks nest: a drill-down stack inside a pane of another stack (the workers home sections → steps stack lives inside the shell's Home tab pane). Touch events bubble through both panes, so both stacks see the same finger. Arbitration is automatic and needs no wiring:
+
+- The **innermost** stack that can serve the direction claims the touch (its listener locks the axis first) and drives the drag alone.
+- A stack that **refuses** the direction (first pane on a back drag, last pane on a forward drag, or a `canBack`/`canForward` that said no) never claims, so the gesture falls through to the stack above it.
+
+So on the second pane of an inner stack a right-swipe goes back one pane; on its first pane the same swipe moves the shell to the previous tab. An async condition claims the finger while it resolves — a `false` verdict makes the gesture inert for that touch rather than handing it upward.
+
+---
+
+## App-shell tab stack
+
+Each app's `TabSlideStack` renders one `SlideStackPane` per `TAB_ORDER` entry, so nav-bar taps and swipes produce the same transition and a swipe direction that matches the tab's place in the order.
+
+Consequences worth knowing before touching the shell:
+
+- **Tab pages are rendered by the shell, not the router.** Route entries for tab paths carry an empty element; the components come from `TAB_ROUTE_COMPONENTS` (`lib/primary-tab-preload.ts`). A drag has to mount the *neighbouring* tab as its ghost, and the router only ever renders the matched route. Add a tab = add it to `TAB_ORDER`, to `TAB_ROUTE_COMPONENTS`, and to the router's `TAB_ROUTES` list.
+- **Non-tab routes** (surface hydrators, deep-linked pages) render in a layer above the stack; the tab that opened them stays mounted underneath (`TabNavigationProvider.activeTab` follows `location.state.background`), so closing a surface restores the tab without a remount.
+- **Tab panes carry `contain-[paint]`.** Tab pages render `fixed` chrome (FABs, bottom action bars) that must anchor to the tab area above the nav bar, not to the viewport. Paint containment makes the pane that containing block at all times — don't rely on the pane's transform, which only exists mid-drag.
+- **The nav-bar indicator** reads `displayTab`, which runs ahead of the route for the length of a committed swipe's settle (`SlideStack.onCommit` → `previewTab`), so it moves when the finger lifts.
+
+---
+
 ## Unmount semantics
 
 Inactive panes **unmount**. This is deliberate (flat memory, cheap transitions) and has two consequences:
@@ -156,12 +187,12 @@ During a drag the target pane is mounted as a **live copy**, so its effects run 
 - **Registering a surface interceptor alongside a deep stack** → violates the single-slot rule above.
 - **Async work in `onForward` that navigates later** → navigation must be synchronous when honored; the stack treats "no `activeId` change" as a decline and restores the pane.
 - **Gating with conditions but expecting the header back arrow to be blocked too** → conditions gate drags only; guard `onBack` for the rest.
-- **Horizontal gesture children** (carousels, swipeable rows) inside panes → mark the region `data-slide-dismiss-ignore`, same contract as the surface dismiss.
+- **Horizontal gesture children** (carousels, swipeable rows) inside panes → mark the region `data-slide-dismiss-ignore`, same contract as the surface dismiss. `HorizontalScrollArea` and `SwipeableRow` already mark themselves; a hand-rolled `overflow-x-auto` row or a bespoke drag does not.
 
 ---
 
 ## Testing
 
-Vitest (jsdom) covers stack behavior with dispatched `TouchEvent`s — see `packages/ui/src/components/primitives/slide-stack/SlideStack.test.tsx` (gesture simulation helpers, surface mocking via `SurfaceHeaderContext.Provider`) and `SlideStack.consecutive-drags.test.tsx` (stateful consumer, consecutive drags, settle fast-forward). Reuse the `dispatchTouch` pattern; panes have `slide-stack-pane-<id>` testids and ghosts `-ghost`.
+Vitest (jsdom) covers stack behavior with dispatched `TouchEvent`s — see `packages/ui/src/components/primitives/slide-stack/SlideStack.test.tsx` (gesture simulation helpers, surface mocking via `SurfaceHeaderContext.Provider`) , `SlideStack.consecutive-drags.test.tsx` (stateful consumer, consecutive drags, settle fast-forward) and `SlideStack.nested-stacks.test.tsx` (inner stack claims a drag it can serve; falls through to the outer stack when it cannot). Reuse the `dispatchTouch` pattern; panes have `slide-stack-pane-<id>` testids and ghosts `-ghost`.
 
 For Playwright on the mobile project, remember taps inside `PullToRefresh` need `tap()` (see the filterTaps workaround note) and drags are real touch sequences.

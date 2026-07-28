@@ -1,23 +1,24 @@
 import { cva } from 'class-variance-authority';
 
+/** Circular step badge: check when completed, alert when flagged, step number otherwise. */
 export const stepIndicatorVariants = cva(
   [
-    'absolute top-1/2 flex shrink-0 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full',
-    'transition-[transform,colors] duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+    'flex size-7 shrink-0 items-center justify-center rounded-full',
+    'text-xs font-semibold leading-none tabular-nums',
+    'transition-colors duration-200',
   ].join(' '),
   {
     variants: {
       status: {
-        active: 'size-6 border-[5px] border-primary bg-background text-transparent shadow-sm',
-        completed: 'size-3 border border-primary bg-primary text-transparent',
-        pending: 'size-3 border border-border bg-border text-transparent',
-        warning: 'size-5 border-2 border-yellow-500 bg-yellow-50 text-yellow-700',
-        error: 'size-5 border-2 border-destructive bg-destructive/10 text-destructive',
-        locked: 'size-4 border border-muted bg-muted text-muted-foreground',
+        active: 'bg-foreground text-card',
+        completed: 'bg-success/15 text-success',
+        pending: 'bg-muted/60 text-muted-foreground',
+        warning: 'bg-warning/15 text-warning',
+        error: 'bg-destructive/10 text-destructive',
+        locked: 'bg-muted/60 text-muted-foreground',
       },
       interactive: {
-        true: 'cursor-pointer hover:scale-105',
+        true: 'cursor-pointer',
         false: 'cursor-default',
       },
     },
@@ -28,15 +29,15 @@ export const stepIndicatorVariants = cva(
   },
 );
 
-export const stepLabelVariants = cva('truncate px-2 text-center text-xl font-semibold leading-none tracking-tight', {
+export const stepLabelVariants = cva('truncate text-sm leading-none tracking-tight', {
   variants: {
     status: {
-      active: 'text-foreground',
-      completed: 'text-foreground',
-      pending: 'text-muted-foreground',
-      warning: 'text-yellow-700',
-      error: 'text-destructive',
-      locked: 'text-muted-foreground',
+      active: 'font-semibold text-foreground',
+      completed: 'font-medium text-muted-foreground',
+      pending: 'font-medium text-muted-foreground',
+      warning: 'font-medium text-warning',
+      error: 'font-medium text-destructive',
+      locked: 'font-medium text-muted-foreground',
     },
   },
   defaultVariants: {
@@ -44,11 +45,12 @@ export const stepLabelVariants = cva('truncate px-2 text-center text-xl font-sem
   },
 });
 
-export const connectorVariants = cva('absolute left-0 top-1/2 h-2 w-full -translate-y-1/2 rounded-full transition-colors duration-150', {
+/** Fill bar inside a connector track — width carries the progress, colour the state. */
+export const connectorVariants = cva('h-full rounded-full transition-[width] duration-300 ease-out', {
   variants: {
     filled: {
-      true: 'bg-primary',
-      false: 'bg-muted',
+      true: 'w-full bg-foreground',
+      false: 'w-0 bg-foreground',
     },
   },
   defaultVariants: {

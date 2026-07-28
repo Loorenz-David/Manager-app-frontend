@@ -1,28 +1,22 @@
-import { Suspense } from "react";
 import { createBrowserRouter } from "react-router-dom";
 import { GuestRoute, ProtectedRoute } from "@beyo/auth";
-import { PageSkeleton, RouteErrorBoundary } from "@beyo/ui";
 import { AppShell } from "@/app/AppShell";
 import { RootRoute } from "@/app/RootRoute";
 import { lazyRoute } from "@/lib/lazy-route";
-import {
-  casesPageRoute,
-  homePageRoute,
-  settingsPageRoute,
-  statsPageRoute,
-  tasksPageRoute,
-} from "@/lib/primary-tab-preload";
 import { ROUTES } from "@/lib/routes";
 
-function tabRoute(Component: React.ComponentType): React.JSX.Element {
-  return (
-    <RouteErrorBoundary>
-      <Suspense fallback={<PageSkeleton />}>
-        <Component />
-      </Suspense>
-    </RouteErrorBoundary>
-  );
-}
+/**
+ * Tab routes render nothing of their own: the shell renders every tab itself,
+ * as panes of one slide stack (TabSlideStack), so a swipe can mount the
+ * neighbouring tab as its drag preview. These entries exist to match the URL.
+ */
+const TAB_ROUTES = [
+  ROUTES.home,
+  ROUTES.tasks,
+  ROUTES.cases,
+  ROUTES.stats,
+  ROUTES.settings,
+].map((path) => ({ path, element: <></> }));
 
 export const router = createBrowserRouter([
   {
@@ -47,18 +41,7 @@ export const router = createBrowserRouter([
           {
             element: <AppShell />,
             children: [
-              {
-                path: ROUTES.home,
-                element: tabRoute(homePageRoute.Component),
-              },
-              {
-                path: ROUTES.tasks,
-                element: tabRoute(tasksPageRoute.Component),
-              },
-              {
-                path: ROUTES.cases,
-                element: tabRoute(casesPageRoute.Component),
-              },
+              ...TAB_ROUTES,
               {
                 path: ROUTES.caseConversation,
                 element: lazyRoute(() =>
@@ -66,14 +49,6 @@ export const router = createBrowserRouter([
                     (module) => ({ default: module.CaseConversationPage }),
                   ),
                 ),
-              },
-              {
-                path: ROUTES.stats,
-                element: tabRoute(statsPageRoute.Component),
-              },
-              {
-                path: ROUTES.settings,
-                element: tabRoute(settingsPageRoute.Component),
               },
             ],
           },

@@ -4,6 +4,7 @@ import {
   PlayerAcknowledgeFooter,
   PlayerCtaButton,
   PlayerDismissButton,
+  PlayerPausedIndicator,
   PlayerTapZones,
 } from "../components/player/PlayerAffordances";
 import { PlayerFullScreenFrame, PlayerModalFrame } from "../components/player/PlayerFrames";
@@ -44,10 +45,12 @@ export function PlayerKitPreview(): React.JSX.Element {
   const [isDismissible, setIsDismissible] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [fraction, setFraction] = useState(0.4);
+  const [isPaused, setIsPaused] = useState(false);
+  const [seenFullDeck, setSeenFullDeck] = useState(false);
   const noop = () => undefined;
 
   const slide = SLIDES[activeIndex]!;
-  const isLast = activeIndex === SLIDES.length - 1;
+  const cta = slide.cta ? <PlayerCtaButton label={slide.cta} onClick={noop} /> : null;
 
   const playerBody = (
     <PlayerViewport>
@@ -61,22 +64,24 @@ export function PlayerKitPreview(): React.JSX.Element {
           />
           <PlayerTapZones
             onPrev={() => setActiveIndex((current) => Math.max(0, current - 1))}
-            onNext={() => setActiveIndex((current) => Math.min(SLIDES.length - 1, current + 1))}
+            onNext={() => setActiveIndex((current) => (current + 1) % SLIDES.length)}
+            onTogglePause={() => setIsPaused((paused) => !paused)}
+            isPaused={isPaused}
           />
-          {isDismissible && (
+          {isPaused && <PlayerPausedIndicator />}
+          {isDismissible && frame !== "slide_page" && (
             <PlayerDismissButton
               variant={frame === "full_screen" ? "skip" : "x"}
               onDismiss={noop}
             />
           )}
-          {slide.cta && !(!isDismissible && isLast) && (
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-              <PlayerCtaButton label={slide.cta} onClick={noop} />
-            </div>
-          )}
-          {!isDismissible && (frame === "slide_page" || isLast) && (
-            <PlayerAcknowledgeFooter label="Got it" onAcknowledge={noop} />
-          )}
+          {seenFullDeck
+            ? <PlayerAcknowledgeFooter label="Close" onAcknowledge={noop} above={cta} />
+            : cta && (
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 flex justify-center px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+                {cta}
+              </div>
+            )}
         </>
       )}
     </PlayerViewport>
@@ -105,6 +110,14 @@ export function PlayerKitPreview(): React.JSX.Element {
             onChange={(event) => setIsDismissible(event.target.checked)}
           />
           is_dismissible
+        </label>
+        <label className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            checked={seenFullDeck}
+            onChange={(event) => setSeenFullDeck(event.target.checked)}
+          />
+          first loop done
         </label>
         <label className="flex items-center gap-1.5">
           progress

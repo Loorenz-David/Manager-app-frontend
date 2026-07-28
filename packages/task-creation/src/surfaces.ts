@@ -11,6 +11,10 @@ import {
   SCANNER_SLIDE_SURFACE_ID,
   loadScannerSlidePage,
 } from "@beyo/scanner";
+import {
+  SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID,
+  loadShopifyShopPickerSheetPage,
+} from "@beyo/shopify";
 import { upholsterySurfaces } from "@beyo/upholstery";
 import type { CreateTaskResult } from "@beyo/tasks";
 import { workingSectionSurfaces } from "@beyo/working-sections";
@@ -106,6 +110,7 @@ const workerItemIssueSelectionSheet = lazyWithPreload(
 const calendarSinglePicker = lazyWithPreload(loadCalendarSinglePickerPage);
 const calendarRangePicker = lazyWithPreload(loadCalendarRangePickerPage);
 const scannerSlide = lazyWithPreload(loadScannerSlidePage);
+const shopifyShopPickerSheet = lazyWithPreload(loadShopifyShopPickerSheetPage);
 
 export { preloadItemCategoryPickerSurface, preloadPhoneCountryPickerSurface };
 export const preloadReturnTaskSlideSurface = returnTaskSlide.preload;
@@ -119,6 +124,8 @@ export const preloadCalendarSinglePickerSurface =
   calendarSinglePicker.preload;
 export const preloadCalendarRangePickerSurface = calendarRangePicker.preload;
 export const preloadScannerSlideSurface = scannerSlide.preload;
+export const preloadShopifyShopPickerSheetSurface =
+  shopifyShopPickerSheet.preload;
 
 export const taskCreationSurfaces: SurfaceRegistrations = {
   ...phoneInputSurfaces,
@@ -128,6 +135,10 @@ export const taskCreationSurfaces: SurfaceRegistrations = {
   [SCANNER_SLIDE_SURFACE_ID]: {
     surface: "slide",
     component: scannerSlide.Component,
+  },
+  [SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: shopifyShopPickerSheet.Component,
   },
   [CALENDAR_SINGLE_PICKER_SURFACE_ID]: {
     surface: "sheet",

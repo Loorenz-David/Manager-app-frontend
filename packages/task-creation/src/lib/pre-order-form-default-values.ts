@@ -42,5 +42,8 @@ export function buildPreOrderFormDefaultValues(
     working_section_assignments: [],
     ready_by_at: null,
     note_content: null,
+    product_unit_price: null,
+    shopIntegrationIds: [],
+    inventoryAdjustments: [],
   };
 }

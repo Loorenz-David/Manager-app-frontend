@@ -53,7 +53,6 @@ import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
-import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
@@ -368,13 +367,12 @@ export function InternalFormContent(): React.JSX.Element {
           data-testid="internal-staged-form"
           direction={staged.direction}
           header={<TaskCreationStagedFormHeader title="Internal Task" />}
-          footer={
+          footer={({ stepId }) => (
             <TaskCreationAssignmentFooter
-              activeStepId={staged.activeStepId}
+              activeStepId={stepId}
               majorCategory={majorCategory}
             />
-          }
-          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
+          )}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}

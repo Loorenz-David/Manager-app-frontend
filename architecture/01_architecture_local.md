@@ -68,4 +68,4 @@ Feature chunks are preloaded via `src/lib/primary-tab-preload.ts`. Preload targe
 
 ### When to use this pattern
 
-Only for **primary tab routes** — the five features mounted inside `AppShell` via `TabOutlet`. Surface content (registered in `surface-registry.ts`) uses `src/pages/test_feature/` wrappers directly, without a `route-entry.tsx`.
+Only for **primary tab routes** — the five features mounted inside `AppShell` as panes of its `TabSlideStack`. Surface content (registered in `surface-registry.ts`) uses `src/pages/test_feature/` wrappers directly, without a `route-entry.tsx`.

@@ -4,7 +4,7 @@ import { ImageDownloadUrlResponseSchema } from '../types';
 
 export async function fetchImageDownloadUrl(
   imageClientId: string,
-): Promise<{ downloadUrl: string; expiresIn: number }> {
+): Promise<{ downloadUrl: string; expiresIn: number | null }> {
   const response = await apiClient.get(
     `/api/v1/images/${imageClientId}/download-url`,
     ImageDownloadUrlResponseSchema,

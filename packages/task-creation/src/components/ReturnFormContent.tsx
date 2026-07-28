@@ -71,7 +71,6 @@ import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
-import { TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { ReturnFormSchema, type ReturnFormValues } from "../types";
 import {
@@ -478,13 +477,12 @@ export function ReturnFormContent(): React.JSX.Element {
           data-testid="return-staged-form"
           direction={staged.direction}
           header={<TaskCreationStagedFormHeader title="Return" />}
-          footer={
+          footer={({ stepId }) => (
             <TaskCreationAssignmentFooter
-              activeStepId={staged.activeStepId}
+              activeStepId={stepId}
               majorCategory={majorCategory}
             />
-          }
-          footerEdgeOffset={TASK_CREATION_ASSIGNMENT_FOOTER_EDGE_OFFSET_PX}
+          )}
           isAdvancing={staged.isAdvancing}
           isFirstStep={staged.isFirstStep}
           isLastStep={staged.isLastStep}

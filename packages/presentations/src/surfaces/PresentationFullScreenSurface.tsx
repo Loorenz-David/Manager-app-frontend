@@ -14,7 +14,8 @@ export function PresentationFullScreenSurface(props: PresentationSurfaceProps): 
         {...props}
         surfaceType="full_screen"
         onDismiss={(index) => closeAfter(() => props.onDismiss(index))}
-        onComplete={(index) => closeAfter(() => props.onComplete(index))}
+        onComplete={props.onComplete}
+        onClose={() => closeAfter(() => undefined)}
       />
     </PlayerFullScreenFrame>
   );

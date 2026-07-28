@@ -24,6 +24,7 @@ import {
   KEYBOARD_TRAY_SURFACE,
 } from "../shared/keyboard-tray";
 import { useBodyScrollLock } from "./use-body-scroll-lock";
+import { useScrollAncestorLock } from "./use-scroll-ancestor-lock";
 
 export type FloatingKeyboardBarProps = {
   variant?: "bar" | "panel";
@@ -42,6 +43,15 @@ export type FloatingKeyboardBarProps = {
    * through. The controls stay bottom-aligned, just above the keys.
    */
   fullHeight?: boolean;
+  /**
+   * `bar` variant only: nothing scrolls while the bar is docked. Freezes the
+   * scroll container the field sits in (for gestures on the content behind) and
+   * refuses pans on the tray itself (for gestures on the tray, which is
+   * portaled to `body` and would otherwise pan the document). The `panel`
+   * variant always locks (see `useBodyScrollLock`); the bar leaves it to the
+   * consumer because a bar over a long form is often meant to be scrolled past.
+   */
+  lockScroll?: boolean;
 };
 
 type FocusOwner = {
@@ -73,11 +83,20 @@ export function preventFocusSteal(event: MouseEvent<HTMLElement>): void {
   event.preventDefault();
 }
 
+function readRootPixels(variableName: string): number {
+  const value = Number.parseFloat(
+    getComputedStyle(document.documentElement).getPropertyValue(variableName),
+  );
+
+  return Number.isFinite(value) ? value : 0;
+}
+
 export function FloatingKeyboardBar({
   renderControls,
   className,
   variant = "bar",
   fullHeight = false,
+  lockScroll = false,
 }: FloatingKeyboardBarProps): React.JSX.Element | null {
   const { isKeyboardOpen } = useKeyboardInset();
   const floatingInputRef = useRef<HTMLInputElement>(null);
@@ -179,12 +198,12 @@ export function FloatingKeyboardBar({
 
     if (isKeyboardOpen && isOwnFieldFocused) {
       const inlineRect = inlineWrapperRef.current?.getBoundingClientRect();
-      const safeTop = Number.parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--safe-top",
-        ),
+      // Where the panel's own top edge lands, in the same (layout viewport)
+      // coordinates `getBoundingClientRect` reports — see the portal below.
+      const targetTop = Math.max(
+        readRootPixels("--viewport-offset-top"),
+        readRootPixels("--safe-top"),
       );
-      const targetTop = Number.isFinite(safeTop) ? safeTop : 0;
       const nextTravelDistance = Math.max(
         0,
         (inlineRect?.top ?? targetTop) - targetTop,
@@ -257,6 +276,18 @@ export function FloatingKeyboardBar({
 
   useBodyScrollLock(isPanelVariant && isPanelMounted);
 
+  // Docked means the keyboard is up for this bar's own field — the same
+  // condition the render below uses to take the anchor.
+  const isBarDocked = !isPanelVariant && isKeyboardOpen && isOwnFieldFocused;
+
+  // The inline copy stays in the document while the bar is docked, so it is
+  // the anchor for finding the scroll container to freeze. Its ref moves to
+  // `noopInputRef` once the keyboard is open (see `inlineControls` below).
+  useScrollAncestorLock(
+    () => noopInputRef.current ?? inlineInputRef.current,
+    lockScroll && isBarDocked,
+  );
+
   const isInlineHidden = isPanelVariant && isPanelMounted;
   const isPanelOpening = isPanelVariant && isKeyboardOpen && !isPanelMounted;
 
@@ -281,15 +312,11 @@ export function FloatingKeyboardBar({
     isPanelOpening: false,
   });
 
-  if (!isKeyboardOpen && !isPanelMounted) {
-    if (isPanelVariant) {
+  if (isPanelVariant) {
+    if (!isKeyboardOpen && !isPanelMounted) {
       return <div ref={inlineWrapperRef}>{inlineControls}</div>;
     }
 
-    return <>{inlineControls}</>;
-  }
-
-  if (isPanelVariant) {
     return (
       <>
         <div
@@ -301,10 +328,18 @@ export function FloatingKeyboardBar({
         </div>
         {isPanelMounted
           ? createPortal(
-              <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset)] z-[9999]">
+              // Top follows the visual viewport, bottom follows the keyboard:
+              // when iOS offsets the viewport (it cannot scroll this document)
+              // `top-0` is that offset above the visible area, which puts the
+              // whole panel — search field first — off screen.
+              <div className="fixed inset-x-0 top-[var(--viewport-offset-top,0px)] bottom-[var(--keyboard-inset)] z-[9999]">
                 <m.div
                   className={cn(
-                    "flex h-full flex-col bg-card pt-[var(--safe-top)]",
+                    // Only the part of the notch the panel actually reaches:
+                    // once the viewport is offset, the panel already starts
+                    // below the safe area and padding it again wastes a strip
+                    // of the little height the keyboard leaves.
+                    "flex h-full flex-col bg-card pt-[max(0px,calc(var(--safe-top)_-_var(--viewport-offset-top,0px)))]",
                     isKeyboardOpen && isOwnFieldFocused
                       ? "pointer-events-auto"
                       : "pointer-events-none",
@@ -325,6 +360,14 @@ export function FloatingKeyboardBar({
           : null}
       </>
     );
+  }
+
+  // The keyboard is shared by every field on the page, so an open keyboard is
+  // not on its own an invitation to dock: only the bar whose own field holds
+  // focus may take the anchor, or a page with several fields would hide this
+  // one's controls and cover the field the user is actually editing.
+  if (!isBarDocked) {
+    return <>{inlineControls}</>;
   }
 
   return (
@@ -356,6 +399,11 @@ export function FloatingKeyboardBar({
               // and the padding turns symmetric so the controls land on the
               // true centre of the space the keyboard leaves.
               fullHeight && "border-t-0 py-3 shadow-none",
+              // The tray is portaled to `body`, so a drag on it pans whatever
+              // the document can scroll — which the open keyboard is exactly
+              // what makes scrollable on iOS. Locking the field's own container
+              // cannot reach that gesture; refusing the pan can.
+              lockScroll && !fullHeight && "touch-none",
               className,
             )}
           >

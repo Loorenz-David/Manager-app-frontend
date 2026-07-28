@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Pause, X } from "lucide-react";
 
 type PlayerDismissButtonProps = {
   /** "x" for modal, "skip" for full_screen (per the master dismiss-chrome matrix). */
@@ -44,23 +44,27 @@ export function PlayerCtaButton({ label, onClick }: PlayerCtaButtonProps): React
 }
 
 type PlayerAcknowledgeFooterProps = {
-  /** e.g. "Got it". The only exit for non-dismissible presentations. */
+  /** e.g. "Close". The deck's exit, revealed once it has played through once. */
   label: string;
   onAcknowledge: () => void;
   disabled?: boolean;
+  /** Optional node stacked above the button (the slide CTA shares this footer). */
+  above?: React.ReactNode;
 };
 
-/** Fixed footer acknowledge button (records `completed`, then closes). */
+/** Fixed footer exit button — closes the deck after the first loop. */
 export function PlayerAcknowledgeFooter({
   label,
   onAcknowledge,
   disabled,
+  above,
 }: PlayerAcknowledgeFooterProps): React.JSX.Element {
   return (
     <div
       data-testid="presentation-player-acknowledge-footer"
       className="pointer-events-none absolute inset-x-0 bottom-0 z-30 bg-gradient-to-t from-black/60 to-transparent px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-10"
     >
+      {above ? <div className="mb-2.5 flex justify-center">{above}</div> : null}
       <button
         type="button"
         onClick={onAcknowledge}
@@ -77,13 +81,17 @@ export function PlayerAcknowledgeFooter({
 type PlayerTapZonesProps = {
   onPrev: () => void;
   onNext: () => void;
+  onTogglePause: () => void;
+  isPaused?: boolean;
   disabled?: boolean;
 };
 
-/** Invisible story-style tap navigation: left third = previous, rest = next. */
+/** Invisible story-style tap navigation: left = previous, centre = pause/resume, right = next. */
 export function PlayerTapZones({
   onPrev,
   onNext,
+  onTogglePause,
+  isPaused,
   disabled,
 }: PlayerTapZonesProps): React.JSX.Element {
   return (
@@ -95,7 +103,16 @@ export function PlayerTapZones({
         disabled={disabled}
         onClick={onPrev}
         data-testid="presentation-player-tap-prev"
-        className="h-full w-1/3 cursor-default focus:outline-none"
+        className="h-full w-[30%] cursor-default focus:outline-none"
+      />
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={isPaused ? "Resume" : "Pause"}
+        disabled={disabled}
+        onClick={onTogglePause}
+        data-testid="presentation-player-tap-pause"
+        className="h-full w-[40%] cursor-default focus:outline-none"
       />
       <button
         type="button"
@@ -104,8 +121,23 @@ export function PlayerTapZones({
         disabled={disabled}
         onClick={onNext}
         data-testid="presentation-player-tap-next"
-        className="h-full w-2/3 cursor-default focus:outline-none"
+        className="h-full w-[30%] cursor-default focus:outline-none"
       />
+    </div>
+  );
+}
+
+/** Centre-screen feedback while the deck timer is held, so pause is discoverable. */
+export function PlayerPausedIndicator(): React.JSX.Element {
+  return (
+    <div
+      aria-hidden
+      data-testid="presentation-player-paused-indicator"
+      className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center"
+    >
+      <span className="flex size-14 items-center justify-center rounded-full bg-black/45 text-white/90 backdrop-blur-sm">
+        <Pause className="size-6" fill="currentColor" strokeWidth={0} />
+      </span>
     </div>
   );
 }
