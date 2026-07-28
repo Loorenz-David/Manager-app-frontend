@@ -315,7 +315,9 @@ function UnreadViewerFooter({
   return (
     <div
       className={cn(
-        "absolute inset-x-0 bottom-0 bg-linear-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-10 will-change-transform",
+        // z-10: the SlideStack panes are opaque and z-indexed (1..3), so the
+        // footer needs its own layer above them or it is painted over.
+        "absolute inset-x-0 bottom-0 z-10 bg-linear-to-t from-background via-background/95 to-transparent px-4 pb-[calc(var(--safe-bottom,0)+1rem)] pt-10 will-change-transform",
         isHidden ? "pointer-events-none" : null,
       )}
       style={{
