@@ -41,17 +41,21 @@ files in `src/app/` — see [`41_phone_app_integration.md`](41_phone_app_integra
 | How a slide is *rendered* (text, media, animation, scaling) — anywhere | [`10_runtime_package.md`](10_runtime_package.md) | `packages/presentation-runtime/src/SlideCompositionRenderer.tsx` |
 | Composition/slide/media **schemas** shared by editor and player | [`10_runtime_package.md`](10_runtime_package.md) | `packages/presentation-runtime/src/schemas.ts` |
 | Playback timing, play/pause/seek clock | [`10_runtime_package.md`](10_runtime_package.md) | `packages/presentation-runtime/src/usePlaybackClock.ts` |
+| Video playback anywhere (editor canvas, preview, phone) — **and trimming** | [`10_runtime_package.md`](10_runtime_package.md) | `packages/presentation-runtime/src/composition-video.ts` |
+| Where text breaks lines, in the render **or** the inline editor | [`10_runtime_package.md`](10_runtime_package.md) + [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `compositionTextStyle` in `packages/presentation-runtime/src/SlideCompositionRenderer.tsx` |
 | Admin API calls, query keys, cache invalidation (studio side) | [`20_builder_data_layer.md`](20_builder_data_layer.md) | `packages/presentation-builder/src/api/presentations.ts` |
 | Create/update/publish/archive/version mutations, media upload | [`20_builder_data_layer.md`](20_builder_data_layer.md) | `packages/presentation-builder/src/actions/` |
 | Editor behavior: selection, drag, autosave, dirty state, undo of intent | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/controllers/use-presentation-editor.controller.ts` |
 | Timeline math (px↔ms, min window, clamping) | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/lib/timeline-geometry.ts` |
 | Editor↔server composition translation (units, anchors, animation names) | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/lib/composition-mapping.ts` |
+| Text box sizing: width as wrap column, auto vs. authored height | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/lib/text-box-layout.ts` |
+| Slide duration bounds, parsing, formatting (**no maximum**) | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/lib/slide-duration.ts` |
 | Publish dialog logic: audience, category→priority, scheduling, 422 mapping | [`21_builder_editor_logic.md`](21_builder_editor_logic.md) | `packages/presentation-builder/src/lib/publish-form.ts` |
 | **Visual styling** of any studio screen (dashboard cards, canvas, timeline bars, panels, publish dialog) | [`22_builder_component_kits.md`](22_builder_component_kits.md) | the kit folder for that screen under `packages/presentation-builder/src/components/` |
 | Studio routes, sign-in, env vars, app shell | [`30_studio_app.md`](30_studio_app.md) | `apps/presentation-studio/ManagerBeyo-app-presentation-studio/src/app/router.tsx` |
 | When/whether the phone player auto-opens; view-state loop; suppression | [`40_player_package.md`](40_player_package.md) | `packages/presentations/src/ActivePresentationProvider.tsx` |
 | Player visuals (progress bar, dismiss/skip/CTA/acknowledge chrome) | [`40_player_package.md`](40_player_package.md) | `packages/presentations/src/components/player/` |
-| Player slide advancement / video-driven timing | [`40_player_package.md`](40_player_package.md) | `packages/presentations/src/playback/usePresentationPlayback.ts` |
+| Player slide advancement, **deck looping**, pause, exit unlocking | [`40_player_package.md`](40_player_package.md) | `packages/presentations/src/playback/usePresentationPlayback.ts` |
 | Realtime push (socket events → refetch → auto-open) | [`40_player_package.md`](40_player_package.md) + [`41_phone_app_integration.md`](41_phone_app_integration.md) | `packages/presentations/src/realtime/presentation-socket-events.ts` |
 | Mounting the player in a phone app; home-route policy; surface openers | [`41_phone_app_integration.md`](41_phone_app_integration.md) | `apps/<app>/…/src/app/PresentationMount.tsx` |
 | A payload/parse bug ("player silently doesn't open", 422 on save) | [`50_invariants_and_pitfalls.md`](50_invariants_and_pitfalls.md) first | — |

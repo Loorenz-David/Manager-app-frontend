@@ -1,5 +1,10 @@
-import type { CSSProperties, ReactElement } from "react";
+import { useEffect, useRef, type CSSProperties, type ReactElement } from "react";
 
+import {
+  compositionMediaTimeMs,
+  isBeyondCompositionMediaEnd,
+  VIDEO_SEEK_TOLERANCE_MS,
+} from "./composition-video";
 import { sortCompositionElements } from "./ordering";
 import type {
   CompositionElement,
@@ -23,7 +28,15 @@ export type SlideCompositionRendererProps = {
   forceVisibleOpacity?: number;
   /** Called when a backend media URL fails so the host can refetch short-lived URLs. */
   onMediaError?: () => void;
+  /**
+   * Drives videos from the slide clock: scrubbing seeks them, playing runs them. Omit for
+   * a still frame (slide-rail thumbnails), or when the consumer owns the video itself
+   * (the phone's `media_driven` slides, where the video IS the clock).
+   */
+  videoPlayback?: VideoPlaybackState;
 };
+
+export type VideoPlaybackState = { isPlaying: boolean };
 
 type AnchorFactor = readonly [x: number, y: number];
 
@@ -111,6 +124,72 @@ export function compositionTextStyle(
   };
 }
 
+type CompositionVideoProps = {
+  element: CompositionElement;
+  style: CSSProperties;
+  timeMs: number;
+  /** Absent = a still frame (thumbnails, and the phone's media-driven slides, which own their own video). */
+  playback?: VideoPlaybackState;
+  onMediaError?: () => void;
+  domProps: Record<string, string>;
+};
+
+/**
+ * A clip driven by the slide clock. Scrubbing seeks it frame-accurately; playing lets it
+ * run and only corrects it once it drifts past `VIDEO_SEEK_TOLERANCE_MS`, because seeking
+ * every frame stutters.
+ */
+function CompositionVideo({
+  element,
+  style,
+  timeMs,
+  playback,
+  onMediaError,
+  domProps,
+}: CompositionVideoProps): ReactElement {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isPlaying = playback?.isPlaying ?? false;
+  const isDriven = playback !== undefined;
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isDriven) return;
+    const targetMs = compositionMediaTimeMs(element, timeMs);
+    const drifted = Math.abs(video.currentTime * 1_000 - targetMs) > VIDEO_SEEK_TOLERANCE_MS;
+
+    if (!isPlaying || isBeyondCompositionMediaEnd(element, targetMs)) {
+      video.pause();
+      // Paused means scrubbing: land on the exact frame the timeline is pointing at.
+      if (drifted) video.currentTime = targetMs / 1_000;
+      return;
+    }
+    if (drifted) video.currentTime = targetMs / 1_000;
+    if (video.paused) {
+      try {
+        void video.play()?.catch(() => undefined);
+      } catch {
+        // Autoplay policy may reject until the author interacts; the next tick retries.
+      }
+    }
+  }, [element, isDriven, isPlaying, timeMs]);
+
+  return (
+    <video
+      ref={videoRef}
+      {...domProps}
+      style={style}
+      src={element.media?.media_url}
+      poster={element.media?.poster_url ?? undefined}
+      // Scrubbing needs frames, not just metadata; a still frame does not.
+      preload={isDriven ? "auto" : "metadata"}
+      muted
+      playsInline
+      aria-label={element.media?.alt_text ?? undefined}
+      onError={onMediaError}
+    />
+  );
+}
+
 function renderElement(
   element: CompositionElement,
   index: number,
@@ -120,6 +199,7 @@ function renderElement(
   forceVisible: boolean,
   forceVisibleOpacity: number,
   onMediaError?: () => void,
+  videoPlayback?: VideoPlaybackState,
 ): ReactElement | null {
   const animationFrame = getElementAnimationFrame(element, timeMs);
   const frame = mergeAnimationStyle(
@@ -142,18 +222,16 @@ function renderElement(
     };
 
     if (element.media.media_type === "video") {
+      const { style: _style, ...domProps } = sharedProps;
       return (
-        <video
+        <CompositionVideo
           key={key}
-          {...sharedProps}
+          element={element}
           style={mediaStyle}
-          src={element.media.media_url}
-          poster={element.media.poster_url ?? undefined}
-          preload="metadata"
-          muted
-          playsInline
-          aria-label={element.media.alt_text ?? undefined}
-          onError={onMediaError}
+          timeMs={timeMs}
+          playback={videoPlayback}
+          onMediaError={onMediaError}
+          domProps={domProps}
         />
       );
     }
@@ -194,6 +272,7 @@ export function SlideCompositionRenderer({
   forceVisibleElementId = null,
   forceVisibleOpacity = 0.25,
   onMediaError,
+  videoPlayback,
 }: SlideCompositionRendererProps): ReactElement {
   const visibleElements = sortCompositionElements(elements).filter((element) =>
     isVisible(element, timeMs) || element.client_id === forceVisibleElementId,
@@ -221,6 +300,7 @@ export function SlideCompositionRenderer({
           element.client_id === forceVisibleElementId && !isVisible(element, timeMs),
           forceVisibleOpacity,
           onMediaError,
+          videoPlayback,
         ),
       )}
     </div>

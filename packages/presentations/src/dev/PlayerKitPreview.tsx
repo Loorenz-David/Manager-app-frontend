@@ -67,6 +67,7 @@ export function PlayerKitPreview(): React.JSX.Element {
             onNext={() => setActiveIndex((current) => (current + 1) % SLIDES.length)}
             onTogglePause={() => setIsPaused((paused) => !paused)}
             isPaused={isPaused}
+            onLongPress={() => setIsPaused(true)}
           />
           {isPaused && <PlayerPausedIndicator />}
           {isDismissible && frame !== "slide_page" && (

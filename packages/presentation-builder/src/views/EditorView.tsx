@@ -94,6 +94,7 @@ function EditorPreview({
           backgroundColor={slide.background_color}
           className="h-full w-full"
           onMediaError={onMediaError}
+          videoPlayback={{ isPlaying: playback.isPlaying }}
         />
       ) : null}
     </PreviewOverlay>
@@ -228,6 +229,7 @@ function TimelineCanvasWorkspace({
                   forceVisibleElementId={controller.selectedElementId}
                   forceVisibleOpacity={0.25}
                   onMediaError={() => void controller.onMediaError()}
+                  videoPlayback={{ isPlaying: clock.isPlaying }}
                 />
               </div>
               {timedElements.map((element) => {

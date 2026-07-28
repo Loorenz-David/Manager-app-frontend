@@ -27,10 +27,16 @@ studio AppShell owns `h-screen`, shell fills it; breaking this pushed the dock
 off-viewport once), `EditorTopBar`, `EditorReadOnlyBanner`, `SlideRail` +
 `SlideRailCard`, `EditorCanvas` (phone-shaped stage rendering via the runtime
 renderer), `CanvasDraggableBox` (selection/drag box — emits **unclamped center
-fractions** via `onDrag`; selected media can receive eight resize handles which
-emit raw `onResize({handle, deltaXFraction, deltaYFraction})`; clamping, minimum
-size, edge behavior, and corner aspect locking are logic-side), `CanvasTextEditOverlay`
-(auto-focused, select-all canvas textarea; commits through props),
+fractions** via `onDrag`; a selected element receives eight resize handles which
+emit raw `onResize({handle, deltaXFraction, deltaYFraction})`, narrowable with the
+optional `resizeHandles` subset prop; clamping, minimum size, edge behavior, and
+corner aspect locking are logic-side — media aspect-locks its corners, text does
+not), `CanvasTextEditOverlay`
+(auto-focused, select-all canvas textarea; commits through props). **It styles no
+text of its own** — it takes a `textStyle: CSSProperties` computed by the runtime's
+`compositionTextStyle` and spreads it verbatim, so the author edits against the
+exact wrap they will get; its focus affordance is an `outline`, never a `border`,
+which under `border-box` would consume content width and shift every line break,
 `MediaUploadOverlay`. The runtime renderer layer is pointer-inert in the editor so
 selection and drag gestures belong exclusively to the overlay kit.
 
@@ -45,7 +51,10 @@ math. Scrub positions cross the boundary as 0..1 fractions.
 ### `components/panels/` — right properties panel
 `SlidePropertiesPanel`, `TextBlockPanel`, `MediaElementPanel` (fit, read-only
 geometry summary, Appears/Disappears transitions, replace/delete), shared
-`PanelPrimitives` (`PanelSection`, `PanelSlider`, `SegmentedControl`,
+`PanelPrimitives` (`PanelSection`, `PanelSlider` — whose value readout becomes an
+editable field when given `onValueLabelCommit`, passing the **raw typed text** up
+unparsed so values beyond the handle's range stay possible and parsing stays
+logic-side, `SegmentedControl`,
 `PanelDeleteButton`, header row with **required `onClose`** — a user-review fix;
 don't make it optional), and `TextStylingSection`. The styling section composes the
 generic `@beyo/ui` `AlignmentPicker`, `ColorSwatchPicker`, and `SliderFieldRow`

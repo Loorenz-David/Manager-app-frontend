@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   ScrollVisibilityContextValue,
@@ -31,6 +31,46 @@ function getScrollValue(element: HTMLElement, inverted: boolean): number {
   return element.scrollHeight - element.clientHeight - element.scrollTop;
 }
 
+/**
+ * A ref object that also reports attachment as state.
+ *
+ * Consumers commonly render a loading/error branch before the scroll container
+ * (`if (isPending) return <Spinner />`), so on a cold mount the ref is still
+ * null when effects first run. A plain `useRef` never notifies anyone when the
+ * node arrives, which used to leave the scroll listener permanently unbound —
+ * the visibility system then looked dead for the whole life of the page.
+ * Exposing the node as state re-runs the binding effect on every attach,
+ * detach, or swap, no matter which component's render mounted it.
+ */
+function useObservedElementRef<T extends HTMLElement>(): [
+  React.RefObject<T | null>,
+  T | null,
+] {
+  const [element, setElement] = useState<T | null>(null);
+
+  const ref = useMemo(() => {
+    let current: T | null = null;
+
+    return {
+      get current(): T | null {
+        return current;
+      },
+      set current(next: T | null) {
+        if (next === current) {
+          return;
+        }
+
+        current = next;
+        // React assigns refs during commit, so this behaves exactly like a
+        // callback ref calling setState.
+        setElement(next);
+      },
+    } as React.RefObject<T | null>;
+  }, []);
+
+  return [ref, element];
+}
+
 export function useScrollVisibility({
   threshold = 56,
   topOffset = 0,
@@ -42,7 +82,7 @@ export function useScrollVisibility({
   inverted = false,
   mode = "absolute",
 }: ScrollVisibilityOptions = {}): UseScrollVisibilityResult {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const [scrollRef, scrollElement] = useObservedElementRef<HTMLDivElement>();
   const hideProgressContainerRef = useRef<HTMLDivElement>(null);
   const revealAtEdgeRef = useRef(revealAtEdge);
   revealAtEdgeRef.current = revealAtEdge;
@@ -93,7 +133,7 @@ export function useScrollVisibility({
     });
 
   useEffect(() => {
-    const element = scrollRef.current;
+    const element = scrollElement;
 
     if (!element) {
       return;
@@ -173,6 +213,7 @@ export function useScrollVisibility({
     onTouchEnd,
     onTouchStart,
     progressRef,
+    scrollElement,
     syncProgress,
   ]);
 

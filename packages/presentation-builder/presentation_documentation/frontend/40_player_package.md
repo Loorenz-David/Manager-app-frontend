@@ -14,14 +14,15 @@ and `navigate` — doc 41).
 | `src/actions/useRecordViewState.ts` | `POST view-state` (`recordPresentationViewState`) — actions `shown`/`progressed`/`dismissed`/`completed` | Recording payloads. Loop integration test: `src/api/view-state-loop.test.tsx`. |
 | `src/types.ts` | Consumer Zod schemas (`ConsumerPresentationSchema`, envelopes). **Lenient by contract**: `category` nullable, slide `sequence_order` nonnegative, and slide `background_color` nullable + optional so older/cached payloads may omit it. A parse failure here is *silent* — the player just never opens — so any schema tightening needs a live-payload check first. | Backend consumer payload changes. |
 | `src/playback/usePresentationPlayback.ts` | Slide advancement over the runtime clock. **The deck loops until the user quits**: the last slide wraps to the first and bumps `loopCount`; the callback (`onFirstLoopComplete`) fires exactly once, when the first pass wraps. Every slide auto-advances on `duration_ms` — authored `manual` slides and null/0 durations fall back to `DEFAULT_SLIDE_DURATION_MS` (4000), because a slide that waits for a tap would stall the loop and never unlock the exits. `media_driven` slides still follow the real `<video>` (attach via `attachMediaContainer`). Owns `isPaused`/`togglePause` (holds clock *and* video; survives slide navigation) and `previous`, which restarts the current slide on index 0 rather than leaving the deck. Playhead state is `{index, loop, seq}` — `seq` increments on every move so a one-slide deck still re-arms its clock. | Timing/advancement, loop, pause behavior. |
+| `src/playback/text-selection.ts` + `usePlayerTextSelection.ts` | Long-press-to-select over the tap overlay: `findTextElementAtPoint` (hit-tests rendered rects — `elementFromPoint` would return the overlay), `selectTextAtPoint`, `LONG_PRESS_MS = 450`, and the hook that stands the overlay down while a selection is live and takes the deck back when `selectionchange` reports it collapsed | Press-and-hold behaviour. The overlay covers the deck so the browser can never start a selection itself — it is made programmatically or not at all. |
 | `src/realtime/presentation-socket-events.ts` | Typed socket events `app_update_presentation:published` / `:archived` (payload `{client_id, logical_client_id, version}`, **no envelope**; room `workspace:{workspace_id}`) + `invalidateActivePresentationQueries` — the invalidation-only helper hosts register (V3 resolution: sockets only invalidate; React Query refetches; provider reacts) | Realtime contract. Host wiring is doc 41. |
 
 ## Presentation UI
 
 | File | Role |
 |---|---|
-| `src/PresentationPlayer.tsx` | The deck: composes playback hook + runtime `SlideCompositionRenderer` + kit chrome, passing each slide's nullable/optional `background_color` through as the renderer background. Owns the **exit matrix** (below) and the CTA/footer stacking (once the footer is up, the slide CTA renders inside it via `above`). Parity-tested against the runtime fixture (`PresentationPlayer.parity.test.tsx`). |
-| `src/components/player/` | Props-only kit (read-only styling, same rule as doc 22): `PlayerViewport` (render-prop width measurement → renderer scale), `PlayerSegmentedProgress`, `PlayerAffordances` (`PlayerDismissButton` x/skip, `PlayerCtaButton`, `PlayerAcknowledgeFooter` + `above` slot, `PlayerTapZones` 30/40/30 prev–pause–next, `PlayerPausedIndicator`), `PlayerFrames` (modal / full-screen frames). Showcase: `src/dev/PlayerKitPreview.tsx` → studio `/kit/player`. |
+| `src/PresentationPlayer.tsx` | The deck: composes playback hook + runtime `SlideCompositionRenderer` + kit chrome. Passes `videoPlayback={{isPlaying}}` for clock-driven slides so the renderer seeks and plays their clips, and **`undefined` for `media_driven`** slides, where the video is the clock and `usePresentationPlayback` owns it — passing both makes the renderer and the hook fight over `currentTime`. Passes each slide's nullable/optional `background_color` through as the renderer background. Owns the **exit matrix** (below) and the CTA/footer stacking (once the footer is up, the slide CTA renders inside it via `above`). Parity-tested against the runtime fixture (`PresentationPlayer.parity.test.tsx`). |
+| `src/components/player/` | Props-only kit (read-only styling, same rule as doc 22): `PlayerViewport` (render-prop width measurement → renderer scale), `PlayerSegmentedProgress`, `PlayerAffordances` (`PlayerDismissButton` x/skip, `PlayerCtaButton`, `PlayerAcknowledgeFooter` + `above` slot, `PlayerTapZones` 25/50/25 prev–pause–next with injected long-press, `PlayerPausedIndicator`), `PlayerFrames` (modal / full-screen frames). Showcase: `src/dev/PlayerKitPreview.tsx` → studio `/kit/player`. |
 | `src/surfaces/` | One surface per `presentation_type` + shared `presentation-surface-props.ts` and `usePresentationSurface.ts`. **Dismiss-chrome matrix**: `modal` → X button; `full_screen` → Skip; `slide_page` → the host `SlidePageSurface`'s built-in slide-to-close gesture *is* the dismiss affordance. `is_dismissible: false` → slide-page calls `setSwipeDismissDisabled(true)` **until the first loop completes**, then unlocks it with a plain-close interceptor. Tested in `presentation-surfaces.test.tsx`. |
 | `src/surface-ids.ts` | Surface id constants, `PresentationsSurfaceOpeners` type (the host-injection contract), and `preload*Surface` loaders — **named exports mapped to `default`** for lazy hosts (9a decision: no default exports in the package itself). |
 
@@ -29,11 +30,15 @@ and `navigate` — doc 41).
 
 The deck plays **Instagram-style and loops forever**; the user leaves it deliberately.
 
-| Moment | Tap left 30% | Tap centre 40% | Tap right 30% | Ways out |
+| Moment | Tap left 25% | Tap centre 50% | Tap right 25% | Ways out |
 |---|---|---|---|---|
 | During loop 1 | previous slide (restarts slide 0) | pause / resume | next slide | `modal` X and `full_screen` Skip **only if `is_dismissible`** → records `dismissed`, closes. Non-dismissible decks have **no exit at all**. |
 | Loop 1 wraps | — | — | — | `completed` is recorded **once, in the background** — it must not close the surface. |
 | After loop 1 | same | same | same | Footer **Close** button (all three types) + slide-page swipe + the existing X/Skip — all now **plain closes that record nothing**. |
+
+**Press and hold** anywhere pauses the deck and selects the text block under the finger;
+the overlay then stands down (`interactive={false}`) so the selection can be adjusted or
+copied, and tapping away collapses it and hands the deck back. The deck stays paused.
 
 Why `completed` can't be re-used as the exit: it's terminal backend-side, so a later
 `dismissed` returns `409`. The player therefore separates `onComplete` (record only) from

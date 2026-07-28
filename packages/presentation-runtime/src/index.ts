@@ -49,4 +49,11 @@ export {
   SlideCompositionRenderer,
   TEXT_LINE_HEIGHT,
   type SlideCompositionRendererProps,
+  type VideoPlaybackState,
 } from "./SlideCompositionRenderer";
+export {
+  compositionMediaEndMs,
+  compositionMediaTimeMs,
+  isBeyondCompositionMediaEnd,
+  VIDEO_SEEK_TOLERANCE_MS,
+} from "./composition-video";

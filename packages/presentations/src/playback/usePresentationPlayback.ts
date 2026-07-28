@@ -139,9 +139,13 @@ export function usePresentationPlayback(
     };
   }, [advance, isMediaDriven, mediaElement]);
 
-  /** Video playback follows the pause state whether or not the video drives the slide. */
+  /**
+   * Only media-driven slides need the hook to touch the video: there the video is the
+   * clock. Clock-driven slides are seeked and played by the renderer (`videoPlayback`),
+   * which also lands them on the right frame when the element starts mid-slide.
+   */
   useEffect(() => {
-    if (mediaElement === null) return undefined;
+    if (!isMediaDriven || mediaElement === null) return undefined;
     if (isPaused) {
       mediaElement.pause();
       setMediaPlaying(false);
@@ -153,7 +157,7 @@ export function usePresentationPlayback(
     } catch {
       // Autoplay policy may reject; the tap zones remain a manual fallback.
     }
-    if (isMediaDriven) setMediaPlaying(true);
+    setMediaPlaying(true);
     return () => mediaElement.pause();
   }, [isMediaDriven, isPaused, mediaElement]);
 

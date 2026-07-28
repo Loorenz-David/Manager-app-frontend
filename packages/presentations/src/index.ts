@@ -36,6 +36,18 @@ export {
   usePresentationPlayback,
   type PresentationPlayback,
 } from "./playback/usePresentationPlayback";
+export {
+  clearTextSelection,
+  findTextElementAtPoint,
+  hasActiveTextSelection,
+  LONG_PRESS_MOVE_TOLERANCE_PX,
+  LONG_PRESS_MS,
+  selectTextAtPoint,
+} from "./playback/text-selection";
+export {
+  usePlayerTextSelection,
+  type PlayerTextSelection,
+} from "./playback/usePlayerTextSelection";
 export { PresentationPlayer, type PresentationPlayerProps } from "./PresentationPlayer";
 export {
   PRESENTATION_FULL_SCREEN_SURFACE_ID,

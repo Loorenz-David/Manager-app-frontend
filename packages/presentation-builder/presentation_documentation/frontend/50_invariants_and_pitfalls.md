@@ -65,7 +65,14 @@ before writing code.
     newlines (no `pre-wrap`), never broke long words while the textarea's UA style did,
     and left `padding`/`border_radius` unscaled so the 264-wide canvas and the 390-wide
     phone wrapped differently. Regression: `CanvasTextEditOverlay.test.tsx`.
-14. **Element placement is bounded by the backend, not by taste.** `LayoutConfig`
+14. **One place decides where a video's playhead sits: `compositionMediaTimeMs`.** The
+    editor canvas, the studio preview and the phone all drive clips through the renderer's
+    `videoPlayback` prop, so trimming is a change to `composition-video.ts` plus the
+    backend fields — not a new playback path. The one consumer that owns its own video is
+    the phone's **`media_driven`** slide, where the video IS the clock: it passes
+    `videoPlayback: undefined` and `usePresentationPlayback` drives it. Passing both would
+    have the renderer and the hook fight over `currentTime`.
+15. **Element placement is bounded by the backend, not by taste.** `LayoutConfig`
     validates `x`/`y` in **0..1** and `width`/`height` in **(0, 1]** — out-of-range is a
     `422`. Since layouts are centre-anchored, a centre on the edge already puts half the
     box off-frame, and that is the most overhang available. Fully off-canvas placement
@@ -74,17 +81,17 @@ before writing code.
 
 ## Architecture invariants
 
-15. Dependency direction: `runtime ← builder`, `runtime ← presentations`; builder ⇄
+16. Dependency direction: `runtime ← builder`, `runtime ← presentations`; builder ⇄
     presentations never import each other; apps import package indexes only.
-16. Kit components (builder `components/`, player `components/player/`) are
+17. Kit components (builder `components/`, player `components/player/`) are
     props-only and styling-read-only for logic work; all arithmetic lives in `lib/`
     logic modules (gesture contracts: timeline bars emit raw pixels; canvas resize
     handles emit raw delta fractions).
-17. One renderer. Any per-consumer rendering fork breaks the editor↔phone parity
+18. One renderer. Any per-consumer rendering fork breaks the editor↔phone parity
     guarantee that the parity tests pin.
-18. No default exports in `@beyo/presentations`; lazy hosts go through the
+19. No default exports in `@beyo/presentations`; lazy hosts go through the
     `preload*Surface` named→default loaders.
-19. **A dirty composition flush must never silently no-op.** Draft slides can arrive
+20. **A dirty composition flush must never silently no-op.** Draft slides can arrive
     with `duration_ms: null`; use the editor's 4,000 ms effective duration and issue
     the composition PUT. Returning success without persisting leaves the backend
     slide empty and causes publish to reject an otherwise valid text-only deck.
@@ -103,6 +110,11 @@ before writing code.
   (records nothing, because `dismissed` after `completed` is a `409`). Every slide
   auto-advances: authored `manual` slides fall back to 4,000 ms, or the loop would
   stall on a tap and the exits would never unlock.
+- **The player's composition layer must stay `isolate`d.** Composition elements carry
+  authored `layer_index` as their z-index and text starts at 10 and climbs, so without a
+  stacking context around the renderer they outrank the chrome: text rendered above the
+  `z-10` tap zones and turned every pause tap into a text selection. Regression:
+  `text-selection.test.tsx` plus the `isolate relative z-0` wrapper in `PresentationPlayer`.
 - Auto-show policy is **home-route-only in all three apps** — a product decision,
   not an accident; changing it means changing `is<App>PresentationHome` in every app
   deliberately.

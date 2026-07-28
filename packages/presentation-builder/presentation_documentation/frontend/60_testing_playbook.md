@@ -32,6 +32,22 @@ and/or presentations → app glue.
 - **Provider policy (doc 40)** → extend `ActivePresentationProvider.test.tsx`;
   deferral/release and terminal-once are pinned there.
 - **Publish flow (doc 21)** → `publish-form.test.ts` (payloads + 422 mapping).
+- **Anything that changes text styling or measurement (docs 10/21)** →
+  `CanvasTextEditOverlay.test.tsx`. It renders one element through the renderer *and*
+  the inline editor and asserts the wrap-deciding properties are equal (fontSize,
+  fontWeight, lineHeight, whiteSpace, overflowWrap, padding, textAlign, boxSizing).
+  Extend that list rather than adding a second styling path.
+- **Text box geometry (doc 21)** → `text-box-layout.test.ts` (auto-height vs. authored
+  height) **and** a `composition-mapping.test.ts` case proving the authored box survives
+  the round trip — the save path silently discarded it once.
+- **Video playback or trimming (doc 10)** → `composition-video.test.tsx`: the slide-time
+  → clip-time mapping, scrub-seeks-while-paused, drift tolerance while playing, and
+  still-frame behavior when `videoPlayback` is omitted. Trim fields extend these.
+- **Tap zones, long press, or z-order over the deck (doc 40)** →
+  `packages/presentations/src/playback/text-selection.test.tsx` (zone widths, tap vs.
+  press vs. drag, rect hit-testing, overlay stand-down).
+- **Slide duration (doc 21)** → `slide-duration.test.ts` (parse/format/round). There is
+  no upper bound — assert long values survive.
 - **Kit styling (docs 22/40)** → verify visually in the studio kit routes
   `/kit/{dashboard,editor,timeline,publish,player}` (DEV-only; user starts the
   server). Update the matching `dev/*KitPreview.tsx` for new variants.

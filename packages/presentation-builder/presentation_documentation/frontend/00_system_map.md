@@ -24,6 +24,7 @@ selection, scheduling windows. The frontend never re-implements any of it.
                     │        @beyo/presentation-runtime          │
                     │  schemas.ts · SlideCompositionRenderer     │
                     │  usePlaybackClock · animation-registry     │
+                    │  composition-video (video + trim seam)     │
                     │  (pure: no network, no auth, no app state) │
                     └───────────▲────────────────▲───────────────┘
                                 │                │

@@ -11,6 +11,8 @@ import {
 import { PlayerSegmentedProgress } from "./components/player/PlayerSegmentedProgress";
 import { PlayerViewport } from "./components/player/PlayerViewport";
 import { usePresentationPlayback } from "./playback/usePresentationPlayback";
+import { usePlayerTextSelection } from "./playback/usePlayerTextSelection";
+import { LONG_PRESS_MOVE_TOLERANCE_PX, LONG_PRESS_MS } from "./playback/text-selection";
 import type { ConsumerPresentation, PresentationType } from "./types";
 
 export type PresentationPlayerProps = {
@@ -68,14 +70,26 @@ export function PresentationPlayer({
     currentPresentation.slides,
     handleFirstLoopComplete,
   );
+  const playbackRef = useRef(playback);
+  playbackRef.current = playback;
   const slide = currentPresentation.slides[playback.activeSlideIndex];
   const hasSeenFullDeck = playback.loopCount > 0;
+  const selection = usePlayerTextSelection();
+
+  /** Holding to read means holding the deck: pause first, then hand the text over. */
+  const handleLongPress = useCallback((clientX: number, clientY: number) => {
+    if (!selection.selectAt(clientX, clientY)) return;
+    if (!playbackRef.current.isPaused) playbackRef.current.togglePause();
+  }, [selection]);
 
   useEffect(() => {
     if (playback.activeSlideIndex <= furthestReportedRef.current) return;
     furthestReportedRef.current = playback.activeSlideIndex;
     void onProgress(playback.activeSlideIndex);
   }, [onProgress, playback.activeSlideIndex]);
+
+  // A selection belongs to the slide it was made on.
+  useEffect(() => selection.clear, [playback.activeSlideIndex, selection.clear]);
 
   const handleDismiss = useCallback(async () => {
     if (!currentPresentation.is_dismissible || exitPending) return;
@@ -129,7 +143,16 @@ export function PresentationPlayer({
     <PlayerViewport>
       {({ width, height }) => (
         <>
-          <div ref={playback.attachMediaContainer} className="h-full w-full">
+          {/*
+            `isolate` is load-bearing: composition elements carry authored `layer_index`
+            as their z-index (text starts at 10 and climbs), which without a stacking
+            context here competes directly with the chrome — text ended up above the tap
+            zones and swallowed every tap into a text selection.
+          */}
+          <div
+            ref={selection.attachContainer}
+            className="isolate relative z-0 h-full w-full"
+          >
             <SlideCompositionRenderer
               elements={slide.elements}
               timeMs={playback.slideTimeMs}
@@ -138,6 +161,11 @@ export function PresentationPlayer({
               backgroundColor={slide.background_color}
               className="h-full w-full"
               onMediaError={handleMediaError}
+              // A media-driven slide's video IS the clock, so the playback hook owns it;
+              // every other slide has its video driven by the renderer from the clock.
+              videoPlayback={slide.playback_mode === "media_driven"
+                ? undefined
+                : { isPlaying: playback.isPlaying }}
             />
           </div>
           <PlayerSegmentedProgress
@@ -151,6 +179,10 @@ export function PresentationPlayer({
             onTogglePause={playback.togglePause}
             isPaused={playback.isPaused}
             disabled={exitPending}
+            onLongPress={handleLongPress}
+            longPressMs={LONG_PRESS_MS}
+            longPressMoveTolerancePx={LONG_PRESS_MOVE_TOLERANCE_PX}
+            interactive={!selection.isSelecting}
           />
           {playback.isPaused && <PlayerPausedIndicator />}
           {showDismissButton && (

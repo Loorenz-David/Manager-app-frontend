@@ -1,4 +1,6 @@
+import { cn } from "@beyo/lib";
 import { Pause, X } from "lucide-react";
+import { useCallback, useEffect, useRef } from "react";
 
 type PlayerDismissButtonProps = {
   /** "x" for modal, "skip" for full_screen (per the master dismiss-chrome matrix). */
@@ -84,45 +86,101 @@ type PlayerTapZonesProps = {
   onTogglePause: () => void;
   isPaused?: boolean;
   disabled?: boolean;
+  /** Press-and-hold anywhere on the deck. Injected; the overlay only measures the gesture. */
+  onLongPress?: (clientX: number, clientY: number) => void;
+  longPressMs?: number;
+  longPressMoveTolerancePx?: number;
+  /**
+   * False lifts the overlay out of the way (`pointer-events: none`) so the content beneath
+   * is reachable — used while the user is working with a text selection.
+   */
+  interactive?: boolean;
 };
 
-/** Invisible story-style tap navigation: left = previous, centre = pause/resume, right = next. */
+/**
+ * Invisible story-style tap navigation: left = previous, centre = pause/resume, right = next.
+ * The centre is the widest zone — it is the one users aim for deliberately, while the side
+ * zones are swipe-adjacent and easy to hit by accident.
+ */
 export function PlayerTapZones({
   onPrev,
   onNext,
   onTogglePause,
   isPaused,
   disabled,
+  onLongPress,
+  longPressMs = 450,
+  longPressMoveTolerancePx = 10,
+  interactive = true,
 }: PlayerTapZonesProps): React.JSX.Element {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const originRef = useRef<{ x: number; y: number } | null>(null);
+  const firedRef = useRef(false);
+
+  const cancel = useCallback(() => {
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    originRef.current = null;
+  }, []);
+
+  useEffect(() => cancel, [cancel]);
+
+  const handlePointerDown = (event: React.PointerEvent) => {
+    if (!onLongPress || disabled) return;
+    const { clientX, clientY } = event;
+    firedRef.current = false;
+    originRef.current = { x: clientX, y: clientY };
+    timerRef.current = setTimeout(() => {
+      firedRef.current = true;
+      onLongPress(clientX, clientY);
+    }, longPressMs);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent) => {
+    const origin = originRef.current;
+    if (!origin) return;
+    const moved = Math.hypot(event.clientX - origin.x, event.clientY - origin.y);
+    if (moved > longPressMoveTolerancePx) cancel();
+  };
+
+  /** A press that became a long press must not also fire the zone's tap action. */
+  const guardTap = (action: () => void) => () => {
+    if (firedRef.current) {
+      firedRef.current = false;
+      return;
+    }
+    action();
+  };
+
+  const zone = (
+    testId: string,
+    label: string,
+    width: string,
+    action: () => void,
+  ) => (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-label={label}
+      disabled={disabled}
+      onClick={guardTap(action)}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={cancel}
+      onPointerCancel={cancel}
+      data-testid={testId}
+      className={cn("h-full cursor-default focus:outline-none", width)}
+    />
+  );
+
   return (
-    <div className="absolute inset-0 z-10 flex" aria-hidden={disabled}>
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Previous slide"
-        disabled={disabled}
-        onClick={onPrev}
-        data-testid="presentation-player-tap-prev"
-        className="h-full w-[30%] cursor-default focus:outline-none"
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label={isPaused ? "Resume" : "Pause"}
-        disabled={disabled}
-        onClick={onTogglePause}
-        data-testid="presentation-player-tap-pause"
-        className="h-full w-[40%] cursor-default focus:outline-none"
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        aria-label="Next slide"
-        disabled={disabled}
-        onClick={onNext}
-        data-testid="presentation-player-tap-next"
-        className="h-full w-[30%] cursor-default focus:outline-none"
-      />
+    <div
+      className={cn("absolute inset-0 z-10 flex", !interactive && "pointer-events-none")}
+      aria-hidden={disabled}
+    >
+      {zone("presentation-player-tap-prev", "Previous slide", "w-[25%]", onPrev)}
+      {zone("presentation-player-tap-pause", isPaused ? "Resume" : "Pause", "w-[50%]", onTogglePause)}
+      {zone("presentation-player-tap-next", "Next slide", "w-[25%]", onNext)}
     </div>
   );
 }
