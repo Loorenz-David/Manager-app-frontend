@@ -6,6 +6,8 @@ type Props = {
   onDone: () => void;
   /** Button label; the clock-out summary uses "Done · See you tomorrow". */
   label?: string;
+  /** muted = plain results (design's grey Done) · accent = summary's blue Done. */
+  variant?: 'muted' | 'accent';
 };
 
 /**
@@ -17,10 +19,11 @@ export function AutoReturnFooter({
   secondsLeft,
   onDone,
   label = 'Done',
+  variant = 'muted',
 }: Props): React.JSX.Element {
   return (
     <div className="w-full" data-testid="auto-return-footer">
-      <KioskButton data-testid="result-done" onClick={onDone} variant="muted">
+      <KioskButton data-testid="result-done" onClick={onDone} variant={variant}>
         {label}
       </KioskButton>
       <p

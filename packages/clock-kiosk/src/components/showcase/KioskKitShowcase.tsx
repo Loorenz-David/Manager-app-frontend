@@ -10,6 +10,8 @@ import { KioskButton } from '../shared/KioskButton';
 import { KeypadScreen, type KeypadMode } from '../keypad/KeypadScreen';
 import { IdentityConfirmScreen } from '../confirm/IdentityConfirmScreen';
 import { ResultScreen } from '../result/ResultScreen';
+import { SummaryScreen } from '../summary/SummaryScreen';
+import { AnnouncementsList } from '../announcements/AnnouncementsList';
 
 type Screen =
   | 'keypad'
@@ -17,6 +19,7 @@ type Screen =
   | 'confirm-out'
   | 'result-in'
   | 'result-out'
+  | 'summary'
   | 'sign-in'
   | 'settings';
 
@@ -152,6 +155,29 @@ export function KioskKitShowcase(): React.JSX.Element {
     return (
       <KioskFrame header={header}>
         <ResultScreen
+          announcementsSlot={
+            isClockIn ? (
+              <AnnouncementsList
+                items={[
+                  {
+                    title: 'Line 3 changeover at 11:00',
+                    body: 'Swap to the 60mm die set — Priya will run the checklist with you.',
+                    accent: 'info',
+                  },
+                  {
+                    title: 'Safety walk today',
+                    body: 'Keep gangway B clear between 13:00 and 14:00.',
+                    accent: 'success',
+                  },
+                  {
+                    title: 'Payslips are out',
+                    body: 'June statements are on the noticeboard tablet.',
+                    accent: 'neutral',
+                  },
+                ]}
+              />
+            ) : undefined
+          }
           countdownSeconds={9}
           greeting={
             isClockIn ? 'Good afternoon, Marco' : 'Shift complete, Dana'
@@ -159,7 +185,13 @@ export function KioskKitShowcase(): React.JSX.Element {
           notice={isClockIn ? null : '2 active tasks were stopped'}
           onDone={resetKeypad}
           plate={
-            isClockIn ? { label: 'Clocked in at', time: '15:15' } : null
+            isClockIn
+              ? {
+                  label: 'Clocked in at',
+                  time: '15:15',
+                  right: { label: 'Scheduled', value: '07:00 – 15:30' },
+                }
+              : null
           }
           subtitle={
             isClockIn
@@ -167,6 +199,59 @@ export function KioskKitShowcase(): React.JSX.Element {
               : 'Your shift has been recorded'
           }
           variant={isClockIn ? 'in' : 'out'}
+        />
+      </KioskFrame>
+    );
+  }
+
+  if (screen === 'summary') {
+    return (
+      <KioskFrame header={header}>
+        <SummaryScreen
+          avatarUrl={null}
+          countdownSeconds={20}
+          insights={[
+            {
+              text: '8h 12m worked against an 8h scheduled shift',
+              delta: { value: '+12m', polarity: 'positive' },
+            },
+            {
+              text: '142 units completed vs 5-day average of 130',
+              delta: { value: '+9%', polarity: 'positive' },
+            },
+            {
+              text: '39.9h logged this week of 40h scheduled',
+              delta: { value: '−0.1h', polarity: 'negative' },
+            },
+          ]}
+          items={{
+            totalUnits: 142,
+            lineCount: 4,
+            items: [
+              { name: 'Hex bolt M8', imageUrl: null, units: 52 },
+              { name: 'Rail bracket', imageUrl: null, units: 38 },
+              { name: 'Drive belt 40"', imageUrl: null, units: 31 },
+              { name: 'Cap assembly', imageUrl: null, units: 21 },
+            ],
+          }}
+          name="Dana Whitlock"
+          notice="2 active tasks were stopped"
+          onDone={resetKeypad}
+          rate={{ unitsPerHour: 17.3, baseline: 15.9, baselineDays: 5 }}
+          subtitle="Pick & Pack · Wednesday 29 July"
+          title="Shift complete, Dana"
+          week={{
+            targetSeconds: 144000,
+            loggedSeconds: 143640,
+            days: [
+              { label: 'Mon', workedSeconds: 28800, isToday: false },
+              { label: 'Tue', workedSeconds: 28380, isToday: false },
+              { label: 'Wed', workedSeconds: 29100, isToday: false },
+              { label: 'Thu', workedSeconds: 27840, isToday: false },
+              { label: 'Fri', workedSeconds: 29520, isToday: true },
+            ],
+          }}
+          worked={{ worked: '8h 12m', in: '06:58', out: '15:00' }}
         />
       </KioskFrame>
     );
@@ -189,6 +274,13 @@ export function KioskKitShowcase(): React.JSX.Element {
             type="button"
           >
             Showcase: settings
+          </button>
+          <button
+            className="min-h-11 text-[13px] text-kiosk-tertiary"
+            onClick={() => setScreen('summary')}
+            type="button"
+          >
+            Showcase: summary
           </button>
         </div>
       }

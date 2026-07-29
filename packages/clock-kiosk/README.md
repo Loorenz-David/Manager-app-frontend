@@ -31,7 +31,25 @@ anything. **Read-only for Codex** (additive optional props only).
 | `ResultScreen` | `{ variant: "in"·"out", greeting, subtitle, plate: {label, time, right?} \| null, notice?, announcementsSlot?, countdownSeconds, onDone, doneLabel? }` — covers clock-in success and the plain clock-out; Phase 6 replaces the "out" body with the analytics summary. |
 | `CheckHero` | `{ tone?: "success"·"accent" }` |
 | `DarkTimePlate` | `{ label, time, right? }` — the screen's single most important number; mono numerals; `right` is the scheduled column (adapter-gated). |
-| `AutoReturnFooter` | `{ secondsLeft, onDone, label? }` — countdown ticks in the store; this renders it. |
+| `AutoReturnFooter` | `{ secondsLeft, onDone, label?, variant?: muted·accent }` — countdown ticks in the store; this renders it. Summary uses `variant="accent"`. |
+
+## Kit prop contracts (Phase 6 — clock-out summary + announcements)
+
+| Component | Contract |
+|---|---|
+| `SummaryScreen` | `{ title, subtitle, name, avatarUrl, worked: {worked, in, out}, items \| null, week \| null, rate \| null, insights, notice?, countdownSeconds, onDone }` — adapter-gated sections render only when non-null; with all adapters empty it is hero + insights (+ notice), still balanced. Phone order hours→insights→items→week/rate; sm+ hours→items→week+rate grid→insights (design readme rule). Footer is `AutoReturnFooter` accent "Done · See you tomorrow". |
+| `SummaryHeader` | `{ title, subtitle, name, avatarUrl }` — compact identity row, Avatar initials fallback. |
+| `WorkedTodayPlate` | `{ worked: "8h 12m", in: "06:58", out: "15:00" }` — pre-formatted strings from the analytics view model; dark hero, mono numerals. |
+| `ItemsCompletedCarousel` | `{ items: {name, imageUrl, units}[], totalUnits, lineCount }` — horizontal snap scroll, `BackendImage` with placeholder fallback. GAP: `SummaryExtrasAdapter.items`. |
+| `WeekBarChart` | `{ days: {label, workedSeconds, isToday}[], targetSeconds, loggedSeconds }` — CSS bars, today accent-filled; hour formatting is display-local. GAP: `SummaryExtrasAdapter.week`. |
+| `RateTile` | `{ unitsPerHour, baseline, baselineDays }` — mono rate figures. GAP: `SummaryExtrasAdapter.rate`. |
+| `InsightRow` | `{ text, delta: {value: "+9%", polarity: positive·negative·neutral} }` — factual statement + signed mono delta. |
+| `AnnouncementsList` | `{ items: {title, body, accent: info·success·neutral}[] }` — "TODAY ON THE FLOOR", max 3 rendered; lives on the clock-in result's `announcementsSlot`. GAP: `AnnouncementsAdapter`. |
+
+> **Barrel note:** the Phase 6 components are intentionally NOT yet exported
+> from `src/index.ts` — the Phase 4 Codex session owns barrel edits while it
+> runs (concurrent-edit avoidance). The Phase 6 Codex session adds these
+> exports when it wires the screen.
 
 The `rise` surface shell lives in `@beyo/ui` (`RiseSurface`) — fade-in
 slide-up enter, fade-out slide-down exit, implementing the standard
