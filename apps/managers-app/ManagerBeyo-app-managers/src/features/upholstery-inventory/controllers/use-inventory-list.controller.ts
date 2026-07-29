@@ -285,23 +285,69 @@ export function useInventoryListController() {
     return (await detectExternalItemCategoryName(record)) ?? "unknown";
   }
 
+  /**
+   * The external flows open detail/amount surfaces optimistically with the
+   * client-generated inventory id. When the backend reuses an already-existing
+   * upholstery (reuse_existing), the real inventory id differs — re-point any
+   * surface still showing the stale id so the interaction continues seamlessly.
+   */
+  function repointSurfacesToInventory(
+    staleInventoryId: string,
+    actualInventoryId: string,
+  ): void {
+    const store = useSurfaceStore.getState();
+
+    for (const surface of store.stack) {
+      const props = surface.props as { inventoryId?: string };
+
+      if (props.inventoryId === staleInventoryId) {
+        store.open(surface.id, {
+          ...surface.props,
+          inventoryId: actualInventoryId,
+        });
+      }
+    }
+  }
+
   async function createExternalUpholstery(
     record: UpholsteryPickerRecord,
     inventoryClientId: string,
   ): Promise<void> {
     const categoryName = await resolveExternalCategoryName(record);
 
-    createUpholsteryAction.mutate({
-      client_id: record.client_id,
-      upholstery_inventory_id: inventoryClientId,
-      name: record.name,
-      code: record.code,
-      image_url: record.image_url,
-      page_link: record.page_link ?? record.external_url ?? null,
-      supplier_name: record.supplier_name ?? record.origin,
-      upholstery_category_id: record.upholstery_category?.id ?? null,
-      upholstery_category_name: categoryName,
-    });
+    try {
+      const upholstery = await createUpholsteryAction.mutateAsync({
+        client_id: record.client_id,
+        upholstery_inventory_id: inventoryClientId,
+        name: record.name,
+        code: record.code,
+        image_url: record.image_url,
+        page_link: record.page_link ?? record.external_url ?? null,
+        supplier_name: record.supplier_name ?? record.origin,
+        upholstery_category_id: record.upholstery_category?.id ?? null,
+        upholstery_category_name: categoryName,
+        reuse_existing: true,
+      });
+
+      externalClientIdsRef.current.set(
+        getExternalIdentity(record),
+        upholstery.client_id,
+      );
+
+      if (upholstery.inventory_id && upholstery.inventory_id !== inventoryClientId) {
+        externalInventoryClientIdsRef.current.set(
+          record.client_id,
+          upholstery.inventory_id,
+        );
+        externalInventoryClientIdsRef.current.set(
+          upholstery.client_id,
+          upholstery.inventory_id,
+        );
+        repointSurfacesToInventory(inventoryClientId, upholstery.inventory_id);
+      }
+    } catch (error) {
+      console.error("Failed to create external upholstery", error);
+    }
   }
 
   function openCreationFormFromSearch(record: UpholsteryPickerRecord): void {

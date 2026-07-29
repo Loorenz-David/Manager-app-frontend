@@ -122,6 +122,13 @@ export type CreateUpholsteryInput = {
   supplier_street_address?: string | null;
   upholstery_category_id?: string | null;
   upholstery_category_name?: string | null;
+  /**
+   * External-provider search can surface an upholstery that already exists in
+   * the DB without the local results overriding it. With this flag the backend
+   * answers a duplicate with the existing record instead of a conflict error,
+   * so the selection flow continues with the returned ids.
+   */
+  reuse_existing?: boolean;
 };
 
 export function isExternalUpholsteryOrigin(

@@ -327,6 +327,7 @@ export function useUpholsteryPickerController(searchQuery: string) {
         supplier_name: record.supplier_name ?? record.origin,
         upholstery_category_id: record.upholstery_category?.id ?? null,
         upholstery_category_name: categoryName,
+        reuse_existing: true,
       });
 
       externalClientIdsRef.current.set(getExternalIdentity(record), upholstery.client_id);

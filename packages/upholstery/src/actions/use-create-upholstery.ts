@@ -15,12 +15,28 @@ export function useCreateUpholstery() {
   const mutation = useMutation({
     mutationFn: fetchCreateUpholstery,
     onSuccess: (upholstery) => {
+      // With reuse_existing the backend may hand back a record the list already
+      // contains — replace it in place instead of appending a duplicate card.
       queryClient.setQueriesData<PickerListData>(
         { queryKey: upholsteryKeys.pickerLists() },
-        (old) =>
-          old
-            ? { ...old, upholsteries: [...old.upholsteries, upholstery] }
-            : old,
+        (old) => {
+          if (!old) {
+            return old;
+          }
+
+          const alreadyListed = old.upholsteries.some(
+            (entry) => entry.client_id === upholstery.client_id,
+          );
+
+          return {
+            ...old,
+            upholsteries: alreadyListed
+              ? old.upholsteries.map((entry) =>
+                  entry.client_id === upholstery.client_id ? upholstery : entry,
+                )
+              : [...old.upholsteries, upholstery],
+          };
+        },
       );
     },
     onSettled: () => {

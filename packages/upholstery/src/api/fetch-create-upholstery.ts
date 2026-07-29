@@ -8,6 +8,7 @@ import { type CreateUpholsteryInput, UpholsteryDbRecordSchema } from "../types";
 const CreateUpholsteryResponseSchema = ApiEnvelopeSchema(
   z.object({
     upholstery: UpholsteryDbRecordSchema,
+    already_existed: z.boolean().optional(),
   }),
 );
 
