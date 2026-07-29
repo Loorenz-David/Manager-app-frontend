@@ -17,6 +17,7 @@ export {
 
 export { BottomSheetSurface } from "./components/surfaces/BottomSheetSurface";
 export { ModalSurface } from "./components/surfaces/ModalSurface";
+export { RiseSurface } from "./components/surfaces/RiseSurface";
 export { SlidePageSurface } from "./components/surfaces/SlidePageSurface";
 export { SlideParallaxUnderlay } from "./components/surfaces/slide-parallax";
 

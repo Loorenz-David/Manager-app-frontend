@@ -1,0 +1,20 @@
+{
+  "name": "@beyo/clock-kiosk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./showcase": "./src/showcase.ts"
+  },
+  "peerDependencies": {
+    "@beyo/auth": "*",
+    "@beyo/hooks": "*",
+    "@beyo/lib": "*",
+    "@beyo/ui": "*",
+    "@beyo/worker-shifts": "*",
+    "@tanstack/react-query": ">=5.0.0",
+    "react": ">=19.0.0",
+    "zod": ">=4.0.0"
+  }
+}

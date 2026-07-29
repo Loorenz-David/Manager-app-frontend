@@ -38,6 +38,7 @@ const AppScopeSchema = z.enum([
   AppScope.Manager,
   AppScope.Worker,
   AppScope.Seller,
+  AppScope.Floor,
 ] as const);
 
 const WorkspaceSpecializationSchema = z.enum([
@@ -97,7 +98,7 @@ async function signIn(credentials: SignInCredentials) {
     },
   );
 
-  setAccessToken(result.data.access_token);
+  setAccessToken(result.data.access_token, appScope);
   const claims = decodeTokenClaims();
   const roleName = result.data.user.role_name;
   const workspaceRoleName =

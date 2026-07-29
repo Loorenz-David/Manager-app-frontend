@@ -28,6 +28,7 @@ beforeEach(() => {
       a: registration("slide"),
       b: registration("sheet"),
       c: registration("modal"),
+      rise: registration("rise"),
     },
   });
   pushSpy = vi.spyOn(window.history, "pushState");
@@ -51,6 +52,22 @@ describe("surface stack ↔ history sync", () => {
     expect(lastPushedDepth()).toBe(2);
 
     expect(pushSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("tracks rise surfaces through the same open and close lifecycle", () => {
+    const store = useSurfaceStore.getState();
+
+    store.open("rise");
+    expect(useSurfaceStore.getState().stack.map((surface) => surface.id)).toEqual([
+      "rise",
+    ]);
+    expect(lastPushedDepth()).toBe(1);
+
+    goSpy.mockClear();
+    store.close("rise");
+
+    expect(useSurfaceStore.getState().stack).toHaveLength(0);
+    expect(goSpy).toHaveBeenCalledWith(-1);
   });
 
   it("does not push a second entry when re-opening an already-open overlay", () => {

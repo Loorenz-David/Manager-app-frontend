@@ -13,11 +13,12 @@ import { useNavigate, type NavigateFunction } from "react-router-dom";
 import { create } from "zustand";
 import { BottomSheetSurface } from "../components/surfaces/BottomSheetSurface";
 import { ModalSurface } from "../components/surfaces/ModalSurface";
+import { RiseSurface } from "../components/surfaces/RiseSurface";
 import { SlidePageSurface } from "../components/surfaces/SlidePageSurface";
 import { SurfaceSkeleton } from "../components/ui/SurfaceSkeleton";
 import { transitions } from "@beyo/lib";
 
-export type SurfaceType = "page" | "slide" | "sheet" | "modal";
+export type SurfaceType = "page" | "slide" | "sheet" | "modal" | "rise";
 
 type SurfaceComponent = LazyExoticComponent<
   ComponentType<Record<string, never>>
@@ -248,6 +249,7 @@ const SURFACE_SHELLS: Record<SurfaceType, ComponentType<SurfaceShellProps>> = {
   slide: SlidePageSurface,
   sheet: BottomSheetSurface,
   modal: ModalSurface,
+  rise: RiseSurface,
 };
 
 function SurfaceRenderer(): React.JSX.Element {

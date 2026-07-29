@@ -12,6 +12,7 @@ export const AppScope = {
   Manager: "manager",
   Worker: "worker",
   Seller: "seller",
+  Floor: "floor",
 } as const;
 export type AuthAppScope = (typeof AppScope)[keyof typeof AppScope];
 

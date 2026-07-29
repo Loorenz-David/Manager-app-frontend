@@ -18,6 +18,27 @@
   --color-warning: #8a5a00;
   --color-info-pill: #e8e8e8;
   --color-info-pill-border: #d8d8d8;
+
+  /* Kiosk visual system (@beyo/clock-kiosk) — warm-paper palette from the
+     clock-kiosk design handoff. Namespaced so kiosk components stay
+     transplantable to any host app without colliding with app tokens. */
+  --color-kiosk-canvas: #f2efe9;
+  --color-kiosk-surface: #faf8f4;
+  --color-kiosk-card: #ffffff;
+  --color-kiosk-ink: #1e1b17;
+  --color-kiosk-secondary: #8b8377;
+  --color-kiosk-tertiary: #a29a8e;
+  --color-kiosk-key: #edeae2;
+  --color-kiosk-line: #e7e3da;
+  --color-kiosk-accent: #2f5d9e;
+  --color-kiosk-success: #2e6a44;
+  --color-kiosk-success-soft: #e3ede6;
+  --color-kiosk-error: #c0492e;
+  --color-kiosk-plate: #1e1b17;
+  --color-kiosk-plate-label: #928b80;
+  --font-kiosk-sans: "Instrument Sans", "Inter", system-ui, sans-serif;
+  --font-kiosk-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo,
+    monospace;
 }
 
 :root {
@@ -60,6 +81,36 @@ body {
 }
 
 @layer utilities {
+  /* Kiosk keypad error: quick horizontal shake on the code cells row. */
+  @keyframes kiosk-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    20% {
+      transform: translateX(-8px);
+    }
+    40% {
+      transform: translateX(7px);
+    }
+    60% {
+      transform: translateX(-5px);
+    }
+    80% {
+      transform: translateX(3px);
+    }
+  }
+
+  .kiosk-shake {
+    animation: kiosk-shake 0.36s ease-in-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kiosk-shake {
+      animation: none;
+    }
+  }
+
   @keyframes skeleton-shimmer {
     100% {
       transform: translateX(100%);

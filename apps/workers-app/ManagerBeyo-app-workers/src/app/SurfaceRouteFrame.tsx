@@ -3,7 +3,7 @@ import { BottomSheetSurface, ModalSurface, SlidePageSurface } from '@beyo/ui';
 import type { SurfaceType } from '@/providers/SurfaceProvider';
 
 type SurfaceLocationState = {
-  surface?: Exclude<SurfaceType, 'page'>;
+  surface?: Exclude<SurfaceType, 'page' | 'rise'>;
   background?: { pathname: string; search: string };
 };
 

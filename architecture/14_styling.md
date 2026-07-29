@@ -219,6 +219,8 @@ Every `@beyo/*` package that contains `className=` usages **must** be listed as 
 | `@beyo/customers` | yes | `@source "../../../../packages/customers/src"` |
 | `@beyo/phone-input` | yes | `@source "../../../../packages/phone-input/src"` |
 | `@beyo/pwa` | yes | `@source "../../../../packages/pwa/src"` |
+| `@beyo/clock-kiosk` | yes | `@source "../../../../packages/clock-kiosk/src"` |
+| `@beyo/worker-shifts` | no | omit — 0 className usages |
 | `@beyo/permissions` | no | omit — 0 className usages |
 | `@beyo/realtime` | no | omit — 0 className usages |
 

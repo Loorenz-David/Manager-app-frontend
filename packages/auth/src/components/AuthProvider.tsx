@@ -22,13 +22,15 @@ const SelfProfileResponseSchema = ApiEnvelopeSchema(
 type AuthProviderProps = {
   children: ReactNode;
   signInRoute: string;
-  appScope: string;
+  appScope: AuthAppScope;
+  onSessionExpired?: () => void;
 };
 
 export function AuthProvider({
   children,
   signInRoute,
   appScope,
+  onSessionExpired,
 }: AuthProviderProps): React.JSX.Element {
   const [ready, setReady] = useState(false);
   const setUser = useAuthStore((state) => state.setUser);
@@ -95,6 +97,7 @@ export function AuthProvider({
 
   useEffect(() => {
     const handleExpired = () => {
+      onSessionExpired?.();
       clearAuth();
       queryClient.clear();
       navigate(signInRoute, { replace: true });
@@ -103,7 +106,7 @@ export function AuthProvider({
     window.addEventListener("auth:session-expired", handleExpired);
     return () =>
       window.removeEventListener("auth:session-expired", handleExpired);
-  }, [clearAuth, queryClient, navigate, signInRoute]);
+  }, [clearAuth, queryClient, navigate, onSessionExpired, signInRoute]);
 
   if (!ready) {
     return <PageSkeleton />;

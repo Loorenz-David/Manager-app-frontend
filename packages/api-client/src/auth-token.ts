@@ -1,5 +1,7 @@
 import { env } from './env';
 
+export const FLOOR_ACCESS_TOKEN_STORAGE_KEY = 'beyo.floor.access_token';
+
 let _accessToken: string | null = null;
 let _authScope: string | null = null;
 
@@ -7,8 +9,25 @@ export function getAccessToken(): string | null {
   return _accessToken;
 }
 
-export function setAccessToken(token: string | null): void {
+export function setAccessToken(token: string | null, scope?: string): void {
+  if (scope) {
+    setAuthScope(scope);
+  }
+
   _accessToken = token;
+
+  if (_authScope !== 'floor') return;
+
+  try {
+    if (token) {
+      window.localStorage.setItem(FLOOR_ACCESS_TOKEN_STORAGE_KEY, token);
+    } else {
+      window.localStorage.removeItem(FLOOR_ACCESS_TOKEN_STORAGE_KEY);
+    }
+  } catch {
+    // Device storage may be unavailable (for example, browser privacy policy).
+    // Memory remains authoritative for the current floor-app session.
+  }
 }
 
 export function setAuthScope(scope: string): void {
@@ -36,7 +55,7 @@ type TokenClaims = {
     | "upholstery_worker"
     | "quality_control"
     | null;
-  app_scope: "admin" | "manager" | "worker" | "seller";
+  app_scope: "admin" | "manager" | "worker" | "seller" | "floor";
   time_zone: string;
   backend_permissions: string[];
   ui: {
@@ -67,6 +86,12 @@ export function refreshAccessToken(scope?: string): Promise<boolean> {
   if (scope) {
     setAuthScope(scope);
   }
+
+  if (_authScope === 'floor') {
+    setAccessToken(null);
+    return Promise.resolve(false);
+  }
+
   if (_refreshPromise) return _refreshPromise;
 
   if (!_authScope) {
@@ -109,5 +134,18 @@ async function _executeRefresh(scope: string): Promise<boolean> {
 }
 
 export async function initSession(scope: string): Promise<boolean> {
+  setAuthScope(scope);
+
+  if (scope === 'floor') {
+    // Floor kiosks restore storage only during boot. Cross-tab synchronization is
+    // intentionally out of scope for the single fullscreen device model.
+    try {
+      _accessToken = window.localStorage.getItem(FLOOR_ACCESS_TOKEN_STORAGE_KEY);
+    } catch {
+      _accessToken = null;
+    }
+    return _accessToken !== null;
+  }
+
   return refreshAccessToken(scope);
 }

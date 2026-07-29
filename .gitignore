@@ -36,6 +36,12 @@ node_modules/
 .env.*
 !.env.example
 !.env.test.example
+!apps/floor-app/ManagerBeyo-app-floor/.env
+!apps/floor-app/ManagerBeyo-app-floor/.env.production
+!apps/floor-app/ManagerBeyo-app-floor/.env.test
+
+# TypeScript project-reference build metadata
+*.tsbuildinfo
 
 
 # Test artifacts
