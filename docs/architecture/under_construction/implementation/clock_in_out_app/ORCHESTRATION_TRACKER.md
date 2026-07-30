@@ -11,15 +11,17 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-30):** 🏁 **Opus verdict: complete-with-notes — master
-> criteria 1–9 ALL PASS. The capability is complete.** One final mini-loop:
-> corrections plan approved (F1 → option (b), Fable's notice built + committed
-> `4fc29335`; F8 → master archives on closure) — **fresh Codex session with
-> the snippet in Fable's 2026-07-30 message** closes F1–F5, F7, F8 and
-> performs the final lifecycle (incl. archiving the master). **F6 is YOURS:**
-> run the always-on rehearsal script from `packages/clock-kiosk/README.md` on
-> the physical target device and report the result — the capability's last
-> manual gate.
+> **Status (2026-07-30): 🏁 CAPABILITY CLOSED.** All phases + all correction
+> loops done; master criteria 1–9 PASS; master archived; final commits
+> `e8a35e19` (closure) + docs. **Agent documentation system created at
+> `packages/clock-kiosk/clock-kiosk-documentation/frontend/` — INDEX.md is
+> the entry point for ALL future kiosk work, and every modification must
+> update the docs + CHANGELOG per its protocol.**
+> **The one open item is YOURS: F6** — run the always-on rehearsal script
+> (`packages/clock-kiosk/README.md`) on the physical device; record the
+> result as a CHANGELOG entry (tell Fable and it'll be written for you).
+> This tracker is now historical; future work routes through the docs INDEX,
+> not this file.
 
 ## Operator findings from the 2026-07-30 walk-through (route with next corrections)
 

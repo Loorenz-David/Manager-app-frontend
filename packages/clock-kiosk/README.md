@@ -4,6 +4,11 @@ The shop-floor clock-in/out kiosk experience. It is a host-mounted page, not an
 application shell: a host owns floor authentication, device configuration,
 surface registration, and any endpoint-backed adapter data.
 
+> **Agents: before ANY work on this capability, read
+> `clock-kiosk-documentation/frontend/INDEX.md`** — it routes your intention
+> to the right zone docs and defines the update protocol (every modification
+> updates the affected docs + CHANGELOG in the same session).
+
 ## Kit prop contracts (Phase 3)
 
 All components are data-in/callbacks-out; none fetches, times, or matches
