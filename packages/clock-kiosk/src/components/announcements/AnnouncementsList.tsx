@@ -4,6 +4,8 @@ export type Announcement = {
   title: string;
   body: string;
   accent: 'info' | 'success' | 'neutral';
+  /** Pre-formatted display date, e.g. "29 Jul" (host formats the adapter's ISO). */
+  date?: string;
 };
 
 type Props = {
@@ -39,9 +41,14 @@ export function AnnouncementsList({ items }: Props): React.JSX.Element {
               <span
                 className={cn('size-2 shrink-0 rounded-full', DOT_COLOR[item.accent])}
               />
-              <p className="text-[15px] font-semibold text-kiosk-ink">
+              <p className="min-w-0 flex-1 truncate text-[15px] font-semibold text-kiosk-ink">
                 {item.title}
               </p>
+              {item.date ? (
+                <span className="shrink-0 font-kiosk-mono text-[11.5px] text-kiosk-tertiary">
+                  {item.date}
+                </span>
+              ) : null}
             </div>
             <p className="mt-1 pl-[18px] text-[13.5px] leading-relaxed text-kiosk-secondary">
               {item.body}

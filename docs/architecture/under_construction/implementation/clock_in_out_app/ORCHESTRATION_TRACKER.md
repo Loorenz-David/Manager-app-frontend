@@ -11,12 +11,26 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-30):** Phases 1–3 DONE. Phase 4 implemented; Opus found
-> defects (invariants all PASS; blockers are placement issues: C1 keydown,
-> C2 roster-on-sign-in). Corrections plan **approved, all Codex** (C4 →
-> option (a) host frame) — **run it now in a fresh Codex session; Phase 6
-> Codex HELD until it lands** (Opus rec + same-package rule). Phase 6 kit
-> approved 2026-07-30 and ready. Deferred to Phase 7: msw devDependency.
+> **Status (2026-07-30):** Phases 1–4 DONE. Phase 6 implemented — **Opus
+> review in progress**. Operator walk-through (port 5177, mocks) surfaced
+> findings **O1–O3** (below) — HELD for the Phase 6 corrections round or
+> Phase 7, folded in when the verdict lands (no repo edits while the review
+> runs). Deferred to Phase 7: msw devDependency (npm install).
+
+## Operator findings from the 2026-07-30 walk-through (route with next corrections)
+
+- **O1 (wiring → Codex):** kiosk surface chunks lazy-load at first open —
+  preload confirm/result (and any Phase 6 chunk) after authentication during
+  keypad idle via the existing `lazyWithPreload` preloaders. An always-on
+  kiosk must never chunk-load mid-interaction.
+- **O2 (design → Fable):** the generic `@beyo/ui` `SurfaceSkeleton` shapes
+  don't match kiosk containers — build `KioskSurfaceSkeleton` in the kit
+  (paper bg, avatar/plate/button-bar blocks, shimmer tokens); reusable for
+  data-loading states.
+- **O3 (structural → Codex):** the Suspense fallback replaces the
+  `withFloorKioskFrame` wrapper, so the skeleton renders on the bare
+  translucent backdrop with no page bg — move a Suspense boundary INSIDE the
+  frame so cold loads always show paper + header, fallback within the column.
 
 ---
 
@@ -130,10 +144,13 @@ Gates: - [ ] Phase 1 DONE   - [ ] Phase 3 DONE   - [ ] Fable kit approved
         — snippet in Fable's
         2026-07-30 message. ⚠ Phase 6 Codex HELD until this lands (Opus rec +
         same-package rule)
-  - [ ] Optional Fable spot-verify (or Opus re-review — C1/C2/C4 are
-        behavioral enough that a quick Opus re-check is reasonable; operator's
-        call). The implementation gate is green; this reviewer spot-check remains
-        optional.
+  - [x] Fable spot-verified C1–C4 at mechanism level 2026-07-30 (editable-target
+        guard; controller/roster mounted only under FloorProtectedRoute;
+        "Good {daypart}"; keypad always mounted + withFloorKioskFrame); kit
+        diff empty; 18/18. Opus re-review left optional (operator's call).
+- [x] Committed `b518764d`
+- [ ] **Manual iPad walk-through — the demo milestone** (operator)
+- [x] **PHASE 4 DONE** (2026-07-30)
 - [ ] Verdict pass → **manual iPad walk-through — the demo milestone**
 - [ ] Tell **Fable**: "phase 4 done"
 
