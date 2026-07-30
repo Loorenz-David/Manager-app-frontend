@@ -18,6 +18,18 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-30 — F6 physical-device rehearsal PASSED on phone (operator)
+
+- Change: none (validation event). The always-on rehearsal script was run on
+  a physical phone over LAN; one blocker found and fixed during the run (the
+  insecure-context session-id crash below). Operator confirms the rehearsal
+  passed; deeper debugging on the target iPad is planned later.
+- Why: final review finding F6 — the one gate no agent can automate.
+- Impact: closes the capability's last open manual item. iPad-specific pass
+  remains a nice-to-have follow-up, not a gate.
+- Docs updated: this entry; memory updated.
+- Validation: manual, per the script in `packages/clock-kiosk/README.md`.
+
 ## 2026-07-30 — Session-id generation survives insecure contexts (Claude Fable)
 
 - Change: `kiosk-flow.store.ts` `createSessionId()` — `crypto.randomUUID` →
