@@ -18,6 +18,20 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-30 — Session-id generation survives insecure contexts (Claude Fable)
+
+- Change: `kiosk-flow.store.ts` `createSessionId()` — `crypto.randomUUID` →
+  fallback chain (`getRandomValues` hex → time+random) with a comment stating
+  uniqueness-not-cryptography intent.
+- Why: F6 physical-device rehearsal (operator) crashed at `KioskProvider`
+  mount over LAN http — `crypto.randomUUID` is secure-context-only; the
+  kiosk white-screened behind the router error boundary right after sign-in.
+- Impact: store spine only (IMPACT_MAP "kiosk-flow.store" row) — id shape is
+  opaque to all consumers; no seam change.
+- Docs updated: `04` (session-id mention), `07` (new hazard #5: LAN device
+  testing = insecure context, incl. MSW fallback mode), this entry.
+- Validation: `tsc -p packages/clock-kiosk` clean; `test:clock-kiosk` 54/54.
+
 ## 2026-07-30 — Capability v1 complete (Claude Fable, orchestrator)
 
 - Change: the entire capability, built in phases 1→2→3→4→6→7 (5 shelved) with

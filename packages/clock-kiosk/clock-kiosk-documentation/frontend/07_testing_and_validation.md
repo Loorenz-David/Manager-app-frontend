@@ -47,6 +47,13 @@ non-negotiable — they are the three-live-apps invariance proof.
    reviewing, read what the test asserts, not what it is called.
 4. **Console-error fixture**: any new console noise fails every spec — silence
    the source, don't filter the fixture.
+5. **LAN device testing = insecure context.** Reaching the dev server from a
+   tablet over `http://<ip>:5175` disables secure-context APIs:
+   `crypto.randomUUID` (absent — session ids have a fallback chain in the
+   store since 2026-07-30), service workers (MSW drops to fallback mode —
+   still mocks, slower path; PWA install/SW features untestable). Never
+   introduce a secure-context-only API without a fallback; for full-fidelity
+   device checks serve HTTPS or use a production build.
 
 ## The manual gate that automation can't cover
 

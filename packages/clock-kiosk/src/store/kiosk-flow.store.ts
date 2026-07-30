@@ -76,8 +76,22 @@ export type KioskFlowStore = {
   reset: () => string;
 };
 
+// Session ids only need uniqueness within this device session (they gate
+// stale async results) — not cryptographic strength. `crypto.randomUUID` is
+// secure-context-only (HTTPS/localhost); a kiosk tablet hitting the dev
+// server over LAN http has no such context, so fall back gracefully.
 function createSessionId(): string {
-  return crypto.randomUUID();
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi?.randomUUID === 'function') {
+    return cryptoApi.randomUUID();
+  }
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+    return Array.from(bytes, (byte) =>
+      byte.toString(16).padStart(2, '0'),
+    ).join('');
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 }
 
 function createKeypadState(sessionId = createSessionId()): KeypadFlowState {
