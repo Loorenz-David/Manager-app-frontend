@@ -12,6 +12,7 @@
     "@beyo/stats": "*",
     "@beyo/ui": "*",
     "@beyo/worker-shifts": "*",
+    "lucide-react": ">=1.0.0",
     "react": ">=19.0.0",
     "zustand": ">=5.0.0"
   },

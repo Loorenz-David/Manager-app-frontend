@@ -19,6 +19,7 @@ import {
   CLOCK_KIOSK_RESULT_SURFACE_ID,
   type ClockKioskSurfaceOpeners,
 } from '../surface-ids';
+import { autoReturnSecondsForResult } from '../lib/auto-return';
 import { toClockOutSummaryViewModel } from '../lib/analytics-view-model';
 import {
   gateAnnouncements,
@@ -355,7 +356,11 @@ export function useKioskFlowController({
     if (!result || !isSessionActive(sessionId)) return;
     store
       .getState()
-      .showResult(sessionId, result, autoReturnSeconds);
+      .showResult(
+        sessionId,
+        result,
+        autoReturnSecondsForResult(result.kind, autoReturnSeconds),
+      );
     surfaceOpeners.openResult();
   }, [
     autoReturnSeconds,

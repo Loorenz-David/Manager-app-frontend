@@ -28,12 +28,12 @@ anything. **Read-only for Codex** (additive optional props only).
 
 | Component | Contract |
 |---|---|
-| `KeypadScreen` | `{ code, error, errorMessage?, statusNotice?, mode: "code"·"email", emailValue, pending?, onDigit, onDelete, onSubmit, onModeChange, onEmailChange, onEmailSubmit }` — code cells display the typed digits (user decision 2026-07-29). `statusNotice` is the quiet roster/offline line (tertiary, no shake, no red cells), distinct from the no-match `error` signal. The email fallback affordance is labeled **"Clock with email"**. Auto-submit-on-4th, matching, and physical-keyboard events are controller concerns. |
+| `KeypadScreen` | `{ code, error, errorMessage?, statusNotice?, mode: "code"·"email", emailValue, pending?, onDigit, onDelete, onSubmit, onModeChange, onEmailChange, onEmailSubmit, onRefresh }` — code cells display the typed digits (user decision 2026-07-29). `onRefresh` is the pull-to-refresh handler (roster refetch); the screen IS a `PullToRefresh`. `statusNotice` is the quiet roster/offline line (tertiary, no shake, no red cells), distinct from the no-match `error` signal. The email fallback affordance is labeled **"Clock with email"**. Auto-submit-on-4th, matching, and physical-keyboard events are controller concerns. |
 | `CodeCells` | `{ length, value, error }` — each filled cell shows its digit; plays the shake once on every false→true `error` transition (`.kiosk-shake` in `@beyo/styles`). |
-| `Keypad` | `{ onDigit, onDelete, onSubmit }` — 3×4 circles (72px phone → 120px iPad), accent submit key. |
+| `Keypad` | `{ onDigit, onDelete, onSubmit }` — 3×4 circles (72px phone → 120px iPad, 100px `lg:`). Bottom row is **submit · 0 · delete** (delete bottom-right, phone/PIN-pad convention); delete uses lucide's `Delete` icon, submit is the accent circle. |
 | `IdentityConfirmScreen` | `{ user: {name, roleLine, avatarUrl}, context: {label, value} \| null, action: "clock_in"·"clock_out", pending, onAction, onBack }` — exactly one primary action; context row hidden when null (scheduled-shift gap). Uses `@beyo/ui` `Avatar` (initials fallback). |
 | `ResultScreen` | `{ variant: "in"·"out", greeting, subtitle, plate: {label, time, right?} \| null, notice?, announcementsSlot?, countdownSeconds, onDone, doneLabel? }` — covers clock-in success and the plain clock-out; Phase 6 replaces the "out" body with the analytics summary. |
-| `CheckHero` | `{ tone?: "success"·"accent" }` |
+| `CheckHero` | `{ tone?: "success"·"accent", autoReturnSeconds?: number \| null }` — with `autoReturnSeconds` a depleting ring runs around the circle for that many seconds (the visual auto-return countdown); the first value seen sets the duration. |
 | `DarkTimePlate` | `{ label, time, right? }` — the screen's single most important number; mono numerals; `right` is the scheduled column (adapter-gated). |
 | `AutoReturnFooter` | `{ secondsLeft, onDone, label?, variant?: muted·accent }` — countdown ticks in the store; this renders it. Summary uses `variant="accent"`. |
 
@@ -43,7 +43,7 @@ anything. **Read-only for Codex** (additive optional props only).
 |---|---|
 | `SummaryScreen` | `{ title, subtitle, name, avatarUrl, worked: {worked, in, out}, items \| null, week \| null, rate \| null, insights, notice?, countdownSeconds, onDone }` — adapter-gated sections render only when non-null; with all adapters empty it is hero + insights (+ notice), still balanced. Phone order hours→insights→items→week/rate; sm+ hours→items→week+rate grid→insights (design readme rule). Footer is `AutoReturnFooter` accent "Done · See you tomorrow". |
 | `SummaryHeader` | `{ title, subtitle, name, avatarUrl }` — compact identity row, Avatar initials fallback. |
-| `WorkedTodayPlate` | `{ worked: "8h 12m", in: "06:58", out: "15:00" }` — pre-formatted strings from the analytics view model; dark hero, mono numerals. |
+| `WorkedTodayPlate` | `{ worked: "8h 12m", in: "06:58", out: "15:00", autoReturnSeconds?: number \| null }` — pre-formatted strings from the analytics view model; dark hero, mono numerals. `autoReturnSeconds` runs the depleting auto-return border around the plate. |
 | `ItemsCompletedCarousel` | `{ items: {name, imageUrl, units}[], totalUnits, lineCount }` — horizontal snap scroll, `BackendImage` with placeholder fallback. GAP: `SummaryExtrasAdapter.items`. |
 | `WeekBarChart` | `{ days: {label, workedSeconds, isToday}[], targetSeconds, loggedSeconds }` — CSS bars, today accent-filled; hour formatting is display-local. GAP: `SummaryExtrasAdapter.week`. |
 | `RateTile` | `{ unitsPerHour, baseline, baselineDays }` — mono rate figures. GAP: `SummaryExtrasAdapter.rate`. |

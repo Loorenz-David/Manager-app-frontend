@@ -580,8 +580,11 @@ test('clock-kiosk: result timeout atomically resets to a cleared keypad', async 
   await page.keyboard.type('4821');
   await expect(page.getByTestId('confirm-action')).toHaveText('Clock in now');
   await page.getByTestId('confirm-action').click();
+  // Clock-in results return at CLOCK_IN_AUTO_RETURN_FACTOR (0.5) of the
+  // device's configured window — 4s configured → 2s here. Clock-out keeps the
+  // full window (asserted by the clock-out journey's countdown).
   await expect(page.getByTestId('auto-return-countdown')).toHaveText(
-    'Returning to the keypad in 4s',
+    'Returning to the keypad in 2s',
   );
 
   await expect(page.getByTestId('keypad-screen')).toBeVisible({

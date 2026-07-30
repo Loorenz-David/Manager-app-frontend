@@ -36,6 +36,11 @@
   --color-kiosk-error: #c0492e;
   --color-kiosk-plate: #1e1b17;
   --color-kiosk-plate-label: #928b80;
+  /* Auto-return ring colors — CHANGE THE RING COLORS HERE (only place).
+     `-in` is the clock-in ring (on paper), `-out` the clock-out ring
+     (on the dark plate / accent hero). */
+  --color-kiosk-timer-in: #2e6a44;
+  --color-kiosk-timer-out: #e0a526;
   --font-kiosk-sans: "Instrument Sans", "Inter", system-ui, sans-serif;
   --font-kiosk-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo,
     monospace;

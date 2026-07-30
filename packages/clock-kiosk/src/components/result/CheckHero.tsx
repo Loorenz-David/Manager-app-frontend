@@ -35,9 +35,11 @@ export function CheckHero({
           <circle
             className={cn(
               'kiosk-ring fill-none stroke-2',
+              // Ring color signals in vs out; both tokens live in
+              // @beyo/styles (--color-kiosk-timer-in / -out).
               tone === 'success'
-                ? 'stroke-kiosk-success'
-                : 'stroke-kiosk-accent',
+                ? 'stroke-kiosk-timer-in'
+                : 'stroke-kiosk-timer-out',
             )}
             cx="50"
             cy="50"

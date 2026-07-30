@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Delete } from 'lucide-react';
 import { cn } from '@beyo/lib';
 
 type KeyProps = {
@@ -43,24 +44,6 @@ type Props = {
   onSubmit: () => void;
 };
 
-function DeleteGlyph(): React.JSX.Element {
-  return (
-    <svg
-      aria-hidden="true"
-      className="size-7 sm:size-8"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth="1.8"
-      viewBox="0 0 24 24"
-    >
-      <path d="M9 4h11a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H9L2.5 12.5a.7.7 0 0 1 0-.9L9 4Z" />
-      <path d="m12.5 9.5 5 5m0-5-5 5" />
-    </svg>
-  );
-}
-
 function SubmitGlyph(): React.JSX.Element {
   return (
     <svg
@@ -79,9 +62,10 @@ function SubmitGlyph(): React.JSX.Element {
 }
 
 /**
- * The 3×4 kiosk keypad: 1–9, delete, 0, submit. Circles are 120px on iPad,
- * scaling to 72px on phone; the submit key is the accent circle. Pure
- * presentational — validation/auto-submit live in the flow controller.
+ * The 3×4 kiosk keypad: 1–9, then submit · 0 · delete. The bottom row follows
+ * the familiar phone/PIN-pad convention (delete bottom-right); the submit key
+ * is the accent circle. Circles are 120px on iPad, scaling to 72px on phone.
+ * Pure presentational — validation/auto-submit live in the flow controller.
  */
 export function Keypad({
   onDigit,
@@ -103,22 +87,22 @@ export function Keypad({
         </KeypadKey>
       ))}
       <KeypadKey
-        aria-label="Delete last digit"
-        data-testid="keypad-delete"
-        onPress={onDelete}
-      >
-        <DeleteGlyph />
-      </KeypadKey>
-      <KeypadKey data-testid="keypad-key-0" onPress={() => onDigit('0')}>
-        0
-      </KeypadKey>
-      <KeypadKey
         aria-label="Submit code"
         data-testid="keypad-submit"
         onPress={onSubmit}
         variant="accent"
       >
         <SubmitGlyph />
+      </KeypadKey>
+      <KeypadKey data-testid="keypad-key-0" onPress={() => onDigit('0')}>
+        0
+      </KeypadKey>
+      <KeypadKey
+        aria-label="Delete last digit"
+        data-testid="keypad-delete"
+        onPress={onDelete}
+      >
+        <Delete aria-hidden="true" className="size-7 sm:size-8" strokeWidth={1.8} />
       </KeypadKey>
     </div>
   );

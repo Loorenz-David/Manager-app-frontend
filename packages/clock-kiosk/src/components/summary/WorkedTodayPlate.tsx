@@ -42,7 +42,7 @@ export function WorkedTodayPlate({
               running border ON the container, no calc() (invalid in SVG
               geometry attributes). */}
           <rect
-            className="kiosk-ring stroke-kiosk-accent"
+            className="kiosk-ring stroke-kiosk-timer-out"
             height="100%"
             pathLength={100}
             rx="24"

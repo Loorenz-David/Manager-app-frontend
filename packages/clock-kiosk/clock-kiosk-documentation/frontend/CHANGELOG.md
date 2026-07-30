@@ -18,6 +18,31 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-30 — Amber clock-out ring, faster clock-in return, keypad bottom-row swap (Claude Fable)
+
+- Change: (1) ring colors moved to single-source tokens
+  `--color-kiosk-timer-in` (green) / `--color-kiosk-timer-out` (**amber
+  `#e0a526`**) in `@beyo/styles`; `CheckHero` picks by tone, `WorkedTodayPlate`
+  uses `-out`. (2) New `lib/auto-return.ts`: clock-in results now return at
+  `CLOCK_IN_AUTO_RETURN_FACTOR` (0.5) of the configured window (12s → 6s),
+  clock-out unchanged; floor `MIN_AUTO_RETURN_SECONDS` 2s. Controller passes
+  results through it, so timer and ring share one number. (3) Keypad bottom
+  row swapped to **submit · 0 · delete** with lucide's `Delete` icon;
+  `lucide-react` added as a package peer + floor app dependency.
+- Why: user requests — amber clock-out ring (with an easy place to re-tint),
+  clock-in 50% faster, and a bottom row matching the familiar PIN-pad layout.
+- Impact: kit + a controller call site + `@beyo/styles` tokens (additive) +
+  one new pure lib module. `npm install` ran for `lucide-react` — native
+  bindings verified intact afterwards (zone 07 hazard #2).
+- Docs updated: `04` (auto-return module row), `05` (where-to-change table,
+  keypad row), package README contracts (Keypad, CheckHero, WorkedTodayPlate,
+  KeypadScreen `onRefresh`), this entry.
+- Validation: tsc clean; clock-kiosk 58/58 (4 new `auto-return.test.ts` cases
+  pinning the 0.5 factor + floor); floor unit 9/9; Playwright 9/9 ×
+  mobile/tablet/desktop (the auto-return spec's expectation updated 4s → 2s —
+  the behavior change, asserted deliberately); floor lint clean; keypad +
+  amber-ring screenshot-verified on tablet.
+
 ## 2026-07-30 — Auto-return ring, keypad pull-to-refresh, kiosk gesture hardening (Claude Fable)
 
 - Change: (1) the auto-return countdown is now a smoothly depleting SVG ring
