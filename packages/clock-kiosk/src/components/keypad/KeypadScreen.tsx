@@ -22,6 +22,13 @@ type Props = {
   onModeChange: (mode: KeypadMode) => void;
   onEmailChange: (value: string) => void;
   onEmailSubmit: () => void;
+  /**
+   * Quiet terminal-state line (e.g. "Terminal offline — try again in a
+   * moment"), visually distinct from the red code-miss error: tertiary,
+   * no shake, no red cells. Rendered in both code and email modes (matching
+   * is roster-based either way). Never combine with `error`.
+   */
+  statusNotice?: string | null;
 };
 
 const CODE_LENGTH = 4;
@@ -45,6 +52,7 @@ export function KeypadScreen({
   onModeChange,
   onEmailChange,
   onEmailSubmit,
+  statusNotice = null,
 }: Props): React.JSX.Element {
   return (
     <div
@@ -70,12 +78,16 @@ export function KeypadScreen({
           <p
             aria-live="polite"
             className={cn(
-              'mt-3 h-5 text-[14px] text-kiosk-error transition-opacity',
-              error ? 'opacity-100' : 'opacity-0',
+              'mt-3 h-5 text-[14px] transition-opacity',
+              statusNotice && !error
+                ? 'text-kiosk-tertiary opacity-100'
+                : error
+                  ? 'text-kiosk-error opacity-100'
+                  : 'text-kiosk-error opacity-0',
             )}
-            data-testid="keypad-error"
+            data-testid={statusNotice && !error ? 'keypad-status' : 'keypad-error'}
           >
-            {errorMessage}
+            {statusNotice && !error ? statusNotice : errorMessage}
           </p>
           <div className={cn('mt-4 sm:mt-6 lg:mt-4', pending && 'pointer-events-none opacity-60')}>
             <Keypad onDelete={onDelete} onDigit={onDigit} onSubmit={onSubmit} />
@@ -110,12 +122,16 @@ export function KeypadScreen({
           <p
             aria-live="polite"
             className={cn(
-              'mt-3 h-5 text-[14px] text-kiosk-error transition-opacity',
-              error ? 'opacity-100' : 'opacity-0',
+              'mt-3 h-5 text-[14px] transition-opacity',
+              statusNotice && !error
+                ? 'text-kiosk-tertiary opacity-100'
+                : error
+                  ? 'text-kiosk-error opacity-100'
+                  : 'text-kiosk-error opacity-0',
             )}
-            data-testid="keypad-error"
+            data-testid={statusNotice && !error ? 'keypad-status' : 'keypad-error'}
           >
-            {errorMessage}
+            {statusNotice && !error ? statusNotice : errorMessage}
           </p>
           <div className="mt-5 w-full">
             <KioskButton
