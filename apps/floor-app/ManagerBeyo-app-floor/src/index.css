@@ -37,3 +37,11 @@
   font-display: swap;
   src: url("/fonts/IBMPlexMono-SemiBold.ttf") format("truetype");
 }
+
+/* Kiosk gesture hardening: pan only — no pinch-zoom, no double-tap zoom.
+   (iOS ignores user-scalable=no; the JS gesturestart guard in main.tsx covers
+   the Safari pinch path.) */
+html,
+body {
+  touch-action: pan-x pan-y;
+}

@@ -4,6 +4,17 @@ import { createRoot } from "react-dom/client";
 import { App } from "@/app/App";
 import "@/index.css";
 
+// Kiosk gesture hardening: iOS Safari ignores both `user-scalable=no` and
+// `touch-action` for pinch-zoom; its proprietary gesture events are the only
+// reliable block. Complements the CSS `touch-action: pan-x pan-y` in index.css.
+for (const gestureEvent of ["gesturestart", "gesturechange", "gestureend"]) {
+  document.addEventListener(
+    gestureEvent,
+    (event) => event.preventDefault(),
+    { passive: false },
+  );
+}
+
 const root = document.getElementById("root");
 
 if (!root) {

@@ -26,13 +26,19 @@ export function AutoReturnFooter({
       <KioskButton data-testid="result-done" onClick={onDone} variant={variant}>
         {label}
       </KioskButton>
+      {/* The visible countdown is the animated ring on the hero/plate; the
+          text returns only under prefers-reduced-motion (where the ring
+          hides). Screen readers always get the live count. */}
       <p
         aria-live="off"
-        className="mt-3 text-center text-[14px] text-kiosk-tertiary"
+        className="mt-3 hidden text-center text-[14px] text-kiosk-tertiary motion-reduce:block"
         data-testid="auto-return-countdown"
       >
         Returning to the keypad in {secondsLeft}s
       </p>
+      <span aria-live="polite" className="sr-only">
+        Returning to the keypad in {secondsLeft} seconds
+      </span>
     </div>
   );
 }

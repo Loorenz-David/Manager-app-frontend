@@ -305,6 +305,7 @@ export function KioskKitShowcase(): React.JSX.Element {
           setMode(next);
           setError(false);
         }}
+        onRefresh={() => {}}
         onSubmit={() => trySubmit(code)}
       />
     </KioskFrame>

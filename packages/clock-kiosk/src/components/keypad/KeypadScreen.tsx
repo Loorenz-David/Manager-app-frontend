@@ -1,5 +1,5 @@
 import { cn } from '@beyo/lib';
-import { VerticalScrollArea } from '@beyo/ui';
+import { PullToRefresh } from '@beyo/ui';
 import { CodeCells } from './CodeCells';
 import { Keypad } from './Keypad';
 import { KioskButton } from '../shared/KioskButton';
@@ -23,6 +23,8 @@ type Props = {
   onModeChange: (mode: KeypadMode) => void;
   onEmailChange: (value: string) => void;
   onEmailSubmit: () => void;
+  /** Pull-to-refresh handler — refetches the roster (awaited for the spinner). */
+  onRefresh: () => Promise<void> | void;
   /**
    * Quiet terminal-state line (e.g. "Terminal offline — try again in a
    * moment"), visually distinct from the red code-miss error: tertiary,
@@ -53,16 +55,19 @@ export function KeypadScreen({
   onModeChange,
   onEmailChange,
   onEmailSubmit,
+  onRefresh,
   statusNotice = null,
 }: Props): React.JSX.Element {
   return (
-    <VerticalScrollArea
-      data-testid="keypad-screen"
-      style={{ flex: '1 1 0%', minHeight: 0 }}
-      thumbClassName="bg-kiosk-tertiary/40"
-      trackClassName="bg-kiosk-key"
+    <PullToRefresh
+      className="min-h-0 flex-1"
+      onRefresh={onRefresh}
+      scrollClassName="overflow-y-auto overscroll-y-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
-      <div className="flex min-h-full flex-col items-center py-6 sm:py-8 lg:py-5">
+      <div
+        className="flex min-h-full flex-col items-center py-6 sm:py-8 lg:py-5"
+        data-testid="keypad-screen"
+      >
       <div className="text-center">
         <h1 className="text-[32px] font-bold leading-tight tracking-tight text-kiosk-ink sm:text-[42px]">
           Start your shift
@@ -159,6 +164,6 @@ export function KeypadScreen({
         </div>
       )}
       </div>
-    </VerticalScrollArea>
+    </PullToRefresh>
   );
 }

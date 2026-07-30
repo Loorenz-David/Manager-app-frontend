@@ -1,6 +1,21 @@
 import type { Page } from '@playwright/test';
 import { test, expect } from './fixtures/app-fixture';
 
+/**
+ * Controls INSIDE PullToRefresh need real taps on touch projects — the
+ * use-gesture `filterTaps` drag handler swallows Playwright's synthetic
+ * mouse clicks there (documented kiosk hazard; same workaround as the
+ * workers-app suites). Non-touch projects keep plain clicks.
+ */
+async function pressControl(page: Page, testId: string): Promise<void> {
+  const locator = page.getByTestId(testId);
+  if (test.info().project.use.hasTouch) {
+    await locator.tap();
+  } else {
+    await locator.click();
+  }
+}
+
 function encodeJwt(payload: Record<string, unknown>): string {
   const header = Buffer.from(
     JSON.stringify({ alg: 'none', typ: 'JWT' }),
@@ -340,7 +355,7 @@ test('kiosk-summary: analytics null preserves the Phase 4 plain result', async (
   });
 
   for (const digit of ['4', '8', '2', '1']) {
-    await page.getByTestId(`keypad-key-${digit}`).click();
+    await pressControl(page, `keypad-key-${digit}`);
   }
   await expect(page.getByTestId('confirm-action')).toHaveText('Clock out now');
   await expect(page.getByTestId('confirm-context-row')).toContainText(
@@ -529,7 +544,7 @@ test('clock-kiosk: wrong code uses the generic local error and clears', async ({
   const backend = await mockAuthenticatedKiosk(page);
 
   for (const digit of ['9', '9', '9', '9']) {
-    await page.getByTestId(`keypad-key-${digit}`).click();
+    await pressControl(page, `keypad-key-${digit}`);
   }
 
   await expect(page.getByTestId('code-cells')).toHaveClass(/kiosk-shake/);
@@ -545,9 +560,9 @@ test('clock-kiosk: email fallback matches case-insensitively without identify tr
 }) => {
   const backend = await mockAuthenticatedKiosk(page);
 
-  await page.getByTestId('clock-with-email').click();
+  await pressControl(page, 'clock-with-email');
   await page.getByTestId('email-input').fill('  MARCO@SHOP.COM  ');
-  await page.getByTestId('email-submit').click();
+  await pressControl(page, 'email-submit');
   await expect(page.getByTestId('confirm-name')).toHaveText('Marco Silva');
   await expect(page.getByTestId('confirm-action')).toHaveText('Clock in now');
   expect(backend.currentRequests).toBe(1);

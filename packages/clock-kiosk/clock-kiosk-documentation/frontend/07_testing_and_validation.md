@@ -47,7 +47,14 @@ non-negotiable — they are the three-live-apps invariance proof.
    reviewing, read what the test asserts, not what it is called.
 4. **Console-error fixture**: any new console noise fails every spec — silence
    the source, don't filter the fixture.
-5. **LAN device testing = insecure context.** Reaching the dev server from a
+5. **Controls inside PullToRefresh swallow synthetic clicks on touch
+   projects.** use-gesture's `filterTaps` eats Playwright `.click()` inside
+   PTR (keypad keys, "Clock with email", email submit) on the `mobile`
+   project. Use the spec's `pressControl(page, testId)` helper (tap on
+   `hasTouch` projects, click otherwise) for anything inside PTR; surfaces
+   outside PTR keep plain `.click()`. Same repo-wide hazard as the
+   workers-app suites.
+6. **LAN device testing = insecure context.** Reaching the dev server from a
    tablet over `http://<ip>:5175` disables secure-context APIs:
    `crypto.randomUUID` (absent — session ids have a fallback chain in the
    store since 2026-07-30), service workers (MSW drops to fallback mode —

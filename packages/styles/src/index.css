@@ -105,9 +105,33 @@ body {
     animation: kiosk-shake 0.36s ease-in-out;
   }
 
+  /* Kiosk auto-return ring: an SVG stroke (pathLength=100, dasharray 100)
+     depleting linearly over the auto-return window. Duration set inline via
+     animation-duration. */
+  @keyframes kiosk-ring-deplete {
+    from {
+      stroke-dashoffset: 0;
+    }
+    to {
+      stroke-dashoffset: 100;
+    }
+  }
+
+  .kiosk-ring {
+    stroke-dasharray: 100;
+    animation-name: kiosk-ring-deplete;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .kiosk-shake {
       animation: none;
+    }
+
+    .kiosk-ring {
+      animation: none;
+      visibility: hidden;
     }
   }
 

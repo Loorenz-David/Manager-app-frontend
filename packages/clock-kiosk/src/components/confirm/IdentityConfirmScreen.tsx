@@ -45,6 +45,7 @@ export function IdentityConfirmScreen({
   return (
     <VerticalScrollArea
       data-testid="identity-confirm-screen"
+      className="overscroll-contain"
       style={{ flex: '1 1 0%', minHeight: 0 }}
       thumbClassName="bg-kiosk-tertiary/40"
       trackClassName="bg-kiosk-key"

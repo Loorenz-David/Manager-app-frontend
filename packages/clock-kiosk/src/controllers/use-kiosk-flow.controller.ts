@@ -476,6 +476,11 @@ export function useKioskFlowController({
     onModeChange: handleModeChange,
     onEmailChange: handleEmailChange,
     onEmailSubmit: handleEmailSubmit,
+    // Pull-to-refresh on the keypad refetches the roster (the screen's only
+    // query); PullToRefresh awaits the promise to run its spinner.
+    onRefresh: async () => {
+      await rosterQuery.refetch();
+    },
   };
 
   const confirm = useMemo(() => {

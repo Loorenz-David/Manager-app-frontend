@@ -18,6 +18,30 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-30 — Auto-return ring, keypad pull-to-refresh, kiosk gesture hardening (Claude Fable)
+
+- Change: (1) the auto-return countdown is now a smoothly depleting SVG ring
+  (`.kiosk-ring` in `@beyo/styles`) — around `CheckHero` on clock-in/plain
+  clock-out, around `WorkedTodayPlate` on the summary; the textual caption is
+  `motion-reduce`-only + an always-on `sr-only` live region. (2) KeypadScreen
+  swapped VSA → `PullToRefresh` (workers-app pattern) with a controller-
+  injected `onRefresh` → awaited roster refetch; other screens gained
+  `overscroll-contain`. (3) Floor app: `touch-action: pan-x pan-y` +
+  iOS `gesturestart` guard (no pinch/double-tap zoom, no pull-down reload).
+  (4) e2e: new `pressControl` tap/click helper for controls inside PTR.
+- Why: user requests after the phone rehearsal — PWA gesture discipline,
+  pull-to-refresh on query screens, and the countdown as an animated border
+  on the check badge / hours plate.
+- Impact: kit + controller keypad slice (`onRefresh`, additive) + floor
+  `index.css`/`main.tsx` + spec helper. Two hazards exercised: SVG geometry
+  attrs reject `calc()` (fixture-caught); PTR click-swallowing on touch
+  projects (memoized hazard, now doc'd as zone 07 #6).
+- Docs updated: `04` (onRefresh), `05` (Scrolling & PTR split, ring section,
+  gesture hardening), `07` (hazard #6), this entry.
+- Validation: tsc clean; kiosk 54/54; floor unit 9/9; ui 162/162; Playwright
+  9/9 × mobile/tablet/desktop (cold); ring screenshot-verified mid-animation
+  on tablet (check-circle + plate).
+
 ## 2026-07-30 — Phone plate overlap fixed + VerticalScrollArea adoption (Claude Fable)
 
 - Change: `DarkTimePlate` + `WorkedTodayPlate` — hero numerals 40px base

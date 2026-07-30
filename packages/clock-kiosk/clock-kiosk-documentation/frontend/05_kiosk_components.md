@@ -52,17 +52,51 @@ adds what the README doesn't: interconnection and design intent.
   3.53:1 / `tertiary` 2.62:1 pass only as large/decorative text — accepted
   design palette; darken toward `#767061` if AA body-text ever required.
 
-## Scrolling
+## Scrolling & pull-to-refresh
 
-All four flow screens (`KeypadScreen`, `IdentityConfirmScreen`,
-`ResultScreen`, `SummaryScreen`) scroll through `@beyo/ui`'s
-`VerticalScrollArea` (hairline custom scrollbar; kiosk-tinted via
-`trackClassName="bg-kiosk-key"` / `thumbClassName="bg-kiosk-tertiary/40"`),
-not native `overflow-y-auto`. Pattern: the primitive's OUTER div gets
-`style={{flex:'1 1 0%', minHeight:0}}` + the screen's `data-testid`; children
-are wrapped in a `min-h-full flex-col` div carrying the screen's padding so
-`mt-auto` footers still pin. Keep new scrollable kiosk screens on this
-pattern.
+- **KeypadScreen** scrolls through `@beyo/ui`'s **`PullToRefresh`** (it hosts
+  the roster query — pulling refetches via the controller-injected
+  `onRefresh`). PTR *is* the scroll container
+  (`scrollClassName="overflow-y-auto overscroll-y-none …"`, workers-app
+  pattern); the `keypad-screen` testid lives on the inner content wrapper.
+  ⚠ Anything interactive inside PTR needs real taps on touch Playwright
+  projects (see zone 07 hazard #6).
+- The **other three flow screens** (`IdentityConfirmScreen`, `ResultScreen`,
+  `SummaryScreen`) scroll through **`VerticalScrollArea`** (hairline custom
+  scrollbar, kiosk-tinted `trackClassName="bg-kiosk-key"` /
+  `thumbClassName="bg-kiosk-tertiary/40"`, `className="overscroll-contain"`).
+  Pattern: the primitive's OUTER div gets `style={{flex:'1 1 0%',
+  minHeight:0}}` + the screen's `data-testid`; children wrapped in a
+  `min-h-full flex-col` div carrying the screen's padding so `mt-auto`
+  footers still pin.
+- Screens with queries get PTR; screens without get VSA. Keep new kiosk
+  screens on that split.
+
+## The auto-return ring (visual countdown)
+
+The auto-return window renders as a **smoothly depleting SVG stroke**
+(`.kiosk-ring` in `@beyo/styles`: `pathLength=100`, dasharray 100, linear
+`stroke-dashoffset` animation whose `animation-duration` is set inline):
+
+- Clock-in / plain clock-out → around **`CheckHero`**'s circle
+  (`autoReturnSeconds` prop; tone-colored stroke, starts at 12 o'clock).
+- Summary → around **`WorkedTodayPlate`** (accent stroke straddling the
+  plate's edge — SVG geometry attrs can't take `calc()`, hence the
+  `overflow-visible` 100%-rect approach).
+- Both capture the FIRST seconds value they see as the duration (the CSS
+  animation then runs on its own clock; store ticks are ignored — ≤1s drift
+  vs the store timer is accepted for smoothness).
+- The old "Returning to the keypad in Ns" caption is `motion-reduce`-only
+  now (the ring hides under reduced motion, text returns); an `sr-only`
+  live region always announces the countdown.
+
+## Gesture hardening (host-side, floor app)
+
+`index.css`: `html, body { touch-action: pan-x pan-y }` (no pinch/double-tap
+zoom) — plus iOS-proprietary `gesturestart/-change/-end` preventDefault in
+`main.tsx` (iOS ignores both the viewport meta and touch-action for pinch).
+Browser pull-down-reload is blocked by the global `overscroll-behavior:none`
++ per-container `overscroll-contain`/`overscroll-y-none`.
 
 ## Rules for changing this zone
 

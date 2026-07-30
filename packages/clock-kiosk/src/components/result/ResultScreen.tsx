@@ -47,13 +47,17 @@ export function ResultScreen({
   return (
     <VerticalScrollArea
       data-testid={`result-screen-${variant}`}
+      className="overscroll-contain"
       style={{ flex: '1 1 0%', minHeight: 0 }}
       thumbClassName="bg-kiosk-tertiary/40"
       trackClassName="bg-kiosk-key"
     >
       <div className="flex min-h-full flex-col py-6 sm:py-8">
       <div className="flex flex-col items-center pt-4 text-center sm:pt-8">
-        <CheckHero tone={variant === 'in' ? 'success' : 'accent'} />
+        <CheckHero
+          autoReturnSeconds={countdownSeconds}
+          tone={variant === 'in' ? 'success' : 'accent'}
+        />
         <h1
           className="mt-7 text-[34px] font-bold leading-tight tracking-tight text-kiosk-ink sm:text-[44px]"
           data-testid="result-greeting"

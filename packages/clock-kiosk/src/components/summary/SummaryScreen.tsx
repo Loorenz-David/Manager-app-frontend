@@ -62,6 +62,7 @@ export function SummaryScreen({
   return (
     <VerticalScrollArea
       data-testid="summary-screen"
+      className="overscroll-contain"
       style={{ flex: '1 1 0%', minHeight: 0 }}
       thumbClassName="bg-kiosk-tertiary/40"
       trackClassName="bg-kiosk-key"
@@ -76,7 +77,12 @@ export function SummaryScreen({
 
       <div className="mt-5 flex flex-col gap-5 sm:mt-6">
         <div className="order-1">
-          <WorkedTodayPlate in={worked.in} out={worked.out} worked={worked.worked} />
+          <WorkedTodayPlate
+            autoReturnSeconds={countdownSeconds}
+            in={worked.in}
+            out={worked.out}
+            worked={worked.worked}
+          />
           {notice ? (
             <p
               className="mt-4 rounded-full bg-kiosk-key px-5 py-3 text-center text-[14px] font-medium text-kiosk-secondary"
