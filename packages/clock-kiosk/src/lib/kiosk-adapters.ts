@@ -40,10 +40,26 @@ export function resolveKioskAdapters(
   };
 }
 
+// The adapter carries an ISO date; the component contract wants display text
+// ("29 Jul"). Plain YYYY-MM-DD needs no time zone; unparseable input passes
+// through untouched rather than throwing on the result screen.
+function formatAnnouncementDate(iso: string): string {
+  const parsed = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(parsed);
+}
+
 export function gateAnnouncements(
   items: KioskAnnouncement[],
 ): KioskAnnouncement[] {
-  return items.length > 0 ? items.slice(0, 3) : [];
+  return items.slice(0, 3).map((item) => ({
+    ...item,
+    date: formatAnnouncementDate(item.date),
+  }));
 }
 
 export function gateSummaryExtras(

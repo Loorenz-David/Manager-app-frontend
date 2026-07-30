@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./insight-copy": "./src/lib/insight-copy.ts"
+    "./insight-copy": "./src/lib/insight-copy.ts",
+    "./insight-codes": "./src/lib/insight-codes.ts"
   },
   "peerDependencies": {
     "@beyo/api-client": "*",

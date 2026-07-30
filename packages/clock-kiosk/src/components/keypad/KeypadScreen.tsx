@@ -48,7 +48,7 @@ export function KeypadScreen({
 }: Props): React.JSX.Element {
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-6 sm:py-8"
+      className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-6 sm:py-8 lg:py-5"
       data-testid="keypad-screen"
     >
       <div className="text-center">
@@ -64,7 +64,7 @@ export function KeypadScreen({
 
       {mode === 'code' ? (
         <>
-          <div className="mt-8 sm:mt-10">
+          <div className="mt-8 sm:mt-10 lg:mt-6">
             <CodeCells error={error} length={CODE_LENGTH} value={code} />
           </div>
           <p
@@ -77,11 +77,11 @@ export function KeypadScreen({
           >
             {errorMessage}
           </p>
-          <div className={cn('mt-4 sm:mt-6', pending && 'pointer-events-none opacity-60')}>
+          <div className={cn('mt-4 sm:mt-6 lg:mt-4', pending && 'pointer-events-none opacity-60')}>
             <Keypad onDelete={onDelete} onDigit={onDigit} onSubmit={onSubmit} />
           </div>
           <button
-            className="mt-7 min-h-11 rounded-full border border-kiosk-accent/35 px-6 py-2.5 text-[15px] font-medium text-kiosk-accent transition-colors active:bg-kiosk-accent/5 sm:mt-9"
+            className="mt-7 min-h-11 rounded-full border border-kiosk-accent/35 px-6 py-2.5 text-[15px] font-medium text-kiosk-accent transition-colors active:bg-kiosk-accent/5 sm:mt-9 lg:mt-5"
             data-testid="clock-with-email"
             onClick={() => onModeChange('email')}
             type="button"

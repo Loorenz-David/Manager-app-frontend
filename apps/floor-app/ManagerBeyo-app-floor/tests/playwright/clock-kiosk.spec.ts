@@ -13,6 +13,7 @@ type KioskBackendOptions = {
   initiallyClockedIn?: boolean;
   autoReturnSeconds?: number;
   currentDelayMs?: number;
+  coldSurfaceLoad?: boolean;
   transitionedSteps?: number;
   analytics?: Record<string, unknown> | null;
   productionAdapters?: boolean;
@@ -24,6 +25,7 @@ async function mockAuthenticatedKiosk(
     initiallyClockedIn = false,
     autoReturnSeconds = 12,
     currentDelayMs = 0,
+    coldSurfaceLoad = false,
     transitionedSteps = 0,
     productionAdapters = false,
     analytics = {
@@ -63,6 +65,7 @@ async function mockAuthenticatedKiosk(
   });
 
   let clockedIn = initiallyClockedIn;
+  let rosterRequests = 0;
   let currentRequests = 0;
   let clockInRequests = 0;
   let clockOutRequests = 0;
@@ -105,6 +108,7 @@ async function mockAuthenticatedKiosk(
   await page.route(
     '**/api/v1/users?role=worker&compact=true&limit=200',
     async (route) => {
+      rosterRequests += 1;
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -196,12 +200,16 @@ async function mockAuthenticatedKiosk(
     });
   });
 
-  await page.goto(
-    productionAdapters ? '/?kiosk-adapters=production' : '/',
-  );
+  const params = new URLSearchParams();
+  if (productionAdapters) params.set('kiosk-adapters', 'production');
+  if (coldSurfaceLoad) params.set('kiosk-cold-load', '1');
+  await page.goto(params.size > 0 ? `/?${params}` : '/');
   await expect(page.getByTestId('keypad-screen')).toBeVisible();
 
   return {
+    get rosterRequests() {
+      return rosterRequests;
+    },
     get currentRequests() {
       return currentRequests;
     },
@@ -304,6 +312,22 @@ test('clock-kiosk: physical keypad completes the clock-in journey', async ({
   await expect(page.getByTestId('keypad-screen')).toBeVisible();
   await expect(page.getByTestId('rise-surface')).toHaveCount(0);
   await expect(page.getByTestId('code-cell')).toHaveText(['', '', '', '']);
+});
+
+test('clock-kiosk: a cold confirm chunk shows the kiosk skeleton inside the frame', async ({
+  page,
+}) => {
+  await page.route('**/IdentityConfirmSurfacePage.tsx*', async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await route.continue();
+  });
+  await mockAuthenticatedKiosk(page, { coldSurfaceLoad: true });
+
+  await page.keyboard.type('4821');
+  await expect(
+    page.getByTestId('kiosk-frame').getByTestId('kiosk-surface-skeleton'),
+  ).toBeVisible();
+  await expect(page.getByTestId('identity-confirm-screen')).toBeVisible();
 });
 
 test('kiosk-summary: analytics null preserves the Phase 4 plain result', async ({

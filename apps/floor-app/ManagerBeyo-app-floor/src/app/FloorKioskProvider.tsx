@@ -16,6 +16,9 @@ const forceProductionAdaptersInTest =
   import.meta.env.MODE === 'test' &&
   new URLSearchParams(window.location.search).get('kiosk-adapters') ===
     'production';
+const forceColdSurfaceLoadInTest =
+  import.meta.env.MODE === 'test' &&
+  new URLSearchParams(window.location.search).has('kiosk-cold-load');
 
 const kioskAdapters =
   import.meta.env.DEV && import.meta.env.VITE_FLOOR_MOCKS === '1'
@@ -49,7 +52,7 @@ export function FloorKioskProvider({
   );
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || forceColdSurfaceLoadInTest) return;
     void preloadClockKioskSurfaces();
   }, [user]);
 

@@ -1,4 +1,4 @@
-import { KNOWN_INSIGHT_CODES } from '@beyo/stats/insight-copy';
+import { KNOWN_INSIGHT_CODES } from '@beyo/stats/insight-codes';
 import {
   formatTimeInTimeZone,
   type AnalyticsInsight,

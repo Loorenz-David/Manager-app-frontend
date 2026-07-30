@@ -16,7 +16,7 @@ You are implementing exactly **one phase** — the last — of the ManagerBeyo c
 
 ## Hard rules
 
-- No new features. Gaps found during the audit become fixes only when they violate an existing phase's plan; anything else is recorded, not built.
+- No new features. Gaps found during the audit become fixes only when they violate an existing phase's plan; anything else is recorded, not built. Exception: the child plan's **"Carried-forward items" table (CF1–CF4)** is explicitly authorized work — implement the Codex-owned rows (CF1 msw devDependency + native-binding check, CF3 stats codes-module extraction, CF4 positive cold-load skeleton assertion); CF2 belongs to the Claude fidelity pass.
 - The always-on device is the product: sleep/wake, focus resync, roster-stale vs roster-absent states, no accumulating clock drift — per child criterion 1. Automate what Playwright can; write and execute the manual script for the rest, recording results in the Review log.
 - Public-API + boundary audit is grep-verified, not eyeballed: no deep imports of either package from the floor app; `worker-shifts` imports zero UI; `clock-kiosk` imports zero app code.
 - Live-flip: no endpoint the v1 kiosk uses is live yet (pause-reasons left with the shelved declare flow). Document and rehearse the per-endpoint flip checklist (env flag, mock removal, affected Playwright specs) in `packages/clock-kiosk/README.md`. Do NOT flip mocked endpoints whose backend phases are still ❌ in the handoff table.

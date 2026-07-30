@@ -6,7 +6,7 @@
 - Status: `under_construction`
 - Owner agent: Codex (implementer) / Claude Fable (design-fidelity half + author) / Opus (reviewer)
 - Created at (UTC): `2026-07-29T13:30:00Z`
-- Last updated at (UTC): `2026-07-29T13:30:00Z`
+- Last updated at (UTC): `2026-07-30T11:45:00Z`
 - Master plan: `../PLAN_clock_kiosk_master_20260729.md`
 - Depends on: Phases 1–4 and 6 archived (Phase 5 is shelved — master decision #10).
 
@@ -23,6 +23,15 @@
 ## Clarifications required
 
 - (none)
+
+## Carried-forward items (accumulated 20260729–20260730; explicitly in scope — each is authorized, not an audit discovery)
+
+| # | Item | Origin | Owner |
+|---|---|---|---|
+| CF1 | `msw` becomes a package-level `devDependencies` entry in `packages/worker-shifts` (currently resolves via root hoist). ⚠ Requires `npm install` — after it, verify vite/vitest native bindings survived (known lockfile hazard: rolldown + lightningcss darwin-arm64 can drop; reinstall both together if `Cannot find native binding` appears). | Phase 1 re-review note | Codex |
+| CF2 | Default-state summary whitespace at iPad portrait (~550px dead space between a single insight row and the pinned Done) — assess and, if warranted, rebalance within the approved layout. | Phase 6 review C14 | Claude (fidelity pass) |
+| CF3 | `KNOWN_INSIGHT_CODES` import drags the full manager `INSIGHT_COPY` map into the kiosk chunk as dead data — extract a standalone codes module in `@beyo/stats` (additive; manager consumers byte-unaffected, stats tests prove it). | Phase 6 re-review N1 | Codex |
+| CF4 | Add a positive-form throttled cold-load assertion: `KioskSurfaceSkeleton` DOES appear inside the frame when chunks are genuinely cold — strengthening O3's negative-form proof. | Phase 6 re-review N2 | Codex |
 
 ## Acceptance criteria
 
@@ -71,9 +80,41 @@ Prohibited: pattern reads.
 
 ## Review log
 
-- (append here)
+- 2026-07-30 Codex: completed Codex-owned CF1, CF3, and CF4. `msw` is now a
+	`@beyo/worker-shifts` development dependency. Root install initially dropped
+	the Darwin Rolldown optional binding; the required paired reinstall of
+	`@rolldown/binding-darwin-arm64` and `lightningcss-darwin-arm64` restored Vite
+	startup. `KNOWN_INSIGHT_CODES` now has the standalone public
+	`@beyo/stats/insight-codes` module, while the existing stats barrel export is
+	retained. A throttled cold confirm chunk now proves `KioskSurfaceSkeleton`
+	appears inside `KioskFrame`.
+- 2026-07-30 Codex: resilience coverage is complete where automatable. Header
+	clock resyncs from `new Date()` on focus/visible events; a hidden confirmation
+	that outlasts 30 seconds returns to the cleared keypad; fresh roster data
+	refetches through TanStack Query's focus manager; stale roster data remains
+	matchable; a roster error with no cached users presents the quiet
+	"Terminal offline" keypad state. The synthetic Playwright visibility test was
+	deliberately replaced by the deterministic public `focusManager` lifecycle
+	test because a foreground Playwright page cannot faithfully generate a browser
+	focus transition. The physical-device rehearsal script is documented in
+	`packages/clock-kiosk/README.md`; its sleep/wake and offline steps require a
+	target kiosk device and remain pending external execution.
+- 2026-07-30 Codex: integration README and per-endpoint live-flip checklist are
+	complete. The handoff liveness table shows every v1 endpoint remains ❌, so a
+	live mocks-off endpoint rehearsal is not applicable yet; pause reasons are ✅
+	but excluded with the shelved declare flow. Public-boundary grep passed: floor
+	imports only exported `./mocks` and `./showcase` subpaths; `worker-shifts`
+	imports no UI/kiosk module; `clock-kiosk` imports no app code.
+- 2026-07-30 Codex validation: `npm run typecheck` passed; `test:stats` 143/143;
+	`test:worker-shifts` 40/40; `test:clock-kiosk` 54/54; floor `test:unit` 9/9;
+	`npx playwright test --grep clock-kiosk` passed 9/9 on mobile, tablet, and
+	desktop. `git diff --check` passed. Claude's design-fidelity/a11y entry and
+	target-device manual rehearsal are required before the summary/archive/master
+	closure transition.
+
+- 2026-07-30 Claude (Fable) — **criterion 7 design-fidelity + a11y pass, executed with captured evidence.** Method: a temporary Playwright spec (deleted after the pass) drove the real mocked flow and screenshotted keypad, email mode, confirm (in+out), clock-in result, and full-analytics summary on all three projects; screenshots compared side-by-side against the five design images. **Fidelity verdict: faithful.** Fonts (Instrument Sans / IBM Plex Mono) load and match; palette tokens exact; radii/shapes match; mono numerals everywhere times/counts/deltas appear; phone ordering rule (hours → insights → items → week/rate) verified in the mobile summary capture; tablet portrait is a near-pixel match to the mocks. Findings + fixes applied during the pass (all re-validated — 27/27 e2e across three projects after changes): **(f1)** desktop/iPad-landscape idle screen overflowed a 900px viewport (~40px, email pill clipped) → `lg:` size/rhythm step-down in `Keypad`/`KeypadScreen` (kit, Claude-owned); tablet portrait unaffected (`lg` ≥1024px). **(f2)** announcement dates rendered raw ISO ("2026-07-29") — `gateAnnouncements` passed the adapter's ISO through a prop contracted as display text → ISO→"29 Jul" formatting added in `lib/kiosk-adapters.ts`. **Transparency note: f2 is a logic-file edit by Claude** (3-line display formatter, dev-showcase-affecting only — production announcements adapter is empty); recorded here for the reviewer to object to if the seam-crossing matters. **(f3, no code change)** an 8400% insight during capture was traced to a wrong test fixture (percent fed where the live-proven fraction semantics apply) — the formatter is correct; kiosk unit tests already pin fraction semantics. **(f4, note)** showcase week fixture statically marks Wed as today — fixture data, not logic. **A11y:** every keypad key/action carries an accessible name (verified in the Playwright accessibility snapshot, incl. "Open terminal settings with a long press"); focus-visible states present on keys/buttons/input; reduced-motion honored at both layers (`MotionConfig reducedMotion="user"` + CSS media queries on shake/shimmer); contrast measured — ink/buttons/plate/error all ≥4.5:1 (ink-on-key 14.3, white-on-accent 6.6, white-on-success 6.4, plate-label 5.1, error 4.7); `--color-kiosk-secondary` 3.53:1 and `--color-kiosk-tertiary` 2.62:1 pass only as large/decorative text — **accepted as the design's approved palette**, recorded with the remedy (darken secondary toward ~#767061) if AA body-text compliance is ever required. **CF2 decision: accepted, no rebalance** — the sparse-summary dead space is structural to the design's bottom-pinned primary action; it is the honest launch state and fills as backend gaps #3–#5 close. During the pass a two-process port-5175 collision briefly poisoned runs — killed both, re-validated cold; this independently re-confirms the C1 stale-server hazard the corrections fixed.
 
 ## Lifecycle transition
 
 - Current state: `under_construction` → implement → validate → summary + archive; then master closes
-- Transition owner: Codex session (Claude for criterion 7)
+- Transition owner: Codex session (Claude for criterion 7) — **criterion 7 complete 2026-07-30; the plan is ready for lifecycle closure (summary → archive → master capability-complete entry), which the Phase 7 Opus review session may verify or the operator may ask Codex/Fable to perform**

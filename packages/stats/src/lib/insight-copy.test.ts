@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { isKnownInsight, resolveInsightCopy } from "./insight-copy";
+import { KNOWN_INSIGHT_CODES } from './insight-codes';
 import type { WorkerInsight } from "../types";
 
 function makeInsight(overrides: Partial<WorkerInsight> = {}): WorkerInsight {
@@ -19,6 +20,21 @@ function makeInsight(overrides: Partial<WorkerInsight> = {}): WorkerInsight {
 }
 
 describe("resolveInsightCopy", () => {
+  it('keeps the public kiosk insight-code set stable', () => {
+    expect([...KNOWN_INSIGHT_CODES]).toEqual([
+      'completion_surge',
+      'completion_dip',
+      'on_a_roll',
+      'deep_focus',
+      'faster_pace',
+      'slower_pace',
+      'rising_pauses',
+      'leaving_steps_mid_shift',
+      'choppy_work',
+      'quality_watch',
+    ]);
+  });
+
   it("renders a count insight as 'target vs baseline'", () => {
     const copy = resolveInsightCopy(makeInsight());
     expect(copy).toMatchObject({

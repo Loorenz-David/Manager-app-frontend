@@ -1,5 +1,5 @@
-import { renderHook, waitFor } from "@testing-library/react";
-import { QueryClient } from "@tanstack/react-query";
+import { act, renderHook, waitFor } from "@testing-library/react";
+import { focusManager, QueryClient } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -14,6 +14,7 @@ import {
   fetchFreshCurrentShift,
   useCurrentShiftQuery,
 } from "./use-current-shift-query";
+import { useFloorRosterQuery } from './use-floor-roster-query';
 import { workerShiftKeys } from "./worker-shift-keys";
 
 describe("worker-shift API and query behavior", () => {
@@ -120,5 +121,43 @@ describe("worker-shift API and query behavior", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.clocked_in).toBe(true);
+  });
+
+  it('refetches the fresh roster when the kiosk regains focus', async () => {
+    let requests = 0;
+    workerShiftTestServer.use(
+      http.get('*/api/v1/users', () => {
+        requests += 1;
+        return HttpResponse.json({
+          ok: true,
+          warnings: [],
+          data: {
+            users: [
+              {
+                client_id: 'usr_focus',
+                username: 'Focus Worker',
+                profile_picture: null,
+                role: { name: 'Assembly' },
+                clock_in_code: '4821',
+                email: 'focus@shop.com',
+              },
+            ],
+          },
+        });
+      }),
+    );
+    const { Wrapper } = createQueryTestWrapper();
+    const { result } = renderHook(() => useFloorRosterQuery(), {
+      wrapper: Wrapper,
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(requests).toBe(1);
+
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(requests).toBe(2));
+    focusManager.setFocused(undefined);
   });
 });

@@ -26,8 +26,19 @@ export function useKioskClock(timeZone: string): KioskClock {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
+    const syncClock = () => setNow(new Date());
     const intervalId = window.setInterval(() => setNow(new Date()), 1_000);
-    return () => window.clearInterval(intervalId);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncClock();
+    };
+
+    window.addEventListener('focus', syncClock);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', syncClock);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   return useMemo(() => formatClock(now, timeZone), [now, timeZone]);

@@ -1,4 +1,7 @@
 import type { InsightPolarity, WorkerInsight } from "../types";
+import { KNOWN_INSIGHT_CODES } from './insight-codes';
+
+export { KNOWN_INSIGHT_CODES } from './insight-codes';
 
 // Client-side copy for worker insights. The server sends codes + numbers only
 // (it localizes nothing), so every phrase lives here. Valence comes from
@@ -115,8 +118,6 @@ const INSIGHT_COPY: Record<string, InsightCopySpec> = {
       "Resolved a smaller share of raised issues than usual — worth a quality check-in.",
   },
 };
-
-export const KNOWN_INSIGHT_CODES = new Set(Object.keys(INSIGHT_COPY));
 
 export function isKnownInsight(insight: WorkerInsight): boolean {
   return KNOWN_INSIGHT_CODES.has(insight.code);

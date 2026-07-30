@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   clockInReset: vi.fn(),
   clockOutReset: vi.fn(),
   rosterState: {
+    data: [] as FloorRosterUser[],
     isError: false,
     isPending: false,
   },
@@ -53,7 +54,7 @@ vi.mock('@beyo/worker-shifts', async (importOriginal) => {
       reset: mocks.clockOutReset,
     }),
     useFloorRosterQuery: () => ({
-      data: [user],
+      data: mocks.rosterState.data,
       isError: mocks.rosterState.isError,
       isPending: mocks.rosterState.isPending,
     }),
@@ -138,6 +139,7 @@ describe('useKioskFlowController', () => {
     mocks.clockOutAsync.mockReset();
     mocks.clockInReset.mockReset();
     mocks.clockOutReset.mockReset();
+    mocks.rosterState.data = [user];
     mocks.rosterState.isError = false;
     mocks.rosterState.isPending = false;
   });
@@ -291,6 +293,29 @@ describe('useKioskFlowController', () => {
     expect(surfaceOpeners.closeKioskSurfaces).toHaveBeenCalledOnce();
   });
 
+  it('returns to the keypad when a hidden confirmation outlasts inactivity', () => {
+    vi.useFakeTimers();
+    const visibilityState = vi
+      .spyOn(document, 'visibilityState', 'get')
+      .mockReturnValue('visible');
+    const store = createKioskFlowStore();
+    const sessionId = store.getState().flow.sessionId;
+    store.getState().beginConfirm(sessionId, user);
+    store.getState().resolveConfirm(sessionId, clockedOut);
+    const { surfaceOpeners } = setup(store);
+
+    visibilityState.mockReturnValue('hidden');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    vi.setSystemTime(new Date(Date.now() + 30_000));
+    visibilityState.mockReturnValue('visible');
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    act(() => vi.advanceTimersByTime(250));
+
+    expect(store.getState().flow.step).toBe('keypad');
+    expect(surfaceOpeners.closeKioskSurfaces).toHaveBeenCalledOnce();
+    visibilityState.mockRestore();
+  });
+
   it('builds the clock-in greeting and fresh-current time plate', () => {
     vi.setSystemTime(new Date('2026-07-29T13:00:00.000Z'));
     const store = createKioskFlowStore();
@@ -437,8 +462,9 @@ describe('useKioskFlowController', () => {
     expect(surfaceOpeners.openResult).not.toHaveBeenCalled();
   });
 
-  it('disables matching without showing a no-match error when the roster failed', () => {
+  it('disables matching without showing a no-match error when no roster is available', () => {
     mocks.rosterState.isError = true;
+    mocks.rosterState.data = [];
     mocks.matchWorker.mockReturnValue(null);
     const { result, store } = setup();
 
@@ -450,6 +476,10 @@ describe('useKioskFlowController', () => {
     });
 
     expect(result.current.keypad.pending).toBe(true);
+    expect(result.current.keypad.error).toBe(true);
+    expect(result.current.keypad.errorMessage).toBe(
+      'Terminal offline. Reconnect to refresh the roster.',
+    );
     expect(store.getState().flow).toMatchObject({
       step: 'keypad',
       code: '',
@@ -457,6 +487,20 @@ describe('useKioskFlowController', () => {
       matching: false,
     });
     expect(mocks.matchWorker).not.toHaveBeenCalled();
+  });
+
+  it('continues matching from stale roster data after a roster error', () => {
+    mocks.rosterState.isError = true;
+    mocks.matchWorker.mockReturnValue(user);
+    mocks.fetchCurrentShift.mockResolvedValue(clockedOut);
+    const { result } = setup();
+
+    act(() => result.current.keypad.onModeChange('email'));
+    act(() => result.current.keypad.onEmailChange('marco@shop.com'));
+    act(() => result.current.keypad.onEmailSubmit());
+
+    expect(mocks.matchWorker).toHaveBeenCalledWith([user], 'marco@shop.com');
+    expect(result.current.keypad.error).toBe(false);
   });
 });
 

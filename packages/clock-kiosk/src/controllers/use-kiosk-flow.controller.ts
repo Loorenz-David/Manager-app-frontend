@@ -33,6 +33,7 @@ import type {
 const CONFIRM_AUTO_RETURN_MS = 30_000;
 const RISE_SURFACE_EXIT_MS = 250;
 const GENERIC_NO_MATCH_MESSAGE = 'No worker matches this code or email';
+const TERMINAL_OFFLINE_MESSAGE = 'Terminal offline. Reconnect to refresh the roster.';
 const GENERIC_ACTION_RETRY_CONTEXT = {
   label: 'Something went wrong.',
   value: 'Please try again',
@@ -114,7 +115,9 @@ export function useKioskFlowController({
   const surfaceStack = useSurfaceStore((state) => state.stack);
   const exitingSessionIdRef = useRef<string | null>(null);
   const resetTimeoutRef = useRef<number | null>(null);
-  const rosterUnavailable = rosterQuery.isPending || rosterQuery.isError;
+  const hiddenAtRef = useRef<number | null>(null);
+  const hasRoster = (rosterQuery.data?.length ?? 0) > 0;
+  const rosterUnavailable = rosterQuery.isPending || (rosterQuery.isError && !hasRoster);
   const hasForeignSurface = surfaceStack.some(
     ({ id }) =>
       id !== CLOCK_KIOSK_CONFIRM_SURFACE_ID &&
@@ -376,6 +379,27 @@ export function useKioskFlowController({
   }, [flow.sessionId, flow.step, isSessionActive, returnToKeypad]);
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+      const hiddenAt = hiddenAtRef.current;
+      hiddenAtRef.current = null;
+      if (
+        hiddenAt !== null &&
+        Date.now() - hiddenAt >= CONFIRM_AUTO_RETURN_MS &&
+        store.getState().flow.step === 'confirming'
+      ) {
+        returnToKeypad();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [returnToKeypad, store]);
+
+  useEffect(() => {
     if (flow.step !== 'result') return;
     const sessionId = flow.sessionId;
     const intervalId = window.setInterval(() => {
@@ -435,8 +459,11 @@ export function useKioskFlowController({
   const keypad = {
     code: flow.step === 'keypad' ? flow.code : '',
     emailValue: flow.step === 'keypad' ? flow.email : '',
-    error: flow.step === 'keypad' ? flow.error : false,
-    errorMessage: GENERIC_NO_MATCH_MESSAGE,
+    error: flow.step === 'keypad' ? flow.error || rosterQuery.isError && !hasRoster : false,
+    errorMessage:
+      rosterQuery.isError && !hasRoster
+        ? TERMINAL_OFFLINE_MESSAGE
+        : GENERIC_NO_MATCH_MESSAGE,
     mode: flow.step === 'keypad' ? flow.mode : ('code' as const),
     pending:
       flow.step === 'keypad'

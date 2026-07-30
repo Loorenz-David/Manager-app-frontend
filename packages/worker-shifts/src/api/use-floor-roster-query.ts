@@ -9,7 +9,7 @@ export function useFloorRosterQuery() {
     queryKey: workerShiftKeys.floorRosterList(FLOOR_ROSTER_PARAMS),
     queryFn: fetchFloorRoster,
     refetchInterval: FLOOR_ROSTER_REFRESH_INTERVAL_MS,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: 'always',
     staleTime: FLOOR_ROSTER_REFRESH_INTERVAL_MS,
   });
 }

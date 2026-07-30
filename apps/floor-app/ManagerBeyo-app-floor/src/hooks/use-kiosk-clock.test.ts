@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("useKioskClock", () => {
-  it("formats the workspace time zone and ticks every second", () => {
+  it("formats the workspace time zone and ticks from the real clock", () => {
     const { result } = renderHook(() => useKioskClock("Europe/Stockholm"));
 
     expect(result.current).toEqual({
@@ -26,5 +26,14 @@ describe("useKioskClock", () => {
     });
 
     expect(result.current.time).toBe("15:15");
+  });
+
+  it('resyncs immediately when the terminal regains focus', () => {
+    const { result } = renderHook(() => useKioskClock('Europe/Stockholm'));
+
+    vi.setSystemTime(new Date('2026-07-29T14:30:00.000Z'));
+    act(() => window.dispatchEvent(new Event('focus')));
+
+    expect(result.current.time).toBe('16:30');
   });
 });

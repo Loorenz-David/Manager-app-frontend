@@ -20,7 +20,10 @@ function KeypadKey({
     <button
       aria-label={ariaLabel}
       className={cn(
-        'grid size-[72px] select-none place-items-center rounded-full text-[26px] font-medium transition-[filter,background-color] duration-100 active:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kiosk-accent sm:size-[104px] sm:text-[30px] md:size-[120px]',
+        // lg (desktop + iPad landscape) steps back down so the idle screen fits
+        // a 900px-tall viewport without scrolling; tablet portrait (768–1023px
+        // wide) keeps the full 120px design size.
+        'grid size-[72px] select-none place-items-center rounded-full text-[26px] font-medium transition-[filter,background-color] duration-100 active:brightness-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-kiosk-accent sm:size-[104px] sm:text-[30px] md:size-[120px] lg:size-[100px] lg:text-[28px]',
         variant === 'accent'
           ? 'bg-kiosk-accent text-white'
           : 'bg-kiosk-key text-kiosk-ink',
@@ -87,7 +90,7 @@ export function Keypad({
 }: Props): React.JSX.Element {
   return (
     <div
-      className="grid grid-cols-3 justify-items-center gap-3 sm:gap-5"
+      className="grid grid-cols-3 justify-items-center gap-3 sm:gap-5 lg:gap-4"
       data-testid="keypad"
     >
       {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((digit) => (

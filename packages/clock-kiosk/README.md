@@ -1,10 +1,8 @@
 # @beyo/clock-kiosk
 
-The shop-floor clock-in/out kiosk experience. Governing plans:
-`docs/architecture/under_construction/implementation/clock_in_out_app/`.
-
-**Current state (Phase 3 kit):** presentational chrome only. The kiosk flow
-(store/controller/provider/pages/surface registrations) lands in Phase 4.
+The shop-floor clock-in/out kiosk experience. It is a host-mounted page, not an
+application shell: a host owns floor authentication, device configuration,
+surface registration, and any endpoint-backed adapter data.
 
 ## Kit prop contracts (Phase 3)
 
@@ -65,8 +63,175 @@ counts, deltas) — the host app self-hosts both faces (see the floor app's
 consuming this package need `@source "../../../../packages/clock-kiosk/src";`
 in their `index.css` (Tailwind v4 does not scan node_modules).
 
-## Host integration
+## Host Integration
 
-Expanded in Phase 7. Until then: mount chrome via `KioskFrame`/`KioskHeader`,
-feed the clock from an app-owned ticking hook, and register device settings
-as a `rise` surface in the app's central surface registry.
+### 1. Install and register styling
+
+Add the package and its peers to the host app, import `@beyo/styles`, and make
+Tailwind scan the kiosk source. The following `@source` lines are required when
+the host uses the corresponding packages:
+
+```css
+@import "tailwindcss";
+@import "@beyo/styles";
+@source "../../../../packages/clock-kiosk/src";
+@source "../../../../packages/ui/src";
+@source "../../../../packages/hooks/src";
+@source "../../../../packages/auth/src";
+```
+
+The kiosk consumes the namespaced `--color-kiosk-*` palette and
+`--font-kiosk-sans` / `--font-kiosk-mono` tokens. Register both self-hosted
+faces in the host's global CSS before mounting a kiosk page:
+
+```css
+@font-face {
+	font-family: "Instrument Sans";
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+	src: url("/fonts/InstrumentSans-Variable.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	font-style: normal;
+	font-weight: 400;
+	font-display: swap;
+	src: url("/fonts/IBMPlexMono-Regular.ttf") format("truetype");
+}
+```
+
+Add the host's medium and semibold IBM Plex Mono faces when those weights are
+available. Times, counts, and signed deltas rely on the mono family.
+
+### 2. Require floor-scope device auth
+
+Mount the kiosk only inside `AuthProvider appScope="floor"` and a protected
+floor route. A floor device token is persisted by `@beyo/auth`; it has no
+refresh flow, and any `401` returns the device to sign-in. The signed-in account
+must have the floor-scope admin or manager role. Never mount this page under a
+worker, seller, or regular manager app token because roster identification
+fields are floor-scope only.
+
+### 3. Register the route and rise surfaces
+
+Lazy-load the always-mounted keypad page through the package loader, and merge
+the package's two `rise` surface registrations into the host's central surface
+registry. Wrap each lazy surface inside host chrome and a `Suspense` fallback so
+`KioskSurfaceSkeleton` stays inside `KioskFrame` during a genuinely cold load.
+
+```tsx
+import {
+	CLOCK_KIOSK_CONFIRM_SURFACE_ID,
+	CLOCK_KIOSK_RESULT_SURFACE_ID,
+	KioskSurfaceSkeleton,
+	clockKioskSurfaces,
+	loadClockKioskPage,
+} from '@beyo/clock-kiosk';
+import { lazyRoute } from '@beyo/ui';
+
+// Protected route:
+{ path: '/', element: lazyRoute(loadClockKioskPage) }
+
+// Surface registry entries, composed by the host with its KioskFrame:
+const kioskSurfaceIds = [
+	CLOCK_KIOSK_CONFIRM_SURFACE_ID,
+	CLOCK_KIOSK_RESULT_SURFACE_ID,
+] as const;
+const kioskSurfaces = Object.fromEntries(
+	kioskSurfaceIds.map((id) => [id, {
+		surface: 'rise',
+		component: clockKioskSurfaces[id].component,
+	}]),
+);
+```
+
+Use a `ClockKioskSurfaceOpeners` implementation backed by the host's
+`SurfaceProvider`: open the confirm/result ids and close both ids on return.
+The package intentionally never imports `useSurface` or host navigation.
+
+### 4. Provide kiosk state and host chrome
+
+Wrap the protected route outlet in `KioskProvider`. Its `timeZone` comes from
+the authenticated workspace, and `autoReturnSeconds` comes from host-owned,
+persisted device configuration. The host passes the configured terminal label
+and workspace name to `KioskHeader`, and supplies an app-owned clock that reads
+`new Date()` every tick and resyncs on focus/visibility.
+
+```tsx
+<KioskProvider
+	adapters={adapters}
+	autoReturnSeconds={deviceConfig.autoReturnSeconds}
+	surfaceOpeners={surfaceOpeners}
+	timeZone={floorUser.timeZone}
+>
+	<KioskFrame header={<KioskHeader {...headerProps} />}>
+		<Outlet />
+	</KioskFrame>
+</KioskProvider>
+```
+
+Persist one device-local configuration record: `terminalLabel` and an integer
+`autoReturnSeconds` from 4 through 120 (default 12). Device settings must be a
+host-owned `rise` surface, reachable only through the deliberate long-press
+affordance; it is not kiosk business logic.
+
+### 5. Supply optional adapters
+
+All adapters are synchronous presentation seams. The host owns any endpoint
+query and supplies its current values; do not fetch inside adapter functions.
+Production defaults are graceful empties: no scheduled row, no announcements,
+and no items/week/rate summary tiles.
+
+| Adapter | Context | Empty result |
+|---|---|---|
+| `scheduledShift` | `{ user, timeZone, currentShift }` | hides confirm/result schedule context |
+| `announcements` | `{ user, timeZone }` | hides the clock-in announcement section |
+| `summaryExtras.items/week/rate` | `{ analytics, user, timeZone }` | hides the matching summary tile |
+
+## Mock And Live-Flip Runbook
+
+`VITE_FLOOR_MOCKS=1` starts the floor MSW worker in development. Playwright is
+always fully mocked by route fixtures. As of 2026-07-30, none of the endpoints
+used by v1 are live; do not remove their handlers or flip the flag in a deployed
+host. Pause reasons are live but are not a v1 kiosk dependency because declared
+states are shelved.
+
+When a backend phase changes an endpoint to live, perform this checklist for
+that endpoint only:
+
+1. Confirm the handoff liveness table and response contract are updated to ✅.
+2. Start the host without `VITE_FLOOR_MOCKS=1` and configure its live API URL.
+3. Remove or gate only that endpoint's MSW handler; retain all still-❌ handlers.
+4. Run the affected fully mocked Playwright journey, then rehearse the same
+	 journey against the live endpoint without test route interception.
+5. Record the backend phase, environment, endpoint, and result in the capability
+	 review log before making the next endpoint live.
+
+| Backend phase | Endpoint(s) | Affected journey |
+|---|---|---|
+| 5 | `POST /auth/sign-in`, `POST /auth/logout` | floor bootstrap, revoked device, all kiosk journeys |
+| 6 | `GET /users?role=worker&compact=true&limit=200` | keypad code/email match, focus roster refresh |
+| 4 | `GET /worker-shifts/current`, `POST /clock-in`, `POST /clock-out` | `clock-kiosk` clock-in, clock-out, 409, timeout journeys |
+| 7 | populated `clock-out.analytics` | `kiosk-summary` journeys; retain null-analytics coverage |
+
+## Always-On Device Rehearsal
+
+Run this manual script on the target tablet or floor terminal with development
+mocks enabled. It complements automated clock, focus-manager, and visibility
+timeout tests.
+
+1. Leave the keypad idle for at least one minute, put the device to sleep, wake
+	 it, and verify the header time immediately matches a trusted clock.
+2. Background the kiosk for at least two minutes, return to it, and verify the
+	 roster refreshes without losing a usable cached roster.
+3. Enter a known worker, leave the confirmation screen hidden for at least 30
+	 seconds, return, and verify the cleared keypad is shown rather than personal
+	 information.
+4. Disconnect network after a roster has loaded: verify email/code matching can
+	 still reach confirm from the cached roster. Repeat after clearing site data:
+	 verify the keypad is unavailable with the terminal-offline state and no
+	 personal data is shown.
+5. Restore network and verify the next focus or two-minute poll makes the kiosk
+	 usable again.

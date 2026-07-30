@@ -11,14 +11,14 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-30):** Phases 1–4 DONE. Phase 6 reviewed: **defects
-> found** (null-degradation + no-fabricated-data both PASS; blocker C1 = port
-> 5177 vs 5175 config split — explains the operator's 5177 session). Corrections
-> plan **approved**: C7 resolved (kiosk-owned factual worker copy, table
-> authored in-plan), O1–O3 merged as criteria 15–17, Claude items C12+O2 done
-> + committed `99df0abf`. **Next: fresh Codex session for the corrections**
-> (snippet in Fable's 2026-07-30 message). Phase 7 waits on this round.
-> Deferred to Phase 7: msw devDependency (npm install).
+> **Status (2026-07-30):** Phases 1–4 and **6 DONE** (Phase 6 re-review:
+> pass-with-notes; whole loop committed `d8b5f72a`). **Phase 7 — the final
+> phase — is unblocked**: fresh Codex session with
+> `prompts/execution/PROMPT_phase7_validation_polish.md`. Its plan now carries
+> the four carried-forward items CF1–CF4 (msw devDependency+binding check,
+> C14 whitespace→Fable, stats codes-module extraction, positive cold-load
+> skeleton test). After Codex: Fable runs the design-fidelity + a11y pass,
+> then the Phase 7 Opus review closes the capability.
 
 ## Operator findings from the 2026-07-30 walk-through (route with next corrections)
 
@@ -176,12 +176,16 @@ Gates: - [ ] Phase 4 DONE   - [ ] Fable kit approved
       https://claude.ai/code/artifact/d1a0e74f-0547-49ec-9c70-18953741f299
 - [x] You approve the kit visually — **approved 2026-07-30** (4 judgment calls
       accepted; week bars = per-day worked hours vs weekly target, clarified)
-- [ ] **Codex** (fresh session): paste `prompts/execution/PROMPT_phase6_clock_out_summary.md`
-- [ ] Codex reports green
-- [ ] **Opus** (fresh session): paste `prompts/review/PROMPT_review_phase6.md`
+- [x] **Codex** (fresh session): paste `prompts/execution/PROMPT_phase6_clock_out_summary.md`
+- [x] Codex reports green
+- [x] **Opus**: round 1 verdict **defects found** (1 blocking C1 port-split, C2–C4
+      behavioral, C7 copy-audience) → corrections plan approved by Fable (C7 =
+      kiosk-owned factual copy, table authored; O1–O3 merged; C12+O2 Claude, done)
+      → Codex corrections C1–C13+O1/O3 → **Opus re-review: pass-with-notes**
+      (every finding closed vs measured baseline; N1/N2 → Phase 7 as CF3/CF4)
       ⚠ its checklists #1 (analytics:null → plain screen) and #2 (no fabricated data) are the critical items
-- [ ] Verdict pass
-- [ ] Tell **Fable**: "phase 6 done"
+- [x] Verdict pass (re-review 2026-07-30)
+- [x] Tell **Fable**: "phase 6 done" — loop committed `d8b5f72a` · **PHASE 6 DONE**
 
 ### Phase 7 — validation, resilience, close-out
 
