@@ -18,15 +18,15 @@ export function WorkedTodayPlate({
 }: Props): React.JSX.Element {
   return (
     <div
-      className="flex items-end justify-between gap-6 rounded-[24px] bg-kiosk-plate px-6 py-6 sm:px-8 sm:py-7"
+      className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 rounded-[24px] bg-kiosk-plate px-6 py-6 sm:px-8 sm:py-7"
       data-testid="worked-today-plate"
     >
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
+        <p className="whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
           Worked today
         </p>
         <p
-          className="mt-2 font-kiosk-mono text-[46px] font-medium leading-none text-white sm:text-[58px]"
+          className="mt-2 font-kiosk-mono text-[40px] font-medium leading-none text-white sm:text-[58px]"
           data-testid="worked-today-value"
         >
           {worked}

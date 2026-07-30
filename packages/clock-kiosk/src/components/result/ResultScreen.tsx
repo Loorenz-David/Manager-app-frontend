@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { VerticalScrollArea } from '@beyo/ui';
 import { AutoReturnFooter } from './AutoReturnFooter';
 import { CheckHero } from './CheckHero';
 import { DarkTimePlate } from './DarkTimePlate';
@@ -44,10 +45,13 @@ export function ResultScreen({
   doneLabel,
 }: Props): React.JSX.Element {
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto py-6 sm:py-8"
+    <VerticalScrollArea
       data-testid={`result-screen-${variant}`}
+      style={{ flex: '1 1 0%', minHeight: 0 }}
+      thumbClassName="bg-kiosk-tertiary/40"
+      trackClassName="bg-kiosk-key"
     >
+      <div className="flex min-h-full flex-col py-6 sm:py-8">
       <div className="flex flex-col items-center pt-4 text-center sm:pt-8">
         <CheckHero tone={variant === 'in' ? 'success' : 'accent'} />
         <h1
@@ -87,6 +91,7 @@ export function ResultScreen({
           secondsLeft={countdownSeconds}
         />
       </div>
-    </div>
+      </div>
+    </VerticalScrollArea>
   );
 }

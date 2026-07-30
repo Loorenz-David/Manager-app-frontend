@@ -18,6 +18,23 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-30 — Phone plate overlap fixed + VerticalScrollArea adoption (Claude Fable)
+
+- Change: `DarkTimePlate` + `WorkedTodayPlate` — hero numerals 40px base
+  (design readme's phone spec; 58/64px from `sm:`), `flex-wrap` +
+  `whitespace-nowrap` labels so side columns wrap below instead of
+  overpainting. All four flow screens swapped from native `overflow-y-auto`
+  to `@beyo/ui VerticalScrollArea` (kiosk-tinted hairline scrollbar);
+  screen testids moved to the primitive's outer element.
+- Why: operator's phone rehearsal screenshot — clock-in time overpainted the
+  SCHEDULED column at 52px on ~390px viewports; native scrollbar looked wrong
+  on the paper design. User requested the package primitive.
+- Impact: kit-only (zone 05); prop contracts unchanged; screen testids
+  unchanged in name. Screenshot-verified on mobile (plate + summary).
+- Docs updated: `05` (plate wrap note + new Scrolling section), this entry.
+- Validation: tsc clean; `test:clock-kiosk` 54/54; Playwright 9/9 on each of
+  mobile/tablet/desktop, cold server.
+
 ## 2026-07-30 — F6 physical-device rehearsal PASSED on phone (operator)
 
 - Change: none (validation event). The always-on rehearsal script was run on

@@ -1,3 +1,4 @@
+import { VerticalScrollArea } from '@beyo/ui';
 import { AutoReturnFooter } from '../result/AutoReturnFooter';
 import { SummaryHeader } from './SummaryHeader';
 import { WorkedTodayPlate } from './WorkedTodayPlate';
@@ -59,10 +60,13 @@ export function SummaryScreen({
   const hasWeekOrRate = week !== null || rate !== null;
 
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto py-5 sm:py-6"
+    <VerticalScrollArea
       data-testid="summary-screen"
+      style={{ flex: '1 1 0%', minHeight: 0 }}
+      thumbClassName="bg-kiosk-tertiary/40"
+      trackClassName="bg-kiosk-key"
     >
+      <div className="flex min-h-full flex-col py-5 sm:py-6">
       <SummaryHeader
         avatarUrl={avatarUrl}
         name={name}
@@ -133,6 +137,7 @@ export function SummaryScreen({
           variant="accent"
         />
       </div>
-    </div>
+      </div>
+    </VerticalScrollArea>
   );
 }

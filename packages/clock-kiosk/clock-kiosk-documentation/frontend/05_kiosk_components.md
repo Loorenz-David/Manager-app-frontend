@@ -24,7 +24,7 @@ adds what the README doesn't: interconnection and design intent.
 | Chrome (every screen) | `chrome/KioskFrame`, `chrome/KioskHeader` | Paper column (max 760px) with header/middle/footer slots; header identity block takes `identitySlotProps` (host attaches the settings long-press). |
 | Keypad (idle) | `keypad/KeypadScreen`, `keypad/CodeCells`, `keypad/Keypad` | Cells show typed digits; shake via `.kiosk-shake` on `error` rising edge; **"Clock with email"** pill toggles email mode; `statusNotice` renders the quiet tertiary terminal-offline line (never combined with `error`); `lg:` sizes step DOWN (100px keys) so desktop/iPad-landscape fit 900px — tablet portrait keeps 120px. |
 | Confirm | `confirm/IdentityConfirmScreen` | `@beyo/ui Avatar` (initials fallback); ONE primary action (`success` green in / `accent` blue out); nullable context row (scheduled gap). |
-| Results | `result/ResultScreen`, `CheckHero`, `DarkTimePlate`, `AutoReturnFooter` | Plate = the screen's single most important number (mono); `right` column = scheduled gap; `AutoReturnFooter` variant `muted` (plain) / `accent` (summary). |
+| Results | `result/ResultScreen`, `CheckHero`, `DarkTimePlate`, `AutoReturnFooter` | Plate = the screen's single most important number (mono); `right` column = scheduled gap; `AutoReturnFooter` variant `muted` (plain) / `accent` (summary). Plates use phone-scale heroes (40px base → 58/64px `sm:`) and `flex-wrap` so the right/IN-OUT columns drop below instead of overlapping on narrow viewports (operator finding 2026-07-30). |
 | Summary | `summary/SummaryScreen` + `SummaryHeader`, `WorkedTodayPlate`, `ItemsCompletedCarousel`, `WeekBarChart`, `RateTile`, `InsightRow` | Adapter-gated sections; responsive ORDER swap (phone: hours→insights→items→week/rate; sm+: hours→items→week+rate grid→insights) via `order-*` classes; stays balanced with everything empty. |
 | Announcements | `announcements/AnnouncementsList` | Max 3, dated (pre-formatted string), accent dots. |
 | Device | `device/DeviceSignInCard`, `device/DeviceSettingsPanel(+Row)` | Chrome only; host injects forms/controls. |
@@ -51,6 +51,18 @@ adds what the README doesn't: interconnection and design intent.
   (MotionConfig + CSS); contrast — all primary pairs ≥4.5:1; `secondary`
   3.53:1 / `tertiary` 2.62:1 pass only as large/decorative text — accepted
   design palette; darken toward `#767061` if AA body-text ever required.
+
+## Scrolling
+
+All four flow screens (`KeypadScreen`, `IdentityConfirmScreen`,
+`ResultScreen`, `SummaryScreen`) scroll through `@beyo/ui`'s
+`VerticalScrollArea` (hairline custom scrollbar; kiosk-tinted via
+`trackClassName="bg-kiosk-key"` / `thumbClassName="bg-kiosk-tertiary/40"`),
+not native `overflow-y-auto`. Pattern: the primitive's OUTER div gets
+`style={{flex:'1 1 0%', minHeight:0}}` + the screen's `data-testid`; children
+are wrapped in a `min-h-full flex-col` div carrying the screen's padding so
+`mt-auto` footers still pin. Keep new scrollable kiosk screens on this
+pattern.
 
 ## Rules for changing this zone
 

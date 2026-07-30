@@ -21,15 +21,15 @@ export function DarkTimePlate({
 }: Props): React.JSX.Element {
   return (
     <div
-      className="flex items-end justify-between gap-6 rounded-[24px] bg-kiosk-plate px-6 py-6 sm:px-8 sm:py-7"
+      className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 rounded-[24px] bg-kiosk-plate px-6 py-6 sm:px-8 sm:py-7"
       data-testid="dark-time-plate"
     >
       <div className="min-w-0">
-        <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
+        <p className="whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
           {label}
         </p>
         <p
-          className="mt-2 font-kiosk-mono text-[52px] font-medium leading-none text-white sm:text-[64px]"
+          className="mt-2 font-kiosk-mono text-[40px] font-medium leading-none text-white sm:text-[64px]"
           data-testid="plate-time"
         >
           {time}
@@ -37,7 +37,7 @@ export function DarkTimePlate({
       </div>
       {right ? (
         <div className="shrink-0 pb-1 text-right" data-testid="plate-right">
-          <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
+          <p className="whitespace-nowrap text-[11px] font-medium uppercase tracking-[0.2em] text-kiosk-plate-label">
             {right.label}
           </p>
           <p className="mt-2 font-kiosk-mono text-[17px] leading-none text-white sm:text-[19px]">

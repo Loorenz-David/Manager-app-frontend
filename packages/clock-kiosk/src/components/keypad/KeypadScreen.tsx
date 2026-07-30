@@ -1,4 +1,5 @@
 import { cn } from '@beyo/lib';
+import { VerticalScrollArea } from '@beyo/ui';
 import { CodeCells } from './CodeCells';
 import { Keypad } from './Keypad';
 import { KioskButton } from '../shared/KioskButton';
@@ -55,10 +56,13 @@ export function KeypadScreen({
   statusNotice = null,
 }: Props): React.JSX.Element {
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-6 sm:py-8 lg:py-5"
+    <VerticalScrollArea
       data-testid="keypad-screen"
+      style={{ flex: '1 1 0%', minHeight: 0 }}
+      thumbClassName="bg-kiosk-tertiary/40"
+      trackClassName="bg-kiosk-key"
     >
+      <div className="flex min-h-full flex-col items-center py-6 sm:py-8 lg:py-5">
       <div className="text-center">
         <h1 className="text-[32px] font-bold leading-tight tracking-tight text-kiosk-ink sm:text-[42px]">
           Start your shift
@@ -154,6 +158,7 @@ export function KeypadScreen({
           </button>
         </div>
       )}
-    </div>
+      </div>
+    </VerticalScrollArea>
   );
 }

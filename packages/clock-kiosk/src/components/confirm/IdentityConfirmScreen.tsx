@@ -1,4 +1,4 @@
-import { Avatar } from '@beyo/ui';
+import { Avatar, VerticalScrollArea } from '@beyo/ui';
 import { KioskButton } from '../shared/KioskButton';
 
 export type ConfirmAction = 'clock_in' | 'clock_out';
@@ -43,10 +43,13 @@ export function IdentityConfirmScreen({
   onBack,
 }: Props): React.JSX.Element {
   return (
-    <div
-      className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto py-6 sm:py-10"
+    <VerticalScrollArea
       data-testid="identity-confirm-screen"
+      style={{ flex: '1 1 0%', minHeight: 0 }}
+      thumbClassName="bg-kiosk-tertiary/40"
+      trackClassName="bg-kiosk-key"
     >
+      <div className="flex min-h-full flex-col items-center py-6 sm:py-10">
       <div className="flex flex-1 flex-col items-center justify-center">
         <Avatar
           className="size-40 bg-kiosk-key text-[44px] font-semibold text-kiosk-secondary sm:size-56"
@@ -102,6 +105,7 @@ export function IdentityConfirmScreen({
           </button>
         </div>
       </div>
-    </div>
+      </div>
+    </VerticalScrollArea>
   );
 }
