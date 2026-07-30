@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_clock_kiosk_phase6_clock_out_summary_20260729`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: Codex (implementer) / Claude Fable (kit + author) / Opus (reviewer)
 - Created at (UTC): `2026-07-29T13:30:00Z`
-- Last updated at (UTC): `2026-07-29T13:30:00Z`
+- Last updated at (UTC): `2026-07-30T07:46:02Z`
 - Master plan: `../PLAN_clock_kiosk_master_20260729.md`
 - Depends on: Phase 4 archived. (Phase 5 is shelved — master decision #10; this phase follows Phase 4 directly.)
 - Backend contract: handoff §5.1 (`analytics`) — **`analytics` is `null` until backend phase 7, and `null` thereafter in degraded mode; the plain success screen must always remain the fallback.**
@@ -90,9 +90,19 @@ Prohibited: pattern reads.
 
 ## Review log
 
-- (append here)
+- 2026-07-30 Codex: Phase 6 implemented and validated. Added one pure
+  marker-based analytics view-model, existing `@beyo/stats` insight-copy reuse
+  through a narrow subpath, exported scheduled/announcements/summary adapters
+  with null/empty defaults, `VITE_FLOOR_MOCKS=1` showcase data, rich-summary
+  assembly, clock-in scheduled/announcement assembly, and null/partial
+  regression coverage. Validation passed: root typecheck; kiosk 34/34;
+  summary Playwright mobile 2/2 then desktop 2/2; full kiosk spec 7/7 on both;
+  floor lint/build; production fixture exclusion; diff check. No kit component
+  was edited. Kit contract finding: the committed `AnnouncementsList` does not
+  render its planned date; the adapter preserves ISO `date` for a future
+  Claude-owned additive visual update.
 
 ## Lifecycle transition
 
-- Current state: `under_construction` → kit approved → implement → validate → summary + archive
+- Current state: `archived`
 - Transition owner: Codex session

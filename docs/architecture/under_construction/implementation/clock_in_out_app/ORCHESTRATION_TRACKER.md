@@ -11,11 +11,14 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-30):** Phases 1–4 DONE. Phase 6 implemented — **Opus
-> review in progress**. Operator walk-through (port 5177, mocks) surfaced
-> findings **O1–O3** (below) — HELD for the Phase 6 corrections round or
-> Phase 7, folded in when the verdict lands (no repo edits while the review
-> runs). Deferred to Phase 7: msw devDependency (npm install).
+> **Status (2026-07-30):** Phases 1–4 DONE. Phase 6 reviewed: **defects
+> found** (null-degradation + no-fabricated-data both PASS; blocker C1 = port
+> 5177 vs 5175 config split — explains the operator's 5177 session). Corrections
+> plan **approved**: C7 resolved (kiosk-owned factual worker copy, table
+> authored in-plan), O1–O3 merged as criteria 15–17, Claude items C12+O2 done
+> + committed `99df0abf`. **Next: fresh Codex session for the corrections**
+> (snippet in Fable's 2026-07-30 message). Phase 7 waits on this round.
+> Deferred to Phase 7: msw devDependency (npm install).
 
 ## Operator findings from the 2026-07-30 walk-through (route with next corrections)
 

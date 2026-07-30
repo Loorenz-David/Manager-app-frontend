@@ -9,7 +9,11 @@ import { WeekBarChart, type WeekDay } from './WeekBarChart';
 import { RateTile } from './RateTile';
 import { InsightRow, type InsightDelta } from './InsightRow';
 
-export type SummaryInsight = { text: string; delta: InsightDelta };
+export type SummaryInsight = {
+  key?: string;
+  text: string;
+  delta: InsightDelta;
+};
 
 type Props = {
   /** e.g. "Shift complete, Dana" */
@@ -112,7 +116,7 @@ export function SummaryScreen({
           <div className="order-2 flex flex-col gap-3 sm:order-4">
             {insights.map((insight) => (
               <InsightRow
-                key={insight.text}
+                key={insight.key ?? insight.text}
                 delta={insight.delta}
                 text={insight.text}
               />

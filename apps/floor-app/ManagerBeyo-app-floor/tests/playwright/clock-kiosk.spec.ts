@@ -14,6 +14,8 @@ type KioskBackendOptions = {
   autoReturnSeconds?: number;
   currentDelayMs?: number;
   transitionedSteps?: number;
+  analytics?: Record<string, unknown> | null;
+  productionAdapters?: boolean;
 };
 
 async function mockAuthenticatedKiosk(
@@ -23,6 +25,17 @@ async function mockAuthenticatedKiosk(
     autoReturnSeconds = 12,
     currentDelayMs = 0,
     transitionedSteps = 0,
+    productionAdapters = false,
+    analytics = {
+      date: '2026-07-29',
+      timeline: {
+        working_seconds: 3600,
+        pause_seconds: 0,
+        ended_shift_seconds: 0,
+        idle_seconds: 0,
+        completed_count: 99,
+      },
+    },
   }: KioskBackendOptions = {},
 ) {
   const workspaceId = 'wrk_clock_kiosk';
@@ -138,6 +151,10 @@ async function mockAuthenticatedKiosk(
           state_entered_at: null,
           pause_reason: null,
           declared_state: null,
+          scheduled_shift: {
+            start: '2026-07-29T05:00:00.000Z',
+            end: '2026-07-29T13:30:00.000Z',
+          },
         },
         warnings: [],
       }),
@@ -172,23 +189,16 @@ async function mockAuthenticatedKiosk(
           action: 'clock_out',
           user_id: workerId,
           transitioned_steps: transitionedSteps,
-          analytics: {
-            date: '2026-07-29',
-            timeline: {
-              working_seconds: 3600,
-              pause_seconds: 0,
-              ended_shift_seconds: 0,
-              idle_seconds: 0,
-              completed_count: 99,
-            },
-          },
+          analytics,
         },
         warnings: [],
       }),
     });
   });
 
-  await page.goto('/');
+  await page.goto(
+    productionAdapters ? '/?kiosk-adapters=production' : '/',
+  );
   await expect(page.getByTestId('keypad-screen')).toBeVisible();
 
   return {
@@ -211,12 +221,45 @@ test('clock-kiosk: physical keypad completes the clock-in journey', async ({
     time: new Date('2026-07-29T13:00:00.000Z'),
   });
   const backend = await mockAuthenticatedKiosk(page, { currentDelayMs: 800 });
+  await page.waitForLoadState('networkidle');
+  await page.evaluate(() => {
+    const seen: string[] = [];
+    const recordSkeletons = (root: ParentNode) => {
+      for (const testId of [
+        'surface-skeleton',
+        'kiosk-surface-skeleton',
+      ]) {
+        if (
+          root instanceof Element &&
+          root.getAttribute('data-testid') === testId
+        ) {
+          seen.push(testId);
+        }
+        if (root.querySelector?.(`[data-testid="${testId}"]`)) {
+          seen.push(testId);
+        }
+      }
+    };
+    new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element) recordSkeletons(node);
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+    (
+      window as typeof window & { __kioskSkeletonsSeen?: string[] }
+    ).__kioskSkeletonsSeen = seen;
+  });
 
   await page.keyboard.type('4821');
   await expect(page.getByTestId('identity-confirm-screen')).toBeVisible();
   await expect(page.getByTestId('keypad-screen')).toBeAttached();
   await expect(page.getByTestId('code-cell')).toHaveCount(4);
   await expect(page.getByTestId('confirm-action')).toHaveText('Clock in now');
+  await expect(page.getByTestId('confirm-context-row')).toContainText(
+    "Today's shift",
+  );
   const confirmPaperColor = await page
     .getByTestId('rise-surface')
     .getByTestId('kiosk-frame')
@@ -240,8 +283,21 @@ test('clock-kiosk: physical keypad completes the clock-in journey', async ({
   await expect(page.getByTestId('dark-time-plate')).toContainText(
     'CLOCKED IN AT',
   );
+  await expect(page.getByTestId('plate-right')).toContainText('SCHEDULED');
+  await expect(page.getByTestId('announcements-list')).toBeVisible();
+  await expect(page.getByTestId('announcement-card')).toHaveCount(3);
   expect(backend.currentRequests).toBe(2);
   expect(backend.clockInRequests).toBe(1);
+  expect(
+    await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __kioskSkeletonsSeen?: string[];
+          }
+        ).__kioskSkeletonsSeen ?? [],
+    ),
+  ).toEqual([]);
 
   await page.getByTestId('result-done').click();
   await expect(page.getByTestId('result-screen-in')).toBeAttached();
@@ -250,12 +306,13 @@ test('clock-kiosk: physical keypad completes the clock-in journey', async ({
   await expect(page.getByTestId('code-cell')).toHaveText(['', '', '', '']);
 });
 
-test('clock-kiosk: clock-out renders the plain result and stopped-task notice', async ({
+test('kiosk-summary: analytics null preserves the Phase 4 plain result', async ({
   page,
 }) => {
   const backend = await mockAuthenticatedKiosk(page, {
     initiallyClockedIn: true,
     transitionedSteps: 2,
+    analytics: null,
   });
 
   for (const digit of ['4', '8', '2', '1']) {
@@ -274,8 +331,171 @@ test('clock-kiosk: clock-out renders the plain result and stopped-task notice', 
   await expect(page.getByTestId('result-notice')).toHaveText(
     '2 active tasks were stopped',
   );
-  await expect(page.getByText('99', { exact: true })).toHaveCount(0);
+  await expect(page.getByTestId('summary-screen')).toHaveCount(0);
+  await expect(page.getByTestId('worked-today-plate')).toHaveCount(0);
+  await expect(page.getByTestId('items-completed')).toHaveCount(0);
+  await expect(page.getByTestId('week-bar-chart')).toHaveCount(0);
+  await expect(page.getByTestId('rate-tile')).toHaveCount(0);
   expect(backend.currentRequests).toBe(2);
+  expect(backend.clockOutRequests).toBe(1);
+});
+
+test('kiosk-summary: full analytics and showcase adapters render in breakpoint order', async ({
+  page,
+}) => {
+  const backend = await mockAuthenticatedKiosk(page, {
+    initiallyClockedIn: true,
+    transitionedSteps: 2,
+    analytics: {
+      date: '2026-07-29',
+      timeline: {
+        working_seconds: 60,
+        pause_seconds: 999_999,
+        ended_shift_seconds: 0,
+        idle_seconds: 0,
+        completed_count: 7,
+      },
+      segments: [
+        {
+          start: '2026-07-29T06:58:00Z',
+          end: '2026-07-29T06:58:00Z',
+          state: 'started_shift',
+          reason: null,
+          is_open: false,
+          manually_recorded: false,
+          seconds: 0,
+          steps: [],
+        },
+        {
+          start: '2026-07-29T15:10:00Z',
+          end: '2026-07-29T15:10:00Z',
+          state: 'ended_shift',
+          reason: null,
+          is_open: false,
+          manually_recorded: false,
+          seconds: 0,
+          steps: [],
+        },
+      ],
+      segments_truncated: true,
+      insights: [
+        {
+          code: 'working_time_vs_baseline',
+          polarity: 'positive',
+          metric: 'working_seconds',
+          target_value: 29_520,
+          baseline_value: 27_720,
+          delta: 1_800,
+          delta_pct: 6.5,
+          sample_size: 12,
+          severity: 'info',
+        },
+      ],
+    },
+  });
+
+  await page.keyboard.type('4821');
+  await expect(page.getByTestId('confirm-action')).toHaveText('Clock out now');
+  await page.getByTestId('confirm-action').click();
+
+  await expect(page.getByTestId('summary-screen')).toBeVisible();
+  await expect(page.getByTestId('worked-today-value')).toHaveText('8h 12m');
+  await expect(page.getByTestId('worked-today-plate')).toContainText('08:58');
+  await expect(page.getByTestId('worked-today-plate')).toContainText('17:10');
+  await expect(page.getByTestId('summary-notice')).toHaveText(
+    '2 active tasks were stopped',
+  );
+  await expect(page.getByTestId('items-completed')).toBeVisible();
+  await expect(page.getByTestId('week-bar-chart')).toBeVisible();
+  await expect(page.getByTestId('rate-tile')).toBeVisible();
+  await expect(page.getByTestId('insight-row')).toHaveCount(1);
+  await expect(page.getByTestId('insight-row')).toContainText('+6.5%');
+
+  const top = async (testId: string): Promise<number> => {
+    const box = await page.getByTestId(testId).first().boundingBox();
+    expect(box).not.toBeNull();
+    return box!.y;
+  };
+  const workedTop = await top('worked-today-plate');
+  const insightTop = await top('insight-row');
+  const itemsTop = await top('items-completed');
+  const weekTop = await top('week-bar-chart');
+  const rateTop = await top('rate-tile');
+  const viewport = page.viewportSize();
+
+  if ((viewport?.width ?? 0) < 640) {
+    expect(workedTop).toBeLessThan(insightTop);
+    expect(insightTop).toBeLessThan(itemsTop);
+    expect(itemsTop).toBeLessThan(weekTop);
+  } else {
+    expect(workedTop).toBeLessThan(itemsTop);
+    expect(itemsTop).toBeLessThan(weekTop);
+    expect(itemsTop).toBeLessThan(rateTop);
+    expect(weekTop).toBeLessThan(insightTop);
+    expect(rateTop).toBeLessThan(insightTop);
+  }
+
+  expect(backend.currentRequests).toBe(2);
+  expect(backend.clockOutRequests).toBe(1);
+});
+
+test('kiosk-summary: production adapter defaults keep GAP tiles absent', async ({
+  page,
+}) => {
+  const backend = await mockAuthenticatedKiosk(page, {
+    initiallyClockedIn: true,
+    transitionedSteps: 1,
+    productionAdapters: true,
+    analytics: {
+      date: '',
+      timeline: {},
+      segments: [
+        {
+          start: '2026-07-29T06:58:00Z',
+          end: '2026-07-29T06:58:00Z',
+          state: 'started_shift',
+          reason: null,
+          is_open: false,
+          seconds: 0,
+        },
+        {
+          start: '2026-07-29T15:10:00Z',
+          end: '2026-07-29T15:10:00Z',
+          state: 'ended_shift',
+          reason: null,
+          is_open: false,
+          seconds: 0,
+        },
+      ],
+      insights: [
+        {
+          code: 'working_time_vs_baseline',
+          polarity: 'positive',
+          metric: 'working_seconds',
+          target_value: 29_520,
+          baseline_value: 27_720,
+          delta: 1_800,
+          delta_pct: 6.5,
+          sample_size: 12,
+          severity: 'info',
+        },
+      ],
+    },
+  });
+
+  await page.keyboard.type('4821');
+  await expect(page.getByTestId('confirm-action')).toHaveText('Clock out now');
+  await page.getByTestId('confirm-action').click();
+
+  await expect(page.getByTestId('summary-screen')).toBeVisible();
+  await expect(page.getByTestId('worked-today-plate')).toBeVisible();
+  await expect(page.getByTestId('summary-notice')).toHaveText(
+    '1 active task was stopped',
+  );
+  await expect(page.getByTestId('insight-row')).toHaveCount(1);
+  await expect(page.getByTestId('items-completed')).toHaveCount(0);
+  await expect(page.getByTestId('week-bar-chart')).toHaveCount(0);
+  await expect(page.getByTestId('rate-tile')).toHaveCount(0);
   expect(backend.clockOutRequests).toBe(1);
 });
 

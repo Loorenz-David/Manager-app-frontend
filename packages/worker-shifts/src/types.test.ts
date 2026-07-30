@@ -83,6 +83,24 @@ describe("worker-shift handoff schemas", () => {
     expect(CurrentShiftSchema.parse(legacy)).toEqual(legacy);
   });
 
+  it("retains the additive scheduled shift on fresh current state", () => {
+    const current = {
+      user_id: "usr_scheduled",
+      clocked_in: false,
+      shift_started_at: null,
+      state: null,
+      state_entered_at: null,
+      pause_reason: null,
+      declared_state: null,
+      scheduled_shift: {
+        start: "2026-07-30T05:00:00Z",
+        end: "2026-07-30T13:30:00Z",
+      },
+    };
+
+    expect(CurrentShiftSchema.parse(current)).toEqual(current);
+  });
+
   it("accepts null pause-reason images and a null legacy reason", () => {
     const current = {
       user_id: "usr_…",
@@ -234,6 +252,53 @@ describe("worker-shift handoff schemas", () => {
       pause_reasons: {},
       insights: [],
     });
+  });
+
+  it("defaults omitted timeline counters without failing clock-out success", () => {
+    const result = ClockOutResultSchema.parse({
+      action: "clock_out",
+      user_id: "usr_partial",
+      transitioned_steps: 0,
+      analytics: {
+        date: "2026-07-29",
+        timeline: {
+          working_seconds: 3_600,
+          pause_seconds: 300,
+          ended_shift_seconds: 0,
+          idle_seconds: 120,
+        },
+      },
+    });
+
+    expect(result.analytics?.timeline).toMatchObject({
+      working_seconds: 3_600,
+      pause_seconds: 300,
+      ended_shift_seconds: 0,
+      idle_seconds: 120,
+      completed_count: 0,
+      pause_by_reason: {},
+    });
+  });
+
+  it("defaults an omitted timeline without failing clock-out success", () => {
+    const result = ClockOutResultSchema.parse({
+      action: "clock_out",
+      user_id: "usr_partial",
+      transitioned_steps: 0,
+      analytics: {
+        date: "2026-07-29",
+      },
+    });
+
+    expect(result.analytics?.timeline).toEqual({
+      working_seconds: 0,
+      pause_seconds: 0,
+      ended_shift_seconds: 0,
+      idle_seconds: 0,
+      completed_count: 0,
+      pause_by_reason: {},
+    });
+    expect(result.analytics?.segments).toEqual([]);
   });
 
   it("round-trips declared-state action examples", () => {

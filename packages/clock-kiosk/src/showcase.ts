@@ -2,3 +2,4 @@
 // barrel so production consumers never pull the review harness into their
 // chunk (same pattern as `@beyo/worker-shifts/mocks`).
 export { KioskKitShowcase } from './components/showcase/KioskKitShowcase';
+export { showcaseKioskAdapters } from './adapters/showcase-kiosk-adapters';

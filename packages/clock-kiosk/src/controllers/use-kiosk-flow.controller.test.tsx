@@ -13,6 +13,7 @@ import type {
 } from '@beyo/worker-shifts';
 import { ApiRequestError } from '@beyo/api-client';
 import { createKioskFlowStore } from '../store/kiosk-flow.store';
+import type { KioskAdapters } from '../types';
 import {
   goodDayPartGreeting,
   isEditableEventTarget,
@@ -99,9 +100,17 @@ function setup(store = createKioskFlowStore()) {
     openResult: vi.fn(),
     closeKioskSurfaces: vi.fn(),
   };
+  const scheduledShift = vi.fn<KioskAdapters['scheduledShift']>(
+    () => null,
+  );
   const adapters = {
-    getScheduledShift: vi.fn(() => null),
-    getAnnouncements: vi.fn(() => []),
+    scheduledShift,
+    announcements: vi.fn(() => []),
+    summaryExtras: {
+      items: vi.fn(() => null),
+      week: vi.fn(() => null),
+      rate: vi.fn(() => null),
+    },
   };
   const rendered = renderHook(() =>
     useKioskFlowController({
@@ -112,7 +121,13 @@ function setup(store = createKioskFlowStore()) {
       timeZone: 'Europe/Stockholm',
     }),
   );
-  return { store, surfaceOpeners, ...rendered };
+  return {
+    store,
+    surfaceOpeners,
+    adapters,
+    scheduledShift,
+    ...rendered,
+  };
 }
 
 describe('useKioskFlowController', () => {
@@ -225,7 +240,16 @@ describe('useKioskFlowController', () => {
     store.getState().beginActing(sessionId);
     store
       .getState()
-      .showResult(sessionId, { kind: 'clock_out', current: clockedOut, transitionedSteps: 2 }, 4);
+      .showResult(
+        sessionId,
+        {
+          kind: 'clock_out',
+          current: clockedOut,
+          transitionedSteps: 2,
+          analytics: null,
+        },
+        4,
+      );
     const { result, surfaceOpeners } = setup(store);
 
     act(() => vi.advanceTimersByTime(4_000));
@@ -280,11 +304,79 @@ describe('useKioskFlowController', () => {
     const { result } = setup(store);
 
     expect(result.current.result).toMatchObject({
-      variant: 'in',
-      greeting: 'Good afternoon, Marco',
-      plate: {
-        label: 'CLOCKED IN AT',
-        time: '08:58',
+      screen: 'plain',
+      props: {
+        variant: 'in',
+        greeting: 'Good afternoon, Marco',
+        announcements: [],
+        plate: {
+          label: 'CLOCKED IN AT',
+          time: '08:58',
+          right: null,
+        },
+      },
+    });
+  });
+
+  it('maps one scheduled shift to surface-specific labels', () => {
+    const store = createKioskFlowStore();
+    const { result, adapters, scheduledShift } = setup(store);
+    scheduledShift.mockReturnValue({
+      start: '2026-07-29T05:00:00.000Z',
+      end: '2026-07-29T13:30:00.000Z',
+    });
+    const scheduledCurrent = {
+      ...clockedOut,
+      scheduled_shift: {
+        start: '2026-07-29T05:00:00.000Z',
+        end: '2026-07-29T13:30:00.000Z',
+      },
+    };
+    const sessionId = store.getState().flow.sessionId;
+
+    act(() => {
+      store.getState().beginConfirm(sessionId, user);
+      store.getState().resolveConfirm(sessionId, scheduledCurrent);
+    });
+
+    expect(result.current.confirm?.context).toEqual({
+      label: "Today's shift",
+      value: '07:00 – 15:30',
+    });
+    expect(adapters.scheduledShift).toHaveBeenLastCalledWith({
+      user,
+      timeZone: 'Europe/Stockholm',
+      currentShift: scheduledCurrent,
+    });
+
+    act(() => {
+      store.getState().beginActing(sessionId);
+      store
+        .getState()
+        .showResult(
+          sessionId,
+          {
+            kind: 'clock_in',
+            current: {
+              ...scheduledCurrent,
+              clocked_in: true,
+              shift_started_at: '2026-07-29T06:58:00.000Z',
+              state: 'idle',
+            },
+          },
+          4,
+        );
+    });
+
+    expect(result.current.result).toMatchObject({
+      screen: 'plain',
+      props: {
+        plate: {
+          right: {
+            label: 'SCHEDULED',
+            value: '07:00 – 15:30',
+          },
+        },
       },
     });
   });

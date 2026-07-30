@@ -1,4 +1,5 @@
 import type {
+  ClockOutAnalytics,
   CurrentShift,
   FloorRosterUser,
 } from '@beyo/worker-shifts';
@@ -13,6 +14,7 @@ export type KioskResult =
       kind: 'clock_out';
       current: CurrentShift;
       transitionedSteps: number;
+      analytics: ClockOutAnalytics | null;
     };
 
 export type KeypadFlowState = {

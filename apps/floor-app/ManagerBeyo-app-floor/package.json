@@ -21,6 +21,7 @@
     "@beyo/clock-kiosk": "*",
     "@beyo/hooks": "*",
     "@beyo/lib": "*",
+    "@beyo/stats": "*",
     "@beyo/styles": "*",
     "@beyo/ui": "*",
     "@beyo/worker-shifts": "*",

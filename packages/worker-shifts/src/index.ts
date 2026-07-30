@@ -15,6 +15,7 @@ export {
   DeclaredStateSchema,
   FloorRosterSchema,
   FloorRosterUserSchema,
+  ScheduledShiftSchema,
   SegmentStateSchema,
   ShiftStateSchema,
 } from "./types";
@@ -35,6 +36,7 @@ export type {
   DeclaredState,
   FloorRoster,
   FloorRosterUser,
+  ScheduledShift,
   SegmentState,
   ShiftState,
 } from "./types";

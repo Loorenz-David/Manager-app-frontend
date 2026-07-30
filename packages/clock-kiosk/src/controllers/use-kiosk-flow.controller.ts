@@ -19,6 +19,11 @@ import {
   CLOCK_KIOSK_RESULT_SURFACE_ID,
   type ClockKioskSurfaceOpeners,
 } from '../surface-ids';
+import { toClockOutSummaryViewModel } from '../lib/analytics-view-model';
+import {
+  gateAnnouncements,
+  gateSummaryExtras,
+} from '../lib/kiosk-adapters';
 import type { KioskAdapters } from '../types';
 import type {
   KioskFlowStoreApi,
@@ -74,6 +79,25 @@ export function isEditableEventTarget(target: EventTarget | null): boolean {
 function activeTaskNotice(count: number): string | null {
   if (count <= 0) return null;
   return `${count} active ${count === 1 ? 'task was' : 'tasks were'} stopped`;
+}
+
+function scheduledShiftContext(
+  scheduledShift: ReturnType<KioskAdapters['scheduledShift']>,
+  timeZone: string,
+  label: string,
+): { label: string; value: string } | null {
+  if (!scheduledShift) return null;
+  try {
+    return {
+      label,
+      value: `${formatTimeInTimeZone(
+        scheduledShift.start,
+        timeZone,
+      )} – ${formatTimeInTimeZone(scheduledShift.end, timeZone)}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function useKioskFlowController({
@@ -301,6 +325,7 @@ export function useKioskFlowController({
           kind: 'clock_out',
           current: fresh,
           transitionedSteps: actionResult.transitioned_steps,
+          analytics: actionResult.analytics,
         };
       } else {
         await clockInAction.clockInAsync({ user_id: user.client_id });
@@ -432,7 +457,15 @@ export function useKioskFlowController({
       flow.step === 'confirming' && flow.actionFailed;
     const scheduled = current?.clocked_in
       ? null
-      : adapters.getScheduledShift(flow.user);
+      : scheduledShiftContext(
+          adapters.scheduledShift({
+            user: flow.user,
+            timeZone,
+            currentShift: current,
+          }),
+          timeZone,
+          "Today's shift",
+        );
     return {
       user: {
         name: flow.user.username,
@@ -464,32 +497,87 @@ export function useKioskFlowController({
     const name = firstName(flow.user.username);
     if (flow.result.kind === 'clock_in') {
       const startedAt = flow.result.current.shift_started_at;
+      const announcements = gateAnnouncements(
+        adapters.announcements({ user: flow.user, timeZone }),
+      );
       return {
-        variant: 'in' as const,
-        greeting: `${goodDayPartGreeting(
-          dayPartGreeting(timeZone, new Date()),
-        )}, ${name}`,
-        subtitle: "You're clocked in for today's shift",
-        plate: startedAt
-          ? {
-              label: 'CLOCKED IN AT',
-              time: formatTimeInTimeZone(startedAt, timeZone),
-              right: adapters.getScheduledShift(flow.user),
-            }
-          : null,
-        notice: null,
-        countdownSeconds: flow.countdownSeconds,
-        onDone: returnToKeypad,
+        screen: 'plain' as const,
+        props: {
+          variant: 'in' as const,
+          greeting: `${goodDayPartGreeting(
+            dayPartGreeting(timeZone, new Date()),
+          )}, ${name}`,
+          subtitle: "You're clocked in for today's shift",
+          plate: startedAt
+            ? {
+                label: 'CLOCKED IN AT',
+                time: formatTimeInTimeZone(startedAt, timeZone),
+                right: scheduledShiftContext(
+                  adapters.scheduledShift({
+                    user: flow.user,
+                    timeZone,
+                    currentShift: flow.result.current,
+                  }),
+                  timeZone,
+                  'SCHEDULED',
+                ),
+              }
+            : null,
+          notice: null,
+          announcements,
+          countdownSeconds: flow.countdownSeconds,
+          onDone: returnToKeypad,
+        },
       };
     }
+
+    const summary = toClockOutSummaryViewModel(flow.result.analytics, {
+      timeZone,
+      now: new Date(),
+    });
+    const notice = activeTaskNotice(flow.result.transitionedSteps);
+    if (summary && flow.result.analytics) {
+      const extras = gateSummaryExtras(adapters.summaryExtras, {
+        analytics: flow.result.analytics,
+        user: flow.user,
+        timeZone,
+      });
+      const userRole = roleLine(flow.user);
+      return {
+        screen: 'summary' as const,
+        props: {
+          title: `Shift complete, ${name}`,
+          subtitle: userRole
+            ? [userRole, summary.dateLabel].filter(Boolean).join(' · ')
+            : summary.dateLabel ?? '',
+          name: flow.user.username,
+          avatarUrl: flow.user.profile_picture,
+          worked: summary.worked,
+          items: extras.items,
+          week: extras.week,
+          rate: extras.rate,
+          insights: summary.insights,
+          notice,
+          countdownSeconds: flow.countdownSeconds,
+          onDone: returnToKeypad,
+        },
+      };
+    }
+
+    // Handoff §5.1 hard rule: null or marker-incomplete analytics preserves
+    // the exact Phase 4 plain clock-out success path.
     return {
-      variant: 'out' as const,
-      greeting: `Shift complete, ${name}`,
-      subtitle: 'Your shift has been clocked out',
-      plate: null,
-      notice: activeTaskNotice(flow.result.transitionedSteps),
-      countdownSeconds: flow.countdownSeconds,
-      onDone: returnToKeypad,
+      screen: 'plain' as const,
+      props: {
+        variant: 'out' as const,
+        greeting: `Shift complete, ${name}`,
+        subtitle: 'Your shift has been clocked out',
+        plate: null,
+        notice,
+        announcements: [],
+        countdownSeconds: flow.countdownSeconds,
+        onDone: returnToKeypad,
+      },
     };
   }, [adapters, flow, returnToKeypad, timeZone]);
 

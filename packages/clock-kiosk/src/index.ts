@@ -15,6 +15,7 @@ export {
   DeviceSettingsRow,
 } from './components/device/DeviceSettingsPanel';
 export { KioskButton } from './components/shared/KioskButton';
+export { KioskSurfaceSkeleton } from './components/shared/KioskSurfaceSkeleton';
 
 // Phase 4 kit — core flow screens (presentational; flow logic arrives with
 // the Phase 4 Codex session).
@@ -34,7 +35,24 @@ export { AutoReturnFooter } from './components/result/AutoReturnFooter';
 // `@beyo/clock-kiosk/showcase` (Phase 3 review finding C11).
 
 export { KioskProvider } from './providers/KioskProvider';
-export type { KioskAdapters, KioskAnnouncement, ScheduledShiftDisplay } from './types';
+export type { KioskProviderProps } from './providers/KioskProvider';
+export type {
+  // Endpoint-backed announcements stay host-owned: feed current query data
+  // through this synchronous adapter rather than starting I/O inside it.
+  AnnouncementsAdapter,
+  KioskAdapters,
+  KioskAdaptersInput,
+  KioskAnnouncement,
+  ScheduledShiftAdapter,
+  ScheduledShiftDisplay,
+  SummaryCompletedItem,
+  SummaryExtrasAdapter,
+  SummaryExtrasAdapterContext,
+  SummaryItems,
+  SummaryRate,
+  SummaryWeek,
+  SummaryWeekDay,
+} from './types';
 export {
   CLOCK_KIOSK_CONFIRM_SURFACE_ID,
   CLOCK_KIOSK_RESULT_SURFACE_ID,
@@ -43,4 +61,5 @@ export type { ClockKioskSurfaceOpeners } from './surface-ids';
 export {
   clockKioskSurfaces,
   loadClockKioskPage,
+  preloadClockKioskSurfaces,
 } from './surfaces';

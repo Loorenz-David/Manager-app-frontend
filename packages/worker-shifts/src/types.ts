@@ -45,6 +45,12 @@ export const DeclaredStateSchema = z.object({
 });
 export type DeclaredState = z.infer<typeof DeclaredStateSchema>;
 
+export const ScheduledShiftSchema = z.object({
+  start: z.string(),
+  end: z.string(),
+});
+export type ScheduledShift = z.infer<typeof ScheduledShiftSchema>;
+
 export const CurrentShiftSchema = z.object({
   user_id: z.string(),
   clocked_in: z.boolean(),
@@ -54,6 +60,7 @@ export const CurrentShiftSchema = z.object({
   pause_reason: EmbeddedPauseReasonSchema.nullable(),
   declared_state: DeclaredStateSchema.nullable(),
   reason_text: z.string().nullable().optional(),
+  scheduled_shift: ScheduledShiftSchema.nullable().optional(),
 });
 export type CurrentShift = z.infer<typeof CurrentShiftSchema>;
 
@@ -67,11 +74,11 @@ export const AnalyticsTimelineSchema = z
   .object({
     date_from: z.string().optional(),
     date_to: z.string().optional(),
-    working_seconds: z.number(),
-    pause_seconds: z.number(),
-    ended_shift_seconds: z.number(),
-    idle_seconds: z.number(),
-    completed_count: z.number(),
+    working_seconds: z.number().default(0),
+    pause_seconds: z.number().default(0),
+    ended_shift_seconds: z.number().default(0),
+    idle_seconds: z.number().default(0),
+    completed_count: z.number().default(0),
     pause_by_reason: z.record(z.string(), z.number()).default({}),
   })
   .passthrough();
@@ -109,7 +116,14 @@ export type AnalyticsInsight = z.infer<typeof AnalyticsInsightSchema>;
 export const ClockOutAnalyticsSchema = z
   .object({
     date: z.string(),
-    timeline: AnalyticsTimelineSchema,
+    timeline: AnalyticsTimelineSchema.default({
+      working_seconds: 0,
+      pause_seconds: 0,
+      ended_shift_seconds: 0,
+      idle_seconds: 0,
+      completed_count: 0,
+      pause_by_reason: {},
+    }),
     segments: z.array(AnalyticsSegmentSchema).default([]),
     segments_truncated: z.boolean().default(false),
     pause_reasons: z

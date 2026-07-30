@@ -6,20 +6,16 @@ import {
   type ReactNode,
 } from 'react';
 import { useKioskFlowController, type KioskFlowController } from '../controllers/use-kiosk-flow.controller';
+import { resolveKioskAdapters } from '../lib/kiosk-adapters';
 import { createKioskFlowStore } from '../store/kiosk-flow.store';
 import type { ClockKioskSurfaceOpeners } from '../surface-ids';
-import type { KioskAdapters } from '../types';
+import type { KioskAdaptersInput } from '../types';
 
-const DEFAULT_ADAPTERS: KioskAdapters = {
-  getScheduledShift: () => null,
-  getAnnouncements: () => [],
-};
-
-type KioskProviderProps = {
+export type KioskProviderProps = {
   children: ReactNode;
   timeZone: string;
   autoReturnSeconds?: number;
-  adapters?: Partial<KioskAdapters>;
+  adapters?: KioskAdaptersInput;
   surfaceOpeners: ClockKioskSurfaceOpeners;
 };
 
@@ -35,8 +31,8 @@ export function KioskProvider({
   const storeRef = useRef<ReturnType<typeof createKioskFlowStore> | null>(null);
   storeRef.current ??= createKioskFlowStore();
 
-  const resolvedAdapters = useMemo<KioskAdapters>(
-    () => ({ ...DEFAULT_ADAPTERS, ...adapters }),
+  const resolvedAdapters = useMemo(
+    () => resolveKioskAdapters(adapters),
     [adapters],
   );
   const controller = useKioskFlowController({

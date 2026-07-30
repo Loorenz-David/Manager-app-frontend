@@ -12,7 +12,12 @@ if (!root) {
 const appRoot = root;
 
 async function startApp(): Promise<void> {
-  if (import.meta.env.VITE_FLOOR_MOCKS === "1") {
+  // Playwright test mode uses route-level mocks but shares the same showcase
+  // adapters. Development mode starts the full MSW backend fixture.
+  if (
+    import.meta.env.VITE_FLOOR_MOCKS === "1" &&
+    import.meta.env.MODE !== "test"
+  ) {
     const { startFloorMockWorker } = await import("@/mocks/browser");
     await startFloorMockWorker();
   }

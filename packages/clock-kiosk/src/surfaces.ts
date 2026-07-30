@@ -25,6 +25,13 @@ export function loadResultSurfacePage() {
 const identityConfirm = lazyWithPreload(loadIdentityConfirmSurfacePage);
 const result = lazyWithPreload(loadResultSurfacePage);
 
+export function preloadClockKioskSurfaces(): Promise<unknown> {
+  return Promise.all([
+    identityConfirm.preload(),
+    result.preload(),
+  ]);
+}
+
 export const clockKioskSurfaces = {
   [CLOCK_KIOSK_CONFIRM_SURFACE_ID]: {
     surface: 'rise',

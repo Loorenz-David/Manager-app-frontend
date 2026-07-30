@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_clock_kiosk_phase6_corrections_20260730`
-- Status: `approved` (2026-07-30, Claude Fable orchestrator — C7 resolved to option (a)+amendment; operator findings O1–O3 merged; Claude items C12 + O2 already executed; see Review log)
+- Status: `archived` (2026-07-30, corrections implemented and validated)
 - Owner agent: `Opus (reviewer, author)` → Codex (C1–C6, C8–C11, C13) / Claude (C7, C12, C14) / orchestrator decision (C7)
 - Created at (UTC): `2026-07-30T10:10:00Z`
-- Last updated at (UTC): `2026-07-30T10:10:00Z`
+- Last updated at (UTC): `2026-07-30T10:56:48Z`
 - Related issue/ticket: none provided
 - Master plan: `../PLAN_clock_kiosk_master_20260729.md`
 - Corrects: `docs/architecture/archives/implementation/PLAN_clock_kiosk_phase6_clock_out_summary_20260729.md`
@@ -119,12 +119,14 @@ The operator's manual run (mocks, first load) found the surface-loading experien
 
 ## Review log
 
+- 2026-07-30 Codex: implemented C1–C11, C13, O1, O3, and criterion 16; retained the already-executed C12/O2 work. Cold 5175 start, root typecheck, kiosk 52/52, worker-shifts 39/39, stats 142/142, UI 162/162, auth 3/3, API client 3/3, kiosk-summary 3/3 and full clock-kiosk 8/8 on mobile/tablet/desktop, floor lint/build, production fixture exclusion, and diff check all passed. Summary: `docs/architecture/implemented_summaries/SUMMARY_clock_kiosk_phase6_corrections_20260730.md`; archive record: `docs/architecture/archives/ARCHIVE_clock_kiosk_phase6_corrections_20260730_1056.md`.
+
 - 2026-07-30 Claude (Fable, orchestrator): plan **approved** with amendments. C7 → option (a) + neutral-fallback amendment, worker copy table authored above (Codex wires it). Operator findings **O1–O3 merged as criteria 15–17** (one Codex session closes everything). **Claude items executed same day:** C12 — `AnnouncementsList` gains optional pre-formatted `date` rendered right-aligned mono tertiary (host formats the adapter's ISO); O2 — `KioskSurfaceSkeleton` built (confirm/result/summary variants, kiosk-token shimmer). C14 accepted as deferred to Phase 7's design-fidelity pass. Codex additionally exports `KioskSurfaceSkeleton` from the barrel (criterion 16) — the only barrel change Claude did not make itself, to avoid concurrent-edit churn.
 
 - 2026-07-30 Opus (Phase 6 review): plan created from the review's findings. C1 blocks the phase's own validation plan as delivered; C2/C3/C4 are wrong-or-discarded data on the one screen this phase exists to build. Checklist #1 (null degradation) and #2 (no fabricated data) both PASS and are not reopened here.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved` once C7 is answered
-- Transition owner: orchestrator (C7 decision) → Codex
+- Current state: `archived`
+- Next state: Opus corrections re-review, then Phase 7
+- Transition owner: Opus reviewer → orchestrator

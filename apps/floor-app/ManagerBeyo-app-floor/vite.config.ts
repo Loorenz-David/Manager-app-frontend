@@ -8,25 +8,16 @@ import svgr from "vite-plugin-svgr";
 import type { Plugin } from "vite";
 
 function floorMockServiceWorkerPlugin(): Plugin {
-  const workerPath = path.resolve(
-    __dirname,
-    "src/mocks/mockServiceWorker.js",
-  );
+  const workerPath = path.resolve(__dirname, "src/mocks/mockServiceWorker.js");
 
   return {
     name: "floor-mock-service-worker",
     apply: "serve",
     configureServer(server) {
-      server.middlewares.use(
-        "/mockServiceWorker.js",
-        (_request, response) => {
-          response.setHeader(
-            "Content-Type",
-            "text/javascript; charset=utf-8",
-          );
-          createReadStream(workerPath).pipe(response);
-        },
-      );
+      server.middlewares.use("/mockServiceWorker.js", (_request, response) => {
+        response.setHeader("Content-Type", "text/javascript; charset=utf-8");
+        createReadStream(workerPath).pipe(response);
+      });
     },
   };
 }
@@ -51,7 +42,7 @@ export default defineConfig(({ mode }) => {
           "fonts/InstrumentSans-Variable.ttf",
           "fonts/IBMPlexMono-Regular.ttf",
           "fonts/IBMPlexMono-Medium.ttf",
-          "fonts/IBMPlexMono-SemiBold.ttf"
+          "fonts/IBMPlexMono-SemiBold.ttf",
         ],
         manifest: {
           name: "ManagerBeyo Floor",
@@ -67,25 +58,25 @@ export default defineConfig(({ mode }) => {
               src: "floor-kiosk.svg",
               sizes: "any",
               type: "image/svg+xml",
-              purpose: "any"
+              purpose: "any",
             },
             {
               src: "floor-kiosk.svg",
               sizes: "any",
               type: "image/svg+xml",
-              purpose: "maskable"
-            }
-          ]
+              purpose: "maskable",
+            },
+          ],
         },
         injectManifest: {
-          globPatterns: ["**/*.{js,css,html,ico,png,svg,ttf,woff2}"]
-        }
-      })
+          globPatterns: ["**/*.{js,css,html,ico,png,svg,ttf,woff2}"],
+        },
+      }),
     ],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src")
-      }
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
     server: {
       port: 5175,
@@ -93,15 +84,15 @@ export default defineConfig(({ mode }) => {
         ? {
             "/api": {
               target: env.API_TARGET_URL,
-              changeOrigin: true
+              changeOrigin: true,
             },
             "/socket.io": {
               target: env.API_TARGET_URL,
               changeOrigin: true,
-              ws: true
-            }
+              ws: true,
+            },
           }
-        : undefined
-    }
+        : undefined,
+    },
   };
 });

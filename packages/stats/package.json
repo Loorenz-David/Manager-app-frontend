@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./insight-copy": "./src/lib/insight-copy.ts"
   },
   "peerDependencies": {
     "@beyo/api-client": "*",
