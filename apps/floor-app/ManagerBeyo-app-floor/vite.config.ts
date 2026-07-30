@@ -1,15 +1,42 @@
 import path from "node:path";
+import { createReadStream } from "node:fs";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
+import type { Plugin } from "vite";
+
+function floorMockServiceWorkerPlugin(): Plugin {
+  const workerPath = path.resolve(
+    __dirname,
+    "src/mocks/mockServiceWorker.js",
+  );
+
+  return {
+    name: "floor-mock-service-worker",
+    apply: "serve",
+    configureServer(server) {
+      server.middlewares.use(
+        "/mockServiceWorker.js",
+        (_request, response) => {
+          response.setHeader(
+            "Content-Type",
+            "text/javascript; charset=utf-8",
+          );
+          createReadStream(workerPath).pipe(response);
+        },
+      );
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
 
   return {
     plugins: [
+      floorMockServiceWorkerPlugin(),
       svgr(),
       react(),
       tailwindcss(),

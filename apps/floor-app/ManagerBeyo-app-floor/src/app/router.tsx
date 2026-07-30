@@ -1,4 +1,5 @@
 import { lazyRoute } from "@beyo/ui";
+import { loadClockKioskPage } from "@beyo/clock-kiosk";
 import {
   Navigate,
   createBrowserRouter,
@@ -6,7 +7,7 @@ import {
 } from "react-router-dom";
 
 import { AppShell } from "@/app/AppShell";
-import { RootRoute } from "@/app/RootRoute";
+import { FloorKioskRoute, RootRoute } from "@/app/RootRoute";
 import {
   FloorGuestRoute,
   FloorProtectedRoute,
@@ -34,15 +35,16 @@ export const floorRoutes: RouteObject[] = [
         element: <FloorProtectedRoute />,
         children: [
           {
-            element: <AppShell />,
+            element: <FloorKioskRoute />,
             children: [
               {
-                path: ROUTES.home,
-                element: lazyRoute(() =>
-                  import("@/pages/KioskPlaceholderPage").then((module) => ({
-                    default: module.KioskPlaceholderPage,
-                  })),
-                ),
+                element: <AppShell />,
+                children: [
+                  {
+                    path: ROUTES.home,
+                    element: lazyRoute(loadClockKioskPage),
+                  },
+                ],
               },
             ],
           },

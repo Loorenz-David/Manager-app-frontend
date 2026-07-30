@@ -8,7 +8,7 @@ function encodeJwt(payload: Record<string, unknown>): string {
   return `${header}.${body}.signature`;
 }
 
-test("floor-bootstrap: mocked device sign-in renders terminal chrome and ticking clock", async ({
+test("floor-bootstrap: sign-in inputs keep digits and issue no unauthenticated roster request", async ({
   page,
 }) => {
   await page.clock.install({
@@ -38,11 +38,22 @@ test("floor-bootstrap: mocked device sign-in renders terminal chrome and ticking
     exp: 4_102_444_800,
   });
 
+  let rosterRequests = 0;
+  page.on("request", (request) => {
+    if (
+      request
+        .url()
+        .includes("/api/v1/users?role=worker&compact=true&limit=200")
+    ) {
+      rosterRequests += 1;
+    }
+  });
+
   await page.route("**/api/v1/auth/sign-in", async (route) => {
     expect(route.request().method()).toBe("POST");
     expect(route.request().postDataJSON()).toMatchObject({
-      email: "manager@example.com",
-      password: "test-password",
+      email: "floor42@shop.com",
+      password: "Passw0rd123",
       app_scope: "floor",
     });
 
@@ -82,17 +93,34 @@ test("floor-bootstrap: mocked device sign-in renders terminal chrome and ticking
   });
 
   await page.goto("/sign-in");
+  await expect(page.getByTestId("floor-session-expired-note")).toHaveCount(0);
   await page
     .getByTestId("floor-terminal-label-input")
-    .fill("TERMINAL 04 · BAY B");
-  await page.getByTestId("auth-email-input").fill("manager@example.com");
-  await page.getByTestId("auth-password-input").fill("test-password");
+    .pressSequentially("TERMINAL 04");
+  await page
+    .getByTestId("auth-email-input")
+    .pressSequentially("floor42@shop.com");
+  await page
+    .getByTestId("auth-password-input")
+    .pressSequentially("Passw0rd123");
+
+  await expect(page.getByTestId("floor-terminal-label-input")).toHaveValue(
+    "TERMINAL 04",
+  );
+  await expect(page.getByTestId("auth-email-input")).toHaveValue(
+    "floor42@shop.com",
+  );
+  await expect(page.getByTestId("auth-password-input")).toHaveValue(
+    "Passw0rd123",
+  );
+  expect(rosterRequests).toBe(0);
+
   await page.getByTestId("auth-sign-in-button").click();
 
   await expect(page).toHaveURL("/");
-  await expect(page.getByTestId("floor-kiosk-placeholder")).toBeVisible();
+  await expect(page.getByTestId("keypad-screen")).toBeVisible();
   await expect(page.getByTestId("kiosk-header")).toContainText(
-    "TERMINAL 04 · BAY B",
+    "TERMINAL 04",
   );
   await expect(page.getByTestId("kiosk-header")).toContainText("Beyo Workshop");
   await expect(page.getByTestId("kiosk-header-time")).toHaveText("15:14");

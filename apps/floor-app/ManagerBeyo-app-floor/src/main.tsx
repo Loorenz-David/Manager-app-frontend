@@ -9,11 +9,21 @@ const root = document.getElementById("root");
 if (!root) {
   throw new Error("Missing #root application mount.");
 }
+const appRoot = root;
 
-createRoot(root).render(
-  <StrictMode>
-    <div className="h-full bg-kiosk-canvas" vaul-drawer-wrapper="">
-      <App />
-    </div>
-  </StrictMode>,
-);
+async function startApp(): Promise<void> {
+  if (import.meta.env.VITE_FLOOR_MOCKS === "1") {
+    const { startFloorMockWorker } = await import("@/mocks/browser");
+    await startFloorMockWorker();
+  }
+
+  createRoot(appRoot).render(
+    <StrictMode>
+      <div className="h-full bg-kiosk-canvas" vaul-drawer-wrapper="">
+        <App />
+      </div>
+    </StrictMode>,
+  );
+}
+
+void startApp();

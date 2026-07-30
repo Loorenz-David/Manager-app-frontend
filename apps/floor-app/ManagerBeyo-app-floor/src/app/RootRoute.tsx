@@ -5,17 +5,26 @@ import { Outlet } from "react-router-dom";
 import { ROUTES } from "@/lib/routes";
 import { markFloorSessionExpired } from "@/lib/floor-session-expired";
 import { surfaceRegistry } from "@/app/surface-registry";
+import { FloorKioskProvider } from "@/app/FloorKioskProvider";
 
 export function RootRoute(): React.JSX.Element {
   return (
-    <SurfaceProvider registry={surfaceRegistry}>
-      <AuthProvider
-        appScope="floor"
-        onSessionExpired={markFloorSessionExpired}
-        signInRoute={ROUTES.signIn}
-      >
+    <AuthProvider
+      appScope="floor"
+      onSessionExpired={markFloorSessionExpired}
+      signInRoute={ROUTES.signIn}
+    >
+      <Outlet />
+    </AuthProvider>
+  );
+}
+
+export function FloorKioskRoute(): React.JSX.Element {
+  return (
+    <FloorKioskProvider>
+      <SurfaceProvider registry={surfaceRegistry}>
         <Outlet />
-      </AuthProvider>
-    </SurfaceProvider>
+      </SurfaceProvider>
+    </FloorKioskProvider>
   );
 }

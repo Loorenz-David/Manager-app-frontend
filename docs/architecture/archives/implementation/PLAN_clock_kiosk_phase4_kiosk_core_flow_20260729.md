@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_clock_kiosk_phase4_kiosk_core_flow_20260729`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: Codex (implementer) / Claude Fable (kit + author) / Opus (reviewer)
 - Created at (UTC): `2026-07-29T13:30:00Z`
-- Last updated at (UTC): `2026-07-29T13:30:00Z`
+- Last updated at (UTC): `2026-07-29T19:35:00Z`
 - Master plan: `../PLAN_clock_kiosk_master_20260729.md`
 - Depends on: Phases 1 (worker-shifts) and 3 (floor app) archived.
 - Design ground truth: `../image_design/` — `clock_in_out_interface.png`, `clock_in_confirmation_of_user.png`, `clock_out_confirmation_of_user.png`, `clock_in_result.png` + `design_readme.md`.
@@ -96,9 +96,9 @@ Prohibited: reading other packages' controllers/stores for structure — `06`/`0
 
 ## Review log
 
-- (append here)
+- 2026-07-29 Codex: Phase 4 implemented and validated. Added the package-owned session-scoped flow store/controller/provider, always-mounted keypad loader, centralized confirm/result `rise` registrations, local roster matching, fresh-current action selection/reconciliation, explicit actions, result/confirm auto-return, physical keyboard wiring, build-ahead browser mocks, and the floor host composition. Validation passed: root typecheck; kiosk 9/9; worker-shifts 36/36; Playwright mobile 5/5 then desktop 5/5; `VITE_FLOOR_MOCKS=1` smoke; production build; diff check. No kit component was edited. `@source` for worker-shifts/pause-reasons remains omitted because they are not class-bearing v1 UI packages.
 
 ## Lifecycle transition
 
-- Current state: `under_construction` → kit approved → implement → validate → summary + archive
+- Current state: `archived`
 - Transition owner: Codex session

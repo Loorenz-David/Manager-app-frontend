@@ -11,12 +11,12 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-29):** Phases 1, 2, 3 all **DONE** (corrections included).
-> **Phase 4 Codex is fully unblocked** — every gate met (Phases 1+3 done, kit
-> approved with digits amendment). ⚠ Before launching it: **commit everything**
-> (still uncommitted per git; the Phase 4 reviewer diffs kit integrity against
-> a committed baseline). While Phase 4 runs: Fable builds the Phase 6 kit.
-> Deferred to Phase 7: msw devDependency (npm install).
+> **Status (2026-07-30):** Phases 1–3 DONE. Phase 4 implemented; Opus found
+> defects (invariants all PASS; blockers are placement issues: C1 keydown,
+> C2 roster-on-sign-in). Corrections plan **approved, all Codex** (C4 →
+> option (a) host frame) — **run it now in a fresh Codex session; Phase 6
+> Codex HELD until it lands** (Opus rec + same-package rule). Phase 6 kit
+> approved 2026-07-30 and ready. Deferred to Phase 7: msw devDependency.
 
 ---
 
@@ -115,11 +115,27 @@ Gates: - [ ] Phase 1 DONE   - [ ] Phase 3 DONE   - [ ] Fable kit approved
 - [x] You approve the kit visually — **approved 2026-07-29** with one
       amendment applied: code cells display the typed digits (privacy dots
       rejected); auto-submit-on-4th and result screens approved as presented
-- [ ] **Codex** (fresh session): paste `prompts/execution/PROMPT_phase4_kiosk_core_flow.md`
-- [ ] Codex reports green (five flow invariants each named with their proving test)
-- [ ] **Opus** (fresh session): paste `prompts/review/PROMPT_review_phase4.md`
-- [ ] Verdict pass
-- [ ] Tell **Fable**: "phase 4 done" — **worth a manual iPad walk-through here; this is the demo milestone**
+- [x] **Codex** (fresh session): paste `prompts/execution/PROMPT_phase4_kiosk_core_flow.md`
+- [x] Codex reports green (five flow invariants named with proving tests)
+- [x] **Opus**: verdict **defects found** — but all five invariants PASS and
+      kit integrity is byte-clean; 2 blocking (C1 global keydown breaks
+      sign-in/settings typing; C2 roster query fires unauthenticated on
+      /sign-in → false revocation), 2 high (C3 "morning, Marco" greeting;
+      C4 transparent surfaces + unmounted keypad → grey double-dim), 2 medium,
+      7 low, 2 notes → `plans/PLAN_clock_kiosk_phase4_corrections_20260730.md`
+- [x] Corrections plan approved by Fable 2026-07-30; **C4 resolved: option (a)
+      host-composed frame** — ALL findings Codex-owned
+  - [x] **Codex** (fresh session): corrections C1–C15 — completed 2026-07-30;
+        root/shared/floor matrix green and plan archived
+        — snippet in Fable's
+        2026-07-30 message. ⚠ Phase 6 Codex HELD until this lands (Opus rec +
+        same-package rule)
+  - [ ] Optional Fable spot-verify (or Opus re-review — C1/C2/C4 are
+        behavioral enough that a quick Opus re-check is reasonable; operator's
+        call). The implementation gate is green; this reviewer spot-check remains
+        optional.
+- [ ] Verdict pass → **manual iPad walk-through — the demo milestone**
+- [ ] Tell **Fable**: "phase 4 done"
 
 ### ~~Phase 5 — declared states~~ · **SHELVED — skip**
 
@@ -130,10 +146,16 @@ you start the future declare-pages capability.
 
 Gates: - [ ] Phase 4 DONE   - [ ] Fable kit approved
 
-- [ ] **Fable**: say **"build the Phase 6 kit"** → summary hero, worked-today
-      plate, items carousel, week chart, rate tile, insight rows, clock-in
-      additions (scheduled column, announcements list)
-- [ ] You approve the kit visually
+- [x] **Fable**: Phase 6 kit BUILT + committed `c2c2ebc8` (2026-07-29) —
+      SummaryScreen (adapter-gated, responsive ordering), SummaryHeader,
+      WorkedTodayPlate, ItemsCompletedCarousel, WeekBarChart, RateTile,
+      InsightRow, AnnouncementsList; AutoReturnFooter variant prop; showcase +
+      README updated. ⚠ Barrel exports deferred until Phase 4 Codex finishes
+      (concurrent index.ts edits) — Phase 6 Codex adds them.
+      Preview (with launch-day empty-adapters toggle):
+      https://claude.ai/code/artifact/d1a0e74f-0547-49ec-9c70-18953741f299
+- [x] You approve the kit visually — **approved 2026-07-30** (4 judgment calls
+      accepted; week bars = per-day worked hours vs weekly target, clarified)
 - [ ] **Codex** (fresh session): paste `prompts/execution/PROMPT_phase6_clock_out_summary.md`
 - [ ] Codex reports green
 - [ ] **Opus** (fresh session): paste `prompts/review/PROMPT_review_phase6.md`
