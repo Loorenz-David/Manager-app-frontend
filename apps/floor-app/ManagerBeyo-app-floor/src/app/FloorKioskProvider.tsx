@@ -15,7 +15,7 @@ import { useDeviceConfigStore } from '@/store/device-config.store';
 const forceProductionAdaptersInTest =
   import.meta.env.MODE === 'test' &&
   new URLSearchParams(window.location.search).get('kiosk-adapters') ===
-    'production';
+  'production';
 const forceColdSurfaceLoadInTest =
   import.meta.env.MODE === 'test' &&
   new URLSearchParams(window.location.search).has('kiosk-cold-load');

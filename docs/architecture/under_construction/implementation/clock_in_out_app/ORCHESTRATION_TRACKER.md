@@ -11,14 +11,15 @@ Sequence: **1 → 2 → 3 → 4 → 6 → 7** (Phase 5 shelved). Master: approve
 
 ## Where am I (update this line as you go)
 
-> **Status (2026-07-30):** Phases 1–4 and **6 DONE** (Phase 6 re-review:
-> pass-with-notes; whole loop committed `d8b5f72a`). **Phase 7 — the final
-> phase — is unblocked**: fresh Codex session with
-> `prompts/execution/PROMPT_phase7_validation_polish.md`. Its plan now carries
-> the four carried-forward items CF1–CF4 (msw devDependency+binding check,
-> C14 whitespace→Fable, stats codes-module extraction, positive cold-load
-> skeleton test). After Codex: Fable runs the design-fidelity + a11y pass,
-> then the Phase 7 Opus review closes the capability.
+> **Status (2026-07-30):** 🏁 **Opus verdict: complete-with-notes — master
+> criteria 1–9 ALL PASS. The capability is complete.** One final mini-loop:
+> corrections plan approved (F1 → option (b), Fable's notice built + committed
+> `4fc29335`; F8 → master archives on closure) — **fresh Codex session with
+> the snippet in Fable's 2026-07-30 message** closes F1–F5, F7, F8 and
+> performs the final lifecycle (incl. archiving the master). **F6 is YOURS:**
+> run the always-on rehearsal script from `packages/clock-kiosk/README.md` on
+> the physical target device and report the result — the capability's last
+> manual gate.
 
 ## Operator findings from the 2026-07-30 walk-through (route with next corrections)
 

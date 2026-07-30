@@ -33,7 +33,7 @@ import type {
 const CONFIRM_AUTO_RETURN_MS = 30_000;
 const RISE_SURFACE_EXIT_MS = 250;
 const GENERIC_NO_MATCH_MESSAGE = 'No worker matches this code or email';
-const TERMINAL_OFFLINE_MESSAGE = 'Terminal offline. Reconnect to refresh the roster.';
+const TERMINAL_OFFLINE_MESSAGE = 'Terminal offline — try again in a moment';
 const GENERIC_ACTION_RETRY_CONTEXT = {
   label: 'Something went wrong.',
   value: 'Please try again',
@@ -459,11 +459,12 @@ export function useKioskFlowController({
   const keypad = {
     code: flow.step === 'keypad' ? flow.code : '',
     emailValue: flow.step === 'keypad' ? flow.email : '',
-    error: flow.step === 'keypad' ? flow.error || rosterQuery.isError && !hasRoster : false,
-    errorMessage:
-      rosterQuery.isError && !hasRoster
+    error: flow.step === 'keypad' ? flow.error : false,
+    errorMessage: GENERIC_NO_MATCH_MESSAGE,
+    statusNotice:
+      flow.step === 'keypad' && rosterQuery.isError && !hasRoster
         ? TERMINAL_OFFLINE_MESSAGE
-        : GENERIC_NO_MATCH_MESSAGE,
+        : null,
     mode: flow.step === 'keypad' ? flow.mode : ('code' as const),
     pending:
       flow.step === 'keypad'

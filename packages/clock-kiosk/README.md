@@ -16,13 +16,14 @@ anything. **Read-only for Codex** (additive optional props only).
 | `DeviceSignInCard` | `{ title, subtitle, children, footnote? }` — chrome only; host injects the auth form + terminal-label field as children. |
 | `DeviceSettingsPanel` / `DeviceSettingsRow` | panel `{ title, subtitle?, children, footer? }`; row `{ label, description?, control }` — host injects controls; the danger footer hosts the device log-out (behind a confirm). |
 | `KioskButton` | `{ variant: success·accent·muted·danger·ghost, size?: xl·md } & ButtonHTMLAttributes` — xl is the 88px kiosk primary; success=clock-in green, accent=clock-out blue. |
+| `KioskSurfaceSkeleton` | `{ variant?: "confirm"·"result"·"summary" }` — loading fallback that stays inside `KioskFrame`; host uses variant-matched `Suspense` fallbacks while kiosk surfaces lazy-load. |
 | `KioskKitShowcase` | zero props; dev-only review harness with the design's mock data. Import from **`@beyo/clock-kiosk/showcase`** (kept off the main barrel — C11); never import from a real page. |
 
 ## Kit prop contracts (Phase 4 — core flow screens)
 
 | Component | Contract |
 |---|---|
-| `KeypadScreen` | `{ code, error, errorMessage?, mode: "code"·"email", emailValue, pending?, onDigit, onDelete, onSubmit, onModeChange, onEmailChange, onEmailSubmit }` — code cells display the typed digits (user decision 2026-07-29). The email fallback affordance is labeled **"Clock with email"**. Auto-submit-on-4th, matching, and physical-keyboard events are controller concerns. |
+| `KeypadScreen` | `{ code, error, errorMessage?, statusNotice?, mode: "code"·"email", emailValue, pending?, onDigit, onDelete, onSubmit, onModeChange, onEmailChange, onEmailSubmit }` — code cells display the typed digits (user decision 2026-07-29). `statusNotice` is the quiet roster/offline line (tertiary, no shake, no red cells), distinct from the no-match `error` signal. The email fallback affordance is labeled **"Clock with email"**. Auto-submit-on-4th, matching, and physical-keyboard events are controller concerns. |
 | `CodeCells` | `{ length, value, error }` — each filled cell shows its digit; plays the shake once on every false→true `error` transition (`.kiosk-shake` in `@beyo/styles`). |
 | `Keypad` | `{ onDigit, onDelete, onSubmit }` — 3×4 circles (72px phone → 120px iPad), accent submit key. |
 | `IdentityConfirmScreen` | `{ user: {name, roleLine, avatarUrl}, context: {label, value} \| null, action: "clock_in"·"clock_out", pending, onAction, onBack }` — exactly one primary action; context row hidden when null (scheduled-shift gap). Uses `@beyo/ui` `Avatar` (initials fallback). |
@@ -44,10 +45,10 @@ anything. **Read-only for Codex** (additive optional props only).
 | `InsightRow` | `{ text, delta: {value: "+9%", polarity: positive·negative·neutral} }` — factual statement + signed mono delta. |
 | `AnnouncementsList` | `{ items: {title, body, accent: info·success·neutral}[] }` — "TODAY ON THE FLOOR", max 3 rendered; lives on the clock-in result's `announcementsSlot`. GAP: `AnnouncementsAdapter`. |
 
-> **Barrel note:** the Phase 6 components are intentionally NOT yet exported
-> from `src/index.ts` — the Phase 4 Codex session owns barrel edits while it
-> runs (concurrent-edit avoidance). The Phase 6 Codex session adds these
-> exports when it wires the screen.
+Surface loaders and registrations are also public: `loadClockKioskPage()`
+for route mounting, `clockKioskSurfaces` for host `SurfaceProvider`
+registration, and `preloadClockKioskSurfaces()` for eagerly warming the
+confirm/result lazy chunks.
 
 The `rise` surface shell lives in `@beyo/ui` (`RiseSurface`) — fade-in
 slide-up enter, fade-out slide-down exit, implementing the standard
@@ -78,6 +79,7 @@ the host uses the corresponding packages:
 @source "../../../../packages/ui/src";
 @source "../../../../packages/hooks/src";
 @source "../../../../packages/auth/src";
+@source "../../../../packages/lib/src";
 ```
 
 The kiosk consumes the namespaced `--color-kiosk-*` palette and
@@ -100,10 +102,23 @@ faces in the host's global CSS before mounting a kiosk page:
 	font-display: swap;
 	src: url("/fonts/IBMPlexMono-Regular.ttf") format("truetype");
 }
-```
 
-Add the host's medium and semibold IBM Plex Mono faces when those weights are
-available. Times, counts, and signed deltas rely on the mono family.
+@font-face {
+	font-family: "IBM Plex Mono";
+	font-style: normal;
+	font-weight: 500;
+	font-display: swap;
+	src: url("/fonts/IBMPlexMono-Medium.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "IBM Plex Mono";
+	font-style: normal;
+	font-weight: 600;
+	font-display: swap;
+	src: url("/fonts/IBMPlexMono-SemiBold.ttf") format("truetype");
+}
+```
 
 ### 2. Require floor-scope device auth
 
@@ -127,29 +142,69 @@ import {
 	CLOCK_KIOSK_RESULT_SURFACE_ID,
 	KioskSurfaceSkeleton,
 	clockKioskSurfaces,
+	preloadClockKioskSurfaces,
 	loadClockKioskPage,
 } from '@beyo/clock-kiosk';
-import { lazyRoute } from '@beyo/ui';
+import { lazyRoute, lazyWithPreload, type SurfaceRegistrations } from '@beyo/ui';
+import { Suspense, createElement, type ComponentType } from 'react';
+
+import { FloorKioskFrame } from '@/components/FloorKioskFrame';
 
 // Protected route:
 { path: '/', element: lazyRoute(loadClockKioskPage) }
 
-// Surface registry entries, composed by the host with its KioskFrame:
-const kioskSurfaceIds = [
-	CLOCK_KIOSK_CONFIRM_SURFACE_ID,
-	CLOCK_KIOSK_RESULT_SURFACE_ID,
-] as const;
-const kioskSurfaces = Object.fromEntries(
-	kioskSurfaceIds.map((id) => [id, {
-		surface: 'rise',
-		component: clockKioskSurfaces[id].component,
-	}]),
+function withFloorKioskFrame(
+	Component: ComponentType,
+	variant: 'confirm' | 'result' | 'summary',
+): ComponentType {
+	return function FloorComposedKioskSurface(): React.JSX.Element {
+		return createElement(
+			FloorKioskFrame,
+			null,
+			createElement(
+				Suspense,
+				{ fallback: createElement(KioskSurfaceSkeleton, { variant }) },
+				createElement(Component),
+			),
+		);
+	};
+}
+
+const IdentityConfirm = withFloorKioskFrame(
+	clockKioskSurfaces[CLOCK_KIOSK_CONFIRM_SURFACE_ID].component,
+	'confirm',
 );
+const Result = withFloorKioskFrame(
+	clockKioskSurfaces[CLOCK_KIOSK_RESULT_SURFACE_ID].component,
+	'result',
+);
+const identityConfirm = lazyWithPreload(() => Promise.resolve({ default: IdentityConfirm }));
+const result = lazyWithPreload(() => Promise.resolve({ default: Result }));
+
+// Warm both host wrappers and package-owned kiosk chunks at registry scope.
+void identityConfirm.preload();
+void result.preload();
+void preloadClockKioskSurfaces();
+
+export const surfaceRegistry: SurfaceRegistrations = {
+	[CLOCK_KIOSK_CONFIRM_SURFACE_ID]: {
+		surface: 'rise',
+		component: identityConfirm.Component,
+	},
+	[CLOCK_KIOSK_RESULT_SURFACE_ID]: {
+		surface: 'rise',
+		component: result.Component,
+	},
+};
 ```
 
 Use a `ClockKioskSurfaceOpeners` implementation backed by the host's
 `SurfaceProvider`: open the confirm/result ids and close both ids on return.
 The package intentionally never imports `useSurface` or host navigation.
+
+If your host defers surface preloads until after auth, call
+`preloadClockKioskSurfaces()` when the floor route becomes eligible; this only
+warms package-owned kiosk surface chunks.
 
 ### 4. Provide kiosk state and host chrome
 

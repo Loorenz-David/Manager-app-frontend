@@ -462,7 +462,7 @@ describe('useKioskFlowController', () => {
     expect(surfaceOpeners.openResult).not.toHaveBeenCalled();
   });
 
-  it('disables matching without showing a no-match error when no roster is available', () => {
+  it('disables matching and shows a quiet offline notice when no roster is available', () => {
     mocks.rosterState.isError = true;
     mocks.rosterState.data = [];
     mocks.matchWorker.mockReturnValue(null);
@@ -476,9 +476,12 @@ describe('useKioskFlowController', () => {
     });
 
     expect(result.current.keypad.pending).toBe(true);
-    expect(result.current.keypad.error).toBe(true);
+    expect(result.current.keypad.error).toBe(false);
+    expect(result.current.keypad.statusNotice).toBe(
+      'Terminal offline — try again in a moment',
+    );
     expect(result.current.keypad.errorMessage).toBe(
-      'Terminal offline. Reconnect to refresh the roster.',
+      'No worker matches this code or email',
     );
     expect(store.getState().flow).toMatchObject({
       step: 'keypad',

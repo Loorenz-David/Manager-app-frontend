@@ -7,6 +7,9 @@ Fable; **master approved 2026-07-29** with three amendments (see the master's
 Review log): "Clock with email" label, declared states shelved out of v1, and
 the new `rise` surface type used everywhere in the kiosk.
 
+Master plan: completed 2026-07-30, archived at
+`docs/architecture/archives/implementation/PLAN_clock_kiosk_master_20260729.md`.
+
 ## Folder map
 
 ```
@@ -15,9 +18,8 @@ clock_in_out_app/
   ORCHESTRATION_TRACKER.md                   ← THE OPERATOR'S CHECKLIST — where you
                                                are, what runs next, which prompt
                                                goes to which model; keep it open
-  PLAN_clock_kiosk_master_20260729.md        ← the master contract: goals, decisions,
-                                               package boundaries, design→data mapping,
-                                               phase table, division of labor, criteria
+  docs/architecture/archives/implementation/
+    PLAN_clock_kiosk_master_20260729.md      ← completed master contract (archived)
   BACKEND_REQUIREMENTS_clock_kiosk_20260729.md ← what the backend must eventually provide
                                                for the design-ahead tiles (adapter-gated)
   image_design/                              ← design ground truth (5 images + readme)

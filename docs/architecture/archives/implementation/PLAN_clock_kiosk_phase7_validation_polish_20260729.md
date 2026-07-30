@@ -3,10 +3,10 @@
 ## Metadata
 
 - Plan ID: `PLAN_clock_kiosk_phase7_validation_polish_20260729`
-- Status: `under_construction`
+- Status: `archived`
 - Owner agent: Codex (implementer) / Claude Fable (design-fidelity half + author) / Opus (reviewer)
 - Created at (UTC): `2026-07-29T13:30:00Z`
-- Last updated at (UTC): `2026-07-30T11:45:00Z`
+- Last updated at (UTC): `2026-07-30T10:15:41Z`
 - Master plan: `../PLAN_clock_kiosk_master_20260729.md`
 - Depends on: Phases 1–4 and 6 archived (Phase 5 is shelved — master decision #10).
 
@@ -116,5 +116,6 @@ Prohibited: pattern reads.
 
 ## Lifecycle transition
 
-- Current state: `under_construction` → implement → validate → summary + archive; then master closes
-- Transition owner: Codex session (Claude for criterion 7) — **criterion 7 complete 2026-07-30; the plan is ready for lifecycle closure (summary → archive → master capability-complete entry), which the Phase 7 Opus review session may verify or the operator may ask Codex/Fable to perform**
+- Current state: `archived`
+- Transition completed: summary → archive record → archived plan move → master capability-complete entry
+- Transition owner: Codex, after Claude completed criterion 7 on 2026-07-30

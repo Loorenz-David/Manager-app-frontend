@@ -3,12 +3,12 @@
 ## Metadata
 
 - Plan ID: `PLAN_clock_kiosk_phase7_corrections_20260730`
-- Status: `approved` (2026-07-30, Claude Fable orchestrator — F1 option (b) with the Claude half executed; F8 master-to-archives on this plan's closure; F6 remains the operator's physical-device task)
+- Status: `archived` (2026-07-30, Codex implemented F1/F2/F3/F4/F5/F7 and lifecycle F8; validation matrix passed cold on mobile/tablet/desktop)
 - Owner agent: `Opus (reviewer/author)` — execution routed per finding to Codex (logic/docs) or Claude (visual)
 - Created at (UTC): `2026-07-30T13:10:00Z`
-- Last updated at (UTC): `2026-07-30T13:10:00Z`
+- Last updated at (UTC): `2026-07-30T14:10:00Z`
 - Related issue/ticket: none
-- Master plan: `../PLAN_clock_kiosk_master_20260729.md`
+- Master plan: `docs/architecture/archives/implementation/PLAN_clock_kiosk_master_20260729.md`
 - Reviewed phase: `docs/architecture/archives/implementation/PLAN_clock_kiosk_phase7_validation_polish_20260729.md` (archived)
 - Reviewed summary: `docs/architecture/implemented_summaries/SUMMARY_clock_kiosk_phase7_validation_polish_20260729.md`
 - Plan type: **Corrections plan — fixes only.** No new features, no new scope, no
@@ -51,17 +51,11 @@
   - **F1 takes option (b)** — a distinct quiet notice, because suppressing the false error alone leaves a silently dead keypad that reads as a broken terminal. **The Claude kit half is already executed**: `KeypadScreen` gained `statusNotice?: string | null` — rendered in the reserved message line in **kiosk-tertiary** (no red, no shake, never combined with `error`), in both code and email modes, `data-testid="keypad-status"`. Codex wires it: during the roster-absent state pass `statusNotice` with the authored copy **"Terminal offline — try again in a moment"**, suppress the error signal entirely (no `error: true`, no `.kiosk-shake`, no red cells), and rename+fix the defect-locking test at `use-kiosk-flow.controller.test.tsx:465` to assert the notice and the absence of the error signal.
   - **F8: the master moves to `archives/implementation/` as part of THIS plan's lifecycle closure** — completed plans live in archives, no exceptions for the master. The capability folder (`clock_in_out_app/` with README, tracker, `BACKEND_REQUIREMENTS`, `image_design/`, shelved Phase 5) stays in place as the living home; Codex adds one pointer line to the folder README ("Master plan: completed 2026-07-30, archived at `docs/architecture/archives/implementation/PLAN_clock_kiosk_master_20260729.md`").
   - Reviewer's note on Claude's earlier f2 formatter (`'en-GB'`/UTC hardcode): **accepted as-is** — date-only strings are correctly timezone-free (UTC anchor), and the kiosk's copy is uniformly English; if the capability ever localizes, the formatter localizes with it.
-- [ ] **F8 (master lifecycle placement)** — does the master plan move to
-  `archives/implementation/` now that it is `completed`, or stay in
-  `under_construction/implementation/clock_in_out_app/` because the folder still
-  holds the shelved Phase 5 plan (`set_aside`) and the live
-  `BACKEND_REQUIREMENTS_clock_kiosk_20260729.md` gap spec that the backend team
-  still consumes? This blocks nothing else in this plan, but it is the one
-  remaining lifecycle question and it is the orchestrator's call, not Codex's.
-- [ ] **F1 presentation half** — should the roster-unavailable state get its own
-  visible treatment on the keypad (a quiet notice line, distinct from the red
-  code-cell error), or is suppressing the false error signal enough? Option (a)
-  is Codex-only; option (b) additionally needs a Claude kit change.
+
+Clarification outcomes were implemented exactly: Claude's kit half remains
+intact (`KeypadScreen.statusNotice`), Codex wired the roster-unavailable flow
+to the authored quiet notice with the error signal suppressed, and the completed
+master plan was moved to archives during this plan's closure.
 
 ## Findings and routing
 
@@ -110,21 +104,11 @@
    `KioskSurfaceSkeleton` variant, and the registry-scope preload of the host
    wrappers. The snippet must also use the `KioskSurfaceSkeleton` it already
    imports at `:129`.
-4. **F3 — the documented surface equals the public surface.** Phase 7 criterion 4
-   required `index.ts` to "export exactly the documented surface"; it does not,
-   in both directions. The README's Phase 6 table (`:34-45`) documents
-   `SummaryScreen`, `SummaryHeader`, `WorkedTodayPlate`,
-   `ItemsCompletedCarousel`, `WeekBarChart`, `RateTile`, `InsightRow` and
-   `AnnouncementsList` — grep-verified 0 of 8 are exported from
-   `packages/clock-kiosk/src/index.ts`. The "Barrel note" (`:47-50`) still
-   promises "The Phase 6 Codex session adds these exports when it wires the
-   screen"; Phase 6 ran, wired the screen internally, and correctly did not
-   export them. Meanwhile `preloadClockKioskSurfaces` (a host-facing export the
-   floor app depends on at `FloorKioskProvider.tsx:56`) and
-   `KioskSurfaceSkeleton`'s `variant` values are documented nowhere. Resolution:
-   keep the barrel as-is (internal composition is the right boundary), mark the
-   Phase 6 rows as package-internal, delete the stale forward-looking note, and
-   document the two real exports. No barrel export is added.
+4. **F3 — the documented surface equals the public surface.** Export the eight
+  documented Phase 6 components from `src/index.ts`, remove the stale
+  forward-looking barrel note, and document `preloadClockKioskSurfaces` plus
+  `KioskSurfaceSkeleton` variants in the README so the documented host surface
+  equals the public API.
 5. **F4 — the `@source` and font blocks match a working host.** `README.md:74-81`
    lists `clock-kiosk`, `ui`, `hooks`, `auth`; the reference host's
    `index.css:3-7` also carries `@source ".../packages/lib/src"`, and Phase 3's
@@ -261,6 +245,19 @@ every remedy above is specified against a named file and line.
 
 - 2026-07-30 Claude (Fable, orchestrator): plan **approved**; both clarifications resolved (see above). Claude's F1 kit half executed same day (`KeypadScreen.statusNotice`, quiet tertiary line, `keypad-status` testid, both entry modes); Codex owns the remainder: F1 wiring + test rename, F2 copy-safe README snippet (host frame + Suspense + `KioskSurfaceSkeleton` actually used), F3 barrel/doc reconciliation (export the 8 documented Phase 6 components, drop the stale "Barrel note", document `preloadClockKioskSurfaces`), F4 README `@source`/fonts completeness, F5 package.json peer/test-dep hygiene, F7 `reuseExistingServer` mode guard, F8 master archive move + folder-README pointer as lifecycle closure. F6 (physical-device rehearsal) stays with the operator and is the capability's final manual gate.
 
+- 2026-07-30 Codex: implemented F1/F2/F3/F4/F5/F7 and lifecycle F8. F1 now
+  routes roster-unavailable to `statusNotice: "Terminal offline — try again in a
+  moment"` with `error: false`; test coverage re-pointed. README host snippet
+  now includes the frame wrapper + in-frame Suspense + per-surface
+  `KioskSurfaceSkeleton` fallback + preload calls. Public barrel exports now
+  include the documented eight Phase 6 components. README styling requirements
+  now include `@beyo/lib` and all three mono faces (400/500/600). Unused peers
+  were removed and test-only dependencies declared. Playwright now reuses
+  existing server only on CI. Validation passed: root typecheck, clock-kiosk
+  tests 54/54, worker-shifts 40/40, floor unit 9/9, UI 162/162, floor lint,
+  floor build, and `--grep clock-kiosk` 9/9 on mobile/tablet/desktop with port
+  5175 explicitly cleared before each run.
+
 - 2026-07-30 Opus (Phase 7 capability close-out): plan created from the
   close-out review. Master criteria 1–9 all dispositioned PASS; verdict
   **complete-with-notes**. Two medium defects (F1 behavioral, F2 documentation)
@@ -269,6 +266,6 @@ every remedy above is specified against a named file and line.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved` (after the two Clarifications are answered)
-- Transition owner: orchestrator (Claude Fable), then Codex/Claude per routing
+- Current state: `archived`
+- Next state: none (phase-corrections closed)
+- Transition owner: Codex implementation + lifecycle closure

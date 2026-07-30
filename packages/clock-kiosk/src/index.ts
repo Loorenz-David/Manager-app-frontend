@@ -30,6 +30,29 @@ export { ResultScreen } from './components/result/ResultScreen';
 export { CheckHero } from './components/result/CheckHero';
 export { DarkTimePlate } from './components/result/DarkTimePlate';
 export { AutoReturnFooter } from './components/result/AutoReturnFooter';
+export {
+  SummaryScreen,
+  type SummaryInsight,
+} from './components/summary/SummaryScreen';
+export { SummaryHeader } from './components/summary/SummaryHeader';
+export { WorkedTodayPlate } from './components/summary/WorkedTodayPlate';
+export {
+  ItemsCompletedCarousel,
+  type CompletedItem,
+} from './components/summary/ItemsCompletedCarousel';
+export {
+  WeekBarChart,
+  type WeekDay,
+} from './components/summary/WeekBarChart';
+export { RateTile } from './components/summary/RateTile';
+export {
+  InsightRow,
+  type InsightDelta,
+} from './components/summary/InsightRow';
+export {
+  AnnouncementsList,
+  type Announcement,
+} from './components/announcements/AnnouncementsList';
 
 // KioskKitShowcase deliberately NOT exported here — dev-only, import from
 // `@beyo/clock-kiosk/showcase` (Phase 3 review finding C11).
