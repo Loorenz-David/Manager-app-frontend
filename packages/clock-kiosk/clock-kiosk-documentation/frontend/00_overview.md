@@ -1,6 +1,6 @@
 # 00 — Overview: what the clock kiosk is and how the pieces connect
 
-Last verified: 2026-07-30 · commit `e8a35e19`
+Last verified: 2026-07-31
 
 An always-on **shop-floor kiosk** on a shared device (wall tablet primary,
 phone/desktop supported). A manager signs the device in once (floor scope,
@@ -20,9 +20,12 @@ apps/floor-app/…-floor       thin shell: auth, routing, device      adapters, 
                              config, surface registry, chrome glue
 plus floor-gated slices in:  @beyo/api-client + @beyo/auth (device token),
                              @beyo/ui (RiseSurface, type "rise"),
-                             @beyo/styles (--color-kiosk-* / --font-kiosk-*),
-                             @beyo/stats (insight-codes subpath only)
+                             @beyo/styles (--color-kiosk-* / --font-kiosk-*)
 ```
+
+`clock-kiosk` no longer depends on `@beyo/stats` — the summary's `insights`
+section it used to feed (`insight-codes` subpath) was retired 2026-07-31 when
+the handoff dropped `analytics.insights` from the contract entirely.
 
 Dependency arrows point strictly downward: `worker-shifts` imports no UI;
 `clock-kiosk` imports no app code; the floor app owns zero kiosk logic and is

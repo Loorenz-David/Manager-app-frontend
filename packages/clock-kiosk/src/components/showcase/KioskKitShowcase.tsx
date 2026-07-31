@@ -228,10 +228,10 @@ export function KioskKitShowcase(): React.JSX.Element {
             totalUnits: 142,
             lineCount: 4,
             items: [
-              { name: 'Hex bolt M8', imageUrl: null, units: 52 },
-              { name: 'Rail bracket', imageUrl: null, units: 38 },
-              { name: 'Drive belt 40"', imageUrl: null, units: 31 },
-              { name: 'Cap assembly', imageUrl: null, units: 21 },
+              { id: 'item-hex-bolt', reference: 'Hex bolt M8', imageUrl: null, units: 52 },
+              { id: 'item-rail-bracket', reference: 'Rail bracket', imageUrl: null, units: 38 },
+              { id: 'item-drive-belt', reference: 'Drive belt 40"', imageUrl: null, units: 31 },
+              { id: 'item-cap-assembly', reference: 'Cap assembly', imageUrl: null, units: 21 },
             ],
           }}
           name="Dana Whitlock"

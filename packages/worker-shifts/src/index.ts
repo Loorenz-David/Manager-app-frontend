@@ -1,7 +1,8 @@
 export {
-  AnalyticsInsightSchema,
-  AnalyticsSegmentSchema,
+  AnalyticsCompletedItemSchema,
+  AnalyticsRateSchema,
   AnalyticsTimelineSchema,
+  AnalyticsWeekSchema,
   ClockInInputSchema,
   ClockInResultSchema,
   ClockOutAnalyticsSchema,
@@ -16,13 +17,14 @@ export {
   FloorRosterSchema,
   FloorRosterUserSchema,
   ScheduledShiftSchema,
-  SegmentStateSchema,
   ShiftStateSchema,
 } from "./types";
 export type {
-  AnalyticsInsight,
-  AnalyticsSegment,
+  AnalyticsCompletedItem,
+  AnalyticsRate,
   AnalyticsTimeline,
+  AnalyticsWeek,
+  AnalyticsWeekDay,
   ClockInInput,
   ClockInResult,
   ClockOutAnalytics,
@@ -37,7 +39,6 @@ export type {
   FloorRoster,
   FloorRosterUser,
   ScheduledShift,
-  SegmentState,
   ShiftState,
 } from "./types";
 

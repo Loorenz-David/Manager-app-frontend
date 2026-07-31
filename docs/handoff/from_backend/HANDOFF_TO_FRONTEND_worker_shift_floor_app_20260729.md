@@ -14,11 +14,11 @@
 >
 > | Backend phase | Endpoints | Live? |
 > |---|---|---|
-> | 5 | Floor sign-in / logout (§2) | ❌ not yet |
-> | 4 | `GET /current`, `POST /clock-in`, `POST /clock-out` (§4, §5) | ❌ not yet |
-> | 3 | Declared states (§6) | ❌ not yet |
-> | 6 | Roster `clock_in_code` exposure, `clock_in_code` management (§3) | ❌ not yet |
-> | 7 | Populated clock-out `analytics` (§5.1) | ❌ not yet — `analytics` is `null` until then |
+> | 5 | Floor sign-in / logout (§2) | ✅ live (reviewed & approved) |
+> | 4 | `GET /current`, `POST /clock-in`, `POST /clock-out` (§4, §5) | ✅ live (reviewed & approved) |
+> | 3 | Declared states (§6) | ✅ live (reviewed & approved) |
+> | 6 | Roster `clock_in_code` exposure (§3) | ✅ live (reviewed & approved) |
+> | 7 | Populated clock-out `analytics` — timeline, completed_items, week, rate (§5.1); floor roster sections + raised page cap (§3) | ✅ live (reviewed & approved) — `analytics` still `null` in degraded mode, always handle it |
 > | — | Pause reasons listing (§7) | ✅ live today (filter param may be added in phase 4) |
 >
 > Mock these shapes until the phase flips to ✅. Any contract change will be edited **here first**.
@@ -65,6 +65,7 @@ Response `200`:
 - Allowed roles for `app_scope="floor"`: **admin, manager**. Anything else → `403` `"Invalid credentials."` (message is intentionally opaque).
 - **No refresh token / no cookie** is issued for this scope. Store `access_token` in secure device storage; send as `Authorization: Bearer <token>` on every call. Never put it in URLs or logs.
 - The token never expires. Revocation = `POST /api/v1/auth/logout` (with the token) — permanent, takes effect within ≤60s server-side. A `401` on any call means the device was revoked → return to sign-in screen.
+- **Operational note (offboarding):** demoting or deactivating a manager does NOT invalidate floor tokens already issued to their account — claims are static. Always log the device out (or have ops revoke its `jti`) as part of any manager offboarding/demotion.
 - Sign-in is rate-limited (10/min per IP).
 
 ## 3. Worker identification (kiosk step 1) — client-side matching
@@ -96,10 +97,15 @@ identification fields:
 }
 ```
 
-- `clock_in_code` is `null` until a manager assigns one (4–16 chars, unique per workspace). Email matching always works as the fallback.
+- The example above is a **subset** — roster items carry other pre-existing keys (e.g. `workspace_role`). Ignore unknown keys; only the ones documented here are contractual.
+- `clock_in_code` is `null` until a manager assigns one (4–16 chars, unique per workspace). Email matching always works as the fallback. There is **no read-back surface**: a manager who forgets a worker's code reassigns a new one (deliberate — see the phase 6 summary).
 - Regular manager/worker app sessions do **not** receive `clock_in_code`/`email` here — the fields exist only under a floor token.
 - Suggested TanStack setup: `refetchInterval` of 1–5 min + refetch on window focus; the roster changes rarely.
 - Matching rules: trim input; match code exactly; match email case-insensitively.
+- **Code assignment is not part of this app's surface.** Codes are set/cleared by an admin or manager
+  through the existing admin user-update endpoint (`PATCH /api/v1/users/{user_client_id}`, field
+  `clock_in_code`: 4–16 chars trimmed, workspace-unique; `null` clears, `""` is a `422`, a duplicate
+  within the workspace is a `409`). The floor app only *reads* codes via the roster above.
 
 **The cache decides *who*, never *what state*.** After the worker confirms their identity
 (photo + name), fetch `GET /current?user_id=…` (§4) fresh before rendering Clock in / Clock out /
@@ -139,8 +145,8 @@ Response `200` (`data`):
 - `state` ∈ `idle | working | in_pause` while clocked in.
 - Not clocked in → `{ "user_id": …, "clocked_in": false, "shift_started_at": null, "state": null, "state_entered_at": null, "pause_reason": null, "declared_state": null }`.
 - `pause_reason` is set when `state == "in_pause"`; `declared_state` is non-null only when the pause is a worker declaration (vs a task-step blocker pause, where `declared_state` is `null` but `pause_reason` still describes the step's pause reason).
-- Legacy edge: very old pauses may carry free text instead of a catalog reason → `pause_reason: null` plus additive `reason_text: "<raw>"`.
-- All timestamps UTC ISO-8601; localize client-side using the workspace `time_zone` from sign-in.
+- Legacy edge — `reason_text` has **three-way variance**, handle all three: **absent** (normal case, the reason resolved into `pause_reason`); **a string** (very old pause carrying free text instead of a catalog reason → `pause_reason: null` + `reason_text: "<raw>"`, render the text); **`null`** (the pause references a catalog reason that cannot be resolved — render a neutral "paused, reason unavailable"; the backend deliberately does not expose the raw identifier).
+- All timestamps UTC ISO-8601; localize client-side using the workspace `time_zone` from sign-in. **Wire format note (applies to every timestamp in this document):** the backend serializes the UTC offset as `+00:00` (e.g. `2026-07-29T09:12:00+00:00`), not `Z`. The examples here use `Z` for brevity — treat the two as equivalent; parse with any ISO-8601 parser, don't string-match the suffix.
 
 ## 5. Clock actions (kiosk step 2)
 
@@ -167,70 +173,100 @@ All three: roles admin/manager **must** pass `user_id` (the confirmed worker); a
 
 ### 5.1 The `analytics` object (clock-out day summary)
 
-Everything is scoped to the clock-out's UTC date and reflects the **final, rebuilt** timeline (the
-backend reconstructs the whole shift at clock-out — these numbers are authoritative, not the live
-provisional ones).
+Scoped to the clock-out date and read from the **rebuilt** timeline — these are the authoritative
+numbers, not the live provisional ones. Purpose-built for this screen: it deliberately does **not**
+carry the manager app's per-segment drill-down.
 
 ```json
 {
   "date": "2026-07-29",
   "timeline": {
-    "date_from": "2026-07-29",
-    "date_to": "2026-07-29",
     "working_seconds": 21600,
     "pause_seconds": 3600,
-    "ended_shift_seconds": 0,
     "idle_seconds": 1800,
-    "completed_count": 7,
-    "pause_by_reason": { "par_…": 2700, "par_…2": 900 }
+    "pause_by_reason": { "par_…": 2700, "par_…2": 600, "unspecified": 300 }
   },
-  "segments": [
+  "pause_reasons": {
+    "par_…": { "name": "Lunch break", "image_url": "https://…", "pause_type": "personal" },
+    "unspecified": { "name": "Reason unavailable", "image_url": null, "pause_type": null }
+  },
+  "completed_items": [
     {
-      "start": "2026-07-29T06:58:00Z",
-      "end": "2026-07-29T06:58:00Z",
-      "state": "started_shift",
-      "reason": null,
-      "is_open": false,
-      "manually_recorded": false,
-      "seconds": 0,
-      "steps": []
-    },
-    {
-      "start": "2026-07-29T09:12:00Z",
-      "end": "2026-07-29T09:42:00Z",
-      "state": "paused",
-      "reason": "par_…",
-      "is_open": false,
-      "manually_recorded": true,
-      "seconds": 1800,
-      "steps": []
+      "item_id": "itm_…",
+      "reference": "ART-10482",
+      "image_url": "https://…",
+      "working_section": { "client_id": "wsc_…", "name": "Assembly" },
+      "units": 4,
+      "total_seconds": 4260,
+      "issues_count": 1
     }
   ],
-  "segments_truncated": false,
-  "pause_reasons": {
-    "par_…": { "name": "Lunch break", "image_url": "https://…", "pause_type": "personal" }
+  "completed_items_truncated": false,
+  "week": {
+    "days": [
+      { "date": "2026-07-27", "working_seconds": 21600, "pause_seconds": 3600, "idle_seconds": 1800 }
+    ],
+    "totals": { "working_seconds": 108000, "pause_seconds": 18000, "idle_seconds": 9000 }
   },
-  "insights": [
-    {
-      "code": "…", "polarity": "positive", "metric": "working_seconds",
-      "target_value": 21600, "baseline_value": 19800, "delta": 1800,
-      "delta_pct": 9.1, "sample_size": 12, "severity": "info"
-    }
-  ]
+  "rate": {
+    "units_per_hour": 17.3,
+    "baseline_units_per_hour": 15.9,
+    "baseline_days": 5
+  }
 }
 ```
 
-- `timeline` — the day resume for tiles/donuts: the four buckets partition the shift; `pause_by_reason` sums exactly to `pause_seconds`; keys resolve via `pause_reasons`.
-- `segments` — the drawable timeline, ordered; `state` ∈ `started_shift | working | paused | idle | ended_shift` (markers have `seconds: 0`); worker-declared segments have `manually_recorded: true`; `steps` lists the task-step details behind working/paused blocks (same shape as the manager timeline endpoint — see the related handoff). `segments_truncated` is a safety cap flag (render what you got).
-- `insights` — trend cards comparing the day against the worker's recent baseline. May be `[]` (not enough history). **Freshness caveat:** insights read aggregate day-stats that are updated asynchronously — seconds after clock-out they may not yet include the very last steps of the day. `timeline`/`segments` have no such lag. Treat insights as indicative, not as the payroll number.
-- These are the same shapes as the manager endpoints (`GET /worker-stats/{user_id}/linear-timeline`, `GET /worker-stats/insights`) — components built for one render the other.
+- **`timeline`** — the day resume for tiles/donut. The three buckets partition the recorded shift;
+  `pause_by_reason` sums exactly to `pause_seconds`, keyed by pause-reason id — **plus the literal
+  key `"unspecified"`**, which appears whenever paused time could not be attributed to a catalog
+  reason (legacy rows, or a reason deleted since). Do **not** assume every key starts with `par_`,
+  and do not filter the map by that prefix.
+- **`pause_reasons`** — lookup map for those keys, so you can render "Lunch break" with its icon.
+  **Every key in `pause_by_reason` is guaranteed to have an entry here**, including `"unspecified"`,
+  whose entry is `{ "name": "Reason unavailable", "image_url": null, "pause_type": null }`. Note
+  `pause_type` is `null` there and is **not** a valid enum member — a donut grouped by `pause_type`
+  must handle that bucket explicitly or it will silently drop the slice.
+- **`completed_items`** — one entry per item the worker completed that day, ordered by completion
+  time. `reference` is `article_number`, falling back to `sku`, else `null` — this system has no
+  product-name entity, so the reference *is* the label. `units` is the item's quantity.
+  `total_seconds` is **working time only** — the time booked against that item's steps while
+  actively being worked. Pause time and time the step sat idle overnight between shifts are
+  deliberately excluded, so a three-day item that took two hours of hands-on work reads as two
+  hours, not seventy-two. It is task-level, not this worker's share alone. `image_url` /
+  `working_section` are `null` when unavailable. `[]` when nothing was completed.
+  `completed_items_truncated` flags a defensive cap.
+- **`week`** — Monday–Sunday containing the clock-out date, **worked time only**: each day's recorded
+  shift split into working / pause / idle so the bar can be segmented. Days with no shift are present
+  with zeros. **There is no `scheduled_seconds`** — shift scheduling does not exist in this system, so
+  any "of 40h scheduled" target must be omitted or hard-coded client-side.
+- **`rate`** — units per hour today vs a baseline over the most recent days that have recorded working
+  time. `baseline_days` reports how many days actually contributed; when it is `0`,
+  `baseline_units_per_hour` is `null` (render today's rate alone).
 - Unknown extra keys may appear inside `analytics` later — ignore them (additive contract).
+
+**Not provided** (deliberately, so you don't build against them): a day `segments[]` drill-down with
+per-step detail, and the time-based `insights` array. The manager app's
+`GET /worker-stats/{user_id}/linear-timeline` still serves the former if a manager surface ever needs
+it; the latter cannot express unit-based comparisons, which is what this screen shows.
+
+## 5.3 Nullability conventions (applies to every shape in this document)
+
+The JSON examples above show fields populated for readability. Read them **tolerantly**:
+
+- Any `*_url`, `image_url`, `profile_picture`, `description`, `reference`, or nested object
+  documented as "…if none/unknown" may be `null`.
+- `analytics` itself may be `null` (degraded mode) — handle absent and `null` alike as "no data".
+- Arrays may be empty (`completed_items`); `rate.baseline_units_per_hour` is `null` when
+  `baseline_days` is `0`.
+- `reason_text` is three-way: absent / string / `null` (see §4).
+- Objects may carry additional keys not documented here (e.g. roster items' `workspace_role`) — ignore
+  unknown keys rather than failing validation.
 
 ### `POST /api/v1/worker-shifts/clock` *(legacy toggle — prefer the explicit routes)*
 ```json
 { "user_id": "usr_…" }
 ```
-→ `200` `data`: `{ "action": "clock_in" | "clock_out", "user_id": "…", "transitioned_steps": n }` (gains `"analytics": null` on the clock-out branch once phase 6 lands).
+→ `200` `data`: `{ "action": "clock_in" | "clock_out", "user_id": "…", "transitioned_steps": n }` (the clock-out branch carries `"analytics": null` from phase 4 — same envelope as `/clock-out`; the clock-in branch never has the key).
 
 ## 6. Declared states
 
@@ -261,6 +297,7 @@ Rules the UI must reflect:
 - Only **PERSONAL**-type catalog reasons are declarable (see §7); a BLOCKER reason → validation error.
 - If the chosen reason has `requires_description: true`, `description` is mandatory → else validation error.
 - `paused_steps` = active working steps that were auto-paused under this reason (surface it: "1 task was paused").
+- Switching declarations does not re-label already-paused task steps; `paused_steps` counts only newly-paused WORKING steps.
 - Declaring while another declaration is open **switches** (old one closes automatically) — no need to close first.
 - Unknown/foreign/deleted reason → `404`.
 
@@ -280,23 +317,35 @@ Rules the UI must reflect:
 
 Roles: any authenticated session. Returns the workspace's manager-editable catalog. Filter to `personal` for the declare picker (`blocker` reasons are task-step blockers, not declarable).
 
-Item shape (`data` is a list):
+Response shape (**corrected 2026-07-30** — this endpoint predates this handoff and returns a
+paginated envelope, not a bare list):
 ```json
 {
-  "client_id": "par_…",
-  "name": "Lunch break",
-  "image_url": "https://…",
-  "pause_type": "personal",
-  "description": "…",
-  "requires_description": false
+  "ok": true,
+  "warnings": [],
+  "data": {
+    "pause_reasons": [
+      {
+        "client_id": "par_…",
+        "name": "Lunch break",
+        "image_url": "https://…",
+        "pause_type": "personal",
+        "description": "…",
+        "requires_description": false
+      }
+    ],
+    "pause_reasons_pagination": { "has_more": false, "limit": 50, "offset": 0 }
+  }
 }
 ```
-(Additional admin fields may be present; ignore unknown keys. The `pause_type` query param arrives with phase 4 — until then filter client-side.)
+(Additional admin fields may be present; ignore unknown keys. `pause_type` filtering is already
+live. For the kiosk picker, pass a large `limit` or follow `has_more` — workspace catalogs are
+small, one page normally suffices.)
 
 ## 8. Response envelope & error handling (all endpoints)
 
 - Success: `{ "ok": true, "data": …, "warnings": [] }`
-- Error: `{ "ok": false, "error": "<human-readable message>" }` with the HTTP status carrying the semantics: `401` invalid/revoked token (→ sign-in screen), `403` role/scope violation, `404` not found (incl. anti-enumeration identify misses), `409` state conflict (already clocked in, not clocked in, no open declaration, duplicate clock code), `422` validation.
+- Error: `{ "ok": false, "error": "<human-readable message>" }` with the HTTP status carrying the semantics: `401` invalid/revoked token (→ sign-in screen), `403` role/scope violation, `404` not found (unknown or non-worker target), `409` state conflict (already clocked in, not clocked in, no open declaration, duplicate clock code), `422` validation.
 - Kiosk UX rule: `409`s are **normal flow** (e.g., double-tap, stale screen) — render them as friendly state refreshes (re-fetch `GET /current`), not as failures.
 
 ## 9. Suggested kiosk flows
@@ -309,7 +358,9 @@ match → confirm → `GET /current` (must be clocked in — else offer clock-in
 
 ## Validation notes
 
-- Backend validation run: pending per phase (see status table above); each phase ships contract tests keyed to this document's shapes.
+- Backend validation status: **the liveness table at the top of this document is the single
+  source of truth** — no phase is live until its row shows ✅. Per-phase validation evidence lives
+  in the phase plans' Review logs and implemented summaries, not here.
 - Suggested frontend validation: build against a mock server generated from §2–§8; when a phase flips ✅, run the same flows against a real backend before removing the mock.
 
 ## Trace links

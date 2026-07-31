@@ -64,7 +64,7 @@ describe("worker-shift action hooks against build-ahead handlers", () => {
         transitioned_steps: 2,
         analytics: {
           date: "2026-07-29",
-          segments_truncated: false,
+          completed_items_truncated: false,
         },
       });
     });

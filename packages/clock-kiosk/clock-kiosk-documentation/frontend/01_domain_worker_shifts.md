@@ -1,6 +1,6 @@
 # 01 — Domain: `@beyo/worker-shifts`
 
-Last verified: 2026-07-30 · commit `e8a35e19`
+Last verified: 2026-07-31
 
 The shift domain's ONLY home: zod schemas, API functions, query/action hooks,
 the pure roster matcher, time helpers, and the MSW build-ahead mocks. Zero UI,
@@ -11,7 +11,7 @@ apps (and the future declare pages) tomorrow.
 
 | File | What it is |
 |---|---|
-| `types.ts` | Every schema, byte-matched to the handoff: `FloorRosterUser`, `CurrentShift`, `ClockIn/OutResult`, `ClockOutAnalytics` (+Timeline/Segment/Insight), `DeclaredState`, declare inputs/results, `ScheduledShift`. **Tolerant by rule**: nullable `profile_picture`/`image_url`/`reason_text`, analytics keys optional/defaulted, `.passthrough()` everywhere additive keys may appear. |
+| `types.ts` | Every schema, byte-matched to the handoff: `FloorRosterUser`, `CurrentShift`, `ClockIn/OutResult`, `ClockOutAnalytics` (+Timeline/CompletedItem/Week/Rate — **rewritten 2026-07-31**, `segments[]`/`insights[]` retired per handoff §5.1), `DeclaredState`, declare inputs/results, `ScheduledShift`. **Tolerant by rule**: nullable `profile_picture`/`image_url`/`reason_text`/`reference`/`pause_type` (the `"unspecified"` pause bucket ships `pause_type: null`), analytics maps/arrays optional/defaulted, `.passthrough()` everywhere additive keys may appear. `analytics.rate` is required (not defaulted) — the handoff's populated example always includes it. |
 | `api/worker-shift-keys.ts` | Query-key factory (`all` → lists → params-last; disabled current-shift entries use `current({user_id:''})`, never the list namespace). |
 | `api/fetch-floor-roster.ts` | `GET /api/v1/users?role=worker&compact=true&limit=200` (+ `console.warn` at exactly 200 rows). Floor tokens get `clock_in_code`/`email` fields. |
 | `api/use-floor-roster-query.ts` | 2-min `refetchInterval`, focus refetch. The KIOSK'S ONLY polling. |
@@ -34,8 +34,9 @@ apps (and the future declare pages) tomorrow.
 - The legacy `POST /worker-shifts/clock` toggle is NEVER wrapped.
 - Pause-reason catalog shapes belong to `@beyo/pause-reasons` — import, never
   redefine (mock fixtures infer their own literal types instead).
-- Insight `ratio`-class metrics are **0–1 fractions** (live stats semantics);
-  formatters multiply by 100. Feeding percents produces 8400%-style output.
+- `analytics.rate.baseline_units_per_hour` is nullable — null exactly when
+  `baseline_days` is 0 (not enough recent history). Don't default it to `0`;
+  that reads as a real, terrible rate instead of "no data yet".
 
 ## Up/down the line (details in IMPACT_MAP.md)
 

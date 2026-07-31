@@ -9,7 +9,6 @@
   },
   "peerDependencies": {
     "@beyo/lib": "*",
-    "@beyo/stats": "*",
     "@beyo/ui": "*",
     "@beyo/worker-shifts": "*",
     "lucide-react": ">=1.0.0",

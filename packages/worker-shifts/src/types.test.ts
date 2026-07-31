@@ -118,13 +118,7 @@ describe("worker-shift handoff schemas", () => {
     };
     const analytics = {
       date: "2026-07-29",
-      timeline: {
-        working_seconds: 0,
-        pause_seconds: 0,
-        ended_shift_seconds: 0,
-        idle_seconds: 0,
-        completed_count: 0,
-      },
+      timeline: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 },
       pause_reasons: {
         "par_…": {
           name: "Lunch break",
@@ -132,6 +126,7 @@ describe("worker-shift handoff schemas", () => {
           pause_type: "personal",
         },
       },
+      rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
     };
 
     expect(CurrentShiftSchema.parse(current)).toEqual(current);
@@ -139,6 +134,34 @@ describe("worker-shift handoff schemas", () => {
       ClockOutAnalyticsSchema.parse(analytics).pause_reasons["par_…"]
         ?.image_url,
     ).toBeNull();
+  });
+
+  it("accepts the 'unspecified' pause bucket with a null pause_type", () => {
+    const analytics = {
+      date: "2026-07-29",
+      timeline: {
+        working_seconds: 0,
+        pause_seconds: 300,
+        idle_seconds: 0,
+        pause_by_reason: { unspecified: 300 },
+      },
+      pause_reasons: {
+        unspecified: {
+          name: "Reason unavailable",
+          image_url: null,
+          pause_type: null,
+        },
+      },
+      rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
+    };
+
+    expect(
+      ClockOutAnalyticsSchema.parse(analytics).pause_reasons.unspecified,
+    ).toEqual({
+      name: "Reason unavailable",
+      image_url: null,
+      pause_type: null,
+    });
   });
 
   it("round-trips the explicit clock action examples", () => {
@@ -158,58 +181,55 @@ describe("worker-shift handoff schemas", () => {
     const analytics = {
       date: "2026-07-29",
       timeline: {
-        date_from: "2026-07-29",
-        date_to: "2026-07-29",
         working_seconds: 21600,
         pause_seconds: 3600,
-        ended_shift_seconds: 0,
         idle_seconds: 1800,
-        completed_count: 7,
-        pause_by_reason: { "par_…": 2700, "par_…2": 900 },
+        pause_by_reason: { "par_…": 2700, "par_…2": 600, unspecified: 300 },
       },
-      segments: [
-        {
-          start: "2026-07-29T06:58:00Z",
-          end: "2026-07-29T06:58:00Z",
-          state: "started_shift",
-          reason: null,
-          is_open: false,
-          manually_recorded: false,
-          seconds: 0,
-          steps: [],
-        },
-        {
-          start: "2026-07-29T09:12:00Z",
-          end: "2026-07-29T09:42:00Z",
-          state: "paused",
-          reason: "par_…",
-          is_open: false,
-          manually_recorded: true,
-          seconds: 1800,
-          steps: [],
-        },
-      ],
-      segments_truncated: false,
       pause_reasons: {
         "par_…": {
           name: "Lunch break",
           image_url: "https://…",
           pause_type: "personal",
         },
+        unspecified: {
+          name: "Reason unavailable",
+          image_url: null,
+          pause_type: null,
+        },
       },
-      insights: [
+      completed_items: [
         {
-          code: "…",
-          polarity: "positive",
-          metric: "working_seconds",
-          target_value: 21600,
-          baseline_value: 19800,
-          delta: 1800,
-          delta_pct: 9.1,
-          sample_size: 12,
-          severity: "info",
+          item_id: "itm_…",
+          reference: "ART-10482",
+          image_url: "https://…",
+          working_section: { client_id: "wsc_…", name: "Assembly" },
+          units: 4,
+          total_seconds: 4260,
+          issues_count: 1,
         },
       ],
+      completed_items_truncated: false,
+      week: {
+        days: [
+          {
+            date: "2026-07-27",
+            working_seconds: 21600,
+            pause_seconds: 3600,
+            idle_seconds: 1800,
+          },
+        ],
+        totals: {
+          working_seconds: 108000,
+          pause_seconds: 18000,
+          idle_seconds: 9000,
+        },
+      },
+      rate: {
+        units_per_hour: 17.3,
+        baseline_units_per_hour: 15.9,
+        baseline_days: 5,
+      },
     };
 
     expect(ClockOutAnalyticsSchema.parse(analytics)).toEqual(analytics);
@@ -229,54 +249,20 @@ describe("worker-shift handoff schemas", () => {
     ).toEqual(analytics);
   });
 
-  it("parses minimal analytics and defaults live-omitted keys", () => {
+  it("parses minimal analytics and defaults omitted maps/arrays", () => {
     const minimal = {
       date: "2026-07-29",
-      timeline: {
-        working_seconds: 21600,
-        pause_seconds: 3600,
-        ended_shift_seconds: 0,
-        idle_seconds: 1800,
-        completed_count: 7,
-      },
+      timeline: { working_seconds: 21600, pause_seconds: 0, idle_seconds: 1800 },
+      rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
     };
 
     expect(ClockOutAnalyticsSchema.parse(minimal)).toEqual({
       ...minimal,
-      timeline: {
-        ...minimal.timeline,
-        pause_by_reason: {},
-      },
-      segments: [],
-      segments_truncated: false,
+      timeline: { ...minimal.timeline, pause_by_reason: {} },
       pause_reasons: {},
-      insights: [],
-    });
-  });
-
-  it("defaults omitted timeline counters without failing clock-out success", () => {
-    const result = ClockOutResultSchema.parse({
-      action: "clock_out",
-      user_id: "usr_partial",
-      transitioned_steps: 0,
-      analytics: {
-        date: "2026-07-29",
-        timeline: {
-          working_seconds: 3_600,
-          pause_seconds: 300,
-          ended_shift_seconds: 0,
-          idle_seconds: 120,
-        },
-      },
-    });
-
-    expect(result.analytics?.timeline).toMatchObject({
-      working_seconds: 3_600,
-      pause_seconds: 300,
-      ended_shift_seconds: 0,
-      idle_seconds: 120,
-      completed_count: 0,
-      pause_by_reason: {},
+      completed_items: [],
+      completed_items_truncated: false,
+      week: { days: [], totals: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 } },
     });
   });
 
@@ -287,18 +273,30 @@ describe("worker-shift handoff schemas", () => {
       transitioned_steps: 0,
       analytics: {
         date: "2026-07-29",
+        rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
       },
     });
 
     expect(result.analytics?.timeline).toEqual({
       working_seconds: 0,
       pause_seconds: 0,
-      ended_shift_seconds: 0,
       idle_seconds: 0,
-      completed_count: 0,
       pause_by_reason: {},
     });
-    expect(result.analytics?.segments).toEqual([]);
+    expect(result.analytics?.completed_items).toEqual([]);
+    expect(result.analytics?.week).toEqual({
+      days: [],
+      totals: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 },
+    });
+  });
+
+  it("rejects analytics missing the required rate object", () => {
+    expect(() =>
+      ClockOutAnalyticsSchema.parse({
+        date: "2026-07-29",
+        timeline: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 },
+      }),
+    ).toThrow();
   });
 
   it("round-trips declared-state action examples", () => {

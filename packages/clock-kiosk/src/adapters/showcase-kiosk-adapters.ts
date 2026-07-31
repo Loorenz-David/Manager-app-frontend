@@ -40,25 +40,25 @@ export const showcaseKioskAdapters = {
       items: [
         {
           id: 'item-hex-bolt',
-          name: 'Hex bolt M8',
+          reference: 'Hex bolt M8',
           imageUrl: null,
           units: 52,
         },
         {
           id: 'item-rail-bracket',
-          name: 'Rail bracket',
+          reference: 'Rail bracket',
           imageUrl: null,
           units: 38,
         },
         {
           id: 'item-drive-belt',
-          name: 'Drive belt 40"',
+          reference: 'Drive belt 40"',
           imageUrl: null,
           units: 31,
         },
         {
           id: 'item-cap-assembly',
-          name: 'Cap assembly',
+          reference: 'Cap assembly',
           imageUrl: null,
           units: 21,
         },

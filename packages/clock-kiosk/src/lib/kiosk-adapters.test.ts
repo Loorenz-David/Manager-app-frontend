@@ -18,17 +18,31 @@ const context = {
 };
 
 describe('resolveKioskAdapters', () => {
-  it('ships production defaults as null and empty', () => {
+  it('ships scheduledShift/announcements defaults as null and empty', () => {
     const adapters = resolveKioskAdapters();
 
     expect(adapters.scheduledShift(context)).toBeNull();
     expect(adapters.announcements(context)).toEqual([]);
-    expect(adapters.summaryExtras.items(context)).toBeNull();
-    expect(adapters.summaryExtras.week(context)).toBeNull();
-    expect(adapters.summaryExtras.rate(context)).toBeNull();
   });
 
-  it('merges a partial summary adapter without enabling sibling GAPs', () => {
+  it('ships summaryExtras defaults derived from the analytics response itself', () => {
+    const adapters = resolveKioskAdapters();
+
+    expect(adapters.summaryExtras.items(context)).toMatchObject({
+      totalUnits: 7,
+      lineCount: 2,
+    });
+    expect(adapters.summaryExtras.week(context)).toMatchObject({
+      loggedSeconds: mockClockOutAnalytics.week.totals.working_seconds,
+    });
+    expect(adapters.summaryExtras.rate(context)).toEqual({
+      unitsPerHour: 17.3,
+      baseline: 15.9,
+      baselineDays: 5,
+    });
+  });
+
+  it('merges a partial summary adapter override without disturbing sibling GAPs', () => {
     const rate = vi.fn(() => ({
       unitsPerHour: 4,
       baseline: 3,
@@ -36,8 +50,9 @@ describe('resolveKioskAdapters', () => {
     }));
     const adapters = resolveKioskAdapters({ summaryExtras: { rate } });
 
-    expect(adapters.summaryExtras.items(context)).toBeNull();
-    expect(adapters.summaryExtras.week(context)).toBeNull();
+    expect(adapters.summaryExtras.items(context)).toMatchObject({
+      totalUnits: 7,
+    });
     expect(adapters.summaryExtras.rate(context)).toEqual({
       unitsPerHour: 4,
       baseline: 3,
@@ -50,7 +65,9 @@ describe('resolveKioskAdapters', () => {
       summaryExtras: { items: undefined },
     });
 
-    expect(adapters.summaryExtras.items(context)).toBeNull();
+    expect(adapters.summaryExtras.items(context)).toMatchObject({
+      totalUnits: 7,
+    });
     expect(() =>
       gateSummaryExtras(adapters.summaryExtras, context),
     ).not.toThrow();

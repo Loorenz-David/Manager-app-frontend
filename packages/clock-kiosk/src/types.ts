@@ -19,7 +19,8 @@ export type KioskAnnouncement = {
 
 export type SummaryCompletedItem = {
   id: string;
-  name: string;
+  /** article_number/sku, or null — this system has no product-name entity. */
+  reference: string | null;
   imageUrl: string | null;
   units: number;
 };
@@ -45,7 +46,8 @@ export type SummaryWeek = {
 
 export type SummaryRate = {
   unitsPerHour: number;
-  baseline: number;
+  /** Null when the backend's baselineDays is 0 — not enough recent history. */
+  baseline: number | null;
   baselineDays: number;
 };
 

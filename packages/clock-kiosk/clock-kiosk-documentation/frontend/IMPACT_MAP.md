@@ -1,6 +1,6 @@
 # IMPACT MAP — "if I change X, what breaks up/down the line?"
 
-Last verified: 2026-07-30 · commit `e8a35e19`
+Last verified: 2026-07-31
 
 **Mandatory reading before ANY code change.** Find the row(s) for what you're
 touching; the right column is your checklist of places to verify (and whose
@@ -21,15 +21,15 @@ ADD THE ROW — that's how the map stays alive.
 | **Kiosk tokens / fonts** (`@beyo/styles`, font faces) | Every kiosk screen in EVERY host; `@source` completeness per host; contrast results recorded in the archived Phase 7 plan. Non-kiosk tokens are other apps' — never touch. |
 | **`RiseSurface` / surface type `"rise"`** (`@beyo/ui`) | SHARED ENGINE — three live apps. Additive-only discipline; `test:ui` (162) is the gate; kiosk opacity comes from the HOST wrapper, not the shell — don't "fix" backgrounds in the shell. |
 | **Surface ids / openers / registrations** (`surface-ids.ts`, `surfaces.ts`) | Host registry (`withFloorKioskFrame` wrapping!), preload (`preloadClockKioskSurfaces` + module-scope warm wrappers), auto-return's `closeKioskSurfaces`, O1/O3 cold-load e2e, README §Host Integration snippet (must stay copy-safe — F2). |
-| **Adapter signatures** (`clock-kiosk/types.ts`) | PUBLIC SEAM hosts already implement — changing shapes breaks the "gap closure = data change only" promise (review finding C5). → `FloorKioskProvider`, showcase adapters, gates + their tests, zone 06 recipe, README. Extend via new optional fields, not re-shapes. |
-| **`analytics-view-model.ts`** | Summary hero/IN/OUT (marker-pairing rule — never bucket sums), subtitle date (client clock in workspace zone), degradation ladder (bad date < missing markers < null analytics), insight copy table (worker-facing factual; neutral fallback; no stats titles). Tests pin each; also `kiosk-summary` e2e incl. the `analytics:null` regression spec. |
-| **Insight copy / codes** | Import ONLY `@beyo/stats/insight-codes` (the subpath exists to keep manager copy out of the kiosk chunk — N1). Manager-audience strings must never reach the kiosk screen. |
+| **Adapter signatures** (`clock-kiosk/types.ts`) | PUBLIC SEAM hosts already implement — changing shapes breaks the "gap closure = data change only" promise (review finding C5). → `FloorKioskProvider`, showcase adapters, `defaultSummaryExtrasAdapters`, gates + their tests, zone 06 recipe, README. Extend via new optional fields, not re-shapes. |
+| **`analytics-view-model.ts`** | Summary hero/IN/OUT — built from the controller's client-captured `clockedInAt`/`clockedOutAt` (not from `analytics`, since the backend gives no clock-out timestamp), subtitle date (client clock in workspace zone), degradation ladder (null analytics < missing `clockedInAt`). Tests pin each; also `kiosk-summary` e2e incl. the `analytics:null` regression spec. |
+| **`summary-extras-adapters.ts`** (default `summaryExtras`) | The GAP-closing mapping off `analytics.completed_items`/`week`/`rate` — every host inherits this unless it overrides a key. → `kiosk-adapters.ts` gates, `SummaryItems`/`SummaryWeek`/`SummaryRate` types + the three components that render them, `DEFAULT_WEEKLY_TARGET_HOURS` (the one hard-coded value — change it here only), its own tests, zone 04/06. |
 | **Device-config store** | Auto-return timing everywhere (clamp 4–120 in ONE exported constant — input attrs + save + rehydrate all read it), settings page, controller countdowns, persisted-storage rehydrate tests. |
 | **Floor auth files** (`auth-token.ts`, `use-sign-out.ts`, `AuthProvider`) | ⚠ Zone 02 rules. Three-live-apps invariance suites (auth 3, api-client 3, ui 162) + floor boot/revocation/logout paths + revoked-note flag + `floor-revoked` e2e. |
 | **Router/guard nesting** (floor `router.tsx`) | The auth boundary for ALL kiosk logic (roster, keydown, preload). Anything moved above `FloorProtectedRoute` runs unauthenticated (C2 class). |
 | **Playwright/vite config** (ports, projects, reuse) | Port 5175 is a master decision; three projects are mandatory (tablet = primary target); `reuseExistingServer` CI-only (stale-server hazard). The suite's own validation plan runs through these files. |
-| **Public barrels** (`index.ts` of either package) | Hosts + docs: README contract/API sections, zone docs, deep-import audit (none allowed), subpath map (`/mocks`, `/showcase`, `/insight-codes` in stats). Docs↔barrel drift was review finding F3 — reconcile BOTH directions. |
-| **Mock handlers/fixtures** | Dev runtime + package tests + (independently) floor e2e stubs — keep the three aligned; `analytics` fixtures: ratio metrics are fractions. |
+| **Public barrels** (`index.ts` of either package) | Hosts + docs: README contract/API sections, zone docs, deep-import audit (none allowed), subpath map (`/mocks`, `/showcase` — `clock-kiosk` no longer imports `@beyo/stats` at all as of 2026-07-31). Docs↔barrel drift was review finding F3 — reconcile BOTH directions. |
+| **Mock handlers/fixtures** | Dev runtime + package tests + (independently) floor e2e stubs — keep the three aligned; `analytics.rate` is a required field (no default) — every fixture/route stub that returns non-null analytics must include it or parsing throws. |
 
 ## Standing invariants index (quick lookup)
 

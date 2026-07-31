@@ -45,13 +45,8 @@ async function mockAuthenticatedKiosk(
     productionAdapters = false,
     analytics = {
       date: '2026-07-29',
-      timeline: {
-        working_seconds: 3600,
-        pause_seconds: 0,
-        ended_shift_seconds: 0,
-        idle_seconds: 0,
-        completed_count: 99,
-      },
+      timeline: { working_seconds: 3600, pause_seconds: 0, idle_seconds: 0 },
+      rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
     },
   }: KioskBackendOptions = {},
 ) {
@@ -382,54 +377,17 @@ test('kiosk-summary: analytics null preserves the Phase 4 plain result', async (
 test('kiosk-summary: full analytics and showcase adapters render in breakpoint order', async ({
   page,
 }) => {
+  // The clock-out summary's OUT time (and worked span) is client-captured at
+  // the moment the action resolves — freeze the clock so it lands in the
+  // same displayed minute as the mock's fixed "clocked in at" 06:58 UTC.
+  await page.clock.install({ time: new Date('2026-07-29T15:10:00.000Z') });
   const backend = await mockAuthenticatedKiosk(page, {
     initiallyClockedIn: true,
     transitionedSteps: 2,
     analytics: {
       date: '2026-07-29',
-      timeline: {
-        working_seconds: 60,
-        pause_seconds: 999_999,
-        ended_shift_seconds: 0,
-        idle_seconds: 0,
-        completed_count: 7,
-      },
-      segments: [
-        {
-          start: '2026-07-29T06:58:00Z',
-          end: '2026-07-29T06:58:00Z',
-          state: 'started_shift',
-          reason: null,
-          is_open: false,
-          manually_recorded: false,
-          seconds: 0,
-          steps: [],
-        },
-        {
-          start: '2026-07-29T15:10:00Z',
-          end: '2026-07-29T15:10:00Z',
-          state: 'ended_shift',
-          reason: null,
-          is_open: false,
-          manually_recorded: false,
-          seconds: 0,
-          steps: [],
-        },
-      ],
-      segments_truncated: true,
-      insights: [
-        {
-          code: 'working_time_vs_baseline',
-          polarity: 'positive',
-          metric: 'working_seconds',
-          target_value: 29_520,
-          baseline_value: 27_720,
-          delta: 1_800,
-          delta_pct: 6.5,
-          sample_size: 12,
-          severity: 'info',
-        },
-      ],
+      timeline: { working_seconds: 21_600, pause_seconds: 3_600, idle_seconds: 1_800 },
+      rate: { units_per_hour: 17.3, baseline_units_per_hour: 15.9, baseline_days: 5 },
     },
   });
 
@@ -444,11 +402,11 @@ test('kiosk-summary: full analytics and showcase adapters render in breakpoint o
   await expect(page.getByTestId('summary-notice')).toHaveText(
     '2 active tasks were stopped',
   );
+  // Insights are retired (handoff §5.1: not provided for this screen anymore).
+  await expect(page.getByTestId('insight-row')).toHaveCount(0);
   await expect(page.getByTestId('items-completed')).toBeVisible();
   await expect(page.getByTestId('week-bar-chart')).toBeVisible();
   await expect(page.getByTestId('rate-tile')).toBeVisible();
-  await expect(page.getByTestId('insight-row')).toHaveCount(1);
-  await expect(page.getByTestId('insight-row')).toContainText('+6.5%');
 
   const top = async (testId: string): Promise<number> => {
     const box = await page.getByTestId(testId).first().boundingBox();
@@ -456,69 +414,56 @@ test('kiosk-summary: full analytics and showcase adapters render in breakpoint o
     return box!.y;
   };
   const workedTop = await top('worked-today-plate');
-  const insightTop = await top('insight-row');
   const itemsTop = await top('items-completed');
   const weekTop = await top('week-bar-chart');
   const rateTop = await top('rate-tile');
   const viewport = page.viewportSize();
 
   if ((viewport?.width ?? 0) < 640) {
-    expect(workedTop).toBeLessThan(insightTop);
-    expect(insightTop).toBeLessThan(itemsTop);
+    expect(workedTop).toBeLessThan(itemsTop);
     expect(itemsTop).toBeLessThan(weekTop);
   } else {
     expect(workedTop).toBeLessThan(itemsTop);
     expect(itemsTop).toBeLessThan(weekTop);
     expect(itemsTop).toBeLessThan(rateTop);
-    expect(weekTop).toBeLessThan(insightTop);
-    expect(rateTop).toBeLessThan(insightTop);
   }
 
   expect(backend.currentRequests).toBe(2);
   expect(backend.clockOutRequests).toBe(1);
 });
 
-test('kiosk-summary: production adapter defaults keep GAP tiles absent', async ({
+test('kiosk-summary: production adapter defaults derive GAP tiles directly from analytics', async ({
   page,
 }) => {
+  // No showcase involved (productionAdapters forces the real defaults) — the
+  // backend now embeds completed_items/week/rate in the clock-out response
+  // itself, so the default adapters populate the tiles with no host wiring.
+  await page.clock.install({ time: new Date('2026-07-29T15:10:00.000Z') });
   const backend = await mockAuthenticatedKiosk(page, {
     initiallyClockedIn: true,
     transitionedSteps: 1,
     productionAdapters: true,
     analytics: {
-      date: '',
-      timeline: {},
-      segments: [
+      date: '2026-07-29',
+      timeline: { working_seconds: 21_600, pause_seconds: 3_600, idle_seconds: 1_800 },
+      completed_items: [
         {
-          start: '2026-07-29T06:58:00Z',
-          end: '2026-07-29T06:58:00Z',
-          state: 'started_shift',
-          reason: null,
-          is_open: false,
-          seconds: 0,
-        },
-        {
-          start: '2026-07-29T15:10:00Z',
-          end: '2026-07-29T15:10:00Z',
-          state: 'ended_shift',
-          reason: null,
-          is_open: false,
-          seconds: 0,
+          item_id: 'itm_e2e_bolt',
+          reference: 'ART-E2E-1',
+          image_url: null,
+          working_section: null,
+          units: 5,
+          total_seconds: 1_200,
+          issues_count: 0,
         },
       ],
-      insights: [
-        {
-          code: 'working_time_vs_baseline',
-          polarity: 'positive',
-          metric: 'working_seconds',
-          target_value: 29_520,
-          baseline_value: 27_720,
-          delta: 1_800,
-          delta_pct: 6.5,
-          sample_size: 12,
-          severity: 'info',
-        },
-      ],
+      week: {
+        days: [
+          { date: '2026-07-29', working_seconds: 21_600, pause_seconds: 3_600, idle_seconds: 1_800 },
+        ],
+        totals: { working_seconds: 21_600, pause_seconds: 3_600, idle_seconds: 1_800 },
+      },
+      rate: { units_per_hour: 4.2, baseline_units_per_hour: 3.8, baseline_days: 3 },
     },
   });
 
@@ -531,10 +476,41 @@ test('kiosk-summary: production adapter defaults keep GAP tiles absent', async (
   await expect(page.getByTestId('summary-notice')).toHaveText(
     '1 active task was stopped',
   );
-  await expect(page.getByTestId('insight-row')).toHaveCount(1);
+  await expect(page.getByTestId('insight-row')).toHaveCount(0);
+  await expect(page.getByTestId('items-completed')).toContainText('ART-E2E-1');
+  await expect(page.getByTestId('week-bar-chart')).toBeVisible();
+  await expect(page.getByTestId('rate-tile')).toContainText('4.2');
+  expect(backend.clockOutRequests).toBe(1);
+});
+
+test('kiosk-summary: production adapter defaults omit GAP tiles when analytics arrays are empty', async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date('2026-07-29T15:10:00.000Z') });
+  const backend = await mockAuthenticatedKiosk(page, {
+    initiallyClockedIn: true,
+    transitionedSteps: 1,
+    productionAdapters: true,
+    analytics: {
+      date: '2026-07-29',
+      timeline: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 },
+      completed_items: [],
+      week: { days: [], totals: { working_seconds: 0, pause_seconds: 0, idle_seconds: 0 } },
+      rate: { units_per_hour: 0, baseline_units_per_hour: null, baseline_days: 0 },
+    },
+  });
+
+  await page.keyboard.type('4821');
+  await expect(page.getByTestId('confirm-action')).toHaveText('Clock out now');
+  await page.getByTestId('confirm-action').click();
+
+  await expect(page.getByTestId('summary-screen')).toBeVisible();
+  await expect(page.getByTestId('worked-today-plate')).toBeVisible();
   await expect(page.getByTestId('items-completed')).toHaveCount(0);
   await expect(page.getByTestId('week-bar-chart')).toHaveCount(0);
-  await expect(page.getByTestId('rate-tile')).toHaveCount(0);
+  // rate still renders (handoff §5.1: "render today's rate alone" even with
+  // no baseline) — only items/week gate on emptiness.
+  await expect(page.getByTestId('rate-tile')).toContainText('Not enough history yet');
   expect(backend.clockOutRequests).toBe(1);
 });
 

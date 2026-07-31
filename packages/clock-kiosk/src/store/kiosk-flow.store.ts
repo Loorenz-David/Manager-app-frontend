@@ -15,6 +15,13 @@ export type KioskResult =
       current: CurrentShift;
       transitionedSteps: number;
       analytics: ClockOutAnalytics | null;
+      // The backend gives no clock-out timestamp (a not-clocked-in `/current`
+      // is all nulls) and analytics no longer carries a segments[] marker
+      // either — these are the client-captured moments the summary's worked
+      // span is built from. clockedInAt is the pre-action shift start (null
+      // only in the theoretical case the fresh confirm read raced it away).
+      clockedInAt: string | null;
+      clockedOutAt: string;
     };
 
 export type KeypadFlowState = {

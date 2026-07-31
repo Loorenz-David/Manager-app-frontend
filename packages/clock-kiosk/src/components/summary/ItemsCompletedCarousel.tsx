@@ -1,7 +1,9 @@
 import { BackendImage } from '@beyo/ui';
 
 export type CompletedItem = {
-  name: string;
+  id: string;
+  /** article_number/sku, or null — this system has no product-name entity. */
+  reference: string | null;
   imageUrl: string | null;
   units: number;
 };
@@ -56,7 +58,7 @@ export function ItemsCompletedCarousel({
       <div className="-mx-1 mt-3 flex snap-x gap-4 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => (
           <div
-            key={item.name}
+            key={item.id}
             className="w-[132px] shrink-0 snap-start sm:w-[148px]"
             data-testid="items-completed-card"
           >
@@ -68,7 +70,7 @@ export function ItemsCompletedCarousel({
               />
             </div>
             <p className="mt-2.5 truncate text-[14px] font-semibold text-kiosk-ink">
-              {item.name}
+              {item.reference ?? 'Item'}
             </p>
             <p className="mt-0.5 font-kiosk-mono text-[13px] text-kiosk-secondary">
               {item.units} units

@@ -7,15 +7,15 @@ import type {
   SummaryRate,
   SummaryWeek,
 } from '../types';
+import { defaultSummaryExtrasAdapters } from './summary-extras-adapters';
 
 const DEFAULT_ADAPTERS: KioskAdapters = {
   scheduledShift: () => null,
   announcements: () => [],
-  summaryExtras: {
-    items: () => null,
-    week: () => null,
-    rate: () => null,
-  },
+  // Unlike scheduledShift/announcements (host-owned data sources with no
+  // universal answer), items/week/rate are a pure mapping off the clock-out
+  // response itself — every host gets a correct default for free.
+  summaryExtras: defaultSummaryExtrasAdapters,
 };
 
 export function resolveKioskAdapters(

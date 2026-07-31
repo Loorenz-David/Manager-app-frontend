@@ -18,6 +18,86 @@ change is an incomplete change.
 
 ---
 
+## 2026-07-31 — Analytics contract sync: completed_items/week/rate replace segments/insights (Claude Fable)
+
+- Change: the backend handoff was updated — every v1 endpoint flipped ✅ live,
+  and `clock-out.analytics` (§5.1) was completely reshaped: the old
+  `segments[]` drill-down and `insights[]` trend cards are gone, replaced by
+  `completed_items[]`/`completed_items_truncated`/`week`/`rate`; `timeline`
+  dropped to 3 buckets (`working/pause/idle_seconds` + `pause_by_reason`,
+  which now includes a literal `"unspecified"` key with `pause_type: null`).
+  Synced the full pipeline to match: (1) `@beyo/worker-shifts/types.ts` —
+  rewrote `ClockOutAnalyticsSchema` + sub-schemas (new `AnalyticsCompletedItem/
+  Week/Rate`, removed `AnalyticsSegment/Insight`), fixed
+  `AnalyticsPauseReasonSchema.pause_type` to nullable (was throwing on the
+  "unspecified" bucket — a live parse-crash risk once real data arrived),
+  made `analytics.rate` required (always present in a populated response).
+  (2) MSW fixtures/mocks rewritten to the new shape. (3)
+  `lib/analytics-view-model.ts` rewritten: IN/OUT/worked no longer derive
+  from `analytics` (segments are gone) — the controller now threads two
+  client-captured moments through `KioskResult` (`clockedInAt` = pre-action
+  `current.shift_started_at`, `clockedOutAt` = the moment the clock-out
+  action resolves) and the view-model just formats their span; `insights` is
+  gone from its output. (4) New `lib/summary-extras-adapters.ts`: a real
+  default `summaryExtras` adapter mapping `analytics.completed_items/week/
+  rate` straight to the kit's presentation types — replaces the old
+  always-null `DEFAULT_ADAPTERS.summaryExtras` stub, since this data now
+  arrives embedded in the clock-out response with no host query needed
+  (closes gap-mapping §3/§4/§5). Weekly target is client hard-coded
+  (`DEFAULT_WEEKLY_TARGET_HOURS`, 40h — the backend has no scheduling
+  concept, ever). (5) Presentation types + components updated: `SummaryItems`
+  item shape gained `id`/`reference` (was `name`, no stable key); `SummaryRate.
+  baseline` is now `number | null` (`RateTile` renders "Not enough history
+  yet" when null, matching the backend's "0 baseline days" case); `insights`
+  prop is always `[]` (`InsightRow`/its `order-*` slot kept as dormant UI,
+  not deleted). (6) `@beyo/stats` dependency dropped entirely from
+  `clock-kiosk` (no more `insight-codes` import).
+- Why: user confirmed the live handoff (`docs/handoff/from_backend/
+  HANDOFF_TO_FRONTEND_worker_shift_floor_app_20260729.md`) now reflects the
+  real backend, and asked for the schemas to be verified correct against it.
+  An audit found the analytics layer was still entirely on the OLD contract
+  end-to-end (types → mocks → view-model → adapters) — not just the schema,
+  which alone would have kept rendering an empty summary screen even once
+  corrected.
+- Impact: `@beyo/worker-shifts` parse boundary (zone 01), `analytics-view-
+  model.ts` + `summary-extras-adapters.ts` + `kiosk-adapters.ts` DEFAULT_
+  ADAPTERS (zone 04), `SummaryItems/Week/Rate` types + `ItemsCompletedCarousel`/
+  `RateTile`/`SummaryScreen` (zone 05), gap-mapping table §3/§4/§5 now closed
+  (zone 06). The app itself has NOT been flipped onto the live backend —
+  `VITE_API_URL` unset, `VITE_FLOOR_MOCKS=1` still the default; that's a
+  separate deliberate step (README "Mock And Live-Flip Runbook", updated).
+  Also fixed an unrelated pre-existing inconsistency found while validating:
+  `playwright.config.ts`'s `baseURL` fallback still pointed at port 5175
+  after `vite.config.ts`/`webServer.url` had already been moved to 5177 —
+  every e2e test was failing with "could not connect" until this was synced.
+  Bundled a pre-existing uncommitted edit to `--color-kiosk-timer-out`
+  (`#e0a526` → `#8cc2fe`) that was sitting in the working tree — not part of
+  this change's intent, kept it and updated the zone 05 "where to change"
+  table's color reference to match.
+- Docs updated: `00` (dropped `@beyo/stats` from the dependency diagram),
+  `01` (schema description, removed the now-moot insight-ratio-fraction
+  rule, added the nullable-baseline rule), `04` (`analytics-view-model.ts`
+  and `kiosk-adapters.ts` rows rewritten, new `summary-extras-adapters.ts`
+  row, verification pointers), `05` (Summary component-inventory row), `06`
+  (gap table with a Status column, mock/live boundary section rewritten —
+  endpoints live but app not yet flipped, wiring recipe split by
+  host-query vs embedded-data gaps), `IMPACT_MAP.md` (`analytics-view-
+  model.ts` row rewritten, new `summary-extras-adapters.ts` row, mock-
+  fixture/barrel rows), `INDEX.md` (insights fixed-decision retired, new
+  weekly-target fixed-decision), package README (component contract table,
+  Mock And Live-Flip Runbook), this entry.
+- Validation: `tsc --noEmit` clean on `worker-shifts`, `clock-kiosk`, and
+  floor-app (`tsconfig.app.json` + `tsconfig.json`); `test:worker-shifts`
+  41/41 (1 fixture assertion updated for the new field name); `test:clock-
+  kiosk` 43/43 (analytics-view-model.test.ts rewritten around the new
+  clock-timestamp signature — dropped ~19 cases that tested the now-gone
+  segment/insight permutations, added a new `summary-extras-adapters.test.ts`
+  with 4 cases); floor `test:unit` 9/9 (unaffected); Playwright 30/30 across
+  mobile/tablet/desktop (2 `kiosk-summary` specs rewritten for the new
+  contract + `page.clock.install()` for deterministic client-captured OUT
+  times; 1 pre-existing port-mismatch bug fixed along the way); floor
+  `lint` clean.
+
 ## 2026-07-30 — Amber clock-out ring, faster clock-in return, keypad bottom-row swap (Claude Fable)
 
 - Change: (1) ring colors moved to single-source tokens

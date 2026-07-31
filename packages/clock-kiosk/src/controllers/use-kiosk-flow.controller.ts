@@ -330,6 +330,8 @@ export function useKioskFlowController({
           current: fresh,
           transitionedSteps: actionResult.transitioned_steps,
           analytics: actionResult.analytics,
+          clockedInAt: current.shift_started_at,
+          clockedOutAt: new Date().toISOString(),
         };
       } else {
         await clockInAction.clockInAsync({ user_id: user.client_id });
@@ -570,8 +572,9 @@ export function useKioskFlowController({
     }
 
     const summary = toClockOutSummaryViewModel(flow.result.analytics, {
+      clockedInAt: flow.result.clockedInAt,
+      clockedOutAt: flow.result.clockedOutAt,
       timeZone,
-      now: new Date(),
     });
     const notice = activeTaskNotice(flow.result.transitionedSteps);
     if (summary && flow.result.analytics) {
@@ -594,7 +597,12 @@ export function useKioskFlowController({
           items: extras.items,
           week: extras.week,
           rate: extras.rate,
-          insights: summary.insights,
+          // Handoff §5.1: insights are explicitly not provided for this
+          // screen anymore (unit-based items/week/rate replace them). The
+          // section stays wired in SummaryScreen — gated on non-empty — as
+          // dormant UI rather than deleted, in case a future data source
+          // feeds it; nothing populates it today.
+          insights: [],
           notice,
           countdownSeconds: flow.countdownSeconds,
           onDone: returnToKeypad,
@@ -602,8 +610,9 @@ export function useKioskFlowController({
       };
     }
 
-    // Handoff §5.1 hard rule: null or marker-incomplete analytics preserves
-    // the exact Phase 4 plain clock-out success path.
+    // Handoff §5.1 hard rule: null analytics (degraded mode) or a missing
+    // pre-action shift-start timestamp preserves the exact Phase 4 plain
+    // clock-out success path.
     return {
       screen: 'plain' as const,
       props: {

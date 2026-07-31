@@ -58,8 +58,15 @@ Full record: archived master `docs/architecture/archives/implementation/PLAN_clo
 - Greeting cutoffs: morning 05:00–11:59 · afternoon 12:00–17:59 · evening
   18:00–04:59, workspace time zone.
 - Auto-return clamp: **4–120s**, default 12 (one exported constant).
-- Insight copy: kiosk-owned worker-facing factual sentences; fallback is the
-  neutral metric+delta line, NEVER a `@beyo/stats` title.
+- Insights (`analytics.insights`, the manager-copy-derived trend cards) were
+  **retired 2026-07-31** — handoff §5.1 dropped them from the contract in
+  favor of unit-based `completed_items`/`week`/`rate`. `InsightRow` stays
+  wired as dormant UI; nothing feeds it. Do not resurrect the old
+  `@beyo/stats/insight-codes` copy-table wiring without a new handoff shape.
+- Weekly target on the summary's week chart is **client hard-coded** (40h,
+  `DEFAULT_WEEKLY_TARGET_HOURS` in `lib/summary-extras-adapters.ts`) — the
+  backend has no scheduling concept at all (handoff §5.1: "no
+  `scheduled_seconds`, ever").
 - Dev port **5175**; no `--host` in the default dev script.
 
 ## The five kiosk UX invariants (violating any is a defect)

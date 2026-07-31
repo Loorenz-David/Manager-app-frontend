@@ -249,6 +249,8 @@ describe('useKioskFlowController', () => {
           current: clockedOut,
           transitionedSteps: 2,
           analytics: null,
+          clockedInAt: '2026-07-29T06:58:00Z',
+          clockedOutAt: '2026-07-29T10:00:00Z',
         },
         4,
       );

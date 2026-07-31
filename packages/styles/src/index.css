@@ -40,10 +40,10 @@
      `-in` is the clock-in ring (on paper), `-out` the clock-out ring
      (on the dark plate / accent hero). */
   --color-kiosk-timer-in: #2e6a44;
-  --color-kiosk-timer-out: #e0a526;
+  --color-kiosk-timer-out: #8cc2fe;
   --font-kiosk-sans: "Instrument Sans", "Inter", system-ui, sans-serif;
-  --font-kiosk-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo,
-    monospace;
+  --font-kiosk-mono:
+    "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 
 :root {

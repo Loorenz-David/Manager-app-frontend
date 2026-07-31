@@ -1,6 +1,7 @@
 type Props = {
   unitsPerHour: number;
-  baseline: number;
+  /** Null when baselineDays is 0 — not enough recent history yet. */
+  baseline: number | null;
   baselineDays: number;
 };
 
@@ -30,11 +31,17 @@ export function RateTile({
       </p>
       <p className="mt-1.5 text-[14px] text-kiosk-secondary">units / hour</p>
       <div className="mt-auto border-t border-kiosk-line pt-3">
-        <p className="text-[13.5px] text-kiosk-secondary">
-          {baselineDays}-day average{' '}
-          <span className="font-kiosk-mono text-kiosk-ink">
-            {formatRate(baseline)}
-          </span>
+        <p className="text-[13.5px] text-kiosk-secondary" data-testid="rate-tile-baseline">
+          {baseline === null ? (
+            'Not enough history yet'
+          ) : (
+            <>
+              {baselineDays}-day average{' '}
+              <span className="font-kiosk-mono text-kiosk-ink">
+                {formatRate(baseline)}
+              </span>
+            </>
+          )}
         </p>
       </div>
     </section>

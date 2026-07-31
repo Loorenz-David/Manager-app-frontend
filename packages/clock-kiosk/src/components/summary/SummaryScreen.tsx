@@ -28,7 +28,7 @@ type Props = {
   /** GAP adapters — every one of these renders only when non-null/non-empty. */
   items: { items: CompletedItem[]; totalUnits: number; lineCount: number } | null;
   week: { days: WeekDay[]; targetSeconds: number; loggedSeconds: number } | null;
-  rate: { unitsPerHour: number; baseline: number; baselineDays: number } | null;
+  rate: { unitsPerHour: number; baseline: number | null; baselineDays: number } | null;
   insights: SummaryInsight[];
   /** e.g. "2 active tasks were stopped" (transitioned_steps > 0). */
   notice?: string | null;

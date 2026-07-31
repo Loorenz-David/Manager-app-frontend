@@ -1,6 +1,6 @@
 # 07 — Testing & validation
 
-Last verified: 2026-07-30 · commit `e8a35e19`
+Last verified: 2026-07-31
 
 ## The matrix (all must be green before any change ships)
 
@@ -26,9 +26,11 @@ non-negotiable — they are the three-live-apps invariance proof.
 - Projects: mobile (iPhone 14 Pro) · tablet **834×1194 = the primary design
   target** · desktop 1440×900. Run mobile first by repo convention; never skip
   tablet (a whole phase once did — review finding).
-- Mocked-analytics fixtures: insight `ratio` metrics are **0–1 fractions** —
-  feeding percents renders 8400%-style output and is a fixture bug, not a code
-  bug.
+- Mocked-analytics fixtures/route stubs: `analytics.rate` is required (not
+  defaulted) — an analytics object missing it fails to parse. Summary-tile
+  e2e that asserts client-captured OUT time/worked span (`WorkedTodayPlate`)
+  needs `page.clock.install()` to keep the moment deterministic — see the
+  `kiosk-summary` specs for the pattern.
 
 ## Known hazards (each has bitten at least once)
 

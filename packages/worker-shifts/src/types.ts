@@ -9,20 +9,14 @@ const EmbeddedPauseReasonSchema = z.object({
 const AnalyticsPauseReasonSchema = z.object({
   name: z.string(),
   image_url: z.string().nullable(),
-  pause_type: z.string(),
+  // Handoff §5.1: the literal "unspecified" bucket ships `pause_type: null`
+  // (paused time that couldn't be attributed to a catalog reason) — not a
+  // valid enum member, so this must stay nullable or that bucket fails to parse.
+  pause_type: z.string().nullable(),
 });
 
 export const ShiftStateSchema = z.enum(["idle", "working", "in_pause"]);
 export type ShiftState = z.infer<typeof ShiftStateSchema>;
-
-export const SegmentStateSchema = z.enum([
-  "started_shift",
-  "working",
-  "paused",
-  "idle",
-  "ended_shift",
-]);
-export type SegmentState = z.infer<typeof SegmentStateSchema>;
 
 export const FloorRosterUserSchema = z.object({
   client_id: z.string(),
@@ -72,46 +66,74 @@ export type ClockInResult = z.infer<typeof ClockInResultSchema>;
 
 export const AnalyticsTimelineSchema = z
   .object({
-    date_from: z.string().optional(),
-    date_to: z.string().optional(),
     working_seconds: z.number().default(0),
     pause_seconds: z.number().default(0),
-    ended_shift_seconds: z.number().default(0),
     idle_seconds: z.number().default(0),
-    completed_count: z.number().default(0),
+    // Keyed by pause-reason id, plus the literal key "unspecified" — see
+    // AnalyticsPauseReasonSchema. Sums exactly to pause_seconds (handoff §5.1).
     pause_by_reason: z.record(z.string(), z.number()).default({}),
   })
   .passthrough();
 export type AnalyticsTimeline = z.infer<typeof AnalyticsTimelineSchema>;
 
-export const AnalyticsSegmentSchema = z
-  .object({
-    start: z.string(),
-    end: z.string(),
-    state: SegmentStateSchema,
-    reason: z.string().nullable(),
-    is_open: z.boolean(),
-    manually_recorded: z.boolean().default(false),
-    seconds: z.number(),
-    steps: z.array(z.unknown()).default([]),
-  })
-  .passthrough();
-export type AnalyticsSegment = z.infer<typeof AnalyticsSegmentSchema>;
+const AnalyticsWorkingSectionSchema = z.object({
+  client_id: z.string(),
+  name: z.string(),
+});
 
-export const AnalyticsInsightSchema = z
+export const AnalyticsCompletedItemSchema = z
   .object({
-    code: z.string(),
-    polarity: z.string(),
-    metric: z.string(),
-    target_value: z.number(),
-    baseline_value: z.number(),
-    delta: z.number(),
-    delta_pct: z.number(),
-    sample_size: z.number(),
-    severity: z.string(),
+    item_id: z.string(),
+    // No product-name entity in this system — reference (article_number,
+    // falling back to sku) IS the label. Null when neither is set.
+    reference: z.string().nullable(),
+    image_url: z.string().nullable(),
+    working_section: AnalyticsWorkingSectionSchema.nullable(),
+    units: z.number(),
+    // Working time only (excludes pause/idle) — see handoff §5.1.
+    total_seconds: z.number(),
+    issues_count: z.number(),
   })
   .passthrough();
-export type AnalyticsInsight = z.infer<typeof AnalyticsInsightSchema>;
+export type AnalyticsCompletedItem = z.infer<
+  typeof AnalyticsCompletedItemSchema
+>;
+
+const AnalyticsWeekDaySchema = z
+  .object({
+    date: z.string(),
+    working_seconds: z.number().default(0),
+    pause_seconds: z.number().default(0),
+    idle_seconds: z.number().default(0),
+  })
+  .passthrough();
+export type AnalyticsWeekDay = z.infer<typeof AnalyticsWeekDaySchema>;
+
+const AnalyticsWeekTotalsSchema = z
+  .object({
+    working_seconds: z.number().default(0),
+    pause_seconds: z.number().default(0),
+    idle_seconds: z.number().default(0),
+  })
+  .passthrough();
+
+export const AnalyticsWeekSchema = z.object({
+  days: z.array(AnalyticsWeekDaySchema).default([]),
+  totals: AnalyticsWeekTotalsSchema.default({
+    working_seconds: 0,
+    pause_seconds: 0,
+    idle_seconds: 0,
+  }),
+});
+export type AnalyticsWeek = z.infer<typeof AnalyticsWeekSchema>;
+
+export const AnalyticsRateSchema = z.object({
+  units_per_hour: z.number(),
+  // Null when baseline_days is 0 (not enough recent history) — handoff §5.1.
+  baseline_units_per_hour: z.number().nullable(),
+  baseline_days: z.number(),
+});
+export type AnalyticsRate = z.infer<typeof AnalyticsRateSchema>;
 
 export const ClockOutAnalyticsSchema = z
   .object({
@@ -119,17 +141,20 @@ export const ClockOutAnalyticsSchema = z
     timeline: AnalyticsTimelineSchema.default({
       working_seconds: 0,
       pause_seconds: 0,
-      ended_shift_seconds: 0,
       idle_seconds: 0,
-      completed_count: 0,
       pause_by_reason: {},
     }),
-    segments: z.array(AnalyticsSegmentSchema).default([]),
-    segments_truncated: z.boolean().default(false),
     pause_reasons: z
       .record(z.string(), AnalyticsPauseReasonSchema)
       .default({}),
-    insights: z.array(AnalyticsInsightSchema).default([]),
+    completed_items: z.array(AnalyticsCompletedItemSchema).default([]),
+    completed_items_truncated: z.boolean().default(false),
+    week: AnalyticsWeekSchema.default({ days: [], totals: {
+      working_seconds: 0,
+      pause_seconds: 0,
+      idle_seconds: 0,
+    } }),
+    rate: AnalyticsRateSchema,
   })
   .passthrough();
 export type ClockOutAnalytics = z.infer<typeof ClockOutAnalyticsSchema>;

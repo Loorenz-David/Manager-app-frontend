@@ -41,13 +41,13 @@ anything. **Read-only for Codex** (additive optional props only).
 
 | Component | Contract |
 |---|---|
-| `SummaryScreen` | `{ title, subtitle, name, avatarUrl, worked: {worked, in, out}, items \| null, week \| null, rate \| null, insights, notice?, countdownSeconds, onDone }` — adapter-gated sections render only when non-null; with all adapters empty it is hero + insights (+ notice), still balanced. Phone order hours→insights→items→week/rate; sm+ hours→items→week+rate grid→insights (design readme rule). Footer is `AutoReturnFooter` accent "Done · See you tomorrow". |
+| `SummaryScreen` | `{ title, subtitle, name, avatarUrl, worked: {worked, in, out}, items \| null, week \| null, rate \| null, insights, notice?, countdownSeconds, onDone }` — `items`/`week`/`rate` render only when non-null; `insights` is always `[]` as of the NEW analytics contract (handoff §5.1 dropped `insights[]` — the section stays wired as dormant UI, gated on non-empty, in case a future source feeds it). With everything empty it is hero (+ notice). Phone order hours→items→week/rate; sm+ hours→items→week+rate grid (design readme rule, insights row omitted). Footer is `AutoReturnFooter` accent "Done · See you tomorrow". |
 | `SummaryHeader` | `{ title, subtitle, name, avatarUrl }` — compact identity row, Avatar initials fallback. |
-| `WorkedTodayPlate` | `{ worked: "8h 12m", in: "06:58", out: "15:00", autoReturnSeconds?: number \| null }` — pre-formatted strings from the analytics view model; dark hero, mono numerals. `autoReturnSeconds` runs the depleting auto-return border around the plate. |
-| `ItemsCompletedCarousel` | `{ items: {name, imageUrl, units}[], totalUnits, lineCount }` — horizontal snap scroll, `BackendImage` with placeholder fallback. GAP: `SummaryExtrasAdapter.items`. |
-| `WeekBarChart` | `{ days: {label, workedSeconds, isToday}[], targetSeconds, loggedSeconds }` — CSS bars, today accent-filled; hour formatting is display-local. GAP: `SummaryExtrasAdapter.week`. |
-| `RateTile` | `{ unitsPerHour, baseline, baselineDays }` — mono rate figures. GAP: `SummaryExtrasAdapter.rate`. |
-| `InsightRow` | `{ text, delta: {value: "+9%", polarity: positive·negative·neutral} }` — factual statement + signed mono delta. |
+| `WorkedTodayPlate` | `{ worked: "8h 12m", in: "06:58", out: "15:00", autoReturnSeconds?: number \| null }` — pre-formatted strings from the analytics view model, built from the controller's client-captured `clockedInAt`/`clockedOutAt` (the backend gives neither a segments drill-down nor a clock-out timestamp — handoff §5.1). Dark hero, mono numerals. `autoReturnSeconds` runs the depleting auto-return border around the plate. |
+| `ItemsCompletedCarousel` | `{ items: {id, reference: string \| null, imageUrl, units}[], totalUnits, lineCount }` — `reference` is the backend's article_number/sku label (no product-name entity; falls back to "Item" in the UI when null). Horizontal snap scroll, `BackendImage` with placeholder fallback. GAP: `SummaryExtrasAdapter.items` — defaults to a real mapping off `analytics.completed_items` (`lib/summary-extras-adapters.ts`), not null. |
+| `WeekBarChart` | `{ days: {label, workedSeconds, isToday}[], targetSeconds, loggedSeconds }` — CSS bars, today accent-filled; hour formatting is display-local. `targetSeconds` is client hard-coded (`DEFAULT_WEEKLY_TARGET_HOURS` in `lib/summary-extras-adapters.ts`) — the backend has no scheduling concept (handoff §5.1: "no `scheduled_seconds`, ever"). GAP: `SummaryExtrasAdapter.week` — defaults to a real mapping off `analytics.week`. |
+| `RateTile` | `{ unitsPerHour, baseline: number \| null, baselineDays }` — mono rate figures; `baseline` null renders "Not enough history yet" instead of the N-day-average line (backend sends `baseline_units_per_hour: null` when `baseline_days` is 0). GAP: `SummaryExtrasAdapter.rate` — defaults to a real mapping off `analytics.rate`. |
+| `InsightRow` | `{ text, delta: {value: "+9%", polarity: positive·negative·neutral} }` — component kept for future use; nothing currently feeds it (see `SummaryScreen` row). |
 | `AnnouncementsList` | `{ items: {title, body, accent: info·success·neutral}[] }` — "TODAY ON THE FLOOR", max 3 rendered; lives on the clock-in result's `announcementsSlot`. GAP: `AnnouncementsAdapter`. |
 
 Surface loaders and registrations are also public: `loadClockKioskPage()`
@@ -239,42 +239,55 @@ affordance; it is not kiosk business logic.
 
 ### 5. Supply optional adapters
 
-All adapters are synchronous presentation seams. The host owns any endpoint
-query and supplies its current values; do not fetch inside adapter functions.
-Production defaults are graceful empties: no scheduled row, no announcements,
-and no items/week/rate summary tiles.
+All adapters are synchronous presentation seams. `scheduledShift` and
+`announcements` are host-owned data sources with graceful-empty production
+defaults (no scheduled row, no announcements) — the host owns any endpoint
+query and supplies its current values; do not fetch inside those adapter
+functions. `summaryExtras.items/week/rate` is different: the backend embeds
+`completed_items`/`week`/`rate` directly in the clock-out response (handoff
+§5.1), so there is nothing host-specific to fetch — the package ships a real
+default mapping (`lib/summary-extras-adapters.ts`) off `context.analytics`
+itself. A host may still override any key via `KioskAdaptersInput`, but
+doesn't need to for these three.
 
-| Adapter | Context | Empty result |
+| Adapter | Context | Default when analytics has no data |
 |---|---|---|
-| `scheduledShift` | `{ user, timeZone, currentShift }` | hides confirm/result schedule context |
-| `announcements` | `{ user, timeZone }` | hides the clock-in announcement section |
-| `summaryExtras.items/week/rate` | `{ analytics, user, timeZone }` | hides the matching summary tile |
+| `scheduledShift` | `{ user, timeZone, currentShift }` | `null` — hides confirm/result schedule context |
+| `announcements` | `{ user, timeZone }` | `[]` — hides the clock-in announcement section |
+| `summaryExtras.items/week/rate` | `{ analytics, user, timeZone }` | derived from `analytics`; gates to hidden only when the underlying array/days is empty (`lib/kiosk-adapters.ts` `gateSummaryExtras`) — `rate` still renders with a null baseline |
 
 ## Mock And Live-Flip Runbook
 
 `VITE_FLOOR_MOCKS=1` starts the floor MSW worker in development. Playwright is
-always fully mocked by route fixtures. As of 2026-07-30, none of the endpoints
-used by v1 are live; do not remove their handlers or flip the flag in a deployed
-host. Pause reasons are live but are not a v1 kiosk dependency because declared
-states are shelved.
+always fully mocked by route fixtures. **As of 2026-07-31 the handoff liveness
+table shows every v1 endpoint ✅ live**, including populated `analytics`
+(`completed_items`/`week`/`rate` — the `segments[]`/`insights[]` shape it used
+to carry is retired, see handoff §5.1). `@beyo/worker-shifts` schemas, the MSW
+fixtures, the analytics view-model, and the summary GAP adapters were all
+updated to the NEW contract in the same pass (2026-07-31 CHANGELOG entry) — but
+**the flag has not been flipped yet**: `VITE_API_URL` is still unset in every
+floor-app env file and `VITE_FLOOR_MOCKS` is still `1`. Flipping the app onto
+the real backend is a separate, deliberate deployment step (below), not implied
+by the contract going live.
 
-When a backend phase changes an endpoint to live, perform this checklist for
-that endpoint only:
+When ready to point the app at the live backend, perform this checklist:
 
-1. Confirm the handoff liveness table and response contract are updated to ✅.
-2. Start the host without `VITE_FLOOR_MOCKS=1` and configure its live API URL.
-3. Remove or gate only that endpoint's MSW handler; retain all still-❌ handlers.
-4. Run the affected fully mocked Playwright journey, then rehearse the same
-	 journey against the live endpoint without test route interception.
-5. Record the backend phase, environment, endpoint, and result in the capability
-	 review log before making the next endpoint live.
-
-| Backend phase | Endpoint(s) | Affected journey |
-|---|---|---|
-| 5 | `POST /auth/sign-in`, `POST /auth/logout` | floor bootstrap, revoked device, all kiosk journeys |
-| 6 | `GET /users?role=worker&compact=true&limit=200` | keypad code/email match, focus roster refresh |
-| 4 | `GET /worker-shifts/current`, `POST /clock-in`, `POST /clock-out` | `clock-kiosk` clock-in, clock-out, 409, timeout journeys |
-| 7 | populated `clock-out.analytics` | `kiosk-summary` journeys; retain null-analytics coverage |
+1. Confirm the handoff liveness table and response contract are current (it is,
+   as of this entry — re-check before flipping if time has passed).
+2. Set `VITE_API_URL` to the real backend URL and set `VITE_FLOOR_MOCKS=0`
+   (turns off both the MSW worker and the showcase adapters — `FloorKioskProvider.tsx`).
+3. Since all v1 endpoints are live together, this is a single flip rather than
+   a per-endpoint rollout; MSW handlers can stay in the repo for local dev
+   (`VITE_FLOOR_MOCKS=1` keeps working offline) but are no longer required in
+   any deployed host.
+4. Run the fully-mocked Playwright suite once more as a pre-flip baseline, then
+   rehearse every kiosk journey (clock-in, clock-out with and without
+   analytics, declare-state if enabled, roster offline) against the live
+   endpoint without test route interception — the always-on device rehearsal
+   below covers this.
+5. Record the environment and result in this file's CHANGELOG-equivalent
+   entry (`clock-kiosk-documentation/frontend/CHANGELOG.md`) before relying on
+   it in production.
 
 ## Always-On Device Rehearsal
 

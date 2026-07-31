@@ -1,6 +1,6 @@
 # 05 — Kiosk components & visual system (`@beyo/clock-kiosk` kit + tokens)
 
-Last verified: 2026-07-30 · commit `e8a35e19`
+Last verified: 2026-07-31
 
 ## Ownership rule (from the completed master — still binding)
 
@@ -25,7 +25,7 @@ adds what the README doesn't: interconnection and design intent.
 | Keypad (idle) | `keypad/KeypadScreen`, `keypad/CodeCells`, `keypad/Keypad` | Cells show typed digits; shake via `.kiosk-shake` on `error` rising edge; **"Clock with email"** pill toggles email mode; `statusNotice` renders the quiet tertiary terminal-offline line (never combined with `error`); `lg:` sizes step DOWN (100px keys) so desktop/iPad-landscape fit 900px — tablet portrait keeps 120px. Bottom row is **submit · 0 · delete** (delete bottom-right per phone/PIN-pad convention, lucide `Delete` icon — `lucide-react` is a package peer since 2026-07-30). |
 | Confirm | `confirm/IdentityConfirmScreen` | `@beyo/ui Avatar` (initials fallback); ONE primary action (`success` green in / `accent` blue out); nullable context row (scheduled gap). |
 | Results | `result/ResultScreen`, `CheckHero`, `DarkTimePlate`, `AutoReturnFooter` | Plate = the screen's single most important number (mono); `right` column = scheduled gap; `AutoReturnFooter` variant `muted` (plain) / `accent` (summary). Plates use phone-scale heroes (40px base → 58/64px `sm:`) and `flex-wrap` so the right/IN-OUT columns drop below instead of overlapping on narrow viewports (operator finding 2026-07-30). |
-| Summary | `summary/SummaryScreen` + `SummaryHeader`, `WorkedTodayPlate`, `ItemsCompletedCarousel`, `WeekBarChart`, `RateTile`, `InsightRow` | Adapter-gated sections; responsive ORDER swap (phone: hours→insights→items→week/rate; sm+: hours→items→week+rate grid→insights) via `order-*` classes; stays balanced with everything empty. |
+| Summary | `summary/SummaryScreen` + `SummaryHeader`, `WorkedTodayPlate`, `ItemsCompletedCarousel`, `WeekBarChart`, `RateTile`, `InsightRow` | Adapter-gated sections; responsive ORDER swap (phone and sm+ both: hours→items→week/rate) via `order-*` classes; stays balanced with everything empty. `InsightRow`'s `order-*` slot is still wired but `insights` is always `[]` as of 2026-07-31 (handoff §5.1 retired `analytics.insights`) — dormant UI, kept in case a future source feeds it, not currently reachable. |
 | Announcements | `announcements/AnnouncementsList` | Max 3, dated (pre-formatted string), accent dots. |
 | Device | `device/DeviceSignInCard`, `device/DeviceSettingsPanel(+Row)` | Chrome only; host injects forms/controls. |
 | Shared | `shared/KioskButton`, `shared/KioskSurfaceSkeleton` | Button variants success/accent/muted/danger/ghost × xl(88px)/md; skeleton variants confirm/result/summary on kiosk paper (used by the host's in-frame Suspense). |
@@ -78,7 +78,7 @@ adds what the README doesn't: interconnection and design intent.
 
 | Want to change | Change this |
 |---|---|
-| Ring COLORS | `--color-kiosk-timer-in` / `--color-kiosk-timer-out` in `packages/styles/src/index.css` (`-out` is amber `#e0a526` as of 2026-07-30; components reference the tokens only) |
+| Ring COLORS | `--color-kiosk-timer-in` / `--color-kiosk-timer-out` in `packages/styles/src/index.css` (`-out` is `#8cc2fe` as of 2026-07-31; components reference the tokens only) |
 | Clock-in PACE relative to clock-out | `CLOCK_IN_AUTO_RETURN_FACTOR` in `packages/clock-kiosk/src/lib/auto-return.ts` (0.5 = clock-in returns twice as fast; clock-out always uses the device-configured window) |
 | The base window itself | device settings → `autoReturnSeconds` (clamped 4–120, default 12) |
 

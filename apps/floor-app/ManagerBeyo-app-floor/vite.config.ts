@@ -79,7 +79,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5175,
+      port: 5177,
       proxy: env.API_TARGET_URL
         ? {
             "/api": {
