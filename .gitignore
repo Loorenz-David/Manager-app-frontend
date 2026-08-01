@@ -31,14 +31,14 @@ node_modules/
 **/node_modules/
 
 
-# Environment files
+# Environment files. Real env files never enter git — the deploy builds on the
+# EC2 box, so production values live in untracked files there (`git reset --hard`
+# leaves untracked files alone). Only *.example templates are committed.
 .env
 .env.*
 !.env.example
 !.env.test.example
-!apps/floor-app/ManagerBeyo-app-floor/.env
-!apps/floor-app/ManagerBeyo-app-floor/.env.production
-!apps/floor-app/ManagerBeyo-app-floor/.env.test
+!.env.production.example
 
 # TypeScript project-reference build metadata
 *.tsbuildinfo
