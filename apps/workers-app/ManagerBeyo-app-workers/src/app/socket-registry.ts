@@ -8,8 +8,10 @@ import { taskStepSocketEvents } from "@/features/task_steps/socket-events";
 import { upholsterySocketEvents } from "@/features/upholstery/socket-events";
 import { workerWorkingSectionSocketEvents } from "@/features/working_sections/socket-events";
 import { shopifyProductSyncSocketEvents } from "@beyo/shopify";
+import { workerShiftSocketEvents } from "@beyo/worker-shifts";
 
 export const socketRegistry: SocketEventHandlers = {
+  ...workerShiftSocketEvents,
   ...caseSocketEvents,
   ...taskStepSocketEvents,
   ...taskNoteSocketEvents,

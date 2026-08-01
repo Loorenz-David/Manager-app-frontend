@@ -19,12 +19,18 @@ import {
   toWorkingSectionViewModel,
   type WorkingSectionViewModel,
 } from "../types";
+import {
+  useOtherWorkingSectionsController,
+  type OtherWorkingSectionsController,
+} from "./use-other-working-sections.controller";
 
 export type WorkingSectionsHomeController = {
   sections: WorkingSectionViewModel[];
   isPending: boolean;
   isError: boolean;
   refetch: () => Promise<void>;
+  /** The "show more" list of sections the worker is not assigned to. */
+  other: OtherWorkingSectionsController;
 };
 
 export function useWorkingSectionsHomeController(): WorkingSectionsHomeController {
@@ -53,6 +59,8 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
   );
   const allSections = query.data ?? [];
   const allSectionIds = allSections.map((section) => section.client_id);
+
+  const other = useOtherWorkingSectionsController(allSectionIds);
 
   usePrefetchOnCondition(allSections.length > 0, () =>
     Promise.all([
@@ -95,5 +103,6 @@ export function useWorkingSectionsHomeController(): WorkingSectionsHomeControlle
     isPending: query.isPending,
     isError: query.isError,
     refetch,
+    other,
   };
 }

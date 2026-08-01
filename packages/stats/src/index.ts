@@ -64,6 +64,7 @@ export type { ResolvedInsight } from "./lib/insight-copy";
 export { WorkerInsightsSheetContent } from "./components/WorkerInsightsSheetContent";
 export type { WorkerInsightsSheetContentProps } from "./components/WorkerInsightsSheetContent";
 export { workerStatsKeys } from "./api/worker-stats-keys";
+export { workerStatsSocketEvents } from "./socket-events";
 export { fetchWorkerInsights } from "./api/fetch-worker-insights";
 export type { WorkerInsightsPage } from "./api/fetch-worker-insights";
 export { fetchWorkerLastSteps } from "./api/fetch-worker-last-steps";

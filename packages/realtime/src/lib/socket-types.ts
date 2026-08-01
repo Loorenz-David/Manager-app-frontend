@@ -173,6 +173,40 @@ export type ServerToClientEvents = {
     client_id: string;
     working_section_ids: string[];
   }) => void;
+  // Room `user:{target_user_id}` — you only ever receive this for yourself.
+  // The payload is *exactly* the `GET /worker-shifts/current` body, so it is
+  // written straight into that cache rather than triggering a refetch. Clock-out
+  // is not a special shape: it arrives with `clocked_in: false`, `state: null`.
+  "worker-shift:state-changed": (payload: {
+    user_id: string;
+    clocked_in: boolean;
+    shift_started_at: string | null;
+    state: "idle" | "working" | "in_pause" | null;
+    state_entered_at: string | null;
+    pause_reason: {
+      id: string;
+      name: string;
+      image_url: string | null;
+    } | null;
+    declared_state: {
+      id: string;
+      pause_reason: { id: string; name: string; image_url: string | null };
+      description: string | null;
+      entered_at: string;
+    } | null;
+  }) => void;
+  // Room `workspace:{workspace_id}` — a signal to refetch, NOT the whole truth.
+  // It deliberately carries no pause reason and no declared state (every
+  // worker's device is in the workspace room, and a declaration's description is
+  // free text a worker typed about themselves). `state`/`clocked_in` are safe to
+  // use directly for cheap things — an online dot, a sort — but detail must come
+  // from the role-gated `/worker-stats/` endpoints.
+  "worker-shift:roster-changed": (payload: {
+    user_id: string;
+    clocked_in: boolean;
+    state: "idle" | "working" | "in_pause" | null;
+    state_entered_at: string | null;
+  }) => void;
   "pause_reason:created": (payload: { client_id: string }) => void;
   "pause_reason:updated": (payload: { client_id: string }) => void;
   "pause_reason:deleted": (payload: { client_id: string }) => void;

@@ -19,7 +19,7 @@ export function HomeTopCards(): React.JSX.Element {
         width beside an empty cell, whereas auto columns collapse to a single
         full-width track.
       */}
-      <div className="grid grid-flow-col auto-cols-fr gap-0.5">
+      <div className="grid grid-flow-col auto-cols-fr gap-2">
         <WorkerStateCard />
         <ReassignedCard />
       </div>

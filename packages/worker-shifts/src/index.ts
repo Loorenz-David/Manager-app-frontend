@@ -73,6 +73,8 @@ export type { DeclareStateAction } from "./actions/use-declare-state";
 export { useCloseDeclaredState } from "./actions/use-close-declared-state";
 export type { CloseDeclaredStateAction } from "./actions/use-close-declared-state";
 
+export { workerShiftSocketEvents } from "./socket-events";
+
 export { matchWorker } from "./lib/match-worker";
 export {
   AFTERNOON_START_HOUR,

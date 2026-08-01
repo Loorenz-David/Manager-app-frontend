@@ -4,3 +4,4 @@ export {
   useWorkingSectionsHomeContext,
 } from "./providers/WorkingSectionsHomeProvider";
 export { WorkingSectionsHomeView } from "./components/WorkingSectionsHomeView";
+export { OtherWorkingSectionsList } from "./components/OtherWorkingSectionsList";

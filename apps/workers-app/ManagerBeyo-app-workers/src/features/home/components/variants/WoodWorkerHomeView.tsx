@@ -11,6 +11,7 @@ import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import { useWorkingSectionsHomeContext } from "../../../working_sections";
 import type { WorkingSectionViewModel } from "../../../working_sections";
 import { WorkingSectionCard } from "../../../working_sections/components/WorkingSectionCard";
+import { OtherWorkingSectionsList } from "../../../working_sections/components/OtherWorkingSectionsList";
 import { HomeTopCards } from "../HomeTopCards";
 import { WorkerHomeSectionStack } from "../WorkerHomeSectionStack";
 
@@ -59,7 +60,7 @@ function WoodWorkerSectionsView({
         scrollRef={scrollRef}
         onRefresh={refetch}
       >
-        <div className="pt-3">
+        <div className="pt-5">
           <HomeTopCards />
         </div>
 
@@ -98,6 +99,12 @@ function WoodWorkerSectionsView({
                 onTap={onSelectSection}
               />
             ))}
+          </div>
+        )}
+
+        {isPending || isError ? null : (
+          <div className="pt-1">
+            <OtherWorkingSectionsList onSelectSection={onSelectSection} />
           </div>
         )}
 

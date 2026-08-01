@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { PullToRefresh } from "@beyo/ui";
 import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import { useWorkingSectionsHomeContext } from "../providers/WorkingSectionsHomeProvider";
+import { OtherWorkingSectionsList } from "./OtherWorkingSectionsList";
 import { WorkingSectionCard } from "./WorkingSectionCard";
 import type { WorkingSectionViewModel } from "../types";
 
@@ -41,7 +42,7 @@ export function WorkingSectionsHomeView({
         scrollRef={scrollRef}
         onRefresh={refetch}
       >
-        <div className="pt-3">{topContent}</div>
+        <div className="pt-4">{topContent}</div>
 
         {isPending ? (
           <div className="flex flex-col gap-3 px-0 py-2">
@@ -78,6 +79,12 @@ export function WorkingSectionsHomeView({
                 onTap={onSelectSection}
               />
             ))}
+          </div>
+        )}
+
+        {isPending || isError ? null : (
+          <div className="pb-2 pt-1">
+            <OtherWorkingSectionsList onSelectSection={onSelectSection} />
           </div>
         )}
       </PullToRefresh>
