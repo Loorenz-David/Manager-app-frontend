@@ -31,9 +31,28 @@ loadEnvFile(".env");
 export default defineConfig({
   testDir: "./tests/playwright",
 
-  fullyParallel: true,
+  // Every spec signs in as the same account, and four of them mutate the same
+  // worker's task steps (pause-reason, working-sections, reassigned-steps,
+  // reassignment-acknowledgments). Run in parallel they fight: one test pauses
+  // the step while another resumes it, and assertions read a state the app is
+  // right about but the test is not. Observed directly — two specs captured the
+  // same step three seconds apart showing "Pause" and "Resume".
+  //
+  // `fullyParallel: false` alone would not fix it: that only serialises tests
+  // *within* a file, and the conflicting specs live in different files. One
+  // worker is the lever.
+  //
+  // Cost is ~40s → ~1.5m per project at this suite size. Revisit by giving each
+  // worker its own account (and its own sections/steps/reassignments) if that
+  // wait becomes the bottleneck.
+  fullyParallel: false,
 
-  retries: process.env.CI ? 2 : 0,
+  workers: 1,
+
+  // Was 2 in CI. With a shared account that masked the interference above —
+  // a collision would retry and pass, so CI reported green on a racy suite.
+  // Keep one retry for genuine network flake, not enough to hide a pattern.
+  retries: process.env.CI ? 1 : 0,
 
   reporter: [["html"], ["line"]],
 

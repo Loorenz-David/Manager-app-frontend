@@ -7,10 +7,17 @@ import type { WorkingSectionViewModel } from "../types";
 
 type WorkingSectionsHomeViewProps = {
   onSelectSection: (section: WorkingSectionViewModel) => void;
+  /**
+   * Rendered inside the scroll container, above the section list. The home
+   * feature passes its top cards here; the "My Sections" heading travels with
+   * them so it scrolls together with the rest of the pane.
+   */
+  topContent?: React.ReactNode;
 };
 
 export function WorkingSectionsHomeView({
   onSelectSection,
+  topContent,
 }: WorkingSectionsHomeViewProps): React.JSX.Element {
   const { sections, isPending, isError, refetch } =
     useWorkingSectionsHomeContext();
@@ -28,16 +35,14 @@ export function WorkingSectionsHomeView({
       className="flex h-full flex-col"
       data-testid="working-sections-home-view"
     >
-      <header className="flex items-center justify-between px-4 py-3">
-        <h1 className="text-lg font-semibold text-foreground">My Sections</h1>
-      </header>
-
       <PullToRefresh
         className="flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={refetch}
       >
+        <div className="pt-3">{topContent}</div>
+
         {isPending ? (
           <div className="flex flex-col gap-3 px-0 py-2">
             {[0, 1, 2].map((i) => (

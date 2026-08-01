@@ -4,7 +4,21 @@ import {
   type QueryClient,
 } from "@tanstack/react-query";
 import { fetchCurrentShift } from "./fetch-current-shift";
-import { workerShiftKeys } from "./worker-shift-keys";
+import { WORKER_SHIFT_SELF_SCOPE, workerShiftKeys } from "./worker-shift-keys";
+
+/**
+ * Self-scope read for a **worker-role** session: calls
+ * `GET /worker-shifts/current` with no `user_id`. A manager-role token signed
+ * into the worker app gets a 403 here by design (handoff §12.1) — callers must
+ * role-gate rather than treat that as an auth failure, so this hook takes an
+ * `enabled` flag instead of firing unconditionally.
+ */
+export function useMyCurrentShiftQuery(enabled = true) {
+  return useQuery({
+    queryKey: workerShiftKeys.current({ user_id: WORKER_SHIFT_SELF_SCOPE }),
+    queryFn: enabled ? () => fetchCurrentShift() : skipToken,
+  });
+}
 
 export function useCurrentShiftQuery(user_id?: string) {
   return useQuery({

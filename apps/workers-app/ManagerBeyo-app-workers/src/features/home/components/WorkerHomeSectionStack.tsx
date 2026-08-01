@@ -8,6 +8,7 @@ import {
   WorkingSectionStepsProvider,
   WorkingSectionStepsView,
 } from "../../task_steps";
+import { HomeTopCardsProvider } from "../providers/HomeTopCardsProvider";
 
 type WorkerHomeSectionStackProps = {
   "data-testid": string;
@@ -45,6 +46,7 @@ export function WorkerHomeSectionStack({
 
   return (
     <WorkingSectionsHomeProvider>
+      <HomeTopCardsProvider>
       <div className="relative h-full overflow-hidden" data-testid={testId}>
         <SlideStack activeId={activePane} onBack={handleBack}>
           <SlideStackPane className="h-full overflow-hidden" id="sections">
@@ -69,6 +71,7 @@ export function WorkerHomeSectionStack({
           ) : null}
         </SlideStack>
       </div>
+      </HomeTopCardsProvider>
     </WorkingSectionsHomeProvider>
   );
 }

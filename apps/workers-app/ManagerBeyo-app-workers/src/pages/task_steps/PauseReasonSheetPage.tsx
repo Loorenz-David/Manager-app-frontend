@@ -6,7 +6,6 @@ import { usePauseReasonsQuery, PauseReasonPicker, type PauseReason } from "@beyo
 import { tabVariants, transitions } from "@beyo/lib";
 import { useTransitionStepState } from "@/features/task_steps/actions/use-transition-step-state";
 import type { PauseReasonSheetSurfaceProps } from "@/features/task_steps/surface-ids";
-import { resolvePauseReasonTransition } from "@/features/task_steps/lib/pause-reason-transition";
 
 function PauseReasonPickerSkeleton(): React.JSX.Element {
   return (
@@ -97,9 +96,8 @@ export function PauseReasonSheetPage(): React.JSX.Element {
     }
 
     setSelectedReason(reason);
-    const transition = resolvePauseReasonTransition(reason);
 
-    if (transition.requiresDescription) {
+    if (reason.requires_description) {
       setDescription("");
       setDirection(1);
       setView(1);
@@ -109,7 +107,9 @@ export function PauseReasonSheetPage(): React.JSX.Element {
     transitionStepState({
       task_id: resolvedTaskId,
       step_id: resolvedStepId,
-      new_state: transition.newState,
+      // Every pause is `paused`, `pause_ended_shift` included. Why the step
+      // stopped travels in `pause_reason_id`, never in the state.
+      new_state: "paused",
       pause_reason_id: reason.client_id,
       working_section_id: resolvedWorkingSectionId,
     });
@@ -126,11 +126,10 @@ export function PauseReasonSheetPage(): React.JSX.Element {
       return;
     }
 
-    const transition = resolvePauseReasonTransition(selectedReason);
     transitionStepState({
       task_id: resolvedTaskId,
       step_id: resolvedStepId,
-      new_state: transition.newState,
+      new_state: "paused",
       pause_reason_id: selectedReason.client_id,
       description: trimmedDescription,
       working_section_id: resolvedWorkingSectionId,

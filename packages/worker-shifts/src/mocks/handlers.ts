@@ -41,6 +41,9 @@ const mockReasons = {
   },
 };
 
+/** Which fixture a `user_id`-less (worker-token self) request resolves to. */
+const MOCK_SELF_USER_ID = MOCK_CLOCKED_IN_USER_ID;
+
 let stateByUserId: Record<string, CurrentShift>;
 let declarationSequence = 0;
 
@@ -80,7 +83,12 @@ export const workerShiftMockHandlers = [
 
   http.get("*/api/v1/worker-shifts/current", ({ request }) => {
     const user_id = new URL(request.url).searchParams.get("user_id");
-    const shift = user_id === null ? null : target(user_id);
+    // No user_id = the worker-token self read (handoff §12.1). The mock resolves
+    // it to the clocked-in fixture; a manager token would get a 403 here.
+    const shift =
+      user_id === null
+        ? target(MOCK_SELF_USER_ID)
+        : target(user_id);
 
     return shift === null
       ? failure(404, "Worker was not found.")
@@ -157,7 +165,9 @@ export const workerShiftMockHandlers = [
         return failure(422, "Invalid declared-state request.");
       }
 
-      const shift = target(parsed.data.user_id);
+      // Worker tokens omit user_id — resolve to the self fixture (handoff §12.5).
+      const targetUserId = parsed.data.user_id ?? MOCK_SELF_USER_ID;
+      const shift = target(targetUserId);
       if (shift === null) {
         return failure(404, "Worker was not found.");
       }
@@ -196,7 +206,7 @@ export const workerShiftMockHandlers = [
         entered_at: "2026-07-29T10:00:00Z",
       };
 
-      stateByUserId[parsed.data.user_id] = {
+      stateByUserId[targetUserId] = {
         ...shift,
         state: "in_pause",
         state_entered_at: declared_state.entered_at,
@@ -207,8 +217,7 @@ export const workerShiftMockHandlers = [
       return success({
         declared_state,
         shift_state: "in_pause",
-        paused_steps:
-          parsed.data.user_id === MOCK_CLOCKED_IN_USER_ID ? 1 : 0,
+        paused_steps: targetUserId === MOCK_CLOCKED_IN_USER_ID ? 1 : 0,
       });
     },
   ),

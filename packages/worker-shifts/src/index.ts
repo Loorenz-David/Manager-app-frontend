@@ -42,7 +42,10 @@ export type {
   ShiftState,
 } from "./types";
 
-export { workerShiftKeys } from "./api/worker-shift-keys";
+export {
+  WORKER_SHIFT_SELF_SCOPE,
+  workerShiftKeys,
+} from "./api/worker-shift-keys";
 export type {
   CurrentShiftParams,
   FloorRosterParams,
@@ -58,6 +61,7 @@ export {
 export {
   fetchFreshCurrentShift,
   useCurrentShiftQuery,
+  useMyCurrentShiftQuery,
 } from "./api/use-current-shift-query";
 
 export { useClockIn } from "./actions/use-clock-in";

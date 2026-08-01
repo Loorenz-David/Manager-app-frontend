@@ -154,7 +154,10 @@ export const TaskStepCountsByStateSchema = z.object({
   pending: z.number().int(),
   working: z.number().int(),
   paused: z.number().int(),
-  ended_shift: z.number().int(),
+  // See the note on the workers app's TaskStepStateCountsSchema: the backend is
+  // retiring the `ended_shift` step state and `/tasks/{id}/steps/counts` no
+  // longer returns this bucket. Default rather than require it.
+  ended_shift: z.number().int().default(0),
   blocked: z.number().int(),
   completed: z.number().int(),
   skipped: z.number().int(),

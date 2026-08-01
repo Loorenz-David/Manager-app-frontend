@@ -1,4 +1,11 @@
 import { expect, test } from "@playwright/test";
+import { press } from "../../helpers/press";
+
+// `working-section-card-<id>` is also the prefix of the two count badges
+// inside each card, so the bare prefix matches three nodes per section and
+// `nth(i)` can land on a badge. Select card roots only.
+const SECTION_CARD_ROOT =
+  /^working-section-card-(?!active-count-|done-count-)/;
 
 const EMAIL = process.env.PLAYWRIGHT_TEST_EMAIL ?? "";
 const PASSWORD = process.env.PLAYWRIGHT_TEST_PASSWORD ?? "";
@@ -23,29 +30,20 @@ test.describe("Home - Working Sections", () => {
   });
 
   test("navigates to steps panel on section tap", async ({ page }) => {
-    await page
-      .getByTestId(/^working-section-card-/)
-      .first()
-      .click();
+    await press(page, page.getByTestId(SECTION_CARD_ROOT).first());
     await expect(page.getByTestId("working-section-steps-view")).toBeVisible();
     await expect(page.getByTestId("working-section-steps-title")).toBeVisible();
   });
 
   test("back button returns to sections list", async ({ page }) => {
-    await page
-      .getByTestId(/^working-section-card-/)
-      .first()
-      .click();
+    await press(page, page.getByTestId(SECTION_CARD_ROOT).first());
     await expect(page.getByTestId("working-section-steps-view")).toBeVisible();
-    await page.getByTestId("working-section-steps-back").click();
+    await press(page, page.getByTestId("working-section-steps-back"));
     await expect(page.getByTestId("working-sections-home-view")).toBeVisible();
   });
 
   test("search filters step list", async ({ page }) => {
-    await page
-      .getByTestId(/^working-section-card-/)
-      .first()
-      .click();
+    await press(page, page.getByTestId(SECTION_CARD_ROOT).first());
     const search = page.getByTestId("working-section-steps-search-input");
     await search.fill("NOMATCH_XYZ_999");
     await expect(page.getByTestId("working-section-steps-empty")).toBeVisible({
@@ -54,12 +52,12 @@ test.describe("Home - Working Sections", () => {
   });
 
   test("task actions sheet opens on three-dot tap", async ({ page }) => {
-    const sections = page.getByTestId(/^working-section-card-/);
+    const sections = page.getByTestId(SECTION_CARD_ROOT);
     const sectionCount = await sections.count();
     let foundSectionWithActions = false;
 
     for (let i = 0; i < sectionCount; i += 1) {
-      await sections.nth(i).click();
+      await press(page, sections.nth(i));
       await expect(
         page.getByTestId("working-section-steps-view"),
       ).toBeVisible();
@@ -73,7 +71,7 @@ test.describe("Home - Working Sections", () => {
         foundSectionWithActions = true;
         break;
       } catch {
-        await page.getByTestId("working-section-steps-back").click();
+        await press(page, page.getByTestId("working-section-steps-back"));
         await expect(
           page.getByTestId("working-sections-home-view"),
         ).toBeVisible();
@@ -85,10 +83,7 @@ test.describe("Home - Working Sections", () => {
       "No section with visible task step actions for this test user",
     );
 
-    await page
-      .getByTestId(/^task-step-card-actions-/)
-      .first()
-      .click();
+    await press(page, page.getByTestId(/^task-step-card-actions-/).first());
     await expect(page.getByTestId("task-step-actions-sheet")).toBeVisible();
     await expect(
       page.getByTestId("task-step-create-case-button"),
@@ -98,12 +93,12 @@ test.describe("Home - Working Sections", () => {
   test("quick action transition updates same card action label", async ({
     page,
   }) => {
-    const sections = page.getByTestId(/^working-section-card-/);
+    const sections = page.getByTestId(SECTION_CARD_ROOT);
     const sectionCount = await sections.count();
     let foundSectionWithQuickAction = false;
 
     for (let i = 0; i < sectionCount; i += 1) {
-      await sections.nth(i).click();
+      await press(page, sections.nth(i));
       await expect(
         page.getByTestId("working-section-steps-view"),
       ).toBeVisible();
@@ -117,7 +112,7 @@ test.describe("Home - Working Sections", () => {
         foundSectionWithQuickAction = true;
         break;
       } catch {
-        await page.getByTestId("working-section-steps-back").click();
+        await press(page, page.getByTestId("working-section-steps-back"));
         await expect(
           page.getByTestId("working-sections-home-view"),
         ).toBeVisible();
@@ -142,7 +137,7 @@ test.describe("Home - Working Sections", () => {
         response.status() === 200,
     );
 
-    await actionButton.click();
+    await press(page, actionButton);
     await transitionResponse;
 
     const sameButton = page.getByTestId(actionButtonTestId!);

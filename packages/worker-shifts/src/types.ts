@@ -193,7 +193,9 @@ export const ClockOutInputSchema = z.object({
 export type ClockOutInput = z.infer<typeof ClockOutInputSchema>;
 
 export const DeclareStateInputSchema = z.object({
-  user_id: z.string(),
+  // Handoff §12.1/§12.5: required for manager/admin tokens, omitted for worker
+  // tokens (which may only declare their own state).
+  user_id: z.string().optional(),
   pause_reason_id: z.string(),
   description: z.string().optional(),
 });

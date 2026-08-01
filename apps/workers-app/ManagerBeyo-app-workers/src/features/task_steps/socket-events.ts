@@ -4,6 +4,7 @@ import {
   itemUpholsteryKeys as tasksItemUpholsteryKeys,
   taskStepKeys as tasksPackageStepKeys,
 } from "@beyo/tasks";
+import { reassignedStepKeys } from "@beyo/task-working-sections";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
 import { taskStepKeys } from "./api/task-step-keys";
 import type { UserLastActivePayload } from "./types";
@@ -46,6 +47,14 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       queryKey: taskStepKeys.userLastActive(),
       refetchType: "active",
     });
+
+    // A completed/skipped/failed/cancelled step drops out of the reassigned
+    // inbox on its own (handoff §1/§8) — this workspace broadcast is the only
+    // signal for that, so re-read the list and the badge.
+    queryClient.invalidateQueries({
+      queryKey: reassignedStepKeys.all,
+      refetchType: "active",
+    });
   },
 
   "task:step-acknowledgment-created": (_payload, { queryClient }) => {
@@ -53,11 +62,19 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       queryKey: taskStepKeys.reassignmentAcks(),
       refetchType: "active",
     });
+    queryClient.invalidateQueries({
+      queryKey: reassignedStepKeys.all,
+      refetchType: "active",
+    });
   },
 
   "task:step-acknowledgment-removed": (_payload, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.reassignmentAcks(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: reassignedStepKeys.all,
       refetchType: "active",
     });
   },

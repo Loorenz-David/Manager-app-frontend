@@ -1,4 +1,5 @@
 import { WorkingSectionsHomeView } from "../../../working_sections";
+import { HomeTopCards } from "../HomeTopCards";
 import { WorkerHomeSectionStack } from "../WorkerHomeSectionStack";
 
 export function StandardWorkerHomeView(): React.JSX.Element {
@@ -6,7 +7,10 @@ export function StandardWorkerHomeView(): React.JSX.Element {
     <WorkerHomeSectionStack
       data-testid="home-page"
       renderSections={(onSelectSection) => (
-        <WorkingSectionsHomeView onSelectSection={onSelectSection} />
+        <WorkingSectionsHomeView
+          topContent={<HomeTopCards />}
+          onSelectSection={onSelectSection}
+        />
       )}
     />
   );

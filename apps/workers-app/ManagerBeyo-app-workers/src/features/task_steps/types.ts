@@ -6,204 +6,74 @@ import type {
   WorkingSectionId,
   UserId,
 } from "@beyo/lib";
-import { PauseReasonSchema } from "@beyo/pause-reasons";
 import {
   ImageAnnotationSchema,
   toImageAnnotationViewModels,
   type ImageAnnotationViewModel,
 } from "@beyo/images";
+import type { UpholsteryGroupFields } from "@beyo/upholstery";
+// ─── Promoted step-item schema family ────────────────────────────────────────
+// These definitions now live in `@beyo/task-working-sections` so the package's
+// reassigned-steps page and this app share one shape (handoff §11). They are
+// re-exported verbatim under their historic local names so no other app file
+// changes.
 import {
-  UpholsteryGroupFieldsSchema,
-  type UpholsteryGroupFields,
-} from "@beyo/upholstery";
+  STEP_QUICK_TRANSITION,
+  STEP_TERMINAL_STATES,
+  UserRefSchema,
+  WorkingSectionStepItemSchema,
+  type CasesSummary,
+  type LastStateRecord,
+  type ReadinessStatus,
+  type StepDependencyEntry,
+  type StepState,
+  type TaskSnapshot,
+  type TaskType,
+  type WorkingSectionStepItem,
+} from "@beyo/task-working-sections";
+
+export {
+  CasesSummarySchema,
+  DependencyWorkingSectionRefSchema,
+  ItemImageFullSchema,
+  ItemImageLightSchema,
+  ItemImageSchema,
+  ItemSnapshotSchema,
+  LastStateRecordSchema,
+  ReadinessStatusSchema,
+  StepDependencyEntrySchema,
+  StepStateSchema,
+  TaskSnapshotSchema,
+  TaskStepsPaginationSchema,
+  UpholsteryRequirementSchema,
+} from "@beyo/task-working-sections";
+export type {
+  DependencyWorkingSectionRef,
+  ItemImage,
+  TaskStepsPagination,
+} from "@beyo/task-working-sections";
+
+export {
+  STEP_QUICK_TRANSITION,
+  STEP_TERMINAL_STATES,
+  UserRefSchema,
+  WorkingSectionStepItemSchema as TaskStepSchema,
+};
+export type {
+  CasesSummary,
+  LastStateRecord,
+  ReadinessStatus,
+  StepDependencyEntry,
+  StepState,
+  TaskSnapshot,
+  TaskType,
+};
+export type TaskStep = WorkingSectionStepItem;
 
 const TaskIdSchema = z.string().transform((value) => value as TaskId);
 const TaskStepIdSchema = z.string().transform((value) => value as TaskStepId);
-const WorkingSectionIdSchema = z
-  .string()
-  .transform((value) => value as WorkingSectionId);
-const UserIdSchema = z.string().transform((value) => value as UserId);
-
-export const DependencyWorkingSectionRefSchema = z.object({
-  client_id: WorkingSectionIdSchema,
-  name: z.string(),
-  image: z.string().nullable(),
-  order_list: z.number(),
-});
-export type DependencyWorkingSectionRef = z.infer<
-  typeof DependencyWorkingSectionRefSchema
->;
-
-export const StepStateSchema = z.enum([
-  "pending",
-  "working",
-  "paused",
-  "ended_shift",
-  "blocked",
-  "completed",
-  "skipped",
-  "failed",
-  "cancelled",
-]) satisfies z.ZodType<import("@beyo/tasks").StepState>;
-export type StepState = z.infer<typeof StepStateSchema>;
 
 export type MajorCategory = "seat" | "wood";
-
-export const STEP_TERMINAL_STATES = new Set<StepState>([
-  "completed",
-  "skipped",
-  "failed",
-  "cancelled",
-]);
-
-export const STEP_QUICK_TRANSITION: Partial<Record<StepState, StepState>> = {
-  pending: "working",
-  working: "paused",
-  paused: "working",
-  ended_shift: "working",
-};
-
-export const UserRefSchema = z.object({
-  client_id: UserIdSchema,
-  username: z.string(),
-  profile_picture: z.string().nullable(),
-});
-
-export const StepDependencyEntrySchema = z.object({
-  working_section: DependencyWorkingSectionRefSchema,
-  prerequisite_step_state: StepStateSchema,
-});
-export type StepDependencyEntry = z.infer<typeof StepDependencyEntrySchema>;
-
-export const LastStateRecordSchema = z.object({
-  state: StepStateSchema,
-  // The pause reason as a full nested object (renamed from the old flat
-  // `pause_reason_id`); populated for paused/ended-shift records, null
-  // otherwise. Optional for resilience against older cached payloads.
-  pause_reason: PauseReasonSchema.nullable().optional(),
-  entered_at: z.string(),
-  exited_at: z.string().nullable(),
-  last_action_by: UserRefSchema.nullable().optional(),
-  first_started_at: z.string().nullable().optional(),
-});
-export type LastStateRecord = z.infer<typeof LastStateRecordSchema>;
-
-export const TaskSnapshotSchema = z.object({
-  client_id: TaskIdSchema,
-  task_type: z.enum(["return", "pre_order", "internal"]),
-  priority: z.enum(["low", "normal", "high", "urgent"]),
-  state: z.string(),
-  assortment: z.string().nullable(),
-  return_source: z
-    .enum(["after_purchase", "before_purchase", "store_return"])
-    .nullable(),
-  item_location: z.string().nullable(),
-  ready_by_at: z.string().nullable(),
-  scheduled_start_at: z.string().nullable(),
-  scheduled_end_at: z.string().nullable(),
-  return_method: z.string().nullable(),
-});
-export type TaskSnapshot = z.infer<typeof TaskSnapshotSchema>;
-export type TaskType = TaskSnapshot["task_type"];
-
-export const UpholsteryRequirementSchema = z.object({
-  client_id: z.string(),
-  item_upholstery_id: z.string().nullable().optional(),
-  upholstery_id: z.string().nullable().optional(),
-  state: z.string(),
-  source: z.string(),
-  amount_meters: z.number().nullable(),
-});
-
-export const ItemSnapshotSchema = z
-  .object({
-    client_id: z.string(),
-    article_number: z.string().nullable(),
-    sku: z.string().nullable(),
-    state: z.string(),
-    item_category_id: z.string().nullable(),
-    quantity: z.number(),
-    item_position: z.string().nullable(),
-    item_zone: z.string().nullable(),
-    upholstery_requirement: z.array(UpholsteryRequirementSchema),
-  })
-  .nullable();
-
-export const ItemImageLightSchema = z.object({
-  client_id: z.string(),
-  image_url: z.string(),
-  width_px: z.number().nullable(),
-  height_px: z.number().nullable(),
-  file_size_bytes: z.number().nullable(),
-});
-
-export const ItemImageFullSchema = ItemImageLightSchema.extend({
-  storage_provider: z.string(),
-  source_type: z.string(),
-  source_reference: z.string().nullable(),
-  created_at: z.string(),
-  last_event: z.unknown().nullable(),
-  events: z.array(z.unknown()),
-  image_annotation: z.unknown().nullable(),
-});
-
-export const ItemImageSchema = z.union([
-  ItemImageFullSchema,
-  ItemImageLightSchema,
-]);
-export type ItemImage = z.infer<typeof ItemImageSchema>;
-
-export const CasesSummarySchema = z.object({
-  total_unread: z.number().int(),
-});
-export type CasesSummary = z.infer<typeof CasesSummarySchema>;
-
-export const ReadinessStatusSchema = z.enum(["ready", "blocked", "partial"]);
-export type ReadinessStatus = z.infer<typeof ReadinessStatusSchema>;
-
-export const TaskStepSchema = z.object({
-  client_id: TaskStepIdSchema,
-  task_id: TaskIdSchema,
-  state: StepStateSchema,
-  readiness_status: ReadinessStatusSchema,
-  sequence_order: z.number().nullable(),
-  working_section_id: WorkingSectionIdSchema,
-  assigned_worker_id: z.string().nullable(),
-  total_dependencies: z.number(),
-  completed_dependencies: z.number(),
-  working_section_name_snapshot: z.string(),
-  assigned_worker_display_name_snapshot: z.string().nullable(),
-  created_at: z.string(),
-  closed_at: z.string().nullable(),
-  total_working_seconds: z.number().int(),
-  total_pause_seconds: z.number().int(),
-  total_ended_shift_seconds: z.number().int(),
-  total_working_count: z.number().int(),
-  total_pause_count: z.number().int(),
-  total_ended_shift_count: z.number().int(),
-  total_issues_count: z.number().int(),
-  total_issues_resolved_count: z.number().int(),
-  total_cost_minor: z.number().int().nullable(),
-  updated_at: z.string(),
-  created_by: UserRefSchema,
-  updated_by: UserRefSchema.nullable(),
-  last_state_record: LastStateRecordSchema.nullable(),
-  task: TaskSnapshotSchema,
-  item: ItemSnapshotSchema,
-  item_images: z.array(ItemImageSchema),
-  cases_summary: CasesSummarySchema.nullable().optional(),
-  is_reassigned: z.boolean().default(false),
-  dependency_working_sections: z.array(StepDependencyEntrySchema).default([]),
-}).extend(UpholsteryGroupFieldsSchema.shape);
-export type TaskStep = z.infer<typeof TaskStepSchema>;
-
-export const TaskStepsPaginationSchema = z.object({
-  items: z.array(TaskStepSchema),
-  limit: z.number(),
-  offset: z.number(),
-  has_more: z.boolean(),
-});
-export type TaskStepsPagination = z.infer<typeof TaskStepsPaginationSchema>;
 
 export type TransitionStepStateInput = {
   task_id: TaskId;
@@ -409,7 +279,7 @@ export const AcknowledgmentSchema = z.object({
 });
 export type Acknowledgment = z.infer<typeof AcknowledgmentSchema>;
 
-export const ReassignmentStepSchema = TaskStepSchema.extend({
+export const ReassignmentStepSchema = WorkingSectionStepItemSchema.extend({
   acknowledgment: AcknowledgmentSchema,
 });
 export type ReassignmentStep = z.infer<typeof ReassignmentStepSchema>;

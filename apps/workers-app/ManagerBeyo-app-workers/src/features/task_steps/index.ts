@@ -36,6 +36,7 @@ export { WorkingSectionStepsView } from "./components/WorkingSectionStepsView";
 export { BatchSelectableTaskStepCard } from "./components/BatchSelectableTaskStepCard";
 export { LastActiveStepCard } from "./components/LastActiveStepCard";
 export { ReassignmentAcknowledgmentPanel } from "./components/ReassignmentAcknowledgmentPanel";
+export { ReassignedStepRow } from "./components/ReassignedStepRow";
 export {
   preloadBatchDetailSlideSurface,
   preloadCompleteTaskStepConfirmationSlideSurface,

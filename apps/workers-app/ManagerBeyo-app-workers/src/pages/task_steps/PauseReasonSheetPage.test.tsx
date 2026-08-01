@@ -146,15 +146,17 @@ describe("PauseReasonSheetPage", () => {
     });
   });
 
-  it("maps the reserved ended-shift slug to ended_shift", () => {
+  it("sends `paused` for the reserved ended-shift slug", () => {
     render(<PauseReasonSheetPage />);
 
     fireEvent.click(screen.getByTestId("picker-pause_ended_shift"));
 
+    // The ended-shift state is no longer sent by anything (handoff §6.1); the
+    // reason alone records why the step stopped.
     expect(mocks.transition).toHaveBeenCalledWith({
       task_id: "tsk_task",
       step_id: "tsp_step",
-      new_state: "ended_shift",
+      new_state: "paused",
       pause_reason_id: "par_ended",
       working_section_id: "wks_section",
     });

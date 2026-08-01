@@ -6,7 +6,10 @@ import {
   type DeclareStateInput,
   type DeclareStateResult,
 } from "../types";
-import { workerShiftKeys } from "../api/worker-shift-keys";
+import {
+  WORKER_SHIFT_SELF_SCOPE,
+  workerShiftKeys,
+} from "../api/worker-shift-keys";
 
 const DeclareStateResponseSchema = ApiEnvelopeSchema(
   DeclareStateResultSchema,
@@ -27,9 +30,13 @@ export function useDeclareState() {
   const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: declareState,
+    // A worker-token declare omits user_id, so its cache entry is the self
+    // scope; a manager/admin declare targets that worker's scope.
     onSettled: (_data, _error, input) =>
       queryClient.invalidateQueries({
-        queryKey: workerShiftKeys.current({ user_id: input.user_id }),
+        queryKey: workerShiftKeys.current({
+          user_id: input.user_id ?? WORKER_SHIFT_SELF_SCOPE,
+        }),
       }),
   });
 

@@ -11,6 +11,7 @@ import { useRegisterScrollElement } from "@/providers/AppScrollElementProvider";
 import { useWorkingSectionsHomeContext } from "../../../working_sections";
 import type { WorkingSectionViewModel } from "../../../working_sections";
 import { WorkingSectionCard } from "../../../working_sections/components/WorkingSectionCard";
+import { HomeTopCards } from "../HomeTopCards";
 import { WorkerHomeSectionStack } from "../WorkerHomeSectionStack";
 
 export function WoodWorkerHomeView(): React.JSX.Element {
@@ -52,16 +53,16 @@ function WoodWorkerSectionsView({
       className="flex h-full flex-col"
       data-testid="wood-worker-sections-view"
     >
-      <header className="px-4 py-3">
-        <h1 className="text-lg font-semibold text-foreground">My Sections</h1>
-      </header>
-
       <PullToRefresh
         className="flex-1"
         scrollClassName="overflow-y-auto overscroll-y-none"
         scrollRef={scrollRef}
         onRefresh={refetch}
       >
+        <div className="pt-3">
+          <HomeTopCards />
+        </div>
+
         {isPending ? (
           <div className="flex flex-col gap-3 px-0 py-2">
             {[0, 1, 2].map((i) => (

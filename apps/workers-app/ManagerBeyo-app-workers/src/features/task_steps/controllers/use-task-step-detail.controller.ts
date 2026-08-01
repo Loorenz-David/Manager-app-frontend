@@ -35,7 +35,6 @@ import {
   type CaseCreationSurfaceOpeners,
   type ParticipantPickerSlideSurfaceProps,
 } from "@beyo/cases";
-import { usePauseReasonsQuery } from "@beyo/pause-reasons";
 import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, type ShopifyProductSyncSurfaceOpeners } from "@beyo/shopify";
 import type { WorkerWorkingSection } from "../../working_sections/types";
 import {
@@ -223,10 +222,6 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     pendingCompletion,
     clearPendingCompletion,
   } = useTransitionStepState();
-  const { data: pauseReasonsData } = usePauseReasonsQuery({});
-  const caseCreatedPauseReasonId = pauseReasonsData?.pause_reasons.find(
-    (reason) => reason.slug === "pause_case_created",
-  )?.client_id;
   const updateItemPosition = useUpdateItemPosition(resolvedWorkingSectionId);
   const { cancelCompletion, isPending: isCancellingCompletion } =
     useCancelPendingStepCompletion();
@@ -675,25 +670,15 @@ export function useTaskStepDetailController(): TaskStepDetailController {
           openSurface(PARTICIPANT_PICKER_SLIDE_SURFACE_ID, props),
       };
 
+      // No `onCaseCreated` pause: creating a case pauses the task's working
+      // steps server-side, in the same request, with a typed reason. A client
+      // transition here would attempt PAUSED → PAUSED and surface an error.
+      // See HANDOFF_TO_FRONTEND_remove_case_created_pause_20260801.md.
       openSurface(CASE_CREATION_SLIDE_SURFACE_ID, {
         entityTypes: ["task"],
         entityClientId: resolvedTaskId,
         title: vm?.articleLabel,
         surfaceOpeners,
-        onCaseCreated: (plainText: string | undefined) => {
-          if (step?.state !== "working") {
-            return;
-          }
-
-          transitionStepState({
-            task_id: resolvedTaskId,
-            step_id: resolvedStepId,
-            new_state: "paused",
-            working_section_id: resolvedWorkingSectionId,
-            pause_reason_id: caseCreatedPauseReasonId,
-            ...(plainText ? { description: plainText } : {}),
-          });
-        },
       });
       return;
     }
@@ -712,17 +697,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
       taskId: resolvedTaskId,
       articleLabel: vm?.articleLabel,
     } as TaskCasesSlideSurfaceProps);
-  }, [
-    liveCasesSummary,
-    openSurface,
-    resolvedTaskId,
-    vm,
-    step,
-    transitionStepState,
-    resolvedStepId,
-    resolvedWorkingSectionId,
-    caseCreatedPauseReasonId,
-  ]);
+  }, [liveCasesSummary, openSurface, resolvedTaskId, vm]);
 
   // Flow record detail surface not yet registered in workers app.
   const handleOpenFlowRecord = useCallback((_entityClientId: string) => {}, []);

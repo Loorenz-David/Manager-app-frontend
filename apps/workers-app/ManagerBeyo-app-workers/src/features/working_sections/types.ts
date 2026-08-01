@@ -9,7 +9,11 @@ export const TaskStepStateCountsSchema = z.object({
   pending: z.number(),
   working: z.number(),
   paused: z.number(),
-  ended_shift: z.number(),
+  // The backend has begun removing `ended_shift` from the step-state
+  // vocabulary and no longer emits this bucket. Defaulting keeps the response
+  // parseable both before and during that migration — without it the whole
+  // sections list fails validation and home renders its error state.
+  ended_shift: z.number().default(0),
   blocked: z.number(),
   completed: z.number(),
   skipped: z.number(),
