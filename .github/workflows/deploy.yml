@@ -23,8 +23,14 @@ jobs:
             sudo git reset --hard origin/main
             sudo chown -R ubuntu:ubuntu /var/www/managerbeyo-frontend-src
 
-            npm install --include=optional
-            npm install -D lightningcss-linux-x64-gnu @rolldown/binding-linux-x64-gnu
+            # `npm ci`, not `npm install`: it reifies the lockfile as-is. Plain
+            # `npm install` re-resolves and prunes the current platform's native
+            # bindings (npm/cli#4828), which is what forced the old explicit
+            # `-D lightningcss-linux-x64-gnu @rolldown/binding-linux-x64-gnu`
+            # line here. Those are transitive optional deps of lightningcss and
+            # rolldown; the lockfile carries every platform's variant, gated by
+            # os/cpu, so each machine installs only its own.
+            npm ci --include=optional
 
             npm --workspace managerbeyo-app-managers run build
             rsync -a --delete apps/managers-app/ManagerBeyo-app-managers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-managers/
@@ -34,6 +40,9 @@ jobs:
 
             npm --workspace managerbeyo-app-sellers run build
             rsync -a --delete apps/selleres-app/ManagerBeyo-app-sellers/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-sellers/
-            
+
             npm --workspace managerbeyo-app-presentation-studio run build
             rsync -a --delete apps/presentation-studio/ManagerBeyo-app-presentation-studio/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-presentation-studio/
+
+            npm --workspace managerbeyo-app-floor run build
+            rsync -a --delete apps/floor-app/ManagerBeyo-app-floor/dist/ /var/www/managerbeyo-frontend/apps/ManagerBeyo-app-floor/
