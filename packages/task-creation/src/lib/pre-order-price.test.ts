@@ -13,7 +13,7 @@ import type { PreOrderFormValues } from "../types";
 function buildValues(
   overrides: Partial<PreOrderFormValues> = {},
 ): PreOrderFormValues {
-  const defaults = buildPreOrderFormDefaultValues("SKU-1");
+  const defaults = buildPreOrderFormDefaultValues(true);
 
   return {
     ...defaults,
@@ -119,6 +119,39 @@ describe("buildShopifyPreorderSection price", () => {
     );
 
     expect(section?.product).toMatchObject({ tags: ["preorder"] });
+  });
+
+  it("names nothing itself, leaving sku, title and alt text to the backend", () => {
+    const section = buildShopifyPreorderSection(
+      buildValues({
+        product_unit_price: 100,
+        item: { sku: "SKU-1", quantity: 12 },
+      }),
+      { imageClientId: "img_1" },
+    );
+    const product = section?.product as Record<string, unknown>;
+
+    // Even with a SKU typed into the form: the backend mirrors whatever the
+    // item resolves to, so sending these would only be a second source of
+    // truth to keep in sync.
+    expect(product).not.toHaveProperty("sku");
+    expect(product).not.toHaveProperty("title");
+    expect(product).not.toHaveProperty("image_alt_text");
+    expect(product.image_id).toBe("img_1");
+  });
+
+  it("builds a section for an item whose SKU the backend will assign", () => {
+    const section = buildShopifyPreorderSection(
+      buildValues({
+        product_unit_price: 100,
+        item: { sku: "", article_number: "", quantity: 2 },
+      }),
+    );
+
+    // A blank SKU used to suppress the whole section, which would now mean no
+    // Shopify product on the normal auto-assign path.
+    expect(section).toBeDefined();
+    expect(section?.shop_integration_id).toBe("shop-1");
   });
 
   it("keeps the item metafield quantity separate from inventory quantities", () => {

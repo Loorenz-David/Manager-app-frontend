@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 
 import { PreOrderFormContent } from "../components/PreOrderFormContent";
-import { TaskCreationFormInitializationGate } from "../components/TaskCreationFormInitializationGate";
 import { TaskCreationFormProvider } from "../providers/TaskCreationFormProvider";
 import type { TaskCreationSlideSurfaceProps } from "../surfaces";
 
@@ -16,10 +15,10 @@ export function PreOrderTaskSlidePage(): React.JSX.Element {
   }, [header]);
 
   return (
+    // No initialization gate: the SKU preview is a non-committal read, so the
+    // form opens immediately and fills in the ghost text when it lands.
     <TaskCreationFormProvider callbacks={callbacks} taskType="pre_order">
-      <TaskCreationFormInitializationGate>
-        <PreOrderFormContent />
-      </TaskCreationFormInitializationGate>
+      <PreOrderFormContent />
     </TaskCreationFormProvider>
   );
 }

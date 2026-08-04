@@ -78,13 +78,25 @@ export const TASK_CREATION_FORM_TYPE = [
 ] as const;
 export type TaskCreationFormType = (typeof TASK_CREATION_FORM_TYPE)[number];
 
-export const SkuReservationSchema = z.object({
+/**
+ * A task type's SKU template, read purely to preview the number the backend
+ * would assign next (HANDOFF_TO_FRONTEND_sku_template_gapless_allocation_
+ * 20260804 §5). This is a plain read that never increments anything, and
+ * `next_sku_preview` is a hint, not a promise — a concurrent submit can take
+ * that number first. The real SKU only ever comes back as `item_sku` on the
+ * task-creation response, and the preview value is never sent back to the API.
+ */
+export const SkuTemplatePreviewSchema = z.object({
   client_id: z.string(),
-  task_type: z.enum(TASK_CREATION_FORM_TYPE),
-  reserved_scalar: z.number().int().nonnegative(),
-  sku: z.string().min(1),
+  task_type: z.string(),
+  prefix: z.string(),
+  separator: z.string(),
+  pad_width: z.number().int().nonnegative(),
+  last_scalar: z.number().int().nonnegative(),
+  next_scalar: z.number().int().nonnegative(),
+  next_sku_preview: z.string().min(1),
 });
-export type SkuReservation = z.infer<typeof SkuReservationSchema>;
+export type SkuTemplatePreview = z.infer<typeof SkuTemplatePreviewSchema>;
 
 export const SHOPIFY_CUSTOMER_MATCH_TYPE = ["sku", "barcode"] as const;
 export type ShopifyCustomerMatchType =
@@ -228,9 +240,21 @@ export const PreOrderFormSchema = z
       .nullable(),
     shopIntegrationIds: z.array(z.string()),
     inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema),
+    /**
+     * Mirrors whether the workspace has a SKU template for pre-orders, kept in
+     * the form so validation stays a single static schema. When it does, a
+     * blank SKU is the normal path — the backend assigns one during creation —
+     * so the item needs no manually entered identity at all.
+     */
+    has_sku_template: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    addItemIdentityIssue(data.item, ctx);
+    // With a template, the item's identity comes from the SKU the backend is
+    // about to assign, so neither field has to be filled in. Without one
+    // (no template configured, or the preview 404'd) the old rule stands.
+    if (!data.has_sku_template) {
+      addItemIdentityIssue(data.item, ctx);
+    }
     // No seat position/zone requirement here, deliberately: a pre-ordered item
     // is not in the building yet, so it has nowhere to be. Return and internal
     // tasks still require it.
@@ -243,13 +267,10 @@ export const PreOrderFormSchema = z
       });
     }
 
-    if (!data.item.sku?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "A SKU is required for the Shopify product.",
-        path: ["item", "sku"],
-      });
-    }
+    // Deliberately no SKU-required rule: a blank SKU is what triggers the
+    // backend's template allocation, and the Shopify product inherits whatever
+    // the item ends up with (HANDOFF_TO_FRONTEND_sku_template_gapless_
+    // allocation_20260804 §4, §8.5).
 
     const shopIntegrationId = data.shopIntegrationIds[0];
     if (!shopIntegrationId) {

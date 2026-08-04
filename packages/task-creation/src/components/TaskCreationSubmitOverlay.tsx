@@ -11,6 +11,11 @@ type TaskCreationSubmitOverlayProps = {
   title: string;
   description?: string;
   sku: string;
+  /**
+   * The SKU shown is the pre-save preview, not the one the backend assigned —
+   * marked so a seller reading it mid-submit doesn't take it as final.
+   */
+  isSkuProvisional?: boolean;
   onDismiss?: () => void;
 };
 
@@ -24,6 +29,7 @@ export function TaskCreationSubmitOverlay({
   title,
   description,
   sku,
+  isSkuProvisional = false,
   onDismiss,
 }: TaskCreationSubmitOverlayProps): React.JSX.Element {
   return (
@@ -65,6 +71,7 @@ export function TaskCreationSubmitOverlay({
         ) : null}
         <p
           className="mt-1 flex items-baseline gap-1.5 text-sm text-muted-foreground"
+          data-provisional={isSkuProvisional ? "true" : "false"}
           data-testid="task-creation-submit-overlay-sku"
         >
           <span>SKU:</span>
@@ -72,7 +79,7 @@ export function TaskCreationSubmitOverlay({
             className="text-lg font-bold text-foreground"
             data-testid="task-creation-submit-overlay-sku-value"
           >
-            {sku}
+            {isSkuProvisional && sku ? `≈ ${sku}` : sku}
           </span>
         </p>
       </div>

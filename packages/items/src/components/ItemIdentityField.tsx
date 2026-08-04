@@ -30,6 +30,12 @@ type ItemIdentityFieldProps = {
    * picker is hidden and that tab remains active.
    */
   availableTabs?: readonly IdentityTab[];
+  /**
+   * Ghost text for the SKU input. Consumers whose backend assigns a SKU on
+   * save pass the provisional value here so it reads as a hint — leaving the
+   * field genuinely empty, which is what triggers the assignment.
+   */
+  skuPlaceholder?: string;
   onOpenScanner?: (tab: IdentityTab) => void;
   onLookupResult?: (items: ItemLookupResult[]) => boolean | "invalid";
   /**
@@ -103,6 +109,7 @@ function readStoredTab(): IdentityTab {
 export function ItemIdentityField({
   defaultTab,
   availableTabs,
+  skuPlaceholder,
   onOpenScanner,
   onLookupResult,
   disableLookup = false,
@@ -326,7 +333,7 @@ export function ItemIdentityField({
                 data-testid="item-sku-input"
                 id="item-sku"
                 invalid={Boolean(skuError)}
-                placeholder="e.g. SKU-456"
+                placeholder={skuPlaceholder ?? "e.g. SKU-456"}
                 rightIcon={rightIcon}
                 type="text"
                 {...register("item.sku")}

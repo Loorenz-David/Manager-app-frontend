@@ -9,8 +9,8 @@ import type { PreOrderFormValues } from "../types";
 function Harness({ quantity }: { quantity: number }): React.JSX.Element {
   const form = useForm<PreOrderFormValues>({
     defaultValues: {
-      ...buildPreOrderFormDefaultValues("SKU-1"),
-      item: { ...buildPreOrderFormDefaultValues("SKU-1").item, quantity },
+      ...buildPreOrderFormDefaultValues(true),
+      item: { ...buildPreOrderFormDefaultValues(true).item, quantity },
     },
   });
 

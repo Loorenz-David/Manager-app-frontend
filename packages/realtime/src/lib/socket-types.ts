@@ -66,6 +66,15 @@ export type ServerToClientEvents = {
     error_code: string | null;
     error_message: string | null;
   }) => void;
+  // A task type's SKU template handed out its next number. Broadcast to the
+  // workspace as part of the `task:created` batch, since the number is now
+  // allocated inside task creation rather than by a standalone reserve call
+  // (HANDOFF_TO_FRONTEND_sku_template_gapless_allocation_20260804 §7).
+  // `client_id` is the template's id, not the task's.
+  "sku_template:scalar-reserved": (payload: {
+    client_id: string;
+    extra?: { last_scalar: number };
+  }) => void;
   "task:created": (payload: {
     client_id: string;
     working_section_ids: string[];

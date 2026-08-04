@@ -208,6 +208,14 @@ export function normalizeReturnFormPayload(
  * as the string-valued `custom.quantity` metafield; it does not affect the
  * independently selected inventory quantities.
  *
+ * `sku`, `title` and `image_alt_text` are deliberately absent. All three used
+ * to carry the reserved SKU, which the form no longer knows at request-build
+ * time; the backend now fills them from the item's own SKU — auto-assigned
+ * from the template or the seller's override — so the item and the Shopify
+ * product are guaranteed to agree (HANDOFF_TO_FRONTEND_sku_template_gapless_
+ * allocation_20260804 §4, and HANDOFF_TO_BACKEND_preorder_product_title_
+ * defaults_to_item_sku_20260804 for title/alt text).
+ *
  * `imageClientId` becomes `product.image_id` — never `image_url`, which is a
  * pass-through for externally hosted images only and skips size validation
  * (HANDOFF_TO_FRONTEND_item_image_urls_and_preorder_images_20260728). The two
@@ -220,13 +228,12 @@ export function buildShopifyPreorderSection(
   { imageClientId }: { imageClientId?: string | null } = {},
 ): Record<string, unknown> | undefined {
   const shopIntegrationId = values.shopIntegrationIds?.[0];
-  const sku = toOptionalString(values.item.sku);
   const price = resolvePreOrderTotalPrice(
     values.product_unit_price,
     values.item.quantity,
   );
 
-  if (!shopIntegrationId || !sku || price == null || price <= 0) {
+  if (!shopIntegrationId || price == null || price <= 0) {
     return undefined;
   }
 
@@ -246,14 +253,10 @@ export function buildShopifyPreorderSection(
   return {
     shop_integration_id: shopIntegrationId,
     product: {
-      title: sku,
-      sku,
       price: price.toFixed(2),
       tags: ["preorder"],
       ...(description ? { description } : {}),
-      ...(imageClientId
-        ? { image_id: imageClientId, image_alt_text: sku }
-        : {}),
+      ...(imageClientId ? { image_id: imageClientId } : {}),
     },
     metafields: {
       quantity: String(values.item.quantity ?? 1),

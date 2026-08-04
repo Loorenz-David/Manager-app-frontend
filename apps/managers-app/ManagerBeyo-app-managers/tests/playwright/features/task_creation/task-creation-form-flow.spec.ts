@@ -5,12 +5,12 @@ const hasCredentials = Boolean(
   process.env.PLAYWRIGHT_TEST_EMAIL && process.env.PLAYWRIGHT_TEST_PASSWORD,
 );
 
-type SkuReservationMockOptions = {
+type SkuPreviewMockOptions = {
   status?: 200 | 404;
   sku?: string;
 };
 
-type SkuReservationMockState = {
+type SkuPreviewMockState = {
   requestBody: string | null;
   requestCount: number;
   requestMethod: string | null;
@@ -35,11 +35,11 @@ test.describe('Task creation staged forms', () => {
   async function openTaskCreationForm(
     page: Page,
     formType: 'internal' | 'pre_order' | 'return',
-    skuReservationOptions?: SkuReservationMockOptions,
-  ): Promise<SkuReservationMockState | null> {
-    const skuReservationMock =
+    skuPreviewOptions?: SkuPreviewMockOptions,
+  ): Promise<SkuPreviewMockState | null> {
+    const skuPreviewMock =
       formType === 'pre_order'
-        ? await mockPreOrderSkuReservation(page, skuReservationOptions)
+        ? await mockPreOrderSkuPreview(page, skuPreviewOptions)
         : null;
 
     await page.getByTestId('task-creation-fab').last().click();
@@ -48,7 +48,7 @@ test.describe('Task creation staged forms', () => {
       .last()
       .click();
 
-    return skuReservationMock;
+    return skuPreviewMock;
   }
 
   const PLAYWRIGHT_SHOP_INTEGRATION_ID = 'shpint_playwright';
@@ -128,13 +128,13 @@ test.describe('Task creation staged forms', () => {
     );
   }
 
-  async function mockPreOrderSkuReservation(
+  async function mockPreOrderSkuPreview(
     page: Page,
-    options: SkuReservationMockOptions = {},
-  ): Promise<SkuReservationMockState> {
+    options: SkuPreviewMockOptions = {},
+  ): Promise<SkuPreviewMockState> {
     await mockShopifyPreOrderCatalog(page);
     const shopifyLookup = await mockShopifyCustomerLookup(page);
-    const state: SkuReservationMockState = {
+    const state: SkuPreviewMockState = {
       requestBody: null,
       requestCount: 0,
       requestMethod: null,
@@ -142,7 +142,7 @@ test.describe('Task creation staged forms', () => {
     };
 
     await page.route(
-      '**/api/v1/sku-templates/by-task-type/pre_order/reserve',
+      '**/api/v1/sku-templates/by-task-type/pre_order',
       async (route) => {
         const request = route.request();
         state.requestCount += 1;
@@ -169,8 +169,12 @@ test.describe('Task creation staged forms', () => {
             data: {
               client_id: 'skt_playwright_pre_order',
               task_type: 'pre_order',
-              reserved_scalar: 42,
-              sku: options.sku ?? 'PRE_ORDER-0042',
+              prefix: 'PRE_ORDER',
+              separator: '-',
+              pad_width: 4,
+              last_scalar: 41,
+              next_scalar: 42,
+              next_sku_preview: options.sku ?? 'PRE_ORDER-0042',
             },
             warnings: [],
           }),
@@ -337,48 +341,121 @@ test.describe('Task creation staged forms', () => {
     await expect(page.getByTestId('customer-display-name-input')).toBeVisible();
   });
 
-  test('pre-order form reserves one server-formatted editable SKU on open', async ({
+  test('pre-order form previews the next SKU as ghost text without claiming it', async ({
     page,
   }) => {
-    const reservation = await openTaskCreationForm(page, 'pre_order', {
+    const preview = await openTaskCreationForm(page, 'pre_order', {
       sku: 'PRE_ORDER-0042',
     });
-    if (!reservation) {
-      throw new Error('Expected the pre-order SKU reservation mock.');
+    if (!preview) {
+      throw new Error('Expected the pre-order SKU preview mock.');
     }
 
     await expect(page.getByTestId('pre-order-form')).toBeVisible();
-    await expect.poll(() => reservation.requestCount).toBe(1);
-    expect(reservation.requestMethod).toBe('POST');
-    expect(reservation.requestBody).toBeNull();
+    await expect.poll(() => preview.requestCount).toBe(1);
+    // A read, not a reservation: nothing is consumed by opening the form.
+    expect(preview.requestMethod).toBe('GET');
+    expect(preview.requestBody).toBeNull();
 
     await page.getByTestId('item-identity-sku-tab').click();
     const skuInput = page.getByTestId('item-sku-input');
-    await expect(skuInput).toHaveValue('PRE_ORDER-0042');
+    // Empty on purpose — a value here is an override, and blank is what makes
+    // the backend assign the real number during creation.
+    await expect(skuInput).toHaveValue('');
+    await expect(skuInput).toHaveAttribute('placeholder', 'PRE_ORDER-0042');
+    await expect(
+      page.getByTestId('pre-order-form-sku-preview-hint'),
+    ).toContainText('PRE_ORDER-0042');
 
     await skuInput.fill('MANUAL-SKU-9000');
     await expect(skuInput).toHaveValue('MANUAL-SKU-9000');
-    expect(reservation.requestCount).toBe(1);
   });
 
   test('pre-order form remains usable when no SKU template is configured', async ({
     page,
   }) => {
-    const reservation = await openTaskCreationForm(page, 'pre_order', {
+    const preview = await openTaskCreationForm(page, 'pre_order', {
       status: 404,
     });
-    if (!reservation) {
-      throw new Error('Expected the pre-order SKU reservation mock.');
+    if (!preview) {
+      throw new Error('Expected the pre-order SKU preview mock.');
     }
 
     await expect(page.getByTestId('pre-order-form')).toBeVisible();
-    await expect.poll(() => reservation.requestCount).toBe(1);
+    await expect.poll(() => preview.requestCount).toBe(1);
 
     await page.getByTestId('item-identity-sku-tab').click();
     const skuInput = page.getByTestId('item-sku-input');
     await expect(skuInput).toHaveValue('');
+    await expect(
+      page.getByTestId('pre-order-form-sku-preview-hint'),
+    ).toHaveCount(0);
     await skuInput.fill('MANUAL-SKU-404');
     await expect(skuInput).toHaveValue('MANUAL-SKU-404');
+  });
+
+  test('pre-order submit sends no SKU and shows the one the backend assigned', async ({
+    page,
+  }) => {
+    const preview = await openTaskCreationForm(page, 'pre_order');
+    if (!preview) {
+      throw new Error('Expected the pre-order SKU preview mock.');
+    }
+
+    let createTaskBody: {
+      client_id?: string;
+      item?: { sku?: string };
+      shopify_preorder?: { product?: Record<string, unknown> };
+    } | null = null;
+
+    await page.route('**/api/v1/tasks', async (route) => {
+      if (route.request().method() !== 'PUT') {
+        await route.fallback();
+        return;
+      }
+
+      createTaskBody = route.request().postDataJSON();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            client_id: createTaskBody?.client_id ?? 'tsk_playwright',
+            task_scalar_id: 1,
+            item_id: 'itm_playwright',
+            item_sku: 'PRE_ORDER-0043',
+          },
+          warnings: [],
+        }),
+      });
+    });
+
+    await expect(page.getByTestId('pre-order-form')).toBeVisible();
+    await completePreOrderTaskStep(page);
+    await advanceToPreOrderCustomerStep(page);
+
+    // Pre-orders also require a reachable customer before they submit.
+    await page.getByTestId('customer-display-name-input').fill('Jane Example');
+    await page.getByTestId('customer-type-input').selectOption('person');
+    await page.getByTestId('customer-email-input').fill('jane@example.com');
+    await page.getByTestId('customer-phone-input').fill('+46701234567');
+    await page.getByTestId('staged-form-advance-button').click();
+
+    await expect
+      .poll(() => createTaskBody)
+      .not.toBeNull();
+    expect(createTaskBody?.item?.sku ?? '').toBe('');
+    expect(createTaskBody?.shopify_preorder?.product).not.toHaveProperty('sku');
+    expect(createTaskBody?.shopify_preorder?.product).not.toHaveProperty(
+      'title',
+    );
+
+    // The preview was 0042; the real allocation came back as 0043, and that is
+    // what the seller must be left looking at.
+    await expect(
+      page.getByTestId('task-creation-submit-overlay-sku-value'),
+    ).toHaveText('PRE_ORDER-0043');
   });
 
   test('pre-order customer lookup can be retried from the not-found pill', async ({

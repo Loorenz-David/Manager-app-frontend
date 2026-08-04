@@ -7,6 +7,15 @@ const CreateTaskResponseSchema = ApiEnvelopeSchema(
   z.object({
     client_id: z.string(),
     task_scalar_id: z.number().int(),
+    // Both present only when the request carried an `item`
+    // (HANDOFF_TO_FRONTEND_sku_template_gapless_allocation_20260804 §3).
+    // `item_sku` is the item's final SKU, including one the backend just
+    // assigned from the task type's template — this is the only place that
+    // value can be read, and it is final the instant the response returns. It
+    // is null when the item has no SKU at all: a task type without a template,
+    // or an existing item matched by article number that never had one.
+    item_id: z.string().optional(),
+    item_sku: z.string().nullable().optional(),
   }),
 ).extend({ ok: z.literal(true) });
 

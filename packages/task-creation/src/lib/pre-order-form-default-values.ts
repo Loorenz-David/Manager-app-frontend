@@ -1,13 +1,19 @@
 import type { PreOrderFormValues } from "../types";
 
+/**
+ * `hasSkuTemplate` mirrors the SKU-template preview lookup: with a template the
+ * SKU field starts blank on purpose — blank is what makes the backend assign
+ * the real number during creation, so it must never be seeded with the preview.
+ */
 export function buildPreOrderFormDefaultValues(
-  initialItemSku = "",
+  hasSkuTemplate = false,
 ): PreOrderFormValues {
   return {
+    has_sku_template: hasSkuTemplate,
     item: {
       designer: "",
       article_number: "",
-      sku: initialItemSku,
+      sku: "",
       quantity: 1,
       item_position: "",
       item_zone: "",

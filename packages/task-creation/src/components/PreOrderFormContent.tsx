@@ -62,6 +62,7 @@ import {
   type FieldPath,
 } from "react-hook-form";
 
+import { skuTemplateKeys } from "../api/sku-template-keys";
 import {
   createLookupResultSignature,
   findCachedItemCategoryOption,
@@ -154,7 +155,13 @@ export function PreOrderFormContent(): React.JSX.Element {
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
   const [submitOverlayPhase, setSubmitOverlayPhase] =
     useState<TaskCreationSubmitOverlayPhase | null>(null);
-  const [submittedSku, setSubmittedSku] = useState<string | null>(null);
+  // Starts as the preview (or the seller's override) and is overwritten by the
+  // SKU the backend actually assigned as soon as the response lands.
+  const [submittedSku, setSubmittedSku] = useState<{
+    value: string;
+    isProvisional: boolean;
+  } | null>(null);
+  const [missingItemSkuWarning, setMissingItemSkuWarning] = useState(false);
   const [shopifyOrderErrorMessage, setShopifyOrderErrorMessage] = useState<
     string | null
   >(null);
@@ -179,7 +186,8 @@ export function PreOrderFormContent(): React.JSX.Element {
     noteClientId,
     currentUserClientId,
     callbacks,
-    initialItemSku,
+    skuPreview,
+    hasSkuTemplate,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const applyLookupImages = useLookupItemImages(itemClientId);
@@ -196,8 +204,15 @@ export function PreOrderFormContent(): React.JSX.Element {
     resolver: zodResolver(PreOrderFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: buildPreOrderFormDefaultValues(initialItemSku),
+    defaultValues: buildPreOrderFormDefaultValues(hasSkuTemplate),
   });
+
+  // The template lookup usually resolves after mount, so the flag the schema
+  // validates against is kept in sync rather than only seeded. Without a
+  // template the item still needs a manually entered article number or SKU.
+  useEffect(() => {
+    form.setValue("has_sku_template", hasSkuTemplate);
+  }, [form, hasSkuTemplate]);
   const majorCategory = useWatch({
     control: form.control,
     name: "item.major_category",
@@ -369,13 +384,32 @@ export function PreOrderFormContent(): React.JSX.Element {
             : {}),
         };
 
+        const overrideSku = values.item.sku?.trim();
+
         // The overlay goes up before the request so the socket listener is
         // mounted before the backend can possibly emit the processed event.
-        setSubmittedSku(values.item.sku?.trim() || initialItemSku);
+        // Until the response lands the SKU shown is the seller's override, or
+        // the preview — which a concurrent submit can still take.
+        setSubmittedSku({
+          value: overrideSku || skuPreview || "",
+          isProvisional: !overrideSku,
+        });
+        setMissingItemSkuWarning(false);
         setSubmitOverlayPhase("creating");
 
         try {
           const result = await createTask.mutateAsync(payload);
+
+          // The assigned SKU is final and permanent the moment this returns,
+          // and it is the only place the value can be read.
+          if (result.item_sku) {
+            setSubmittedSku({ value: result.item_sku, isProvisional: false });
+          } else if (payload.shopify_preorder) {
+            // An existing item matched by article number can carry no SKU at
+            // all, and the queued Shopify product then inherits that gap.
+            setMissingItemSkuWarning(true);
+          }
+
           callbacks.onTaskCreated?.({
             result,
             hadUpholstery: Boolean(payload.item_upholstery),
@@ -437,6 +471,27 @@ export function PreOrderFormContent(): React.JSX.Element {
     }
   }, [errors, staged]);
 
+  // Someone else's pre-order just consumed a number, so the ghost text this
+  // form is showing is now one behind. The event fires as part of the
+  // `task:created` batch on every allocation.
+  useEffect(() => {
+    if (!socket) {
+      return;
+    }
+
+    const handleScalarReserved = () => {
+      void queryClient.invalidateQueries({
+        queryKey: skuTemplateKeys.byTaskType("pre_order"),
+      });
+    };
+
+    socket.on("sku_template:scalar-reserved", handleScalarReserved);
+
+    return () => {
+      socket.off("sku_template:scalar-reserved", handleScalarReserved);
+    };
+  }, [queryClient, socket]);
+
   const handlePreorderProcessed = useEffectEvent(
     (payload: {
       task_id: string;
@@ -489,8 +544,9 @@ export function PreOrderFormContent(): React.JSX.Element {
   function closeAfterShopifyResult(): void {
     setSubmitOverlayPhase(null);
     setSubmittedSku(null);
+    setMissingItemSkuWarning(false);
     setShopifyOrderErrorMessage(null);
-    form.reset(buildPreOrderFormDefaultValues(initialItemSku));
+    form.reset(buildPreOrderFormDefaultValues(hasSkuTemplate));
     surface.close(TASK_CREATION_PRE_ORDER_SURFACE_ID);
   }
 
@@ -504,7 +560,9 @@ export function PreOrderFormContent(): React.JSX.Element {
           },
           succeeded: {
             title: "Pre-order and Shopify order created",
-            description: undefined,
+            description: missingItemSkuWarning
+              ? "The item has no SKU, so the Shopify product was created without one."
+              : undefined,
           },
           failed: {
             title: "Pre-order created — Shopify order failed",
@@ -556,7 +614,20 @@ export function PreOrderFormContent(): React.JSX.Element {
                   defaultTab="sku"
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
+                  skuPlaceholder={skuPreview ?? undefined}
                 />
+                {skuPreview && !itemSku?.trim() ? (
+                  <p
+                    className="text-xs text-muted-foreground"
+                    data-testid="pre-order-form-sku-preview-hint"
+                  >
+                    Leave empty to assign{" "}
+                    <span className="font-medium text-foreground">
+                      ≈ {skuPreview}
+                    </span>{" "}
+                    automatically on save.
+                  </p>
+                ) : null}
                 <ItemPositionZoneField
                   articleNumber={itemArticleNumber}
                   defaultTab="position"
@@ -684,7 +755,8 @@ export function PreOrderFormContent(): React.JSX.Element {
             phase={submitOverlayPhase}
             title={submitOverlayContent.title}
             description={submitOverlayContent.description}
-            sku={submittedSku ?? initialItemSku}
+            sku={submittedSku?.value ?? skuPreview ?? ""}
+            isSkuProvisional={submittedSku?.isProvisional ?? true}
             onDismiss={
               submitOverlayPhase === "creating"
                 ? undefined

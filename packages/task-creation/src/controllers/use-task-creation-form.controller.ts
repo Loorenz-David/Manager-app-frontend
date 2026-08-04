@@ -1,22 +1,16 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import { selectUser, useAuthStore } from "@beyo/auth";
 import { generateClientId } from "@beyo/lib";
 
-import { useReserveSkuTemplate } from "../actions/use-reserve-sku-template";
+import { useSkuTemplatePreviewQuery } from "../api/use-sku-template-preview-query";
 import type { TaskCreationCallbacks } from "../surfaces";
-import type { SkuReservation, TaskCreationFormType } from "../types";
+import type { TaskCreationFormType } from "../types";
 
 type UseTaskCreationFormControllerOptions = {
   callbacks?: TaskCreationCallbacks;
   taskType?: TaskCreationFormType;
 };
-
-type SkuInitializationState =
-  | { status: "not_required" }
-  | { status: "pending" }
-  | { status: "success"; reservation: SkuReservation }
-  | { status: "error"; error: Error };
 
 export function useTaskCreationFormController({
   callbacks,
@@ -24,7 +18,6 @@ export function useTaskCreationFormController({
 }: UseTaskCreationFormControllerOptions) {
   const user = useAuthStore(selectUser);
   const currentUserClientId = String(user?.id ?? "");
-  const reservationRequestedRef = useRef(false);
 
   const [taskClientId, setTaskClientId] = useState(() =>
     generateClientId("ExecutionTask"),
@@ -38,35 +31,14 @@ export function useTaskCreationFormController({
   const [noteClientId, setNoteClientId] = useState(() =>
     generateClientId("TaskNote"),
   );
-  const [skuInitialization, setSkuInitialization] =
-    useState<SkuInitializationState>(() =>
-      taskType === "pre_order"
-        ? { status: "pending" }
-        : { status: "not_required" },
-    );
 
-  const skuReservation = useReserveSkuTemplate();
-  const reserveSkuTemplateAsync = skuReservation.reserveSkuTemplateAsync;
-
-  useEffect(() => {
-    if (taskType !== "pre_order" || reservationRequestedRef.current) {
-      return;
-    }
-
-    // React StrictMode repeats mount effects in development. Keep the
-    // irreversible reservation command to one request per actual surface mount.
-    reservationRequestedRef.current = true;
-    void reserveSkuTemplateAsync("pre_order")
-      .then((reservation) => {
-        setSkuInitialization({ status: "success", reservation });
-      })
-      .catch((error: unknown) => {
-        setSkuInitialization({
-          status: "error",
-          error: error instanceof Error ? error : new Error("Unknown error"),
-        });
-      });
-  }, [reserveSkuTemplateAsync, taskType]);
+  // Pre-order is the only task type with a configured SKU template today. The
+  // read is non-destructive, so it needs no once-per-mount guard and never
+  // blocks the form — unlike the reserve command it replaced, which burned a
+  // number whether or not the form was ever submitted.
+  const skuTemplateQuery = useSkuTemplatePreviewQuery("pre_order", {
+    enabled: taskType === "pre_order",
+  });
 
   function regenerateIds(): void {
     setTaskClientId(generateClientId("ExecutionTask"));
@@ -83,13 +55,21 @@ export function useTaskCreationFormController({
     currentUserClientId,
     regenerateIds,
     callbacks: callbacks ?? {},
-    initialItemSku:
-      skuInitialization.status === "success"
-        ? skuInitialization.reservation.sku
-        : "",
-    isSkuInitializationPending: skuInitialization.status === "pending",
-    skuInitializationError:
-      skuInitialization.status === "error" ? skuInitialization.error : null,
+    /**
+     * Provisional only: the number the backend would assign right now. Shown
+     * as ghost text and never written into the form value — a value in the SKU
+     * field is a manual override to the API.
+     */
+    skuPreview: skuTemplateQuery.data?.next_sku_preview ?? null,
+    // `isLoading`, not `isPending`: a disabled query stays pending forever on
+    // the task types that have no template query at all.
+    isSkuPreviewLoading: skuTemplateQuery.isLoading,
+    /**
+     * Whether this workspace has a template that will auto-assign a SKU. False
+     * (404, or a task type without one) means the item still needs a manual
+     * article number or SKU to be identifiable.
+     */
+    hasSkuTemplate: skuTemplateQuery.isSuccess,
   };
 }
 
