@@ -72,9 +72,39 @@ function pushSurfaceHistory(depth: number): void {
   window.history.pushState({ ...current, [SURFACE_DEPTH_KEY]: depth }, "");
 }
 
+// `history.go()` is asynchronous — its `popstate` lands on a later task, well
+// after the synchronous `set({ stack })` above it has already applied. If a
+// close is immediately followed by an open in the same tick (e.g. "skip this
+// step, go straight to the next surface"), the open's synchronous `pushState`
+// lands first, then the *stale* `popstate` from the pending `go()` arrives and
+// — with nothing to say otherwise — looks exactly like a real Back press,
+// so the popstate handler reconciles the stack down to the pre-close depth
+// and silently closes the surface that had just been opened.
+// Every `popstate` this module itself causes via `go()` is entirely redundant
+// (the store already applied the equivalent stack change synchronously); only
+// a `popstate` we did NOT cause — a real Back press — needs to reconcile
+// anything. Track how many of our own `go()` calls haven't echoed back yet so
+// the popstate handler can tell "our own delayed echo" apart from "the user
+// actually pressed Back" and ignore the former.
+let pendingProgrammaticPops = 0;
+
 function popSurfaceHistory(count: number): void {
   if (typeof window === "undefined" || count <= 0) return;
+  pendingProgrammaticPops += 1;
   window.history.go(-count);
+}
+
+/**
+ * Returns true and consumes one pending self-triggered navigation if this
+ * `popstate` is the delayed echo of our own `popSurfaceHistory()` call — the
+ * caller should ignore the event in that case, since the stack it already
+ * reflects is correct. Returns false for a `popstate` we didn't cause (a real
+ * Back/Forward), which the caller should reconcile against as usual.
+ */
+function consumePendingProgrammaticPop(): boolean {
+  if (pendingProgrammaticPops <= 0) return false;
+  pendingProgrammaticPops -= 1;
+  return true;
 }
 
 export function readSurfaceDepth(state: unknown): number {
@@ -364,10 +394,13 @@ export function SurfaceProvider({
   // Back navigation (browser button, Android system gesture, hardware button)
   // fires popstate. Reconcile the overlay stack to the depth recorded on the
   // history entry we landed on, so Back closes the topmost overlay instead of
-  // unwinding the underlying route. Programmatic closes call history.go(...)
-  // themselves and have already shrunk the stack, so this is a no-op for them.
+  // unwinding the underlying route. A programmatic close() also fires a
+  // popstate once its own history.go() resolves, but the stack it already
+  // reflects is correct — skip reconciling those (see consumePendingProgrammaticPop),
+  // or a same-tick open() that ran before that echo arrived gets wiped out by it.
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
+      if (consumePendingProgrammaticPop()) return;
       useSurfaceStore.getState().syncToDepth(readSurfaceDepth(event.state));
     };
 
