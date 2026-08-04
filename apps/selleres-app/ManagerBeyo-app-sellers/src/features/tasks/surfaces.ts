@@ -9,6 +9,7 @@ import {
   type ItemPositionSheetSurfaceProps,
 } from "@beyo/items";
 import {
+  FORCE_TASK_READY_SLIDE_SURFACE_ID,
   ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
@@ -27,6 +28,7 @@ import {
   TASK_SCHEDULED_DELIVERY_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
   TASK_TYPE_SHEET_SURFACE_ID,
+  loadForceTaskReadySlidePage,
   loadItemIdentitySheetPage,
   loadItemQuantitySheetPage,
   loadItemUpholsteryAmountSheetPage,
@@ -45,6 +47,7 @@ import {
   loadTaskPostHandlingSlidePage,
   loadTaskReadyByAtSheetPage,
   loadTaskScheduledDeliverySheetPage,
+  TaskActionsSheetSkeleton,
 } from "@beyo/tasks";
 import {
   CUSTOMER_COORDINATION_EMAIL_INBOX_FILTER_SHEET_SURFACE_ID,
@@ -75,6 +78,7 @@ export type ItemPositionSurfaceProps = ItemPositionSheetSurfaceProps;
 
 const taskDetailSlide = lazyWithPreload(loadTaskDetailSlidePage);
 const taskActionsSheet = lazyWithPreload(loadTaskDetailMenuSheetPage);
+const forceTaskReadySlide = lazyWithPreload(loadForceTaskReadySlidePage);
 const taskFilterSheet = lazyWithPreload(loadTaskFilterSheetPage);
 const taskReadyByAtSheet = lazyWithPreload(loadTaskReadyByAtSheetPage);
 const taskAssortmentSheet = lazyWithPreload(loadTaskAssortmentSheetPage);
@@ -149,6 +153,7 @@ export const preloadTaskPostHandlingPendingWarningSheetSurface =
   taskPostHandlingPendingWarningSheet.preload;
 
 export {
+  FORCE_TASK_READY_SLIDE_SURFACE_ID,
   ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
@@ -183,6 +188,7 @@ export {
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "@beyo/task-working-sections";
 export type {
+  ForceTaskReadySlideSurfaceProps,
   ItemIdentitySurfaceProps,
   ItemQuantitySurfaceProps,
   ItemUpholsteryAmountSurfaceProps,
@@ -226,6 +232,11 @@ export const taskSurfaces: SurfaceRegistrations = {
   [TASK_ACTIONS_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: taskActionsSheet.Component,
+    skeleton: TaskActionsSheetSkeleton,
+  },
+  [FORCE_TASK_READY_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: forceTaskReadySlide.Component,
   },
   [TASK_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",

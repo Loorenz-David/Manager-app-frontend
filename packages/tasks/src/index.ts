@@ -108,6 +108,7 @@ export {
 export type { StepState } from "./lib/step-state-variants";
 
 export { ItemPositionFilterField } from "./components/filter-fields/ItemPositionFilterField";
+export { TaskActionsSheetSkeleton } from "./components/TaskActionsSheetSkeleton";
 export { TaskFlowTimeline } from "./components/TaskFlowTimeline";
 export { TaskListCard } from "./components/TaskListCard";
 export { TasksHeader } from "./components/TasksHeader";
@@ -140,6 +141,7 @@ export { TaskFulfillmentMethodField } from "./components/fields/TaskFulfillmentM
 export { TaskReadyByDateField } from "./components/fields/TaskReadyByDateField";
 export { TaskReturnSourceField } from "./components/fields/TaskReturnSourceField";
 export {
+  FORCE_TASK_READY_SLIDE_SURFACE_ID,
   ITEM_IDENTITY_SHEET_SURFACE_ID,
   ITEM_QUANTITY_SHEET_SURFACE_ID,
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
@@ -157,6 +159,7 @@ export {
   TASK_TYPE_SHEET_SURFACE_ID,
 } from "./surface-ids";
 export type {
+  ForceTaskReadySlideSurfaceProps,
   ItemIdentitySurfaceProps,
   ItemQuantitySurfaceProps,
   ItemUpholsteryAmountSurfaceProps,
@@ -185,6 +188,16 @@ export { useAddTaskStep } from "./actions/use-add-task-step";
 export type { AddTaskStepVariables } from "./actions/use-add-task-step";
 export { useCreateItemUpholstery } from "./actions/use-create-item-upholstery";
 export { useDeleteTask } from "./actions/use-delete-task";
+export { useForceTaskReady } from "./actions/use-force-task-ready";
+export type { ForceTaskReadyAction } from "./actions/use-force-task-ready";
+export { forceTaskReady } from "./api/force-task-ready";
+export {
+  canForceTaskReady,
+  isOpenStepState,
+  resolveForceTaskReadyErrorMessage,
+  TASK_FORCE_READY_BLOCKED_STATES,
+  TASK_STEP_OPEN_STATES,
+} from "./lib/force-task-ready";
 export { useRemoveTaskStep } from "./actions/use-remove-task-step";
 export { useTransitionTaskStep } from "./actions/use-transition-task-step";
 export type { TransitionTaskStepVariables } from "./actions/use-transition-task-step";
@@ -249,6 +262,11 @@ export {
 export function loadTaskActionsSheetPage() {
   return import("./pages/TaskActionsSheetPage").then((m) => ({
     default: m.TaskActionsSheetPage,
+  }));
+}
+export function loadForceTaskReadySlidePage() {
+  return import("./pages/ForceTaskReadySlidePage").then((m) => ({
+    default: m.ForceTaskReadySlidePage,
   }));
 }
 export function loadTaskDetailMenuSheetPage() {

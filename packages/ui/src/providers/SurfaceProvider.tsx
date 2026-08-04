@@ -28,6 +28,14 @@ export type SurfaceRegistration = {
   surface: SurfaceType;
   path?: (props: Record<string, unknown>) => string;
   component: SurfaceComponent;
+  /**
+   * Suspense fallback shown while this surface's own chunk loads. Defaults to
+   * the generic `SurfaceSkeleton` for the surface type. Register a feature
+   * skeleton here when the content is known ahead of the chunk load (e.g. a
+   * fixed list of menu rows) so the fallback matches the real layout instead
+   * of a content-agnostic placeholder.
+   */
+  skeleton?: ComponentType;
 };
 
 export type SurfaceRegistrations = Record<string, SurfaceRegistration>;
@@ -361,7 +369,15 @@ function SurfaceRenderer(): React.JSX.Element {
               zIndex={50 + index * 10}
             >
               <SurfacePropsContext.Provider value={entry.props}>
-                <Suspense fallback={<SurfaceSkeleton surface={entry.surface} />}>
+                <Suspense
+                  fallback={
+                    entry.skeleton ? (
+                      <entry.skeleton />
+                    ) : (
+                      <SurfaceSkeleton surface={entry.surface} />
+                    )
+                  }
+                >
                   <Component />
                 </Suspense>
               </SurfacePropsContext.Provider>

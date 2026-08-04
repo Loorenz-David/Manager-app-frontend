@@ -34,6 +34,7 @@ export const TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID =
   "task-flow-record-detail-sheet";
 export const TASK_EDIT_SLIDE_SURFACE_ID = "task-edit-slide";
 export const TASK_TYPE_SHEET_SURFACE_ID = "task-type-sheet";
+export const FORCE_TASK_READY_SLIDE_SURFACE_ID = "force-task-ready-slide";
 
 export type TaskReadyByAtSheetSurfaceProps = {
   taskId: string;
@@ -122,6 +123,10 @@ export type TaskEditSurfaceProps = {
 };
 
 export type TaskTypeSheetSurfaceProps = {
+  taskId: string;
+};
+
+export type ForceTaskReadySlideSurfaceProps = {
   taskId: string;
 };
 

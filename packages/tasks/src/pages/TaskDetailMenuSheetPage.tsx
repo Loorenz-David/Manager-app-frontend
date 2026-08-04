@@ -1,16 +1,21 @@
 import { useEffect } from "react";
 
+import { AuthRole, useRole } from "@beyo/auth";
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { ConfirmActionButton, useSurfaceStore } from "@beyo/ui";
-import { Barcode, Pin, Replace, Trash2 } from "lucide-react";
+import { Barcode, CheckCheck, Pin, Replace, Trash2 } from "lucide-react";
 
 import { useDeleteTask } from "../actions/use-delete-task";
+import { useGetTaskQuery } from "../api/use-get-task-query";
+import { canForceTaskReady } from "../lib/force-task-ready";
 import {
+  FORCE_TASK_READY_SLIDE_SURFACE_ID,
   ITEM_IDENTITY_SHEET_SURFACE_ID,
   PIN_NOTIFICATIONS_SLIDE_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_TYPE_SHEET_SURFACE_ID,
+  type ForceTaskReadySlideSurfaceProps,
   type ItemIdentitySurfaceProps,
   type PinNotificationsSlideSurfaceProps,
   type TaskActionsSurfaceProps,
@@ -21,6 +26,15 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { taskId, itemId } = useSurfaceProps<TaskActionsSurfaceProps>();
   const deleteTask = useDeleteTask();
+  const { hasRole } = useRole();
+  const taskQuery = useGetTaskQuery(taskId);
+
+  // Forcing a task ready is a manager override: admin/manager only (stricter
+  // than resolve), and only while the task can still move — the four states
+  // the endpoint rejects with a 409 hide the row rather than disable it.
+  const canShowForceReady =
+    (hasRole(AuthRole.Admin) || hasRole(AuthRole.Manager)) &&
+    canForceTaskReady(taskQuery.data?.task.state);
 
   useEffect(() => {
     header?.setTitle("Task actions");
@@ -90,6 +104,24 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
         <Barcode className="size-4" />
         Change article number
       </button>
+      {canShowForceReady ? (
+        <button
+          type="button"
+          className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-sm font-semibold text-foreground"
+          data-testid="task-actions-force-ready"
+          disabled={!taskId}
+          onClick={() => {
+            if (!taskId) return;
+
+            openAndDismiss(FORCE_TASK_READY_SLIDE_SURFACE_ID, {
+              taskId,
+            } satisfies ForceTaskReadySlideSurfaceProps);
+          }}
+        >
+          <CheckCheck className="size-4" />
+          Force ready
+        </button>
+      ) : null}
       <ConfirmActionButton
         backgroundColor="var(--color-card)"
         borderColor="var(--color-border)"

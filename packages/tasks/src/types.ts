@@ -2,10 +2,16 @@ import { z } from "zod";
 
 import { AddressSchema, DateOnlySchema } from "@beyo/lib";
 import { PauseReasonSchema } from "@beyo/pause-reasons";
+import type { StatePillVariant } from "@beyo/ui";
 import {
   UpholsteryGroupFieldsSchema,
   type UpholsteryGroupFields,
 } from "@beyo/upholstery";
+
+import {
+  humanizeStepState,
+  STEP_STATE_VARIANT,
+} from "./lib/step-state-variants";
 
 export const TASK_TYPE = ["return", "pre_order", "internal"] as const;
 export const TASK_PRIORITY = ["low", "normal", "high", "urgent"] as const;
@@ -534,3 +540,59 @@ export const UpdateTaskInputSchema = z.object({
   additional_details: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type UpdateTaskInput = z.infer<typeof UpdateTaskInputSchema>;
+
+// ─── Force task ready ────────────────────────────────────────────────────────
+
+// Manager override that closes every still-open step and lets the backend's
+// readiness evaluation move the task to `ready`. `task_id` travels in the URL,
+// not the body — it lives on the input so the action hook can key its
+// invalidations without a second argument.
+export const ForceTaskReadyInputSchema = z.object({
+  task_id: z.string(),
+  reason: z
+    .string()
+    .trim()
+    .min(1, "Give a reason for forcing this task ready.")
+    .max(1024, "Keep the reason under 1024 characters."),
+  mark_inaccurate: z.boolean(),
+});
+export type ForceTaskReadyInput = z.infer<typeof ForceTaskReadyInputSchema>;
+
+export const ForceTaskReadyResultSchema = z.object({
+  client_id: z.string(),
+  state: z.literal("ready"),
+  // Steps this call closed. Legitimately empty when the task had no steps or
+  // every step was already terminal — never branch on its length to decide
+  // whether the call succeeded.
+  skipped_step_ids: z.array(z.string()),
+});
+export type ForceTaskReadyResult = z.infer<typeof ForceTaskReadyResultSchema>;
+
+export type ForceTaskReadyStepViewModel = {
+  stepId: string;
+  sectionName: string;
+  imageUrl: string | null;
+  state: TaskStepRich["state"];
+  stateLabel: string;
+  stateVariant: StatePillVariant;
+  sequenceOrder: number | null;
+};
+
+// The step endpoint carries only `working_section_name_snapshot` — no image.
+// `section` is the matching working-section option, joined by the controller
+// so the row can render the same visual as the working-section picker boxes.
+export function toForceTaskReadyStepViewModel(
+  step: TaskStepRich,
+  section: { name: string; image: string | null } | null,
+): ForceTaskReadyStepViewModel {
+  return {
+    stepId: step.client_id,
+    sectionName:
+      section?.name ?? step.working_section_name_snapshot ?? "Working section",
+    imageUrl: section?.image ?? null,
+    state: step.state,
+    stateLabel: humanizeStepState(step.state),
+    stateVariant: STEP_STATE_VARIANT[step.state],
+    sequenceOrder: step.sequence_order,
+  };
+}

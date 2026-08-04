@@ -4,6 +4,7 @@
     "test:api-client": "vitest run --config packages/api-client/vitest.config.ts",
     "test:auth": "vitest run --config packages/auth/vitest.config.ts",
     "test:ui": "vitest run --config packages/ui/vitest.config.ts",
+    "test:tasks": "vitest run --config packages/tasks/vitest.config.ts",
     "test:task-creation": "vitest run --config packages/task-creation/vitest.config.ts",
     "test:task-working-sections": "vitest run --config packages/task-working-sections/vitest.config.ts",
     "test:shopify": "vitest run --config packages/shopify/vitest.config.ts",
