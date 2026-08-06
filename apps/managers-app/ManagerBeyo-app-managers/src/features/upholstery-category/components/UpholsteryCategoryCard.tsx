@@ -19,6 +19,10 @@ export function UpholsteryCategoryCard({
       aria-pressed={isSelected}
       className={cn(
         "flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition-colors",
+        // content-visibility: this list exits as a whole (transform-animated,
+        // GPU-layer-promoted) when a category is opened — see the matching
+        // comment on InventoryListCard. Skips paint/layout for off-screen rows.
+        "[contain-intrinsic-size:auto_64px] [content-visibility:auto]",
         isSelected
           ? "border-primary bg-primary text-card"
           : "border-border bg-card text-foreground",

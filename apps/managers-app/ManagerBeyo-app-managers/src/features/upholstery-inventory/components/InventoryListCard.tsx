@@ -29,7 +29,12 @@ export const InventoryListCard = memo(function InventoryListCard({
   const supplierName = card.supplierName?.replace(/_/g, " ").trim();
   return (
     <div
-      className=" flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm"
+      // content-visibility: the pane this card lives in is transform-animated
+      // during the slide-stack transition, which promotes it to its own GPU
+      // layer — the browser then rasterizes the layer's full content height
+      // regardless of scroll position. Skipping layout/paint for off-screen
+      // cards keeps that raster cost proportional to what's actually visible.
+      className="flex shrink-0 overflow-hidden rounded-xl bg-card shadow-sm [contain-intrinsic-size:auto_112px] [content-visibility:auto]"
       data-testid={`upholstery-inventory-card-${card.inventoryId}`}
     >
       <button

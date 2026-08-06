@@ -52,6 +52,11 @@ export function InventoryListHeader({
     activePanelId === "categories" || activePanelId === "search";
 
   return (
+    // Fixed height, in the scroll flow: the header scrolls away with the list
+    // and rides along in SlideStack's drag preview. The height has to be a
+    // constant because the panes size themselves against it (see
+    // BODY_MIN_HEIGHT_CLASS) and because the two variants below are absolutely
+    // positioned so they can cross-fade without reflowing the page.
     <div
       className="relative h-20 overflow-hidden bg-background"
       data-testid="upholstery-inventory-header"

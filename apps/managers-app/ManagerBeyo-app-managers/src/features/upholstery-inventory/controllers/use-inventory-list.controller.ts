@@ -13,6 +13,7 @@ import {
   type UpholsteryPickerRecord,
 } from "@beyo/upholstery";
 import { generateClientId } from "@beyo/lib";
+import { runWhenUiSettled } from "@beyo/ui";
 
 import {
   useListUpholsteryCategoriesQuery,
@@ -109,9 +110,13 @@ export function useInventoryListController() {
   const [storedPanelId, setStoredPanelId] = useState<Exclude<InventoryPanelId, "search">>(
     "categories",
   );
-  const [direction, setDirection] = useState<1 | -1>(1);
   const [selectedCategory, setSelectedCategory] =
     useState<UpholsteryCategory | null>(null);
+  // Gates the inventory request behind the slide that reveals it. The response
+  // comes back well inside the animation, and rendering a screen of image cards
+  // while the pane is still moving is what makes the transition stutter on a
+  // phone. The pane shows its skeletons for those few frames instead.
+  const [isInventoryPaneSettled, setIsInventoryPaneSettled] = useState(false);
   const [upholsterySearchQ, setUpholsterySearchQState] = useState("");
   const [debouncedUpholsterySearchQ, setDebouncedUpholsterySearchQ] = useState("");
   const [selectedExternalProviders, setSelectedExternalProviders] = useState<
@@ -134,7 +139,12 @@ export function useInventoryListController() {
   const categoriesQuery = useListUpholsteryCategoriesQuery();
   const inventoriesQuery = useListUpholsteryInventoriesQuery(
     { upholstery_category_ids: selectedCategory?.client_id ?? "" },
-    { enabled: activePanelId === "inventory" && Boolean(selectedCategory) },
+    {
+      enabled:
+        activePanelId === "inventory" &&
+        Boolean(selectedCategory) &&
+        isInventoryPaneSettled,
+    },
   );
   const dbSearchQuery = useUpholsteryPickerOptionsQuery(
     { q: debouncedUpholsterySearchQ },
@@ -198,27 +208,19 @@ export function useInventoryListController() {
     (dbSearchQuery.isFetching || externalSearchQuery.isFetching);
   const activeProviderFilterCount = selectedExternalProviders.length > 0 ? 1 : 0;
 
-  function setUpholsterySearchQ(value: string): void {
-    const wasSearchActive = upholsterySearchQ.trim().length > 0;
-    const willBeSearchActive = value.trim().length > 0;
-
-    if (!wasSearchActive && willBeSearchActive) {
-      setDirection(1);
-    } else if (wasSearchActive && !willBeSearchActive) {
-      setDirection(-1);
-    }
-
-    setUpholsterySearchQState(value);
-  }
-
   function selectCategory(category: UpholsteryCategory): void {
-    setDirection(1);
     setSelectedCategory(category);
     setStoredPanelId("inventory");
+    // Withheld until the pane stops moving. The stack holds the transition gate
+    // for the length of the slide, so this resolves the moment it settles —
+    // immediately if nothing is animating (reduced motion, a test).
+    setIsInventoryPaneSettled(false);
+    runWhenUiSettled(() => {
+      setIsInventoryPaneSettled(true);
+    });
   }
 
   function goBack(): void {
-    setDirection(-1);
     setStoredPanelId("categories");
   }
 
@@ -411,19 +413,27 @@ export function useInventoryListController() {
 
   return {
     activePanelId,
-    direction,
     selectedCategory,
     upholsterySearchQ,
-    setUpholsterySearchQ,
+    setUpholsterySearchQ: setUpholsterySearchQState,
     categoryCards: categoriesQuery.data?.items ?? [],
     isCategoriesLoading: categoriesQuery.isPending,
     isCategoriesFetched: categoriesQuery.isFetched,
     isCategoriesFetching: categoriesQuery.isFetching,
-    inventoryCards: (inventoriesQuery.data?.items ?? []).map(
-      toInventoryListCardViewModel,
-    ),
-    isInventoryLoading: inventoriesQuery.isPending,
-    isInventoryFetched: inventoriesQuery.isFetched,
+    // Withholding the request is not enough on its own: a category visited
+    // before still has its result cached, and a disabled query serves cached
+    // data straight away — so the pane would render a full list of image cards
+    // mid-slide anyway. Report the pane as loading until it settles and the
+    // cheap skeletons stand in for those few frames.
+    inventoryCards: isInventoryPaneSettled
+      ? (inventoriesQuery.data?.items ?? []).map(toInventoryListCardViewModel)
+      : [],
+    isInventoryLoading: !isInventoryPaneSettled || inventoriesQuery.isPending,
+    isInventoryFetched: isInventoryPaneSettled && inventoriesQuery.isFetched,
+    // Distinguishes "still sliding in" from "settled but the fetch is still
+    // pending" — the loading skeleton needs this to decide whether it's safe
+    // to animate (see the comment on its shimmer class in InventoryListView).
+    isInventoryPaneSettled,
     searchUpholsteries,
     isSearchLoading,
     activeProviderFilterCount,

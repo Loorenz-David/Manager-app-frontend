@@ -3,8 +3,8 @@ import { m, useIsPresent, useMotionValue, useTransform } from 'framer-motion';
 
 import { cn } from '@beyo/lib';
 
+import { useUiTransitionToken } from '../../../lib/use-ui-transition-token';
 import { findNearestScroller } from './find-nearest-scroller';
-import { fmtBox, perfLog, watchHeader } from './slide-stack-perf';
 import { useSlideStackContext } from './SlideStackContext';
 import { useSlideStackDrag } from './use-slide-stack-drag';
 import {
@@ -46,6 +46,14 @@ function ActivePane({
   // useIsPresent (not usePresence): the read-only variant, so AnimatePresence
   // still removes the pane on its own once the exit animation finishes.
   const isPresent = useIsPresent();
+
+  // Hold the transition gate while this pane slides away — the entering pane
+  // animates for the same stretch, so the exiting one's lifetime is the whole
+  // transition. Work queued with `runWhenUiSettled` then lands on a settled
+  // screen instead of competing with the animation: the case that matters is a
+  // tap that both navigates and asks for the next pane's data, where the
+  // response arrives fast enough to render a full list mid-slide.
+  useUiTransitionToken(!isPresent);
 
   // The pane's position/opacity as adopted MotionValues: the enter/center/exit
   // variants animate these same values, and the interactive drag writes them
@@ -137,54 +145,6 @@ function ActivePane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive]);
 
-  // ── TEMP instrumentation: the real pane's height chain ───────────────────
-  // Three phases, because the interesting state sits between the usual two:
-  //  - 'layout'  : this child effect, BEFORE a consumer's own layout effect
-  //                has restored the scroll (parent effects run after
-  //                children's), so it shows the pre-restore position;
-  //  - 'settled' : a microtask, after every layout effect but still before
-  //                paint — this is what the user actually first sees;
-  //  - 'frame'   : the next animation frame, which catches anything that
-  //                moves after the paint (a footer dropping into place).
-  // `foot` is the pane's bottom-most block — the footer, for a staged step.
-  useLayoutEffect(() => {
-    if (!isActive) return;
-    const node = paneRef.current;
-    if (!node) return;
-    const scroller = findNearestScroller(node);
-    const snapshot = (phase: string) => {
-      if (!node.isConnected) return;
-      // A stand-in still in the DOM at this point is overlapping the real
-      // pane. It is positioned in the scroll container's CONTENT coordinates,
-      // so a swap that moves the scroll carries it along: `stand` reports
-      // where it actually sits now. Anything intersecting 0..vh is on screen
-      // and being painted over the real content.
-      perfLog(
-        `pane ${id} ${phase} scroll=${
-          scroller ? Math.round(scroller.scrollTop) : 'n/a'
-        } vh=${scroller ? scroller.clientHeight : 'n/a'} ${fmtBox(
-          'pane',
-          node,
-        )} ${fmtBox('foot', node.lastElementChild)} ${fmtBox(
-          'stand',
-          document.querySelector('[data-slide-ghost]'),
-        )}`,
-      );
-    };
-    snapshot('layout');
-    queueMicrotask(() => snapshot('settled'));
-    let frames = 0;
-    let frame = 0;
-    const sampleFrame = () => {
-      frames += 1;
-      snapshot(`frame${frames}`);
-      if (frames < 2) frame = requestAnimationFrame(sampleFrame);
-    };
-    frame = requestAnimationFrame(sampleFrame);
-    return () => cancelAnimationFrame(frame);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive]);
-
   // ── Exit scroll compensation ─────────────────────────────────────────────
   // A consumer with per-pane scroll memory (StagedForm) moves the shared
   // scroll container in the same commit that swaps the panes: it saves this
@@ -199,6 +159,7 @@ function ActivePane({
   // first — the save hasn't happened yet when this runs), still before paint.
   // Consumers without scroll memory skip all of this — their shared scroll
   // never moves on a swap.
+  //
   // Moving up is the dangerous direction: the pane rises out of its own flow
   // box into whatever the consumer renders above the panes — a header — and
   // popLayout has already made it absolutely positioned with a z-index, so it
@@ -233,7 +194,6 @@ function ActivePane({
       animate="center"
       className={cn(PANE_BASE_CLASSES, className)}
       custom={direction}
-      data-slide-pane={id}
       data-testid={testId ?? `slide-stack-pane-${id}`}
       exit="exit"
       // After a committed drag the ghost already stands exactly where this
@@ -266,8 +226,11 @@ function GhostPane({
   'data-testid': testId,
   ghost,
 }: SlideStackPaneProps & { ghost: SlideStackGhostPose }): React.JSX.Element {
-  const mountMeasureRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
+  // A stand-in exists only while a drag is in progress, which is as much a
+  // transition as the settle that follows it — deferred work waits for the
+  // finger too, not just for the animation after it.
+  useUiTransitionToken(true);
   // With a header the ghost is a composite of the landed viewport: the pane's
   // own classes move to an inner pane box so its layout (min-heights
   // included) reproduces the real pane and the clamp measurement is exact.
@@ -282,7 +245,6 @@ function GhostPane({
     // — the composite reproduces the real layout, so this measurement and the
     // landing's agree.
     const content = contentRef.current;
-    let appliedOffset = ghost.contentOffsetY;
     if (content && ghost.clipHeight !== undefined && ghost.contentOffsetY > 0) {
       const clamped = Math.min(
         ghost.contentOffsetY,
@@ -290,55 +252,8 @@ function GhostPane({
       );
       if (clamped !== ghost.contentOffsetY) {
         content.style.transform = `translateY(-${clamped}px)`;
-        appliedOffset = clamped;
       }
     }
-    // The pane box inside a composite is the wrapper's last child (the header
-    // copy renders before it); a pane-only ghost puts the pane content
-    // directly in the window. `lastChild` is then that box's bottom-most
-    // block — the same element `pane-metrics` reports for the real pane, so
-    // the two sets of numbers are directly comparable.
-    const paneBox = isComposite
-      ? (content?.lastElementChild ?? null)
-      : (mountMeasureRef.current ?? null);
-    const snapshot = (phase: string) => {
-      perfLog(
-        `ghost ${id} ${phase} composite=${isComposite} clip=${
-          ghost.clipHeight ?? 'none'
-        } off=${Math.round(appliedOffset)} ${fmtBox(
-          'win',
-          mountMeasureRef.current,
-        )} ${fmtBox('wrap', content)} ${fmtBox('pane', paneBox)} ${fmtBox(
-          'foot',
-          paneBox?.lastElementChild,
-        )}`,
-      );
-    };
-    snapshot('mount');
-    // A ghost mounting means a drag just engaged: watch the header from here
-    // through the settle, the swap and the outgoing pane's exit.
-    const scrollerForWatch = mountMeasureRef.current
-      ? findNearestScroller(mountMeasureRef.current)
-      : null;
-    if (scrollerForWatch) watchHeader(scrollerForWatch);
-    const frame = requestAnimationFrame(() => snapshot('frame'));
-    return () => {
-      cancelAnimationFrame(frame);
-      // Marks the handoff: everything logged after this is the real pane
-      // standing on its own. The box is where the stand-in ended up — it is
-      // anchored in the scroll container's content coordinates, so a swap
-      // that moved the scroll has dragged it away from the viewport it was
-      // previewing, and every frame it survived past that point painted it
-      // over the real content.
-      const scroller = mountMeasureRef.current
-        ? findNearestScroller(mountMeasureRef.current)
-        : null;
-      perfLog(
-        `ghost ${id} removed anchor=${Math.round(ghost.anchorTop)} scroll=${
-          scroller ? Math.round(scroller.scrollTop) : 'n/a'
-        } ${fmtBox('win', mountMeasureRef.current)}`,
-      );
-    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -356,7 +271,6 @@ function GhostPane({
 
   return (
     <m.div
-      ref={mountMeasureRef}
       // pointer-events-none: the ghost is a visual stand-in only — touches
       // must reach the real panes beneath it (e.g. to fast-forward a settle).
       // When the pane's scroll viewport is known, the ghost is a window of
@@ -373,7 +287,6 @@ function GhostPane({
           'overflow-hidden',
         !isComposite && className,
       )}
-      data-slide-ghost={id}
       data-testid={`${testId ?? `slide-stack-pane-${id}`}-ghost`}
       style={{
         top: ghost.anchorTop,
