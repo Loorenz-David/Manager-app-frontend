@@ -49,3 +49,4 @@ export type {
 export { workingSectionKeys } from "./api/working-section-keys";
 export { fetchWorkingSectionsPicker } from "./api/fetch-working-sections-picker";
 export { useWorkingSectionsPickerQuery } from "./api/use-working-sections-picker-query";
+export { workingSectionSocketEvents } from "./socket-events";

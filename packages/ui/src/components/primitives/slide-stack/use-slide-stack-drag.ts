@@ -5,6 +5,7 @@ import type { RefObject } from 'react';
 import { transitions } from '@beyo/lib';
 
 import { startsInIgnoredRegion } from '../../surfaces/use-slide-to-dismiss';
+import { findNearestScroller } from './find-nearest-scroller';
 import { slideStackPose } from './slide-stack.variants';
 import type {
   SlideStackDragController,
@@ -135,14 +136,42 @@ export function useSlideStackDrag({
       }
     };
 
-    // Where the ghost pane gets pinned: this pane's own flow position (below
-    // any header/timeline the consumer renders above the panes). When the
-    // user has scrolled past that point, pin to the viewport top instead so
-    // the ghost is actually visible during the drag.
-    const ghostAnchorTop = (): number => {
+    // Raw measurements the stack derives the ghost's anchor and content
+    // offset from (see SlideStack's engage): the scroll viewport's visible
+    // top and height, and the pane's flow offset — all in the positioned
+    // parent's coordinate space. The clip matters: without it the ghost
+    // painted the target pane at full content height, and rasterizing
+    // thousands of px of cards at drag start is the measured compositor jank
+    // on scrolled list pages.
+    const ghostGeometry = (): {
+      viewportTop: number;
+      paneOffsetTop: number;
+      clipHeight?: number;
+    } => {
       const parent = target.offsetParent;
-      const scrollTop = parent instanceof HTMLElement ? parent.scrollTop : 0;
-      return Math.max(target.offsetTop, scrollTop);
+      const scroller = findNearestScroller(target);
+      if (!(parent instanceof HTMLElement) || !scroller) {
+        return {
+          viewportTop: target.offsetTop,
+          paneOffsetTop: target.offsetTop,
+        };
+      }
+      // The scroller's visible top expressed in the offsetParent's absolute-
+      // positioning coordinate space (which scrolls with content, hence the
+      // scrollTop term when the offsetParent is the scroller itself).
+      const parentRect = parent.getBoundingClientRect();
+      const scrollerRect = scroller.getBoundingClientRect();
+      const viewportTop =
+        scrollerRect.top +
+        scroller.clientTop -
+        parentRect.top -
+        parent.clientTop +
+        parent.scrollTop;
+      return {
+        viewportTop,
+        paneOffsetTop: target.offsetTop,
+        clipHeight: scroller.clientHeight,
+      };
     };
 
     const settleSelf = (committed: boolean) => {
@@ -241,7 +270,7 @@ export function useSlideStackDrag({
         }
         dragType = type;
         if (verdict === true) {
-          if (!controllerRef.current.engage(type, ghostAnchorTop())) {
+          if (!controllerRef.current.engage(type, ghostGeometry())) {
             mode = 'rejected';
             return;
           }
@@ -260,7 +289,10 @@ export function useSlideStackDrag({
           const requestingGesture = gestureId;
           void verdict.then((allowed) => {
             if (gestureId !== requestingGesture || mode !== 'awaiting') return;
-            if (allowed && controllerRef.current.engage(dragType, ghostAnchorTop())) {
+            if (
+              allowed &&
+              controllerRef.current.engage(dragType, ghostGeometry())
+            ) {
               mode = 'dragging';
               x.stop();
               opacity.stop();

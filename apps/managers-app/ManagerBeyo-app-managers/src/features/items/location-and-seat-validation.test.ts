@@ -48,35 +48,15 @@ const baseItem = {
 };
 
 describe("task creation seat location validation", () => {
+  // Pre-order is intentionally excluded here: a pre-ordered item isn't in the
+  // building yet, so it has nowhere to be — see the standalone test below.
   it.each([
     ["internal", InternalFormSchema, { working_section_assignments: [] }],
-    [
-      "pre-order",
-      PreOrderFormSchema,
-      {
-        customer: {
-          display_name: "Ada",
-          customer_type: "private",
-          primary_email: "ada@example.com",
-          primary_phone_number: "0701234567",
-          address: {
-            street: "",
-            city: "",
-            postal_code: "",
-            country: "",
-          },
-        },
-        fulfillment_method: undefined,
-        return_source: undefined,
-        scheduled_end_at: null,
-        scheduled_start_at: null,
-        working_section_assignments: [],
-      },
-    ],
     [
       "return",
       ReturnFormSchema,
       {
+        has_sku_template: false,
         assortment: undefined,
         customer: {
           display_name: "Ada",
@@ -133,6 +113,39 @@ describe("task creation seat location validation", () => {
     },
   );
 
+  it("does not require a zone or position for a pre-ordered seat item", () => {
+    const result = PreOrderFormSchema.safeParse({
+      item: baseItem,
+      item_upholstery: {
+        upholstery_client_id: null,
+        upholstery_amount_meters: null,
+      },
+      item_issues: [],
+      note_content: null,
+      ready_by_at: null,
+      has_sku_template: false,
+      product_unit_price: 100,
+      shopIntegrationIds: ["shop_1"],
+      inventoryQuantities: [
+        { shopIntegrationId: "shop_1", locationId: "loc_1", quantity: 1 },
+      ],
+      customer: {
+        display_name: "Ada",
+        customer_type: "private",
+        primary_email: "ada@example.com",
+        primary_phone_number: "0701234567",
+        address: { street: "", city: "", postal_code: "", country: "" },
+      },
+      fulfillment_method: undefined,
+      return_source: undefined,
+      scheduled_end_at: null,
+      scheduled_start_at: null,
+      working_section_assignments: [],
+    });
+
+    expect(result.success).toBe(true);
+  });
+
   it.each([InternalFormSchema, PreOrderFormSchema, ReturnFormSchema])(
     "accepts a seat item when a zone is present",
     (schema) => {
@@ -151,6 +164,7 @@ describe("task creation seat location validation", () => {
         ...(schema === InternalFormSchema
           ? { working_section_assignments: [] }
           : {
+              has_sku_template: false,
               customer: {
                 display_name: "Ada",
                 customer_type: "private",
@@ -169,6 +183,19 @@ describe("task creation seat location validation", () => {
               scheduled_start_at: null,
               working_section_assignments: [],
               ...(schema === ReturnFormSchema ? { assortment: undefined } : {}),
+              ...(schema === PreOrderFormSchema
+                ? {
+                    product_unit_price: 100,
+                    shopIntegrationIds: ["shop_1"],
+                    inventoryQuantities: [
+                      {
+                        shopIntegrationId: "shop_1",
+                        locationId: "loc_1",
+                        quantity: 1,
+                      },
+                    ],
+                  }
+                : {}),
             }),
       });
 

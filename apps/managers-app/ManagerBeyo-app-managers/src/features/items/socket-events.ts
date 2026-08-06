@@ -29,6 +29,16 @@ export const itemSocketEvents: SocketEventHandlers = {
       queryKey: itemKeys.lists(),
       refetchType: "active",
     });
+    // `can_have_upholstery` decides queue membership, so an item update can add
+    // or remove a task from the pending-upholstery list and its counts.
+    queryClient.invalidateQueries({
+      queryKey: pendingSeatUpholsteryKeys.lists(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
+      queryKey: pendingSeatUpholsteryKeys.counts(),
+      refetchType: "active",
+    });
   },
 
   "item:deleted": ({ client_id }, { queryClient }) => {

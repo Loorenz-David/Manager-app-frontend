@@ -16,7 +16,11 @@ import { useUpholsteryPickerController } from "../controllers/use-upholstery-pic
 
 type UpholsteryPickerSlidePageProps = {
   currentClientId?: string | null;
-  onSelect?: (clientId: string) => void;
+  /**
+   * `null` means the user cleared the selection — the only route back from a
+   * linked upholstery to "no upholstery chosen".
+   */
+  onSelect?: (clientId: string | null) => void;
 };
 
 const BODY_MIN_HEIGHT_CLASS = "min-h-[calc(100dvh-9rem)]";
@@ -39,8 +43,10 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
     activeId: controller.activeFilter,
     paneIds: controller.filterOptions.map((option) => option.value),
   });
-  const shouldShowSaveButton =
-    stagedClientId !== null && stagedClientId !== (currentClientId ?? null);
+  // Any staged change offers a save — including clearing the current selection,
+  // which is how an item gets back to having no upholstery at all.
+  const shouldShowSaveButton = stagedClientId !== (currentClientId ?? null);
+  const isRemoving = stagedClientId === null;
   useEffect(() => {
     header?.setHeaderHidden(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,11 +70,15 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
 
   async function handleSaveSelection(): Promise<void> {
     if (stagedClientId === null) {
+      // Nothing to resolve — removing a selection needs no upholstery record.
+      header?.requestClose();
+      scheduleListCommit(() => onSelect?.(null));
       return;
     }
 
     try {
-      const resolvedClientId = await controller.selectUpholstery(stagedClientId);
+      const resolvedClientId =
+        await controller.selectUpholstery(stagedClientId);
       // Close first, then commit: the row starts animating out of the list
       // beneath as this slide closes (see LIST_COMMIT_DELAY_MS). Only the
       // refetch waits for both animations, which is what used to cause the lag.
@@ -91,28 +101,38 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
         onRefresh={controller.refetch}
       >
         <div data-testid="upholstery-list-scroll">
-          <UpholsteryPickerHeader
-            activeFilter={displayedFilter}
-            activeProviderFilterCount={controller.activeProviderFilterCount}
-            isFilterDisabled={isSearchActive}
-            isSearchLoading={isSearchActive ? controller.isLoading : false}
-            onBackPress={header?.requestClose ?? (() => {})}
-            q={searchQuery}
-            onFilterChange={controller.onFilterChange}
-            onQChange={setSearchQuery}
-            onProviderFilterPress={controller.openProviderFilterSheet}
-          />
-
           {/* Positioned container for the body stack: panes overlap during a
            * transition and drag ghosts pin inside it. The PullToRefresh scroll
-           * container above already clips horizontal overflow. */}
+           * container above already clips horizontal overflow. The header
+           * renders through the stack (still in flow, still scrolling with
+           * the body) so a slide whose landing reveals it previews it in the
+           * ghost instead of popping it in after the swap. */}
           <div className="relative">
             <SlideStack
               activeId={controller.activeFilter}
+              header={
+                <UpholsteryPickerHeader
+                  activeFilter={displayedFilter}
+                  activeProviderFilterCount={
+                    controller.activeProviderFilterCount
+                  }
+                  isFilterDisabled={isSearchActive}
+                  isSearchLoading={
+                    isSearchActive ? controller.isLoading : false
+                  }
+                  onBackPress={header?.requestClose ?? (() => {})}
+                  q={searchQuery}
+                  onFilterChange={controller.onFilterChange}
+                  onQChange={setSearchQuery}
+                  onProviderFilterPress={controller.openProviderFilterSheet}
+                />
+              }
               // Search overrides the quick filters (the pills are disabled),
               // so the drags stand down and the surface keeps its own
               // slide-to-close for the whole page.
-              onBack={isSearchActive ? undefined : controller.goToPreviousFilter}
+              onBack={
+                isSearchActive ? undefined : controller.goToPreviousFilter
+              }
               onCommit={onCommit}
               onForward={isSearchActive ? undefined : controller.goToNextFilter}
             >
@@ -182,7 +202,7 @@ export function UpholsteryPickerSlidePage(): React.JSX.Element {
             type="button"
             onClick={() => void handleSaveSelection()}
           >
-            Save selection
+            {isRemoving ? "Remove upholstery" : "Save selection"}
           </button>
         </div>
       ) : null}

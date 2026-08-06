@@ -42,6 +42,7 @@ import {
   TaskUpholsterySection,
 } from "../components/detail";
 import { TaskFlowTimeline } from "../components/TaskFlowTimeline";
+import { useItemUpholsteryPermissions } from "../lib/use-item-upholstery-permissions";
 import {
   TaskDetailProvider,
   useTaskDetailContext,
@@ -105,6 +106,29 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   }, [isFooterHidden]);
 
   const itemId = controller.taskDetail?.item?.client_id ?? null;
+  const canHaveUpholstery =
+    controller.taskDetail?.item?.can_have_upholstery ?? null;
+  const { canEditUpholsteryFlag, canEditUpholsteryLink } =
+    useItemUpholsteryPermissions();
+
+  function handleCanHaveUpholsteryChange(next: boolean | null): void {
+    if (!itemId) {
+      return;
+    }
+
+    // `null` means "back to never recorded", which the column cannot express —
+    // `true` is the only way back, and it reads the same in every consumer.
+    controller.updateItem.mutate({ id: itemId, can_have_upholstery: next ?? true });
+  }
+
+  function markItemAsUpholsteryCapable(): void {
+    if (!itemId || canHaveUpholstery !== false) {
+      return;
+    }
+
+    controller.updateItem.mutate({ id: itemId, can_have_upholstery: true });
+  }
+
   const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(
     controller.taskId,
   );
@@ -185,8 +209,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           {controller.taskDetail.item?.item_major_category_snapshot?.toLowerCase() ===
             "seat" && (
             <TaskUpholsterySection
+              canHaveUpholstery={canHaveUpholstery}
               createPending={controller.createItemUpholstery.isPending}
               itemId={itemId}
+              onCanHaveUpholsteryChange={
+                canEditUpholsteryFlag ? handleCanHaveUpholsteryChange : undefined
+              }
               onCreate={(newUpholsteryId) => {
                 if (!itemId) {
                   return;
@@ -198,30 +226,43 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                   upholstery_id: newUpholsteryId,
                   source: "internal",
                 });
+                markItemAsUpholsteryCapable();
               }}
               onEditAmount={controller.openUpholsteryAmountSheet}
+              onRemove={(itemUpholsteryId) => {
+                controller.deleteItemUpholstery.mutate(itemUpholsteryId);
+              }}
               onUpdate={(itemUpholsteryId, newUpholsteryId) => {
                 controller.updateItemUpholstery.mutate({
                   itemUpholsteryId,
                   upholstery_id: newUpholsteryId,
                 });
+                markItemAsUpholsteryCapable();
               }}
               renderUpholsteryField={({
+                canHaveUpholstery: fieldCanHaveUpholstery,
                 disabled,
+                onCanHaveUpholsteryChange,
                 onChange,
                 requirementState,
                 testId,
                 value,
               }) => (
                 <ItemUpholsteryField
+                  canHaveUpholstery={fieldCanHaveUpholstery}
                   disabled={disabled}
+                  selectionDisabled={!canEditUpholsteryLink}
+                  onCanHaveUpholsteryChange={onCanHaveUpholsteryChange}
                   onChange={onChange}
                   requirementState={toRequirementState(requirementState)}
                   testId={testId}
                   value={value}
                 />
               )}
-              updatePending={controller.updateItemUpholstery.isPending}
+              updatePending={
+                controller.updateItemUpholstery.isPending ||
+                controller.deleteItemUpholstery.isPending
+              }
             />
           )}
           <TaskFlowTimeline

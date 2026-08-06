@@ -2,8 +2,10 @@ import { AnimatePresence, animate, useMotionValue } from 'framer-motion';
 import {
   Children,
   isValidElement,
+  startTransition,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -58,6 +60,14 @@ type DragState = {
   type: SlideStackDragType;
   ghostId: string;
   anchorTop: number;
+  /** Scroll offset the ghost pre-scrolls its content to (pane-local, or
+   * composite-local when the ghost includes the header). */
+  contentOffsetY: number;
+  /** Ghost height (the scroll viewport); undefined = full-height sheet. */
+  clipHeight?: number;
+  /** Whether the ghost previews the full landed viewport (header + pane
+   * composite) — set whenever the stack has a header and a measured clip. */
+  includeHeader?: boolean;
   /** Set once the finger released and the settle animation is running. */
   settling?: boolean;
   settleTarget?: 0 | 1;
@@ -92,6 +102,8 @@ export function SlideStack({
   canForward,
   awaitNavigation = false,
   onCommit,
+  paneScrollMemory,
+  header,
   children,
 }: SlideStackProps): React.JSX.Element {
   const paneIds = collectPaneIds(children);
@@ -125,6 +137,21 @@ export function SlideStack({
   awaitNavigationRef.current = awaitNavigation;
   const onCommitRef = useRef(onCommit);
   onCommitRef.current = onCommit;
+  const paneScrollMemoryRef = useRef(paneScrollMemory);
+  paneScrollMemoryRef.current = paneScrollMemory;
+  const hasHeaderRef = useRef(false);
+  hasHeaderRef.current = header != null;
+  // Per-pane scroll positions recorded by the panes themselves (see
+  // SlideStackPane's activation effect) for consumers without their own
+  // scroll memory. Held here so the ghost preview and the landing read the
+  // same source.
+  const internalScrollMemoryRef = useRef(new Map<string, number>());
+  const internalScrollMemory = useRef({
+    get: (paneId: string) => internalScrollMemoryRef.current.get(paneId),
+    set: (paneId: string, value: number) => {
+      internalScrollMemoryRef.current.set(paneId, value);
+    },
+  }).current;
   const paneIdsRef = useRef(paneIds);
   paneIdsRef.current = paneIds;
   const activeIdRef = useRef(activeId);
@@ -144,7 +171,18 @@ export function SlideStack({
   // A real navigation consumed the suppress flag; clear it after that render.
   // This is also where an awaited async navigation lands: the new pane has
   // just rendered (settled, under the ghost), so the stand-in can go now.
-  useEffect(() => {
+  //
+  // Layout effect, deliberately: the stand-in has to be gone in the paint that
+  // shows the swap, not one after it. It is positioned in the scroll
+  // container's CONTENT coordinates, and a consumer restoring the incoming
+  // pane's scroll in this same commit moves that content underneath it — the
+  // stand-in is carried along and ends up over an unrelated part of the page,
+  // still painting a copy of the header and the top of the pane. Dropped
+  // passively it survives ~20 ms there, which is a visible flash of duplicated
+  // header. (Only on a forward drag: the back drag's stand-in sits at z-index
+  // 0, hidden behind the opaque real pane, so the same displacement never
+  // shows.)
+  useLayoutEffect(() => {
     suppressEnterRef.current = false;
     const pending = dragRef.current;
     if (pending?.awaitingNavigation) {
@@ -168,16 +206,66 @@ export function SlideStack({
       if (!onForwardRef.current || index >= ids.length - 1) return false;
       return resolveCondition(canForwardRef.current);
     },
-    engage: (type: SlideStackDragType, anchorTop = 0): boolean => {
+    engage: (
+      type: SlideStackDragType,
+      geometry: {
+        viewportTop: number;
+        paneOffsetTop: number;
+        clipHeight?: number;
+      } = { viewportTop: 0, paneOffsetTop: 0 },
+    ): boolean => {
       if (dragRef.current) return false;
       const ids = paneIdsRef.current;
       const index = ids.indexOf(activeIdRef.current);
       const ghostId = ids[type === 'back' ? index - 1 : index + 1];
       if (index < 0 || ghostId === undefined) return false;
       dragProgress.jump(0);
-      const next = { type, ghostId, anchorTop };
+      const { viewportTop, paneOffsetTop, clipHeight } = geometry;
+      // What the ghost's viewport-sized window shows: the region the landing
+      // will restore — the consumer's memory when it manages one, else the
+      // stack's own per-pane memory, else (first visit) the current scroll
+      // depth, which the landing inherits (clamped to the target's extent —
+      // the ghost applies the equivalent clamp against its own content). The
+      // drag thereby previews exactly what the swap will show.
+      const currentDepth = Math.max(0, viewportTop);
+      const memory =
+        paneScrollMemoryRef.current?.(ghostId) ??
+        internalScrollMemoryRef.current.get(ghostId);
+      const landing = memory ?? currentDepth;
+      // With a header, the ghost is always the full landed viewport — a
+      // header+pane composite offset to the landing scroll. Whatever the
+      // landing shows of the header appears in the preview, so the header can
+      // never pop in (or out) at the swap; the clip decides visibility, not
+      // conditionals. Without a header the ghost stays the pane-only window.
+      const includeHeader = hasHeaderRef.current && clipHeight !== undefined;
+      const anchorTop = includeHeader
+        ? Math.max(0, viewportTop)
+        : Math.max(paneOffsetTop, viewportTop);
+      // Content offsets are local to what the ghost renders: the composite
+      // starts at the header top (scroller coordinates), a pane-only ghost at
+      // the pane top.
+      const contentOffsetY = includeHeader
+        ? Math.max(0, landing)
+        : Math.max(0, landing - paneOffsetTop);
+      const next = {
+        type,
+        ghostId,
+        anchorTop,
+        contentOffsetY,
+        clipHeight,
+        includeHeader,
+      };
       dragRef.current = next;
-      setDrag(next);
+      // Transition, deliberately: the ghost is a full copy of the target
+      // pane, and on content-heavy panes mounting it synchronously blocks the
+      // main thread for the exact frames the finger starts moving (a measured
+      // ~150 ms freeze on a ~2,300-node pane). Nothing about finger tracking
+      // depends on this render — the active pane's pose is driven directly
+      // via MotionValues — so React can time-slice the mount between touch
+      // events and the stand-in fills in within a few frames.
+      startTransition(() => {
+        setDrag(next);
+      });
       return true;
     },
     update: (progress: number): void => {
@@ -292,10 +380,13 @@ export function SlideStack({
     activeId,
     suppressEnter: suppressEnterRef.current,
     drag: dragController,
+    paneScrollMemory,
+    internalScrollMemory,
   };
 
   return (
     <SlideStackContext.Provider value={contextValue}>
+      {header}
       <AnimatePresence custom={direction} initial={animateInitial} mode="popLayout">
         {getPaneChild(children, activeId)}
       </AnimatePresence>
@@ -307,6 +398,9 @@ export function SlideStack({
               type: drag.type === 'back' ? 'under' : 'over',
               progress: dragProgress,
               anchorTop: drag.anchorTop,
+              contentOffsetY: drag.contentOffsetY,
+              clipHeight: drag.clipHeight,
+              header: drag.includeHeader ? header : undefined,
             },
           }}
         >

@@ -44,22 +44,37 @@ export function StagedFormTimeline(): React.JSX.Element {
     isTimelineStatic,
   } = useStagedFormContext();
   const stepRefs = useRef<Record<string, HTMLElement | null>>({});
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const activeStepIndex = Math.max(
     0,
     steps.findIndex((s) => s.id === timelineStepId),
   );
   const compact = !isTimelineStatic && isTimelineCompact;
 
+  // Centers the active chip by scrolling the timeline's own horizontal
+  // scroller directly — never scrollIntoView, which also scrolls every
+  // scrollable ANCESTOR to bring the chip into view. The timeline sits at the
+  // top of the form's shared vertical scroll container, so on a scrolled-down
+  // step, scrollIntoView smooth-scrolled the whole form back to the top the
+  // instant a drag committed — the visible "content scrolls up" glitch during
+  // step transitions.
   useEffect(() => {
-    stepRefs.current[timelineStepId]?.scrollIntoView({
+    const scroller = scrollerRef.current;
+    const chip = stepRefs.current[timelineStepId];
+    if (!scroller || !chip) return;
+    const scrollerRect = scroller.getBoundingClientRect();
+    const chipRect = chip.getBoundingClientRect();
+    const chipLeftInContent =
+      chipRect.left - scrollerRect.left + scroller.scrollLeft;
+    scroller.scrollTo({
+      left: chipLeftInContent - (scroller.clientWidth - chipRect.width) / 2,
       behavior: "smooth",
-      block: "nearest",
-      inline: "center",
     });
   }, [timelineStepId]);
 
   return (
     <div
+      ref={scrollerRef}
       className="overflow-x-auto scroll-px-6 scrollbar-none"
       data-compact={compact ? "true" : "false"}
       data-testid="staged-form-timeline"

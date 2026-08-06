@@ -16,18 +16,27 @@ type ActiveUpholsteryEntry = ItemUpholsteryEntry & {
 };
 
 type UpholsteryFieldRenderInput = {
+  canHaveUpholstery: boolean | null;
   disabled: boolean;
-  onChange: (newUpholsteryId: string) => void;
+  onCanHaveUpholsteryChange: ((next: boolean | null) => void) | undefined;
+  onChange: (newUpholsteryId: string | null) => void;
   requirementState: string | null;
   testId: string;
   value: string | null;
 };
 
 type TaskUpholsterySectionProps = {
+  /**
+   * The item's `can_have_upholstery` flag; `null` when never recorded.
+   */
+  canHaveUpholstery?: boolean | null;
   createPending?: boolean;
   itemId: string | null;
+  onCanHaveUpholsteryChange?: (next: boolean | null) => void;
   onCreate: (newUpholsteryId: string) => void;
   onEditAmount: (itemUpholsteryId: string) => void;
+  /** Removes the link entirely — the way back to "no upholstery chosen". */
+  onRemove?: (itemUpholsteryId: string) => void;
   onUpdate: (itemUpholsteryId: string, newUpholsteryId: string) => void;
   renderUpholsteryField: (
     input: UpholsteryFieldRenderInput,
@@ -36,10 +45,13 @@ type TaskUpholsterySectionProps = {
 };
 
 export function TaskUpholsterySection({
+  canHaveUpholstery = null,
   createPending = false,
   itemId,
+  onCanHaveUpholsteryChange,
   onCreate,
   onEditAmount,
+  onRemove,
   onUpdate,
   renderUpholsteryField,
   updatePending = false,
@@ -79,12 +91,23 @@ export function TaskUpholsterySection({
 
       {activeUpholstery.length === 0 ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm text-muted-foreground">
-            No upholstery linked yet.
-          </p>
+          {canHaveUpholstery === false ? null : (
+            <p className="text-sm text-muted-foreground">
+              No upholstery linked yet.
+            </p>
+          )}
           {renderUpholsteryField({
+            canHaveUpholstery,
             disabled: createPending,
-            onChange: onCreate,
+            onCanHaveUpholsteryChange,
+            onChange: (newUpholsteryId) => {
+              // Nothing is linked, so a cleared selection is already the state.
+              if (newUpholsteryId === null) {
+                return;
+              }
+
+              onCreate(newUpholsteryId);
+            },
             requirementState: null,
             testId: "upholstery-field-empty",
             value: null,
@@ -95,9 +118,18 @@ export function TaskUpholsterySection({
           {activeUpholstery.map((entry) => (
             <div key={entry.client_id} className="flex flex-col gap-3">
               {renderUpholsteryField({
+                // A linked upholstery outranks the flag, so the None segment is
+                // never offered here — the user removes the link first.
+                canHaveUpholstery,
                 disabled:
                   entry.activeRequirement?.state === "completed" || updatePending,
+                onCanHaveUpholsteryChange,
                 onChange: (newUpholsteryId) => {
+                  if (newUpholsteryId === null) {
+                    onRemove?.(entry.client_id);
+                    return;
+                  }
+
                   if (newUpholsteryId === entry.upholstery_id) {
                     return;
                   }

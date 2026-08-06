@@ -246,6 +246,23 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
     };
   }, [header]);
 
+  // Scrolls with the body — no scroll-visibility on this page. Rendered via
+  // the stack's header slot in carousel mode and directly in single-pane mode.
+  const pageHeader = (
+    <TaskPostHandlingHeader
+      activeTab={displayedTab}
+      completedFilterCount={controller.completedFilterCount}
+      isLoading={controller.isBackgroundLoading}
+      isPillsDisabled={controller.isPillsDisabled}
+      q={controller.q}
+      stateCounts={countsQuery.data}
+      onBack={header?.requestClose ?? controller.closeSurface ?? (() => {})}
+      onFilterPress={controller.openFilterSheet}
+      onQChange={controller.setQ}
+      onTabChange={controller.setTab}
+    />
+  );
+
   return (
     <div
       className="relative flex h-full min-h-0 flex-col bg-background"
@@ -257,27 +274,18 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        {/* Header scrolls with the body — no scroll-visibility on this page. */}
-        <TaskPostHandlingHeader
-          activeTab={displayedTab}
-          completedFilterCount={controller.completedFilterCount}
-          isLoading={controller.isBackgroundLoading}
-          isPillsDisabled={controller.isPillsDisabled}
-          q={controller.q}
-          stateCounts={countsQuery.data}
-          onBack={header?.requestClose ?? controller.closeSurface ?? (() => {})}
-          onFilterPress={controller.openFilterSheet}
-          onQChange={controller.setQ}
-          onTabChange={controller.setTab}
-        />
-
         <div data-testid="task-post-handling-scroll">
           {controller.mode === "carousel" ? (
             // The positioned wrapper anchors overlapping panes and drag
-            // ghosts; PullToRefresh clips their horizontal overflow.
+            // ghosts; PullToRefresh clips their horizontal overflow. The
+            // header renders through the stack (still in flow, still
+            // scrolling with the body) so a slide whose landing reveals it
+            // previews it in the ghost instead of popping it in after the
+            // swap; the single-pane branch below renders it directly.
             <div className="relative">
               <SlideStack
                 activeId={controller.activeTab}
+                header={pageHeader}
                 onBack={
                   shouldDismissInsteadOfGoingBack
                     ? undefined
@@ -318,19 +326,22 @@ export function TaskPostHandlingSlidePage(): React.JSX.Element {
               </SlideStack>
             </div>
           ) : (
-            renderTaskPane({
-              tasks: controller.singlePane.tasks,
-              isInitialLoading: controller.singlePane.isInitialLoading,
-              isError: controller.singlePane.isError,
-              hasMore: controller.singlePane.hasMore,
-              isFetchingMore: controller.singlePane.isFetchingMore,
-              onLoadMore: controller.singlePane.loadMore,
-              emptyMessage:
-                controller.mode === "completed"
-                  ? "No completed post-handling tasks match the current filters."
-                  : "No tasks match the current search.",
-              controller,
-            })
+            <>
+              {pageHeader}
+              {renderTaskPane({
+                tasks: controller.singlePane.tasks,
+                isInitialLoading: controller.singlePane.isInitialLoading,
+                isError: controller.singlePane.isError,
+                hasMore: controller.singlePane.hasMore,
+                isFetchingMore: controller.singlePane.isFetchingMore,
+                onLoadMore: controller.singlePane.loadMore,
+                emptyMessage:
+                  controller.mode === "completed"
+                    ? "No completed post-handling tasks match the current filters."
+                    : "No tasks match the current search.",
+                controller,
+              })}
+            </>
           )}
         </div>
       </PullToRefresh>

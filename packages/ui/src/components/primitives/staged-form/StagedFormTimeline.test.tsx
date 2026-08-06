@@ -90,9 +90,10 @@ function dispatchTouch(
   });
 }
 
-// jsdom has no scrollIntoView; the timeline centres the active step on mount.
+// jsdom has no element scrolling; the timeline centres the active chip via
+// its own scroller's scrollTo on mount.
 beforeAll(() => {
-  Element.prototype.scrollIntoView = vi.fn();
+  Element.prototype.scrollTo = vi.fn();
 });
 
 afterEach(cleanup);

@@ -15,6 +15,8 @@ import type { WorkingSectionAssignment } from "../types";
 type TaskCreationAssignmentFooterProps = {
   activeStepId: string;
   majorCategory?: string;
+  /** Determines whether the photography working section is offered by any quick-select pill (internal only). */
+  taskType?: string;
 };
 
 type AssignmentFooterFormValues = {
@@ -24,6 +26,7 @@ type AssignmentFooterFormValues = {
 export function TaskCreationAssignmentFooter({
   activeStepId,
   majorCategory,
+  taskType,
 }: TaskCreationAssignmentFooterProps): React.JSX.Element {
   const surfaceHeader = useSurfaceHeader();
   const { control } = useFormContext<AssignmentFooterFormValues>();
@@ -40,8 +43,8 @@ export function TaskCreationAssignmentFooter({
   const showShortcutBar =
     activeStepId === "assignment" && availableSections.length > 0;
   const shortcuts = useMemo(
-    () => resolveWorkingSectionShortcutsByMajorCategory(majorCategory),
-    [majorCategory],
+    () => resolveWorkingSectionShortcutsByMajorCategory(majorCategory, taskType),
+    [majorCategory, taskType],
   );
   const selectedSectionIds = (field.value ?? []).map(
     (assignment) => assignment.working_section_id,

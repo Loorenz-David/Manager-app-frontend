@@ -10,7 +10,7 @@ import {
   useScrollVisibilityContext,
 } from "@beyo/ui";
 
-import { DEFAULT_WORKING_SECTION_SHORTCUTS } from "../constants/working-section-shortcuts";
+import { resolveWorkingSectionShortcutsByMajorCategory } from "../constants/working-section-shortcuts";
 import { useWorkingSectionPickerFlow } from "../flows/use-working-section-picker.flow";
 import { filterWorkingSectionsForMajorCategory } from "../lib/resolve-worker-form-working-sections";
 import type {
@@ -73,11 +73,14 @@ function WorkingSectionBox({
 
 type WorkingSectionPickerFieldProps = {
   majorCategory?: string;
+  /** Only affects which pills the internal shortcut bar offers — see resolveWorkingSectionShortcutsByMajorCategory. */
+  taskType?: string;
   showShortcutBar?: boolean;
 };
 
 export function WorkingSectionPickerField({
   majorCategory,
+  taskType,
   showShortcutBar = true,
 }: WorkingSectionPickerFieldProps = {}): React.JSX.Element {
   const { control } = useFormContext();
@@ -91,6 +94,10 @@ export function WorkingSectionPickerField({
   const displayedOptions = useMemo(
     () => filterWorkingSectionsForMajorCategory(flow.options, majorCategory),
     [flow.options, majorCategory],
+  );
+  const shortcuts = useMemo(
+    () => resolveWorkingSectionShortcutsByMajorCategory(majorCategory, taskType),
+    [majorCategory, taskType],
   );
 
   const currentAssignments: WorkingSectionAssignment[] = field.value ?? [];
@@ -165,7 +172,7 @@ export function WorkingSectionPickerField({
           data-testid="working-section-picker-shortcut-bar-container"
         >
           <WorkingSectionShortcutBar
-            shortcuts={DEFAULT_WORKING_SECTION_SHORTCUTS}
+            shortcuts={shortcuts}
             availableSections={displayedOptions}
             selectedSectionIds={selectedSectionIds}
             onShortcutPress={handleShortcutPress}

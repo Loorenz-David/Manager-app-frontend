@@ -36,7 +36,7 @@ import {
   OilingTreatmentPickerField,
   WorkingSectionPickerField,
   WorkingSectionPickerFieldsSchema,
-} from "@/features/working-sections";
+} from "@beyo/working-sections";
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { useStagedForm } from "@/hooks/use-staged-form";
 import { useSurface } from "@/hooks/use-surface";

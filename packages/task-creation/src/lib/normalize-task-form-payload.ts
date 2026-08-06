@@ -63,19 +63,22 @@ function buildItemFields(
   itemClientId: string,
   forceInclude: boolean,
 ) {
-  const hasAnyItemData = Boolean(
-    toOptionalString(item.article_number) ??
-      toOptionalString(item.sku) ??
-      toOptionalString(item.designer) ??
-      item.item_category_id ??
-      toOptionalString(item.item_position) ??
-      toOptionalString(item.item_zone) ??
-      item.item_currency ??
-      item.major_category ??
-      (item.quantity != null && item.quantity !== 1
-        ? String(item.quantity)
-        : ""),
-  );
+  const hasAnyItemData =
+    Boolean(
+      toOptionalString(item.article_number) ??
+        toOptionalString(item.sku) ??
+        toOptionalString(item.designer) ??
+        item.item_category_id ??
+        toOptionalString(item.item_position) ??
+        toOptionalString(item.item_zone) ??
+        item.item_currency ??
+        item.major_category ??
+        (item.quantity != null && item.quantity !== 1
+          ? String(item.quantity)
+          : ""),
+    ) ||
+    // Recording "this item has no upholstery" is itself item data worth sending.
+    item.can_have_upholstery !== undefined;
 
   if (!forceInclude && !hasAnyItemData) {
     return undefined;
@@ -91,6 +94,11 @@ function buildItemFields(
     item_position: toOptionalString(item.item_position),
     item_zone: toOptionalString(item.item_zone),
     item_currency: item.item_currency || undefined,
+    // Omitted when never recorded — the backend defaults it to `true`, and the
+    // column rejects an explicit `null`.
+    ...(item.can_have_upholstery === undefined
+      ? {}
+      : { can_have_upholstery: item.can_have_upholstery }),
   };
 }
 
@@ -118,7 +126,14 @@ export function toWorkerItemIssueFields(
 
 function buildUpholsteryFields(
   upholstery: ReturnFormValues["item_upholstery"],
+  canHaveUpholstery: boolean | undefined,
 ) {
+  // An item marked as "no upholstery" never carries an upholstery section, even
+  // if an amount was typed before the user changed their mind.
+  if (canHaveUpholstery === false) {
+    return undefined;
+  }
+
   if (
     !upholstery.upholstery_client_id &&
     upholstery.upholstery_amount_meters == null
@@ -159,14 +174,27 @@ export function normalizeReturnFormPayload(
   values: ReturnFormValues,
   ids: BaseIds,
   taskType: "return" | "pre_order" = "return",
+  /**
+   * Set by the caller when a blank identity is the intended, auto-assign
+   * path for this submission (a configured SKU template, with the form's own
+   * rule for when that's allowed to apply — e.g. pre-order always, return
+   * only for `after_purchase`). Without this, an item with no identity *and*
+   * nothing else filled in (no category, no designer, quantity still 1) is
+   * omitted from the request entirely rather than sent as `item: {}` — which
+   * creates nothing at all instead of letting the backend auto-assign a sku.
+   */
+  { forceItemInclusion = false }: { forceItemInclusion?: boolean } = {},
 ): Record<string, unknown> {
   const isStoreReturn = values.return_source === "store_return";
   const issueFields = buildIssueFields(values.item_issues);
-  const upholsteryFields = buildUpholsteryFields(values.item_upholstery);
+  const upholsteryFields = buildUpholsteryFields(
+    values.item_upholstery,
+    values.item.can_have_upholstery,
+  );
   const itemFields = buildItemFields(
     values.item,
     ids.itemClientId,
-    Boolean(issueFields) || Boolean(upholsteryFields),
+    Boolean(issueFields) || Boolean(upholsteryFields) || forceItemInclusion,
   );
   const notePayload = buildNotePayload(
     values.note_content,
@@ -270,7 +298,10 @@ export function normalizeInternalFormPayload(
   ids: BaseIds,
 ): Record<string, unknown> {
   const issueFields = buildIssueFields(values.item_issues);
-  const upholsteryFields = buildUpholsteryFields(values.item_upholstery);
+  const upholsteryFields = buildUpholsteryFields(
+    values.item_upholstery,
+    values.item.can_have_upholstery,
+  );
   const itemFields = buildItemFields(
     values.item,
     ids.itemClientId,

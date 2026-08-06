@@ -27,10 +27,33 @@ const itemUpholsteryFieldVariants = cva(
 
 type ItemUpholsteryFieldProps = {
   value?: string | null;
-  onChange: (value: string) => void;
+  onChange: (value: string | null) => void;
+  /**
+   * The item's `can_have_upholstery` flag. `undefined`/`null` means the backend
+   * never recorded a choice, which reads the same as `true` — the item may have
+   * upholstery, nobody has said either way yet.
+   */
+  canHaveUpholstery?: boolean | null;
+  /**
+   * Providing this is what turns the field into the split None/Select control.
+   * Callers that cannot write the flag (wrong role, or a form that has no item
+   * yet) simply omit it and keep the plain picker row.
+   *
+   * Emits `false` when None is picked, `null` when None is unpicked ("back to
+   * never recorded"), and `true` when an upholstery is selected. Hosts decide
+   * what `null` means for their transport: creation forms drop the key from the
+   * payload, the detail page sends `true` (the column is non-nullable).
+   */
+  onCanHaveUpholsteryChange?: (next: boolean | null) => void;
   placeholder?: string;
   requirementState?: UpholsteryRequirementState | null;
+  /** Disables the whole control, None segment included. */
   disabled?: boolean;
+  /**
+   * Disables only the picker half. Sellers can record the flag but cannot
+   * create or swap the upholstery link, so the two capabilities are separate.
+   */
+  selectionDisabled?: boolean;
   testId?: string;
 };
 
@@ -47,9 +70,12 @@ const REQUIREMENT_VARIANT: Record<UpholsteryRequirementState, StatePillVariant> 
 export function ItemUpholsteryField({
   value,
   onChange,
+  canHaveUpholstery = null,
+  onCanHaveUpholsteryChange,
   placeholder = "Select upholstery",
   requirementState = null,
   disabled = false,
+  selectionDisabled = false,
   testId,
 }: ItemUpholsteryFieldProps): React.JSX.Element {
   const queryClient = useQueryClient();
@@ -90,12 +116,84 @@ export function ItemUpholsteryField({
   const hasSelection = value !== null && value !== undefined;
   const isLoadingSelection =
     hasSelection && selectedUpholstery === null && isPending;
+  // A linked upholstery always wins the render: an item carrying one cannot
+  // meaningfully be "no upholstery", whatever the flag says.
+  const isNone = !hasSelection && canHaveUpholstery === false;
+  const showNoneSegment = !hasSelection && Boolean(onCanHaveUpholsteryChange);
 
   function handlePress(): void {
     useSurfaceStore.getState().open(UPHOLSTERY_PICKER_SURFACE_ID, {
       currentClientId: value,
-      onSelect: onChange,
+      onSelect: handlePickerSelect,
     });
+  }
+
+  function handlePickerSelect(clientId: string | null): void {
+    onChange(clientId);
+    // Selecting an upholstery is itself an assertion that the item can have
+    // one; clearing returns the flag to unrecorded rather than to "None".
+    onCanHaveUpholsteryChange?.(clientId === null ? null : true);
+  }
+
+  function handleNonePress(): void {
+    onCanHaveUpholsteryChange?.(isNone ? null : false);
+  }
+
+  const requirementPill = requirementState ? (
+    <div className="absolute -top-2 -right-2 z-10">
+      <StatePill
+        label={requirementState.replaceAll("_", " ")}
+        variant={REQUIREMENT_VARIANT[requirementState]}
+      />
+    </div>
+  ) : null;
+
+  if (showNoneSegment) {
+    return (
+      <div
+        className={cn(
+          "relative flex w-full items-stretch overflow-hidden rounded-xl border border-border bg-card transition-colors duration-150",
+          disabled && "pointer-events-none opacity-50",
+        )}
+        data-testid={testId}
+      >
+        {requirementPill}
+
+        <button
+          type="button"
+          aria-pressed={isNone}
+          className={cn(
+            "shrink-0 px-5 py-3 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset",
+            isNone
+              ? "bg-primary text-card"
+              : "border-r border-border text-muted-foreground",
+          )}
+          data-testid={testId ? `${testId}-none` : undefined}
+          disabled={disabled}
+          onClick={handleNonePress}
+        >
+          None
+        </button>
+
+        <button
+          type="button"
+          className="flex min-w-0 flex-1 items-center justify-between gap-3 px-4 py-3 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset disabled:opacity-50"
+          data-testid={testId ? `${testId}-select` : undefined}
+          disabled={disabled || selectionDisabled}
+          onClick={handlePress}
+        >
+          <span
+            className={cn(
+              "truncate text-sm",
+              isNone ? "text-foreground" : "text-muted-foreground",
+            )}
+          >
+            {isNone ? "No upholstery" : placeholder}
+          </span>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-icon" />
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -103,17 +201,10 @@ export function ItemUpholsteryField({
       type="button"
       data-testid={testId}
       className={itemUpholsteryFieldVariants()}
-      disabled={disabled}
+      disabled={disabled || selectionDisabled}
       onClick={handlePress}
     >
-      {requirementState ? (
-        <div className="absolute -top-2 -right-2">
-          <StatePill
-            label={requirementState.replaceAll("_", " ")}
-            variant={REQUIREMENT_VARIANT[requirementState]}
-          />
-        </div>
-      ) : null}
+      {requirementPill}
 
       {thumbnailUrl ? (
         <BackendImage

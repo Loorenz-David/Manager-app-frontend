@@ -149,25 +149,28 @@ function PendingUpholsterySlideContent(): React.JSX.Element {
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        {/* Header scrolls with the body — no scroll-visibility on this page. */}
-        <PendingUpholsteryHeader
-          counts={controller.counts}
-          countsError={controller.countsError}
-          isLoading={controller.isBackgroundLoading}
-          missingQuantity={displayedFilter === "missing_quantity"}
-          missingSelection={displayedFilter === "missing_selection"}
-          searchInput={controller.searchInput}
-          onBack={header?.requestClose ?? controller.close}
-          onFiltersChange={controller.setFilters}
-          onSearchChange={controller.setSearchInput}
-        />
-
         {/* The header and both independent list panes form one scroll body.
          * This positioned wrapper anchors overlapping panes and drag ghosts;
-         * PullToRefresh clips their horizontal overflow. */}
+         * PullToRefresh clips their horizontal overflow. The header renders
+         * through the stack (still in flow, still scrolling with the body) so
+         * a slide whose landing reveals it previews it in the ghost instead
+         * of popping it in after the swap. */}
         <div className="relative" data-testid="pending-upholstery-scroll">
           <SlideStack
             activeId={controller.activeFilter}
+            header={
+              <PendingUpholsteryHeader
+                counts={controller.counts}
+                countsError={controller.countsError}
+                isLoading={controller.isBackgroundLoading}
+                missingQuantity={displayedFilter === "missing_quantity"}
+                missingSelection={displayedFilter === "missing_selection"}
+                searchInput={controller.searchInput}
+                onBack={header?.requestClose ?? controller.close}
+                onFiltersChange={controller.setFilters}
+                onSearchChange={controller.setSearchInput}
+              />
+            }
             onBack={
               shouldDismissInsteadOfGoingBack
                 ? undefined

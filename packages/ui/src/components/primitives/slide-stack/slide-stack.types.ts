@@ -80,6 +80,27 @@ export type SlideStackProps = {
    * declined by the consumer inside `onForward` — treat it as optimistic.
    */
   onCommit?: (type: SlideStackDragType) => void;
+  /**
+   * Scroll offset (px, within the panes' shared scroll parent) a pane was
+   * last left at, for consumers that restore per-pane scroll positions when
+   * navigating. During an interactive drag the ghost pre-scrolls its content
+   * to this offset, so the preview shows exactly what the target pane will
+   * show once the navigation lands and the consumer restores its scroll —
+   * without it, the ghost previews the pane's top and the handoff jumps.
+   * Omit (or return 0) when panes always land at their top.
+   */
+  paneScrollMemory?: (paneId: string) => number;
+  /**
+   * Content the page scrolls above the panes (searchbar, filter pills).
+   * Rendered by the stack in flow before the panes — visually identical to
+   * rendering it as a sibling — so a drag whose landing scroll reveals it can
+   * include a copy in the ghost: the preview then shows the landed viewport
+   * (header + pane) instead of the pane alone, and the header no longer pops
+   * in after the swap. Must render pure from props/state (the ghost copy has
+   * no live focus or internal-only state), and everything that scrolls above
+   * the panes must live here — content outside stays un-previewable.
+   */
+  header?: ReactNode;
   children: ReactNode;
 };
 
@@ -104,10 +125,24 @@ export type SlideStackDragType = 'back' | 'forward';
  */
 export type SlideStackDragController = {
   check: (type: SlideStackDragType) => boolean | Promise<boolean>;
-  /** anchorTop: offset (px, within the positioned scroll parent) the ghost
-   * pane is pinned at — the dragged pane's own flow position, so the ghost
-   * never covers content rendered above the panes (headers, timelines). */
-  engage: (type: SlideStackDragType, anchorTop?: number) => boolean;
+  /** viewportTop: the scroll viewport's visible top expressed in the
+   * positioned parent's coordinate space (negative when the panes' flow
+   * position is below it — i.e. the header above them is on screen).
+   * paneOffsetTop: the dragged pane's flow offset — the baseline pane-local
+   * content offsets are derived against.
+   * clipHeight: the scroll viewport's height. When present, the ghost renders
+   * as a clipped window of exactly this height instead of a full-height sheet
+   * — full-height ghosts forced the compositor to rasterize the entire list
+   * (thousands of px of cards) at drag start, the measured source of drag
+   * jank on scrolled, content-heavy pages. */
+  engage: (
+    type: SlideStackDragType,
+    geometry?: {
+      viewportTop: number;
+      paneOffsetTop: number;
+      clipHeight?: number;
+    },
+  ) => boolean;
   update: (progress: number) => void;
   end: (committed: boolean) => void;
   /** Fast-forwards a drag that is in its post-release settle animation:
@@ -127,6 +162,18 @@ export type SlideStackGhostPose = {
   progress: MotionValue<number>;
   /** Top offset (px) the ghost is pinned at inside the positioned parent. */
   anchorTop: number;
+  /** Scroll offset the ghost pre-scrolls its content to, in the coordinate
+   * space of that content: pane-local for a pane-only ghost, composite-local
+   * (header top = 0) when `header` is present. 0 = show from the top. */
+  contentOffsetY: number;
+  /** Explicit ghost height (the scroll viewport). Undefined = legacy
+   * full-height sheet (no scrollable ancestor found to measure). */
+  clipHeight?: number;
+  /** Copy of the stack's `header` prop. When present the ghost previews the
+   * full landed viewport (header + pane composite) — whatever the landing
+   * scroll shows of the header appears in the preview, so it can never pop in
+   * or out at the swap. */
+  header?: ReactNode;
 };
 
 export type SlideStackContextValue = {
@@ -139,5 +186,19 @@ export type SlideStackContextValue = {
    * mounts settled at rest instead of replaying the enter animation. */
   suppressEnter: boolean;
   drag: SlideStackDragController;
+  /** The stack's `paneScrollMemory` prop, passed through so exiting panes can
+   * derive the swap's scroll delta without measuring the DOM. */
+  paneScrollMemory?: (paneId: string) => number;
+  /**
+   * The stack's own per-pane scroll memory for consumers that share one
+   * scroll container without managing it (`paneScrollMemory` absent). The
+   * active pane records its scroller position while live; on re-activation it
+   * restores the remembered position (clamped to its extent). Consumers with
+   * their own memory override this entirely.
+   */
+  internalScrollMemory: {
+    get: (paneId: string) => number | undefined;
+    set: (paneId: string, value: number) => void;
+  };
   ghost?: SlideStackGhostPose;
 };

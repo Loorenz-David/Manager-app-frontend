@@ -214,6 +214,34 @@ describe("UpholsteryPickerSlidePage", () => {
     expect(onSelect).toHaveBeenCalledWith("uph_b_saved");
   });
 
+  it("offers removal when the current selection is cleared and commits null", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const controller = makeController();
+
+    useSurfacePropsMock.mockReturnValue({
+      currentClientId: "uph_a",
+      onSelect,
+    });
+    useUpholsteryPickerControllerMock.mockReturnValue(controller);
+
+    renderPage();
+
+    await user.click(screen.getByRole("button", { name: "Alba" }));
+
+    const removeButton = screen.getByRole("button", {
+      name: "Remove upholstery",
+    });
+    expect(removeButton).toBeVisible();
+
+    await user.click(removeButton);
+
+    // Nothing to resolve — a removal needs no upholstery record created.
+    expect(controller.selectUpholstery).not.toHaveBeenCalled();
+    expect(requestCloseMock).toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledWith(null);
+  });
+
   it("does not fire onSelect when closed without saving", async () => {
     const onSelect = vi.fn();
     useSurfacePropsMock.mockReturnValue({

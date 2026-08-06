@@ -26,11 +26,7 @@ import {
 } from "@beyo/scanner";
 import { TaskReadyByDateField, useCreateTask } from "@beyo/tasks";
 import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
-import {
-  ItemUpholsteryAmountField,
-  ItemUpholsteryField,
-  preloadUpholsteryPickerSurface,
-} from "@beyo/upholstery";
+import { preloadUpholsteryPickerSurface } from "@beyo/upholstery";
 import {
   WorkingSectionPickerField,
   preloadWorkingSectionWorkerPickerSurface,
@@ -40,7 +36,6 @@ import {
   FormProvider,
   useForm,
   useWatch,
-  type Control,
   type FieldPath,
 } from "react-hook-form";
 
@@ -57,6 +52,7 @@ import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
+import { UpholsteryFieldGroup } from "./UpholsteryFieldGroup";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { InternalFormSchema, type InternalFormValues } from "../types";
@@ -82,30 +78,13 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
     "item.item_currency",
     "item.item_category_id",
     "item.major_category",
+    "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
   ],
   assignment: ["working_section_assignments"],
   task: ["item_issues", "ready_by_at", "note_content"],
 };
-
-function UpholsteryField({
-  control,
-}: {
-  control: Control<InternalFormValues>;
-}): React.JSX.Element {
-  return (
-    <Controller
-      name="item_upholstery.upholstery_client_id"
-      control={control}
-      render={({ field }) => (
-        <div className="flex flex-col gap-1.5">
-          <ItemUpholsteryField value={field.value} onChange={field.onChange} />
-        </div>
-      )}
-    />
-  );
-}
 
 export function InternalFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
@@ -382,6 +361,7 @@ export function InternalFormContent(): React.JSX.Element {
             <TaskCreationAssignmentFooter
               activeStepId={stepId}
               majorCategory={majorCategory}
+              taskType="internal"
             />
           )}
           isAdvancing={staged.isAdvancing}
@@ -421,8 +401,7 @@ export function InternalFormContent(): React.JSX.Element {
               ) : null}
               {majorCategory === "seat" ? (
                 <ContentCard>
-                  <UpholsteryField control={form.control} />
-                  <ItemUpholsteryAmountField quantity={itemQuantity ?? 0} />
+                  <UpholsteryFieldGroup quantity={itemQuantity ?? 0} />
                 </ContentCard>
               ) : null}
             </div>
@@ -433,6 +412,7 @@ export function InternalFormContent(): React.JSX.Element {
               <ContentCard>
                 <WorkingSectionPickerField
                   majorCategory={majorCategory}
+                  taskType="internal"
                   showShortcutBar={false}
                 />
               </ContentCard>

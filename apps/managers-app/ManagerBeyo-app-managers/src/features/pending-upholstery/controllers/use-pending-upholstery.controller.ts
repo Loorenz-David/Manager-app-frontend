@@ -25,7 +25,12 @@ import type {
   PendingSeatTaskRow,
 } from "../types";
 
-const PAGE_LIMIT = 50;
+// Both panes stay mounted (SlideStack renders the destination pane as a drag
+// ghost), and every fetched row becomes a fully mounted card — so page size
+// directly sets how much DOM a swipe has to build. At 50 the ghost mount cost
+// ~145 ms and visibly blocked the drag; 10 keeps a page under one viewport,
+// with "Load more" for the rest.
+const PAGE_LIMIT = 10;
 export const PENDING_UPHOLSTERY_FILTERS = [
   "missing_selection",
   "missing_quantity",

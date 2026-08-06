@@ -1,4 +1,18 @@
+import type { Locator } from '@playwright/test';
+
 import { expect, test } from '../../fixtures/app-fixture';
+
+// Elements inside a PullToRefresh container are guarded by use-gesture's
+// `filterTaps`, which misclassifies Playwright's synthetic MOUSE click as a
+// drag under mobile emulation and stops the click. Tap on touch projects,
+// click elsewhere.
+async function press(target: Locator): Promise<void> {
+  if (test.info().project.use.hasTouch) {
+    await target.tap();
+  } else {
+    await target.click();
+  }
+}
 
 const hasCredentials = Boolean(
   process.env.PLAYWRIGHT_TEST_EMAIL && process.env.PLAYWRIGHT_TEST_PASSWORD,
@@ -77,6 +91,10 @@ test.describe('Task detail upholstery swap', () => {
               closed_at: null,
               is_deleted: false,
               deleted_at: null,
+              assortment: null,
+              // Required by TaskDetailRawSchema — without it the whole detail
+              // payload fails validation and the page renders its error state.
+              post_handling: [],
             },
             item: {
               client_id: 'item_1',
@@ -93,6 +111,7 @@ test.describe('Task detail upholstery swap', () => {
               item_cost_minor: null,
               item_currency: null,
               item_position: null,
+              item_zone: null,
               external_id: null,
               external_url: null,
               external_source: null,
@@ -166,6 +185,7 @@ test.describe('Task detail upholstery swap', () => {
                 list_order: null,
                 current_stored_amount_meters: '4.0',
                 inventory_condition: 'available',
+                origin: 'database',
               },
               {
                 client_id: 'upholstery_new',
@@ -176,6 +196,7 @@ test.describe('Task detail upholstery swap', () => {
                 list_order: null,
                 current_stored_amount_meters: '7.5',
                 inventory_condition: 'available',
+                origin: 'database',
               },
             ],
             upholsteries_pagination: {
@@ -201,6 +222,7 @@ test.describe('Task detail upholstery swap', () => {
               list_order: null,
               current_stored_amount_meters: '4.0',
               inventory_condition: 'available',
+              origin: 'database',
             }
           : {
               client_id: 'upholstery_new',
@@ -211,6 +233,7 @@ test.describe('Task detail upholstery swap', () => {
               list_order: null,
               current_stored_amount_meters: '7.5',
               inventory_condition: 'available',
+              origin: 'database',
             };
 
       await route.fulfill({
@@ -241,16 +264,18 @@ test.describe('Task detail upholstery swap', () => {
 
     await page.getByTestId('tab-tasks').click();
     await expect(page).toHaveURL(/\/tasks$/);
-    await page.locator('[data-testid^="tasks-card-body-"]').first().click();
+    await press(page.locator('[data-testid^="tasks-card-body-"]').first());
 
     await expect(page.getByTestId('task-detail-upholstery-section')).toBeVisible();
     await expect(page.getByTestId('upholstery-field-item_upholstery_1')).toContainText(
       'Velvet Blue',
     );
 
-    await page.getByTestId('upholstery-field-item_upholstery_1').click();
+    await press(page.getByTestId('upholstery-field-item_upholstery_1'));
     await expect(page.getByTestId('upholstery-picker-slide-page')).toBeVisible();
-    await page.getByTestId('upholstery-card-upholstery_new').click();
+    await press(page.getByTestId('upholstery-card-upholstery_new'));
+    // Tapping a card only stages the choice; the bottom action commits it.
+    await page.getByRole('button', { name: 'Save selection' }).click();
 
     await expect(page.getByTestId('upholstery-picker-slide-page')).not.toBeVisible();
     await expect(page.getByTestId('upholstery-field-item_upholstery_1')).toContainText(

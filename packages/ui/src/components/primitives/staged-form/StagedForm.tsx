@@ -1,4 +1,10 @@
-import { Children, cloneElement, isValidElement, useEffect } from "react";
+import {
+  Children,
+  cloneElement,
+  isValidElement,
+  useLayoutEffect,
+  useRef,
+} from "react";
 
 import { ScrollVisibilityContext } from "../scroll-visibility/ScrollVisibilityContext";
 import { useScrollHide } from "../scroll-visibility";
@@ -59,9 +65,30 @@ export function StagedForm({
       paneIds: stepIds,
     });
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = 0;
+  // Per-step scroll memory: the steps share one scroll container, so the
+  // container's position belongs to whichever step is showing. On a step
+  // change, the outgoing step's position is saved and the incoming step's
+  // remembered one restored (top for a first visit) — returning to a step
+  // lands exactly where the user left it. The interactive drag previews the
+  // same thing: SlideStack reads this memory (paneScrollMemory below) so the
+  // ghost pre-scrolls its content to the position the swap will restore.
+  const stepScrollMemoryRef = useRef<Record<string, number>>({});
+  const previousStepIdRef = useRef(activeStepId);
+
+  // Layout effect, deliberately: the scroll move must land in the same commit
+  // as the pane swap, before the browser paints. A passive effect lets one
+  // frame paint with the new step viewed from the old step's scroll offset —
+  // the step appears mid-content, then visibly jumps.
+  useLayoutEffect(() => {
+    const scroller = scrollRef.current;
+    const previousStepId = previousStepIdRef.current;
+    previousStepIdRef.current = activeStepId;
+
+    if (scroller && previousStepId !== activeStepId) {
+      stepScrollMemoryRef.current[previousStepId] = scroller.scrollTop;
+    }
+    if (scroller) {
+      scroller.scrollTop = stepScrollMemoryRef.current[activeStepId] ?? 0;
     }
 
     reset();
@@ -123,6 +150,12 @@ export function StagedForm({
       activeId={activeStepId}
       animateInitial
       direction={direction}
+      // useStagedForm.advance awaits onBeforeAdvance (form validation) before
+      // it changes the active step, so a committed drag's pane swap lands a
+      // few frames after the gesture. The ghost must keep standing in until
+      // then — without this the outgoing step flashes back in (at whatever
+      // scroll position it was left at) between the commit and the swap.
+      awaitNavigation
       canBack={canBack}
       canForward={canAdvance}
       onBack={onBack}
@@ -130,6 +163,19 @@ export function StagedForm({
       // inside onAdvance); paused while an advance is already in flight.
       onForward={isAdvancing ? undefined : onAdvance}
       onCommit={handleDragCommit}
+      paneScrollMemory={(stepId) => stepScrollMemoryRef.current[stepId] ?? 0}
+      // In header mode the header + timeline scroll with the steps, so they
+      // route through the stack: the drag ghost then previews the full landed
+      // viewport (header included), instead of the header popping in or out
+      // only after the swap restores the target step's scroll position.
+      header={
+        hasHeader ? (
+          <>
+            {header}
+            <StagedFormTimeline />
+          </>
+        ) : undefined
+      }
     >
       {stepPanes}
     </SlideStack>
@@ -172,12 +218,6 @@ export function StagedForm({
             {/* min-h-full + mt-auto keep the footer at the screen bottom even
              * when a step is shorter than the viewport. */}
             <div className="flex min-h-full flex-col">
-              {hasHeader ? (
-                <>
-                  {header}
-                  <StagedFormTimeline />
-                </>
-              ) : null}
               {/* The accessory bar's wrapper must stay a growing flex column:
                * the step pane fills it, and an opaque full-height pane is what
                * hides the outgoing (popLayout-absolute) step during a

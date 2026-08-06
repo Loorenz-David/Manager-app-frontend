@@ -15,14 +15,17 @@ import {
 
 import { getSkuTemplateByTaskType } from "./api/get-sku-template-by-task-type";
 import { buildPreOrderFormDefaultValues } from "./lib/pre-order-form-default-values";
+import { buildReturnFormDefaultValues } from "./lib/return-form-default-values";
 import {
   TaskCreationFormProvider,
   useTaskCreationFormContext,
 } from "./providers/TaskCreationFormProvider";
-import { PreOrderFormSchema } from "./types";
+import { PreOrderFormSchema, ReturnFormSchema } from "./types";
 
 const PREVIEW_ENDPOINT =
   "http://localhost/api/v1/sku-templates/by-task-type/pre_order";
+const RETURN_PREVIEW_ENDPOINT =
+  "http://localhost/api/v1/sku-templates/by-task-type/return";
 
 const template = {
   client_id: "skt_01K0TESTTEMPLATE",
@@ -33,6 +36,14 @@ const template = {
   last_scalar: 6,
   next_scalar: 7,
   next_sku_preview: "PRE-7",
+} as const;
+
+const returnTemplate = {
+  ...template,
+  client_id: "skt_01K0TESTRETURNTEMPLATE",
+  task_type: "return",
+  prefix: "RET",
+  next_sku_preview: "RET-7",
 } as const;
 
 const server = setupServer();
@@ -69,13 +80,15 @@ function PreviewProbe(): React.JSX.Element {
   );
 }
 
-function renderPreviewProvider(): ReturnType<typeof render> {
+function renderPreviewProvider(
+  taskType: "pre_order" | "return" = "pre_order",
+): ReturnType<typeof render> {
   const queryClient = createQueryClient();
 
   return render(
     <StrictMode>
       <QueryClientProvider client={queryClient}>
-        <TaskCreationFormProvider taskType="pre_order">
+        <TaskCreationFormProvider taskType={taskType}>
           <PreviewProbe />
         </TaskCreationFormProvider>
       </QueryClientProvider>
@@ -217,6 +230,122 @@ describe("pre-order SKU preview", () => {
         has_sku_template: true,
         item: {
           ...buildPreOrderFormDefaultValues(true).item,
+          sku: "MANUAL-SKU",
+        },
+      }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+});
+
+function buildSubmittableReturnValues(
+  overrides: Partial<ReturnType<typeof buildReturnFormDefaultValues>> = {},
+) {
+  const defaults = buildReturnFormDefaultValues(false);
+
+  return {
+    ...defaults,
+    ...overrides,
+    item: { ...defaults.item, ...overrides.item },
+    return_source: overrides.return_source ?? ("after_purchase" as const),
+    customer: {
+      ...defaults.customer,
+      display_name: "Ada",
+      customer_type: "private" as const,
+      primary_email: "ada@example.com",
+      primary_phone_number: "+46700000000",
+      ...overrides.customer,
+    },
+  };
+}
+
+describe("return SKU preview", () => {
+  it("keys the preview by the return task type, not a hardcoded default", async () => {
+    server.use(
+      http.get(RETURN_PREVIEW_ENDPOINT, () =>
+        HttpResponse.json({ ok: true, data: returnTemplate, warnings: [] }),
+      ),
+    );
+
+    renderPreviewProvider("return");
+
+    await waitFor(() => {
+      expect(screen.getByTestId("preview-probe")).toHaveTextContent(
+        '"skuPreview":"RET-7"',
+      );
+    });
+    expect(screen.getByTestId("preview-probe")).toHaveTextContent(
+      '"hasSkuTemplate":true',
+    );
+  });
+
+  it("allows a blank identity for after_purchase when a template exists", () => {
+    const result = ReturnFormSchema.safeParse(
+      buildSubmittableReturnValues({
+        has_sku_template: true,
+        return_source: "after_purchase",
+      }),
+    );
+
+    expect(result.success).toBe(true);
+  });
+
+  it("still requires an identity for after_purchase without a template", () => {
+    const result = ReturnFormSchema.safeParse(
+      buildSubmittableReturnValues({
+        has_sku_template: false,
+        return_source: "after_purchase",
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(
+      result.error?.issues.some(
+        (issue) => issue.path.join(".") === "item.article_number",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps requiring an identity for before_purchase even with a template", () => {
+    const result = ReturnFormSchema.safeParse(
+      buildSubmittableReturnValues({
+        has_sku_template: true,
+        return_source: "before_purchase",
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(
+      result.error?.issues.some(
+        (issue) => issue.path.join(".") === "item.article_number",
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps requiring an identity for store_return even with a template", () => {
+    const result = ReturnFormSchema.safeParse(
+      buildSubmittableReturnValues({
+        has_sku_template: true,
+        return_source: "store_return",
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(
+      result.error?.issues.some(
+        (issue) => issue.path.join(".") === "item.article_number",
+      ),
+    ).toBe(true);
+  });
+
+  it("accepts a manual SKU override for after_purchase regardless of the template", () => {
+    const result = ReturnFormSchema.safeParse(
+      buildSubmittableReturnValues({
+        has_sku_template: true,
+        return_source: "after_purchase",
+        item: {
+          ...buildReturnFormDefaultValues(true).item,
           sku: "MANUAL-SKU",
         },
       }),

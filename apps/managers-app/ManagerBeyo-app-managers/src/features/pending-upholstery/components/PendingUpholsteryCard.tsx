@@ -179,7 +179,7 @@ export function PendingUpholsteryCard({
     return (
       <TaskListCard
         bodyExtra={
-          card.upholstery ? (
+          card.pendingReason === "missing_quantity" && card.upholstery ? (
             <div
               className="mt-2.5 flex min-w-0 items-center gap-2.5"
               data-testid={`pending-upholstery-fabric-${card.taskId}`}

@@ -172,9 +172,23 @@ export const ReturnFormSchema = z
       WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
     ready_by_at: DateOnlySchema.nullable().optional(),
     note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
+    /**
+     * Mirrors whether the workspace has a SKU template for return tasks (see
+     * PreOrderFormSchema.has_sku_template for why this lives in the form
+     * rather than a dynamic schema). Only relevant for `after_purchase`: an
+     * after-purchase return has no existing internal item to identify, so a
+     * blank identity is the normal path there when a template exists. Before-
+     * purchase and store returns are always identifying an item that's
+     * already in inventory, so they keep requiring one regardless.
+     */
+    has_sku_template: z.boolean(),
   })
   .superRefine((data, ctx) => {
-    addItemIdentityIssue(data.item, ctx);
+    const identityOptional =
+      data.return_source === "after_purchase" && data.has_sku_template;
+    if (!identityOptional) {
+      addItemIdentityIssue(data.item, ctx);
+    }
     addSeatLocationIssue(data.item, ctx);
 
     if (data.return_source === "store_return") {

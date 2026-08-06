@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -41,11 +41,7 @@ import {
   useCreateTask,
 } from "@beyo/tasks";
 import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
-import {
-  ItemUpholsteryAmountField,
-  ItemUpholsteryField,
-  preloadUpholsteryPickerSurface,
-} from "@beyo/upholstery";
+import { preloadUpholsteryPickerSurface } from "@beyo/upholstery";
 import {
   WorkingSectionPickerField,
   preloadWorkingSectionWorkerPickerSurface,
@@ -55,7 +51,6 @@ import {
   FormProvider,
   useForm,
   useWatch,
-  type Control,
   type FieldPath,
 } from "react-hook-form";
 
@@ -65,13 +60,18 @@ import {
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
+import { useProvisionalSkuDisplay } from "../hooks/use-provisional-sku-display";
 import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
 import { normalizeReturnFormPayload } from "../lib/normalize-task-form-payload";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
+import { buildReturnFormDefaultValues } from "../lib/return-form-default-values";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
+import { ReturnSubmitOverlay } from "./ReturnSubmitOverlay";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
+import { SkuTemplatePreviewHint } from "./SkuTemplatePreviewHint";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
+import { UpholsteryFieldGroup } from "./UpholsteryFieldGroup";
 import { ReturnFormSchema, type ReturnFormValues } from "../types";
 import {
   // CALENDAR_RANGE_PICKER_SURFACE_ID,
@@ -97,6 +97,7 @@ const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
     "item.item_currency",
     "item.item_category_id",
     "item.major_category",
+    "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
   ],
@@ -110,28 +111,15 @@ const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
   details: ["item_issues", "note_content", "ready_by_at"],
 };
 
-function UpholsteryField({
-  control,
-}: {
-  control: Control<ReturnFormValues>;
-}): React.JSX.Element {
-  return (
-    <Controller
-      name="item_upholstery.upholstery_client_id"
-      control={control}
-      render={({ field }) => (
-        <div className="flex flex-col gap-1.5">
-          <ItemUpholsteryField value={field.value} onChange={field.onChange} />
-        </div>
-      )}
-    />
-  );
-}
-
 export function ReturnFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const [submitOverlayPhase, setSubmitOverlayPhase] = useState<
+    "creating" | "succeeded" | null
+  >(null);
+  const { submittedSku, beginSubmission, resolveFinal, clear: clearSubmittedSku } =
+    useProvisionalSkuDisplay();
   const { hasRole } = useRole();
   const isSeller = hasRole(AuthRole.Seller);
 
@@ -151,6 +139,8 @@ export function ReturnFormContent(): React.JSX.Element {
     noteClientId,
     currentUserClientId,
     callbacks,
+    skuPreview,
+    hasSkuTemplate,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
   const applyLookupImages = useLookupItemImages(itemClientId);
@@ -159,52 +149,25 @@ export function ReturnFormContent(): React.JSX.Element {
     resolver: zodResolver(ReturnFormSchema),
     mode: "onChange",
     reValidateMode: "onChange",
-    defaultValues: {
-      assortment: undefined,
-      item: {
-        designer: "",
-        article_number: "",
-        sku: "",
-        quantity: 1,
-        item_position: "",
-        item_zone: "",
-        item_currency: undefined,
-        item_category_id: undefined,
-        major_category: undefined,
-      },
-      item_upholstery: {
-        upholstery_client_id: null,
-        upholstery_amount_meters: null,
-      },
-      item_issues: [],
-      customer: {
-        display_name: "",
-        customer_type: undefined,
-        primary_email: "",
-        primary_phone_number: "",
-        address: {
-          street: "",
-          city: "",
-          postal_code: "",
-          coordinates: {
-            latitude: null,
-            longitude: null,
-          },
-        },
-      },
-      return_source: undefined,
-      fulfillment_method: undefined,
-      scheduled_start_at: null,
-      scheduled_end_at: null,
-      working_section_assignments: [],
-      ready_by_at: null,
-      note_content: null,
-    },
+    defaultValues: buildReturnFormDefaultValues(hasSkuTemplate),
   });
   const returnSource = useWatch({
     control: form.control,
     name: "return_source",
   });
+  // An after-purchase return has no existing internal item to identify, so a
+  // blank identity is the normal, auto-assign path there when a template
+  // exists. Before-purchase and store returns are always identifying an item
+  // already in inventory, so they keep requiring one regardless of the
+  // template's existence.
+  const showSkuTemplateAssist =
+    returnSource === "after_purchase" && hasSkuTemplate;
+
+  // The template lookup usually resolves after mount, so the flag the schema
+  // validates against is kept in sync rather than only seeded.
+  useEffect(() => {
+    form.setValue("has_sku_template", hasSkuTemplate);
+  }, [form, hasSkuTemplate]);
   const { errors } = form.formState;
   const majorCategory = useWatch({
     control: form.control,
@@ -270,7 +233,10 @@ export function ReturnFormContent(): React.JSX.Element {
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
-  const hasAssignmentStep = returnSource === "before_purchase" && !isSeller;
+  // Matches PreOrderFormContent: gated purely on role, like pre-order — a
+  // returned item still needs staffing to physically process it regardless
+  // of where it came from, so this no longer singles out before_purchase.
+  const hasAssignmentStep = !isSeller;
   const shouldShowTaskQuantity = majorCategory === "seat";
   const shouldShowTaskUpholstery =
     majorCategory === "seat" &&
@@ -365,57 +331,38 @@ export function ReturnFormContent(): React.JSX.Element {
             currentUserClientId,
           },
           "return",
+          { forceItemInclusion: showSkuTemplateAssist },
         );
 
-        const result = await createTask.mutateAsync(payload);
-        callbacks.onTaskCreated?.({
-          result,
-          hadUpholstery: Boolean(payload.item_upholstery),
-        });
-        form.reset({
-          item: {
-            designer: "",
-            article_number: "",
-            sku: "",
-            quantity: 1,
-            item_position: "",
-            item_zone: "",
-            item_currency: undefined,
-            item_category_id: undefined,
-            major_category: undefined,
-          },
-          item_upholstery: {
-            upholstery_client_id: null,
-            upholstery_amount_meters: null,
-          },
-          item_issues: [],
-          customer: {
-            display_name: "",
-            customer_type: undefined,
-            primary_email: "",
-            primary_phone_number: "",
-            address: {
-              street: "",
-              city: "",
-              postal_code: "",
-              coordinates: {
-                latitude: null,
-                longitude: null,
-              },
-            },
-          },
-          return_source: undefined,
-          assortment: undefined,
-          fulfillment_method: undefined,
-          scheduled_start_at: null,
-          scheduled_end_at: null,
-          working_section_assignments: [],
-          ready_by_at: null,
-          note_content: null,
-        });
-        surface.close(TASK_CREATION_RETURN_SURFACE_ID);
+        beginSubmission(
+          values.item.sku?.trim(),
+          showSkuTemplateAssist ? skuPreview : null,
+        );
+        setSubmitOverlayPhase("creating");
+
+        try {
+          const result = await createTask.mutateAsync(payload);
+          resolveFinal(result.item_sku);
+          callbacks.onTaskCreated?.({
+            result,
+            hadUpholstery: Boolean(payload.item_upholstery),
+          });
+          setSubmitOverlayPhase("succeeded");
+        } catch {
+          // useCreateTask already notifies; drop the overlay so the form
+          // stays editable — the task was not created.
+          setSubmitOverlayPhase(null);
+          clearSubmittedSku();
+        }
       })(),
   });
+
+  function closeAfterSubmit(): void {
+    setSubmitOverlayPhase(null);
+    clearSubmittedSku();
+    form.reset(buildReturnFormDefaultValues(hasSkuTemplate));
+    surface.close(TASK_CREATION_RETURN_SURFACE_ID);
+  }
 
   navigateToRef.current = staged.navigateTo;
 
@@ -467,7 +414,7 @@ export function ReturnFormContent(): React.JSX.Element {
   return (
     <FormProvider {...form}>
       <form
-        className="flex h-full flex-col "
+        className="relative flex h-full flex-col "
         data-testid="return-form"
         noValidate
         onSubmit={(event) => event.preventDefault()}
@@ -481,6 +428,7 @@ export function ReturnFormContent(): React.JSX.Element {
             <TaskCreationAssignmentFooter
               activeStepId={stepId}
               majorCategory={majorCategory}
+              taskType="return"
             />
           )}
           isAdvancing={staged.isAdvancing}
@@ -503,6 +451,14 @@ export function ReturnFormContent(): React.JSX.Element {
                 <ItemIdentityField
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
+                  skuPlaceholder={
+                    showSkuTemplateAssist ? skuPreview ?? undefined : undefined
+                  }
+                />
+                <SkuTemplatePreviewHint
+                  preview={showSkuTemplateAssist ? skuPreview : null}
+                  hidden={Boolean(itemSku?.trim())}
+                  testId="return-form-sku-preview-hint"
                 />
                 <ItemPositionZoneField
                   articleNumber={itemArticleNumber}
@@ -523,8 +479,7 @@ export function ReturnFormContent(): React.JSX.Element {
               ) : null}
               {shouldShowTaskUpholstery ? (
                 <ContentCard>
-                  <UpholsteryField control={form.control} />
-                  <ItemUpholsteryAmountField quantity={itemQuantity ?? 0} />
+                  <UpholsteryFieldGroup quantity={itemQuantity ?? 0} />
                 </ContentCard>
               ) : null}
             </div>
@@ -564,6 +519,7 @@ export function ReturnFormContent(): React.JSX.Element {
                 <ContentCard>
                   <WorkingSectionPickerField
                     majorCategory={majorCategory}
+                    taskType="return"
                     showShortcutBar={false}
                   />
                 </ContentCard>
@@ -615,6 +571,17 @@ export function ReturnFormContent(): React.JSX.Element {
             </EntityImagesProvider>
           </StagedFormStep>
         </StagedForm>
+
+        {submitOverlayPhase ? (
+          <ReturnSubmitOverlay
+            phase={submitOverlayPhase}
+            sku={submittedSku?.value ?? ""}
+            isSkuProvisional={submittedSku?.isProvisional ?? true}
+            onDismiss={
+              submitOverlayPhase === "creating" ? undefined : closeAfterSubmit
+            }
+          />
+        ) : null}
       </form>
     </FormProvider>
   );

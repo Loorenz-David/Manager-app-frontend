@@ -4,6 +4,7 @@ import { ITEM_POSITION_SHEET_SURFACE_ID } from "@beyo/items";
 import { useSurfaceStore } from "@beyo/ui";
 
 import { useCreateItemUpholstery } from "../actions/use-create-item-upholstery";
+import { useDeleteItemUpholstery } from "../actions/use-delete-item-upholstery";
 import { useDeleteTask } from "../actions/use-delete-task";
 import { useResolveTask } from "../actions/use-resolve-task";
 import { useUpdateItem } from "../actions/use-update-item";
@@ -30,6 +31,7 @@ export function useTaskDetailController(taskId: string) {
   const updateItemPosition = useUpdateItemPosition(taskId);
   const createItemUpholstery = useCreateItemUpholstery(taskId, itemId);
   const updateItemUpholstery = useUpdateItemUpholstery(taskId, itemId);
+  const deleteItemUpholstery = useDeleteItemUpholstery(taskId, itemId);
 
   async function refetch(): Promise<void> {
     await Promise.all([
@@ -98,6 +100,7 @@ export function useTaskDetailController(taskId: string) {
     updateItemPosition,
     createItemUpholstery,
     updateItemUpholstery,
+    deleteItemUpholstery,
     ...flow,
     openPositionSheet,
   };

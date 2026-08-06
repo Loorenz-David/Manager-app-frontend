@@ -23,11 +23,23 @@ export function useForceTaskReady() {
         refetchType: "active",
       });
       void queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+      // Covers taskKeys.postHandlingCounts() too — invalidateQueries matches
+      // by key prefix, and postHandlingCounts() is nested under postHandling().
       void queryClient.invalidateQueries({
         queryKey: taskKeys.postHandling(),
         refetchType: "all",
       });
       void queryClient.invalidateQueries({ queryKey: taskStepKeys.all });
+      // A successful force-ready can create a customer-coordination instance
+      // (handoff §9: pre_order tasks, and return tasks not sourced
+      // store_return). Invalidated by literal key rather than importing
+      // customerCoordinationKeys from @beyo/task-customer-coordination —
+      // that package peer-depends on @beyo/tasks, so importing back would be
+      // circular. Keep this key literal in sync with customerCoordinationKeys.all.
+      void queryClient.invalidateQueries({
+        queryKey: ["customer-coordination"],
+        refetchType: "all",
+      });
     },
   });
 

@@ -21,6 +21,12 @@ export const ItemDetailsFieldsSchema = z.object({
     .optional(),
   item_category_id: z.string().optional(),
   major_category: z.string().optional(),
+  /**
+   * Whether this item should be tracked for upholstery at all. Absent means the
+   * backend never recorded a choice and will default it to `true`; the key must
+   * be omitted rather than sent as `null` (the column is non-nullable).
+   */
+  can_have_upholstery: z.boolean().optional(),
 });
 export type ItemDetailsFields = z.infer<typeof ItemDetailsFieldsSchema>;
 
@@ -70,6 +76,8 @@ export type UpdateItemInput = {
   item_position?: string | null;
   item_zone?: string | null;
   external_url?: string | null;
+  /** Omit to leave unchanged; never send `null`. */
+  can_have_upholstery?: boolean;
 };
 
 export type UpdateItemPositionEntryInput = {

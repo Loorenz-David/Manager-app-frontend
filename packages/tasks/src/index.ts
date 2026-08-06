@@ -206,6 +206,8 @@ export { useSetItemUpholsteryAmount } from "./actions/use-set-item-upholstery-am
 export { useUpdateItem } from "./actions/use-update-item";
 export { useUpdateItemPosition } from "./actions/use-update-item-position";
 export { useUpdateItemUpholstery } from "./actions/use-update-item-upholstery";
+export { useDeleteItemUpholstery } from "./actions/use-delete-item-upholstery";
+export { useItemUpholsteryPermissions } from "./lib/use-item-upholstery-permissions";
 export { useUpdatePostHandling } from "./actions/use-update-post-handling";
 export { useUpdateTask } from "./actions/use-update-task";
 export { useUpdateTaskReadyByAt } from "./actions/use-update-task-ready-by-at";

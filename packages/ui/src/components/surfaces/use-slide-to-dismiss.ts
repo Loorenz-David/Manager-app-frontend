@@ -176,7 +176,10 @@ export function useSlideToDismiss({
       }
 
       // We own the gesture: block scrolling/native takeover for its remainder.
-      event.preventDefault();
+      // (Not cancelable when native scrolling already started for this touch —
+      // preventDefault would be ignored with a console intervention. Same
+      // guard as use-slide-stack-drag.)
+      if (event.cancelable) event.preventDefault();
 
       const now = performance.now();
       const elapsed = now - lastTime;

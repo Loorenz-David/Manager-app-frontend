@@ -155,7 +155,7 @@ describe("ItemUpholsteryField", () => {
     expect(screen.getByText("needs ordering")).toBeVisible();
   });
 
-  it("opens the upholstery picker surface with the current selection and callbacks", async () => {
+  it("opens the upholstery picker surface with the current selection", async () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();
 
@@ -167,7 +167,173 @@ describe("ItemUpholsteryField", () => {
 
     expect(openMock).toHaveBeenCalledWith("upholstery-picker", {
       currentClientId: "uph_linen_natural",
-      onSelect: handleChange,
+      onSelect: expect.any(Function),
+    });
+  });
+
+  it("forwards a picked upholstery as both the value and an allowed flag", async () => {
+    const user = userEvent.setup();
+    const handleChange = vi.fn();
+    const handleFlagChange = vi.fn();
+
+    renderWithQueryClient(
+      <ItemUpholsteryField
+        value={null}
+        onChange={handleChange}
+        onCanHaveUpholsteryChange={handleFlagChange}
+        testId="field"
+      />,
+    );
+
+    await user.click(screen.getByTestId("field-select"));
+    const { onSelect } = openMock.mock.calls[0]![1] as {
+      onSelect: (clientId: string | null) => void;
+    };
+    onSelect("uph_linen_natural");
+
+    expect(handleChange).toHaveBeenCalledWith("uph_linen_natural");
+    expect(handleFlagChange).toHaveBeenCalledWith(true);
+  });
+
+  it("forwards a cleared picker selection as null for both", async () => {
+    const user = userEvent.setup();
+    const handleChange = vi.fn();
+    const handleFlagChange = vi.fn();
+
+    renderWithQueryClient(
+      <ItemUpholsteryField
+        value={null}
+        onChange={handleChange}
+        onCanHaveUpholsteryChange={handleFlagChange}
+        testId="field"
+      />,
+    );
+
+    await user.click(screen.getByTestId("field-select"));
+    const { onSelect } = openMock.mock.calls[0]![1] as {
+      onSelect: (clientId: string | null) => void;
+    };
+    onSelect(null);
+
+    expect(handleChange).toHaveBeenCalledWith(null);
+    expect(handleFlagChange).toHaveBeenCalledWith(null);
+  });
+
+  describe("None segment", () => {
+    it("is absent without an onCanHaveUpholsteryChange handler", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField value={null} onChange={vi.fn()} />,
+      );
+
+      expect(screen.queryByText("None")).not.toBeInTheDocument();
+      expect(screen.getAllByRole("button")).toHaveLength(1);
+    });
+
+    it("renders two sibling buttons rather than a nested one", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={vi.fn()}
+        />,
+      );
+
+      const buttons = screen.getAllByRole("button");
+      expect(buttons).toHaveLength(2);
+      expect(buttons[0]?.querySelector("button")).toBeNull();
+    });
+
+    it("shows the placeholder while the flag is unrecorded", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("Select upholstery")).toBeVisible();
+      expect(screen.getByText("None")).toHaveAttribute("aria-pressed", "false");
+    });
+
+    it("reads 'No upholstery' with None active once the flag is false", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          canHaveUpholstery={false}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText("No upholstery")).toBeVisible();
+      const noneButton = screen.getByText("None");
+      expect(noneButton).toHaveAttribute("aria-pressed", "true");
+      expect(noneButton).toHaveClass("bg-primary");
+    });
+
+    it("emits false when picked from the unrecorded state", async () => {
+      const user = userEvent.setup();
+      const handleFlagChange = vi.fn();
+
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={handleFlagChange}
+        />,
+      );
+
+      await user.click(screen.getByText("None"));
+
+      expect(handleFlagChange).toHaveBeenCalledWith(false);
+    });
+
+    it("emits null when unpicked, returning the flag to unrecorded", async () => {
+      const user = userEvent.setup();
+      const handleFlagChange = vi.fn();
+
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          canHaveUpholstery={false}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={handleFlagChange}
+        />,
+      );
+
+      await user.click(screen.getByText("None"));
+
+      expect(handleFlagChange).toHaveBeenCalledWith(null);
+    });
+
+    it("gives way to a linked upholstery", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value="uph_linen_natural"
+          canHaveUpholstery={false}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByText("None")).not.toBeInTheDocument();
+      expect(screen.getByText("Natural Linen")).toBeVisible();
+    });
+
+    it("keeps None usable while the picker half is disabled", () => {
+      renderWithQueryClient(
+        <ItemUpholsteryField
+          value={null}
+          onChange={vi.fn()}
+          onCanHaveUpholsteryChange={vi.fn()}
+          selectionDisabled
+          testId="field"
+        />,
+      );
+
+      expect(screen.getByTestId("field-none")).toBeEnabled();
+      expect(screen.getByTestId("field-select")).toBeDisabled();
     });
   });
 });

@@ -1,6 +1,18 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { expect, test } from '../../fixtures/app-fixture';
+
+// Elements inside a PullToRefresh container are guarded by use-gesture's
+// `filterTaps`, which misclassifies Playwright's synthetic MOUSE click as a
+// drag under mobile emulation and stops the click. Tap on touch projects,
+// click elsewhere.
+async function press(target: Locator): Promise<void> {
+  if (test.info().project.use.hasTouch) {
+    await target.tap();
+  } else {
+    await target.click();
+  }
+}
 
 const hasCredentials = Boolean(
   process.env.PLAYWRIGHT_TEST_EMAIL && process.env.PLAYWRIGHT_TEST_PASSWORD,
@@ -17,6 +29,7 @@ type MockUpholstery = {
   list_order: number | null;
   current_stored_amount_meters: string | null;
   inventory_condition: 'available' | 'low_stock' | 'out_of_stock' | null;
+  origin: 'database';
 };
 
 function createMockUpholsteries(): MockUpholstery[] {
@@ -30,6 +43,7 @@ function createMockUpholsteries(): MockUpholstery[] {
       list_order: 1,
       current_stored_amount_meters: '5.000',
       inventory_condition: 'available',
+      origin: 'database',
     },
     {
       client_id: 'uph_b',
@@ -40,6 +54,7 @@ function createMockUpholsteries(): MockUpholstery[] {
       list_order: 2,
       current_stored_amount_meters: '3.000',
       inventory_condition: 'available',
+      origin: 'database',
     },
   ];
 }
@@ -117,6 +132,7 @@ async function routeReorderFixtures(page: Page) {
                   item_cost_minor: null,
                   item_currency: null,
                   item_position: null,
+                  item_zone: null,
                   external_id: null,
                   external_url: null,
                   external_source: null,
@@ -193,6 +209,10 @@ async function routeReorderFixtures(page: Page) {
             closed_at: null,
             is_deleted: false,
             deleted_at: null,
+            assortment: null,
+            // Required by TaskDetailRawSchema — without it the whole detail
+            // payload fails validation and the page renders its error state.
+            post_handling: [],
           },
           item: {
             client_id: 'item_1',
@@ -209,6 +229,7 @@ async function routeReorderFixtures(page: Page) {
             item_cost_minor: null,
             item_currency: null,
             item_position: null,
+            item_zone: null,
             external_id: null,
             external_url: null,
             external_source: null,
@@ -346,10 +367,10 @@ async function routeReorderFixtures(page: Page) {
 async function openUpholsteryPicker(page: Page) {
   await page.getByTestId('tab-tasks').click();
   await expect(page).toHaveURL(/\/tasks$/);
-  await page.getByTestId(`tasks-card-body-${taskId}`).click();
+  await press(page.getByTestId(`tasks-card-body-${taskId}`));
 
   await expect(page.getByTestId('task-detail-upholstery-section')).toBeVisible();
-  await page.getByTestId('upholstery-field-item_upholstery_1').click();
+  await press(page.getByTestId('upholstery-field-item_upholstery_1'));
 
   // The picker opens on the Favorites filter; this spec's fixtures put the
   // reorder-affordance cards in the In Stock list, so select it explicitly.

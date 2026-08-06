@@ -15,7 +15,6 @@ import { upholsteryCategorySurfaces } from "@/features/upholstery-category";
 import { upholsterySurfaces } from "@beyo/upholstery";
 import { upholsteryInventorySurfaces } from "@/features/upholstery-inventory";
 import { upholsteryOrderingSurfaces } from "@/features/upholstery-ordering";
-import { workingSectionSurfaces } from "@/features/working-sections";
 import type { SurfaceRegistrations } from "@/providers/SurfaceProvider";
 
 export const surfaceRegistry: SurfaceRegistrations = {
@@ -36,7 +35,6 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...presentationSurfaces,
   ...shopifyIntegrationsSurfaces,
   ...upholsterySurfaces,
-  ...workingSectionSurfaces,
 };
 
 export type SurfaceId = keyof typeof surfaceRegistry;

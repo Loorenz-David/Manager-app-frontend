@@ -10,6 +10,7 @@
     "@beyo/api-client": "*",
     "@beyo/hooks": "*",
     "@beyo/lib": "*",
+    "@beyo/realtime": "*",
     "@beyo/ui": "*",
     "@tanstack/react-query": ">=5.0.0",
     "react": ">=19.0.0",

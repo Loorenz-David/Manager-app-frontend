@@ -21,6 +21,7 @@ export {
   createItemUpholstery,
   type CreateItemUpholsteryInput,
 } from "./api/create-item-upholstery";
+export { deleteItemUpholstery } from "./api/delete-item-upholstery";
 export { updateItem } from "./api/update-item";
 export {
   updateItemUpholstery,

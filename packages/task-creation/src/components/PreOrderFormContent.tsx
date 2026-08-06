@@ -44,11 +44,7 @@ import {
   useCreateTask,
 } from "@beyo/tasks";
 import { TaskNoteComposer, TaskNoteImagesSection } from "@beyo/task-notes";
-import {
-  ItemUpholsteryAmountField,
-  ItemUpholsteryField,
-  preloadUpholsteryPickerSurface,
-} from "@beyo/upholstery";
+import { preloadUpholsteryPickerSurface } from "@beyo/upholstery";
 import {
   WorkingSectionPickerField,
   preloadWorkingSectionWorkerPickerSurface,
@@ -58,17 +54,16 @@ import {
   FormProvider,
   useForm,
   useWatch,
-  type Control,
   type FieldPath,
 } from "react-hook-form";
 
-import { skuTemplateKeys } from "../api/sku-template-keys";
 import {
   createLookupResultSignature,
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
+import { useProvisionalSkuDisplay } from "../hooks/use-provisional-sku-display";
 import { useShopifyCustomerLookupPrefill } from "../hooks/use-shopify-customer-lookup-prefill";
 import {
   buildShopifyPreorderSection,
@@ -81,8 +76,10 @@ import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvide
 import { PreOrderShopifySection } from "./PreOrderShopifySection";
 import { ProductPriceField } from "./ProductPriceField";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
+import { SkuTemplatePreviewHint } from "./SkuTemplatePreviewHint";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { TaskCreationStagedFormHeader } from "./TaskCreationStagedFormHeader";
+import { UpholsteryFieldGroup } from "./UpholsteryFieldGroup";
 import {
   TaskCreationSubmitOverlay,
   type TaskCreationSubmitOverlayPhase,
@@ -114,6 +111,7 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item.item_currency",
     "item.item_category_id",
     "item.major_category",
+    "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
     "product_unit_price",
@@ -130,24 +128,6 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
   details: ["item_issues", "note_content", "ready_by_at"],
 };
 
-function UpholsteryField({
-  control,
-}: {
-  control: Control<PreOrderFormValues>;
-}): React.JSX.Element {
-  return (
-    <Controller
-      name="item_upholstery.upholstery_client_id"
-      control={control}
-      render={({ field }) => (
-        <div className="flex flex-col gap-1.5">
-          <ItemUpholsteryField value={field.value} onChange={field.onChange} />
-        </div>
-      )}
-    />
-  );
-}
-
 export function PreOrderFormContent(): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
@@ -155,12 +135,8 @@ export function PreOrderFormContent(): React.JSX.Element {
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
   const [submitOverlayPhase, setSubmitOverlayPhase] =
     useState<TaskCreationSubmitOverlayPhase | null>(null);
-  // Starts as the preview (or the seller's override) and is overwritten by the
-  // SKU the backend actually assigned as soon as the response lands.
-  const [submittedSku, setSubmittedSku] = useState<{
-    value: string;
-    isProvisional: boolean;
-  } | null>(null);
+  const { submittedSku, beginSubmission, resolveFinal, clear: clearSubmittedSku } =
+    useProvisionalSkuDisplay();
   const [missingItemSkuWarning, setMissingItemSkuWarning] = useState(false);
   const [shopifyOrderErrorMessage, setShopifyOrderErrorMessage] = useState<
     string | null
@@ -378,22 +354,18 @@ export function PreOrderFormContent(): React.JSX.Element {
               currentUserClientId,
             },
             "pre_order",
+            { forceItemInclusion: hasSkuTemplate },
           ),
           ...(shopifyPreorderSection
             ? { shopify_preorder: shopifyPreorderSection }
             : {}),
         };
 
-        const overrideSku = values.item.sku?.trim();
-
         // The overlay goes up before the request so the socket listener is
         // mounted before the backend can possibly emit the processed event.
         // Until the response lands the SKU shown is the seller's override, or
         // the preview — which a concurrent submit can still take.
-        setSubmittedSku({
-          value: overrideSku || skuPreview || "",
-          isProvisional: !overrideSku,
-        });
+        beginSubmission(values.item.sku?.trim(), skuPreview);
         setMissingItemSkuWarning(false);
         setSubmitOverlayPhase("creating");
 
@@ -403,7 +375,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           // The assigned SKU is final and permanent the moment this returns,
           // and it is the only place the value can be read.
           if (result.item_sku) {
-            setSubmittedSku({ value: result.item_sku, isProvisional: false });
+            resolveFinal(result.item_sku);
           } else if (payload.shopify_preorder) {
             // An existing item matched by article number can carry no SKU at
             // all, and the queued Shopify product then inherits that gap.
@@ -418,7 +390,7 @@ export function PreOrderFormContent(): React.JSX.Element {
           // useCreateTask already notifies; drop the overlay so the form
           // stays editable — the task was not created.
           setSubmitOverlayPhase(null);
-          setSubmittedSku(null);
+          clearSubmittedSku();
         }
       })(),
   });
@@ -471,27 +443,6 @@ export function PreOrderFormContent(): React.JSX.Element {
     }
   }, [errors, staged]);
 
-  // Someone else's pre-order just consumed a number, so the ghost text this
-  // form is showing is now one behind. The event fires as part of the
-  // `task:created` batch on every allocation.
-  useEffect(() => {
-    if (!socket) {
-      return;
-    }
-
-    const handleScalarReserved = () => {
-      void queryClient.invalidateQueries({
-        queryKey: skuTemplateKeys.byTaskType("pre_order"),
-      });
-    };
-
-    socket.on("sku_template:scalar-reserved", handleScalarReserved);
-
-    return () => {
-      socket.off("sku_template:scalar-reserved", handleScalarReserved);
-    };
-  }, [queryClient, socket]);
-
   const handlePreorderProcessed = useEffectEvent(
     (payload: {
       task_id: string;
@@ -543,7 +494,7 @@ export function PreOrderFormContent(): React.JSX.Element {
 
   function closeAfterShopifyResult(): void {
     setSubmitOverlayPhase(null);
-    setSubmittedSku(null);
+    clearSubmittedSku();
     setMissingItemSkuWarning(false);
     setShopifyOrderErrorMessage(null);
     form.reset(buildPreOrderFormDefaultValues(hasSkuTemplate));
@@ -592,6 +543,7 @@ export function PreOrderFormContent(): React.JSX.Element {
             <TaskCreationAssignmentFooter
               activeStepId={stepId}
               majorCategory={majorCategory}
+              taskType="pre_order"
             />
           )}
           isAdvancing={staged.isAdvancing}
@@ -616,18 +568,11 @@ export function PreOrderFormContent(): React.JSX.Element {
                   onOpenScanner={handleOpenScanner}
                   skuPlaceholder={skuPreview ?? undefined}
                 />
-                {skuPreview && !itemSku?.trim() ? (
-                  <p
-                    className="text-xs text-muted-foreground"
-                    data-testid="pre-order-form-sku-preview-hint"
-                  >
-                    Leave empty to assign{" "}
-                    <span className="font-medium text-foreground">
-                      ≈ {skuPreview}
-                    </span>{" "}
-                    automatically on save.
-                  </p>
-                ) : null}
+                <SkuTemplatePreviewHint
+                  preview={skuPreview}
+                  hidden={Boolean(itemSku?.trim())}
+                  testId="pre-order-form-sku-preview-hint"
+                />
                 <ItemPositionZoneField
                   articleNumber={itemArticleNumber}
                   defaultTab="position"
@@ -641,8 +586,7 @@ export function PreOrderFormContent(): React.JSX.Element {
               {majorCategory === "seat" ? (
                 <ContentCard>
                   <ItemQuantityField />
-                  <UpholsteryField control={form.control} />
-                  <ItemUpholsteryAmountField quantity={itemQuantity ?? 0} />
+                  <UpholsteryFieldGroup quantity={itemQuantity ?? 0} />
                 </ContentCard>
               ) : null}
               <ContentCard data-testid="pre-order-form-price-section">
@@ -657,6 +601,7 @@ export function PreOrderFormContent(): React.JSX.Element {
                 <ContentCard>
                   <WorkingSectionPickerField
                     majorCategory={majorCategory}
+                    taskType="pre_order"
                     showShortcutBar={false}
                   />
                 </ContentCard>

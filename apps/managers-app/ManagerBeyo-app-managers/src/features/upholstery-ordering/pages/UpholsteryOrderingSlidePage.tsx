@@ -151,25 +151,28 @@ function Content(): React.JSX.Element {
         scrollRef={scrollRef}
         onRefresh={controller.refetch}
       >
-        {/* Header scrolls with the body — no scroll-visibility on this page. */}
-        <UpholsteryOrderingHeader
-          countsError={controller.countsError}
-          isLoading={controller.isBackgroundLoading}
-          mode={displayedMode}
-          needsCount={controller.needsCount}
-          ordersCount={controller.ordersCount}
-          searchInput={controller.searchInput}
-          onBack={header?.requestClose ?? controller.close}
-          onModeChange={controller.setMode}
-          onSearchChange={controller.setSearchInput}
-        />
-
         {/* The header and both independent list panes share one scroll body.
          * This positioned wrapper anchors overlapping panes and drag ghosts;
-         * PullToRefresh clips their horizontal overflow. */}
+         * PullToRefresh clips their horizontal overflow. The header renders
+         * through the stack (still in flow, still scrolling with the body) so
+         * a slide whose landing reveals it previews it in the ghost instead
+         * of popping it in after the swap. */}
         <div className="relative" data-testid="upholstery-ordering-scroll">
           <SlideStack
             activeId={controller.mode}
+            header={
+              <UpholsteryOrderingHeader
+                countsError={controller.countsError}
+                isLoading={controller.isBackgroundLoading}
+                mode={displayedMode}
+                needsCount={controller.needsCount}
+                ordersCount={controller.ordersCount}
+                searchInput={controller.searchInput}
+                onBack={header?.requestClose ?? controller.close}
+                onModeChange={controller.setMode}
+                onSearchChange={controller.setSearchInput}
+              />
+            }
             onBack={
               shouldDismissInsteadOfGoingBack
                 ? undefined

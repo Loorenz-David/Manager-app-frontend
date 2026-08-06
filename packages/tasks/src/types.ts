@@ -277,6 +277,10 @@ export const TaskDetailRawSchema = z.object({
       external_order_id: z.string().nullable(),
       item_category_snapshot: z.string().nullable(),
       item_major_category_snapshot: z.string().nullable(),
+      // Optional rather than required: the embedded item serializer sends it,
+      // but treating `undefined` as `true` costs nothing and keeps older
+      // fixtures and mocks parsing.
+      can_have_upholstery: z.boolean().optional(),
     })
     .nullable(),
   item_images: z.array(ImageLightSchema),
@@ -339,6 +343,7 @@ export const TaskListItemRawSchema = z.object({
       external_order_id: z.string().nullable(),
       item_category_snapshot: z.string().nullable(),
       item_major_category_snapshot: z.string().nullable(),
+      can_have_upholstery: z.boolean().optional(),
     })
     .nullable(),
   item_images: z.array(z.record(z.string(), z.unknown())),
