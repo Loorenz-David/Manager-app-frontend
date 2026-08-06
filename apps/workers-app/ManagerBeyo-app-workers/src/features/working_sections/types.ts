@@ -28,7 +28,7 @@ export const WorkerWorkingSectionSchema = z.object({
   allows_batch_working: z.boolean(),
   allows_shopify_product_modifications: z.boolean(),
   task_steps_counts: TaskStepStateCountsSchema,
-  ready_and_pending_count: z.number(),
+  active_ready: z.number(),
 });
 export type WorkerWorkingSection = z.infer<typeof WorkerWorkingSectionSchema>;
 
@@ -85,7 +85,6 @@ export type WorkingSectionViewModel = {
   allowsShopifyProductModifications: boolean;
   counts: TaskStepStateCounts;
   activeCount: number;
-  readyAndPendingCount: number;
   todayDoneCount: number;
   /**
    * Only populated for sections sourced from the workspace list — `/me` does
@@ -117,8 +116,7 @@ export function toWorkingSectionViewModel(
     allowsBatchWorking: section.allows_batch_working,
     allowsShopifyProductModifications: section.allows_shopify_product_modifications,
     counts: c,
-    activeCount: section.ready_and_pending_count + c.working + c.paused + c.ended_shift,
-    readyAndPendingCount: section.ready_and_pending_count,
+    activeCount: section.active_ready,
     todayDoneCount: c.completed + c.skipped + c.failed,
     members: [],
   };
@@ -142,7 +140,6 @@ export function toWorkspaceWorkingSectionViewModel(
       section.allows_shopify_product_modifications,
     counts: EMPTY_COUNTS,
     activeCount: 0,
-    readyAndPendingCount: 0,
     todayDoneCount: 0,
     members: section.members.map((member) => ({
       userId: member.client_id,
