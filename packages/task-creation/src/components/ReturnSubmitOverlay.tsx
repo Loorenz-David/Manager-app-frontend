@@ -7,6 +7,7 @@ type ReturnSubmitOverlayProps = {
   sku: string;
   isSkuProvisional?: boolean;
   onDismiss?: () => void;
+  onCreateAnother?: () => void;
 };
 
 const CONTENT: Record<
@@ -29,6 +30,7 @@ export function ReturnSubmitOverlay({
   sku,
   isSkuProvisional,
   onDismiss,
+  onCreateAnother,
 }: ReturnSubmitOverlayProps): React.JSX.Element {
   const content = CONTENT[phase];
 
@@ -40,6 +42,7 @@ export function ReturnSubmitOverlay({
       sku={sku}
       isSkuProvisional={isSkuProvisional}
       onDismiss={onDismiss}
+      onCreateAnother={onCreateAnother}
     />
   );
 }

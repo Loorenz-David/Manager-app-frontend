@@ -506,6 +506,68 @@ test.describe('Task creation staged forms', () => {
     await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
   });
 
+  test('return success overlay hands back a blank form for the next return', async ({
+    page,
+  }) => {
+    await openTaskCreationForm(page, 'return');
+    await expect(page.getByTestId('return-form')).toBeVisible();
+
+    await page.route('**/api/v1/tasks', async (route) => {
+      if (route.request().method() !== 'PUT') {
+        await route.fallback();
+        return;
+      }
+
+      const body = route.request().postDataJSON() as { client_id?: string };
+
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ok: true,
+          data: {
+            client_id: body?.client_id ?? 'tsk_playwright',
+            task_scalar_id: 1,
+            item_id: 'itm_playwright',
+            item_sku: 'RETURN-0007',
+          },
+          warnings: [],
+        }),
+      });
+    });
+
+    await completeItemStep(page);
+
+    await page.getByTestId('customer-display-name-input').fill('Jane Example');
+    await page.getByTestId('customer-type-input').selectOption('person');
+    await page.getByTestId('customer-email-input').fill('jane@example.com');
+    await page.getByTestId('customer-phone-input').fill('+46701234567');
+    await page.getByTestId('staged-form-advance-button').click();
+
+    // Assignment and Details carry no required fields here.
+    await expect(page.getByTestId('staged-form-step-assignment')).toBeVisible();
+    await page.getByTestId('staged-form-advance-button').click();
+    await expect(page.getByTestId('staged-form-step-details')).toBeVisible();
+    await page.getByTestId('staged-form-advance-button').click();
+
+    const overlay = page.getByTestId('task-creation-submit-overlay');
+    await expect(overlay).toHaveAttribute('data-phase', 'succeeded');
+    await expect(
+      page.getByTestId('task-creation-submit-overlay-sku-value'),
+    ).toHaveText('RETURN-0007');
+
+    await page
+      .getByTestId('task-creation-submit-overlay-create-another-button')
+      .click();
+
+    // The slide stays open on a blank first step — the article number typed
+    // into the submitted return must not survive into the next one.
+    await expect(overlay).toHaveCount(0);
+    await expect(page.getByTestId('return-form')).toBeVisible();
+    await expect(page.getByTestId('staged-form-step-task')).toBeVisible();
+    await expect(page.getByTestId('item-article-number-input')).toHaveValue('');
+  });
+
   test('return customer lookup can be retried from the not-found pill', async ({
     page,
   }) => {

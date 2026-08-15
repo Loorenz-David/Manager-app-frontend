@@ -128,7 +128,18 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
   details: ["item_issues", "note_content", "ready_by_at"],
 };
 
-export function PreOrderFormContent(): React.JSX.Element {
+type PreOrderFormContentProps = {
+  /**
+   * Asks the owning slide page to remount this form as a blank one. Offered
+   * only on `succeeded` — a failed or still-processing Shopify order has to be
+   * left alone rather than buried under a new submission.
+   */
+  onRequestNewForm?: () => void;
+};
+
+export function PreOrderFormContent({
+  onRequestNewForm,
+}: PreOrderFormContentProps = {}): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
@@ -706,6 +717,9 @@ export function PreOrderFormContent(): React.JSX.Element {
               submitOverlayPhase === "creating"
                 ? undefined
                 : closeAfterShopifyResult
+            }
+            onCreateAnother={
+              submitOverlayPhase === "succeeded" ? onRequestNewForm : undefined
             }
           />
         ) : null}

@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Plus } from "lucide-react";
 
 export type TaskCreationSubmitOverlayPhase =
   | "creating"
@@ -16,7 +16,18 @@ type TaskCreationSubmitOverlayProps = {
    * marked so a seller reading it mid-submit doesn't take it as final.
    */
   isSkuProvisional?: boolean;
+  /**
+   * Leaves the creation slide entirely. Drives both the "Back" button and the
+   * backdrop tap, which stay the same action — the backdrop was the only exit
+   * before the buttons existed and keeps working.
+   */
   onDismiss?: () => void;
+  /**
+   * Starts a blank form of the same type without leaving the slide. Only
+   * passed on a phase where the task is confirmed created, so an unresolved
+   * submit can never be walked away from into a new one.
+   */
+  onCreateAnother?: () => void;
 };
 
 /**
@@ -31,7 +42,10 @@ export function TaskCreationSubmitOverlay({
   sku,
   isSkuProvisional = false,
   onDismiss,
+  onCreateAnother,
 }: TaskCreationSubmitOverlayProps): React.JSX.Element {
+  const hasActions = Boolean(onDismiss ?? onCreateAnother);
+
   return (
     <div
       aria-label={onDismiss ? "Dismiss pre-order status" : undefined}
@@ -46,10 +60,14 @@ export function TaskCreationSubmitOverlay({
         }
       }}
       onKeyDown={(event) => {
-        if (
-          onDismiss &&
-          (event.key === "Enter" || event.key === " ")
-        ) {
+        // Only the backdrop's own key events dismiss — without this the
+        // action buttons inside the card would fire twice, since their
+        // Enter/Space keydown bubbles up to here.
+        if (event.target !== event.currentTarget) {
+          return;
+        }
+
+        if (onDismiss && (event.key === "Enter" || event.key === " ")) {
           event.preventDefault();
           onDismiss();
         }
@@ -82,6 +100,36 @@ export function TaskCreationSubmitOverlay({
             {isSkuProvisional && sku ? `≈ ${sku}` : sku}
           </span>
         </p>
+        {hasActions ? (
+          <div
+            className={`mt-3 grid w-full gap-3 ${
+              onDismiss && onCreateAnother ? "grid-cols-2" : "grid-cols-1"
+            }`}
+            data-testid="task-creation-submit-overlay-actions"
+          >
+            {onDismiss ? (
+              <button
+                className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-muted px-4 py-3 text-sm font-semibold text-foreground transition"
+                data-testid="task-creation-submit-overlay-back-button"
+                type="button"
+                onClick={onDismiss}
+              >
+                Back
+              </button>
+            ) : null}
+            {onCreateAnother ? (
+              <button
+                className="inline-flex w-full items-center justify-center gap-1 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition"
+                data-testid="task-creation-submit-overlay-create-another-button"
+                type="button"
+                onClick={onCreateAnother}
+              >
+                <Plus aria-hidden="true" className="size-4 shrink-0" />
+                Another
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );

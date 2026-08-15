@@ -111,7 +111,17 @@ const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
   details: ["item_issues", "note_content", "ready_by_at"],
 };
 
-export function ReturnFormContent(): React.JSX.Element {
+type ReturnFormContentProps = {
+  /**
+   * Asks the owning slide page to remount this form as a blank one. Offered
+   * only once the task is created, so it never abandons an in-flight submit.
+   */
+  onRequestNewForm?: () => void;
+};
+
+export function ReturnFormContent({
+  onRequestNewForm,
+}: ReturnFormContentProps = {}): React.JSX.Element {
   const queryClient = useQueryClient();
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
@@ -579,6 +589,9 @@ export function ReturnFormContent(): React.JSX.Element {
             isSkuProvisional={submittedSku?.isProvisional ?? true}
             onDismiss={
               submitOverlayPhase === "creating" ? undefined : closeAfterSubmit
+            }
+            onCreateAnother={
+              submitOverlayPhase === "succeeded" ? onRequestNewForm : undefined
             }
           />
         ) : null}
