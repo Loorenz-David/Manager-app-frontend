@@ -1915,9 +1915,9 @@ None
 | height_in_cm | integer | No |  |
 | width_in_cm | integer | No |  |
 | depth_in_cm | integer | No |  |
-| item_value_minor | integer | No |  |
-| item_cost_minor | integer | No |  |
-| item_currency | string | Yes | `swedish_krona`, `danish_krona`, `euro` |
+| item_value_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_cost_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_currency | string | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
 | item_position | string | No |  |
 | external_id | string | No |  |
 | external_url | string | No |  |
@@ -1936,6 +1936,8 @@ None
 | item_upholstery.code | string | No |  |
 | item_upholstery.amount_meters | number | string | No |  |
 | item_upholstery.time_to_fix_in_seconds | integer | No |  |
+
+> The three legacy money keys above are RETAINED in the request model but a **non-null** value in any of them is rejected with 422 `ITEM_MONEY_MOVED` (present-with-null passes and is ignored). Prices live on the item-valuation endpoint — and, since phase 8B, the task-creation inline trio (`expected_sale_price_minor` / `purchase_cost_minor` / `currency`).
 
 #### Responses
 - **200**: Successful Response
@@ -1973,14 +1975,16 @@ None
 | height_in_cm | integer | No |  |
 | width_in_cm | integer | No |  |
 | depth_in_cm | integer | No |  |
-| item_value_minor | integer | No |  |
-| item_cost_minor | integer | No |  |
-| item_currency | string | Yes | `swedish_krona`, `danish_krona`, `euro` |
+| item_value_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_cost_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_currency | string | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
 | item_position | string | No |  |
 | external_id | string | No |  |
 | external_url | string | No |  |
 | external_source | string | No |  |
 | external_order_id | string | No |  |
+
+> The three legacy money keys above are RETAINED in the request model but a **non-null** value in any of them is rejected with 422 `ITEM_MONEY_MOVED` (present-with-null passes and is ignored). Prices live on the item-valuation endpoint — and, since phase 8B, the task-creation inline trio (`expected_sale_price_minor` / `purchase_cost_minor` / `currency`).
 
 #### Responses
 - **200**: Successful Response
@@ -2075,14 +2079,16 @@ None
 | height_in_cm | integer | No |  |
 | width_in_cm | integer | No |  |
 | depth_in_cm | integer | No |  |
-| item_value_minor | integer | No |  |
-| item_cost_minor | integer | No |  |
-| item_currency | string | Yes | `swedish_krona`, `danish_krona`, `euro` |
+| item_value_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_cost_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item_currency | string | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
 | item_position | string | No |  |
 | external_id | string | No |  |
 | external_url | string | No |  |
 | external_source | string | No |  |
 | external_order_id | string | No |  |
+
+> The three legacy money keys above are RETAINED in the request model but a **non-null** value in any of them is rejected with 422 `ITEM_MONEY_MOVED` (present-with-null passes and is ignored). Prices live on the item-valuation endpoint — and, since phase 8B, the task-creation inline trio (`expected_sale_price_minor` / `purchase_cost_minor` / `currency`).
 
 #### Responses
 - **200**: Successful Response
@@ -2472,9 +2478,9 @@ None
 | item.height_in_cm | integer | No |  |
 | item.width_in_cm | integer | No |  |
 | item.depth_in_cm | integer | No |  |
-| item.item_value_minor | integer | No |  |
-| item.item_cost_minor | integer | No |  |
-| item.item_currency | string | Yes | `swedish_krona`, `danish_krona`, `euro` |
+| item.item_value_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item.item_cost_minor | integer | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
+| item.item_currency | string | No | **present, always rejected with 422 `ITEM_MONEY_MOVED`** |
 | item.item_position | string | No |  |
 | item.external_id | string | No |  |
 | item.external_url | string | No |  |
@@ -2500,6 +2506,8 @@ None
 | steps[].working_section_id | string | Yes |  |
 | steps[].worker_id | string | No |  |
 | steps[].sequence_order | integer | No |  |
+
+> The three legacy money keys above are RETAINED in the request model but a **non-null** value in any of them is rejected with 422 `ITEM_MONEY_MOVED` (present-with-null passes and is ignored). Prices live on the item-valuation endpoint — and, since phase 8B, the task-creation inline trio (`expected_sale_price_minor` / `purchase_cost_minor` / `currency`).
 
 #### Responses
 - **200**: Successful Response
