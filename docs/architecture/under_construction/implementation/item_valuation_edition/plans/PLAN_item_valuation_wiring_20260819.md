@@ -48,10 +48,22 @@ tests beside each new module. Nothing under `components/price-editor/`, the phas
 
 ## Tasks (ordered — logic bottom-up per 16_feature_workflow)
 
-1. **API functions**: `fetchTaskPriceScenario` (GET, parses `PriceScenarioSchema`
-   inside the house envelope), `putItemValuation`, `commitTaskEvaluation`. Error
-   identity comes from `parseErrorIdentity` — this closes carried item N8 (master
-   plan §11).
+1. **API functions** (paths frozen by projection r0-phase2; all under
+   `ITEM_ECONOMICS_BASE_PATH` = `/api/v1/item-economics`, `types.ts:13`):
+   - `fetchTaskPriceScenario(taskId)` — GET `…/tasks/{taskId}/price-scenario`,
+     parses `PriceScenarioSchema` inside `ApiEnvelopeSchema`.
+   - `putItemValuation(itemId, body)` — PUT `…/items/{itemId}/valuation`; response
+     parsed by a **minimal** schema: `{ item_valuation: { client_id }, preview:
+     { status: ItemEconomicsStatusSchema } }` — the bootstrap needs success + status,
+     nothing more.
+   - `commitTaskEvaluation(taskId, body)` — POST `…/tasks/{taskId}/evaluations/commit`;
+     minimal schema: `{ evaluation: { client_id, production_budget_minor:
+     z.number().int(), allowed_worker_minutes: z.string() } }` (the two M8
+     reconciliation fields + identity).
+   Error identity comes from `parseErrorIdentity` — this closes carried item N8 of
+   item_pricing_fields (master plan §11). User-facing notices use `notify` from
+   `@beyo/lib` (the `use-force-task-ready.controller` idiom) — the M8 neutral notice
+   is one `notify` call, never a modal.
 2. **Query hook** `useTaskPriceScenarioQuery(taskId)` on
    `itemEconomicsKeys.priceScenario(taskId)`; refetch on window focus enabled
    (M10's first half); fresh fetch on every surface open (slide unmounts on close).
@@ -79,7 +91,13 @@ tests beside each new module. Nothing under `components/price-editor/`, the phas
    `useReducer` seed: a module-local blank `PriceDraftState` (every field null/0),
    immediately overwritten by dispatching `INIT` when the scenario lands — the
    registry deliberately adds no constant to phase-1's `price-draft.ts` for this
-   (routed from 1B handoff item 2).
+   (routed from 1B handoff item 2). The current user comes from `useAuth()`
+   (`@beyo/auth`) — `user.client_id` vs `saved.created_by.client_id`. Add the
+   dev-time step-count assert beside the domain → slider-props mapping (r1 N2:
+   `(max − min) % step === 0` in dev, matching `PriceSlider`'s rounding). After a
+   successful commit, assert the refetched scenario's saved expected price equals
+   the committed draft; if not (replica lag — r1 N6), re-dispatch nothing and rely
+   on the T9 arm, but log the mismatch via the M8 notice path.
 7. **Provider + page**: `ItemValuationProvider` (context shell per `23_providers`);
    `ItemValuationSlidePage` reads `useSurfaceProps<ItemValuationSlideSurfaceProps>`,
    renders provider + composed phase-1 components, registers its scroll container
@@ -169,6 +187,20 @@ is finally enforceable):**
 22c. Page test, `unbound` fixture → `-empty-state` present, no `-save-button`.
 22d. Testids: the page adds **only** `item-valuation-page` — `-header` and
     `-menu-button` already render from `ItemValuationFrame` (review r1 L3).
+22e. **Numbers meet the arithmetic exactly once (r2 N9 / L5):** one page-level test
+    renders the editor from the **parsed Reference payload through the phase-1
+    libs** and asserts the exact strings: per-piece `"1 425"`, AT PRICE `"2h 25m"`
+    (855 000 → 8 681 s), TYPICAL `"3h 25m"` (12 300 s). This is the only place a
+    fixture-class error (r1 S1) can be caught by a failing test.
+22f. **Provenance composition — one row per §3.5 mapping (r2 N11):** controller
+    fixtures where (i) `created_by.client_id === user.client_id` → label `"You"`;
+    (ii) another user → their `username` with avatar image src passed through;
+    (iii) `created_by === null` → label `"saved version"`, detail `null`,
+    `avatarName: ""` — and the rendered `item-valuation-provenance-avatar` slot is
+    **non-empty** (r2 N8's unasserted avatar clause, closed here).
+22g. A11y (r1 N7): the slider input carries `aria-valuetext` with the formatted
+    per-piece price, and the decorative three-dot is removed from the tab order by
+    the page (`tabIndex={-1}` via a frame prop or wrapper) until it gains an action.
 
 **End to end:** 23. The Playwright flows of task 12 pass on `test:e2e:mobile` and
 `test:e2e:desktop`. 24. `npm run typecheck` clean; `npm run test:item-economics` and
@@ -179,7 +211,15 @@ is finally enforceable):**
 ## Notes
 
 - The 12 s debounce timer is module-scope by contract (M9); tests must reset modules
-  between cases to avoid cross-test timer bleed.
+  between cases to avoid cross-test timer bleed. Implementation note (projection
+  r0-phase2): handlers receive `queryClient` per event — capture the latest in a
+  module-scope variable for the trailing fire.
+- Playwright and page-test mocks are seeded from the phase-1 plan's **Reference
+  payload** (its JSON block), never from the component fixtures — the fixtures'
+  provenance detail string uses an absolute timestamp (r2 N10) and the controller
+  produces relative ones.
+- The r2 carry-forwards N8–N11 land in criteria 22e–22f; N2/N6 in task 6; N7 in 22g;
+  N1 in task 11a. Nothing from reviews r1/r2 remains unrouted.
 - Never launch dev servers (master plan §10). Playwright mocks the network; the
   192.168.1.246 backend is out of bounds for tests.
 - If the reducer or a component needs a change, stop and route it through the

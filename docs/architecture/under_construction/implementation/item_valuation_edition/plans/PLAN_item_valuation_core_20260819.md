@@ -425,3 +425,55 @@ Derived from handoff §2 with concrete ids; `saved.purchase_cost_minor` is null 
   assertions (L2); 1A's header/menu testid deviation is not yet in the phase-2 plan
   (L3); the mirror-frontmatter convention is applied unevenly (L4). Handoff:
   `../handoffs/reviewer/handoff_PLAN_item_valuation_core_20260819_review_1.md`.
+
+- **2026-08-19 · coordinator + 1A implementer (Claude), fix cycle 1 folded.**
+  Review r1's items applied and committed as `CHECKPOINT` `64fa42f6`
+  (parent `fbd5d67c`): **S1** — `editor-saved-pristine` fixture `atPrice` corrected
+  to "2h 45m" (975 000 → 9 900 s → exactly 165 min; the mockup's "2h 44m" predates
+  the reference model, same class as the band end); **N4** — `-bootstrap-error` and
+  `-slider-reason` added to the binding testid list, phase-2 page ids narrowed to
+  `-page` only; **N5** — `SAVED_BY_OTHER_PROVENANCE` (Marta Lind + profile image,
+  giving `avatarImageSrc` its caller) and `UNKNOWN_AUTHOR_PROVENANCE` (§3.5
+  unloadable-author row) fixtures + tests 12b/12c; **N3** — the `satisfies` guard
+  moved from `types.ts` to `lib/valuation-currency.ts`, removing the types → lib
+  value-import edge; the relocated guard was mutation-proven to still bite
+  (member removed → `TS1360` at `valuation-currency.ts:24`; `types.ts` restored
+  byte-identically, digest `d24634c3…b184a4e6` pre = post). Lessons folded: L1 →
+  master plan §9.1 carve-out; L2 → phase-2 criteria 22a–22c; L3 → phase-2 22d;
+  L4 → provenance frontmatter stamped onto the 20260819 mirror (body unchanged,
+  `source_sha256 e8c0c8b9…f20c04f` verified against the backend original).
+  Suite **225/19**, package tsc clean. N1/N2/N6/N7 remain phase-2 carry-forwards
+  per the reviewer's disposition table. State → IMPLEMENTED (fix 1); round-2
+  delta re-review prompt issued.
+
+- **2026-08-19 · review round 2 (Claude Opus 5, plan-reviewer).** Delta re-review of
+  fix commit `64fa42f6` (parent `fbd5d67c`). Verdict **APPROVED**: 0 blocking, 0
+  should-fix, 4 new notes, 0 owner cards. Perimeter exact — 10 files, the four code
+  files of the prompt's list and six documentation entries, nothing else. **S1 closed**:
+  975 000 re-derived through the shipped pipeline (`budgetMinor 214 500n` →
+  `allowedCentimin 16 500n` → `allowanceSeconds 9 900` → `"2h 45m"`), fixture matches;
+  spot-checks confirm no other fixture number regressed (1 335 000 → 13 555 s →
+  "3h 46m"; 1 140 000 → 11 575 s → "3h 13m"; break-even anchor still lands exactly on
+  `typical.total_seconds`). **N3 closed**: `types.ts` imports only `zod`, and the
+  relocated guard bites — member removed → `TS1360` at `valuation-currency.ts(24,25)`,
+  `types.ts` reverted byte-identically (`d24634c3…b184a4e6` pre = post). **N5 closed**:
+  12b/12c exist and both bite — dropping the `avatarImageSrc` → `Avatar` wiring turns
+  only 12b red (charter rule 4 discharged), hard-coding a separator turns only 12c red.
+  **N4 closed**: `-bootstrap-error` / `-slider-reason` in the binding list, phase-2
+  narrowed to `-page`. Mirrors provenance-clean (20260819 now stamped; recorded
+  `source_sha256 e8c0c8b9…f20c04f` equals both the live original and the mirror body
+  from line 12). Lessons L1–L4 verified folded (§9.1 carve-out, phase-2 22a–22d, 11a,
+  controller seed). Re-measured: `test:item-economics` **225/19**, package tsc exit 0,
+  `npm run typecheck` exit 0, dependent spot-run `test:tasks` **68/10** green;
+  forbidden-primitive and `@beyo/tasks` greps still clean. New notes, all carry-forward
+  to phase 2: N8 — 12c does not assert §3.5's *avatar* clause (deleting the
+  initials-less fallback leaves 23/23 green); N9 — fixture display strings are
+  unverifiable by construction under the component seam, so S1's class recurs silently
+  until a phase-2 test renders from the parsed payload through the libs; N10 —
+  `SAVED_BY_OTHER_PROVENANCE` uses an absolute timestamp where §3.5 contracts a
+  relative one; N11 — the provenance *composition* (`created_by === null` → "saved
+  version", the "You" substitution) is assigned to phase-2 task 6 in prose and asserted
+  by no criterion. Lessons: L5 — the phase-2 plan should carry an explicit
+  numbers-meet-arithmetic criterion; L6 (process) — the fix cycle overwrote the r1
+  reviewer tracker row rather than appending. Handoff:
+  `../handoffs/reviewer/handoff_PLAN_item_valuation_core_20260819_review_2.md`.
