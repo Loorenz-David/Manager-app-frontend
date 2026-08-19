@@ -6,7 +6,6 @@ import {
   type ProductionTimeViewModel,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeBudgetBar } from "./ProductionTimeBudgetBar";
-import { ProductionTimeFooterNote } from "./ProductionTimeFooterNote";
 import { ProductionTimeFrame } from "./ProductionTimeFrame";
 import { ProductionTimeHeadline } from "./ProductionTimeHeadline";
 import { ProductionTimeNoBudgetCard } from "./ProductionTimeNoBudgetCard";
@@ -53,9 +52,6 @@ function ProductionTimeBudgetBody({
         />
       ) : null}
 
-      {card.footerNote ? (
-        <ProductionTimeFooterNote note={card.footerNote} />
-      ) : null}
     </>
   );
 }

@@ -34,7 +34,7 @@ export function ProductionTimeNoBudgetCard({
         data-testid="production-time-no-budget"
       >
         <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-semibold tracking-tight tabular-nums">
+          <span className="text-md font-semibold tracking-tight tabular-nums">
             {card.workedLabel}
           </span>
           <span className="text-base font-normal text-muted-foreground">
@@ -49,7 +49,7 @@ export function ProductionTimeNoBudgetCard({
           data-testid="production-time-no-budget-reason"
           title={card.rawStatus}
         >
-          <p className="text-[15px] font-medium">{card.reasonTitle}</p>
+          <p className="text-sm font-medium">{card.reasonTitle}</p>
           <p className="text-sm text-muted-foreground">{card.reasonBody}</p>
         </div>
 

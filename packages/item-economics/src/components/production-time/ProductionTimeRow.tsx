@@ -60,7 +60,7 @@ export function ProductionTimeRow({
 
         <span
           className={cn(
-            "min-w-0 flex-1 truncate text-[17px] font-medium",
+            "min-w-0 flex-1 truncate text-sm font-medium",
             row.isExcluded && "text-muted-foreground line-through",
           )}
           data-testid="production-time-row-label"
@@ -81,7 +81,7 @@ export function ProductionTimeRow({
 
         <span
           className={cn(
-            "shrink-0 text-[17px] font-semibold tabular-nums",
+            "shrink-0 text-sm font-semibold tabular-nums",
             row.isExcluded && "text-muted-foreground",
           )}
           data-testid="production-time-row-time"

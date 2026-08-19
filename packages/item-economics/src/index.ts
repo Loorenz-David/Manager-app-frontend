@@ -41,7 +41,6 @@ export { parseErrorIdentity } from "./lib/error-identity";
 
 export {
   PRODUCTION_TIME_COLLAPSED_ROW_COUNT,
-  buildFooterNote,
   buildRowDetail,
   buildSegments,
   formatPassCount,

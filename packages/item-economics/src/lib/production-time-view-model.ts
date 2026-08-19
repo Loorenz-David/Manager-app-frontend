@@ -80,7 +80,6 @@ export type ProductionTimeCardViewModel = {
   /** Hatched tail. 0 once the budget is fully consumed. */
   remainderPercent: number;
   rows: ProductionTimeRowViewModel[];
-  footerNote: string | null;
 };
 
 export type ProductionTimeNoBudgetViewModel = {
@@ -106,7 +105,7 @@ export const PRODUCTION_TIME_COLLAPSED_ROW_COUNT = 4;
 /**
  * "2h 55m" above the hour, "50m" below it. Negative input reads as "0m" —
  * a negative duration is never a thing to show a user, and the over-budget
- * case is phrased separately by `buildFooterNote`.
+ * case is phrased separately by the headline.
  */
 export function formatWorkSeconds(seconds: number): string {
   if (!Number.isFinite(seconds)) {
@@ -220,57 +219,6 @@ export function formatPassCount(stepCount: number): string | null {
   }
 
   return `${Math.floor(stepCount)} passes`;
-}
-
-/**
- * Section names read as prose in the footer sentence, but an acronym must
- * survive: "Finishing" → "finishing", "QC" → "QC".
- */
-function humanizeLabelForSentence(label: string): string {
-  return label
-    .split(" ")
-    .map((word) =>
-      word.length > 1 && word === word.toUpperCase() ? word : word.toLowerCase(),
-    )
-    .join(" ");
-}
-
-function joinLabels(labels: readonly string[]): string {
-  const humanized = labels.map(humanizeLabelForSentence);
-
-  if (humanized.length <= 1) {
-    return humanized[0] ?? "";
-  }
-
-  const last = humanized[humanized.length - 1];
-  return `${humanized.slice(0, -1).join(", ")} and ${last}`;
-}
-
-/**
- * "20m left for finishing and QC." — the remaining budget plus the stages that
- * have not finished yet. Always describes the whole pipeline, never the rows
- * currently visible.
- */
-export function buildFooterNote(
-  remainingSeconds: number | null,
-  pendingLabels: readonly string[],
-): string | null {
-  if (remainingSeconds === null) {
-    return null;
-  }
-
-  if (remainingSeconds > 0) {
-    const remaining = formatWorkSeconds(remainingSeconds);
-    return pendingLabels.length > 0
-      ? `${remaining} left for ${joinLabels(pendingLabels)}.`
-      : `${remaining} left.`;
-  }
-
-  if (remainingSeconds === 0) {
-    return "The production budget is fully used.";
-  }
-
-  return `${formatWorkSeconds(-remainingSeconds)} over the production budget.`;
 }
 
 /**

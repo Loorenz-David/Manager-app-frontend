@@ -9,7 +9,6 @@
  */
 
 import {
-  buildFooterNote,
   buildRowDetail,
   buildSegments,
   formatWorkSeconds,
@@ -69,22 +68,6 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
   };
 }
 
-/**
- * The footer names the stages still queued behind the current one — paused or
- * not yet started, and never the stage being worked right now, which the active
- * row already speaks for.
- */
-function pendingLabels(rows: ProductionTimeRowViewModel[]): string[] {
-  return rows
-    .filter(
-      (row) =>
-        !row.isActive &&
-        !row.isExcluded &&
-        (row.tone === "pending" || row.tone === "paused"),
-    )
-    .map((row) => row.label);
-}
-
 function makeBudgetCard(
   inputs: RowInput[],
   budgetSeconds: number,
@@ -109,7 +92,6 @@ function makeBudgetCard(
     segments,
     remainderPercent,
     rows,
-    footerNote: buildFooterNote(remainingSeconds, pendingLabels(rows)),
   };
 }
 

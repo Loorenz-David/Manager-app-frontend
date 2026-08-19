@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildFooterNote,
   formatPassCount,
   buildRowDetail,
   buildSegments,
@@ -142,37 +141,6 @@ describe("buildRowDetail", () => {
     expect(buildRowDetail(9000, 3600, null, "on_track").verdictTone).toBe(
       "on_track",
     );
-  });
-});
-
-describe("buildFooterNote", () => {
-  it("names the stages still queued", () => {
-    expect(buildFooterNote(1200, ["Finishing", "QC"])).toBe(
-      "20m left for finishing and QC.",
-    );
-  });
-
-  it("joins three or more stages", () => {
-    expect(buildFooterNote(1200, ["Finishing", "Polishing", "QC"])).toBe(
-      "20m left for finishing, polishing and QC.",
-    );
-  });
-
-  it("omits the stage list when nothing is left to do", () => {
-    expect(buildFooterNote(1200, [])).toBe("20m left.");
-  });
-
-  it("phrases an overrun rather than a negative duration", () => {
-    expect(buildFooterNote(-1500, ["QC"])).toBe(
-      "25m over the production budget.",
-    );
-    expect(buildFooterNote(0, ["QC"])).toBe(
-      "The production budget is fully used.",
-    );
-  });
-
-  it("says nothing when there is no budget", () => {
-    expect(buildFooterNote(null, ["QC"])).toBeNull();
   });
 });
 

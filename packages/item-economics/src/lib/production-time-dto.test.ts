@@ -245,102 +245,6 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.rows.every((row) => row.detail === null)).toBe(true);
   });
 
-  it("does not name a non-excluded cancelled section as unfinished", () => {
-    const baseSection = makeDto().sections[0]!;
-    const viewModel = toProductionTimeViewModel(
-      makeDto({
-        sections: [
-          {
-            ...baseSection,
-            working_section_id: "wsec-completed",
-            section_name_snapshot: "Completed Stage",
-            state: "completed",
-            state_entered_at: null,
-          },
-          {
-            ...baseSection,
-            working_section_id: "wsec-cancelled",
-            section_name_snapshot: "Cancelled Stage",
-            state: "cancelled",
-            state_entered_at: null,
-            share_state: "on_track",
-          },
-        ],
-      }),
-      NOW_MS,
-    );
-
-    expect(viewModel.kind).toBe("budget");
-    if (viewModel.kind !== "budget") return;
-    expect(viewModel.card.footerNote).toBe("35m left.");
-  });
-
-  it("does not name a completed-then-failed section as unfinished", () => {
-    // The reachable failed case (review G1): a stage completed once, was
-    // re-run, and the re-run failed. `_governing_step` falls through to the
-    // latest step, so the section arrives as `failed` — but it is not
-    // `excluded`, because the earlier completed pass keeps the group
-    // allocated. There is no open step, so it is not work time is left for.
-    const baseSection = makeDto().sections[0]!;
-    const viewModel = toProductionTimeViewModel(
-      makeDto({
-        sections: [
-          {
-            ...baseSection,
-            working_section_id: "wsec-completed",
-            section_name_snapshot: "Completed Stage",
-            state: "completed",
-            state_entered_at: null,
-          },
-          {
-            ...baseSection,
-            working_section_id: "wsec-failed",
-            section_name_snapshot: "Failed Stage",
-            state: "failed",
-            state_entered_at: null,
-            share_state: "on_track",
-            step_count: 2,
-          },
-        ],
-      }),
-      NOW_MS,
-    );
-
-    expect(viewModel.kind).toBe("budget");
-    if (viewModel.kind !== "budget") return;
-    expect(viewModel.card.footerNote).toBe("35m left.");
-  });
-
-  it("names a blocked section as unfinished", () => {
-    const baseSection = makeDto().sections[0]!;
-    const viewModel = toProductionTimeViewModel(
-      makeDto({
-        sections: [
-          {
-            ...baseSection,
-            working_section_id: "wsec-completed",
-            section_name_snapshot: "Completed Stage",
-            state: "completed",
-            state_entered_at: null,
-          },
-          {
-            ...baseSection,
-            working_section_id: "wsec-blocked",
-            section_name_snapshot: "Blocked Stage",
-            state: "blocked",
-            state_entered_at: null,
-            share_state: "on_track",
-          },
-        ],
-      }),
-      NOW_MS,
-    );
-
-    expect(viewModel.kind).toBe("budget");
-    if (viewModel.kind !== "budget") return;
-    expect(viewModel.card.footerNote).toBe("35m left for blocked stage.");
-  });
-
   it.each<readonly [NoBudgetCaseStatus, string]>([
     ["item_missing_major_category", "This item has no category"],
     ["not_configured_no_cost_group", "The workshop is not set up for this category"],
@@ -393,9 +297,6 @@ describe("toProductionTimeViewModel", () => {
       isOverBudget: true,
     });
     expect(viewModel.card.remainderPercent).toBe(0);
-    expect(viewModel.card.footerNote).toBe(
-      "2h 55m over the production budget.",
-    );
   });
 
   it("prefers final headline values and freezes their tick", () => {

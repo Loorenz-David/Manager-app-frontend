@@ -102,12 +102,12 @@ describe("ProductionTimeCard — budget state", () => {
     ).toBeInTheDocument();
   });
 
-  it("names the stages still queued in the footer", () => {
+  it("does not render a remaining-time footer note", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
-    expect(screen.getByTestId("production-time-footer-note")).toHaveTextContent(
-      "20m left for finishing.",
-    );
+    expect(
+      screen.queryByTestId("production-time-footer-note"),
+    ).not.toBeInTheDocument();
   });
 
   it("reports an overrun without a hatched tail", () => {
@@ -206,14 +206,14 @@ describe("ProductionTimeCard — long pipelines", () => {
     );
   });
 
-  it("keeps the bar and footer describing the whole pipeline while collapsed", () => {
+  it("keeps the bar describing the whole pipeline while collapsed", () => {
     render(<ProductionTimeCard viewModel={productionTimeLongPipelineFixture} />);
 
     // Eight sections have worked time, though only five rows are on screen.
     expect(screen.getAllByTestId("production-time-budget-segment")).toHaveLength(8);
-    expect(screen.getByTestId("production-time-footer-note")).toHaveTextContent(
-      "QC",
-    );
+    expect(
+      screen.queryByTestId("production-time-footer-note"),
+    ).not.toBeInTheDocument();
   });
 
   it("offers no toggle for a short pipeline", () => {
