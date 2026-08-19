@@ -1,0 +1,332 @@
+import "@testing-library/jest-dom/vitest";
+
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ItemValuationEmptyState } from "./ItemValuationEmptyState";
+import { ItemValuationFooter } from "./ItemValuationFooter";
+import { ItemValuationFrame } from "./ItemValuationFrame";
+import { ItemValuationProvenanceRow } from "./ItemValuationProvenanceRow";
+import { ItemValuationSkeleton } from "./ItemValuationSkeleton";
+import { PriceCoverageChip } from "./PriceCoverageChip";
+import { PriceHeadline } from "./PriceHeadline";
+import { PriceSlider } from "./PriceSlider";
+import { PurchaseBootstrapCard } from "./PurchaseBootstrapCard";
+import { WorkImpactTable } from "./WorkImpactTable";
+import {
+  ESTIMATED_TYPICAL_TABLE,
+  PRICE_EDITOR_FIXTURES,
+  type PriceEditorFixture,
+} from "./price-editor-fixtures";
+
+afterEach(cleanup);
+
+/** Compose a fixture the way the phase-2 page will: frame → header row → body. */
+function renderScene(fixture: PriceEditorFixture): void {
+  render(
+    <ItemValuationFrame
+      data-testid="item-valuation-scene"
+      headerExtra={
+        fixture.provenance ? (
+          <ItemValuationProvenanceRow {...fixture.provenance} />
+        ) : undefined
+      }
+      subtitle={fixture.frame.subtitle}
+      title={fixture.frame.title}
+    >
+      <div className="flex flex-col gap-6 px-6 py-8">
+        {fixture.headline ? <PriceHeadline {...fixture.headline} /> : null}
+        {fixture.chip ? <PriceCoverageChip {...fixture.chip} /> : null}
+        {fixture.slider ? <PriceSlider {...fixture.slider} /> : null}
+        {fixture.table ? <WorkImpactTable {...fixture.table} /> : null}
+        {fixture.bootstrap ? (
+          <PurchaseBootstrapCard {...fixture.bootstrap} />
+        ) : null}
+        {fixture.empty ? <ItemValuationEmptyState {...fixture.empty} /> : null}
+        {fixture.footer ? <ItemValuationFooter {...fixture.footer} /> : null}
+      </div>
+    </ItemValuationFrame>,
+  );
+}
+
+describe("price editor scenes (criterion 51 — one row per closed fixture)", () => {
+  it("1. editor-saved-pristine: muted saved price, Save disabled, Back to the abandoned draft", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-saved-pristine"]);
+    expect(screen.getByTestId("item-valuation-per-piece")).toHaveTextContent(
+      "1 625",
+    );
+    expect(screen.getByTestId("item-valuation-save-button")).toBeDisabled();
+    expect(
+      screen.getByTestId("item-valuation-back-to-saved"),
+    ).toHaveTextContent("Back to 1 675");
+    expect(screen.getByTestId("item-valuation-chip")).toHaveAttribute(
+      "data-tone",
+      "negative",
+    );
+  });
+
+  it("2. editor-dirty: current-user row, Save enabled, positive coverage", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-dirty"]);
+    expect(screen.getByTestId("item-valuation-provenance")).toHaveTextContent(
+      "You",
+    );
+    expect(
+      screen.getByTestId("item-valuation-back-to-saved"),
+    ).toHaveTextContent("Back to 1 625");
+    expect(screen.getByTestId("item-valuation-save-button")).toBeEnabled();
+    expect(screen.getByTestId("item-valuation-chip")).toHaveAttribute(
+      "data-tone",
+      "positive",
+    );
+    expect(screen.getByTestId("item-valuation-at-price")).toHaveAttribute(
+      "data-tone",
+      "positive",
+    );
+  });
+
+  it("3. editor-unpriced-pristine: dash avatar, ×4 detail, no Back button, Save enabled", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-unpriced-pristine"]);
+    expect(screen.getByTestId("item-valuation-provenance")).toHaveTextContent(
+      "No price set",
+    );
+    expect(screen.getByTestId("item-valuation-provenance")).toHaveTextContent(
+      "suggested from purchase price × 4",
+    );
+    expect(
+      screen.queryByTestId("item-valuation-back-to-saved"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("item-valuation-save-button")).toBeEnabled();
+  });
+
+  it("4. purchase-required: shimmer slot instead of a number, message, CTA enabled", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["purchase-required"]);
+    expect(
+      screen.queryByTestId("item-valuation-per-piece"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("item-valuation-bootstrap-message"),
+    ).toHaveTextContent("nothing to price against");
+    expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeEnabled();
+  });
+
+  it("5. purchase-required-no-article: CTA disabled with the article-number message", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["purchase-required-no-article"]);
+    expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeDisabled();
+    expect(
+      screen.getByTestId("item-valuation-bootstrap-message"),
+    ).toHaveTextContent("no article number");
+  });
+
+  it("6. bootstrap-pending: CTA disabled and busy", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["bootstrap-pending"]);
+    const cta = screen.getByTestId("item-valuation-fetch-purchase");
+    expect(cta).toBeDisabled();
+    expect(cta).toHaveAttribute("aria-busy", "true");
+  });
+
+  it("7. bootstrap-error: the failure message renders above the CTA", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["bootstrap-error"]);
+    expect(
+      screen.getByTestId("item-valuation-bootstrap-error"),
+    ).toHaveTextContent("purchase application");
+    expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeEnabled();
+  });
+
+  it("8. blocked: frame kept, status message, no numbers, Save disabled with a reason", () => {
+    renderScene(PRICE_EDITOR_FIXTURES.blocked);
+    expect(screen.getByTestId("item-valuation-empty-state")).toHaveTextContent(
+      "configuration",
+    );
+    expect(
+      screen.queryByTestId("item-valuation-per-piece"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("item-valuation-save-button")).toBeDisabled();
+    expect(screen.getByTestId("item-valuation-save-reason")).toBeVisible();
+  });
+
+  it("9. unbound: frame kept, missing-item message, no Save at all", () => {
+    renderScene(PRICE_EDITOR_FIXTURES.unbound);
+    expect(screen.getByTestId("item-valuation-empty-state")).toHaveTextContent(
+      "no item attached",
+    );
+    expect(
+      screen.queryByTestId("item-valuation-save-button"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("10. editor-no-band: slider disabled AND its reason present", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-no-band"]);
+    expect(screen.getByTestId("item-valuation-slider-input")).toBeDisabled();
+    expect(screen.getByTestId("item-valuation-slider-reason")).toHaveTextContent(
+      "No usable price band",
+    );
+  });
+
+  it("11. editor-non-fundable: no chip, no marker, no use-suggested row", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-non-fundable"]);
+    expect(screen.queryByTestId("item-valuation-chip")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("item-valuation-suggested-marker"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("item-valuation-use-suggested"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("12. editor-empty-typical: reason text, never a zero duration", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-empty-typical"]);
+    const typical = screen.getByTestId("item-valuation-typical");
+    expect(typical).toHaveTextContent("no completed work");
+    expect(typical).not.toHaveTextContent("0m");
+  });
+
+  it("12a. estimated typical: a present value carries the estimated marker", () => {
+    render(<WorkImpactTable {...ESTIMATED_TYPICAL_TABLE} />);
+    const typical = screen.getByTestId("item-valuation-typical");
+    expect(typical).toHaveTextContent("3h 25m");
+    expect(typical).toHaveTextContent("estimated");
+  });
+
+  it("13. editor-cannot-commit: Save disabled with the reason visible", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-cannot-commit"]);
+    expect(screen.getByTestId("item-valuation-save-button")).toBeDisabled();
+    expect(screen.getByTestId("item-valuation-save-reason")).toHaveTextContent(
+      "finished",
+    );
+  });
+});
+
+describe("PriceSlider emissions (criteria 52–53)", () => {
+  const baseProps = {
+    stepCount: 82,
+    tone: "positive" as const,
+    markerFraction: null,
+    markerLabel: null,
+    minLabel: "700/piece",
+    maxLabel: "2 750/piece",
+  };
+
+  it("emits exactly index / stepCount on change, never a price (criterion 52)", () => {
+    const onFractionChange = vi.fn();
+    render(
+      <PriceSlider
+        {...baseProps}
+        fraction={0.5}
+        onFractionChange={onFractionChange}
+      />,
+    );
+    fireEvent.change(screen.getByTestId("item-valuation-slider-input"), {
+      target: { value: "30" },
+    });
+    expect(onFractionChange).toHaveBeenCalledTimes(1);
+    expect(onFractionChange).toHaveBeenCalledWith(30 / 82);
+  });
+
+  it("keyboard arrows move one index → ±1/stepCount (criterion 53)", () => {
+    const onFractionChange = vi.fn();
+    render(
+      <PriceSlider
+        {...baseProps}
+        fraction={41 / 82}
+        onFractionChange={onFractionChange}
+      />,
+    );
+    const input = screen.getByTestId("item-valuation-slider-input");
+    fireEvent.keyDown(input, { key: "ArrowRight" });
+    expect(onFractionChange).toHaveBeenLastCalledWith(42 / 82);
+    fireEvent.keyDown(input, { key: "ArrowLeft" });
+    expect(onFractionChange).toHaveBeenLastCalledWith(40 / 82);
+    expect(onFractionChange).toHaveBeenCalledTimes(2);
+  });
+
+  it("clamps keyboard steps at the band ends", () => {
+    const onFractionChange = vi.fn();
+    render(
+      <PriceSlider
+        {...baseProps}
+        fraction={1}
+        onFractionChange={onFractionChange}
+      />,
+    );
+    fireEvent.keyDown(screen.getByTestId("item-valuation-slider-input"), {
+      key: "ArrowUp",
+    });
+    expect(onFractionChange).toHaveBeenCalledWith(1);
+  });
+
+  it("renders an off-grid fraction without emitting anything", () => {
+    const onFractionChange = vi.fn();
+    render(
+      <PriceSlider
+        {...baseProps}
+        fraction={438000 / 1230000}
+        onFractionChange={onFractionChange}
+      />,
+    );
+    expect(onFractionChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("item-valuation-slider-handle")).toBeVisible();
+  });
+});
+
+describe("interaction wiring", () => {
+  it("Back button fires onBackPress", () => {
+    const onBackPress = vi.fn();
+    render(
+      <ItemValuationProvenanceRow
+        avatarKind="user"
+        avatarName="You"
+        backLabel="Back to 1 625"
+        detail="unsaved change · just now"
+        label="You"
+        onBackPress={onBackPress}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("item-valuation-back-to-saved"));
+    expect(onBackPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("Save and use-suggested fire their callbacks; a pending save fires nothing", () => {
+    const onSavePress = vi.fn();
+    const onSuggestedPress = vi.fn();
+    render(
+      <ItemValuationFooter
+        isSaveDisabled={false}
+        saveLabel="Save 2 225 SEK / piece"
+        suggestedLabel="Use suggested 2 025 SEK / piece"
+        onSavePress={onSavePress}
+        onSuggestedPress={onSuggestedPress}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("item-valuation-save-button"));
+    fireEvent.click(screen.getByTestId("item-valuation-use-suggested"));
+    expect(onSavePress).toHaveBeenCalledTimes(1);
+    expect(onSuggestedPress).toHaveBeenCalledTimes(1);
+
+    cleanup();
+    const onPendingSave = vi.fn();
+    render(
+      <ItemValuationFooter
+        isSaveDisabled={false}
+        isSavePending
+        saveLabel="Save 2 225 SEK / piece"
+        suggestedLabel={null}
+        onSavePress={onPendingSave}
+      />,
+    );
+    fireEvent.click(screen.getByTestId("item-valuation-save-button"));
+    expect(onPendingSave).not.toHaveBeenCalled();
+  });
+
+  it("the three-dot header button is decorative and the skeleton keeps the frame", () => {
+    render(
+      <ItemValuationFrame subtitle="ITEM 0000608" title="Expected sold price">
+        <ItemValuationSkeleton />
+      </ItemValuationFrame>,
+    );
+    expect(screen.getByTestId("item-valuation-menu-button")).toBeVisible();
+    expect(screen.getByTestId("item-valuation-skeleton")).toBeVisible();
+    expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
+      "Expected sold price",
+    );
+  });
+});

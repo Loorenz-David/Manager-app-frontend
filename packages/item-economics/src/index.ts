@@ -103,3 +103,57 @@ export {
   ItemPricingTotalRow,
 } from "./components/item-pricing";
 export type { ItemPricingFieldGroupProps } from "./components/item-pricing";
+
+// --- Expected sold price editor (price scenario) ----------------------------
+// Phase 1 exports the pure core only: the DTO, the BigInt arithmetic, the draft
+// machine, coverage, screen state and the formatters. The page loader and the
+// components arrive with the phase-2 wiring.
+
+export {
+  ItemBindingSchema,
+  PRICE_SCENARIO_CALCULATION_VERSION,
+  PriceScenarioSchema,
+  ValuationCurrencySchema,
+} from "./types";
+export type {
+  PriceScenario,
+  PriceScenarioAnchors,
+  PriceScenarioDomain,
+  PriceScenarioItem,
+  PriceScenarioModel,
+  PriceScenarioSaved,
+  PriceScenarioTypical,
+  ValuationCurrency,
+} from "./types";
+
+export {
+  allowanceSeconds,
+  allowedCentimin,
+  budgetMinor,
+  formatAllowanceDuration,
+  formatAllowedWorkerMinutes,
+  roundHalfEven,
+} from "./lib/price-scenario-math";
+
+export {
+  clampSnap,
+  priceDraftReducer,
+  priceToSliderFraction,
+  resolveProvenanceVariant,
+  sliderFractionToPrice,
+} from "./lib/price-draft";
+export type {
+  PriceDraftEvent,
+  PriceDraftProvenanceVariant,
+  PriceDraftState,
+} from "./lib/price-draft";
+
+export { resolveCoverage } from "./lib/price-coverage";
+
+export { resolveScreenState } from "./lib/item-valuation-screen-state";
+export type {
+  ItemValuationScreenState,
+  ScenarioQueryStatus,
+} from "./lib/item-valuation-screen-state";
+
+export { currencyDisplayCode, formatPerPiece } from "./lib/valuation-currency";

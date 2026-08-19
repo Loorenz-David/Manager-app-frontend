@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { INLINE_PRICING_CURRENCY } from "./lib/item-pricing";
+
 /**
  * Item economics domain primitives shared by the configuration half
  * (cost groups, basis versions, cost model versions) and the operational
@@ -189,3 +191,127 @@ export const TaskProductionTimeSchema = z.object({
   sections: z.array(ProductionTimeSectionSchema),
 });
 export type TaskProductionTime = z.infer<typeof TaskProductionTimeSchema>;
+
+// --- Price scenario (expected sold price editor) ----------------------------
+//
+// Source of truth: docs/handoff/from_backend/HANDOFF_TO_FRONTEND_price_scenario_20260819.md
+// §2 (payload) and §5 (null semantics). Every field the handoff lists as
+// nullable is `.nullable()` and never `.optional()` — the backend always sends
+// the key, so an `.optional()` here would hide a dropped field instead of
+// failing loudly (intention §4A M13).
+
+/**
+ * The three currencies the item economics domain prices in. It exists here
+ * because M11's display mapping must be exhaustive by construction: adding a
+ * member has to break the typecheck, never fall back to SEK.
+ */
+export const ValuationCurrencySchema = z.enum([
+  "swedish_krona",
+  "danish_krona",
+  "euro",
+]);
+export type ValuationCurrency = z.infer<typeof ValuationCurrencySchema>;
+
+// Typecheck-visible guarantee: what the inline pricing bootstrap writes (§3.3)
+// and what the display falls back to (M11) must be a member of the enum above.
+INLINE_PRICING_CURRENCY satisfies ValuationCurrency;
+
+/** Whether the task still points at the item its economics were computed for. */
+export const ItemBindingSchema = z.enum(["bound", "detached", "mismatched"]);
+export type ItemBinding = z.infer<typeof ItemBindingSchema>;
+
+/**
+ * The arithmetic contract (M2) is version-bound: a payload computed by another
+ * version of the formula must fail parse rather than be projected with rules it
+ * was not produced by.
+ */
+export const PRICE_SCENARIO_CALCULATION_VERSION = 1;
+
+/** `null` on `item_binding: "detached"` — there is no item row to describe. */
+export const PriceScenarioItemSchema = z.object({
+  client_id: z.string(),
+  article_number: z.string().nullable(),
+  label: z.string().nullable(),
+  quantity: z.number().int(),
+});
+export type PriceScenarioItem = z.infer<typeof PriceScenarioItemSchema>;
+
+/** `null` only when the user row behind the valuation cannot be loaded. */
+export const PriceScenarioAuthorSchema = z.object({
+  client_id: z.string(),
+  username: z.string(),
+  profile_picture: z.string().nullable(),
+});
+export type PriceScenarioAuthor = z.infer<typeof PriceScenarioAuthorSchema>;
+
+/** The committed valuation row; `null` when nobody has priced the item. */
+export const PriceScenarioSavedSchema = z.object({
+  valuation_id: z.string(),
+  expected_sale_price_minor: z.number().int().nullable(),
+  purchase_cost_minor: z.number().int().nullable(),
+  created_at: z.string().datetime({ offset: true }),
+  created_by: PriceScenarioAuthorSchema.nullable(),
+});
+export type PriceScenarioSaved = z.infer<typeof PriceScenarioSavedSchema>;
+
+/**
+ * The cost model constants the local projection runs on. The two scaled fields
+ * are integers, not the house decimal string, precisely so the arithmetic stays
+ * exact (handoff §2).
+ */
+export const PriceScenarioModelSchema = z.object({
+  cost_model_version_id: z.string(),
+  basis_version_id: z.string(),
+  residual_percent_milli: z.number().int(),
+  constant_deduction_minor: z.number().int(),
+  cost_per_worker_minute_ten_thousandths: z.number().int(),
+  is_purely_proportional: z.boolean(),
+});
+export type PriceScenarioModel = z.infer<typeof PriceScenarioModelSchema>;
+
+/** Always present, even under a non-`bound` binding (handoff §5.1, §5.5). */
+export const PriceScenarioTypicalSchema = z.object({
+  total_seconds: z.number().int(),
+  is_estimated: z.boolean(),
+  sections_without_sample: z.number().int(),
+  sections_total: z.number().int(),
+  method: z.string(),
+  window_days: z.number().int(),
+  min_sample_size: z.number().int(),
+});
+export type PriceScenarioTypical = z.infer<typeof PriceScenarioTypicalSchema>;
+
+/** The chip and the marker read from here, never from a local allowance (§5.3). */
+export const PriceScenarioAnchorsSchema = z.object({
+  is_fundable: z.boolean(),
+  break_even_price_minor: z.number().int().nullable(),
+  suggested_price_minor: z.number().int().nullable(),
+  infeasible_at_or_below_minor: z.number().int(),
+});
+export type PriceScenarioAnchors = z.infer<typeof PriceScenarioAnchorsSchema>;
+
+/** The slider band; derived server-side, `null` when there is no usable one. */
+export const PriceScenarioDomainSchema = z.object({
+  rule: z.string(),
+  min_minor: z.number().int(),
+  max_minor: z.number().int(),
+  step_minor: z.number().int(),
+});
+export type PriceScenarioDomain = z.infer<typeof PriceScenarioDomainSchema>;
+
+export const PriceScenarioSchema = z.object({
+  task_id: z.string(),
+  status: ItemEconomicsStatusSchema.nullable(),
+  item_binding: ItemBindingSchema,
+  can_commit: z.boolean(),
+  currency: ValuationCurrencySchema.nullable(),
+  calculation_version: z.literal(PRICE_SCENARIO_CALCULATION_VERSION),
+  config_fingerprint: z.string().nullable(),
+  item: PriceScenarioItemSchema.nullable(),
+  saved: PriceScenarioSavedSchema.nullable(),
+  model: PriceScenarioModelSchema.nullable(),
+  typical: PriceScenarioTypicalSchema,
+  anchors: PriceScenarioAnchorsSchema.nullable(),
+  domain: PriceScenarioDomainSchema.nullable(),
+});
+export type PriceScenario = z.infer<typeof PriceScenarioSchema>;

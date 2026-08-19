@@ -40,6 +40,15 @@ export const itemEconomicsKeys = {
   taskEvaluations: (taskId: TaskId, params: ItemEconomicsListParams = {}) =>
     [...itemEconomicsKeys.task(taskId), "evaluations", params] as const,
 
+  /**
+   * Deliberately its own branch directly under `all`, **not** under `tasks()`
+   * (intention §4A M9): the existing `task:step-state-changed` handler
+   * invalidates the whole `tasks()` branch immediately, and this aggregate is
+   * expensive enough that its refetch must stay on the debounced handler.
+   */
+  priceScenario: (taskId: TaskId) =>
+    [...itemEconomicsKeys.all, "price-scenario", taskId] as const,
+
   // Operational — item scoped
   items: () => [...itemEconomicsKeys.all, "item"] as const,
   item: (itemId: ItemId) => [...itemEconomicsKeys.items(), itemId] as const,
