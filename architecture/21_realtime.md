@@ -181,6 +181,42 @@ export const socketRegistry: SocketEventHandlers = {
 
 No feature imports another feature's event handlers. The registry is the only join point.
 
+### App-level assembly A — shared-key composition
+
+The object-spread example above remains valid only while every feature map owns a distinct event
+key. App registries that combine independently owned maps must use
+`composeSocketHandlers(...maps)` so a shared key cannot silently overwrite an earlier handler:
+
+```ts
+// src/app/socket-registry.ts
+import { composeSocketHandlers } from '@beyo/realtime';
+import { invoiceSocketEvents }  from '@/features/invoices/socket-events';
+import { settingsSocketEvents } from '@/features/settings/socket-events';
+import { clientSocketEvents }   from '@/features/clients/socket-events';
+
+export const socketRegistry = composeSocketHandlers(
+  invoiceSocketEvents,
+  settingsSocketEvents,
+  clientSocketEvents,
+  {
+    // Inline handlers are a final map argument so they participate in the
+    // same shared-key composition as feature-owned handlers.
+    'notification:new': ({ client_id: _clientId }, { queryClient }) => {
+      queryClient.invalidateQueries({
+        queryKey: notificationKeys.list(),
+        refetchType: 'active',
+      });
+    },
+  },
+);
+```
+
+- When the same event key appears in more than one map, every handler runs in the order the maps
+  were passed to `composeSocketHandlers`.
+- A key claimed by exactly one map is returned by identity, without a wrapper.
+- An inline handler entry must be passed as a final object-literal argument. Adding it after the
+  composition call or spreading it into the result would restore last-write-wins behavior.
+
 ---
 
 ## `SocketProvider`

@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import {
-  PRODUCTION_TIME_COLLAPSED_ROW_COUNT,
   selectVisibleRows,
   type ProductionTimeCardViewModel,
   type ProductionTimeViewModel,
@@ -28,8 +27,9 @@ function ProductionTimeBudgetBody({
 }): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const visibleRows = selectVisibleRows(card.rows, isExpanded);
-  const isTruncatable = card.rows.length > PRODUCTION_TIME_COLLAPSED_ROW_COUNT;
+  const collapsedRows = selectVisibleRows(card.rows, false);
+  const visibleRows = isExpanded ? card.rows : collapsedRows;
+  const isTruncatable = collapsedRows.length < card.rows.length;
 
   return (
     <>

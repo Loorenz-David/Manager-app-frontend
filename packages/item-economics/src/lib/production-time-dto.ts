@@ -145,15 +145,30 @@ function toRows(
   return { rows, totalLiveTickSeconds };
 }
 
-function pendingLabels(rows: readonly ProductionTimeRowViewModel[]): string[] {
-  return rows
-    .filter(
-      (row) =>
-        !row.isActive &&
-        !row.isExcluded &&
-        (row.tone === "pending" || row.tone === "paused"),
-    )
-    .map((row) => row.label);
+function isUnfinishedSectionState(state: string): boolean {
+  return (
+    state === "pending" ||
+    state === "paused" ||
+    state === "ended_shift" ||
+    state === "blocked" ||
+    state === "failed"
+  );
+}
+
+function pendingLabels(
+  sections: TaskProductionTime["sections"],
+  rows: readonly ProductionTimeRowViewModel[],
+): string[] {
+  return sections.flatMap((section, index) => {
+    const row = rows[index];
+
+    return row &&
+      !row.isActive &&
+      !row.isExcluded &&
+      isUnfinishedSectionState(section.state)
+      ? [row.label]
+      : [];
+  });
 }
 
 function remainingLabel(remainingSeconds: number | null): string | null {
@@ -236,7 +251,10 @@ export function toProductionTimeViewModel(
       segments,
       remainderPercent,
       rows,
-      footerNote: buildFooterNote(remainingSeconds, pendingLabels(rows)),
+      footerNote: buildFooterNote(
+        remainingSeconds,
+        pendingLabels(dto.sections, rows),
+      ),
     },
   };
 }

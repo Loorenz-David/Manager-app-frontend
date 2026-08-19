@@ -6,9 +6,14 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { ProductionTimeCard } from "./ProductionTimeCard";
 import { ProductionTimeCardSkeleton } from "./ProductionTimeCardSkeleton";
+import type {
+  ProductionTimeRowViewModel,
+  ProductionTimeViewModel,
+} from "../../lib/production-time-view-model";
 import {
   productionTimeEdgeCasesFixture,
   productionTimeEmptyFixture,
+  productionTimeFiveStageFixture,
   productionTimeLongPipelineFixture,
   productionTimeMockupFixture,
   productionTimeNotEvaluatedFixture,
@@ -17,6 +22,45 @@ import {
 } from "./production-time-fixtures";
 
 afterEach(cleanup);
+
+function fiveRowsWithLastActive(): ProductionTimeRowViewModel[] {
+  if (productionTimeFiveStageFixture.kind !== "budget") {
+    throw new Error("Expected the five-stage fixture to carry a budget.");
+  }
+
+  return productionTimeFiveStageFixture.card.rows.map((row, index) => ({
+    ...row,
+    isActive: index === 4,
+  }));
+}
+
+function viewModelWithRows(
+  kind: "budget" | "no_budget",
+  rows: ProductionTimeRowViewModel[],
+): ProductionTimeViewModel {
+  if (kind === "budget") {
+    if (productionTimeFiveStageFixture.kind !== "budget") {
+      throw new Error("Expected the five-stage fixture to carry a budget.");
+    }
+
+    return {
+      kind,
+      card: { ...productionTimeFiveStageFixture.card, rows },
+    };
+  }
+
+  if (productionTimeNotEvaluatedFixture.kind !== "no_budget") {
+    throw new Error("Expected the not-evaluated fixture to lack a budget.");
+  }
+
+  return {
+    kind,
+    card: {
+      ...productionTimeNotEvaluatedFixture.card,
+      rows: rows.map((row) => ({ ...row, detail: null })),
+    },
+  };
+}
 
 describe("ProductionTimeCard — budget state", () => {
   it("renders the headline, the bar and the pipeline in payload order", () => {
@@ -179,6 +223,22 @@ describe("ProductionTimeCard — long pipelines", () => {
       screen.queryByTestId("production-time-rows-toggle"),
     ).not.toBeInTheDocument();
   });
+
+  it.each(["budget", "no_budget"] as const)(
+    "offers no dead toggle when all five %s rows are already visible",
+    (kind) => {
+      render(
+        <ProductionTimeCard
+          viewModel={viewModelWithRows(kind, fiveRowsWithLastActive())}
+        />,
+      );
+
+      expect(screen.getAllByTestId("production-time-row")).toHaveLength(5);
+      expect(
+        screen.queryByTestId("production-time-rows-toggle"),
+      ).not.toBeInTheDocument();
+    },
+  );
 });
 
 describe("ProductionTimeCard — degraded states", () => {
@@ -210,6 +270,35 @@ describe("ProductionTimeCard — degraded states", () => {
     expect(
       screen.queryByTestId("production-time-no-budget-cta"),
     ).not.toBeInTheDocument();
+  });
+
+  it("collapses and expands a long degraded pipeline", async () => {
+    const user = userEvent.setup();
+
+    if (productionTimeLongPipelineFixture.kind !== "budget") {
+      throw new Error("Expected the long fixture to carry a budget.");
+    }
+
+    render(
+      <ProductionTimeCard
+        viewModel={viewModelWithRows(
+          "no_budget",
+          productionTimeLongPipelineFixture.card.rows,
+        )}
+      />,
+    );
+
+    expect(screen.getAllByTestId("production-time-row")).toHaveLength(5);
+    expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
+      "Show all 9 stages",
+    );
+
+    await user.click(screen.getByTestId("production-time-rows-toggle"));
+
+    expect(screen.getAllByTestId("production-time-row")).toHaveLength(9);
+    expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
+      "Show less",
+    );
   });
 
   it("shows an empty state rather than stale numbers when the item detached", () => {

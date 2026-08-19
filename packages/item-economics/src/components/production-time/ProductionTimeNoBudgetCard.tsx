@@ -1,5 +1,11 @@
-import type { ProductionTimeNoBudgetViewModel } from "../../lib/production-time-view-model";
+import { useState } from "react";
+
+import {
+  selectVisibleRows,
+  type ProductionTimeNoBudgetViewModel,
+} from "../../lib/production-time-view-model";
 import { ProductionTimeRow } from "./ProductionTimeRow";
+import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
 
 export type ProductionTimeNoBudgetCardProps = {
   card: ProductionTimeNoBudgetViewModel;
@@ -15,7 +21,11 @@ export function ProductionTimeNoBudgetCard({
   card,
   onCtaPress,
 }: ProductionTimeNoBudgetCardProps): React.JSX.Element {
+  const [isExpanded, setIsExpanded] = useState(false);
   const cta = card.cta;
+  const collapsedRows = selectVisibleRows(card.rows, false);
+  const visibleRows = isExpanded ? card.rows : collapsedRows;
+  const isTruncatable = collapsedRows.length < card.rows.length;
 
   return (
     <>
@@ -55,9 +65,17 @@ export function ProductionTimeNoBudgetCard({
         ) : null}
       </div>
 
-      {card.rows.map((row) => (
+      {visibleRows.map((row) => (
         <ProductionTimeRow key={row.key} row={row} showTypicalComparison />
       ))}
+
+      {isTruncatable ? (
+        <ProductionTimeRowsToggle
+          isExpanded={isExpanded}
+          totalCount={card.rows.length}
+          onToggle={() => setIsExpanded((current) => !current)}
+        />
+      ) : null}
     </>
   );
 }

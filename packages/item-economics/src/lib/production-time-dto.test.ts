@@ -245,6 +245,66 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.rows.every((row) => row.detail === null)).toBe(true);
   });
 
+  it("does not name a non-excluded cancelled section as unfinished", () => {
+    const baseSection = makeDto().sections[0]!;
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        sections: [
+          {
+            ...baseSection,
+            working_section_id: "wsec-completed",
+            section_name_snapshot: "Completed Stage",
+            state: "completed",
+            state_entered_at: null,
+          },
+          {
+            ...baseSection,
+            working_section_id: "wsec-cancelled",
+            section_name_snapshot: "Cancelled Stage",
+            state: "cancelled",
+            state_entered_at: null,
+            share_state: "on_track",
+          },
+        ],
+      }),
+      NOW_MS,
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.footerNote).toBe("35m left.");
+  });
+
+  it("names a blocked section as unfinished", () => {
+    const baseSection = makeDto().sections[0]!;
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        sections: [
+          {
+            ...baseSection,
+            working_section_id: "wsec-completed",
+            section_name_snapshot: "Completed Stage",
+            state: "completed",
+            state_entered_at: null,
+          },
+          {
+            ...baseSection,
+            working_section_id: "wsec-blocked",
+            section_name_snapshot: "Blocked Stage",
+            state: "blocked",
+            state_entered_at: null,
+            share_state: "on_track",
+          },
+        ],
+      }),
+      NOW_MS,
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.footerNote).toBe("35m left for blocked stage.");
+  });
+
   it.each<readonly [NoBudgetCaseStatus, string]>([
     ["item_missing_major_category", "This item has no category"],
     ["not_configured_no_cost_group", "The workshop is not set up for this category"],
@@ -266,6 +326,40 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "no_budget") return;
     expect(viewModel.card.reasonTitle).toBe(title);
     expect(viewModel.card.rawStatus).toBe(status);
+  });
+
+  it("renders infeasible as a zero-budget overrun", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          allowed_worker_minutes: "0.00",
+          actual_worker_seconds: 10_500,
+          actual_worker_minutes: "175.00",
+          remaining_worker_minutes: "-175.00",
+          percent_consumed: null,
+        },
+        sections: makeDto().sections.map((section) => ({
+          ...section,
+          state: "completed",
+          state_entered_at: null,
+        })),
+      }),
+      NOW_MS,
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.headline).toMatchObject({
+      workedLabel: "2h 55m",
+      budgetLabel: "of 0m",
+      remainingLabel: "2h 55m over",
+      isOverBudget: true,
+    });
+    expect(viewModel.card.remainderPercent).toBe(0);
+    expect(viewModel.card.footerNote).toBe(
+      "2h 55m over the production budget.",
+    );
   });
 
   it("prefers final headline values and freezes their tick", () => {

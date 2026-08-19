@@ -37,9 +37,7 @@ export { itemEconomicsSocketEvents } from "./socket-events";
 export { parseErrorIdentity } from "./lib/error-identity";
 
 // --- Production time widget -------------------------------------------------
-// The seam between the visual layer and the machinery behind it. The logic
-// track adds `ProductionTimeSection` (the self-fetching root) and the DTO
-// schemas here once they exist.
+// Public DTO, pure view-model, presentation, and self-fetching root exports.
 
 export {
   PRODUCTION_TIME_COLLAPSED_ROW_COUNT,

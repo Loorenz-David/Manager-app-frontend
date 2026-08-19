@@ -31,6 +31,18 @@ function row(
   };
 }
 
+const STEP_STATE_CASES = [
+  ["pending", "pending", "Pending"],
+  ["working", "working", "Working"],
+  ["paused", "paused", "Paused"],
+  ["blocked", "blocked", "Blocked"],
+  ["completed", "completed", "Completed"],
+  ["failed", "blocked", "Failed"],
+  ["skipped", "pending", "Skipped"],
+  ["cancelled", "pending", "Cancelled"],
+  ["ended_shift", "paused", "Ended shift"],
+] as const;
+
 describe("formatWorkSeconds", () => {
   it("drops the hour component below an hour", () => {
     expect(formatWorkSeconds(3000)).toBe("50m");
@@ -206,13 +218,12 @@ describe("selectVisibleRows", () => {
 });
 
 describe("stateToTone", () => {
-  it("maps the step-state vocabulary", () => {
-    expect(stateToTone("completed")).toBe("completed");
-    expect(stateToTone("working")).toBe("working");
-    expect(stateToTone("ended_shift")).toBe("paused");
-    expect(stateToTone("failed")).toBe("blocked");
-    expect(stateToTone("skipped")).toBe("pending");
-  });
+  it.each(STEP_STATE_CASES)(
+    "maps %s to the exact %s tone",
+    (state, tone) => {
+      expect(stateToTone(state)).toBe(tone);
+    },
+  );
 
   it("degrades an unknown state to a neutral row", () => {
     expect(stateToTone("something_new")).toBe("pending");
@@ -221,8 +232,14 @@ describe("stateToTone", () => {
 });
 
 describe("humanizeSectionState", () => {
-  it("reads underscored states as prose", () => {
-    expect(humanizeSectionState("ended_shift")).toBe("Ended shift");
+  it.each(STEP_STATE_CASES)(
+    "humanizes %s as %s",
+    (state, _tone, label) => {
+      expect(humanizeSectionState(state)).toBe(label);
+    },
+  );
+
+  it("keeps an absent state empty", () => {
     expect(humanizeSectionState(null)).toBe("");
   });
 });
