@@ -1,3 +1,14 @@
+---
+mirror_of: backend/docs/handoff/to_frontend/HANDOFF_TO_FRONTEND_price_scenario_20260819.md
+source_modified: 2026-08-19T20:44:56
+source_sha256: e8c0c8b9c01b33821f292d2ef936864a02ec551d7b52dabc46adc1d43f20c04f
+mirrored_at: 2026-08-19
+mirrored_by: Claude (coordinator, review r1 L4 — stamp added; body unchanged,
+#   digest above is of the body-identical source)
+# Re-diff this against the source at the start of every review round, per the
+# convention earned in item_pricing_fields (same name is not the same document).
+---
+
 # HANDOFF_TO_FRONTEND_price_scenario_20260819
 
 ## Metadata

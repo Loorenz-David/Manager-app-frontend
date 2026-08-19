@@ -17,6 +17,12 @@ const CURRENCY_DISPLAY_CODE: Record<ValuationCurrency, string> = {
   euro: "EUR",
 };
 
+// Typecheck-visible guarantee (moved here from types.ts — review r1 N3): what
+// the inline pricing bootstrap writes (§3.3) and what the display falls back to
+// (M11) must be a member of the enum. This module already imports both sides,
+// so the guard adds no dependency edge.
+INLINE_PRICING_CURRENCY satisfies ValuationCurrency;
+
 /**
  * `currency` is null only before the first pricing. The code then shows the
  * inline-pricing currency, because that is what the purchase-price bootstrap

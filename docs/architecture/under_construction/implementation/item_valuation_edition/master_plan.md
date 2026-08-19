@@ -62,7 +62,8 @@ each phase.
 
 | Phase | State | Date | Actor | Note |
 |---|---|---|---|---|
-| 1 — core + components (`PLAN_item_valuation_core_20260819`) | IMPLEMENTING | 2026-08-19 | 1A implementer | **1A IMPLEMENTED** (handoff `handoffs/implementer/handoff_..._implement_1A_1.md`, 22 tests, 4 declared deviations); 1B (Opus 5) in flight in the shared tree; combined checkpoint commit due when 1B closes. **1B IMPLEMENTED** (handoff `handoffs/implementer/handoff_..._implement_1B_1.md`, 70 tests / 7 files, criteria 1–50 + 55 green, both named mutations bite and reverted byte-identically); suite 223/19, monorepo typecheck clean; combined checkpoint commit made on `pipeline/item-valuation-edition` |
+| 1 — core + components (`PLAN_item_valuation_core_20260819`) | IMPLEMENTED | 2026-08-19 | coordinator | both tracks IMPLEMENTED (handoffs `…implement_1A_1.md`, `…implement_1B_1.md`); checkpoint `fbd5d67c` verified (tree clean, 223/19, tsc clean, boundaries hold); 1B items 1–2 routed into phase-2 plan (11a, controller seed), item 3 → owner card (T8 unpriced-adopt); review prompt issued: `prompts/reviewer/PROMPT_review_PLAN_item_valuation_core_round_1_20260819.md` |
+| 1 — core + components (`PLAN_item_valuation_core_20260819`) | CHANGES_REQUESTED | 2026-08-19 | reviewer (round 1) | 0 blocking, 1 should-fix (S1: `editor-saved-pristine` fixture states `2h 44m` where the pipeline gives `2h 45m` at 975 000), 7 notes, 0 owner cards; arithmetic re-derived independently (24 006-case `roundHalfEven` re-comparison, zero mismatches) and all four mutation probes bite; perimeter exact, mirrors clean, 223/19 + monorepo typecheck exit 0. Handoff: `handoffs/reviewer/handoff_..._review_1.md` |
 | 2 — wiring + entry + e2e (`PLAN_item_valuation_wiring_20260819`) | NOT_STARTED | 2026-08-19 | — | gated on phase 1 APPROVED |
 
 ## 5. Contract resolution (guide: `task_system/frontend_contract_goal_mapping_guide.md`)
@@ -228,7 +229,10 @@ Charter rules 1–11½ imported wholesale. Project-specific additions:
 
 1. **`Number`/`Math.round`/`parseFloat` are forbidden inside
    `price-scenario-math.ts`** except at the two declared boundaries (M2). A review
-   greps for them.
+   greps for them. Carve-out (review r1 L1, resolving this rule's conflict with
+   §4A M3): the post-money display formatter computes the nearest minute as
+   `Math.floor((s + 30) / 60)` — provably identical to `Math.round(s / 60)` over
+   its domain — so the grep stays clean without weakening the rule.
 2. **`roundHalfEven` is a verbatim transcription** — any deviation requires re-running
    the handoff's comparison protocol and recording it in the Review log.
 3. Every mechanism criterion cites its intention §4A contract by ID (M1…M13); the

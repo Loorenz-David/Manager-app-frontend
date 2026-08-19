@@ -16,6 +16,8 @@ import { WorkImpactTable } from "./WorkImpactTable";
 import {
   ESTIMATED_TYPICAL_TABLE,
   PRICE_EDITOR_FIXTURES,
+  SAVED_BY_OTHER_PROVENANCE,
+  UNKNOWN_AUTHOR_PROVENANCE,
   type PriceEditorFixture,
 } from "./price-editor-fixtures";
 
@@ -185,6 +187,28 @@ describe("price editor scenes (criterion 51 — one row per closed fixture)", ()
     const typical = screen.getByTestId("item-valuation-typical");
     expect(typical).toHaveTextContent("3h 25m");
     expect(typical).toHaveTextContent("estimated");
+  });
+
+  it("12b. another manager's saved version: named author with a profile image (r1 N5)", () => {
+    render(<ItemValuationProvenanceRow {...SAVED_BY_OTHER_PROVENANCE} />);
+    const row = screen.getByTestId("item-valuation-provenance");
+    expect(row).toHaveTextContent("Marta Lind");
+    expect(row).toHaveTextContent("saved version · 14 Aug, 10:24");
+    expect(screen.getByRole("img")).toHaveAttribute(
+      "src",
+      "https://example.test/profiles/marta.jpg",
+    );
+    expect(
+      screen.queryByTestId("item-valuation-back-to-saved"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("12c. unloadable author: empty avatar name, copy is 'saved version' alone (§3.5)", () => {
+    render(<ItemValuationProvenanceRow {...UNKNOWN_AUTHOR_PROVENANCE} />);
+    const row = screen.getByTestId("item-valuation-provenance");
+    expect(row).toHaveTextContent("saved version");
+    expect(row).not.toHaveTextContent("·");
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
   it("13. editor-cannot-commit: Save disabled with the reason visible", () => {

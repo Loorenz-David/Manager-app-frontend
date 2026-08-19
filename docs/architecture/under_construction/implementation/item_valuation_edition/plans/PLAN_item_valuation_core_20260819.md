@@ -148,9 +148,12 @@ No other file. Neither track touches the other's list (review perimeter check).
    `-back-button`, projection L21), `-per-piece`, `-total-line`, `-purchase-line`,
    `-chip`, `-slider`, `-slider-handle`, `-slider-input`, `-suggested-marker`,
    `-work-table`, `-typical`, `-at-price`, `-save-button`, `-save-reason`,
-   `-use-suggested`, `-fetch-purchase`, `-bootstrap-message`, `-empty-state`,
-   `-skeleton` (all prefixed `item-valuation`). **Phase-2 page ids** (owned there,
-   listed for the prefix's sake): `item-valuation-page`, `-header`, `-menu-button`.
+   `-use-suggested`, `-fetch-purchase`, `-bootstrap-message`, `-bootstrap-error`,
+   `-slider-reason`, `-empty-state`, `-skeleton` (all prefixed `item-valuation`;
+   `-bootstrap-error` and `-slider-reason` added by review r1 N4 — shipped and
+   asserted through, previously unlisted). **Phase-2 page ids**: `item-valuation-page`
+   only — `-header` and `-menu-button` are rendered by `ItemValuationFrame` and are
+   phase-1 ids (review r1 ruling on 1A deviation 2).
 
 ## Acceptance criteria
 
@@ -391,3 +394,34 @@ Derived from handoff §2 with concrete ids; `saved.purchase_cost_minor` is null 
   Master plan §10 corrected: the monorepo typecheck baseline is clean, not two
   TS2352. Handoff:
   `../handoffs/implementer/handoff_PLAN_item_valuation_core_20260819_implement_1B_1.md`.
+
+- **2026-08-19 · review round 1 (Claude Opus 5, plan-reviewer).** First full review of
+  both tracks. Verdict **CHANGES_REQUESTED**: 0 blocking, **1 should-fix**, 7 notes, 0
+  owner cards. S1 — the `editor-saved-pristine` fixture renders `AT PRICE "2h 44m"` at
+  its own price of 975 000 minor, where the contracted pipeline gives
+  `budget 214 500 → centimin 16 500 → 9 900 s → "2h 45m"` (exact, no rounding involved);
+  the other two editor fixtures re-derive correctly. Notes: criterion 55's package-wide
+  import ban is grep-only (routed to phase-2 task 11a, re-verified 0 hits); M6's
+  step-count assert unimplemented and `PriceSlider` rounds the count while
+  `resolveStepCount` does not; `types.ts` now value-imports `lib/item-pricing.ts`
+  (latent cycle, guard could live in `valuation-currency.ts`); two unregistered testids
+  (`-slider-reason`, `-bootstrap-error`); `avatarImageSrc` has no caller and no fixture
+  covers a non-current-user or unloadable author (§3.5); `SAVE_OK` assumes the
+  post-commit refetch carries the new price (T7 arm on replica lag); a11y
+  (`aria-valuetext`, focusable decorative three-dot). All fourteen declared deviations
+  ruled **accepted** — including 1B's `floor((s+30)/60)` (proven identical on the
+  29/30/89/90 boundary quartet) and the reflowed `roundHalfEven`: the handoff's
+  comparison protocol was **re-run by the reviewer** against a specification-written
+  reference over 24 006 cases (six divisors × −2000…+2000, every negative tie) with
+  **zero mismatches**, plus ten independent end-to-end vectors — the break-even anchor
+  computes to exactly `typical.total_seconds`, and the negative path runs end-to-end.
+  Both mirrors provenance-clean; perimeter exact (40 files, 5 908 insertions, 0
+  deletions, nothing outside the declarations); all three recorded mutation probes
+  reproduced independently plus a fourth proving `boundaries.test.ts` bites; every probe
+  reverted byte-identically. Re-measured: 223/19, package tsc clean, monorepo
+  `npm run typecheck` exit 0 (the §10 TS2352 pair did not reproduce). Lessons for the
+  plans: M3 vs master-plan §9.1 contradict on `Math.round` (L1); criterion 51's
+  "no numbers" rows cannot bite in phase 1 and phase 2 must carry the composition
+  assertions (L2); 1A's header/menu testid deviation is not yet in the phase-2 plan
+  (L3); the mirror-frontmatter convention is applied unevenly (L4). Handoff:
+  `../handoffs/reviewer/handoff_PLAN_item_valuation_core_20260819_review_1.md`.

@@ -75,7 +75,11 @@ tests beside each new module. Nothing under `components/price-editor/`, the phas
    phase-1 libs — components receive strings/tones/fractions only). The controller
    owns the "You" substitution: it compares `saved.created_by.client_id` against the
    signed-in user and hands 1A a pre-resolved `authorName`/`avatarName` (`""` for an
-   unloadable author) — projection L20/L23 delegation.
+   unloadable author) — projection L20/L23 delegation. The controller also owns the
+   `useReducer` seed: a module-local blank `PriceDraftState` (every field null/0),
+   immediately overwritten by dispatching `INIT` when the scenario lands — the
+   registry deliberately adds no constant to phase-1's `price-draft.ts` for this
+   (routed from 1B handoff item 2).
 7. **Provider + page**: `ItemValuationProvider` (context shell per `23_providers`);
    `ItemValuationSlidePage` reads `useSurfaceProps<ItemValuationSlideSurfaceProps>`,
    renders provider + composed phase-1 components, registers its scroll container
@@ -91,6 +95,11 @@ tests beside each new module. Nothing under `components/price-editor/`, the phas
 11. **Retired-identity verification** (master plan §11): one grep-backed test/CI
     assertion or recorded check that the retired inline-pricing refusal identity has
     zero references — expected already-clean.
+11a. **Package-wide import-boundary test** (routed from 1B handoff item 1): a
+    `src/boundaries.test.ts` in the package root, same `node:fs` walk pattern as
+    the price-editor one, asserting no file under `packages/item-economics/src`
+    imports `@beyo/tasks` or `@beyo/task-creation` — criterion 55's third clause
+    gets its automated home (charter rule 1).
 12. **Playwright** `item-valuation.spec.ts` (mocked network per
     `34_runtime_validation_local`): menu row visible as admin → opens page → editor
     renders from mocked scenario → drag slider → chip flips at mocked break-even →
@@ -148,6 +157,18 @@ tests beside each new module. Nothing under `components/price-editor/`, the phas
     `ItemValuationSlidePage` (grep criterion; the loader function is the only path).
 22. No file under `packages/items/src` imports `@beyo/item-economics` (dependency
     direction, master plan §6).
+
+**State → rendered blocks (review r1 L2 — phase 1's "no numbers" rows cannot bite
+without a composition module; these controller/page tests are where intention §1.3
+is finally enforceable):**
+22a. Page test, `purchase_required` scenario fixture → `item-valuation-per-piece`
+    absent, `item-valuation-bootstrap-message` present.
+22b. Page test, `blocked` fixture (model null) → no `-per-piece`, no `-total-line`,
+    Save disabled with `-save-reason` (a production regression that renders numbers
+    for a null block must turn one of these red).
+22c. Page test, `unbound` fixture → `-empty-state` present, no `-save-button`.
+22d. Testids: the page adds **only** `item-valuation-page` — `-header` and
+    `-menu-button` already render from `ItemValuationFrame` (review r1 L3).
 
 **End to end:** 23. The Playwright flows of task 12 pass on `test:e2e:mobile` and
 `test:e2e:desktop`. 24. `npm run typecheck` clean; `npm run test:item-economics` and

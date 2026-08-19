@@ -138,7 +138,10 @@ export const PRICE_EDITOR_FIXTURES: Record<
       fraction: (975000 - 420000) / 1230000,
       tone: "negative",
     },
-    table: { ...TABLE_BASE, atPrice: "2h 44m", atPriceTone: "negative" },
+    // 975 000 → 9 900 s → exactly 165 min (review r1 S1: the mockup's "2h 44m"
+    // predates the reference model; the contracted arithmetic wins, as with the
+    // band end).
+    table: { ...TABLE_BASE, atPrice: "2h 45m", atPriceTone: "negative" },
     footer: {
       saveLabel: "Save 1 625 SEK / piece",
       isSaveDisabled: true,
@@ -374,4 +377,27 @@ export const ESTIMATED_TYPICAL_TABLE: WorkImpactTableProps = {
   isTypicalEstimated: true,
   atPrice: "3h 46m",
   atPriceTone: "positive",
+};
+
+/**
+ * Provenance companions (review r1 N5): the reference payload's own author —
+ * a non-current user with a profile image — and §3.5's unloadable-author row
+ * (empty avatar name, copy fixed to "saved version" with no author name).
+ */
+export const SAVED_BY_OTHER_PROVENANCE: ItemValuationProvenanceRowProps = {
+  avatarKind: "user",
+  avatarName: "Marta Lind",
+  avatarImageSrc: "https://example.test/profiles/marta.jpg",
+  label: "Marta Lind",
+  detail: "saved version · 14 Aug, 10:24",
+  backLabel: null,
+};
+
+export const UNKNOWN_AUTHOR_PROVENANCE: ItemValuationProvenanceRowProps = {
+  avatarKind: "user",
+  avatarName: "",
+  avatarImageSrc: null,
+  label: "saved version",
+  detail: null,
+  backLabel: null,
 };

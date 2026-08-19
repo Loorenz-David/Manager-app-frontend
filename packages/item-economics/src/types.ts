@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-import { INLINE_PRICING_CURRENCY } from "./lib/item-pricing";
-
 /**
  * Item economics domain primitives shared by the configuration half
  * (cost groups, basis versions, cost model versions) and the operational
@@ -212,9 +210,9 @@ export const ValuationCurrencySchema = z.enum([
 ]);
 export type ValuationCurrency = z.infer<typeof ValuationCurrencySchema>;
 
-// Typecheck-visible guarantee: what the inline pricing bootstrap writes (§3.3)
-// and what the display falls back to (M11) must be a member of the enum above.
-INLINE_PRICING_CURRENCY satisfies ValuationCurrency;
+// The typecheck-visible `INLINE_PRICING_CURRENCY satisfies ValuationCurrency`
+// guard lives in `lib/valuation-currency.ts` (review r1 N3): keeping it here
+// forced a types → lib value import at the package's most-imported module.
 
 /** Whether the task still points at the item its economics were computed for. */
 export const ItemBindingSchema = z.enum(["bound", "detached", "mismatched"]);
