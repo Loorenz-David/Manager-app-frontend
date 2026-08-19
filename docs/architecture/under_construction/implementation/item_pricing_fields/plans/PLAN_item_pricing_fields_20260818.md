@@ -819,12 +819,83 @@ instead of an instruction, and the copy changed to match.
   the production-time footer-note removal) landed after `1737adda`, which is why item-economics now
   reads 122 rather than the 130 in this cycle's prompt. It is not a write by this phase.
 
+- `2026-08-19` `Claude Opus 5` (review round 3, delta of `1737adda` vs `983b9c9b`): verdict
+  **`APPROVED`** — 0 blocking, 0 should-fix, 4 notes. Mirror re-diffed: digest matches, body
+  byte-identical, both unstamped siblings identical. Perimeter is exactly the eight declared files
+  plus the handoff; the two form components carry only S5's authorized map export (the fix prompt's
+  perimeter list named them under the untaken N11 condition — wording gap, not a violation).
+  `b4819135` / `40be5982` correctly excluded: the owner's out-of-cycle footer-note removal is why
+  item-economics reads 122, not 130.
+
+  **B3 resolved.** The category rule blocks on both forms, and blocks at the *task* step rather than
+  only at the final trigger, because the step-field map already carries both category paths. The
+  block is recoverable and legible: `ItemCategorySelectionField` renders on the same step above the
+  pricing card and shows both issues in a `FieldErrorPill` — not a repeat of S2's dead end. Traced
+  from `handleLookupResult` to payload: on a category-cache miss the price sits in a hidden card,
+  the step refuses to advance, and choosing a category reveals the card and its breakdown.
+  **S4, S5, N9, N11 resolved.** All three required mutations re-run independently and red (1/6,
+  1/14, 3/9); the three restore digests match the implementer's declared hashes exactly. S5's
+  Pre-order row proven non-weak by mutating that map separately (also red). N11's expression count
+  verified at four, so the comment fallback was the prompt's required branch.
+
+  Notes N13–N16: **N13** — B3's closure is incidental, not structural: the schema requires
+  `major_category` *truthy* while the card renders on *seat|wood*. Proven with `"metal"` — schema
+  passes, `purchase_cost_minor: 500200` submits, card renders nothing. Unreachable today (hardcoded
+  two-option picker; closed backend `ItemMajorCategoryEnum`), but the frontend carries the value as
+  `z.string()` while `MajorCategorySchema` already exists. **N14** the B3 end-to-end test's third
+  assertion is vacuous (`Boolean(null && …)`). **N15** a re-scan re-multiplies a typed expected sale
+  price (visible via the breakdown, so not a B3 recurrence). **N16** the `react-refresh`
+  suppressions suppress nothing observable under the prescribed config.
+
+  Verified correct: the production diff is minimal and exactly as specified; the sku-preview fixture
+  repair does not weaken coverage (its one failure-asserting test pins `item.article_number`, so it
+  cannot pass for a new reason); pricing has exactly two card consumers and one
+  `purchase_cost_minor` producer; Return and Worker Internal carry no `item_pricing` at all; both
+  forms reset pricing to nulls after submit. Regression re-derived: typecheck clean,
+  task-creation project clean but for the two known TS2352, item-economics **122/122**,
+  task-creation **114/114**, ESLint exactly the five inherited diagnostics.
+
+  Unproven at approval: no live request body has ever been observed for this phase; the accepted
+  re-pricing path has never run against a real already-priced item; B3's closure is verified by
+  schema and trace, not in a browser.
+- `2026-08-19` `Claude Opus 5` (coordinator, round 3 folded): counts re-derived independently —
+  typecheck clean, task-creation 114/114, item-economics 122/122. The reviewer's captured baseline
+  digests **match the implementer's declared restore digests exactly** on all three probed files —
+  the first byte-level, two-party perimeter check this phase has had. **N13 verified at source
+  rather than accepted**: the schema requires `major_category` to be *truthy* (`types.ts:269`)
+  while the pricing card renders on `"seat" || "wood"` (`InternalFormContent.tsx:415`,
+  `PreOrderFormContent.tsx:605`), and the field is carried as `z.string().optional()`
+  (`packages/items/src/types.ts:20`) rather than the `MajorCategorySchema` the package already
+  exports. Two predicates guarding one money path — B3's own shape, surviving its fix one level
+  down. Latent only because the picker is hardcoded to two options and `ItemMajorCategoryEnum` is a
+  closed `{wood, seat}` (both confirmed at source); it goes live the day a third category is added,
+  which is exactly when nobody will be thinking about pricing.
+- `2026-08-19` `David`: **APPROVED.** Phase closed on review round 3's verdict.
+- `2026-08-19` `Claude Opus 5` (coordinator, closeout): 7 spent prompts and 7 consumed handoffs
+  moved to `archive/plan_1/`; `prompts/` and `handoffs/` hold only live state, which for this phase
+  is none. This plan file stays in `plans/` as the phase row. Historical `prompts/<file>` references
+  above resolve under `archive/plan_1/` and were not rewritten, per the charter.
+
 ## Lifecycle transition
 
-- Current state: `IMPLEMENTED` — fix round 4 complete (`1737adda`), B3/S4/S5/N9/N11 addressed,
-  all three required mutation probes red, independently re-verified.
-- Next state: `REVIEWING` round 3 (prompt at
-  `prompts/reviewer/PROMPT_reviewer_round_3_20260819.md`) → `APPROVED` or another fix cycle.
+- Current state: `APPROVED` — review round 3
+  (`handoffs/reviewer/handoff_PLAN_item_pricing_fields_20260818_review_3.md`), 0 blocking,
+  0 should-fix, 4 carry-forward notes.
+- Next state: none — the phase is closed. What outlives it:
+  (a) **no live request body has ever been observed** for this phase, across all three rounds —
+  every payload claim rests on normalizer unit output, and the plan's own Playwright request-body
+  step was never run;
+  (b) **the re-pricing path the owner accepted has never run against a real already-priced item** —
+  the backend's replace-on-present / inherit-on-omission / write-nothing-when-unchanged behaviour
+  has not been observed once from this frontend;
+  (c) **B3's closure was verified by schema and trace, not in a browser**;
+  (d) carried items — N13 (unify the schema/render predicates on `major_category` before a third
+  category exists), N14 (a vacuous assertion in the B3 end-to-end test), N15 (a typed expected sale
+  price survives a re-scan and re-multiplies), N16, N11 (the purchase-cost dead end is closed by one
+  guard and documented, not enforced), N12 (the lookup writes `undefined` over a chosen category),
+  N8 (`parseErrorIdentity` has no production caller), plus S3/N2/N4/N5 from round 1.
+  (a)–(c) all close the first time an item is priced and a second task created for it — the same
+  action that produces the first `ok` production-time response.
 - Transition owner: `David`
-- Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
-  consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
+- Archive: **done** 2026-08-19 — 7 spent prompts and 7 consumed handoffs under `archive/plan_1/`,
+  moved with the approval-gate commit.
