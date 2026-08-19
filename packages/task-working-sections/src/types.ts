@@ -202,7 +202,6 @@ export const WorkingSectionStepItemSchema = z
     total_ended_shift_count: z.number().int(),
     total_issues_count: z.number().int(),
     total_issues_resolved_count: z.number().int(),
-    total_cost_minor: z.number().int().nullable(),
     // Nullable per handoff §5.1, and the §3.6 example ships `null` — the
     // pre-promotion app schema declared it non-nullable, which would have
     // failed validation on every never-updated step.

@@ -107,6 +107,24 @@ describe("ReassignedStepsResponseSchema", () => {
     expect(parsed.working_sections["wsec_upholstery"]?.order_list).toBe(2);
   });
 
+  /**
+   * Regression: the backend stopped sending `total_cost_minor` with the
+   * item-economics money-key removal. It was declared `.nullable()`, which
+   * accepts `null` but rejects an absent key — so every step list failed to
+   * parse and the working-section page rendered nothing while refetching
+   * forever. The field was never read by any component.
+   */
+  it("parses a step that omits total_cost_minor entirely", () => {
+    const step = makeReassignedStepItem();
+    expect("total_cost_minor" in step).toBe(false);
+
+    const parsed = ReassignedStepsResponseSchema.parse(
+      makeReassignedStepsResponse({ items: [step], workingSections: {} }),
+    );
+
+    expect(parsed.steps_pagination.items).toHaveLength(1);
+  });
+
   it("parses the empty result — not an error state (handoff §10)", () => {
     const parsed = ReassignedStepsResponseSchema.parse(
       EMPTY_REASSIGNED_STEPS_RESPONSE,

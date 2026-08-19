@@ -129,7 +129,6 @@ function buildPendingStep(pendingAdd: RecoveredPendingAdd): TaskStep {
     total_ended_shift_count: 0,
     total_issues_count: 0,
     total_issues_resolved_count: 0,
-    total_cost_minor: null,
     recorded_time_marked_wrong: false,
     latest_state_records: null,
   };

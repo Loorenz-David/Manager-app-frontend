@@ -170,7 +170,6 @@ test.describe('Task detail working sections field', () => {
                     total_ended_shift_count: 0,
                     total_issues_count: 0,
                     total_issues_resolved_count: 0,
-                    total_cost_minor: null,
                     latest_state_records: null,
                   },
                   {
@@ -196,7 +195,6 @@ test.describe('Task detail working sections field', () => {
                     total_ended_shift_count: 0,
                     total_issues_count: 0,
                     total_issues_resolved_count: 0,
-                    total_cost_minor: null,
                     latest_state_records: null,
                   },
                 ],
