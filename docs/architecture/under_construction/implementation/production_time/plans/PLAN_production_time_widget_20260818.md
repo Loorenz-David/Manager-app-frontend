@@ -549,13 +549,18 @@ the code selected on the row's display *tone* — which is lossy: `stateToTone` 
 states into six, mapping `skipped` and `cancelled` onto `pending`, so terminal work was named as
 work still to come while `blocked` never was. Selection now reads the section state directly.
 
-The unfinished set is `pending`, `paused`, `ended_shift`, `blocked`, `failed`. **`failed` is
-carried under review** — the backend handoff's `share_state` table defines `excluded` as "every
-step of this section ended skipped, cancelled **or failed**", which groups `failed` with the
-terminal outcomes, and the Decisions entry above says the footer names sections "not yet
-terminal". A section whose only pass failed should therefore already be filtered as `excluded`;
-a section with one failed pass and one pending pass is the case that decides whether including
-`failed` is redundant or wrong. Routed to re-review round 2 as a named probe.
+The unfinished set is `pending`, `paused`, `ended_shift`, `blocked` — **resolved 2026-08-19,
+review round 2 finding G1**: `failed` was dropped by owner decision. It was reachable, not
+redundant. A section completed once and re-run unsuccessfully arrives as `state: "failed"` with
+`share_state` *not* `excluded`, because the earlier completed pass keeps the group allocated
+(`_governing_step` falls through to the latest step when none are live). Naming it made the
+footer read "20m left for sanding" about a stage with no open step, contradicting the backend's
+`TERMINAL_STEP_STATES` (which contains `failed` alongside `completed`, `skipped` and `cancelled`),
+the Decisions entry above, and this same function's treatment of `cancelled` and `skipped`. A test
+now pins it in the chosen direction; before the fix, removing the member left all 131 tests green.
+
+`ended_shift` is retained though the backend's `TaskStepStateEnum` cannot emit it — consistent
+with the frontend's deliberately permissive `state` enum, recorded as safe in review round 1.
 
 Selection pairs `sections[index]` with `rows[index]`. That is safe only because `toRows` is a
 1:1 `dto.sections.map(...)` and criterion 3 forbids reordering — an invariant the code now
@@ -1016,6 +1021,42 @@ review surface is the component itself, not a mockup of it.
   seven), all `item_unvalued`, hence all routed to the frame that never truncates.
 - `2026-08-19` `Codex` (fix round 3): all eight items implemented inside the authorized perimeter
   — F2, N2, F3, N4, F4, N5, N7, N8. Committed as `0f11125e`.
+- `2026-08-19` `Claude Opus 5` (reviewer, round 2 — delta-scoped re-review of fix round 3):
+  **`CHANGES_REQUESTED`** — one should-fix, four notes. Handoff:
+  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_2.md`.
+  Perimeter verified against `git diff 87069073 0f11125e`: twelve files, all inside the authorized
+  list, nothing outside; `production-time-fixtures.ts` is imported by the new tests but unchanged
+  since the checkpoint. Re-derived, not accepted: typecheck exit 0; item-economics **131/131**;
+  realtime 5/5; managers 81/81, workers 30/30, sellers 3/3; ESLint clean on all ten changed
+  TS/TSX files; **Playwright 2/2** in both projects against the owner's running app (servers
+  preflighted at 200, none started) — criterion 14's browser half now re-derived.
+  **All eight items resolved:** F2 (degraded frame truncates, own expansion state), N2 (both
+  frames derive the toggle from `collapsedRows.length < rows.length`; the five-rows-last-active
+  case asserted for both), F3 (nine states, one row each, for `stateToTone` and
+  `humanizeSectionState`), N4 (selection reads `section.state`), F4 (contract amendment), N5
+  (three per-app registry tests), N7 (`infeasible` locked), N8 (barrel comment).
+  **G1 should-fix** — probe 1 answered: `failed` in `isUnfinishedSectionState` is *not* redundant.
+  A section whose only pass failed is already `excluded`; a failed-plus-pending section reports
+  `pending`; but a **completed pass followed by a later failed pass** arrives as `state: "failed"`
+  with `share_state: on_track`, so the footer names a stage with no open step. `failed` is in the
+  backend's `TERMINAL_STEP_STATES`, §Decisions says the footer names sections "not yet terminal",
+  and this same fix dropped `cancelled`/`skipped` on that reasoning. Removing `failed` leaves all
+  131 tests green, so it is unpinned either way. One owner card.
+  Notes: G2 the `sections[index]`/`rows[index]` pairing is correct today but guarded only
+  incidentally — a `toRows` filter fails the 1:1 test, nothing asserts label correspondence;
+  build the labels inside `toRows` instead. G3 `ended_shift` cannot arrive (backend enum has eight
+  values). G4 the registry tests assert identity, never that both handlers run. G5 the truncation
+  case table walked on both frames — two rows lack tests (degraded frame with five rows none
+  active; either frame with two concurrent active rows), both correct by construction.
+  Mutation probes run and reverted, checksums recorded: deleting `case "blocked":` bites (1/41);
+  removing `blocked` from the unfinished set bites (1/24); removing `failed` does **not** (G1);
+  a `toRows` filter bites the 1:1 test only; reverting the workers registry to a spread bites, as
+  does dropping a map from its argument list. Contract amendment verified additive — +36 lines,
+  zero deletions, existing §App-level assembly byte-identical, all three documented semantics
+  accurate against `socket-compose.ts`.
+  Still unproven and unchanged: no `ok`-status response has ever been rendered, so the entire
+  budget frame — bar, headline arithmetic, live tick, footer, and G1 itself — is fixture-proven
+  only.
 - `2026-08-19` `Claude Opus 5` (coordinator, fix round folded): verified rather than accepted.
   Perimeter is exactly the eleven declared files plus the handoff — nothing outside, no prompt or
   plan edit, clean tree. Suites re-run independently: typecheck clean, item-economics **131/131**
@@ -1027,13 +1068,36 @@ review surface is the component itself, not a mockup of it.
   `sections[index]`/`rows[index]` pairing in `pendingLabels`, which is correct today but rests on
   an unasserted 1:1 invariant. §Footer note amended in its home artifact to describe
   state-based selection.
+- `2026-08-19` `Claude Opus 5` (review round 2, delta-scoped): verdict `CHANGES_REQUESTED` — all
+  eight fixed items (F2, N2, F3, N4, F4, N5, N7, N8) confirmed **resolved**, each re-derived
+  rather than accepted, with six mutation probes declared and reverted. Perimeter clean.
+  Criterion 14 fully re-derived including the browser half. One should-fix: G1 (`failed`), plus
+  four notes — G2 (index pairing acceptable as shipped; recommends building labels inside
+  `toRows` to remove the invariant rather than document it), G3 (`ended_shift` unreachable),
+  G4 (registry tests assert identity, not invocation), G5 (case table walked on both frames; two
+  pre-existing untested rows named).
+- `2026-08-19` `David` (G1 — **resolved**): drop `failed`. A stage completed, re-run and failed
+  has no open step, so naming it as work the remaining time is "left for" sends the reader looking
+  for work nobody is meant to do — the same reasoning that already excludes `cancelled` and
+  `skipped`.
+- `2026-08-19` `Claude Opus 5` (coordinator, G1 implemented): backend claims verified at source
+  before acting — `TERMINAL_STEP_STATES` in `domain/task_steps/constants.py` contains `FAILED`,
+  and `_governing_step` (`budget_division.py:183`) prefers live steps and otherwise returns the
+  latest by `entered_at`, which is what makes the completed-then-failed case arrive as `failed`
+  and not `excluded`. `failed` removed from `isUnfinishedSectionState`; a test now asserts a
+  completed-then-failed section is **not** named. Mutation-checked: re-adding the member fails
+  exactly that one test (1 failed / 132), then reverted byte-identically. 132/132 pass, typecheck
+  and lint clean. §Footer note amended in its home artifact; the "carried under review" marker is
+  retired.
 
 ## Lifecycle transition
 
-- Current state: `IMPLEMENTED` — fix round 3 complete (`0f11125e`), all eight round-1 items
-  addressed and independently re-verified. Awaiting delta-scoped re-review.
-- Next state: `REVIEWING` round 2 (prompt at
-  `prompts/reviewer/PROMPT_reviewer_round_2_20260819.md`) → `APPROVED` or another fix cycle
+- Current state: `CHANGES_REQUESTED` — round 2 reviewed 2026-08-19 by `Claude Opus 5`. All eight
+  round-1 items resolved and re-derived; one should-fix remains (G1, `failed` in
+  `isUnfinishedSectionState`) plus four notes. Handoff at
+  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_2.md`.
+- Next state: `IMPLEMENTING` — a one-item fix cycle gated on owner card 1 (drop `failed`, or keep
+  it and amend §Footer note); a test is required either way → `REVIEWING` round 3 → `APPROVED`
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.

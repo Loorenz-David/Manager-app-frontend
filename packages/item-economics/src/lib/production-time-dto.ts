@@ -145,13 +145,26 @@ function toRows(
   return { rows, totalLiveTickSeconds };
 }
 
+/**
+ * Stages the remaining time is still "left for" — i.e. work someone can
+ * actually start. Deliberately excludes every state the backend treats as
+ * terminal (`TERMINAL_STEP_STATES` = completed, skipped, failed, cancelled):
+ * a terminal section has no open step, so naming it sends the reader looking
+ * for work nobody is meant to do.
+ *
+ * `failed` was here until review round 2 (finding G1). It is reachable — a
+ * section completed once and re-run unsuccessfully arrives as `state:
+ * "failed"` with `share_state` not `excluded`, because the earlier completed
+ * pass keeps the group allocated — and naming it contradicted both the
+ * backend's own terminal set and this function's treatment of `cancelled`
+ * and `skipped`, which sit in the same frozenset.
+ */
 function isUnfinishedSectionState(state: string): boolean {
   return (
     state === "pending" ||
     state === "paused" ||
     state === "ended_shift" ||
-    state === "blocked" ||
-    state === "failed"
+    state === "blocked"
   );
 }
 
