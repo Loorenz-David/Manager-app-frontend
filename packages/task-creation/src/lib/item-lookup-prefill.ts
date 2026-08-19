@@ -13,6 +13,16 @@ type ItemCategoriesPickerCache = {
   itemCategories: ItemCategoryPickerOption[];
 };
 
+type PurchasePriceSetValue = (
+  name: "item_pricing.purchase_cost_per_piece",
+  value: number | null,
+  options: { shouldDirty: true },
+) => void;
+
+type PurchasePriceForm = {
+  setValue: PurchasePriceSetValue;
+};
+
 export function selectPurchaseApiLookupResult(
   items: ItemLookupResult[],
 ): ItemLookupResult | null {
@@ -23,6 +33,17 @@ export function selectInternalLookupResult(
   items: ItemLookupResult[],
 ): ItemLookupResult | null {
   return items.find((item) => item.external_source === null) ?? null;
+}
+
+export function applyPurchasePriceLookupResult(
+  form: PurchasePriceForm,
+  selectedItem: Pick<ItemLookupResult, "purchase_price">,
+): void {
+  form.setValue(
+    "item_pricing.purchase_cost_per_piece",
+    selectedItem.purchase_price ?? null,
+    { shouldDirty: true },
+  );
 }
 
 export function findCachedItemCategoryOption(
@@ -68,6 +89,7 @@ export function createLookupResultSignature(
     external_id: item.external_id,
     external_source: item.external_source,
     images: item.images,
+    purchase_price: item.purchase_price ?? null,
   });
 }
 

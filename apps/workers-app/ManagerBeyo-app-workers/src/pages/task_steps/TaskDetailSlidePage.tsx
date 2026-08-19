@@ -5,6 +5,7 @@ import {
   useSurfaceHeader,
 } from "@beyo/hooks";
 import { ItemCategoryDetailLabel } from "@beyo/item-categories";
+import { ProductionTimeSection } from "@beyo/item-economics";
 import { ItemPositionZonePreview } from "@beyo/items";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
@@ -192,6 +193,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
 
               <TaskStepUpholsterySection />
 
+              <ProductionTimeSection taskId={controller.taskId} />
               <div className="mt-5">
                 <TaskFlowTimeline
                   taskId={controller.taskId}

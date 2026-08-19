@@ -42,7 +42,6 @@ const baseItem = {
   quantity: 1,
   item_position: "",
   item_zone: "",
-  item_currency: undefined,
   item_category_id: "cat_1",
   major_category: "seat",
 };
@@ -86,6 +85,10 @@ describe("task creation seat location validation", () => {
           upholstery_client_id: null,
           upholstery_amount_meters: null,
         },
+        item_pricing: {
+          purchase_cost_per_piece: null,
+          expected_sale_price_per_piece: null,
+        },
         item_issues: [],
         note_content: null,
         ready_by_at: null,
@@ -120,11 +123,14 @@ describe("task creation seat location validation", () => {
         upholstery_client_id: null,
         upholstery_amount_meters: null,
       },
+      item_pricing: {
+        purchase_cost_per_piece: null,
+        expected_sale_price_per_piece: null,
+      },
       item_issues: [],
       note_content: null,
       ready_by_at: null,
       has_sku_template: false,
-      product_unit_price: 100,
       shopIntegrationIds: ["shop_1"],
       inventoryQuantities: [
         { shopIntegrationId: "shop_1", locationId: "loc_1", quantity: 1 },
@@ -158,6 +164,10 @@ describe("task creation seat location validation", () => {
           upholstery_client_id: null,
           upholstery_amount_meters: null,
         },
+        item_pricing: {
+          purchase_cost_per_piece: null,
+          expected_sale_price_per_piece: null,
+        },
         item_issues: [],
         note_content: null,
         ready_by_at: null,
@@ -185,7 +195,6 @@ describe("task creation seat location validation", () => {
               ...(schema === ReturnFormSchema ? { assortment: undefined } : {}),
               ...(schema === PreOrderFormSchema
                 ? {
-                    product_unit_price: 100,
                     shopIntegrationIds: ["shop_1"],
                     inventoryQuantities: [
                       {

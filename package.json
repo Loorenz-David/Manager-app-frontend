@@ -16,8 +16,10 @@
     "test:clock-kiosk": "vitest run --config packages/clock-kiosk/vitest.config.ts",
     "test:upholstery": "vitest run --config packages/upholstery/vitest.config.ts",
     "test:pause-reasons": "vitest run --config packages/pause-reasons/vitest.config.ts",
+    "test:item-economics": "vitest run --config packages/item-economics/vitest.config.ts",
+    "test:realtime": "vitest run --config packages/realtime/vitest.config.ts",
     "test:workers-pause-reasons": "vitest run --config apps/workers-app/ManagerBeyo-app-workers/vitest.config.ts",
-    "typecheck": "npm run typecheck --workspace managerbeyo-app-managers --workspace managerbeyo-app-workers --workspace managerbeyo-app-sellers --workspace managerbeyo-app-presentation-studio --workspace managerbeyo-app-floor && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p packages/hooks/tsconfig.json --noEmit && tsc -p packages/realtime/tsconfig.json --noEmit && tsc -p packages/notifications/tsconfig.json --noEmit && tsc -p packages/celebration/tsconfig.json --noEmit && tsc -p packages/shopify/tsconfig.json --noEmit && tsc -p packages/stats/tsconfig.json --noEmit && tsc -p packages/worker-shifts/tsconfig.json --noEmit && tsc -p packages/clock-kiosk/tsconfig.json --noEmit && tsc -p packages/upholstery/tsconfig.json --noEmit && tsc -p packages/presentation-runtime/tsconfig.json --noEmit && tsc -p packages/presentation-builder/tsconfig.json --noEmit && tsc -p packages/presentations/tsconfig.json --noEmit"
+    "typecheck": "npm run typecheck --workspace managerbeyo-app-managers --workspace managerbeyo-app-workers --workspace managerbeyo-app-sellers --workspace managerbeyo-app-presentation-studio --workspace managerbeyo-app-floor && tsc -p packages/ui/tsconfig.json --noEmit && tsc -p packages/hooks/tsconfig.json --noEmit && tsc -p packages/realtime/tsconfig.json --noEmit && tsc -p packages/notifications/tsconfig.json --noEmit && tsc -p packages/celebration/tsconfig.json --noEmit && tsc -p packages/shopify/tsconfig.json --noEmit && tsc -p packages/stats/tsconfig.json --noEmit && tsc -p packages/worker-shifts/tsconfig.json --noEmit && tsc -p packages/clock-kiosk/tsconfig.json --noEmit && tsc -p packages/upholstery/tsconfig.json --noEmit && tsc -p packages/presentation-runtime/tsconfig.json --noEmit && tsc -p packages/presentation-builder/tsconfig.json --noEmit && tsc -p packages/presentations/tsconfig.json --noEmit && tsc -p packages/item-economics/tsconfig.json --noEmit"
   },
   "workspaces": [
     "apps/managers-app/*",
@@ -28,6 +30,8 @@
     "packages/*"
   ],
   "dependencies": {
+    "@rolldown/binding-darwin-arm64": "^1.2.4",
+    "lightningcss-darwin-arm64": "^1.33.0",
     "socket.io-client": "^4.8.3",
     "ulid": "^3.0.2"
   },

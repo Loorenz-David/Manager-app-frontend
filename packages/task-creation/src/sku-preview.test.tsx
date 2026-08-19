@@ -113,7 +113,6 @@ function buildSubmittableValues(
       primary_phone_number: "+46700000000",
       ...overrides.customer,
     },
-    product_unit_price: 100,
     shopIntegrationIds: ["shop-1"],
     inventoryQuantities: [
       { shopIntegrationId: "shop-1", locationId: "loc-1", quantity: 1 },

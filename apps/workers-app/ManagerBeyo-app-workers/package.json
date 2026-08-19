@@ -26,6 +26,7 @@
     "@beyo/customers": "*",
     "@beyo/item-issues": "*",
     "@beyo/item-categories": "*",
+    "@beyo/item-economics": "*",
     "@beyo/items": "*",
     "@beyo/images": "*",
     "@beyo/lib": "*",

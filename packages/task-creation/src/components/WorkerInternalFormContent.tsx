@@ -74,7 +74,6 @@ function buildDefaultValues(): WorkerInternalFormValues {
       sku: "",
       quantity: 1,
       item_position: undefined,
-      item_currency: undefined,
       item_category_id: undefined,
       major_category: "wood",
     },

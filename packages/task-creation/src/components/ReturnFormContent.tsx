@@ -94,7 +94,6 @@ const RETURN_STEP_FIELDS_MAP: Record<string, FieldPath<ReturnFormValues>[]> = {
     "item.quantity",
     "item.item_position",
     "item.item_zone",
-    "item.item_currency",
     "item.item_category_id",
     "item.major_category",
     "item.can_have_upholstery",

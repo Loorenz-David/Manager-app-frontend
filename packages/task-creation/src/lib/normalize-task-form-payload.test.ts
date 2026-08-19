@@ -39,7 +39,6 @@ describe("normalizeReturnFormPayload item inclusion", () => {
       designer: undefined,
       item_position: undefined,
       item_zone: undefined,
-      item_currency: undefined,
     });
   });
 

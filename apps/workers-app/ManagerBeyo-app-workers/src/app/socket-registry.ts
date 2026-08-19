@@ -1,8 +1,9 @@
 import { caseSocketEvents } from "@beyo/cases";
+import { itemEconomicsSocketEvents } from "@beyo/item-economics";
 import { notificationSocketEvents } from "@beyo/notifications";
 import { pauseReasonSocketEvents } from "@beyo/pause-reasons";
 import { presentationSocketEvents } from "@beyo/presentations";
-import type { SocketEventHandlers } from "@beyo/realtime";
+import { composeSocketHandlers } from "@beyo/realtime";
 import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { taskStepSocketEvents } from "@/features/task_steps/socket-events";
 import { upholsterySocketEvents } from "@/features/upholstery/socket-events";
@@ -10,15 +11,16 @@ import { workerWorkingSectionSocketEvents } from "@/features/working_sections/so
 import { shopifyProductSyncSocketEvents } from "@beyo/shopify";
 import { workerShiftSocketEvents } from "@beyo/worker-shifts";
 
-export const socketRegistry: SocketEventHandlers = {
-  ...workerShiftSocketEvents,
-  ...caseSocketEvents,
-  ...taskStepSocketEvents,
-  ...taskNoteSocketEvents,
-  ...workerWorkingSectionSocketEvents,
-  ...upholsterySocketEvents,
-  ...notificationSocketEvents,
-  ...pauseReasonSocketEvents,
-  ...presentationSocketEvents,
-  ...shopifyProductSyncSocketEvents,
-};
+export const socketRegistry = composeSocketHandlers(
+  workerShiftSocketEvents,
+  caseSocketEvents,
+  itemEconomicsSocketEvents,
+  taskStepSocketEvents,
+  taskNoteSocketEvents,
+  workerWorkingSectionSocketEvents,
+  upholsterySocketEvents,
+  notificationSocketEvents,
+  pauseReasonSocketEvents,
+  presentationSocketEvents,
+  shopifyProductSyncSocketEvents,
+);

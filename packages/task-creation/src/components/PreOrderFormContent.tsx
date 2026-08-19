@@ -17,6 +17,7 @@ import {
 } from "@beyo/images";
 import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
+import { ItemPricingFieldGroup } from "@beyo/item-economics";
 import { useSocket } from "@beyo/realtime";
 import {
   ContentCard,
@@ -58,6 +59,7 @@ import {
 } from "react-hook-form";
 
 import {
+  applyPurchasePriceLookupResult,
   createLookupResultSignature,
   findCachedItemCategoryOption,
   selectPurchaseApiLookupResult,
@@ -70,11 +72,11 @@ import {
   normalizeReturnFormPayload,
 } from "../lib/normalize-task-form-payload";
 import { buildPreOrderFormDefaultValues } from "../lib/pre-order-form-default-values";
+import { useInlinePricingRefusal } from "../lib/inline-pricing-refusal";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { selectPreorderProductImage } from "../lib/select-preorder-product-image";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
 import { PreOrderShopifySection } from "./PreOrderShopifySection";
-import { ProductPriceField } from "./ProductPriceField";
 import { ShopifyCustomerStatusPill } from "./ShopifyCustomerStatusPill";
 import { SkuTemplatePreviewHint } from "./SkuTemplatePreviewHint";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
@@ -108,13 +110,13 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item.quantity",
     "item.item_position",
     "item.item_zone",
-    "item.item_currency",
     "item.item_category_id",
     "item.major_category",
     "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
-    "product_unit_price",
+    "item_pricing.purchase_cost_per_piece",
+    "item_pricing.expected_sale_price_per_piece",
     "shopIntegrationIds",
     "inventoryQuantities",
   ],
@@ -209,6 +211,8 @@ export function PreOrderFormContent({
     control: form.control,
     name: "item.quantity",
   });
+  const { showPricedItemRefusal, handleInlinePricingError } =
+    useInlinePricingRefusal(form.watch);
   const itemArticleNumber = useWatch({
     control: form.control,
     name: "item.article_number",
@@ -259,12 +263,22 @@ export function PreOrderFormContent({
     form.setValue("item.quantity", selectedItem.quantity, {
       shouldDirty: true,
     });
+    applyPurchasePriceLookupResult(form, selectedItem);
 
     applyLookupImages(selectedItem.images);
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
+
+  function handleClearPrices(): void {
+    form.setValue("item_pricing.purchase_cost_per_piece", null, {
+      shouldDirty: true,
+    });
+    form.setValue("item_pricing.expected_sale_price_per_piece", null, {
+      shouldDirty: true,
+    });
+  }
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {
     const scanFormat: ScanFormat = tab === "article_number" ? "barcode" : "qr";
@@ -307,7 +321,7 @@ export function PreOrderFormContent({
           if (
             errors.item ??
             errors.item_upholstery ??
-            errors.product_unit_price ??
+            errors.item_pricing ??
             errors.shopIntegrationIds ??
             errors.inventoryQuantities
           ) {
@@ -397,11 +411,15 @@ export function PreOrderFormContent({
             result,
             hadUpholstery: Boolean(payload.item_upholstery),
           });
-        } catch {
+        } catch (error) {
           // useCreateTask already notifies; drop the overlay so the form
           // stays editable — the task was not created.
           setSubmitOverlayPhase(null);
           clearSubmittedSku();
+
+          if (handleInlinePricingError(error)) {
+            staged.navigateTo("task");
+          }
         }
       })(),
   });
@@ -413,7 +431,7 @@ export function PreOrderFormContent({
       task: Boolean(
         errors.item ??
         errors.item_upholstery ??
-        errors.product_unit_price ??
+        errors.item_pricing ??
         errors.shopIntegrationIds ??
         errors.inventoryQuantities,
       ),
@@ -597,12 +615,23 @@ export function PreOrderFormContent({
               {majorCategory === "seat" ? (
                 <ContentCard>
                   <ItemQuantityField />
+                </ContentCard>
+              ) : null}
+              {majorCategory === "seat" || majorCategory === "wood" ? (
+                <ContentCard>
+                  <ItemPricingFieldGroup
+                    majorCategory={majorCategory}
+                    onClearPrices={handleClearPrices}
+                    quantity={itemQuantity}
+                    showPricedItemRefusal={showPricedItemRefusal}
+                  />
+                </ContentCard>
+              ) : null}
+              {majorCategory === "seat" ? (
+                <ContentCard>
                   <UpholsteryFieldGroup quantity={itemQuantity ?? 0} />
                 </ContentCard>
               ) : null}
-              <ContentCard data-testid="pre-order-form-price-section">
-                <ProductPriceField />
-              </ContentCard>
             </div>
           </StagedFormStep>
 

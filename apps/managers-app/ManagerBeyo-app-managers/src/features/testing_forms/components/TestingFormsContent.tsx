@@ -98,7 +98,6 @@ export function TestingFormsContent(): React.JSX.Element {
         quantity: undefined,
         item_position: "",
         item_zone: "",
-        item_currency: undefined,
         item_category_id: undefined,
         major_category: undefined,
       },

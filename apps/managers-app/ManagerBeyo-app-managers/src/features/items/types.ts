@@ -7,12 +7,6 @@ export const ITEM_STATE = ["pending", "stalled", "fixing", "ready"] as const;
 export const ITEM_CURRENCY = ["swedish_krona", "danish_krona", "euro"] as const;
 export type ItemCurrency = (typeof ITEM_CURRENCY)[number];
 
-const CURRENCY_TO_ISO: Record<ItemCurrency, string> = {
-  swedish_krona: "SEK",
-  danish_krona: "DKK",
-  euro: "EUR",
-};
-
 export const ItemSchema = z.object({
   id: z.string().transform((v) => v as ItemId),
   state: z.enum(ITEM_STATE),
@@ -24,9 +18,6 @@ export const ItemSchema = z.object({
   height_in_cm: z.number().int().nullable(),
   width_in_cm: z.number().int().nullable(),
   depth_in_cm: z.number().int().nullable(),
-  item_value_minor: z.number().int().nullable(),
-  item_cost_minor: z.number().int().nullable(),
-  item_currency: z.enum(ITEM_CURRENCY).nullable(),
   item_position: z.string().nullable(),
   item_zone: z.string().nullable(),
   external_id: z.string().nullable(),
@@ -53,11 +44,6 @@ export const CreateItemInputSchema = z.object({
   height_in_cm: z.number().int().positive().optional(),
   width_in_cm: z.number().int().positive().optional(),
   depth_in_cm: z.number().int().positive().optional(),
-  item_value_minor: z.number().int().nonnegative().optional(),
-  item_cost_minor: z.number().int().nonnegative().optional(),
-  item_currency: z
-    .enum(ITEM_CURRENCY, { message: "Select a currency." })
-    .optional(),
   item_position: z.string().max(255).optional(),
   item_zone: z.string().max(255).optional(),
   external_id: z.string().max(255).optional(),
@@ -81,9 +67,6 @@ export const UpdateItemInputSchema = z.object({
   height_in_cm: z.number().int().positive().nullable().optional(),
   width_in_cm: z.number().int().positive().nullable().optional(),
   depth_in_cm: z.number().int().positive().nullable().optional(),
-  item_value_minor: z.number().int().nonnegative().nullable().optional(),
-  item_cost_minor: z.number().int().nonnegative().nullable().optional(),
-  item_currency: z.enum(ITEM_CURRENCY).optional(),
   item_position: z.string().max(255).nullable().optional(),
   item_zone: z.string().max(255).nullable().optional(),
   external_url: z.string().url().nullable().optional().or(z.literal("")),
@@ -99,25 +82,10 @@ export type ListItemsParams = {
 export type ItemViewModel = Item & {
   display_name: string;
   dimensions_formatted: string | null;
-  value_formatted: string | null;
-  cost_formatted: string | null;
-  currency_iso: string | null;
   state_label: string;
 };
 
 export function toItemViewModel(item: Item): ItemViewModel {
-  const isoCode = item.item_currency
-    ? CURRENCY_TO_ISO[item.item_currency]
-    : null;
-
-  const formatMinor = (minor: number | null): string | null => {
-    if (minor === null || !isoCode) return null;
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency: isoCode,
-    }).format(minor / 100);
-  };
-
   const dims = [item.height_in_cm, item.width_in_cm, item.depth_in_cm];
   const dimensionsFormatted = dims.every((d) => d !== null)
     ? `${dims[0]}×${dims[1]}×${dims[2]} cm`
@@ -131,9 +99,6 @@ export function toItemViewModel(item: Item): ItemViewModel {
     ...item,
     display_name: displayName,
     dimensions_formatted: dimensionsFormatted,
-    value_formatted: formatMinor(item.item_value_minor),
-    cost_formatted: formatMinor(item.item_cost_minor),
-    currency_iso: isoCode,
     state_label: item.state,
   };
 }
@@ -150,9 +115,6 @@ export function toOptimisticItem(input: CreateItemInput): Item {
     height_in_cm: input.height_in_cm ?? null,
     width_in_cm: input.width_in_cm ?? null,
     depth_in_cm: input.depth_in_cm ?? null,
-    item_value_minor: input.item_value_minor ?? null,
-    item_cost_minor: input.item_cost_minor ?? null,
-    item_currency: input.item_currency,
     item_position: input.item_position ?? null,
     item_zone: input.item_zone ?? null,
     external_id: input.external_id ?? null,
@@ -264,9 +226,6 @@ export const ItemDetailsFieldsSchema = z.object({
     .optional(),
   item_position: z.string().trim().max(128).optional(),
   item_zone: z.string().trim().max(128).optional(),
-  item_currency: z
-    .enum(ITEM_CURRENCY, { message: "Select a currency." })
-    .optional(),
   item_category_id: z.string().optional(),
   major_category: z.string().optional(),
 });

@@ -93,7 +93,8 @@ export default defineConfig({
 
     cwd: process.cwd(),
 
-    reuseExistingServer: false,
+    // Local reuse is opt-in; the false default prevents silently testing a stale server.
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === "true",
 
     timeout: 120 * 1000,
   },

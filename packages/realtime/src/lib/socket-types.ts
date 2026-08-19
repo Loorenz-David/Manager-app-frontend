@@ -88,6 +88,10 @@ export type ServerToClientEvents = {
   "task:step-state-changed": (
     payload: Array<{ client_id: string; new_state: string }>,
   ) => void;
+  "item_economics:evaluation-committed": (payload: {
+    client_id: string;
+    evaluation_id: string;
+  }) => void;
   "task:step-readiness-changed": (
     payload:
       | { client_id: string; new_readiness?: string }

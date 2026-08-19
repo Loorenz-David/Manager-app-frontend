@@ -6,12 +6,17 @@ import type {
   WorkerItemIssueSelectionDraft,
 } from "../types";
 import {
+  INLINE_PRICING_CURRENCY,
+  resolveTotalMinor,
+  toMajorUnitString,
+  type ItemPricingFields,
+} from "@beyo/item-economics";
+import {
   hasMeaningfulNoteContent,
   toTaskNoteContentBlocks,
   type TaskNoteComposerValue,
 } from "@beyo/task-notes";
 
-import { resolvePreOrderTotalPrice } from "./pre-order-price";
 import { toShopifyProductDescription } from "./to-shopify-product-description";
 
 type BaseIds = {
@@ -60,9 +65,20 @@ function buildCustomerFields(
 
 function buildItemFields(
   item: ReturnFormValues["item"],
+  pricing: ItemPricingFields | undefined,
   itemClientId: string,
   forceInclude: boolean,
 ) {
+  const purchaseCostMinor = resolveTotalMinor(
+    pricing?.purchase_cost_per_piece,
+    item.quantity,
+  );
+  const expectedSalePriceMinor = resolveTotalMinor(
+    pricing?.expected_sale_price_per_piece,
+    item.quantity,
+  );
+  const hasInlinePricing =
+    purchaseCostMinor != null || expectedSalePriceMinor != null;
   const hasAnyItemData =
     Boolean(
       toOptionalString(item.article_number) ??
@@ -71,14 +87,14 @@ function buildItemFields(
         item.item_category_id ??
         toOptionalString(item.item_position) ??
         toOptionalString(item.item_zone) ??
-        item.item_currency ??
         item.major_category ??
         (item.quantity != null && item.quantity !== 1
           ? String(item.quantity)
           : ""),
     ) ||
     // Recording "this item has no upholstery" is itself item data worth sending.
-    item.can_have_upholstery !== undefined;
+    item.can_have_upholstery !== undefined ||
+    hasInlinePricing;
 
   if (!forceInclude && !hasAnyItemData) {
     return undefined;
@@ -93,12 +109,18 @@ function buildItemFields(
     designer: toOptionalString(item.designer),
     item_position: toOptionalString(item.item_position),
     item_zone: toOptionalString(item.item_zone),
-    item_currency: item.item_currency || undefined,
     // Omitted when never recorded — the backend defaults it to `true`, and the
     // column rejects an explicit `null`.
     ...(item.can_have_upholstery === undefined
       ? {}
       : { can_have_upholstery: item.can_have_upholstery }),
+    ...(purchaseCostMinor == null
+      ? {}
+      : { purchase_cost_minor: purchaseCostMinor }),
+    ...(expectedSalePriceMinor == null
+      ? {}
+      : { expected_sale_price_minor: expectedSalePriceMinor }),
+    ...(hasInlinePricing ? { currency: INLINE_PRICING_CURRENCY } : {}),
   };
 }
 
@@ -171,7 +193,7 @@ function buildNotePayload(
 }
 
 export function normalizeReturnFormPayload(
-  values: ReturnFormValues,
+  values: ReturnFormValues | PreOrderFormValues,
   ids: BaseIds,
   taskType: "return" | "pre_order" = "return",
   /**
@@ -193,6 +215,7 @@ export function normalizeReturnFormPayload(
   );
   const itemFields = buildItemFields(
     values.item,
+    "item_pricing" in values ? values.item_pricing : undefined,
     ids.itemClientId,
     Boolean(issueFields) || Boolean(upholsteryFields) || forceItemInclusion,
   );
@@ -216,7 +239,8 @@ export function normalizeReturnFormPayload(
     scheduled_start_at: values.scheduled_start_at || undefined,
     scheduled_end_at: values.scheduled_end_at || undefined,
     ready_by_at: values.ready_by_at || undefined,
-    assortment: toOptionalString(values.assortment),
+    assortment:
+      "assortment" in values ? toOptionalString(values.assortment) : undefined,
     ...(!isStoreReturn ? buildCustomerFields(values.customer) : {}),
     ...(itemFields ? { item: itemFields } : {}),
     ...(issueFields ? { item_issues: issueFields } : {}),
@@ -230,9 +254,9 @@ export function normalizeReturnFormPayload(
  * Builds the optional `shopify_preorder` request section
  * (HANDOFF_TO_FRONTEND_task_preorder_shopify_product_20260727). Returns
  * undefined when the form has no complete Shopify selection — the endpoint
- * then behaves exactly as before. `price` is the pre-order total
- * (`item.quantity × the price per piece the form collects`) and must be a
- * decimal string, never a number. The item's quantity is also sent separately
+ * then behaves exactly as before. When an expected sale price exists, `price`
+ * is derived from the exact same integer minor-unit total sent on `item` and
+ * converted to a decimal string. The item's quantity is also sent separately
  * as the string-valued `custom.quantity` metafield; it does not affect the
  * independently selected inventory quantities.
  *
@@ -256,12 +280,12 @@ export function buildShopifyPreorderSection(
   { imageClientId }: { imageClientId?: string | null } = {},
 ): Record<string, unknown> | undefined {
   const shopIntegrationId = values.shopIntegrationIds?.[0];
-  const price = resolvePreOrderTotalPrice(
-    values.product_unit_price,
+  const expectedSalePriceMinor = resolveTotalMinor(
+    values.item_pricing.expected_sale_price_per_piece,
     values.item.quantity,
   );
 
-  if (!shopIntegrationId || price == null || price <= 0) {
+  if (!shopIntegrationId) {
     return undefined;
   }
 
@@ -281,7 +305,9 @@ export function buildShopifyPreorderSection(
   return {
     shop_integration_id: shopIntegrationId,
     product: {
-      price: price.toFixed(2),
+      ...(expectedSalePriceMinor == null
+        ? {}
+        : { price: toMajorUnitString(expectedSalePriceMinor) }),
       tags: ["preorder"],
       ...(description ? { description } : {}),
       ...(imageClientId ? { image_id: imageClientId } : {}),
@@ -304,6 +330,7 @@ export function normalizeInternalFormPayload(
   );
   const itemFields = buildItemFields(
     values.item,
+    values.item_pricing,
     ids.itemClientId,
     Boolean(issueFields) || Boolean(upholsteryFields),
   );
@@ -338,7 +365,12 @@ export function normalizeWorkerInternalFormPayload(
   defaultWoodFixSectionId: string,
 ): Record<string, unknown> {
   const issueFields = buildIssueFields(values.item_issues);
-  const itemFields = buildItemFields(values.item, ids.itemClientId, Boolean(issueFields));
+  const itemFields = buildItemFields(
+    values.item,
+    undefined,
+    ids.itemClientId,
+    Boolean(issueFields),
+  );
 
   const dedupedSteps = new Map<
     string,

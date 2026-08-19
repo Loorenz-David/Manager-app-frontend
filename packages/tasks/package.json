@@ -13,6 +13,7 @@
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/item-categories": "*",
+    "@beyo/item-economics": "*",
     "@beyo/items": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",

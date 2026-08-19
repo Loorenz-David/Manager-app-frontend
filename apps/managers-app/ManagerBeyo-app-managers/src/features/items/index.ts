@@ -1,5 +1,4 @@
 export { ItemDetailsFieldGroup } from './components/ItemDetailsFieldGroup';
-export { ItemCurrencyField } from './components/fields/ItemCurrencyField';
 export { ItemDesignerField } from './components/fields/ItemDesignerField';
 export { ItemIdentityField } from './components/fields/ItemIdentityField';
 export { ItemPositionField } from './components/fields/ItemPositionField';

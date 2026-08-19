@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import type { ImageViewModel } from "@beyo/images";
 import type { Item } from "@/features/items/types";
-import { ITEM_CURRENCY, ITEM_STATE, ItemSchema } from "@/features/items/types";
+import { ITEM_STATE, ItemSchema } from "@/features/items/types";
 import {
   TASK_FULFILLMENT_METHOD,
   TASK_ITEM_LOCATION,
@@ -78,9 +78,6 @@ export const PendingSeatRawItemSchema = z
     height_in_cm: z.number().int().nullable(),
     width_in_cm: z.number().int().nullable(),
     depth_in_cm: z.number().int().nullable(),
-    item_value_minor: z.number().int().nullable(),
-    item_cost_minor: z.number().int().nullable(),
-    item_currency: z.enum(ITEM_CURRENCY).nullable(),
     item_position: z.string().nullable(),
     item_zone: z.string().nullable(),
     external_id: z.string().nullable(),
@@ -192,9 +189,6 @@ export function toItemFromPendingRaw(raw: PendingSeatRawItem): Item {
     height_in_cm: raw.height_in_cm,
     width_in_cm: raw.width_in_cm,
     depth_in_cm: raw.depth_in_cm,
-    item_value_minor: raw.item_value_minor,
-    item_cost_minor: raw.item_cost_minor,
-    item_currency: raw.item_currency,
     item_position: raw.item_position,
     item_zone: raw.item_zone,
     external_id: raw.external_id,

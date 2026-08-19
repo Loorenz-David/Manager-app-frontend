@@ -1,4 +1,3 @@
-import { ItemCurrencyField } from './fields/ItemCurrencyField';
 import { ItemDesignerField } from './fields/ItemDesignerField';
 import { ItemIdentityField } from './fields/ItemIdentityField';
 import { ItemPositionField } from './fields/ItemPositionField';
@@ -10,7 +9,6 @@ export function ItemDetailsFieldGroup() {
       <ItemDesignerField />
       <ItemIdentityField />
       <ItemQuantityField />
-      <ItemCurrencyField />
       <ItemPositionField />
     </div>
   );

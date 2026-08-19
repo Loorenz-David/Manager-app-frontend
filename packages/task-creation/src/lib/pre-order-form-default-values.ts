@@ -17,13 +17,16 @@ export function buildPreOrderFormDefaultValues(
       quantity: 1,
       item_position: "",
       item_zone: "",
-      item_currency: undefined,
       item_category_id: undefined,
       major_category: undefined,
     },
     item_upholstery: {
       upholstery_client_id: null,
       upholstery_amount_meters: null,
+    },
+    item_pricing: {
+      purchase_cost_per_piece: null,
+      expected_sale_price_per_piece: null,
     },
     item_issues: [],
     customer: {
@@ -48,7 +51,6 @@ export function buildPreOrderFormDefaultValues(
     working_section_assignments: [],
     ready_by_at: null,
     note_content: null,
-    product_unit_price: null,
     shopIntegrationIds: [],
     inventoryQuantities: [],
   };

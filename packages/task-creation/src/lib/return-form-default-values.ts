@@ -19,7 +19,6 @@ export function buildReturnFormDefaultValues(
       quantity: 1,
       item_position: "",
       item_zone: "",
-      item_currency: undefined,
       item_category_id: undefined,
       major_category: undefined,
     },

@@ -5,6 +5,7 @@ import {
   useSurfaceHeader,
   useSurfaceProps,
 } from "@beyo/hooks";
+import { ProductionTimeSection } from "@beyo/item-economics";
 import { cn, generateClientId } from "@beyo/lib";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
@@ -265,6 +266,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               }
             />
           )}
+          <ProductionTimeSection taskId={controller.taskId} />
           <TaskFlowTimeline
             taskId={controller.taskId}
             onRecordPress={controller.openFlowRecord}

@@ -26,6 +26,7 @@
     "@beyo/emails": "*",
     "@beyo/hooks": "*",
     "@beyo/images": "*",
+    "@beyo/item-economics": "*",
     "@beyo/items": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",

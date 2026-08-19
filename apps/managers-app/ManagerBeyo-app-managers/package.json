@@ -27,6 +27,7 @@
     "@beyo/hooks": "*",
     "@beyo/images": "*",
     "@beyo/item-categories": "*",
+    "@beyo/item-economics": "*",
     "@beyo/lib": "*",
     "@beyo/notifications": "*",
     "@beyo/pause-reasons": "*",

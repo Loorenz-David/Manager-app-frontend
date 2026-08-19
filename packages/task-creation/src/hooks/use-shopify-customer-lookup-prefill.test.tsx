@@ -33,9 +33,12 @@ function createDefaultValues(): PreOrderFormValues {
       quantity: 1,
       item_position: "",
       item_zone: "",
-      item_currency: undefined,
       item_category_id: undefined,
       major_category: undefined,
+    },
+    item_pricing: {
+      purchase_cost_per_piece: null,
+      expected_sale_price_per_piece: null,
     },
     item_upholstery: {
       upholstery_client_id: null,
@@ -64,6 +67,9 @@ function createDefaultValues(): PreOrderFormValues {
     working_section_assignments: [],
     ready_by_at: null,
     note_content: null,
+    shopIntegrationIds: [],
+    inventoryQuantities: [],
+    has_sku_template: false,
   };
 }
 

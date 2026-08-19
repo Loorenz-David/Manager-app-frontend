@@ -12,6 +12,7 @@ export {
 export type { RealtimeLogEntry } from "./observability/realtime-log";
 export { debouncedInvalidation } from "./lib/socket-debounce";
 export { batchInvalidation } from "./lib/socket-batch";
+export { composeSocketHandlers } from "./lib/socket-compose";
 export type {
   SocketEventHandlers,
   SocketHandlerContext,

@@ -4,6 +4,7 @@ import { CustomerFieldsSchema } from "@beyo/customers";
 import { DateOnlySchema } from "@beyo/lib";
 import type { ItemCategoryPickerOption } from "@beyo/item-categories";
 import { ItemIssuesFieldsSchema } from "@beyo/item-issues";
+import { ItemPricingFieldsSchema } from "@beyo/item-economics";
 import {
   ItemDetailsFieldsSchema,
   type ItemLookupResult,
@@ -232,6 +233,7 @@ export type ReturnFormValues = z.input<typeof ReturnFormSchema>;
 export const PreOrderFormSchema = z
   .object({
     item: ItemDetailsFieldsSchema,
+    item_pricing: ItemPricingFieldsSchema,
     item_upholstery: ItemUpholsteryFieldsSchema,
     item_issues: ItemIssuesFieldsSchema.shape.item_issues,
     customer: CustomerFieldsSchema,
@@ -243,15 +245,6 @@ export const PreOrderFormSchema = z
       WorkingSectionPickerFieldsSchema.shape.working_section_assignments,
     ready_by_at: DateOnlySchema.nullable().optional(),
     note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
-    // Shopify pre-order product section (HANDOFF_TO_FRONTEND_task_preorder_
-    // shopify_product_20260727): full product price, one shop, at least one
-    // inventory location. Sent as `shopify_preorder` on POST /api/v1/tasks.
-    // Collected per piece; the price sent is `item.quantity × this`
-    // (see `lib/pre-order-price`).
-    product_unit_price: z
-      .number()
-      .gt(0, "Enter the price per piece.")
-      .nullable(),
     shopIntegrationIds: z.array(z.string()),
     inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema),
     /**
@@ -272,14 +265,6 @@ export const PreOrderFormSchema = z
     // No seat position/zone requirement here, deliberately: a pre-ordered item
     // is not in the building yet, so it has nowhere to be. Return and internal
     // tasks still require it.
-
-    if (data.product_unit_price == null) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Enter the price per piece.",
-        path: ["product_unit_price"],
-      });
-    }
 
     // Deliberately no SKU-required rule: a blank SKU is what triggers the
     // backend's template allocation, and the Shopify product inherits whatever
@@ -333,6 +318,7 @@ export type WorkerItemIssueSelectionDraft = z.input<
 export const InternalFormSchema = z
   .object({
     item: ItemDetailsFieldsSchema,
+    item_pricing: ItemPricingFieldsSchema,
     item_upholstery: ItemUpholsteryFieldsSchema,
     item_issues: ItemIssuesFieldsSchema.shape.item_issues,
     working_section_assignments:
