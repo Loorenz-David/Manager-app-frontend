@@ -44,10 +44,17 @@
 Sending an amount without `item.currency` is a `422`:
 `"item.currency is required when an inline item price is provided"`.
 
-**The refusal that matters (§9.1).** Task creation resolves the item first — by `client_id`, or by
-`article_number` / `sku`. If it matches an **existing** item that already has a current
-valuation, sending the trio is refused with
-`ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM`, `422`, **and the whole task creation is rolled back** —
+**Inline re-pricing (§9.1) — rewritten 2026-08-19, was "the refusal".** Task creation resolves the
+item first — by `client_id`, or by `article_number` / `sku`. If it matches an **existing** item
+that already has a current valuation, sending the trio now **re-prices** it: an amount in the
+request replaces the stored amount, an omitted one is inherited, and identical effective amounts
+write nothing at all. Owner decision 2026-08-19: the frontend sends prices and lets the backend
+version them — no guard, no confirmation surface.
+
+The paragraph below is the **retired** behaviour, kept only so the Review log's references resolve.
+It is no longer the contract:
+
+> `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM`, `422`, **and the whole task creation is rolled back** —
 no task, no task-item, nothing. The rule in one line: *inline pricing is for an item's birth;
 changing an existing item's price is always the valuation endpoint.*
 
@@ -409,24 +416,33 @@ them keeps the package free of any assumption about the host form's field names 
       for Shopify product prices and is too coarse for a purchase cost.
 
 - [x] **5. The Return form is deliberately excluded.** Returned items are, in the owner's words,
-      "99% related to items already created in the system", so inline pricing would mostly hit the
-      §9.1 refusal. Returns get priced through the valuation endpoint instead, once that surface
-      exists.
+      "99% related to items already created in the system". The original reasoning was that inline
+      pricing would mostly hit the §9.1 refusal; that refusal is gone, but the exclusion stands on
+      its own — a returned item's price belongs to the valuation surface, not to a task form, and
+      under the new §9.1 sending prices there would silently re-price nearly every returned item.
 
-## Copy — the refusal message
+## Copy — the refusal message · **RETIRED 2026-08-19**
 
-The owner is building the item valuation/edit surface immediately after this plan and before
-either ships, so the message may point at it:
+There is no refusal message. The backend retired the §9.1 refusal and the copy, the notice
+component and the release-ordering constraint were all deleted in fix round 3 (review finding B1).
+Nothing in this section is live specification.
 
-> **This item already has a price.** Clear the purchase and expected sale price to create the
-> task — you can update the item's price afterwards from the item itself.
-
-**Ordering constraint:** this copy must not reach users before that surface exists. If the two
-ship separately, drop the second clause until the valuation surface is live.
+Retained for provenance, since the Review log cites it: the copy read *"This item already has a
+price. Clear the purchase and expected sale price to create the task — you can update the item's
+price afterwards from the item itself."*, and its ordering constraint required the item valuation
+surface to exist before the second clause could ship. Both are moot — the message no longer
+renders anywhere.
 
 ## Acceptance criteria
 
-1. Neither field renders until `item.major_category` is set.
+1. Neither field renders until `item.major_category` is set. **This criterion is only safe on a
+   host that requires the category.** Amended 2026-08-19 after review B3: the Internal form
+   requires it, the Pre-order form did not, and the same sentence became a hiding place for a
+   money write — a looked-up purchase price was multiplied by the lookup's quantity and submitted
+   with no pricing UI on screen at all. Owner decision 2026-08-19: **`major_category` is mandatory
+   on the Pre-order form too** — an unguarded rule that was missed, not a deliberate permissiveness.
+   Any future host of `ItemPricingFieldGroup` must require the category or this criterion has to be
+   re-derived for it.
 2. With `seat`, both fields render below the quantity field, each with a live total that updates
    as either the price or the quantity changes.
 3. With `wood`, the breakdown row is shown **whenever the resolved quantity is greater than 1**,
@@ -729,13 +745,71 @@ instead of an instruction, and the copy changed to match.
   the implementer said so plainly rather than implying coverage. The five new tests (four S2 cases,
   one wood case) have therefore never been seen to fail. That is round 2's first probe; it is the
   gap that produced production_time's central round-1 finding.
+- `2026-08-19` `Claude Opus 5` (review round 2, delta of `ce818c8a` vs `e49967b5`): verdict
+  `CHANGES_REQUESTED` — 1 blocking, 2 should-fix, 5 notes. Mirror re-diffed first: digest matches
+  `source_sha256`, body byte-identical, and the two unstamped sibling mirrors are clean too.
+  Perimeter is exactly the twelve declared files plus the handoff. B1, S1 and S2 are all genuinely
+  closed.
+
+  **B3 blocking (new)** — `PreOrderFormSchema` requires no `major_category`, but the pricing card is
+  gated on it and `ItemPricingFieldGroup` returns `null` without it, while `buildItemFields` still
+  multiplies. A pre-order can therefore submit `purchase_cost_minor` with **no pricing UI rendered
+  at all** — proven: `major_category: undefined`, `quantity: 4`, `1250.5` → schema valid, payload
+  `purchase_cost_minor: 500200`. Reachable ordinarily: `handleLookupResult` writes `major_category`
+  from a React Query cache read, yielding `undefined` whenever the looked-up item has a null
+  `item_category_id`. Same class as S1, on the path S1's fix cannot reach. Internal is unaffected
+  (its `superRefine` requires the category). Violates criteria 3 (amended) and 7. → owner card 1.
+
+  **S4** the ingestion guard's zero boundary is untested — `>= 0` → `> 0` survives all 108
+  task-creation tests, leaving "free" vs "unknown" unguarded against §Arithmetic's explicit rule.
+  **S5** S2's second half has no regression guard — restoring the purchase-cost path to the Internal
+  step map survives all 108 tests, exactly as the re-review prompt predicted; the four new ingestion
+  tests exercise a locally-built schema, never the real step maps.
+
+  Notes N8–N12: `parseErrorIdentity` confirmed caller-less (routed to the valuation phase);
+  `ItemPricingTotalRow`'s docstring still says "Only rendered for seats"; the plan still presents
+  the refusal as live spec in §Copy and §The backend contract (criterion 9's retirement did not
+  sweep them); the purchase-cost dead end is closed by one guard rather than structurally
+  (`errors.item_pricing` still routes to a step with no renderer); the lookup can overwrite a chosen
+  category with `undefined`.
+
+  Verified correct: B1 is deletion not dormancy (zero symbol hits repo-wide, both barrels read);
+  `ItemPurchasePriceDisplay` survives intact; S2 landed on **both** halves with the editable
+  expected-sale path retained; no new silent payload path (the final whole-form `trigger()` still
+  validates, and the sanitiser is the sole writer); probe 4's full six-row case table with labels
+  keyed off `showTotal`; the rounding-order guarantee survives its test's rename (fixture `19.995`
+  → `4000`); the implementer's three-not-four count correction. Mutation probes: 6 run, all
+  reverted checksum-verified, tree clean — probes 1 and 6 survived (→ S4, S5), the rest bit.
+  Regression: typecheck clean, task-creation project clean but for the two known TS2352,
+  item-economics **130/130**, task-creation **108/108**, ESLint exactly the five inherited
+  diagnostics.
+- `2026-08-19` `David` (round 2 card 1 — **resolved, and reframed**): the owner rejects the
+  premise that pre-order category-optionality was deliberate. **`item.major_category` is mandatory
+  on the Pre-order form** — an unguarded rule that was missed. Verified before acting, and the code
+  supports the owner over the review's reading: `PreOrderFormSchema`'s `superRefine` carries two
+  explicit *"deliberately"* comments — one for seat position/zone, one for the SKU rule — and
+  **none** for the category; the form already renders `ItemCategorySelectionField`
+  (`PreOrderFormContent.tsx:596`) and already lists both `item.item_category_id` and
+  `item.major_category` in its step-field map (`:112–113`). Picker present, validation wiring
+  present, required rule absent. That is an omission, not a decision. B3 therefore closes
+  structurally — with the category required, the pricing card always renders before submit is
+  reachable — rather than by showing a price without a category.
+- `2026-08-19` `Claude Opus 5` (coordinator, round 2 folded): verdict `CHANGES_REQUESTED` — 1
+  blocking (B3), 2 should-fix (S4, S5), 5 notes. All three round-1 findings confirmed closed, each
+  re-derived; six mutation probes declared and reverted, plus a temporary probe test created, run
+  and deleted. The mirror re-diff came back **clean** — digest and mtime match the provenance
+  frontmatter, body byte-identical to source, and the other two `from_backend` mirrors are
+  byte-identical though unstamped. N10 folded here: §Copy retired, the §9 contract summary
+  rewritten to the current inline-re-pricing rule, decision 5's reasoning re-grounded, criterion 1
+  amended with the composition hazard. N9, N11, N12, S4 and S5 routed to fix round 4.
 
 ## Lifecycle transition
 
-- Current state: `IMPLEMENTED` — fix round 3 complete (`ce818c8a`), all three round-1 findings
-  addressed and independently re-verified. Awaiting delta-scoped re-review.
-- Next state: `REVIEWING` round 2 (prompt at
-  `prompts/reviewer/PROMPT_reviewer_round_2_20260819.md`) → `APPROVED` or another fix cycle.
+- Current state: `CHANGES_REQUESTED` — review round 2 (`handoffs/reviewer/handoff_PLAN_item_pricing_fields_20260818_review_2.md`).
+  The three round-1 findings are closed; one new blocking finding (B3) and two missing regression
+  guards (S4, S5) remain, plus owner card 1.
+- Next state: `IMPLEMENTING` — card 1 answered 2026-08-19 (category mandatory on Pre-order); fix
+  prompt at `prompts/implementer/PROMPT_fix_round_4_20260819.md` → `REVIEWING` round 3.
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
