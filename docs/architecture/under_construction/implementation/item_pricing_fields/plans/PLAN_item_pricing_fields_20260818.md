@@ -429,10 +429,23 @@ ship separately, drop the second clause until the valuation surface is live.
 1. Neither field renders until `item.major_category` is set.
 2. With `seat`, both fields render below the quantity field, each with a live total that updates
    as either the price or the quantity changes.
-3. With `wood`, both fields render with **no** breakdown row, and submit as if quantity were 1.
+3. With `wood`, the breakdown row is shown **whenever the resolved quantity is greater than 1**,
+   and hidden otherwise. Amended 2026-08-19 after review S1: the original text said wood submits
+   "as if quantity were 1", but the lookup writes the purchase system's real quantity into
+   `item.quantity` before any category is known, and `buildItemFields` multiplies by it. With the
+   owner's confirmation (2026-08-19) that `purchase_price` is **per piece**, the multiplication is
+   arithmetically right and it is the *display* that lied — a wood article with quantity 4 showed
+   "1 250,50 kr" and submitted `500200`. Never hide a multiplier; show it. A test must cover the
+   wood path with quantity > 1 — the existing `item-pricing-payload.test.ts` fixture uses
+   `major_category: "wood"` with `quantity: 2` and asserts the multiplied figure, encoding the old
+   contradiction rather than catching it.
 4. Advancing the item step with either field empty never blocks — the fields are optional. An
-   *invalid* entered value (negative) does block, marks the step in error, and shows the
-   field-level message.
+   invalid **entered** value (a negative expected sale price) blocks, marks the step in error and
+   shows the field-level message at its field. A bad **looked-up** purchase price is not a form
+   error at all: it is rejected at ingestion. Amended 2026-08-19 after review S2 — the purchase
+   price has no input, so a negative value from the purchase system blocked the step, turned it
+   red, rendered no message anywhere (the display component has no `fieldState`) and left no way
+   out but abandoning the form.
 5. The submitted payload carries `purchase_cost_minor` and `expected_sale_price_minor` as
    **integers** equal to `round(perPiece × 100) × quantity`, plus
    `currency: "swedish_krona"`. Asserted against `normalizeInternalFormPayload` output.
@@ -440,9 +453,14 @@ ship separately, drop the second clause until the valuation surface is live.
 7. The displayed total and the submitted amount derive from the same function; a test asserts
    they agree for a decimal per-piece price such as `19.99 × 3`.
 8. No file under `packages/item-economics/src` imports `@beyo/task-creation` or `@beyo/tasks`.
-9. A `422` carrying `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM` renders the explanatory copy beside
-   the pricing fields and keeps the user on the item step. Clearing both fields and resubmitting
-   the same form succeeds.
+9. **Retired 2026-08-19 — the contract this criterion tested no longer exists.** The backend
+   removed `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM` and replaced the refusal with inline
+   re-pricing: an amount in the request replaces the stored one, an omitted one is inherited, and
+   identical effective amounts write nothing at all. No `422` with that identity can be produced.
+   Owner decision 2026-08-19: **the frontend keeps sending prices and lets the backend version
+   them** — no guard, no confirmation surface. The replacement criterion is that creating a task
+   for an already-priced item succeeds, and that the refusal machinery is gone rather than
+   dormant (see the fix cycle's file list).
 10. Leaving either field empty never blocks the item step or the submit, on either form.
 11. `product_unit_price` no longer exists anywhere in the repository, and a pre-order created with
     an expected sale price still produces a `shopify_preorder.product.price` — equal to
@@ -630,13 +648,76 @@ instead of an instruction, and the copy changed to match.
   project root), row-schema frontmatter added to every prompt and handoff. Archiving was
   requested and declined: it is step 2 of the closeout ritual at `APPROVED`, and no review round
   has been run.
+- `2026-08-19` `Claude Opus 5` (reviewer r1): **CHANGES_REQUESTED**. Handoff at
+  `handoffs/reviewer/handoff_PLAN_item_pricing_fields_20260818_review_1.md`. Re-run independently:
+  typecheck exit 0, item-economics **132** (not the recorded 108 — production-time fixes landed in
+  between), task-creation 107, ESLint 5 diagnostics all verified inherited at `0bfc29c8`.
+
+  **B1 blocking** — the §9.1 refusal this phase is built around was retired by the backend.
+  `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM` appears nowhere under `backend/app`; the backend project
+  `inline_valuation_versioning` phase 1 is APPROVED 2026-08-19 and `create_task.py:316-368` now
+  inherits/compares/versions instead of refusing. The authority was rewritten **in place** under an
+  unchanged filename, so `docs/handoff/from_backend/…_operational_20260815.md` (2026-08-16) is a
+  stale mirror of the backend's copy (2026-08-19 13:05). Criterion 9 is unmeetable and the entire
+  refusal path — `inline-pricing-refusal.ts`, `ItemPricingRefusalNotice`, `showPricedItemRefusal`,
+  `onClearPrices`, `handleClearPrices`, 7 tests — is unreachable dead code. Not an implementer
+  defect: the contract moved under a finished implementation.
+
+  **B2 blocking** — under the replacement rule, an amount present in the request replaces the
+  stored one, so the auto-prefilled purchase price makes every task created for an already-priced
+  item silently write a new valuation version. Unhandled, invisible, and the inverse of what owner
+  decision 1 assumed. → owner card 1.
+
+  **S1** wood multiplies by a lookup-supplied `item.quantity` while rendering no breakdown, so the
+  displayed figure is not the submitted one (criteria 3 and 7); `item-pricing-payload.test.ts`
+  encodes the contradiction (wood fixture at quantity 2) and criterion 3 has no test at all.
+  **S2** a negative lookup price blocks the item step with no rendered error (the read-only display
+  has no `fieldState`), no input and no remedy — criterion 4's "shows the field-level message" half
+  is unmet. **S3** `useCreateTask.onError` toasts the raw backend identity beside the inline notice,
+  against Track B step 5.
+
+  Notes N1–N7: `purchase_price`'s per-piece-vs-lot unit is unverifiable in either repo (owner
+  card 2); the signature addition re-applies the full prefill on the Return and Worker forms too
+  (assessed **correct** on its merits, blast radius recorded); stale test counts; `npm run typecheck`
+  does not cover `packages/task-creation`; the valuation surface is still absent; the Playwright
+  request-body check was never run; the single-checkpoint perimeter is unverifiable by construction
+  — what is checkable holds.
+
+  Verified correct and settled: the rounding-order guarantee (mutation-tested — 3 tests bite), omit-
+  never-zero (mutation-tested), the currency key/value against the backend enum and validator, the
+  Shopify guard relaxation and conditional `product.price`, the `product_unit_price` unwind (zero
+  tracked hits), the package boundary, schema/default/reset/step wiring on both forms, and
+  `PurchasePriceSetValue`'s narrowing (mutation-tested — load-bearing at both call sites, keep it).
+- `2026-08-19` `Claude Opus 5` (review round 1, delta of authority): verdict `CHANGES_REQUESTED` —
+  2 blocking, 3 should-fix, 7 notes. The blocking pair is **not an implementer defect**: the
+  backend retired the §9.1 refusal this phase was built around, on the same day the phase was
+  implemented, and replaced it with inline re-pricing. The authority was rewritten **in place** —
+  same filename, same date in the name — so the frontend mirror looked current and every artifact
+  (plan, two prompts, two handoffs) cited it in good faith.
+- `2026-08-19` `Claude Opus 5` (coordinator, verified independently before acting):
+  `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM` appears nowhere under `backend/app`; the backend doc is
+  dated 2026-08-19 13:05 against our mirror's 2026-08-16 08:43; a full-file diff shows the drift is
+  contained to §9.1 plus two follow-on references (the test-coverage line and the smoke-test step),
+  not scattered through the document. Mirror refreshed and now carries provenance frontmatter —
+  `source_modified`, `source_sha256`, `mirrored_at` — with an instruction to re-diff at the start
+  of every round. That is the reviewer's lesson 1 made mechanical rather than remembered.
+- `2026-08-19` `David` (card 1 — **resolved**): allow it. The frontend keeps sending a new purchase
+  or expected sale price; the backend resolves a new version and skips the write when the values
+  are unchanged. No guard on existing items, no confirmation surface. B2 is therefore dismissed as
+  a defect — the behaviour is intended — and B1 reduces to deleting machinery that can no longer
+  fire.
+- `2026-08-19` `David` (card 2 — **resolved**): `purchase_price` is **per piece**. The current
+  multiplication is correct, which makes S1 a display defect rather than an arithmetic one — see
+  the amendment to criterion 3.
 
 ## Lifecycle transition
 
-- Current state: `IMPLEMENTED` — Track B round 2 complete (2026-08-19, Codex), checkpointed,
-  awaiting first review
-- Next state: `REVIEWING` (prompt at `prompts/reviewer/PROMPT_reviewer_round_1_20260819.md`)
-  → `APPROVED` or `CHANGES_REQUESTED`
+- Current state: `CHANGES_REQUESTED` — review round 1 complete (2026-08-19, Claude Opus 5).
+  Both owner cards answered the same day; the operational handoff has been re-mirrored with
+  provenance frontmatter.
+- Next state: `IMPLEMENTING` — fix prompt at
+  `prompts/implementer/PROMPT_fix_round_3_20260819.md` (B1 delete dead machinery, S1 wood
+  breakdown, S2 ingestion-time validation) → `REVIEWING` round 2 → `APPROVED`.
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
