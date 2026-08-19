@@ -8,8 +8,11 @@
 - Created at (UTC): `2026-08-19T00:00:00Z`
 - Predecessor: `PLAN_production_time_widget_20260818` — `APPROVED` and archived 2026-08-19. This plan
   changes what that widget displays; it does not reopen that phase.
-- Backend handoff raised by this plan:
+- Backend handoffs raised by this plan:
   `docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_share_state_20260819.md`
+  (answered: option C, `share_state` is settled-only by design) and its successor
+  `docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`
+  (open: make the projection live, all six fields together)
 - Source evidence: a live `status: "ok"` response from `GET /api/v1/item-economics/tasks/
   tsk_01M0CSK8HZ80SD2V84FAVYAZG6/production-time`, captured 2026-08-19, plus four screenshots of
   the rendered card at 2m / 3m / 4m / 25m of elapsed work. **This is the first `ok` response the
@@ -27,8 +30,11 @@
   working sections that have not started." The budget per section exists in the payload for every
   section, pending ones included, and the card currently shows it nowhere.
 - **Non-goals:**
-  - Re-deriving the share verdict client-side. Criterion 5 of the predecessor plan still stands
-    until the backend answers §Blocked.
+  - Re-deriving the share verdict client-side. Criterion 5 of the predecessor plan stands. The
+    owner's decision 2026-08-19 is that a live verdict is **backend work**: a comparison rule in the
+    frontend would be a second implementation of how work is judged, and would drift as the product
+    grows. The frontend's job shrinks to rendering and refetching.
+  - The item-level budget-vs-typical ratio — proposed as S2, withdrawn the same day, see there.
   - Any change to the endpoint, the allocation method, or the twelve-value status vocabulary.
   - The maintenance backlog inherited from the predecessor (N1 clock lint, N3 fixtures, N6 native
     bindings, G2, G4) — separate phase, listed here only so it is not lost.
@@ -77,8 +83,11 @@ reading "On track."** The two halves of one row disagree, because one is live an
 settled-only.
 
 This is not an implementation defect. The predecessor's criterion 5 — render `share_state` as
-received, never re-derive — was correct and was mutation-tested. The gap is in what the backend
-can express, and it is the subject of §Blocked.
+received, never re-derive — was correct and was mutation-tested. The backend confirmed the design
+(D16: the three fields must share one basis, after an earlier implementation shipped
+`left_seconds: -100` beside `share_state: "on_track"`) and named the shipped §Live time guidance —
+tick locally while the verdict stays settled — as the source of the incoherence. A corrected
+§Live time is owed to us as a new dated handoff.
 
 ### E3 — the typical marker is mathematically constant, and therefore carries no information
 
@@ -106,8 +115,9 @@ Budget 184.32 min = 11 059 s against Σ typical = 19 753 s → 0.5599.
 row, pinned to the right edge, identical everywhere — visible in all four screenshots. A marker
 that is provably the same on every row is noise per row.
 
-The ratio is real information, but it is a **property of the item**, not of the section: *this
-item's budget is 56% of what these stages typically take.* One line, once, at the top.
+The ratio looked like a **property of the item** worth stating once — *this item's budget is 56% of
+what these stages typically take.* The backend confirmed the identity but showed it is not safe to
+build on; see S2, withdrawn. The tick is still removed. Nothing replaces it.
 
 ---
 
@@ -131,7 +141,18 @@ Rules:
 - Keep the existing `typical` wording; this adds to it rather than replacing it.
 - The degraded (`no_budget`) frame has no allowances at all and is unchanged.
 
-### S2 — move the typical comparison from the row to the headline
+### S2 — **WITHDRAWN 2026-08-19** — move the typical comparison from the row to the headline
+
+> **Withdrawn.** The per-row tick is still removed — E3 stands, it is provably constant and
+> therefore noise. Nothing replaces it. The item-level ratio is **not** shipped: the backend
+> confirmed the identity is real but breaks in two undetectable-from-our-payload ways (a section
+> whose typical is null gets the median substituted as its weight, `budget_division.py:320–335`;
+> and `distributable = budget − charged`, so time logged on skipped/cancelled/failed steps moves
+> the ratio with no typical changing). We cannot compute the true figure because
+> `distributable_seconds` and `charged_seconds` are not in the payload. S1 already gives a manager
+> the same insight per section, honestly and without gating.
+>
+> The original proposal is kept below for provenance only.
 
 Remove the per-row tick (E3) and state the ratio once, in the card headline area:
 
@@ -148,7 +169,23 @@ Rules:
 
 ### S3 — stop the bar and the verdict contradicting each other
 
-**Blocked on the backend answer — see §Blocked.** Two candidate behaviours, both cheap:
+**Resolved 2026-08-19.** The backend answered option C — `share_state` is settled-only by design
+(D16: `worked_seconds`, `left_seconds` and `share_state` must share one basis so they cannot
+contradict each other). The owner has decided to pursue a **live projection owned by the backend**
+rather than a comparison rule in the frontend, which would drift.
+
+**Ship the interim gate:** suppress the verdict pill while a section's `state` is `working`, and
+show only what can be stated without judging — elapsed, allowance, and the bar. This is a display
+gate, not a rule: we choose *when* to show the backend's value, never *what* it says. Criterion 5
+of the predecessor plan is amended in place to record the gate and its removal condition, per the
+backend's explicit request — not quietly relaxed.
+
+**The gate is deleted the day the payload goes live.** Requested in
+`docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`, which
+names the six fields that must move together (three per section, three on `budget`) so the headline
+cannot contradict the rows it sits above.
+
+The two candidate behaviours below are superseded and kept for provenance:
 
 - **(a) suppress while working.** Hide the verdict pill on a row whose `state` is `working`, since
   it is stale by construction, and let the bar and the live figures speak. Reversible in one line
@@ -162,7 +199,7 @@ Do not implement either until §Blocked resolves.
 
 ---
 
-## Blocked — one question, sent to the backend
+## Blocked — **RESOLVED 2026-08-19**, kept for provenance
 
 `docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_share_state_20260819.md` asks
 whether `share_state` should account for the open interval of a `working` step, or whether the
@@ -179,15 +216,13 @@ S1 and S2 are **not blocked** and can be built while the question is open.
 
 ---
 
-## Owner decisions required
+## Owner decisions — **both resolved 2026-08-19**
 
-1. **S2's wording.** "Budget is 56% of typical for these stages" is deliberately flat. If you want
-   it to read as a warning below some threshold, say which threshold and what it should say —
-   otherwise it stays an observation at every ratio.
-2. **S3's branch**, once the backend answers. Recorded here so it is not decided by whoever
-   implements.
-
-Neither blocks S1.
+1. ~~S2's wording~~ — moot. S2 is withdrawn; no ratio ships.
+2. **S3's branch** — resolved. A live verdict is backend work; the frontend ships an interim display
+   gate and deletes it when the payload goes live. The owner's reasoning, recorded because it
+   generalises: a comparison rule in the frontend is a second implementation of how work is judged,
+   and two implementations drift as the product grows.
 
 ---
 
@@ -200,21 +235,24 @@ predecessor's rounds 3–4, where two fixes shipped with no regression guard.
    alike. *Mutation: render the allowance only on the active row → the pending-row test fails.*
 2. A row with `allowance_seconds` null or `<= 0` renders the typical alone and performs no
    division. *Mutation: drop the guard → a NaN/Infinity assertion fails.*
-3. The headline ratio is computed from summed allowances over summed typicals across non-excluded
-   sections. *Mutation: compute it from the first section instead → a test with one section whose
-   ratio differs from the item's fails.*
-4. Sections with a null typical are excluded from both sums. *Mutation: treat null as zero → a
-   mixed-null fixture's ratio changes and its test fails.*
-5. No ratio renders when every typical is null or either sum is zero. *Mutation: remove the guard →
-   a division-by-zero assertion fails.*
-6. The per-row typical tick is gone from the budget frame. *Mutation: restore it → a test asserting
-   its absence fails.*
-7. The degraded (`no_budget`) frame is unchanged — same rows, same toggle, same absence of
+3. The per-row typical tick is gone from the budget frame, and **no ratio replaces it**.
+   *Mutation: restore the tick → a test asserting its absence fails.*
+4. The verdict pill does not render on a row whose `state` is `working`, and does render on every
+   other state that carries one. *Mutation: remove the gate → a working-row test fails; mutation:
+   gate on `isActive` for a non-working row → a completed-row test fails.*
+5. Nothing in `packages/item-economics/src` compares elapsed or worked time to `allowance_seconds`
+   to produce a verdict, label or tone. The gate keys off `state`, nothing else. *Mutation:
+   derive a label from the comparison → a grep-level test fails.* (This is predecessor criterion 5,
+   still enforced; the gate is a display decision, not a rule.)
+6. The degraded (`no_budget`) frame is unchanged — same rows, same toggle, same absence of
    allowances. *Mutation: leak an allowance line into it → its test fails.*
-8. `npm run typecheck` clean; `npm run test:item-economics` passes; the workers Playwright
+7. `npm run typecheck` clean; `npm run test:item-economics` passes; the workers Playwright
    production-time spec passes in both projects.
 
-S3 gains its own criteria once §Blocked resolves.
+**Removal condition, to be honoured rather than forgotten:** criteria 4 and 5's gate exists only
+while the payload is settled-only. When the backend ships the live projection
+(`HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`), the gate is deleted and the
+pill renders in every state. Whoever consumes that backend handoff owns removing it.
 
 ---
 
@@ -258,7 +296,10 @@ Expected to change (all under `packages/item-economics/src`):
 
 ## Lifecycle transition
 
-- Current state: `under_construction` — awaiting owner review of the two decisions, and the
-  backend's answer for S3.
-- Next state: `approved` → implement S1 and S2 → S3 once §Blocked resolves.
+- Current state: `under_construction` — scope settled 2026-08-19 after the backend's answer and two
+  owner decisions. S2 withdrawn; S3 resolved to an interim display gate. Awaiting owner approval to
+  implement.
+- Next state: `approved` → implement S1 (allowance per row), the tick removal, and S3's gate →
+  review. The gate's removal is a separate, later change, triggered by the backend's live
+  projection, not by this phase.
 - Transition owner: `David`
