@@ -230,6 +230,10 @@ Track B's transform stays testable):
    the summed worked time, with `stepCount === 2`.
 5. `share_state` is rendered as received. No file in `packages/item-economics/src` compares
    `worked_seconds` to `allowance_seconds` to decide a verdict.
+5a. `stateToTone` and `humanizeSectionState` are asserted **one row per state**, all nine
+    (`pending`, `working`, `paused`, `blocked`, `completed`, `failed`, `skipped`, `cancelled`,
+    `ended_shift`) — not a sample. Added 2026-08-19 after review F3: five of nine were asserted,
+    and deleting `case "paused":` left all 108 tests green.
 6. A section with `allowance_seconds <= 0` renders a full over-share bar and performs no
    division. Asserted by a unit test on `buildRowDetail`.
 7. When `status` is anything other than `ok` / `infeasible`, the card frame still renders, with
@@ -245,7 +249,13 @@ Track B's transform stays testable):
 11. `task:step-state-changed` invalidates the widget's query key.
 12. A pipeline of more than four sections collapses to four rows plus a *Show all* toggle, and
     the row currently in `working` state is visible **without** expanding. The segmented bar and
-    the footer note still describe every section, expanded or not.
+    the footer note still describe every section, expanded or not. **This binds both frames** —
+    the budget card and the degraded (`no_budget`) card. Amended 2026-08-19 after review F2: the
+    original sentence named no surface, and only the budget frame truncated. The degraded frame
+    is the one that matters most — every unvalued task lands there, and on live data 7 of 25
+    tasks carry more than four sections.
+    The toggle is offered only when rows are actually hidden: derive it from
+    `visibleRows.length < rows.length`, never from `rows.length` alone (review N2).
 13. An empty `sections` array renders nothing at all.
 14. `npm run typecheck` is clean; `npm run test:item-economics` passes; both Playwright projects
     (mobile then desktop) pass for the workers-app task-detail spec.
@@ -704,7 +714,7 @@ in the codebase, one per app, all introduced by this work.
 
 The fix is a composition helper rather than three hand-written merges:
 
-- **New:** `packages/realtime/src/lib/compose-socket-handlers.ts` exporting
+- **New:** `packages/realtime/src/lib/socket-compose.ts` exporting
   `composeSocketHandlers(...maps: SocketEventHandlers[]): SocketEventHandlers`. Same key in more
   than one map → **every** handler runs, in the order the maps were passed. A key claimed by one
   map is returned as-is, with no wrapper. Export it from `packages/realtime/src/index.ts`.
@@ -844,6 +854,36 @@ review surface is the component itself, not a mockup of it.
 
 ## Review log
 
+- `2026-08-19` `Claude Opus 5` (reviewer, round 1): **`CHANGES_REQUESTED`** — no blocking, four
+  should-fix, ten notes. Handoff:
+  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_1.md`.
+  Re-derived: `npm run typecheck` exit 0; `npm run test:item-economics` 108/108 (77 attributable
+  to this phase, 31 to item-pricing in the same package); `npm run test:realtime` 5/5; ESLint on
+  the phase perimeter — one error, `use-production-time-clock.ts:12`. Playwright not re-derived
+  (no dev server).
+  **F1 should-fix** — `ProductionTimeUnavailableCard` says "no longer linked to an item", but the
+  backend sets `item_binding: "detached"` whenever there is no primary item at all
+  (`get_task_budget_status.py:111`), so a task that never had one is told it lost one; the frame
+  also renders before the empty-sections check.
+  **F2 should-fix** — criterion 12 is unqualified but only `ProductionTimeBudgetBody` truncates;
+  `ProductionTimeNoBudgetCard` renders every row with no toggle.
+  **F3 should-fix** — `stateToTone` is asserted on five of nine states; deleting `case "paused":`
+  left all 108 tests green (mutation run, reverted). Charter rule 2.
+  **F4 should-fix** — `architecture/21_realtime.md` §App-level assembly still documents the spread
+  registry that all three apps have abandoned; route a lettered amendment (owner card 2).
+  Notes N1–N10 in the handoff: the clock's lint error and why `useTickingElapsed` is not a
+  drop-in; a dead "Show all 5 stages" toggle when the active row is the fifth; the fixtures
+  re-implementing the transform; `pendingLabels` selecting on tone so cancelled/skipped stages are
+  named and blocked ones are not; no registry-level test of the composition; darwin-arm64 bindings
+  in root `dependencies`; `infeasible` untested; stale comments and the
+  `compose-socket-handlers.ts` name still in §Track B step 9 and §File map; the empty-`taskId`
+  permanent skeleton (pre-existing idiom, shared with `TaskFlowTimeline`).
+  Verified correct and settled: the Zod schema against the backend serializer field by field — no
+  divergence, no `.nullable()` field the backend omits; `composeSocketHandlers` cannot drop a
+  handler (structural read plus a reverted last-write-wins mutation that turned 3 of 5 tests red);
+  the only shared registry key in any app is `task:step-state-changed`; `ApiRequestError`-keyed
+  404-hide and one-retry policy; the `state_entered_at` tick anchor; no client-side verdict; no
+  sort anywhere. Three owner decision cards in the handoff.
 - `2026-08-18` `Codex` (Track B verification): owner started the current workers frontend and
   corrected its backend origin. `production-time.spec.ts` passed in both the mobile and desktop
   projects against the running app. The spec intercepts the undeployed production-time endpoint
@@ -924,12 +964,47 @@ review surface is the component itself, not a mockup of it.
   project root), row-schema frontmatter added to every prompt and handoff. Archiving was
   requested and declined: it is step 2 of the closeout ritual at `APPROVED`, and no review round
   has been run.
+- `2026-08-19` `David` (review round 1, card 1 — **resolved**): a task cannot be created without an
+  item, so F1's "never had an item" premise is unreachable and the `detached` copy stays as
+  written. Verified against the code rather than assumed: all four creation forms guarantee an
+  item. Internal and worker-internal require an article number or SKU plus a category
+  (`packages/task-creation/src/types.ts` superRefines); Return and Pre-order waive the identity
+  rule only when a SKU template exists, and in exactly that case pass
+  `forceItemInclusion` (`ReturnFormContent.tsx:343`, `PreOrderFormContent.tsx:382`), so
+  `buildItemFields` still emits the item. The waiver and the force flag are deliberately paired.
+  Caveat recorded, not blocking: `CreateTaskRequest.item` is `| None = None` backend-side, so the
+  guarantee is a frontend policy — a future non-form client could produce an itemless task, and
+  `remove_item_from_task.py` remains the genuine path the copy describes. Cards 2 and 3 remain
+  open.
+- `2026-08-19` `Claude Opus 5` (coordinator, review round 1 folded): verdict
+  `CHANGES_REQUESTED` — 0 blocking, 4 should-fix, 10 notes. Card 1 dismissed (owner: no task can
+  be created without an item; verified against all four form schemas). Card 2 approved: amend
+  `21_realtime.md` now, as a lettered section. Card 3 answered by measurement rather than by
+  accepting the record — see below. Fix cycle scoped to F2, F3, F4 + N2, N4, N5, N7, N8;
+  N1 (shared clock hook), N3 (fixtures re-implementing the transform), N6 (platform-pinned native
+  bindings → `npm ci` fails `EBADPLATFORM` off darwin-arm64) and N9 (`isPending` vs `isLoading`,
+  shared with `TaskFlowTimeline`) deferred to a maintenance phase. Plan amended here: criterion 12
+  now binds **both** frames, criterion 5a added for full state enumeration, and §Track B step 9's
+  stale `compose-socket-handlers.ts` corrected to `socket-compose.ts` (N8's plan half).
+- `2026-08-19` `Claude Opus 5` (live verification, owner's servers + backend up): the workers
+  Playwright spec passed in both projects, re-derived rather than trusted (criterion 14's browser
+  half). **The endpoint is deployed on the dev backend**, so the response contract was checked
+  against real traffic for the first time: 25 real tasks fetched, **25/25 parse clean** against
+  `TaskProductionTimeSchema` — envelope, section shape, `+00:00` offsets, `typical`, every
+  nullable field. The `.nullable()`-vs-missing-key failure class is confirmed absent. Limits:
+  every one of the 25 returned `status: item_unvalued` / `item_binding: bound`, so **`ok` has
+  still never been observed** (no item in the workspace carries a price yet — the pricing fields
+  are what unblock it), and neither `detached` nor `mismatched` appeared. Live data also
+  **confirms F2 is not hypothetical**: 7 of the 25 tasks carry more than four sections (up to
+  seven), all `item_unvalued`, hence all routed to the frame that never truncates.
 
 ## Lifecycle transition
 
-- Current state: `IMPLEMENTED` — both tracks complete, checkpointed, awaiting first review
-- Next state: `REVIEWING` (prompt at `prompts/reviewer/PROMPT_reviewer_round_1_20260819.md`)
-  → `APPROVED` or `CHANGES_REQUESTED`
+- Current state: `CHANGES_REQUESTED` — round 1 reviewed 2026-08-19 by `Claude Opus 5`; four
+  should-fix findings (F1–F4), ten notes, three owner decision cards. Handoff at
+  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_1.md`.
+- Next state: `IMPLEMENTING` — all three cards answered 2026-08-19; fix prompt at
+  `prompts/implementer/PROMPT_fix_round_3_20260819.md` → `REVIEWING` round 2 → `APPROVED`
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
