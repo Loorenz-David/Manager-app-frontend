@@ -13,10 +13,18 @@ import { z } from "zod";
 export const ITEM_ECONOMICS_BASE_PATH = "/api/v1/item-economics";
 
 /** Every readiness fact in this domain is per major category. */
-export const MajorCategorySchema = z.enum(["wood", "seat"]);
-export type MajorCategory = z.infer<typeof MajorCategorySchema>;
-
-export const MAJOR_CATEGORIES = MajorCategorySchema.options;
+/**
+ * Re-exported from `@beyo/lib`, which owns the canonical definition — four
+ * packages need to agree on this domain and none may depend on the others.
+ * Kept exported here so existing consumers of `@beyo/item-economics` do not
+ * have to move.
+ */
+export {
+  MajorCategorySchema,
+  MAJOR_CATEGORIES,
+  isMajorCategory,
+} from "@beyo/lib";
+export type { MajorCategory } from "@beyo/lib";
 
 /**
  * The twelve-value status vocabulary, used identically by the valuation

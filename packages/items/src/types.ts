@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MajorCategorySchema } from "@beyo/lib";
+
 export const ITEM_CURRENCY = ["swedish_krona", "danish_krona", "euro"] as const;
 export type ItemCurrency = (typeof ITEM_CURRENCY)[number];
 
@@ -17,7 +19,14 @@ export const ItemDetailsFieldsSchema = z.object({
   item_position: z.string().trim().max(128).optional(),
   item_zone: z.string().trim().max(128).optional(),
   item_category_id: z.string().optional(),
-  major_category: z.string().optional(),
+  /**
+   * Strict on purpose (review N13): an unknown category must fail here rather
+   * than pass validation and then be dropped by the pricing card's render
+   * condition, which would submit a multiplied purchase price with nothing on
+   * screen. The read side stays permissive — see `MajorCategorySchema` in
+   * `@beyo/lib`.
+   */
+  major_category: MajorCategorySchema.optional(),
   /**
    * Whether this item should be tracked for upholstery at all. Absent means the
    * backend never recorded a choice and will default it to `true`; the key must

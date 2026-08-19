@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { cn } from "@beyo/lib";
+import { cn, type MajorCategory } from "@beyo/lib";
 import {
   BackendImage,
   BoxPicker,
@@ -16,6 +16,14 @@ import { useItemCategoryPickerFlow } from "../flows/use-item-category-picker.flo
 import { ITEM_CATEGORY_PICKER_SURFACE_ID } from "../surface-ids";
 import { preloadItemCategoryPickerSurface } from "../surfaces";
 
+/** Fails to compile if a category has no option — see the assertion below. */
+type AssertNever<T extends never> = T;
+
+/**
+ * Tied to the domain so adding a category to `MajorCategorySchema` fails to
+ * compile until the picker gains its option — otherwise a category exists that
+ * nobody can choose, and the pricing card silently never renders for it (N13).
+ */
 const MAJOR_CATEGORY_OPTIONS = [
   {
     value: "wood",
@@ -33,7 +41,22 @@ const MAJOR_CATEGORY_OPTIONS = [
     imageClassName: "size-[2.4rem]",
     testId: "item-major-category-seat-option",
   },
-] as const;
+] as const satisfies ReadonlyArray<{
+  value: MajorCategory;
+  label: string;
+  image: string;
+  imageClassName: string;
+  testId: string;
+}>;
+
+/**
+ * Compile-time exhaustiveness: this alias resolves only while every category in
+ * `MajorCategorySchema` has an option above. Add one to the enum without adding
+ * it here and the type error lands on this line — see the comment above.
+ */
+export type EveryMajorCategoryHasAnOption = AssertNever<
+  Exclude<MajorCategory, (typeof MAJOR_CATEGORY_OPTIONS)[number]["value"]>
+>;
 
 export function ItemCategorySelectionField(): React.JSX.Element {
   const { control } = useFormContext();

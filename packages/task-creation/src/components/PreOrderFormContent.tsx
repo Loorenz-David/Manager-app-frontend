@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { isMajorCategory } from "@beyo/lib";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
@@ -255,9 +256,17 @@ export function PreOrderFormContent({
     form.setValue("item.article_number", selectedItem.article_number, {
       shouldDirty: true,
     });
-    form.setValue("item.major_category", matchedCategory?.major_category, {
-      shouldDirty: true,
-    });
+    // The picker's `major_category` is read-side and deliberately untyped, so
+    // narrow it here rather than widening the form field (review N13).
+    form.setValue(
+      "item.major_category",
+      isMajorCategory(matchedCategory?.major_category)
+        ? matchedCategory.major_category
+        : undefined,
+      {
+        shouldDirty: true,
+      },
+    );
     form.setValue("item.quantity", selectedItem.quantity, {
       shouldDirty: true,
     });
@@ -602,7 +611,7 @@ export function PreOrderFormContent({
                   <ItemQuantityField />
                 </ContentCard>
               ) : null}
-              {majorCategory === "seat" || majorCategory === "wood" ? (
+              {isMajorCategory(majorCategory) ? (
                 <ContentCard>
                   <ItemPricingFieldGroup
                     majorCategory={majorCategory}

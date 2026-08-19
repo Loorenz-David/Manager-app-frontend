@@ -3,6 +3,15 @@ import { z } from "zod";
 export const ItemCategoryIdSchema = z.string().brand<"ItemCategoryId">();
 export type ItemCategoryId = z.infer<typeof ItemCategoryIdSchema>;
 
+/**
+ * The **read** side, deliberately permissive: a backend that adds a third major
+ * category must never blank the category picker. Do not tighten this to the
+ * enum — that failure mode has already cost this repo two blank pages.
+ *
+ * The write side is strict and lives in `@beyo/lib` (`MajorCategorySchema`);
+ * narrow with its `isMajorCategory` before writing one of these values into a
+ * form. Tight on the way out, forgiving on the way in.
+ */
 export const MajorCategorySchema = z.string();
 export type MajorCategory = z.infer<typeof MajorCategorySchema>;
 

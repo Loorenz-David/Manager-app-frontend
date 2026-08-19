@@ -16,6 +16,12 @@ export {
 } from "./client-id";
 export type { ClientIdEntity, ClientIdPrefix } from "./client-id";
 
+export {
+  MAJOR_CATEGORIES,
+  MajorCategorySchema,
+  isMajorCategory,
+} from "./types/major-category";
+export type { MajorCategory } from "./types/major-category";
 export { ApiEnvelopeSchema, ApiErrorSchema } from "./types/api";
 export type { ApiResponse } from "./types/api";
 

@@ -875,6 +875,26 @@ instead of an instruction, and the copy changed to match.
   moved to `archive/plan_1/`; `prompts/` and `handoffs/` hold only live state, which for this phase
   is none. This plan file stays in `plans/` as the phase row. Historical `prompts/<file>` references
   above resolve under `archive/plan_1/` and were not rewritten, per the charter.
+- `2026-08-19` `David` + `Claude Opus 5` (post-approval, **N13 closed at the source**): the two
+  predicates are now one. `MajorCategorySchema` moved to `@beyo/lib` — the only package all four
+  consumers already depend on, so no new edge and no cycle — and `@beyo/item-economics` re-exports
+  it rather than defining a second copy. The **write** side is now strict:
+  `ItemDetailsFieldsSchema.major_category` is the enum, not `z.string()`. The **read** side stays
+  `z.string()` in `@beyo/item-categories`, deliberately and now with a comment saying why — a
+  backend that adds a category must never blank the picker, which is the failure class that cost
+  this repo two blank pages. Tight on the way out, forgiving on the way in.
+  Both pricing gates now call `isMajorCategory(...)` instead of a literal disjunction, and the
+  three `setValue("item.major_category", …)` call sites narrow the read-side value explicitly —
+  the compiler found all three the moment the field became an enum, including one in
+  `ReturnFormContent` that no review had looked at.
+  The picker's `MAJOR_CATEGORY_OPTIONS` is tied to the domain by a compile-time exhaustiveness
+  assertion. **Mutation-verified:** adding a third value to the enum alone now fails typecheck at
+  that assertion (`TS2344: Type '"metal"' does not satisfy the constraint 'never'`) and turns 3
+  tests red; reverted byte-identically. The first attempt at that tie did *not* compile-enforce
+  anything — the comment claimed a guarantee the code did not provide, and the mutation is what
+  caught it.
+  Verified: typecheck clean, item-economics 125/125, task-creation 114/114, tasks 68/68, no new
+  lint diagnostics (ReturnFormContent went 3 → 2).
 
 ## Lifecycle transition
 
