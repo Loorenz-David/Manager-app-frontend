@@ -528,7 +528,16 @@ Reason copy — keyed off the status, naming the missing thing:
 | `not_configured_no_cost_model_version` | No cost model is set | Economics settings need an open cost model version. |
 | `currency_mismatch` | Prices are in different currencies | The item's price and the workshop configuration do not share a currency. |
 
-### Footer note
+### Footer note · **REMOVED FROM THE PRODUCT 2026-08-19**
+
+> The footer note no longer exists. The owner deleted `buildFooterNote`, `ProductionTimeFooterNote`
+> and the `pendingLabels` / `isUnfinishedSectionState` selection behind it after this phase was
+> approved (commit `b4819135`). Everything in this section, in §Decisions' "Footer note = remaining
+> + unfinished stages" entry, and in review findings **N4** and **G1** — the whole tone-vs-state
+> correction and the `failed` decision — describes a surface that is gone. It is kept because the
+> Review log cites it, not because it is specification.
+
+### Footer note (retired specification)
 
 `buildFooterNote(remainingSeconds, pendingLabels)`:
 
@@ -1100,12 +1109,28 @@ review surface is the component itself, not a mockup of it.
   `archive/plan_1/` — not rewritten, per the charter. This plan file stays in `plans/` as the phase
   row. The branch `pipeline/item-economics-phase-1` is **not** merged to `main`: it also carries
   the item_pricing_fields phase, which has not been reviewed.
+- `2026-08-19` `David` (post-approval product change): the **footer note was removed from the
+  widget entirely** — `buildFooterNote`, `ProductionTimeFooterNote`, the barrel export and the
+  `pendingLabels` / `isUnfinishedSectionState` selection, with their tests and fixtures (279
+  deletions, commit `b4819135`). Authored directly by the owner and authorized for commit as-is,
+  outside the pipeline; this phase was already `APPROVED` and archived, so the change supersedes
+  part of an approved plan rather than passing through it.
+  **Consequence worth stating plainly:** review findings **N4** (footer selected on the lossy
+  display tone rather than the section state) and **G1** (the `failed` member, decided by the owner
+  and pinned by a test) both corrected the selection rule this deletion removes. Both are now moot.
+  §Footer note is marked retired in place rather than deleted, so the citations above still
+  resolve. Item-economics drops 130 → 122 tests for this reason and no other.
+  Verified before committing: typecheck clean, 122/122, lint clean on every changed file, no
+  dangling reference to any footer symbol under `packages/` or `apps/`, and the workers Playwright
+  spec green 2/2 in both projects.
 
 ## Lifecycle transition
 
-- Current state: **`APPROVED`** (2026-08-19, `David`). Two review rounds, one fix cycle, one
-  owner-waived third round. Every finding resolved, dismissed on evidence, or deferred by owner
-  decision. Review handoffs at `archive/plan_1/handoff_..._review_{1,2}.md`.
+- Current state: **`APPROVED`** (2026-08-19, `David`), **superseded in part** the same day by an
+  owner-authored product change (`b4819135`) that removed the footer note. The approval stands for
+  what it reviewed; the widget as shipped no longer includes that surface. Two review rounds, one
+  fix cycle, one owner-waived third round. Review handoffs at
+  `archive/plan_1/handoff_..._review_{1,2}.md`.
 - Next state: none — the phase is closed. Two things outlive it and belong to other work:
   (a) **no `ok`-status response has ever been rendered**, so the entire budget frame is proven only
   against fixtures — pricing an item is what unblocks it, which is the item_pricing_fields phase;
