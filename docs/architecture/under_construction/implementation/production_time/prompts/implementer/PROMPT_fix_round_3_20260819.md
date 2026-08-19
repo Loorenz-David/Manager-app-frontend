@@ -198,8 +198,13 @@ viewport does not close.
 
 Commit when the fixes reach `IMPLEMENTED`, subject prefixed `CHECKPOINT (not approved):`, on the
 current branch `pipeline/item-economics-phase-1`. This is a standing authorization for the fix
-cycle — do not stop to ask. The baseline is `02ad6d01`, which carries three workstreams; your diff
-against it must contain only the perimeter above.
+cycle — do not stop to ask.
+
+**The baseline for the perimeter check is `6eb58482`, not the checkpoint `02ad6d01`.** An unrelated
+schema fix landed between them (`total_cost_minor` removed from the task-step schemas — the
+backend stopped sending it and the workers app's working-section list rendered nothing). It is not
+part of this cycle and must not be reverted or extended. Diff against `6eb58482`; your changes must
+contain only the perimeter above.
 
 ## Close
 
