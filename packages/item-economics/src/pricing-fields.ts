@@ -12,6 +12,11 @@ import { z } from "zod";
  * known when a task is created — so neither carries a required rule here or in
  * the host form's `superRefine`. `null` means "not filled in" and must never be
  * submitted as `0`.
+ *
+ * `purchase_cost_per_piece` is lookup-owned and read-only: it has no field-error
+ * renderer. Every ingestion point must therefore reject negative or non-finite
+ * values before writing this schema path, or whole-form validation can create
+ * an error the user has no control to correct.
  */
 export const ItemPricingFieldsSchema = z.object({
   purchase_cost_per_piece: z

@@ -66,13 +66,14 @@ describe("purchase price lookup prefill", () => {
   });
 
   it.each([
-    ["a negative price", -1],
-    ["NaN", Number.NaN],
-    ["positive infinity", Number.POSITIVE_INFINITY],
-    ["negative infinity", Number.NEGATIVE_INFINITY],
+    ["a zero price", 0, 0],
+    ["a negative price", -1, null],
+    ["NaN", Number.NaN, null],
+    ["positive infinity", Number.POSITIVE_INFINITY, null],
+    ["negative infinity", Number.NEGATIVE_INFINITY, null],
   ])(
-    "writes null for %s so validation cannot block the step",
-    async (_case, purchasePrice) => {
+    "sanitizes %s without blocking validation",
+    async (_case, purchasePrice, expectedValue) => {
       const { result } = renderHook(() =>
         useForm<PricingFormValues>({
           resolver: zodResolver(PricingFormSchema),
@@ -90,7 +91,7 @@ describe("purchase price lookup prefill", () => {
 
       expect(
         result.current.getValues("item_pricing.purchase_cost_per_piece"),
-      ).toBeNull();
+      ).toBe(expectedValue);
 
       let isValid = false;
       await act(async () => {

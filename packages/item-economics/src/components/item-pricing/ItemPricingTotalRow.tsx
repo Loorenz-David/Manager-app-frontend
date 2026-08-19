@@ -17,8 +17,8 @@ export type ItemPricingTotalRowProps = {
  * The running total under a per-piece price input: what the user typed, times
  * how many pieces, equals what will actually be saved.
  *
- * Only rendered for seats. A wood item is always one piece, so "1 pc × 1 200 kr
- * = 1 200 kr" would restate the input rather than explain it.
+ * Rendered for seats and whenever another category resolves to more than one
+ * piece. At a resolved quantity of one, the row would only restate the price.
  */
 export function ItemPricingTotalRow({
   perPiece,

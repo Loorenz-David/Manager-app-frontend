@@ -66,7 +66,9 @@ import {
   preloadScannerSlideSurface,
 } from "../surfaces";
 
-const INTERNAL_STEP_FIELDS_MAP: Record<
+// Exported so the pricing-validation boundary is regression-tested directly.
+// eslint-disable-next-line react-refresh/only-export-components
+export const INTERNAL_STEP_FIELDS_MAP: Record<
   string,
   FieldPath<InternalFormValues>[]
 > = {

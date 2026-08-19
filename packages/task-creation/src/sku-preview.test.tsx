@@ -14,6 +14,8 @@ import {
 } from "vitest";
 
 import { getSkuTemplateByTaskType } from "./api/get-sku-template-by-task-type";
+import { INTERNAL_STEP_FIELDS_MAP } from "./components/InternalFormContent";
+import { PRE_ORDER_STEP_FIELDS_MAP } from "./components/PreOrderFormContent";
 import { buildPreOrderFormDefaultValues } from "./lib/pre-order-form-default-values";
 import { buildReturnFormDefaultValues } from "./lib/return-form-default-values";
 import {
@@ -104,7 +106,12 @@ function buildSubmittableValues(
   return {
     ...defaults,
     ...overrides,
-    item: { ...defaults.item, ...overrides.item },
+    item: {
+      ...defaults.item,
+      item_category_id: "cat_1",
+      major_category: "wood" as const,
+      ...overrides.item,
+    },
     customer: {
       ...defaults.customer,
       display_name: "Ada",
@@ -227,14 +234,21 @@ describe("pre-order SKU preview", () => {
     const result = PreOrderFormSchema.safeParse(
       buildSubmittableValues({
         has_sku_template: true,
-        item: {
-          ...buildPreOrderFormDefaultValues(true).item,
-          sku: "MANUAL-SKU",
-        },
+        item: { sku: "MANUAL-SKU" },
       }),
     );
 
     expect(result.success).toBe(true);
+  });
+});
+
+describe("item-pricing step fields", () => {
+  it.each([
+    ["Internal item", INTERNAL_STEP_FIELDS_MAP.item],
+    ["Pre-order task", PRE_ORDER_STEP_FIELDS_MAP.task],
+  ])("keeps the read-only purchase cost out of the %s step", (_case, fields) => {
+    expect(fields).not.toContain("item_pricing.purchase_cost_per_piece");
+    expect(fields).toContain("item_pricing.expected_sale_price_per_piece");
   });
 });
 

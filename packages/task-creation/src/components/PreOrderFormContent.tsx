@@ -98,7 +98,9 @@ import {
   preloadShopifyShopPickerSheetSurface,
 } from "../surfaces";
 
-const PRE_ORDER_STEP_FIELDS_MAP: Record<
+// Exported so the pricing-validation boundary is regression-tested directly.
+// eslint-disable-next-line react-refresh/only-export-components
+export const PRE_ORDER_STEP_FIELDS_MAP: Record<
   string,
   FieldPath<PreOrderFormValues>[]
 > = {

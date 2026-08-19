@@ -262,6 +262,24 @@ export const PreOrderFormSchema = z
     if (!data.has_sku_template) {
       addItemIdentityIssue(data.item, ctx);
     }
+
+    // Load-bearing for pricing visibility: without a category the pricing card
+    // does not render, so a looked-up per-piece price could otherwise be
+    // multiplied and submitted without the user ever seeing it.
+    if (!data.item.major_category) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a category type.",
+        path: ["item", "major_category"],
+      });
+    } else if (!data.item.item_category_id) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Select a category.",
+        path: ["item", "item_category_id"],
+      });
+    }
+
     // No seat position/zone requirement here, deliberately: a pre-ordered item
     // is not in the building yet, so it has nowhere to be. Return and internal
     // tasks still require it.

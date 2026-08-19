@@ -66,7 +66,12 @@ function buildPreOrderValues(
   return {
     ...defaults,
     ...overrides,
-    item: { ...defaults.item, ...overrides.item },
+    item: {
+      ...defaults.item,
+      item_category_id: "cat_1",
+      major_category: "wood",
+      ...overrides.item,
+    },
     item_pricing: {
       ...defaults.item_pricing,
       ...overrides.item_pricing,
@@ -102,6 +107,64 @@ describe("inline item pricing schemas", () => {
     expect(PreOrderFormSchema.safeParse(buildPreOrderValues()).success).toBe(
       true,
     );
+  });
+
+  it.each([
+    [
+      "category type",
+      { major_category: undefined, item_category_id: undefined },
+      ["item", "major_category"],
+      "Select a category type.",
+    ],
+    [
+      "category",
+      { major_category: "wood" as const, item_category_id: undefined },
+      ["item", "item_category_id"],
+      "Select a category.",
+    ],
+  ])("requires a Pre-order %s", (_case, item, expectedPath, message) => {
+    const result = PreOrderFormSchema.safeParse(
+      buildPreOrderValues({ item }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ path: expectedPath, message }),
+      ]),
+    );
+  });
+
+  it("cannot normalize a hidden looked-up purchase cost without a category", () => {
+    const values = buildPreOrderValues({
+      item: {
+        major_category: undefined,
+        item_category_id: undefined,
+        quantity: 4,
+      },
+      item_pricing: {
+        purchase_cost_per_piece: 1250.5,
+        expected_sale_price_per_piece: null,
+      },
+    });
+    const parsed = PreOrderFormSchema.safeParse(values);
+    const payload = parsed.success
+      ? normalizeReturnFormPayload(
+          parsed.data,
+          ids,
+          "pre_order",
+          { forceItemInclusion: true },
+        )
+      : null;
+
+    expect(parsed.success).toBe(false);
+    expect(payload).toBeNull();
+    expect(
+      Boolean(
+        payload &&
+          "purchase_cost_minor" in (payload.item as Record<string, unknown>),
+      ),
+    ).toBe(false);
   });
 
   it("still rejects a negative price on the pricing field path", () => {
