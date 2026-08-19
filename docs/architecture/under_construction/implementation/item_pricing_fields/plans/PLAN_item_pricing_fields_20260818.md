@@ -802,14 +802,29 @@ instead of an instruction, and the copy changed to match.
   byte-identical though unstamped. N10 folded here: §Copy retired, the §9 contract summary
   rewritten to the current inline-re-pricing rule, decision 5's reasoning re-grounded, criterion 1
   amended with the composition hazard. N9, N11, N12, S4 and S5 routed to fix round 4.
+- `2026-08-19` `Codex` (fix round 4): B3, S4, S5, N9 and N11 implemented. Committed as `1737adda`.
+  **All three required mutation probes went red** — `>= 0` → `> 0` (S4), restoring
+  `purchase_cost_per_piece` to `INTERNAL_STEP_FIELDS_MAP.item` (S5), removing the new Pre-order
+  category rule (B3, 3 tests failed) — each reverted and checksum-verified. That is the round-3 gap
+  closed: charter rule 11 as a requirement rather than a forecast. Two honest deviations, both
+  correct: N11 took the prompt's comment fallback because narrowing the error routing spans **four**
+  expressions, not the two the prompt claimed (each form also routes whole-form errors in its final
+  `onBeforeAdvance`); and requiring the category invalidated `sku-preview.test.tsx`'s pre-order
+  success fixtures, which were repaired and declared — the prompt anticipated this.
+- `2026-08-19` `Claude Opus 5` (coordinator, round 4 folded): perimeter is exactly the eight
+  declared files plus the handoff. task-creation **114/114**, typecheck clean, lint shows only the
+  five inherited diagnostics. The B3 rule mirrors `InternalFormSchema`'s two branches and carries a
+  comment naming it load-bearing for pricing visibility, so it is not removed later as redundant.
+  **Baseline note for round 3's perimeter check:** an unrelated owner-authored commit (`b4819135`,
+  the production-time footer-note removal) landed after `1737adda`, which is why item-economics now
+  reads 122 rather than the 130 in this cycle's prompt. It is not a write by this phase.
 
 ## Lifecycle transition
 
-- Current state: `CHANGES_REQUESTED` — review round 2 (`handoffs/reviewer/handoff_PLAN_item_pricing_fields_20260818_review_2.md`).
-  The three round-1 findings are closed; one new blocking finding (B3) and two missing regression
-  guards (S4, S5) remain, plus owner card 1.
-- Next state: `IMPLEMENTING` — card 1 answered 2026-08-19 (category mandatory on Pre-order); fix
-  prompt at `prompts/implementer/PROMPT_fix_round_4_20260819.md` → `REVIEWING` round 3.
+- Current state: `IMPLEMENTED` — fix round 4 complete (`1737adda`), B3/S4/S5/N9/N11 addressed,
+  all three required mutation probes red, independently re-verified.
+- Next state: `REVIEWING` round 3 (prompt at
+  `prompts/reviewer/PROMPT_reviewer_round_3_20260819.md`) → `APPROVED` or another fix cycle.
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
