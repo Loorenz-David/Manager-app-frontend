@@ -72,7 +72,6 @@ import {
   normalizeReturnFormPayload,
 } from "../lib/normalize-task-form-payload";
 import { buildPreOrderFormDefaultValues } from "../lib/pre-order-form-default-values";
-import { useInlinePricingRefusal } from "../lib/inline-pricing-refusal";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { selectPreorderProductImage } from "../lib/select-preorder-product-image";
 import { useTaskCreationFormContext } from "../providers/TaskCreationFormProvider";
@@ -115,7 +114,6 @@ const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
-    "item_pricing.purchase_cost_per_piece",
     "item_pricing.expected_sale_price_per_piece",
     "shopIntegrationIds",
     "inventoryQuantities",
@@ -211,8 +209,6 @@ export function PreOrderFormContent({
     control: form.control,
     name: "item.quantity",
   });
-  const { showPricedItemRefusal, handleInlinePricingError } =
-    useInlinePricingRefusal(form.watch);
   const itemArticleNumber = useWatch({
     control: form.control,
     name: "item.article_number",
@@ -270,15 +266,6 @@ export function PreOrderFormContent({
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
-
-  function handleClearPrices(): void {
-    form.setValue("item_pricing.purchase_cost_per_piece", null, {
-      shouldDirty: true,
-    });
-    form.setValue("item_pricing.expected_sale_price_per_piece", null, {
-      shouldDirty: true,
-    });
-  }
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {
     const scanFormat: ScanFormat = tab === "article_number" ? "barcode" : "qr";
@@ -411,15 +398,11 @@ export function PreOrderFormContent({
             result,
             hadUpholstery: Boolean(payload.item_upholstery),
           });
-        } catch (error) {
+        } catch {
           // useCreateTask already notifies; drop the overlay so the form
           // stays editable — the task was not created.
           setSubmitOverlayPhase(null);
           clearSubmittedSku();
-
-          if (handleInlinePricingError(error)) {
-            staged.navigateTo("task");
-          }
         }
       })(),
   });
@@ -621,9 +604,7 @@ export function PreOrderFormContent({
                 <ContentCard>
                   <ItemPricingFieldGroup
                     majorCategory={majorCategory}
-                    onClearPrices={handleClearPrices}
                     quantity={itemQuantity}
-                    showPricedItemRefusal={showPricedItemRefusal}
                   />
                 </ContentCard>
               ) : null}

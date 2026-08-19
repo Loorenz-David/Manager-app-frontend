@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { ItemPricingFieldsSchema } from "@beyo/item-economics";
 import { ItemLookupResultSchema, type ItemLookupResult } from "@beyo/items";
 import { useForm } from "react-hook-form";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 
 import {
   applyPurchasePriceLookupResult,
@@ -15,6 +18,10 @@ type PricingFormValues = {
     purchase_cost_per_piece: number | null;
   };
 };
+
+const PricingFormSchema = z.object({
+  item_pricing: ItemPricingFieldsSchema.pick({ purchase_cost_per_piece: true }),
+});
 
 function buildLookupResult(
   overrides: Partial<ItemLookupResult> = {},
@@ -57,6 +64,41 @@ describe("purchase price lookup prefill", () => {
       result.current.getValues("item_pricing.purchase_cost_per_piece"),
     ).toBeNull();
   });
+
+  it.each([
+    ["a negative price", -1],
+    ["NaN", Number.NaN],
+    ["positive infinity", Number.POSITIVE_INFINITY],
+    ["negative infinity", Number.NEGATIVE_INFINITY],
+  ])(
+    "writes null for %s so validation cannot block the step",
+    async (_case, purchasePrice) => {
+      const { result } = renderHook(() =>
+        useForm<PricingFormValues>({
+          resolver: zodResolver(PricingFormSchema),
+          defaultValues: {
+            item_pricing: { purchase_cost_per_piece: 1250.5 },
+          },
+        }),
+      );
+
+      act(() => {
+        applyPurchasePriceLookupResult(result.current, {
+          purchase_price: purchasePrice,
+        });
+      });
+
+      expect(
+        result.current.getValues("item_pricing.purchase_cost_per_piece"),
+      ).toBeNull();
+
+      let isValid = false;
+      await act(async () => {
+        isValid = await result.current.trigger();
+      });
+      expect(isValid).toBe(true);
+    },
+  );
 
   it("includes the purchase price in the lookup signature", () => {
     expect(

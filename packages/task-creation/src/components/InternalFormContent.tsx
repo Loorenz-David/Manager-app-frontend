@@ -52,7 +52,6 @@ import {
 } from "../lib/internal-item-position-memory";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import { normalizeInternalFormPayload } from "../lib/normalize-task-form-payload";
-import { useInlinePricingRefusal } from "../lib/inline-pricing-refusal";
 import { prefetchTaskCreationFormData } from "../lib/prefetch-task-creation-form-data";
 import { TaskCreationAssignmentFooter } from "./TaskCreationAssignmentFooter";
 import { UpholsteryFieldGroup } from "./UpholsteryFieldGroup";
@@ -83,7 +82,6 @@ const INTERNAL_STEP_FIELDS_MAP: Record<
     "item.can_have_upholstery",
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
-    "item_pricing.purchase_cost_per_piece",
     "item_pricing.expected_sale_price_per_piece",
   ],
   assignment: ["working_section_assignments"],
@@ -157,8 +155,6 @@ export function InternalFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.quantity",
   });
-  const { showPricedItemRefusal, handleInlinePricingError } =
-    useInlinePricingRefusal(form.watch);
   const itemArticleNumber = useWatch({
     control: form.control,
     name: "item.article_number",
@@ -207,15 +203,6 @@ export function InternalFormContent(): React.JSX.Element {
     lastAppliedLookupSignatureRef.current = signature;
     return true;
   });
-
-  function handleClearPrices(): void {
-    form.setValue("item_pricing.purchase_cost_per_piece", null, {
-      shouldDirty: true,
-    });
-    form.setValue("item_pricing.expected_sale_price_per_piece", null, {
-      shouldDirty: true,
-    });
-  }
 
   function handleOpenScanner(tab: "article_number" | "sku"): void {
     const scanFormat: ScanFormat = tab === "article_number" ? "barcode" : "qr";
@@ -290,52 +277,43 @@ export function InternalFormContent(): React.JSX.Element {
           currentUserClientId,
         });
 
-        try {
-          const result = await createTask.mutateAsync(payload);
-          writeRememberedInternalItemPosition(
-            currentUserClientId,
-            values.item.item_position,
-          );
-          callbacks.onTaskCreated?.({
-            result,
-            hadUpholstery: Boolean(payload.item_upholstery),
-          });
-          form.reset({
-            item: {
-              designer: "",
-              article_number: "",
-              sku: "",
-              quantity: 1,
-              item_position: "",
-              item_zone: "",
-              item_category_id: undefined,
-              major_category: undefined,
-            },
-            item_upholstery: {
-              upholstery_client_id: null,
-              upholstery_amount_meters: null,
-            },
-            item_pricing: {
-              purchase_cost_per_piece: null,
-              expected_sale_price_per_piece: null,
-            },
-            item_issues: [],
-            working_section_assignments: [],
-            ready_by_at: null,
-            note_content: null,
-          });
-          regenerateIds();
-          lastAppliedLookupSignatureRef.current = null;
-          staged.navigateTo("item");
-          surface.close(TASK_CREATION_INTERNAL_SURFACE_ID);
-        } catch (error) {
-          if (handleInlinePricingError(error)) {
-            staged.navigateTo("item");
-            return;
-          }
-
-          throw error;
-        }
+        const result = await createTask.mutateAsync(payload);
+        writeRememberedInternalItemPosition(
+          currentUserClientId,
+          values.item.item_position,
+        );
+        callbacks.onTaskCreated?.({
+          result,
+          hadUpholstery: Boolean(payload.item_upholstery),
+        });
+        form.reset({
+          item: {
+            designer: "",
+            article_number: "",
+            sku: "",
+            quantity: 1,
+            item_position: "",
+            item_zone: "",
+            item_category_id: undefined,
+            major_category: undefined,
+          },
+          item_upholstery: {
+            upholstery_client_id: null,
+            upholstery_amount_meters: null,
+          },
+          item_pricing: {
+            purchase_cost_per_piece: null,
+            expected_sale_price_per_piece: null,
+          },
+          item_issues: [],
+          working_section_assignments: [],
+          ready_by_at: null,
+          note_content: null,
+        });
+        regenerateIds();
+        lastAppliedLookupSignatureRef.current = null;
+        staged.navigateTo("item");
+        surface.close(TASK_CREATION_INTERNAL_SURFACE_ID);
       })(),
   });
 
@@ -436,9 +414,7 @@ export function InternalFormContent(): React.JSX.Element {
                 <ContentCard>
                   <ItemPricingFieldGroup
                     majorCategory={majorCategory}
-                    onClearPrices={handleClearPrices}
                     quantity={itemQuantity}
-                    showPricedItemRefusal={showPricedItemRefusal}
                   />
                 </ContentCard>
               ) : null}

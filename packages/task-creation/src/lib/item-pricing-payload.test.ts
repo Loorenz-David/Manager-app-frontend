@@ -123,7 +123,7 @@ describe("inline item pricing schemas", () => {
 });
 
 describe("inline item pricing payload", () => {
-  it("rounds each per-piece amount to integer minor units before multiplying", () => {
+  it("keeps wood prices per piece and multiplies the looked-up quantity", () => {
     const payload = normalizeInternalFormPayload(
       buildInternalValues({
         purchase_cost_per_piece: 19.995,

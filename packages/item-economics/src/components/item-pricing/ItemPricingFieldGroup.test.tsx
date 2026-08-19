@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { FormProvider, useForm } from "react-hook-form";
 
 // Note: prices render with a non-breaking space ("1\u00a0200 kr"), but
@@ -22,14 +22,10 @@ type HostValues = { item_pricing: ItemPricingFields };
 function Host({
   majorCategory,
   quantity,
-  showPricedItemRefusal,
-  onClearPrices,
   defaults = EMPTY_ITEM_PRICING_FIELDS,
 }: {
   majorCategory: string | null;
   quantity: number | null;
-  showPricedItemRefusal?: boolean;
-  onClearPrices?: () => void;
   defaults?: ItemPricingFields;
 }): React.JSX.Element {
   const form = useForm<HostValues>({
@@ -41,8 +37,6 @@ function Host({
       <ItemPricingFieldGroup
         majorCategory={majorCategory}
         quantity={quantity}
-        showPricedItemRefusal={showPricedItemRefusal}
-        onClearPrices={onClearPrices}
       />
     </FormProvider>
   );
@@ -116,8 +110,8 @@ describe("seat — per piece, with a running total", () => {
   });
 });
 
-describe("wood — a single piece, no breakdown", () => {
-  it("omits the total row entirely", () => {
+describe("wood — show a breakdown only for a multi-piece lookup", () => {
+  it("omits the total row at the ordinary resolved quantity of one", () => {
     render(
       <Host
         majorCategory="wood"
@@ -162,6 +156,29 @@ describe("wood — a single piece, no breakdown", () => {
     expect(
       screen.queryByTestId("item-purchase-price-total"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the multiplied breakdown when lookup quantity is greater than one", () => {
+    render(
+      <Host
+        majorCategory="wood"
+        quantity={2}
+        defaults={{
+          purchase_cost_per_piece: 1250.5,
+          expected_sale_price_per_piece: 4000,
+        }}
+      />,
+    );
+
+    expect(
+      screen.getByTestId("item-purchase-price-breakdown"),
+    ).toHaveTextContent("2 pcs × 1 250,5 kr");
+    expect(screen.getByTestId("item-purchase-price-total")).toHaveTextContent(
+      "2 501 kr",
+    );
+    expect(
+      screen.getByTestId("item-expected-sale-price-total"),
+    ).toHaveTextContent("8 000 kr");
   });
 });
 
@@ -209,41 +226,5 @@ describe("purchase price is read-only", () => {
     expect(screen.getByTestId("item-purchase-price-total")).toHaveTextContent(
       "5 002 kr",
     );
-  });
-});
-
-describe("priced-item refusal", () => {
-  it("stays hidden by default", () => {
-    render(<Host majorCategory="seat" quantity={4} />);
-
-    expect(
-      screen.queryByTestId("item-pricing-refusal-notice"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("explains what to do, beside the prices it refers to", () => {
-    render(<Host majorCategory="seat" quantity={4} showPricedItemRefusal />);
-
-    const notice = screen.getByTestId("item-pricing-refusal-notice");
-    expect(notice).toHaveTextContent("This item already has a price");
-    expect(notice).toHaveTextContent("Remove the prices from this task");
-    expect(screen.getByTestId("item-purchase-price")).toBeInTheDocument();
-  });
-
-  it("offers a button, because the purchase price cannot be cleared by hand", async () => {
-    const user = userEvent.setup();
-    const onClearPrices = vi.fn();
-    render(
-      <Host
-        majorCategory="seat"
-        quantity={4}
-        showPricedItemRefusal
-        onClearPrices={onClearPrices}
-      />,
-    );
-
-    await user.click(screen.getByTestId("item-pricing-refusal-action"));
-
-    expect(onClearPrices).toHaveBeenCalledTimes(1);
   });
 });

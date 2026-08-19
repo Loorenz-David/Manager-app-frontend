@@ -39,9 +39,17 @@ export function applyPurchasePriceLookupResult(
   form: PurchasePriceForm,
   selectedItem: Pick<ItemLookupResult, "purchase_price">,
 ): void {
+  const purchasePrice = selectedItem.purchase_price;
+  const validPurchasePrice =
+    purchasePrice != null &&
+    Number.isFinite(purchasePrice) &&
+    purchasePrice >= 0
+      ? purchasePrice
+      : null;
+
   form.setValue(
     "item_pricing.purchase_cost_per_piece",
-    selectedItem.purchase_price ?? null,
+    validPurchasePrice,
     { shouldDirty: true },
   );
 }
