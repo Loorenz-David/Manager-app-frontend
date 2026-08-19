@@ -1089,15 +1089,31 @@ review surface is the component itself, not a mockup of it.
   exactly that one test (1 failed / 132), then reverted byte-identically. 132/132 pass, typecheck
   and lint clean. §Footer note amended in its home artifact; the "carried under review" marker is
   retired.
+- `2026-08-19` `David`: **APPROVED.** Round 3 waived — the G1 correction was one line plus one
+  test, specified precisely by the reviewer, implemented exactly as specified and mutation-checked,
+  on top of a round-2 pass that re-derived everything else and found the perimeter clean. A third
+  round would have cost more than it could discover. Waiver recorded here rather than left
+  implicit.
+- `2026-08-19` `Claude Opus 5` (coordinator, closeout): the phase's spent prompts (5) and consumed
+  handoffs (4) moved to `archive/plan_1/`; `prompts/` and `handoffs/` now hold only live state,
+  which for this phase is none. Historical references to `prompts/<file>` in this log resolve under
+  `archive/plan_1/` — not rewritten, per the charter. This plan file stays in `plans/` as the phase
+  row. The branch `pipeline/item-economics-phase-1` is **not** merged to `main`: it also carries
+  the item_pricing_fields phase, which has not been reviewed.
 
 ## Lifecycle transition
 
-- Current state: `CHANGES_REQUESTED` — round 2 reviewed 2026-08-19 by `Claude Opus 5`. All eight
-  round-1 items resolved and re-derived; one should-fix remains (G1, `failed` in
-  `isUnfinishedSectionState`) plus four notes. Handoff at
-  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_2.md`.
-- Next state: `IMPLEMENTING` — a one-item fix cycle gated on owner card 1 (drop `failed`, or keep
-  it and amend §Footer note); a test is required either way → `REVIEWING` round 3 → `APPROVED`
+- Current state: **`APPROVED`** (2026-08-19, `David`). Two review rounds, one fix cycle, one
+  owner-waived third round. Every finding resolved, dismissed on evidence, or deferred by owner
+  decision. Review handoffs at `archive/plan_1/handoff_..._review_{1,2}.md`.
+- Next state: none — the phase is closed. Two things outlive it and belong to other work:
+  (a) **no `ok`-status response has ever been rendered**, so the entire budget frame is proven only
+  against fixtures — pricing an item is what unblocks it, which is the item_pricing_fields phase;
+  (b) six items await a maintenance phase — N1 (`useSyncExternalStore` clock, shared with
+  `@beyo/stats`), N3 (fixtures re-implementing the transform), N6 (platform-pinned native bindings
+  break `npm ci` off darwin-arm64), N9 (`isPending` vs `isLoading`, shared with
+  `TaskFlowTimeline`), G2 (build footer labels inside `toRows` to remove the index invariant) and
+  G4 (registry tests assert identity, not invocation).
 - Transition owner: `David`
-- Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
-  consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
+- Archive: **done** 2026-08-19 — 5 spent prompts and 4 consumed handoffs under `archive/plan_1/`,
+  moved with the approval-gate commit.
