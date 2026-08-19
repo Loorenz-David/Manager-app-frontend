@@ -541,8 +541,25 @@ Reason copy — keyed off the status, naming the missing thing:
 - No budget → `null`.
 
 **Which labels count as pending is the caller's decision, not the builder's.** The transform
-passes rows that are paused or not yet started, excluding the active row (the expanded row
+passes rows whose **section state** is unfinished, excluding the active row (the expanded row
 already speaks for the stage in progress) and excluding excluded rows.
+
+Amended 2026-08-19 after review N4. The original wording said "paused or not yet started", and
+the code selected on the row's display *tone* — which is lossy: `stateToTone` collapses nine
+states into six, mapping `skipped` and `cancelled` onto `pending`, so terminal work was named as
+work still to come while `blocked` never was. Selection now reads the section state directly.
+
+The unfinished set is `pending`, `paused`, `ended_shift`, `blocked`, `failed`. **`failed` is
+carried under review** — the backend handoff's `share_state` table defines `excluded` as "every
+step of this section ended skipped, cancelled **or failed**", which groups `failed` with the
+terminal outcomes, and the Decisions entry above says the footer names sections "not yet
+terminal". A section whose only pass failed should therefore already be filtered as `excluded`;
+a section with one failed pass and one pending pass is the case that decides whether including
+`failed` is redundant or wrong. Routed to re-review round 2 as a named probe.
+
+Selection pairs `sections[index]` with `rows[index]`. That is safe only because `toRows` is a
+1:1 `dto.sections.map(...)` and criterion 3 forbids reordering — an invariant the code now
+depends on but does not assert.
 `production-time-fixtures.ts` carries a reference implementation of that selection.
 
 ### Skeleton
@@ -997,14 +1014,26 @@ review surface is the component itself, not a mockup of it.
   are what unblock it), and neither `detached` nor `mismatched` appeared. Live data also
   **confirms F2 is not hypothetical**: 7 of the 25 tasks carry more than four sections (up to
   seven), all `item_unvalued`, hence all routed to the frame that never truncates.
+- `2026-08-19` `Codex` (fix round 3): all eight items implemented inside the authorized perimeter
+  — F2, N2, F3, N4, F4, N5, N7, N8. Committed as `0f11125e`.
+- `2026-08-19` `Claude Opus 5` (coordinator, fix round folded): verified rather than accepted.
+  Perimeter is exactly the eleven declared files plus the handoff — nothing outside, no prompt or
+  plan edit, clean tree. Suites re-run independently: typecheck clean, item-economics **131/131**
+  (up from 108), realtime 5/5, the three new registry tests 1/1 each, and Playwright 2/2 in both
+  projects against the owner's running app. The F3 mutation probe now bites (deleting
+  `case "paused":` fails exactly one test), which is what round 1 proved it did not.
+  Two items carried into re-review round 2 rather than settled here: (a) `failed` in
+  `isUnfinishedSectionState` — see the amendment to §Footer note above; (b) the new
+  `sections[index]`/`rows[index]` pairing in `pendingLabels`, which is correct today but rests on
+  an unasserted 1:1 invariant. §Footer note amended in its home artifact to describe
+  state-based selection.
 
 ## Lifecycle transition
 
-- Current state: `CHANGES_REQUESTED` — round 1 reviewed 2026-08-19 by `Claude Opus 5`; four
-  should-fix findings (F1–F4), ten notes, three owner decision cards. Handoff at
-  `handoffs/reviewer/handoff_PLAN_production_time_widget_20260818_review_1.md`.
-- Next state: `IMPLEMENTING` — all three cards answered 2026-08-19; fix prompt at
-  `prompts/implementer/PROMPT_fix_round_3_20260819.md` → `REVIEWING` round 2 → `APPROVED`
+- Current state: `IMPLEMENTED` — fix round 3 complete (`0f11125e`), all eight round-1 items
+  addressed and independently re-verified. Awaiting delta-scoped re-review.
+- Next state: `REVIEWING` round 2 (prompt at
+  `prompts/reviewer/PROMPT_reviewer_round_2_20260819.md`) → `APPROVED` or another fix cycle
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
