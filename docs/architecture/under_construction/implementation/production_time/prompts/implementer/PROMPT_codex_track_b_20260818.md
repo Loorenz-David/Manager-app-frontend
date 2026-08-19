@@ -1,3 +1,10 @@
+---
+plan: PLAN_production_time_widget_20260818
+role: implementer
+round: 1
+date: 2026-08-18
+---
+
 # Codex prompt — Production time widget, Track B (logic)
 
 Copy everything below the line into Codex.

@@ -1,3 +1,10 @@
+---
+plan: PLAN_item_pricing_fields_20260818
+role: implementer
+round: 2
+date: 2026-08-19
+---
+
 # Codex prompt — purchase price from the item lookup (Track B addendum)
 
 Copy everything below the line into Codex.

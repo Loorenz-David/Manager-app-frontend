@@ -1,3 +1,10 @@
+---
+plan: PLAN_production_time_widget_20260818
+role: implementer
+round: 2
+date: 2026-08-18
+---
+
 # Codex prompt — socket registry composition fix (Track B, step 9)
 
 Copy everything below the line into Codex. This is a continuation of the Track B session, not a new task.

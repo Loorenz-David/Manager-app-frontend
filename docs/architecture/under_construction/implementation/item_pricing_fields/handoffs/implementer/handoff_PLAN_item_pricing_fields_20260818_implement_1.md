@@ -1,6 +1,7 @@
 ---
 plan: PLAN_item_pricing_fields_20260818
 role: implement
+round: 1
 state: implemented
 date: 2026-08-19
 actor: Codex

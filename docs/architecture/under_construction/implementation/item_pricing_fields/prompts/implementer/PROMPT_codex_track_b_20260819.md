@@ -1,3 +1,10 @@
+---
+plan: PLAN_item_pricing_fields_20260818
+role: implementer
+round: 1
+date: 2026-08-19
+---
+
 # Codex prompt — Item pricing fields, Track B (logic)
 
 **Precondition:** Track A must be built and merged first. Do not send this until

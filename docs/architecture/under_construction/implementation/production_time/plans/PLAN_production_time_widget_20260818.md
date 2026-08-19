@@ -913,9 +913,23 @@ review surface is the component itself, not a mockup of it.
   for every future package. Spec added to §Track B step 9. `21_realtime.md` is not violated —
   it documents the spread pattern but never contemplated two maps claiming one event; that gap
   should be folded back into the contract once this ships.
+- `2026-08-19` `Claude Opus 5` (coordinator): checkpointed and normalized. All three intertwined
+  workstreams were still untracked — no commit had ever been made — so the charter's two
+  perimeter claims ("probes reverted", "nothing changed outside the perimeter") were structurally
+  unverifiable. Committed as one `CHECKPOINT (not approved):` baseline on branch
+  `pipeline/item-economics-phase-1`; the streams edit the same lines in the same files
+  (`packages/items/src/types.ts`, `normalize-task-form-payload.ts`) and do not separate into
+  truthful standalone commits. Folder normalized to the charter layout: the plan moved to
+  `plans/`, the spent Codex prompts to `prompts/implementer/` (they were orphan rows at the
+  project root), row-schema frontmatter added to every prompt and handoff. Archiving was
+  requested and declined: it is step 2 of the closeout ritual at `APPROVED`, and no review round
+  has been run.
 
 ## Lifecycle transition
 
-- Current state: `under_construction`
-- Next state: `approved` (owner review) → Track A implementation → Track B implementation
+- Current state: `IMPLEMENTED` — both tracks complete, checkpointed, awaiting first review
+- Next state: `REVIEWING` (prompt at `prompts/reviewer/PROMPT_reviewer_round_1_20260819.md`)
+  → `APPROVED` or `CHANGES_REQUESTED`
 - Transition owner: `David`
+- Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
+  consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
