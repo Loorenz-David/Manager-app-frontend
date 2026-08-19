@@ -2,6 +2,7 @@ import { cn } from "@beyo/lib";
 import { StatePill } from "@beyo/ui";
 
 import {
+  buildBudgetLine,
   formatPassCount,
   type ProductionTimeRowViewModel,
 } from "../../lib/production-time-view-model";
@@ -29,6 +30,12 @@ export function ProductionTimeRow({
 }: ProductionTimeRowProps): React.JSX.Element {
   const comparison = showTypicalComparison ? row.typicalComparisonLabel : null;
   const passCount = formatPassCount(row.stepCount);
+  // The active row states its budget inside its own detail block, beside the
+  // bar that draws it. Every other row has no bar, so it says it here — which
+  // is the whole point: a pending stage has to be able to look tight.
+  const budgetLine = row.detail
+    ? null
+    : buildBudgetLine(row.allowanceLabel, row.typicalLabel);
 
   return (
     <div
@@ -107,9 +114,19 @@ export function ProductionTimeRow({
         </p>
       ) : null}
 
+      {budgetLine ? (
+        <p
+          className="mt-0.5 text-xs text-muted-foreground"
+          data-testid="production-time-row-budget"
+        >
+          {budgetLine}
+        </p>
+      ) : null}
+
       {row.detail ? (
         <div className="mt-2">
           <ProductionTimeRowDetail
+            allowanceLabel={row.allowanceLabel}
             detail={row.detail}
             typicalLabel={row.typicalLabel}
           />

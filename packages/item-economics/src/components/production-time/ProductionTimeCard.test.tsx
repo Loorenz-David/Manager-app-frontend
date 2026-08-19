@@ -62,6 +62,76 @@ function viewModelWithRows(
   };
 }
 
+describe("ProductionTimeCard — the allowance on screen", () => {
+  it("shows every row its allowance, working and pending alike", () => {
+    const rows = fiveRowsWithLastActive().map((row, index) => ({
+      ...row,
+      allowanceLabel: `${index + 1}m allowed`,
+      typicalLabel: `typical ${index + 2}m`,
+    }));
+
+    render(<ProductionTimeCard viewModel={viewModelWithRows("budget", rows)} />);
+
+    const budgetLines = screen.getAllByTestId("production-time-row-budget");
+    expect(budgetLines).toHaveLength(rows.length);
+    expect(budgetLines[0]).toHaveTextContent("1m allowed · typical 2m");
+  });
+
+  it("says the allowance alone when the section has no typical yet", () => {
+    const rows = fiveRowsWithLastActive()
+      .slice(0, 1)
+      .map((row) => ({
+        ...row,
+        detail: null,
+        isActive: false,
+        allowanceLabel: "26m allowed",
+        typicalLabel: null,
+      }));
+
+    render(<ProductionTimeCard viewModel={viewModelWithRows("budget", rows)} />);
+
+    expect(screen.getByTestId("production-time-row-budget")).toHaveTextContent(
+      "26m allowed",
+    );
+  });
+
+  it("renders no budget line at all when the row has neither figure", () => {
+    const rows = fiveRowsWithLastActive()
+      .slice(0, 1)
+      .map((row) => ({
+        ...row,
+        detail: null,
+        isActive: false,
+        allowanceLabel: null,
+        typicalLabel: null,
+      }));
+
+    render(<ProductionTimeCard viewModel={viewModelWithRows("budget", rows)} />);
+
+    expect(
+      screen.queryByTestId("production-time-row-budget"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("leaves the degraded frame alone — it has no allowances to show", () => {
+    // The no-budget card's rows carry a null allowance by construction, so the
+    // line must not appear there. Guards the "degraded frame unchanged" rule.
+    const rows = fiveRowsWithLastActive().map((row) => ({
+      ...row,
+      allowanceLabel: null,
+      typicalLabel: null,
+    }));
+
+    render(
+      <ProductionTimeCard viewModel={viewModelWithRows("no_budget", rows)} />,
+    );
+
+    expect(
+      screen.queryByTestId("production-time-row-budget"),
+    ).not.toBeInTheDocument();
+  });
+});
+
 describe("ProductionTimeCard — budget state", () => {
   it("renders the headline, the bar and the pipeline in payload order", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);

@@ -23,6 +23,7 @@ function row(
     stepCount: 1,
     isActive: false,
     isExcluded: false,
+    allowanceLabel: null,
     typicalLabel: null,
     typicalComparisonLabel: null,
     detail: null,

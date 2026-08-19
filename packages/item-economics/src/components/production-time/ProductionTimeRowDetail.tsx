@@ -1,6 +1,9 @@
 import { cn } from "@beyo/lib";
 
-import type { ProductionTimeRowDetailViewModel } from "../../lib/production-time-view-model";
+import {
+  buildBudgetLine,
+  type ProductionTimeRowDetailViewModel,
+} from "../../lib/production-time-view-model";
 import {
   PRODUCTION_TIME_DANGER_TEXT,
   PRODUCTION_TIME_SUCCESS_TEXT,
@@ -9,6 +12,8 @@ import {
 
 export type ProductionTimeRowDetailProps = {
   detail: ProductionTimeRowDetailViewModel;
+  /** "3m allowed" — names the number the bar's full width represents. */
+  allowanceLabel: string | null;
   typicalLabel: string | null;
 };
 
@@ -19,9 +24,11 @@ export type ProductionTimeRowDetailProps = {
  */
 export function ProductionTimeRowDetail({
   detail,
+  allowanceLabel,
   typicalLabel,
 }: ProductionTimeRowDetailProps): React.JSX.Element {
   const isOverShare = detail.verdictTone === "over_share";
+  const budgetLine = buildBudgetLine(allowanceLabel, typicalLabel);
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="production-time-row-detail">
@@ -53,8 +60,11 @@ export function ProductionTimeRowDetail({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <span className="min-w-0 truncate text-sm text-muted-foreground">
-          {typicalLabel}
+        <span
+          className="min-w-0 truncate text-sm text-muted-foreground"
+          data-testid="production-time-row-budget"
+        >
+          {budgetLine}
         </span>
         <span
           className={cn(

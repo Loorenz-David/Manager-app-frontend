@@ -48,6 +48,10 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
     stepCount: input.stepCount ?? 1,
     isActive,
     isExcluded,
+    allowanceLabel:
+      input.allowanceSeconds === null || input.allowanceSeconds === undefined || input.allowanceSeconds <= 0
+        ? null
+        : `${formatWorkSeconds(input.allowanceSeconds)} allowed`,
     typicalLabel:
       typicalSeconds === null
         ? null

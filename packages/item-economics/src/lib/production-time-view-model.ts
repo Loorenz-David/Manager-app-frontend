@@ -50,6 +50,13 @@ export type ProductionTimeRowViewModel = {
   stepCount: number;
   isActive: boolean;
   isExcluded: boolean;
+  /**
+   * "3m allowed" — this section's slice of the item's budget, or null when the
+   * task has no budget or the slice is non-positive. Present on **every** row,
+   * pending ones included: a manager needs to see a stage is tight before
+   * anyone starts it, not once it is already running.
+   */
+  allowanceLabel: string | null;
   /** "typical 1h 0m", or null when the section has no typical yet. */
   typicalLabel: string | null;
   /** "of typically 50m" — the degraded, budget-less row line. */
@@ -98,6 +105,21 @@ export type ProductionTimeViewModel =
   | { kind: "budget"; card: ProductionTimeCardViewModel }
   | { kind: "no_budget"; card: ProductionTimeNoBudgetViewModel }
   | { kind: "unavailable"; reason: "detached" | "mismatched" };
+
+/**
+ * "3m allowed · typical 5m" — the budget line under a row. Either half may be
+ * missing; both missing renders nothing rather than an empty separator.
+ */
+export function buildBudgetLine(
+  allowanceLabel: string | null,
+  typicalLabel: string | null,
+): string | null {
+  const parts = [allowanceLabel, typicalLabel].filter(
+    (part): part is string => part !== null,
+  );
+
+  return parts.length === 0 ? null : parts.join(" · ");
+}
 
 /** Rows shown before the "Show all" toggle is used. */
 export const PRODUCTION_TIME_COLLAPSED_ROW_COUNT = 4;

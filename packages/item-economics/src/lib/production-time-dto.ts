@@ -121,6 +121,10 @@ function toRows(
       stepCount: section.step_count,
       isActive,
       isExcluded,
+      allowanceLabel:
+        section.allowance_seconds === null || section.allowance_seconds <= 0
+          ? null
+          : `${formatWorkSeconds(section.allowance_seconds)} allowed`,
       typicalLabel:
         typicalSeconds === null
           ? null

@@ -291,15 +291,30 @@ Expected to change (all under `packages/item-economics/src`):
   backend source (`budget_division.py:338–344` for the allocation, `:364` for the verdict), not
   inferred from the payload alone. Two owner decisions and one backend question raised before any
   implementation.
+- `2026-08-19` `David` (scope narrowed): a backend solution for the live clock has been found and
+  will land separately. **Until it does, nothing touching the live clock is implemented — not S3's
+  verdict gate, and not the removal of the constant typical marker.** The backend change will
+  revisit that whole area, and churning it twice costs more than leaving it. S1 alone ships.
+- `2026-08-19` `Claude Opus 5` (S1 implemented): `allowanceLabel` added to the row view model and
+  built in the transform. Every row that has an allowance now renders `3m allowed · typical 5m` —
+  the active row inside its detail block, beside the bar that draws that number; every other row as
+  its own line, which is the point of the change. A non-positive or null allowance renders nothing
+  rather than "0m allowed", since that would read as a budget of zero rather than the absence of
+  one. Durations use `formatWorkSeconds`, the card's existing formatter — no second duration
+  format. The degraded frame is untouched by construction: its rows carry no allowance, so no line
+  appears, and a test pins that.
+  **Mutation-verified:** rendering the line only on the active row — the exact defect S1 exists to
+  fix — fails 2 tests; dropping the non-positive guard fails 1. Both reverted, suite back to green.
+  131/131 item-economics, typecheck clean, lint clean, Playwright 2/2 mobile and desktop.
 
 ---
 
 ## Lifecycle transition
 
-- Current state: `under_construction` — scope settled 2026-08-19 after the backend's answer and two
-  owner decisions. S2 withdrawn; S3 resolved to an interim display gate. Awaiting owner approval to
-  implement.
-- Next state: `approved` → implement S1 (allowance per row), the tick removal, and S3's gate →
-  review. The gate's removal is a separate, later change, triggered by the backend's live
-  projection, not by this phase.
+- Current state: **S1 implemented 2026-08-19**; the rest of the plan is deliberately parked.
+  S2 withdrawn. **S3 and the typical-marker removal are held** until the backend's live clock lands
+  — owner decision, so the area is touched once rather than twice.
+- Next state: when the backend ships the live projection
+  (`HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`), reopen this plan for S3 and
+  the marker. Nothing else is outstanding.
 - Transition owner: `David`

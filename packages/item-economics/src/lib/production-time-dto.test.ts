@@ -333,6 +333,61 @@ describe("toProductionTimeViewModel", () => {
       ).toEqual({ kind: "unavailable", reason: itemBinding });
     },
   );
+
+  describe("allowance label", () => {
+    // A manager has to be able to see a stage is tight *before* anyone starts
+    // it. The allowance is in the payload for every section; it was rendered
+    // for none of them.
+    it("names the allowance on a pending row, not only the working one", () => {
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({
+          sections: [
+            { ...base, working_section_id: "wsec-working", state: "working" },
+            {
+              ...base,
+              working_section_id: "wsec-pending",
+              state: "pending",
+              state_entered_at: null,
+              worked_seconds: 0,
+              allowance_seconds: 1_562,
+              typical: typical(2_790),
+            },
+          ],
+        }),
+        NOW_MS,
+      );
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m allowed");
+      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m");
+    });
+
+    it("renders no allowance rather than '0m allowed' when there is none", () => {
+      // A non-positive allowance is a real state and "0m allowed" would read as
+      // a budget of zero rather than the absence of one.
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({
+          sections: [
+            { ...base, allowance_seconds: 0 },
+            {
+              ...base,
+              working_section_id: "wsec-null",
+              allowance_seconds: null,
+            },
+          ],
+        }),
+        NOW_MS,
+      );
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.rows[0]?.allowanceLabel).toBeNull();
+      expect(viewModel.card.rows[1]?.allowanceLabel).toBeNull();
+    });
+  });
 });
 
 type NoBudgetCaseStatus = Exclude<
