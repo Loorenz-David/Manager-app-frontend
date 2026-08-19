@@ -709,15 +709,33 @@ instead of an instruction, and the copy changed to match.
 - `2026-08-19` `David` (card 2 — **resolved**): `purchase_price` is **per piece**. The current
   multiplication is correct, which makes S1 a display defect rather than an arithmetic one — see
   the amendment to criterion 3.
+- `2026-08-19` `Codex` (fix round 3): B1, S1 and S2 implemented inside the authorized perimeter.
+  Committed as `ce818c8a`. Flagged that the fix prompt claimed four refusal tests in
+  `ItemPricingFieldGroup.test.tsx` where the baseline held three, and declined to remove an
+  unrelated test to reach the stated count. **Correct call** — verified against `e49967b5`: the
+  `priced-item refusal` block held exactly three, and the file held 16 tests, not the 19 the review
+  recorded. Both the reviewer's count and the coordinator's were wrong; a count in a prompt is a
+  claim, not an instruction.
+- `2026-08-19` `Claude Opus 5` (coordinator, fix round folded): verified rather than accepted.
+  Perimeter is exactly the twelve declared files plus the handoff, tree clean. Suites re-run:
+  typecheck clean, item-economics **130/130**, task-creation **108/108**; a repo-wide grep for every
+  refusal symbol returns zero hits, so the machinery is deleted rather than dormant. S2 confirmed
+  complete on **both** halves — ingestion-time rejection of negative/`NaN`/±`Infinity` *and* the
+  purchase-cost path removed from both step maps, with the editable expected-sale path retained so
+  its field-level validation still works. S1's `showTotal = seat || resolvedQuantity > 1` uses the
+  *resolved* quantity, so null/zero/negative keep the one-piece fallback, and the labels key off
+  `showTotal`, so a wood lot reads "Purchase price per piece" above its breakdown.
+  **Carried into re-review: no mutation probes were run this cycle** — the prompt named none, and
+  the implementer said so plainly rather than implying coverage. The five new tests (four S2 cases,
+  one wood case) have therefore never been seen to fail. That is round 2's first probe; it is the
+  gap that produced production_time's central round-1 finding.
 
 ## Lifecycle transition
 
-- Current state: `CHANGES_REQUESTED` — review round 1 complete (2026-08-19, Claude Opus 5).
-  Both owner cards answered the same day; the operational handoff has been re-mirrored with
-  provenance frontmatter.
-- Next state: `IMPLEMENTING` — fix prompt at
-  `prompts/implementer/PROMPT_fix_round_3_20260819.md` (B1 delete dead machinery, S1 wood
-  breakdown, S2 ingestion-time validation) → `REVIEWING` round 2 → `APPROVED`.
+- Current state: `IMPLEMENTED` — fix round 3 complete (`ce818c8a`), all three round-1 findings
+  addressed and independently re-verified. Awaiting delta-scoped re-review.
+- Next state: `REVIEWING` round 2 (prompt at
+  `prompts/reviewer/PROMPT_reviewer_round_2_20260819.md`) → `APPROVED` or another fix cycle.
 - Transition owner: `David`
 - Archive: not yet. Per the coordinator's closeout ritual, this plan's spent prompts and
   consumed handoffs move to `archive/plan_1/` only at `APPROVED`, together with the gate commit.
