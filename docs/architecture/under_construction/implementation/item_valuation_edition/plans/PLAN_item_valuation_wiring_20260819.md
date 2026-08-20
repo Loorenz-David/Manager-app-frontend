@@ -228,3 +228,70 @@ is finally enforceable):**
 ## Review log
 
 *(append-only; implementer and reviewer share it)*
+
+- **2026-08-20 · implemented (Claude Opus 5, round 1).** Tasks 1–12 built; 21 files
+  (13 new, 8 edited). Suites re-measured: `test:item-economics` 225/19 → **295/27**,
+  `test:tasks` 68/10 → **75/10**, `npm run typecheck` exit 0, package `tsc` clean.
+  Playwright `item-valuation.spec.ts` green on both projects (2 tests each).
+  Handoff: `../handoffs/implementer/handoff_PLAN_item_valuation_wiring_20260819_implement_1.md`.
+
+  **Judgment calls, each with its reason:**
+  1. **Criterion 11's "five configuration identities" is four.** The operational
+     handoff §4.1 *table* marks exactly four rows "→ settings"
+     (`NO_COST_GROUP`, `AMBIGUOUS_COST_GROUP`, `NO_BASIS_VERSION`,
+     `NO_COST_MODEL_VERSION`); its prose says "the five `NO_*`/`AMBIGUOUS_*`
+     identities", which counts `ITEM_COST_NO_PRIMARY_ITEM` in by pattern — an
+     identity whose own row means "this task has no primary item to price", not a
+     settings problem. Sending a manager to the item-economics settings for a
+     missing primary item would be wrong copy, so the table won. Implemented:
+     four settings-pointing messages, `NO_PRIMARY_ITEM` with its table copy, and
+     **all twelve** §4.1 identities enumerated one row each in the test (over-
+     covering the criterion rather than sampling it). Needs a coordinator ruling
+     on whether criterion 11's wording should be amended to "four".
+  2. **The scenario branch root is module-local to `socket-events.ts`.** M9's two
+     workspace-wide handlers invalidate `["item-economics", "price-scenario"]`,
+     which the key factory does not name — and the plan freezes
+     `item-economics-keys.ts` at "nothing beyond the registered lines", so the
+     prefix is a documented constant in the handler module instead of a new
+     factory member.
+  3. **The staleness gate reads the query cache, not the render snapshot.**
+     `queryClient.getQueryState(...).dataUpdatedAt` rather than
+     `query.dataUpdatedAt`: TanStack does not always re-render an observer when a
+     refetch changes nothing, so the snapshot can hold a stale timestamp while the
+     cache is correct. Found while writing criterion 12–14's tests, where
+     `setQueryData({ updatedAt })` aged the cache without re-rendering.
+  4. **The skeleton is held for one frame after the payload lands.** The reducer is
+     seeded blank and `INIT`ed from an effect, so the editor would render "0 SEK"
+     for one commit. `screenState` reports `loading` until the seed applies. This
+     also removes a timing sharp edge every page test would otherwise have to know
+     about.
+  5. **22g is satisfied by wrapping, not by editing phase 1.** The page sets
+     `aria-valuetext` on the slider input and `tabindex="-1"` on the decorative
+     three-dot from one effect, both attributes React never writes on those
+     elements. See the handoff's fold-back request for the durable one-prop form.
+  6. **`ITEM_COST_VALUATION_AMOUNT_REQUIRED`** is mapped in the bootstrap's error
+     copy even though M1 can never send an empty body — the endpoint documents it,
+     and a silent raw-sentence fallback there would be the one place a user sees
+     an untranslated identity.
+
+  **Observations a reviewer needs:**
+  - The **Playwright mobile and desktop projects are broken before this phase**:
+    on the stashed clean tree the mobile project runs 15 passed / 54 failed / 15
+    did not run, mostly `TypeError: Importing a module script failed` in auth,
+    cases, task-creation and worker-stats. With phase 2 applied: 17 passed / 52
+    failed. Scoped to `features/tasks/`, desktop is 2 passed / 5 failed before and
+    4 passed / 4 failed after (both `force-task-ready` specs fail in both trees).
+    Master plan §10 records no e2e baseline; it now needs one.
+  - Criterion 17 is met by an **inherited phase-1 test**
+    (`api/item-economics-keys.test.ts`, "is not reachable from the undebounced
+    tasks() branch"), re-verified green. No new test was added for it; a companion
+    prefix assertion lives in `socket-events.test.ts` (17b).
+  - Criterion 8's `lastDraft` clause is split: the action test asserts the
+    reconciled verdict reaches `onCommitted`, the controller test (8b) asserts the
+    Back button disappears through the real reducer after a save.
+  - sv-SE grouping is U+00A0 (projection L7). `toHaveTextContent` normalises it
+    away, `toHaveAttribute` does not — the exact separator is asserted on the
+    slider's `aria-valuetext`, and the text assertions use the normalised form.
+  - Task 11 (retired identity) is clean: `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM`
+    has zero references under `packages/` and `apps/`, now held by an automated
+    test in `src/boundaries.test.ts`.

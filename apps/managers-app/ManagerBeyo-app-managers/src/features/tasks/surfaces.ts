@@ -44,6 +44,10 @@ import {
   TaskActionsSheetSkeleton,
 } from "@beyo/tasks";
 import {
+  ITEM_VALUATION_SLIDE_SURFACE_ID,
+  loadItemValuationSlidePage,
+} from "@beyo/item-economics";
+import {
   QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
@@ -108,6 +112,8 @@ const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
+const itemValuationSlide = lazyWithPreload(loadItemValuationSlidePage);
+
 const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
 const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
 
@@ -115,6 +121,7 @@ export const preloadPinNotificationsSlideSurface =
   pinNotificationsSlide.preload;
 export const preloadPinTaskStepStatesSheetSurface =
   pinTaskStepStatesSheet.preload;
+export const preloadItemValuationSlideSurface = itemValuationSlide.preload;
 export const preloadTaskNotesSheetSurface = taskNotesSheet.preload;
 export const preloadTaskNoteUnreadViewerSurface =
   taskNoteUnreadViewer.preload;
@@ -147,6 +154,8 @@ export {
   TASK_WORKING_SECTIONS_SLIDE_SURFACE_ID,
   TASK_WORKING_SECTIONS_DISCARD_CHANGES_SURFACE_ID,
 } from "@beyo/task-working-sections";
+export { ITEM_VALUATION_SLIDE_SURFACE_ID } from "@beyo/item-economics";
+export type { ItemValuationSlideSurfaceProps } from "@beyo/item-economics";
 export type {
   ForceTaskReadySlideSurfaceProps,
   ItemIdentitySurfaceProps,
@@ -268,6 +277,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [PIN_TASK_STEP_STATES_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: pinTaskStepStatesSheet.Component,
+  },
+  [ITEM_VALUATION_SLIDE_SURFACE_ID]: {
+    surface: "slide",
+    component: itemValuationSlide.Component,
   },
   [TASK_NOTES_SHEET_SURFACE_ID]: {
     surface: "sheet",

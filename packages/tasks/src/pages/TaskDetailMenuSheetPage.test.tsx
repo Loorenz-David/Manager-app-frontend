@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TaskDetailMenuSheetPage } from "./TaskDetailMenuSheetPage";
+import { ITEM_VALUATION_SLIDE_SURFACE_ID } from "@beyo/item-economics";
+
 import { FORCE_TASK_READY_SLIDE_SURFACE_ID } from "../surface-ids";
 
 const mocks = vi.hoisted(() => ({
@@ -103,5 +105,72 @@ describe("TaskDetailMenuSheetPage — force ready action", () => {
       taskId: "tsk_1",
     });
     expect(mocks.requestClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("TaskDetailMenuSheetPage — change retail price action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.role = "manager";
+    mocks.taskState = "working";
+  });
+
+  // 19 — the price-scenario endpoint 403s every other role, so the row is
+  // gated rather than shown-and-refused.
+  it.each(["manager", "admin"])("19. is offered to a %s", (role) => {
+    mocks.role = role;
+
+    render(<TaskDetailMenuSheetPage />);
+
+    expect(
+      screen.getByTestId("task-actions-change-retail-price"),
+    ).toBeInTheDocument();
+  });
+
+  it.each(["seller", "worker"])("19b. is hidden from a %s", (role) => {
+    mocks.role = role;
+
+    render(<TaskDetailMenuSheetPage />);
+
+    expect(
+      screen.queryByTestId("task-actions-change-retail-price"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("19c. is offered in every task state — pricing outlives the workflow", () => {
+    for (const state of ["ready", "resolved", "failed", "cancelled"]) {
+      mocks.taskState = state;
+      const { unmount } = render(<TaskDetailMenuSheetPage />);
+
+      expect(
+        screen.getByTestId("task-actions-change-retail-price"),
+      ).toBeInTheDocument();
+
+      unmount();
+    }
+  });
+
+  it("20. opens the valuation slide with the task id and dismisses the menu", async () => {
+    const user = userEvent.setup();
+    render(<TaskDetailMenuSheetPage />);
+
+    await user.click(screen.getByTestId("task-actions-change-retail-price"));
+
+    expect(mocks.open).toHaveBeenCalledWith(ITEM_VALUATION_SLIDE_SURFACE_ID, {
+      taskId: "tsk_1",
+    });
+    expect(mocks.requestClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("20b. sits directly after Change article number", () => {
+    render(<TaskDetailMenuSheetPage />);
+
+    const testIds = Array.from(
+      document.querySelectorAll("[data-testid^=\"task-actions-\"]"),
+    ).map((node) => node.getAttribute("data-testid"));
+
+    expect(
+      testIds.indexOf("task-actions-change-retail-price"),
+    ).toBe(testIds.indexOf("task-actions-change-item-identity") + 1);
   });
 });

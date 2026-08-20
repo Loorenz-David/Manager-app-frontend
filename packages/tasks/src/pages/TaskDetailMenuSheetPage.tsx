@@ -2,8 +2,20 @@ import { useEffect } from "react";
 
 import { AuthRole, useRole } from "@beyo/auth";
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import {
+  ITEM_VALUATION_SLIDE_SURFACE_ID,
+  type ItemValuationSlideSurfaceProps,
+} from "@beyo/item-economics";
+import type { TaskId } from "@beyo/lib";
 import { ConfirmActionButton, useSurfaceStore } from "@beyo/ui";
-import { Barcode, CheckCheck, Pin, Replace, Trash2 } from "lucide-react";
+import {
+  Barcode,
+  CheckCheck,
+  CircleDollarSign,
+  Pin,
+  Replace,
+  Trash2,
+} from "lucide-react";
 
 import { useDeleteTask } from "../actions/use-delete-task";
 import { useGetTaskQuery } from "../api/use-get-task-query";
@@ -35,6 +47,11 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
   const canShowForceReady =
     (hasRole(AuthRole.Admin) || hasRole(AuthRole.Manager)) &&
     canForceTaskReady(taskQuery.data?.task.state);
+
+  // The price-scenario endpoint admits ADMIN and MANAGER only and 403s every
+  // other role (price-scenario handoff §1), so the row is gated, not disabled.
+  const canShowChangeRetailPrice =
+    hasRole(AuthRole.Admin) || hasRole(AuthRole.Manager);
 
   useEffect(() => {
     header?.setTitle("Task actions");
@@ -104,6 +121,24 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
         <Barcode className="size-4" />
         Change article number
       </button>
+      {canShowChangeRetailPrice ? (
+        <button
+          type="button"
+          className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-sm font-semibold text-foreground"
+          data-testid="task-actions-change-retail-price"
+          disabled={!taskId}
+          onClick={() => {
+            if (!taskId) return;
+
+            openAndDismiss(ITEM_VALUATION_SLIDE_SURFACE_ID, {
+              taskId: taskId as TaskId,
+            } satisfies ItemValuationSlideSurfaceProps);
+          }}
+        >
+          <CircleDollarSign className="size-4" />
+          Change retail price
+        </button>
+      ) : null}
       {canShowForceReady ? (
         <button
           type="button"

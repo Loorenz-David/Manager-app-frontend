@@ -67,6 +67,7 @@ each phase.
 | 1 — core + components (`PLAN_item_valuation_core_20260819`) | APPROVED | 2026-08-19 | reviewer (round 2) | delta re-review of `64fa42f6`: 0 blocking, 0 should-fix, 4 new notes (N8–N11, all phase-2 carry-forwards), 0 owner cards. S1/N3/N4/N5 all closed and independently re-derived — 975 000 → 9 900 s → "2h 45m" through the shipped pipeline; relocated guard bites (`TS1360` at `valuation-currency.ts:24`); 12b/12c each turn red under their own mutation. Perimeter exact (10 files, no code outside the list), both mirrors provenance-clean, L1–L4 verified folded. Re-measured 225/19, package tsc + `npm run typecheck` exit 0, `test:tasks` 68/10. Handoff: `handoffs/reviewer/handoff_..._review_2.md` |
 | 1 — core + components (`PLAN_item_valuation_core_20260819`) | CLOSED (archived) | 2026-08-19 | coordinator | closeout ritual: 4 spent prompts + 5 consumed handoffs → `archive/plan_1/`; approval-gate commit made with this move; plan file stays in `plans/` as the phase row. Historical `prompts/`/`handoffs/` references resolve under `archive/plan_1/` by convention. L6 adopted: tracker rows are appended, never replaced |
 | 2 — wiring + entry + e2e (`PLAN_item_valuation_wiring_20260819`) | PROMPT_READY | 2026-08-19 | coordinator | projection r0 run inline by the coordinator (mandatory gate; 6 ledger rows all resolved in-plan, 0 owner cards — handoff `handoffs/reviewer/handoff_PLAN_item_valuation_wiring_20260819_projection_0.md`); r2 carry-forwards N8–N11 landed as criteria 22e–22g; implementer prompt issued: `prompts/implementer/PROMPT_implement_PLAN_item_valuation_wiring_20260819.md` (Claude Opus 5) |
+| 2 — wiring + entry + e2e (`PLAN_item_valuation_wiring_20260819`) | IMPLEMENTED | 2026-08-20 | implementer (Claude Opus 5, round 1) | tasks 1–12 built, 21 files (13 new, 8 edited). Suites re-measured: `test:item-economics` **295/27** (from 225/19), `test:tasks` **75/10** (from 68/10), `npm run typecheck` exit 0, package `tsc` clean. Playwright `item-valuation.spec.ts` green on mobile **and** desktop. Criterion 9's named mutation run at the call site in `use-commit-item-valuation.ts` (bit criteria 9/10/10b) plus two self-chosen probes (M10 gate → 12/13/13b red; M9 debounce → 16/16c red), all reverted byte-identically with digests in the handoff. **New environment fact: the Playwright projects have a large pre-existing failure baseline** — clean tree mobile 15 passed / 54 failed; with phase 2, 17 passed / 52 failed. 1 fold-back request (22g's one-prop addition to `PriceSlider`/`ItemValuationFrame`) and 1 owner decision (criterion 11's "five" vs the handoff table's four). Handoff: `handoffs/implementer/handoff_PLAN_item_valuation_wiring_20260819_implement_1.md` |
 
 ## 5. Contract resolution (guide: `task_system/frontend_contract_goal_mapping_guide.md`)
 
@@ -197,6 +198,14 @@ function formatPerPiece(minor: number, quantity: number): string;
 `@beyo/item-economics` (boundary criterion in phase 2). The item_pricing_fields
 duplication precedent avoided a *reverse* edge (`item-economics → task-creation`);
 this edge is forward and clean, so no duplication.
+
+Amended at phase-2 orientation (2026-08-19, ratified by the coordinator): the
+package also gains peers **`@beyo/auth`** (the controller's `useAuth()` for the
+"You" substitution) and **`@beyo/hooks`** (`useSurfaceProps` on the page) — both
+forward edges with existing precedent in sibling packages. Projection P3's
+`user.client_id` was imprecise: `AuthUser` exposes **`id: UserId`** (populated from
+the client id at boot per `12_auth_local`); the controller compares
+`user.id === saved.created_by.client_id`.
 
 ### Naming rules
 

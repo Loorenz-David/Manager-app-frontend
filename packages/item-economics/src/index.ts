@@ -72,7 +72,14 @@ export type { ProductionTimeCardProps } from "./components/production-time";
 export { ProductionTimeSection } from "./components/production-time/ProductionTimeSection";
 export type { ProductionTimeSectionProps } from "./components/production-time/ProductionTimeSection";
 
-export type { ItemEconomicsSurfaceOpeners } from "./surface-ids";
+export {
+  ITEM_VALUATION_SLIDE_SURFACE_ID,
+  preloadItemValuationSlideSurface,
+} from "./surface-ids";
+export type {
+  ItemEconomicsSurfaceOpeners,
+  ItemValuationSlideSurfaceProps,
+} from "./surface-ids";
 
 // --- Item pricing fields (task creation, operational handoff §9) -------------
 // Track A's surface. The logic track composes ItemPricingFieldsSchema into the
@@ -157,3 +164,15 @@ export type {
 } from "./lib/item-valuation-screen-state";
 
 export { currencyDisplayCode, formatPerPiece } from "./lib/valuation-currency";
+
+/**
+ * The page is reachable only through this loader (contract 35 §14): a static
+ * re-export would drag it into the main chunk the moment anything imports a
+ * surface id from this package, and every `lazyWithPreload` around it would
+ * become decoration.
+ */
+export function loadItemValuationSlidePage() {
+  return import("./pages/ItemValuationSlidePage").then((m) => ({
+    default: m.ItemValuationSlidePage,
+  }));
+}

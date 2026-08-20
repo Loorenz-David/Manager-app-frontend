@@ -72,7 +72,10 @@ Backend endpoints this page consumes (all live):
 2. `POST /api/v1/item-economics/tasks/{task_client_id}/evaluations/commit` — Save,
    body `{ expected_sale_price_minor }` only.
 3. `GET /api/v1/items/lookup?article_number=…` — purchase-price bootstrap, step 1.
-4. `PUT /api/v1/items/{item_client_id}/valuation` — purchase-price bootstrap, step 2.
+4. `PUT /api/v1/item-economics/items/{item_client_id}/valuation` — purchase-price
+   bootstrap, step 2. (Corrected round 6: the round-1 row omitted the
+   `item-economics` base segment; the operational handoff's §3.1 path is relative
+   to the item-economics API root, `ITEM_ECONOMICS_BASE_PATH`.)
 
 ## 3. Core workflow
 
@@ -631,6 +634,13 @@ evidence doc is needed beyond citing `item-lookup-prefill.ts` and
   task-creation form (`packages/task-creation/src/components/InternalFormContent.tsx`)
   already does — §3.3 / §4A M1 stand unchanged. Gate to implementation-planner is
   open.
+
+- **2026-08-19 · round 6 (phase-2 implementer orientation, factual correction).**
+  §2's endpoint row 4 wrote `PUT /api/v1/items/{id}/valuation`, omitting the
+  `item-economics` base segment — the real path is
+  `/api/v1/item-economics/items/{id}/valuation` (projection P1 had it right; the
+  grounding row did not). Corrected in place with a provenance note. No semantic
+  change; the flow in §3.3 is unaffected.
 
 - **2026-08-19 · round 5 (projection round 0 folded; owner cards resolved).**
   1. **Owner card 1 resolved (owner, recommended branch):** S4 `purchase_required`

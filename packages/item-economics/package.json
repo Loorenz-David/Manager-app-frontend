@@ -8,6 +8,9 @@
   },
   "peerDependencies": {
     "@beyo/api-client": "*",
+    "@beyo/auth": "*",
+    "@beyo/hooks": "*",
+    "@beyo/items": "*",
     "@beyo/lib": "*",
     "@beyo/realtime": "*",
     "@beyo/ui": "*",
