@@ -586,7 +586,7 @@ export function useItemValuationController(
   const headline: PriceHeadlineProps = {
     perPiece,
     currencyCode,
-    piecesLine: `× ${quantity} pieces · ${formatWholeItem(draft)} ${currencyCode} total`,
+    piecesLine: `${quantity} pc · ${formatWholeItem(draft)} ${currencyCode} total`,
     // Per piece and total (owner round 8) — mirrors the slider's "/pc"
     // labels and the pieces line's "total".
     purchaseLine:
@@ -645,7 +645,7 @@ export function useItemValuationController(
   const hasTypical = scenario.typical.total_seconds > 0;
 
   const table: WorkImpactTableProps = {
-    rowLabel: "Work on this item",
+    rowLabel: "Time",
     // Never "0m" for an absent typical: a median with no sample behind it would
     // read as "this job takes no time" (handoff §5.1).
     typical: hasTypical

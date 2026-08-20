@@ -42,9 +42,7 @@ export function WorkImpactTable({
           At price
         </span>
 
-        <span className="text-base font-semibold text-foreground">
-          {rowLabel}
-        </span>
+        <span className="text-base  text-foreground">{rowLabel}</span>
         <span
           className="whitespace-nowrap text-right text-base font-semibold text-foreground"
           data-testid="item-valuation-typical"
