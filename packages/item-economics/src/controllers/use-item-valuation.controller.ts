@@ -219,7 +219,13 @@ function resolveStepCount(domain: PriceScenarioDomain): number {
 
 export type ItemValuationViewModel = {
   screenState: ItemValuationScreenState;
-  frame: Omit<ItemValuationFrameProps, "children" | "headerExtra">;
+  // `title` feeds the surface header (owner redesign 2026-08-20: the title
+  // sits beside the back arrow, not inside the frame); `subtitle` is the
+  // frame's identity line.
+  frame: { title: string } & Omit<
+    ItemValuationFrameProps,
+    "children" | "headerExtra"
+  >;
   provenance: ItemValuationProvenanceRowProps | null;
   headline: PriceHeadlineProps | null;
   chip: PriceCoverageChipProps | null;

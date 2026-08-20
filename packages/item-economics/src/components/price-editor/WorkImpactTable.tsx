@@ -46,7 +46,7 @@ export function WorkImpactTable({
           {rowLabel}
         </span>
         <span
-          className="text-right text-base font-semibold text-foreground"
+          className="whitespace-nowrap text-right text-base font-semibold text-foreground"
           data-testid="item-valuation-typical"
         >
           {typical !== null ? (
@@ -66,7 +66,7 @@ export function WorkImpactTable({
         </span>
         <span
           className={cn(
-            "text-right text-base font-bold",
+            "whitespace-nowrap text-right text-base font-bold",
             PRICE_EDITOR_TONE_TEXT[atPriceTone],
           )}
           data-testid="item-valuation-at-price"

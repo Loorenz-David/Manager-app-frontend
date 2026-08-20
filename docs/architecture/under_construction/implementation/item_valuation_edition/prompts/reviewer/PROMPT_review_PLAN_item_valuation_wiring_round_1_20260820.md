@@ -41,8 +41,13 @@ implementation **plus one coordinator-authorized post-approval amendment to phas
 
 ## Baseline and perimeter facts
 
-- Commits under review: **`a22d3de6`** (phase-2 implementation, parent `894d3f7d`)
-  and **`d193c48f`** (the 22g fold-back amendment, coordinator-authored).
+- Commits under review: **`a22d3de6`** (phase-2 implementation, parent `894d3f7d`),
+  **`d193c48f`** (the 22g fold-back amendment, coordinator-authored), and the
+  **owner visual-correction commit that follows it** (intention round 7: page-not-
+  card, title in the surface header, three-dot removed, gesture-isolated price
+  region, `text-card` buttons — see the phase-2 Review-log entry of 2026-08-20 for
+  its exact file list). Note for your checklist: 22g's tab-order half is **moot**
+  (the button no longer exists); its aria-valuetext half stands.
 - `git diff 894d3f7d a22d3de6` must resolve to exactly the implementer's declared
   perimeter (19 new paths + 8 edits + 3 documents — its handoff lists them;
   `test-support/price-scenario-reference.ts` is a declared addition beyond the

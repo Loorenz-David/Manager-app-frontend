@@ -60,7 +60,7 @@ export function PurchaseBootstrapCard({
           "w-full rounded-2xl py-4 text-base font-semibold transition-colors",
           disabled
             ? "bg-muted text-muted-foreground"
-            : "bg-primary text-primary-foreground",
+            : "bg-primary text-card",
         )}
         data-testid="item-valuation-fetch-purchase"
         disabled={disabled}

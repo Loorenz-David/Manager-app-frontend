@@ -295,3 +295,18 @@ is finally enforceable):**
   - Task 11 (retired identity) is clean: `ITEM_COST_INLINE_PRICE_ON_PRICED_ITEM`
     has zero references under `packages/` and `apps/`, now held by an automated
     test in `src/boundaries.test.ts`.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner visual-correction round
+  (pre-review).** Intention round 7 applied across both phases under owner
+  authority: the editor is now the page itself (no nested card), the title moved
+  to the surface header via `useSurfaceHeader` (replacing `useHeaderlessSlidePage`),
+  the three-dot menu deleted (with `isMenuFocusable`, never shipped), the
+  headline/chip/slider region stops pointer/touch propagation (slide-to-close
+  conflict), primary buttons use `text-card`, work-table values `whitespace-nowrap`.
+  Criterion 22g's tab-order half is moot (no button); its aria-valuetext half
+  stands and its test passes unchanged. Files: `ItemValuationFrame.tsx`,
+  `ItemValuationFooter.tsx`, `PurchaseBootstrapCard.tsx`, `WorkImpactTable.tsx`,
+  `price-editor-fixtures.ts`, `price-editor.test.tsx` (phase 1);
+  `ItemValuationSlidePage.tsx` + test, `use-item-valuation.controller.ts` (frame
+  view-model type) (phase 2). Verified: package tsc, monorepo typecheck, 296/27,
+  75/10, `item-valuation.spec.ts` 2/2 mobile.

@@ -1,4 +1,6 @@
-import { useHeaderlessSlidePage, useSurfaceProps } from "@beyo/hooks";
+import { useEffect } from "react";
+
+import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import type { TaskId } from "@beyo/lib";
 import { PullToRefresh } from "@beyo/ui";
 
@@ -54,18 +56,29 @@ function ItemValuationBody(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-6 px-6 py-8">
-      {view.headline ? <PriceHeadline {...view.headline} /> : null}
-      {view.chip ? (
-        <div className="flex justify-center">
-          <PriceCoverageChip {...view.chip} />
-        </div>
-      ) : null}
-      {view.slider ? (
-        // 22g: assistive tech announces the price, never the raw step index.
-        // The prop landed as the phase-1 amendment this page's earlier
-        // imperative patch asked for (fold-back, 2026-08-20).
-        <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
-      ) : null}
+      {/*
+        The price region owns its horizontal gestures (owner correction
+        2026-08-20): a slider drag must never escalate into the surface's
+        slide-to-close. Stopping propagation on the whole region — not just
+        the handle — keeps taps that start on the padding from sliding the
+        page either.
+      */}
+      <div
+        className="flex flex-col gap-6"
+        onPointerDown={(event) => event.stopPropagation()}
+        onTouchStart={(event) => event.stopPropagation()}
+      >
+        {view.headline ? <PriceHeadline {...view.headline} /> : null}
+        {view.chip ? (
+          <div className="flex justify-center">
+            <PriceCoverageChip {...view.chip} />
+          </div>
+        ) : null}
+        {view.slider ? (
+          // 22g: assistive tech announces the price, never the raw step index.
+          <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
+        ) : null}
+      </div>
       {view.table ? <WorkImpactTable {...view.table} /> : null}
       {view.bootstrap ? <PurchaseBootstrapCard {...view.bootstrap} /> : null}
       {view.empty ? <ItemValuationEmptyState {...view.empty} /> : null}
@@ -76,6 +89,15 @@ function ItemValuationBody(): React.JSX.Element {
 
 function ItemValuationView(): React.JSX.Element {
   const view = useItemValuationContext();
+  const header = useSurfaceHeader();
+
+  // The title lives in the surface header, beside the back arrow — the page
+  // is the editor itself, not a card with its own heading (owner redesign
+  // 2026-08-20).
+  useEffect(() => {
+    header?.setTitle(view.frame.title);
+    header?.setActions(null);
+  }, [header, view.frame.title]);
 
   return (
     <PullToRefresh
@@ -83,7 +105,7 @@ function ItemValuationView(): React.JSX.Element {
       scrollClassName="overflow-y-auto overscroll-y-none"
       onRefresh={view.refetch}
     >
-      <div className="flex flex-col px-4 pb-[calc(var(--safe-bottom,0px)+1.5rem)] pt-4">
+      <div className="flex min-h-full flex-col pb-[calc(var(--safe-bottom,0px)+1.5rem)]">
         <ItemValuationFrame
           headerExtra={
             view.provenance ? (
@@ -91,7 +113,6 @@ function ItemValuationView(): React.JSX.Element {
             ) : undefined
           }
           subtitle={view.frame.subtitle}
-          title={view.frame.title}
         >
           <ItemValuationBody />
         </ItemValuationFrame>
@@ -102,10 +123,6 @@ function ItemValuationView(): React.JSX.Element {
 
 export function ItemValuationSlidePage(): React.JSX.Element {
   const { taskId } = useSurfaceProps<ItemValuationSlideSurfaceProps>();
-
-  // The slide closes by the app-wide gesture; on desktop the surface header
-  // stays, because that is where the only visible close control lives.
-  useHeaderlessSlidePage();
 
   if (!taskId) {
     return (
@@ -120,7 +137,7 @@ export function ItemValuationSlidePage(): React.JSX.Element {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col bg-background"
+      className="flex h-full min-h-0 flex-col bg-card"
       data-testid="item-valuation-page"
     >
       <ItemValuationProvider taskId={taskId as TaskId}>

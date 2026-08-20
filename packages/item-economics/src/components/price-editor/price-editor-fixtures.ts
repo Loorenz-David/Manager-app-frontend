@@ -11,7 +11,6 @@
 
 import type { ItemValuationEmptyStateProps } from "./ItemValuationEmptyState";
 import type { ItemValuationFooterProps } from "./ItemValuationFooter";
-import type { ItemValuationFrameProps } from "./ItemValuationFrame";
 import type { ItemValuationProvenanceRowProps } from "./ItemValuationProvenanceRow";
 import type { PriceCoverageChipProps } from "./PriceCoverageChip";
 import type { PriceHeadlineProps } from "./PriceHeadline";
@@ -37,7 +36,11 @@ export type PriceEditorFixtureName =
 
 export type PriceEditorFixture = {
   name: PriceEditorFixtureName;
-  frame: Omit<ItemValuationFrameProps, "children" | "headerExtra">;
+  /**
+   * `title` feeds the surface header (set by the page, beside the back arrow —
+   * owner redesign 2026-08-20); `subtitle` is the frame's identity line.
+   */
+  frame: { title: string; subtitle: string | null };
   provenance?: ItemValuationProvenanceRowProps;
   headline?: PriceHeadlineProps;
   chip?: PriceCoverageChipProps;

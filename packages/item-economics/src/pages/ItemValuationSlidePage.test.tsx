@@ -35,9 +35,15 @@ vi.mock("@beyo/auth", () => ({
   useAuth: () => ({ user: { id: "usr_current" } }),
 }));
 
+const surfaceHeaderMock = vi.hoisted(() => ({
+  setTitle: vi.fn(),
+  setActions: vi.fn(),
+  requestClose: vi.fn(),
+}));
+
 vi.mock("@beyo/hooks", () => ({
   useSurfaceProps: () => ({ taskId: "tsk_ref0001" }),
-  useHeaderlessSlidePage: () => undefined,
+  useSurfaceHeader: () => surfaceHeaderMock,
 }));
 
 /** sv-SE groups with U+00A0, never an ASCII space (projection L7). */
@@ -237,17 +243,21 @@ describe("ItemValuationSlidePage — accessibility (22g)", () => {
 
   afterEach(cleanup);
 
-  it("announces the drafted price on the slider and keeps the decorative menu out of the tab order", async () => {
+  it("announces the drafted price on the slider and titles the surface header", async () => {
     await renderScenario(referenceScenario());
 
     expect(screen.getByTestId("item-valuation-slider-input")).toHaveAttribute(
       "aria-valuetext",
       `${grouped("1 425")} SEK per piece`,
     );
-    expect(screen.getByTestId("item-valuation-menu-button")).toHaveAttribute(
-      "tabindex",
-      "-1",
+    // Owner redesign 2026-08-20: the title sits beside the back arrow in the
+    // surface header; the decorative three-dot is gone entirely.
+    expect(surfaceHeaderMock.setTitle).toHaveBeenCalledWith(
+      "Expected sold price",
     );
+    expect(
+      screen.queryByTestId("item-valuation-menu-button"),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps the announcement in step with the draft", async () => {

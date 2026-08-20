@@ -635,6 +635,26 @@ evidence doc is needed beyond citing `item-lookup-prefill.ts` and
   already does — §3.3 / §4A M1 stand unchanged. Gate to implementation-planner is
   open.
 
+- **2026-08-20 · round 7 (owner visual-correction round, pre-review).** Owner
+  reviewed the running page against the mockups and redirected the layout — the
+  mockups' card silhouette was an artifact of drawing, not a product requirement:
+  1. **The editor is the page itself** — full width, full height, no nested card
+     frame. §3.4 item 1 is superseded accordingly.
+  2. **The "Expected sold price" title moves to the slide surface header, beside
+     the back arrow** (the standard `useSurfaceHeader().setTitle` pattern); the
+     frame keeps only the item identity line and the provenance row.
+  3. **The three-dot menu is removed entirely** (it was decorative-only; §3.4's
+     "decorative this iteration" clause is now moot, and the 22g tab-order half
+     with it — `ItemValuationFrame.isMenuFocusable`, added the same day, was
+     deleted before ever shipping).
+  4. **The price region owns its horizontal gestures**: the container holding the
+     headline, chip and slider stops pointer/touch propagation so a slider drag
+     can never escalate into the surface's slide-to-close.
+  5. **Primary buttons use `text-card`** as their text color, not
+     `text-primary-foreground`.
+  Applied by the coordinator/1A owner across both closed phases under owner
+  authority; suites 296/27 + 75/10 green, e2e spec re-run green on mobile.
+
 - **2026-08-19 · round 6 (phase-2 implementer orientation, factual correction).**
   §2's endpoint row 4 wrote `PUT /api/v1/items/{id}/valuation`, omitting the
   `item-economics` base segment — the real path is

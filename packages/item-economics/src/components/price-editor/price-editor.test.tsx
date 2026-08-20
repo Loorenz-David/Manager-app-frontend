@@ -34,7 +34,6 @@ function renderScene(fixture: PriceEditorFixture): void {
         ) : undefined
       }
       subtitle={fixture.frame.subtitle}
-      title={fixture.frame.title}
     >
       <div className="flex flex-col gap-6 px-6 py-8">
         {fixture.headline ? <PriceHeadline {...fixture.headline} /> : null}
@@ -363,21 +362,23 @@ describe("interaction wiring", () => {
     expect(onPendingSave).not.toHaveBeenCalled();
   });
 
-  it("the three-dot header button is decorative and the skeleton keeps the frame", () => {
+  it("the frame is a full-bleed shell: identity line, no title, no menu button", () => {
     render(
-      <ItemValuationFrame subtitle="ITEM 0000608" title="Expected sold price">
+      <ItemValuationFrame subtitle="ITEM 0000608">
         <ItemValuationSkeleton />
       </ItemValuationFrame>,
     );
-    expect(screen.getByTestId("item-valuation-menu-button")).toBeVisible();
     expect(screen.getByTestId("item-valuation-skeleton")).toBeVisible();
     expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
+      "ITEM 0000608",
+    );
+    // Owner redesign 2026-08-20: the title lives in the surface header (set by
+    // the page) and the decorative three-dot is gone entirely.
+    expect(screen.getByTestId("item-valuation-header")).not.toHaveTextContent(
       "Expected sold price",
     );
-    // 22g: decorative while it has no action — out of the tab order by default.
-    expect(screen.getByTestId("item-valuation-menu-button")).toHaveAttribute(
-      "tabindex",
-      "-1",
-    );
+    expect(
+      screen.queryByTestId("item-valuation-menu-button"),
+    ).not.toBeInTheDocument();
   });
 });
