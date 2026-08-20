@@ -323,6 +323,87 @@ describe("PriceSlider emissions (criteria 52–53)", () => {
   });
 });
 
+describe("PriceHeadline tap-to-type (owner round 5)", () => {
+  const baseHeadline = {
+    perPiece: "4 524",
+    currencyCode: "SEK",
+    piecesLine: null,
+    purchaseLine: null,
+  };
+
+  it("tap opens a numeric editor seeded with the current digits, grouped", () => {
+    render(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={vi.fn()}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /edit expected sold price/i }),
+    );
+    const input = screen.getByTestId("item-valuation-per-piece-input");
+    expect(input).toHaveValue("4 524");
+    expect(input).toHaveAttribute("inputmode", "numeric");
+  });
+
+  it("typing regroups thousands live and blur commits the plain integer", () => {
+    const onPerPieceCommit = vi.fn();
+    render(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={onPerPieceCommit}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /edit expected sold price/i }),
+    );
+    const input = screen.getByTestId("item-valuation-per-piece-input");
+    fireEvent.change(input, { target: { value: "12345" } });
+    expect(input).toHaveValue("12 345");
+    fireEvent.blur(input);
+    expect(onPerPieceCommit).toHaveBeenCalledExactlyOnceWith(12345);
+  });
+
+  it("an unchanged or emptied value cancels without committing", () => {
+    const onPerPieceCommit = vi.fn();
+    render(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={onPerPieceCommit}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /edit expected sold price/i }),
+    );
+    fireEvent.blur(screen.getByTestId("item-valuation-per-piece-input"));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /edit expected sold price/i }),
+    );
+    const input = screen.getByTestId("item-valuation-per-piece-input");
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+
+    expect(onPerPieceCommit).not.toHaveBeenCalled();
+    expect(screen.getByTestId("item-valuation-per-piece")).toHaveTextContent(
+      "4 524",
+    );
+  });
+
+  it("without an editor wiring, the amount stays a plain display", () => {
+    render(<PriceHeadline {...baseHeadline} />);
+    expect(
+      screen.queryByRole("button", { name: /edit expected sold price/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("item-valuation-per-piece")).toHaveTextContent(
+      "4 524",
+    );
+  });
+});
+
 describe("interaction wiring", () => {
   it("Back button fires onBackPress", () => {
     const onBackPress = vi.fn();

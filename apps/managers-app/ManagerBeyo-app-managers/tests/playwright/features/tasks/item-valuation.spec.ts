@@ -265,9 +265,10 @@ test.describe('Item valuation — expected sold price', () => {
 
     await press(saveButton);
 
-    // The saved-version row is what proves the refetch landed.
+    // The saved-version row is what proves the refetch landed. Owner copy
+    // round (2026-08-20): the row reads "version · <relative>".
     await expect(page.getByTestId('item-valuation-provenance')).toContainText(
-      'saved version',
+      'version ·',
     );
     await expect(saveButton).toBeDisabled();
 

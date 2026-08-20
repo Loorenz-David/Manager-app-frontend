@@ -363,7 +363,8 @@ describe("useItemValuationController — provenance composition (22f)", () => {
       avatarName: "You",
       label: "You",
     });
-    expect(view.result.current.provenance?.detail).toMatch(/^saved version · /);
+    // Owner copy round (2026-08-20): "version · <relative>".
+    expect(view.result.current.provenance?.detail).toMatch(/^version · /);
   });
 
   it("(ii) another user's save reads their name and passes the avatar image through", async () => {
@@ -389,7 +390,7 @@ describe("useItemValuationController — provenance composition (22f)", () => {
     });
   });
 
-  it("(iii) an unloadable author reads \"saved version\" with no detail and an empty avatar name", async () => {
+  it("(iii) an unloadable author reads \"version\" with no detail and an empty avatar name", async () => {
     const anonymous = referenceScenario();
     anonymous.saved = { ...anonymous.saved!, created_by: null };
     mocks.fetchTaskPriceScenario.mockResolvedValue(anonymous);
@@ -399,7 +400,7 @@ describe("useItemValuationController — provenance composition (22f)", () => {
     expect(view.result.current.provenance).toMatchObject({
       avatarKind: "user",
       avatarName: "",
-      label: "saved version",
+      label: "version",
       detail: null,
     });
   });
@@ -413,9 +414,8 @@ describe("useItemValuationController — provenance composition (22f)", () => {
       avatarKind: "user",
       label: "You",
     });
-    expect(view.result.current.provenance?.detail).toBe(
-      "unsaved change · just now",
-    );
+    // Owner copy round (2026-08-20): plain "unsaved", no timestamp.
+    expect(view.result.current.provenance?.detail).toBe("unsaved");
   });
 
   it("(v) an unpriced item shows the dash avatar and the ×4 explanation", async () => {

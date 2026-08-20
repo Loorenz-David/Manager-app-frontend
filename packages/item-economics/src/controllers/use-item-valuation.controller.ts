@@ -480,16 +480,14 @@ export function useItemValuationController(
     }
 
     if (variant === "dirty") {
+      // Owner copy decision 2026-08-20: just "unsaved" — the edit happened
+      // under the user's own thumb, a timestamp adds nothing.
       return {
         avatarKind: "user",
         avatarName: "You",
         avatarImageSrc: null,
         label: "You",
-        detail: `unsaved change · ${
-          draftState.lastEditedAt === null
-            ? "just now"
-            : formatRelativeTime(draftState.lastEditedAt, nowMs)
-        }`,
+        detail: "unsaved",
         backLabel,
       };
     }
@@ -499,7 +497,7 @@ export function useItemValuationController(
       scenario.saved === null
         ? nowMs
         : new Date(scenario.saved.created_at).getTime();
-    const savedDetail = `saved version · ${formatRelativeTime(savedAtMs, nowMs)}`;
+    const savedDetail = `version · ${formatRelativeTime(savedAtMs, nowMs)}`;
 
     // §3.5: an unloadable author has no name to show and no relative time to
     // attribute — the row says only that a saved version exists.
@@ -508,7 +506,7 @@ export function useItemValuationController(
         avatarKind: "user",
         avatarName: "",
         avatarImageSrc: null,
-        label: "saved version",
+        label: "version",
         detail: null,
         backLabel,
       };
@@ -568,7 +566,10 @@ export function useItemValuationController(
   const model = scenario.model;
 
   if (model === null) {
-    return { ...base, empty: { message: resolveBlockedMessage(scenario.status) } };
+    return {
+      ...base,
+      empty: { message: resolveBlockedMessage(scenario.status) },
+    };
   }
 
   const draft = draftState.draft;
@@ -591,6 +592,19 @@ export function useItemValuationController(
         ? null
         : `purchase price ${formatWholeItem(purchaseCostMinor)} ${currencyCode}`,
     muted: variant === "saved-pristine",
+    // Tap-to-type (owner round 5): the seed is the rounded whole-kronor
+    // per-piece figure; a typed commit is the same DRAG event a slider move
+    // dispatches, whole-item minor. Typed values may land off the band grid —
+    // like an off-grid saved price, the slider renders clamped and the draft
+    // keeps the exact figure.
+    perPieceDigits: String(Math.round(draft / (100 * quantity))),
+    onPerPieceCommit: (perPieceMajor) => {
+      dispatch({
+        type: "DRAG",
+        priceMinor: perPieceMajor * 100 * quantity,
+        now: Date.now(),
+      });
+    },
   };
 
   const markerMinor = coverage.markerMinor;

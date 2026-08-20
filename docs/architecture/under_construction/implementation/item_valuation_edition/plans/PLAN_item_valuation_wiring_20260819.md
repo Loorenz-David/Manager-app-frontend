@@ -344,3 +344,17 @@ is finally enforceable):**
   provenance detail copy in the fixtures ("unsaved · just now",
   "version · just now") and frame padding. Verified: tsc clean, 297/27,
   e2e 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 5.**
+  (a) Provenance copy: the dirty row reads plain "unsaved" (relative time
+  dropped — owner decision); together with the owner's earlier hand-edits the
+  saved row reads "version · <relative>" and the unloadable-author row "version".
+  Three 22f controller assertions and one e2e assertion updated to the decided
+  copy. (b) **Tap-to-type price** (new): the PER PIECE amount is a tap target
+  that swaps to a numeric-keyboard input (`inputMode="numeric"`), live
+  U+00A0-grouped thousands while typing, Enter/blur commits, Escape/empty/
+  unchanged cancels; the commit dispatches the same DRAG event a slider move
+  does (`perPieceMajor × 100 × quantity`), so typed values may sit off the band
+  grid exactly like an off-grid saved price. Grouping is a local visual concern
+  in `PriceHeadline` (the seam forbids lib imports; no money semantics in it).
+  Four new component tests. Verified: tsc clean, 301/27, e2e 2/2 mobile.
