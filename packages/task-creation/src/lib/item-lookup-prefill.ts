@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
 import { itemCategoryPickerKeys } from "@beyo/item-categories";
+import { fromMinorUnits } from "@beyo/item-economics";
 import type {
   CreateImageFromUrlBatch,
   CreateImageFromUrlInput,
@@ -37,9 +38,11 @@ export function selectInternalLookupResult(
 
 export function applyPurchasePriceLookupResult(
   form: PurchasePriceForm,
-  selectedItem: Pick<ItemLookupResult, "purchase_price">,
+  selectedItem: Pick<ItemLookupResult, "purchase_price_minor">,
 ): void {
-  const purchasePrice = selectedItem.purchase_price;
+  const purchasePriceMinor = selectedItem.purchase_price_minor;
+  const purchasePrice =
+    purchasePriceMinor != null ? fromMinorUnits(purchasePriceMinor) : null;
   const validPurchasePrice =
     purchasePrice != null &&
     Number.isFinite(purchasePrice) &&
@@ -97,7 +100,7 @@ export function createLookupResultSignature(
     external_id: item.external_id,
     external_source: item.external_source,
     images: item.images,
-    purchase_price: item.purchase_price ?? null,
+    purchase_price_minor: item.purchase_price_minor ?? null,
   });
 }
 

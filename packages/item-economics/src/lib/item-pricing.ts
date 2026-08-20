@@ -33,6 +33,11 @@ export function toMinorUnits(perPiece: number): number {
   return Math.round(perPiece * 100);
 }
 
+/** Integer minor units (öre) → kronor, the inverse of `toMinorUnits`. */
+export function fromMinorUnits(minor: number): number {
+  return minor / 100;
+}
+
 /**
  * The value actually submitted.
  *

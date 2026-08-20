@@ -90,6 +90,7 @@ export {
   formatMinorPrice,
   formatPieces,
   formatPrice,
+  fromMinorUnits,
   resolvePricingQuantity,
   resolveTotalMinor,
   toMajorUnitString,

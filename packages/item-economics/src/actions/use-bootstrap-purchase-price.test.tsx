@@ -26,7 +26,10 @@ vi.mock("../api/put-item-valuation", () => ({
 
 const TASK_ID = "tsk_ref0001" as TaskId;
 
-function lookupResult(purchasePrice: number | null, source = "purchase_api") {
+function lookupResult(
+  purchasePriceMinor: number | null,
+  source = "purchase_api",
+) {
   return {
     article_number: "0000608",
     sku: null,
@@ -35,7 +38,7 @@ function lookupResult(purchasePrice: number | null, source = "purchase_api") {
     external_id: "ext_1",
     external_source: source,
     images: [],
-    purchase_price: purchasePrice,
+    purchase_price_minor: purchasePriceMinor,
   };
 }
 
@@ -84,8 +87,8 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
     });
   });
 
-  it("1. converts per-piece kronor to whole-item minor units and echoes the saved expected price", async () => {
-    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(474.99)] });
+  it("1. converts per-piece minor units to whole-item minor units and echoes the saved expected price", async () => {
+    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(47499)] });
 
     const scenario = referenceScenario();
     scenario.currency = null;
@@ -95,7 +98,7 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
     await waitFor(() => expect(mocks.putItemValuation).toHaveBeenCalledTimes(1));
 
     expect(mocks.putItemValuation.mock.calls[0]?.[0]).toBe("itm_ref0001");
-    // 474.99 → 47 499 öre per piece, rounded *before* multiplying, × 6.
+    // 47 499 öre per piece → 474.99 kronor, rounded back *before* multiplying, × 6.
     expect(lastPutBody()).toEqual({
       purchase_cost_minor: 284994,
       expected_sale_price_minor: 855000,
@@ -104,7 +107,7 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
   });
 
   it("2. treats quantity 0 as one piece (handoff §8.2)", async () => {
-    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(474.99)] });
+    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(47499)] });
 
     const scenario = referenceScenario();
     scenario.item = { ...scenario.item!, quantity: 0 };
@@ -116,7 +119,7 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
   });
 
   it("3. omits the expected-price key entirely when no valuation exists", async () => {
-    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(474.99)] });
+    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(47499)] });
 
     const scenario = referenceScenario();
     scenario.saved = null;
@@ -136,7 +139,7 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
 
   it("4. does not PUT when the item is not on the purchase application", async () => {
     mocks.fetchItemLookup.mockResolvedValue({
-      items: [lookupResult(474.99, "internal_api")],
+      items: [lookupResult(47499, "internal_api")],
     });
 
     const view = await runBootstrap(referenceScenario());
@@ -184,7 +187,7 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
   });
 
   it("7. invalidates the scenario query exactly once on success", async () => {
-    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(474.99)] });
+    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(47499)] });
 
     const view = await runBootstrap(referenceScenario());
 

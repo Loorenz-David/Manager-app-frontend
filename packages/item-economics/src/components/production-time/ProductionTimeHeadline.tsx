@@ -18,14 +18,14 @@ export function ProductionTimeHeadline({
     >
       <div className="flex min-w-0 items-baseline gap-2">
         <span
-          className="text-2xl font-semibold tracking-tight tabular-nums"
+          className="text-xl font-semibold tracking-tight tabular-nums"
           data-testid="production-time-headline-worked"
         >
           {headline.workedLabel}
         </span>
         {headline.budgetLabel ? (
           <span
-            className="truncate text-base font-normal text-muted-foreground"
+            className="truncate text-md font-normal text-muted-foreground"
             data-testid="production-time-headline-budget"
           >
             {headline.budgetLabel}
@@ -34,7 +34,9 @@ export function ProductionTimeHeadline({
       </div>
 
       <div className="flex shrink-0 items-center gap-2">
-        {headline.isFinal ? <StatePill label="Final" variant="neutral" /> : null}
+        {headline.isFinal ? (
+          <StatePill label="Final" variant="neutral" />
+        ) : null}
         {headline.remainingLabel ? (
           <span
             className={cn(

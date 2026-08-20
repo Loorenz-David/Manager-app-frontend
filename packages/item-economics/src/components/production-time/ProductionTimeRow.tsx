@@ -78,7 +78,7 @@ export function ProductionTimeRow({
         {comparison === null ? (
           <span className="shrink-0" data-testid="production-time-row-state">
             <StatePill
-              className="text-sm"
+              className="text-xs"
               label={row.stateLabel}
               style="text"
               variant={PRODUCTION_TIME_TONE_VARIANT[row.tone]}
@@ -88,7 +88,7 @@ export function ProductionTimeRow({
 
         <span
           className={cn(
-            "shrink-0 text-sm font-semibold tabular-nums",
+            "shrink-0 text-sm  tabular-nums",
             row.isExcluded && "text-muted-foreground",
           )}
           data-testid="production-time-row-time"

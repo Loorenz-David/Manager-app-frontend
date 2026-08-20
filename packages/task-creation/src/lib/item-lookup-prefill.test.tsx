@@ -40,7 +40,7 @@ function buildLookupResult(
 
 describe("purchase price lookup prefill", () => {
   it("populates a decimal lookup price and clears it when the next lookup omits the key", () => {
-    const pricedItem = buildLookupResult({ purchase_price: 1250.5 });
+    const pricedItem = buildLookupResult({ purchase_price_minor: 125050 });
     const unpricedItem = buildLookupResult({ article_number: "ARTICLE-2" });
     const { result } = renderHook(() =>
       useForm<PricingFormValues>({
@@ -85,7 +85,7 @@ describe("purchase price lookup prefill", () => {
 
       act(() => {
         applyPurchasePriceLookupResult(result.current, {
-          purchase_price: purchasePrice,
+          purchase_price_minor: purchasePrice,
         });
       });
 
@@ -103,9 +103,13 @@ describe("purchase price lookup prefill", () => {
 
   it("includes the purchase price in the lookup signature", () => {
     expect(
-      createLookupResultSignature(buildLookupResult({ purchase_price: 100 })),
+      createLookupResultSignature(
+        buildLookupResult({ purchase_price_minor: 100 }),
+      ),
     ).not.toBe(
-      createLookupResultSignature(buildLookupResult({ purchase_price: 200 })),
+      createLookupResultSignature(
+        buildLookupResult({ purchase_price_minor: 200 }),
+      ),
     );
   });
 });

@@ -13,6 +13,7 @@ import {
 import { parseErrorIdentity } from "../lib/error-identity";
 import {
   INLINE_PRICING_CURRENCY,
+  fromMinorUnits,
   resolveTotalMinor,
 } from "../lib/item-pricing";
 import type { PriceScenario } from "../types";
@@ -174,13 +175,16 @@ export function useBootstrapPurchasePrice(taskId: TaskId) {
         return { kind: "not-on-purchase-app" };
       }
 
-      if (!isUsablePurchasePrice(purchaseResult.purchase_price)) {
+      if (!isUsablePurchasePrice(purchaseResult.purchase_price_minor)) {
         return { kind: "purchase-price-missing" };
       }
 
       await putItemValuation(
         item.client_id as ItemId,
-        buildPurchaseValuationBody(scenario, purchaseResult.purchase_price),
+        buildPurchaseValuationBody(
+          scenario,
+          fromMinorUnits(purchaseResult.purchase_price_minor),
+        ),
       );
 
       return { kind: "saved" };

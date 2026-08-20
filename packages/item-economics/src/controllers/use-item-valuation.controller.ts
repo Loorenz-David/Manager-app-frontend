@@ -587,10 +587,12 @@ export function useItemValuationController(
     perPiece,
     currencyCode,
     piecesLine: `× ${quantity} pieces · ${formatWholeItem(draft)} ${currencyCode} total`,
+    // Per piece and total (owner round 8) — mirrors the slider's "/piece"
+    // labels and the pieces line's "total".
     purchaseLine:
       purchaseCostMinor === null
         ? null
-        : `purchase price ${formatWholeItem(purchaseCostMinor)} ${currencyCode}`,
+        : `purchase price ${formatPerPiece(purchaseCostMinor, quantity)}/piece · ${formatWholeItem(purchaseCostMinor)} ${currencyCode} total`,
     muted: variant === "saved-pristine",
     // Tap-to-type (owner round 5): the seed is the rounded whole-kronor
     // per-piece figure; a typed commit is the same DRAG event a slider move

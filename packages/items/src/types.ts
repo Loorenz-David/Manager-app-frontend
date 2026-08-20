@@ -48,7 +48,7 @@ export const ItemLookupResultSchema = z.object({
   external_id: z.string().nullable(),
   external_source: z.enum(ITEM_LOOKUP_EXTERNAL_SOURCE).nullable(),
   images: z.array(z.union([z.string(), ItemLookupImageObjectSchema])),
-  purchase_price: z.number().nullable().optional(),
+  purchase_price_minor: z.number().nullable().optional(),
 });
 export type ItemLookupResult = z.infer<typeof ItemLookupResultSchema>;
 
