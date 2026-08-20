@@ -34,6 +34,7 @@ function renderScene(fixture: PriceEditorFixture): void {
         ) : undefined
       }
       subtitle={fixture.frame.subtitle}
+      title={fixture.frame.title}
     >
       <div className="flex flex-col gap-6 px-6 py-8">
         {fixture.headline ? <PriceHeadline {...fixture.headline} /> : null}
@@ -362,21 +363,25 @@ describe("interaction wiring", () => {
     expect(onPendingSave).not.toHaveBeenCalled();
   });
 
-  it("the frame is a full-bleed shell: identity line, no title, no menu button", () => {
+  it("the frame owns the header stack: arrow + title, identity, no menu button", () => {
+    const onBackPress = vi.fn();
     render(
-      <ItemValuationFrame subtitle="ITEM 0000608">
+      <ItemValuationFrame
+        subtitle="ITEM 0000608"
+        title="Expected sold price"
+        onBackPress={onBackPress}
+      >
         <ItemValuationSkeleton />
       </ItemValuationFrame>,
     );
     expect(screen.getByTestId("item-valuation-skeleton")).toBeVisible();
-    expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
-      "ITEM 0000608",
-    );
-    // Owner redesign 2026-08-20: the title lives in the surface header (set by
-    // the page) and the decorative three-dot is gone entirely.
-    expect(screen.getByTestId("item-valuation-header")).not.toHaveTextContent(
-      "Expected sold price",
-    );
+    const frameHeader = screen.getByTestId("item-valuation-header");
+    expect(frameHeader).toHaveTextContent("Expected sold price");
+    expect(frameHeader).toHaveTextContent("ITEM 0000608");
+    // Owner redesign round 3: the frame's own back arrow wires to the surface
+    // close funnel; the decorative three-dot stays gone.
+    fireEvent.click(screen.getByTestId("item-valuation-back-arrow"));
+    expect(onBackPress).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByTestId("item-valuation-menu-button"),
     ).not.toBeInTheDocument();

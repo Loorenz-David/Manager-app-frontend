@@ -39,6 +39,7 @@ const surfaceHeaderMock = vi.hoisted(() => ({
   setTitle: vi.fn(),
   setActions: vi.fn(),
   requestClose: vi.fn(),
+  setHeaderHidden: vi.fn(),
 }));
 
 vi.mock("@beyo/hooks", () => ({
@@ -243,18 +244,22 @@ describe("ItemValuationSlidePage — accessibility (22g)", () => {
 
   afterEach(cleanup);
 
-  it("announces the drafted price on the slider and titles the surface header", async () => {
+  it("announces the drafted price and renders its own header with the close arrow", async () => {
     await renderScenario(referenceScenario());
 
     expect(screen.getByTestId("item-valuation-slider-input")).toHaveAttribute(
       "aria-valuetext",
       `${grouped("1 425")} SEK per piece`,
     );
-    // Owner redesign 2026-08-20: the title sits beside the back arrow in the
-    // surface header; the decorative three-dot is gone entirely.
-    expect(surfaceHeaderMock.setTitle).toHaveBeenCalledWith(
+    // Owner redesign round 3: the surface's built-in header is hidden and the
+    // page owns arrow + title, aligned with identity and provenance.
+    expect(surfaceHeaderMock.setHeaderHidden).toHaveBeenCalledWith(true);
+    expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
       "Expected sold price",
     );
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.click(screen.getByTestId("item-valuation-back-arrow"));
+    expect(surfaceHeaderMock.requestClose).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByTestId("item-valuation-menu-button"),
     ).not.toBeInTheDocument();

@@ -89,13 +89,12 @@ function ItemValuationView(): React.JSX.Element {
   const view = useItemValuationContext();
   const header = useSurfaceHeader();
 
-  // The title lives in the surface header, beside the back arrow — the page
-  // is the editor itself, not a card with its own heading (owner redesign
-  // 2026-08-20).
+  // The page renders its OWN header row (arrow + title inside the frame) so
+  // the title, identity line and provenance share one alignment — the
+  // surface's built-in header is hidden (owner redesign 2026-08-20, round 3).
   useEffect(() => {
-    header?.setTitle(view.frame.title);
-    header?.setActions(null);
-  }, [header, view.frame.title]);
+    header?.setHeaderHidden(true);
+  }, [header]);
 
   return (
     <PullToRefresh
@@ -111,6 +110,8 @@ function ItemValuationView(): React.JSX.Element {
             ) : undefined
           }
           subtitle={view.frame.subtitle}
+          title={view.frame.title}
+          onBackPress={() => header?.requestClose()}
         >
           <ItemValuationBody />
         </ItemValuationFrame>

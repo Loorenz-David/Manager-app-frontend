@@ -325,3 +325,13 @@ is finally enforceable):**
   the hidden range input gained `touch-none` so the control owns its touches
   under the panel's `pan-y`. Verified: package tsc clean, 296/27,
   `item-valuation.spec.ts` 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 3.**
+  The page no longer uses the surface's built-in header: it calls
+  `setHeaderHidden(true)` and `ItemValuationFrame` owns the whole header stack —
+  back arrow (`item-valuation-back-arrow`, wired to `header.requestClose`) +
+  title, identity line, provenance — all sharing one `px-5` alignment on the page
+  background (the owner also trimmed the section's horizontal padding by hand).
+  Note: unlike `useHeaderlessSlidePage` (mobile-only hide), the surface header is
+  hidden on ALL viewports — the frame's arrow is the close control everywhere.
+  Verified: package tsc clean, 296/27, `item-valuation.spec.ts` 2/2 mobile.
