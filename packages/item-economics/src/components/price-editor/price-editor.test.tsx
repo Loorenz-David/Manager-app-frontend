@@ -238,8 +238,8 @@ describe("PriceSlider emissions (criteria 52–53)", () => {
     tone: "positive" as const,
     markerFraction: null,
     markerLabel: null,
-    minLabel: "700/piece",
-    maxLabel: "2 750/piece",
+    minLabel: "700/pc",
+    maxLabel: "2 750/pc",
   };
 
   it("emits exactly index / stepCount on change, never a price (criterion 52)", () => {
@@ -486,8 +486,8 @@ describe("interaction wiring", () => {
     render(
       <ItemValuationFooter
         isSaveDisabled={false}
-        saveLabel="Save 2 225 SEK / piece"
-        suggestedLabel="Use suggested 2 025 SEK / piece"
+        saveLabel="Save 2 225 SEK / pc"
+        suggestedLabel="Use suggested 2 025 SEK / pc"
         onSavePress={onSavePress}
         onSuggestedPress={onSuggestedPress}
       />,
@@ -503,7 +503,7 @@ describe("interaction wiring", () => {
       <ItemValuationFooter
         isSaveDisabled={false}
         isSavePending
-        saveLabel="Save 2 225 SEK / piece"
+        saveLabel="Save 2 225 SEK / pc"
         suggestedLabel={null}
         onSavePress={onPendingSave}
       />,

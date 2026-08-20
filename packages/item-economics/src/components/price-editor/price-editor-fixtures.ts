@@ -5,7 +5,7 @@
  * point: the components must be fully drivable without the machinery.
  *
  * Numbers trace to the plan's Reference payload and the four design mockups.
- * Note the band top is "2 750/piece", not the mockup's 2 700 — the band is
+ * Note the band top is "2 750/pc", not the mockup's 2 700 — the band is
  * derived and the handoff (§5.4) mandates rendering the ends as given.
  */
 
@@ -69,9 +69,9 @@ const SLIDER_BASE: Omit<PriceSliderProps, "fraction" | "tone"> = {
   stepCount: 82,
   onFractionChange: noop,
   markerFraction: 795000 / 1230000, // suggested 1 215 000
-  markerLabel: "suggested 2 025/piece",
-  minLabel: "700/piece",
-  maxLabel: "2 750/piece",
+  markerLabel: "suggested 2 025/pc",
+  minLabel: "700/pc",
+  maxLabel: "2 750/pc",
 };
 
 const TABLE_BASE: Omit<WorkImpactTableProps, "atPrice" | "atPriceTone"> = {
@@ -95,7 +95,7 @@ const EDITOR_DIRTY: PriceEditorFixture = {
     perPiece: "2 225",
     currencyCode: "SEK",
     piecesLine: "× 6 pieces · 13 350 SEK total",
-    purchaseLine: "purchased for 475/piece · 2 850 SEK total",
+    purchaseLine: "purchased for 475/pc · 2 850 SEK total",
   },
   chip: { label: "Covers typical work", tone: "positive" },
   slider: {
@@ -105,10 +105,10 @@ const EDITOR_DIRTY: PriceEditorFixture = {
   },
   table: { ...TABLE_BASE, atPrice: "3h 46m", atPriceTone: "positive" },
   footer: {
-    saveLabel: "Save 2 225 SEK / piece",
+    saveLabel: "Save 2 225 SEK / pc",
     isSaveDisabled: false,
     onSavePress: noop,
-    suggestedLabel: "Use suggested 2 025 SEK / piece",
+    suggestedLabel: "Use suggested 2 025 SEK / pc",
     onSuggestedPress: noop,
   },
 };
@@ -132,7 +132,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
       perPiece: "1 625",
       currencyCode: "SEK",
       piecesLine: "× 6 pieces · 9 750 SEK total",
-      purchaseLine: "purchased for 475/piece · 2 850 SEK total",
+      purchaseLine: "purchased for 475/pc · 2 850 SEK total",
       muted: true,
     },
     chip: { label: "Below typical work", tone: "negative" },
@@ -146,10 +146,10 @@ export const PRICE_EDITOR_FIXTURES: Record<
     // band end).
     table: { ...TABLE_BASE, atPrice: "2h 45m", atPriceTone: "negative" },
     footer: {
-      saveLabel: "Save 1 625 SEK / piece",
+      saveLabel: "Save 1 625 SEK / pc",
       isSaveDisabled: true,
       onSavePress: noop,
-      suggestedLabel: "Use suggested 2 025 SEK / piece",
+      suggestedLabel: "Use suggested 2 025 SEK / pc",
       onSuggestedPress: noop,
     },
   },
@@ -169,7 +169,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
       perPiece: "1 900",
       currencyCode: "SEK",
       piecesLine: "× 6 pieces · 11 400 SEK total",
-      purchaseLine: "purchased for 475/piece · 2 850 SEK total",
+      purchaseLine: "purchased for 475/pc · 2 850 SEK total",
     },
     chip: { label: "Below typical work", tone: "negative" },
     slider: {
@@ -179,10 +179,10 @@ export const PRICE_EDITOR_FIXTURES: Record<
     },
     table: { ...TABLE_BASE, atPrice: "3h 13m", atPriceTone: "negative" },
     footer: {
-      saveLabel: "Save 1 900 SEK / piece",
+      saveLabel: "Save 1 900 SEK / pc",
       isSaveDisabled: false,
       onSavePress: noop,
-      suggestedLabel: "Use suggested 2 025 SEK / piece",
+      suggestedLabel: "Use suggested 2 025 SEK / pc",
       onSuggestedPress: noop,
     },
   },
@@ -321,7 +321,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
     },
     table: EDITOR_DIRTY.table,
     footer: {
-      saveLabel: "Save 2 225 SEK / piece",
+      saveLabel: "Save 2 225 SEK / pc",
       isSaveDisabled: false,
       onSavePress: noop,
       suggestedLabel: null,
@@ -360,12 +360,12 @@ export const PRICE_EDITOR_FIXTURES: Record<
     slider: EDITOR_DIRTY.slider,
     table: EDITOR_DIRTY.table,
     footer: {
-      saveLabel: "Save 2 225 SEK / piece",
+      saveLabel: "Save 2 225 SEK / pc",
       isSaveDisabled: true,
       saveReason:
         "This task is finished — economics can no longer be committed.",
       onSavePress: noop,
-      suggestedLabel: "Use suggested 2 025 SEK / piece",
+      suggestedLabel: "Use suggested 2 025 SEK / pc",
       onSuggestedPress: noop,
     },
   },

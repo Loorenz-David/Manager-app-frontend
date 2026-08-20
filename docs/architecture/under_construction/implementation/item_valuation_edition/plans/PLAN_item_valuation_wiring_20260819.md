@@ -383,3 +383,10 @@ is finally enforceable):**
 - **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 9.**
   Purchase-line copy: "purchase price …" → "purchased for …/piece · … SEK
   total" (controller + three fixtures). Verified: tsc clean, 302/27.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 10.**
+  "/piece" → "/pc" across every display string (slider min/max/marker labels,
+  purchase line, Save and Use-suggested labels — 33 occurrences over controller,
+  two components, fixtures, tests and the e2e spec), matching the app's existing
+  "pc"/"pcs" vocabulary (`formatPieces`). The slider's `aria-valuetext` keeps the
+  spoken "per piece". Verified: tsc clean, 302/27, e2e 2/2 mobile.

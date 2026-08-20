@@ -92,8 +92,8 @@ function envelope(data: unknown) {
 type ValuationMockOptions = {
   /** Start in the purchase-required state (no valuation row yet). */
   purchaseRequired?: boolean;
-  /** What the article-number lookup returns. */
-  lookupPurchasePrice?: number | null;
+  /** What the article-number lookup returns, in minor units (öre). */
+  lookupPurchasePriceMinor?: number | null;
 };
 
 type ValuationMocks = {
@@ -170,7 +170,7 @@ async function mockValuationEndpoints(
             external_id: 'ext_e2e',
             external_source: 'purchase_api',
             images: [],
-            purchase_price: options.lookupPurchasePrice ?? 474.99,
+            purchase_price_minor: options.lookupPurchasePriceMinor ?? 47499,
           },
         ],
       }),
@@ -293,7 +293,7 @@ test.describe('Item valuation — expected sold price', () => {
     // The valuation row now exists, so the editor takes over.
     await expect(page.getByTestId('item-valuation-per-piece')).toBeVisible();
 
-    // 474.99 → 47 499 öre per piece, rounded before multiplying, × 6.
+    // 47 499 öre per piece → 474.99 kronor, rounded back before multiplying, × 6.
     expect(mocks.putBody()).toEqual({
       purchase_cost_minor: 284994,
       currency: 'swedish_krona',

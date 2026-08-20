@@ -1,7 +1,7 @@
 import { cn } from "@beyo/lib";
 
 export type ItemValuationFooterProps = {
-  /** "Save 2 225 SEK / piece" — the amount is authored upstream. */
+  /** "Save 2 225 SEK / pc" — the amount is authored upstream. */
   saveLabel: string;
   isSaveDisabled: boolean;
   /** In-flight commit: keeps the button disabled and marks it busy. */
@@ -9,7 +9,7 @@ export type ItemValuationFooterProps = {
   /** Why Save is disabled — rendered under the button (intention §1.4). */
   saveReason?: string | null;
   onSavePress: () => void;
-  /** "Use suggested 2 025 SEK / piece" — null hides the row (no anchor). */
+  /** "Use suggested 2 025 SEK / pc" — null hides the row (no anchor). */
   suggestedLabel: string | null;
   onSuggestedPress?: () => void;
 };

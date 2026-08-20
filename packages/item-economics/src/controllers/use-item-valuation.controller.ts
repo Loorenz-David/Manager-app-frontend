@@ -587,12 +587,12 @@ export function useItemValuationController(
     perPiece,
     currencyCode,
     piecesLine: `× ${quantity} pieces · ${formatWholeItem(draft)} ${currencyCode} total`,
-    // Per piece and total (owner round 8) — mirrors the slider's "/piece"
+    // Per piece and total (owner round 8) — mirrors the slider's "/pc"
     // labels and the pieces line's "total".
     purchaseLine:
       purchaseCostMinor === null
         ? null
-        : `purchased for ${formatPerPiece(purchaseCostMinor, quantity)}/piece · ${formatWholeItem(purchaseCostMinor)} ${currencyCode} total`,
+        : `purchased for ${formatPerPiece(purchaseCostMinor, quantity)}/pc · ${formatWholeItem(purchaseCostMinor)} ${currencyCode} total`,
     muted: variant === "saved-pristine",
     // Tap-to-type (owner round 5): the seed is the rounded whole-kronor
     // per-piece figure; a typed commit is the same DRAG event a slider move
@@ -637,9 +637,9 @@ export function useItemValuationController(
           markerLabel:
             markerMinor === null
               ? null
-              : `suggested ${formatPerPiece(markerMinor, quantity)}/piece`,
-          minLabel: `${formatPerPiece(domain.min_minor, quantity)}/piece`,
-          maxLabel: `${formatPerPiece(domain.max_minor, quantity)}/piece`,
+              : `suggested ${formatPerPiece(markerMinor, quantity)}/pc`,
+          minLabel: `${formatPerPiece(domain.min_minor, quantity)}/pc`,
+          maxLabel: `${formatPerPiece(domain.max_minor, quantity)}/pc`,
         };
 
   const hasTypical = scenario.typical.total_seconds > 0;
@@ -661,7 +661,7 @@ export function useItemValuationController(
   const isSavePending = isSavePressPending || commitAction.isPending;
 
   const footer: ItemValuationFooterProps = {
-    saveLabel: `Save ${perPiece} ${currencyCode} / piece`,
+    saveLabel: `Save ${perPiece} ${currencyCode} / pc`,
     isSaveDisabled: isPristine || !scenario.can_commit,
     isSavePending,
     saveReason: scenario.can_commit
@@ -671,7 +671,7 @@ export function useItemValuationController(
     suggestedLabel:
       markerMinor === null
         ? null
-        : `Use suggested ${formatPerPiece(markerMinor, quantity)} ${currencyCode} / piece`,
+        : `Use suggested ${formatPerPiece(markerMinor, quantity)} ${currencyCode} / pc`,
     onSuggestedPress: () => {
       if (markerMinor === null) {
         return;

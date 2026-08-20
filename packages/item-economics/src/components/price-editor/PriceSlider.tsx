@@ -15,11 +15,11 @@ export type PriceSliderProps = {
   tone: PriceEditorTone;
   /** Suggested-price marker position ∈ [0, 1]; null hides marker and label. */
   markerFraction: number | null;
-  /** "suggested 2 025/piece" */
+  /** "suggested 2 025/pc" */
   markerLabel: string | null;
-  /** "700/piece" */
+  /** "700/pc" */
   minLabel: string;
-  /** "2 750/piece" */
+  /** "2 750/pc" */
   maxLabel: string;
   disabled?: boolean;
   /** Shown under the track when disabled — never disable without a reason. */
