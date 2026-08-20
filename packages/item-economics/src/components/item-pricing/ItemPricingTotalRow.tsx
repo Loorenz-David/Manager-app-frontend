@@ -44,7 +44,7 @@ export function ItemPricingTotalRow({
           {perPiece == null ? "" : ` × ${formatPrice(perPiece)}`}
         </span>
       </div>
-      <span className="shrink-0 text-2xl font-bold tabular-nums text-foreground">
+      <span className="shrink-0 text-md font-bold tabular-nums text-foreground">
         {totalMinor == null ? "—" : formatMinorPrice(totalMinor)}
       </span>
     </div>
