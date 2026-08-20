@@ -379,3 +379,7 @@ is finally enforceable):**
   The purchase line now shows both figures: `purchase price <per-piece>/piece ·
   <total> <code> total` (was total-only). Controller format + the three editor
   fixtures updated. Verified: tsc clean, 302/27, e2e 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 9.**
+  Purchase-line copy: "purchase price …" → "purchased for …/piece · … SEK
+  total" (controller + three fixtures). Verified: tsc clean, 302/27.

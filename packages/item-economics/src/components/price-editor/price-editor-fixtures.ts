@@ -95,7 +95,7 @@ const EDITOR_DIRTY: PriceEditorFixture = {
     perPiece: "2 225",
     currencyCode: "SEK",
     piecesLine: "× 6 pieces · 13 350 SEK total",
-    purchaseLine: "purchase price 475/piece · 2 850 SEK total",
+    purchaseLine: "purchased for 475/piece · 2 850 SEK total",
   },
   chip: { label: "Covers typical work", tone: "positive" },
   slider: {
@@ -132,7 +132,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
       perPiece: "1 625",
       currencyCode: "SEK",
       piecesLine: "× 6 pieces · 9 750 SEK total",
-      purchaseLine: "purchase price 475/piece · 2 850 SEK total",
+      purchaseLine: "purchased for 475/piece · 2 850 SEK total",
       muted: true,
     },
     chip: { label: "Below typical work", tone: "negative" },
@@ -169,7 +169,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
       perPiece: "1 900",
       currencyCode: "SEK",
       piecesLine: "× 6 pieces · 11 400 SEK total",
-      purchaseLine: "purchase price 475/piece · 2 850 SEK total",
+      purchaseLine: "purchased for 475/piece · 2 850 SEK total",
     },
     chip: { label: "Below typical work", tone: "negative" },
     slider: {
