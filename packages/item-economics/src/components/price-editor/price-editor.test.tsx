@@ -1,7 +1,19 @@
 import "@testing-library/jest-dom/vitest";
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// PriceHeadline closes its editor when the phone keyboard dismisses (owner
+// round 7); the viewport state is driven per test through this holder.
+const visualViewportState = vi.hoisted(() => ({ isKeyboardOpen: false }));
+vi.mock("@beyo/hooks", () => ({
+  useVisualViewport: () => ({
+    isKeyboardOpen: visualViewportState.isKeyboardOpen,
+    keyboardHeight: visualViewportState.isKeyboardOpen ? 300 : 0,
+    viewportHeight: 800,
+    offsetTop: 0,
+  }),
+}));
 
 import { ItemValuationEmptyState } from "./ItemValuationEmptyState";
 import { ItemValuationFooter } from "./ItemValuationFooter";
@@ -330,6 +342,53 @@ describe("PriceHeadline tap-to-type (owner round 5)", () => {
     piecesLine: null,
     purchaseLine: null,
   };
+
+  beforeEach(() => {
+    visualViewportState.isKeyboardOpen = false;
+  });
+
+  it("closes the editor when the phone keyboard dismisses (owner round 7)", () => {
+    const onPerPieceCommit = vi.fn();
+    const view = render(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={onPerPieceCommit}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: /edit expected sold price/i }),
+    );
+    expect(
+      screen.getByTestId("item-valuation-per-piece-input"),
+    ).toBeInTheDocument();
+
+    visualViewportState.isKeyboardOpen = true;
+    view.rerender(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={onPerPieceCommit}
+      />,
+    );
+    // Keyboard open: still editing.
+    expect(
+      screen.getByTestId("item-valuation-per-piece-input"),
+    ).toBeInTheDocument();
+
+    visualViewportState.isKeyboardOpen = false;
+    view.rerender(
+      <PriceHeadline
+        {...baseHeadline}
+        perPieceDigits="4524"
+        onPerPieceCommit={onPerPieceCommit}
+      />,
+    );
+    expect(
+      screen.queryByTestId("item-valuation-per-piece-input"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("item-valuation-per-piece")).toBeInTheDocument();
+  });
 
   it("tap opens a numeric editor seeded with the current digits, grouped", () => {
     render(

@@ -365,3 +365,12 @@ is finally enforceable):**
   and Save label track the typing; blur only closes the editor; Escape restores
   the value the edit started from (the seed is captured at edit start). Tests
   updated to the live semantics. Verified: tsc clean, 301/27, e2e 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 7.**
+  Dismissing the phone keyboard now closes the per-piece editor: `PriceHeadline`
+  subscribes to `useVisualViewport` (`@beyo/hooks`) and, once the keyboard has
+  been open during an edit and closes, exits edit mode — blur remains the only
+  close path on desktop, where no keyboard ever opens. One keyboard-cycle test
+  added (viewport state driven through a mocked hook); the page test's
+  `@beyo/hooks` mock gained the hook. Verified: tsc clean, 302/27, e2e 2/2
+  mobile.

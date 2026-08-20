@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { useVisualViewport } from "@beyo/hooks";
 import { cn } from "@beyo/lib";
 
 export type PriceHeadlineProps = {
@@ -52,6 +53,27 @@ export function PriceHeadline({
     null,
   );
   const isEditable = perPieceDigits !== null && onPerPieceCommit !== undefined;
+  const isEditing = edit !== null;
+
+  // Dismissing the phone keyboard does NOT blur the input — the caret would
+  // sit there as if still typing (owner round 7). Once the keyboard has been
+  // open during this edit and then closes, the editor closes with it. On
+  // desktop the keyboard never opens, so blur remains the only close path.
+  const { isKeyboardOpen } = useVisualViewport();
+  const wasKeyboardOpenRef = useRef(false);
+  useEffect(() => {
+    if (!isEditing) {
+      wasKeyboardOpenRef.current = false;
+      return;
+    }
+    if (isKeyboardOpen) {
+      wasKeyboardOpenRef.current = true;
+      return;
+    }
+    if (wasKeyboardOpenRef.current) {
+      setEdit(null);
+    }
+  }, [isEditing, isKeyboardOpen]);
 
   function handleDigitsChange(raw: string): void {
     const digits = raw.replace(/\D/g, "").slice(0, 9);

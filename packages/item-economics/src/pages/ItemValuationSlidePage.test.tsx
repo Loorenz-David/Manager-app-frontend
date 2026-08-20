@@ -45,6 +45,12 @@ const surfaceHeaderMock = vi.hoisted(() => ({
 vi.mock("@beyo/hooks", () => ({
   useSurfaceProps: () => ({ taskId: "tsk_ref0001" }),
   useSurfaceHeader: () => surfaceHeaderMock,
+  useVisualViewport: () => ({
+    isKeyboardOpen: false,
+    keyboardHeight: 0,
+    viewportHeight: 800,
+    offsetTop: 0,
+  }),
 }));
 
 /** sv-SE groups with U+00A0, never an ASCII space (projection L7). */
