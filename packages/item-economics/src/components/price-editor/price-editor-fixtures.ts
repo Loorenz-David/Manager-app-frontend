@@ -87,7 +87,7 @@ const EDITOR_DIRTY: PriceEditorFixture = {
     avatarKind: "user",
     avatarName: "You",
     label: "You",
-    detail: "unsaved change · just now",
+    detail: "unsaved · just now",
     backLabel: "Back to 1 625",
     onBackPress: noop,
   },
@@ -124,7 +124,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
       avatarKind: "user",
       avatarName: "You",
       label: "You",
-      detail: "saved version · just now",
+      detail: "version · just now",
       backLabel: "Back to 1 675",
       onBackPress: noop,
     },
@@ -272,7 +272,8 @@ export const PRICE_EDITOR_FIXTURES: Record<
     footer: {
       saveLabel: "Save",
       isSaveDisabled: true,
-      saveReason: "Saving is unavailable while the pricing configuration is incomplete.",
+      saveReason:
+        "Saving is unavailable while the pricing configuration is incomplete.",
       onSavePress: noop,
       suggestedLabel: null,
     },
@@ -361,7 +362,8 @@ export const PRICE_EDITOR_FIXTURES: Record<
     footer: {
       saveLabel: "Save 2 225 SEK / piece",
       isSaveDisabled: true,
-      saveReason: "This task is finished — economics can no longer be committed.",
+      saveReason:
+        "This task is finished — economics can no longer be committed.",
       onSavePress: noop,
       suggestedLabel: "Use suggested 2 025 SEK / piece",
       onSuggestedPress: noop,

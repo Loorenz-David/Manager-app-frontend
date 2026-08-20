@@ -300,6 +300,15 @@ describe("PriceSlider emissions (criteria 52–53)", () => {
     ).not.toHaveAttribute("aria-valuetext");
   });
 
+  it("opts out of slide-to-close on the slider alone (owner round 4)", () => {
+    render(
+      <PriceSlider {...baseProps} fraction={0.5} onFractionChange={vi.fn()} />,
+    );
+    expect(screen.getByTestId("item-valuation-slider")).toHaveAttribute(
+      "data-slide-dismiss-ignore",
+    );
+  });
+
   it("renders an off-grid fraction without emitting anything", () => {
     const onFractionChange = vi.fn();
     render(

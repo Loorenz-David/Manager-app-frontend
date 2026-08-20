@@ -79,8 +79,14 @@ export function PriceSlider({
   }
 
   return (
+    // `data-slide-dismiss-ignore` is the surface dismiss hook's opt-out
+    // contract (use-slide-to-dismiss.ts): a touch starting anywhere on the
+    // slider — track, handle, labels — belongs to the price drag, never to
+    // slide-to-close. Deliberately on this component alone (owner round 4):
+    // the headline above it still slides the page.
     <div
       className={cn("flex flex-col gap-2", disabled && "opacity-60")}
+      data-slide-dismiss-ignore=""
       data-testid="item-valuation-slider"
     >
       {markerLabel !== null && marker !== null ? (

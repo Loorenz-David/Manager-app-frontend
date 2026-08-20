@@ -56,27 +56,19 @@ function ItemValuationBody(): React.JSX.Element {
 
   return (
     <div className="flex flex-col gap-6">
-      {/*
-        The price region owns its horizontal gestures (owner correction
-        2026-08-20): a slider drag must never escalate into the surface's
-        slide-to-close. `data-slide-dismiss-ignore` is the dismiss hook's own
-        opt-out contract (use-slide-to-dismiss.ts) — it rejects the touch at
-        `touchstart`, on the whole region so padding-origin drags are covered
-        too. React-level stopPropagation cannot do this: the hook's listeners
-        are native, bound directly to the surface panel.
-      */}
-      <div className="flex flex-col gap-6" data-slide-dismiss-ignore="">
-        {view.headline ? <PriceHeadline {...view.headline} /> : null}
-        {view.chip ? (
-          <div className="flex justify-center">
-            <PriceCoverageChip {...view.chip} />
-          </div>
-        ) : null}
-        {view.slider ? (
-          // 22g: assistive tech announces the price, never the raw step index.
-          <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
-        ) : null}
-      </div>
+      {view.headline ? <PriceHeadline {...view.headline} /> : null}
+      {view.chip ? (
+        <div className="flex justify-center">
+          <PriceCoverageChip {...view.chip} />
+        </div>
+      ) : null}
+      {view.slider ? (
+        // 22g: assistive tech announces the price, never the raw step index.
+        // Slide-to-close opt-out lives inside PriceSlider itself (owner
+        // round 4): the slider owns its touches; the headline above still
+        // slides the page.
+        <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
+      ) : null}
       {view.table ? <WorkImpactTable {...view.table} /> : null}
       {view.bootstrap ? <PurchaseBootstrapCard {...view.bootstrap} /> : null}
       {view.empty ? <ItemValuationEmptyState {...view.empty} /> : null}

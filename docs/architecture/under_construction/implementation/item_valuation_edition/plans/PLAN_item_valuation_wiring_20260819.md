@@ -335,3 +335,12 @@ is finally enforceable):**
   Note: unlike `useHeaderlessSlidePage` (mobile-only hide), the surface header is
   hidden on ALL viewports — the frame's arrow is the close control everywhere.
   Verified: package tsc clean, 296/27, `item-valuation.spec.ts` 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 4.**
+  The `data-slide-dismiss-ignore` opt-out narrowed from the whole price region to
+  `PriceSlider`'s root alone (component-owned — the control that owns the gesture
+  declares the opt-out), so slide-to-close works again from the price preview
+  above it. One regression test pins the attribute. The owner also hand-tuned
+  provenance detail copy in the fixtures ("unsaved · just now",
+  "version · just now") and frame padding. Verified: tsc clean, 297/27,
+  e2e 2/2 mobile.
