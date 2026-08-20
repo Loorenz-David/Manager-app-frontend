@@ -358,3 +358,10 @@ is finally enforceable):**
   grid exactly like an off-grid saved price. Grouping is a local visual concern
   in `PriceHeadline` (the seam forbids lib imports; no money semantics in it).
   Four new component tests. Verified: tsc clean, 301/27, e2e 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 6.**
+  Typed prices propagate **live**: every keystroke in the per-piece editor
+  dispatches the DRAG event immediately, so the handle, chip, AT PRICE, totals
+  and Save label track the typing; blur only closes the editor; Escape restores
+  the value the edit started from (the seed is captured at edit start). Tests
+  updated to the live semantics. Verified: tsc clean, 301/27, e2e 2/2 mobile.

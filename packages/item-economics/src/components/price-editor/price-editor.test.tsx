@@ -347,7 +347,7 @@ describe("PriceHeadline tap-to-type (owner round 5)", () => {
     expect(input).toHaveAttribute("inputmode", "numeric");
   });
 
-  it("typing regroups thousands live and blur commits the plain integer", () => {
+  it("typing regroups thousands and propagates every keystroke live (owner round 6)", () => {
     const onPerPieceCommit = vi.fn();
     render(
       <PriceHeadline
@@ -360,13 +360,17 @@ describe("PriceHeadline tap-to-type (owner round 5)", () => {
       screen.getByRole("button", { name: /edit expected sold price/i }),
     );
     const input = screen.getByTestId("item-valuation-per-piece-input");
+    fireEvent.change(input, { target: { value: "12" } });
+    expect(onPerPieceCommit).toHaveBeenLastCalledWith(12);
     fireEvent.change(input, { target: { value: "12345" } });
-    expect(input).toHaveValue("12 345");
+    expect(input).toHaveValue("12\u00a0345");
+    expect(onPerPieceCommit).toHaveBeenLastCalledWith(12345);
+    // Blur only closes the editor — the value is already live.
     fireEvent.blur(input);
-    expect(onPerPieceCommit).toHaveBeenCalledExactlyOnceWith(12345);
+    expect(onPerPieceCommit).toHaveBeenCalledTimes(2);
   });
 
-  it("an unchanged or emptied value cancels without committing", () => {
+  it("an emptied field emits nothing; Escape restores the edit's starting value", () => {
     const onPerPieceCommit = vi.fn();
     render(
       <PriceHeadline
@@ -375,22 +379,18 @@ describe("PriceHeadline tap-to-type (owner round 5)", () => {
         onPerPieceCommit={onPerPieceCommit}
       />,
     );
-    fireEvent.click(
-      screen.getByRole("button", { name: /edit expected sold price/i }),
-    );
-    fireEvent.blur(screen.getByTestId("item-valuation-per-piece-input"));
-
     fireEvent.click(
       screen.getByRole("button", { name: /edit expected sold price/i }),
     );
     const input = screen.getByTestId("item-valuation-per-piece-input");
     fireEvent.change(input, { target: { value: "" } });
-    fireEvent.blur(input);
-
     expect(onPerPieceCommit).not.toHaveBeenCalled();
-    expect(screen.getByTestId("item-valuation-per-piece")).toHaveTextContent(
-      "4 524",
-    );
+
+    fireEvent.change(input, { target: { value: "9000" } });
+    expect(onPerPieceCommit).toHaveBeenLastCalledWith(9000);
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(onPerPieceCommit).toHaveBeenLastCalledWith(4524);
+    expect(screen.getByTestId("item-valuation-per-piece")).toBeInTheDocument();
   });
 
   it("without an editor wiring, the amount stays a plain display", () => {

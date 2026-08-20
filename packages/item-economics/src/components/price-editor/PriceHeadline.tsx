@@ -44,17 +44,35 @@ export function PriceHeadline({
   perPieceDigits = null,
   onPerPieceCommit,
 }: PriceHeadlineProps): React.JSX.Element {
-  // null = displaying; a string (possibly "") = editing with these digits.
-  const [draftDigits, setDraftDigits] = useState<string | null>(null);
+  // null = displaying; while editing, `digits` is the live value and `seed`
+  // the value at edit start (for Escape). Every keystroke propagates
+  // immediately (owner round 6): the handle and every derived figure track
+  // the typing, exactly as if the slider were being dragged.
+  const [edit, setEdit] = useState<{ digits: string; seed: string } | null>(
+    null,
+  );
   const isEditable = perPieceDigits !== null && onPerPieceCommit !== undefined;
 
-  function commitEdit(): void {
-    if (draftDigits === null) return;
-    // Empty input or an unchanged value is a cancel, not a zero-price commit.
-    if (draftDigits !== "" && draftDigits !== perPieceDigits) {
-      onPerPieceCommit?.(Number(draftDigits));
+  function handleDigitsChange(raw: string): void {
+    const digits = raw.replace(/\D/g, "").slice(0, 9);
+    setEdit((current) =>
+      current === null ? current : { ...current, digits },
+    );
+    // An emptied field emits nothing — the draft keeps its last real value.
+    if (digits !== "") {
+      onPerPieceCommit?.(Number(digits));
     }
-    setDraftDigits(null);
+  }
+
+  function handleEscape(): void {
+    setEdit((current) => {
+      // Typing already moved the draft; Escape restores the value the edit
+      // started from.
+      if (current !== null && current.digits !== current.seed) {
+        onPerPieceCommit?.(Number(current.seed));
+      }
+      return null;
+    });
   }
 
   const amountClassName = cn(
@@ -68,7 +86,7 @@ export function PriceHeadline({
         Per piece
       </p>
 
-      {draftDigits !== null ? (
+      {edit !== null ? (
         <span className="flex items-baseline justify-center">
           <input
             aria-label="Expected sold price per piece"
@@ -80,16 +98,14 @@ export function PriceHeadline({
             data-testid="item-valuation-per-piece-input"
             inputMode="numeric"
             pattern="[0-9]*"
-            style={{ width: `${Math.max(1, groupDigits(draftDigits).length)}ch` }}
+            style={{ width: `${Math.max(1, groupDigits(edit.digits).length)}ch` }}
             type="text"
-            value={groupDigits(draftDigits)}
-            onBlur={commitEdit}
-            onChange={(event) =>
-              setDraftDigits(event.target.value.replace(/\D/g, "").slice(0, 9))
-            }
+            value={groupDigits(edit.digits)}
+            onBlur={() => setEdit(null)}
+            onChange={(event) => handleDigitsChange(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();
-              if (event.key === "Escape") setDraftDigits(null);
+              if (event.key === "Escape") handleEscape();
             }}
           />
           <span className="ml-2 text-2xl font-bold text-muted-foreground">
@@ -101,7 +117,9 @@ export function PriceHeadline({
           aria-label="Edit expected sold price per piece"
           className="rounded-lg"
           type="button"
-          onClick={() => setDraftDigits(perPieceDigits)}
+          onClick={() =>
+            setEdit({ digits: perPieceDigits, seed: perPieceDigits })
+          }
         >
           <span className={amountClassName} data-testid="item-valuation-per-piece">
             {perPiece}
