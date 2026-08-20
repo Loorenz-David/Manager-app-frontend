@@ -55,19 +55,17 @@ function ItemValuationBody(): React.JSX.Element {
   }
 
   return (
-    <div className="flex flex-col gap-6 px-6 py-8">
+    <div className="flex flex-col gap-6">
       {/*
         The price region owns its horizontal gestures (owner correction
         2026-08-20): a slider drag must never escalate into the surface's
-        slide-to-close. Stopping propagation on the whole region — not just
-        the handle — keeps taps that start on the padding from sliding the
-        page either.
+        slide-to-close. `data-slide-dismiss-ignore` is the dismiss hook's own
+        opt-out contract (use-slide-to-dismiss.ts) — it rejects the touch at
+        `touchstart`, on the whole region so padding-origin drags are covered
+        too. React-level stopPropagation cannot do this: the hook's listeners
+        are native, bound directly to the surface panel.
       */}
-      <div
-        className="flex flex-col gap-6"
-        onPointerDown={(event) => event.stopPropagation()}
-        onTouchStart={(event) => event.stopPropagation()}
-      >
+      <div className="flex flex-col gap-6" data-slide-dismiss-ignore="">
         {view.headline ? <PriceHeadline {...view.headline} /> : null}
         {view.chip ? (
           <div className="flex justify-center">
@@ -137,7 +135,7 @@ export function ItemValuationSlidePage(): React.JSX.Element {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col bg-card"
+      className="flex h-full min-h-0 flex-col bg-background"
       data-testid="item-valuation-page"
     >
       <ItemValuationProvider taskId={taskId as TaskId}>

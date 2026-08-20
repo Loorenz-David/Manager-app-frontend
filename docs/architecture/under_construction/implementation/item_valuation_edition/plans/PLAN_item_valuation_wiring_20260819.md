@@ -310,3 +310,18 @@ is finally enforceable):**
   `ItemValuationSlidePage.tsx` + test, `use-item-valuation.controller.ts` (frame
   view-model type) (phase 2). Verified: package tsc, monorepo typecheck, 296/27,
   75/10, `item-valuation.spec.ts` 2/2 mobile.
+
+- **2026-08-20 · coordinator + 1A owner (Claude), owner correction round 2.**
+  (a) Layout: identity + provenance header now sits below the back-arrow row on
+  the page background (no fill), and the whole body is wrapped in `@beyo/ui`
+  `ContentCard` (`ItemValuationFrame` restructured; page bg back to
+  `bg-background`; body padding moved into the card). (b) **Slide-to-close
+  conflict root-caused by reading `use-slide-to-dismiss.ts`, not by logging**:
+  the dismiss hook binds RAW native touch listeners to the surface panel, so the
+  previous React-level `stopPropagation` was structurally ineffective (native
+  panel listeners run during bubbling before React's root-delegated handlers).
+  The hook's own opt-out contract — `data-slide-dismiss-ignore`, walked at
+  `touchstart` (`use-slide-to-dismiss.ts:71`) — is now on the price region, and
+  the hidden range input gained `touch-none` so the control owns its touches
+  under the panel's `pan-y`. Verified: package tsc clean, 296/27,
+  `item-valuation.spec.ts` 2/2 mobile.

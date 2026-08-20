@@ -127,7 +127,7 @@ export function PriceSlider({
           type="range"
           aria-label="Expected sold price"
           aria-valuetext={ariaValueText ?? undefined}
-          className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
+          className="absolute inset-0 size-full cursor-pointer touch-none opacity-0 disabled:cursor-not-allowed"
           data-testid="item-valuation-slider-input"
           disabled={disabled}
           max={steps}
