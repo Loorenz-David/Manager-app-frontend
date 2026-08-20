@@ -477,3 +477,17 @@ Derived from handoff §2 with concrete ids; `saved.purchase_cost_minor` is null 
   numbers-meet-arithmetic criterion; L6 (process) — the fix cycle overwrote the r1
   reviewer tracker row rather than appending. Handoff:
   `../handoffs/reviewer/handoff_PLAN_item_valuation_core_20260819_review_2.md`.
+
+- **2026-08-20 · coordinator + 1A implementer (Claude), post-approval amendment
+  (authorized fold-back from phase-2 implement_1).** The phase-2 page satisfied
+  criterion 22g by imperatively patching two attributes onto closed phase-1
+  components; the durable form landed as two props, exactly as the fold-back
+  requested: `PriceSlider.ariaValueText?: string | null` (→ `aria-valuetext` on the
+  hidden range input) and `ItemValuationFrame.isMenuFocusable?: boolean` (default
+  `false` → `tabIndex -1` on the decorative three-dot). The page's
+  `useItemValuationA11yPatches` hook was deleted and replaced by the prop pass-through
+  (`ariaValueText={view.sliderValueText}`); frame default needs no page change. One
+  new slider test (aria-valuetext present/absent) + one assertion on the frame's
+  default tab order. Suite 296/27, package tsc clean. Perimeter: `PriceSlider.tsx`,
+  `ItemValuationFrame.tsx`, `price-editor.test.tsx`, `pages/ItemValuationSlidePage.tsx`.
+  For the phase-2 round-1 reviewer: this amendment is inside your review scope.

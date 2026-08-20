@@ -1,5 +1,3 @@
-import { useEffect, useRef } from "react";
-
 import { useHeaderlessSlidePage, useSurfaceProps } from "@beyo/hooks";
 import type { TaskId } from "@beyo/lib";
 import { PullToRefresh } from "@beyo/ui";
@@ -27,51 +25,6 @@ import type { ItemValuationSlideSurfaceProps } from "../surface-ids";
  * presentational components from the controller's view model and owns nothing
  * else: every string, tone and fraction below arrives already formatted.
  */
-
-/**
- * The two a11y repairs of criterion 22g, applied from the page because both
- * targets live inside phase-1 components that are closed under an approval gate
- * (see the handoff's fold-back request — the durable form is one prop on
- * `PriceSlider` and one on `ItemValuationFrame`).
- *
- * Both attributes are ones React never writes on these elements, so there is
- * nothing for it to fight over on re-render.
- */
-function useItemValuationA11yPatches(
-  rootRef: React.RefObject<HTMLDivElement | null>,
-  sliderValueText: string | null,
-): void {
-  useEffect(() => {
-    const root = rootRef.current;
-
-    if (root === null) {
-      return;
-    }
-
-    // The three-dot button is decorative this iteration — it must not be a
-    // keyboard stop until it gains an action.
-    root
-      .querySelector<HTMLElement>('[data-testid="item-valuation-menu-button"]')
-      ?.setAttribute("tabindex", "-1");
-
-    const sliderInput = root.querySelector<HTMLElement>(
-      '[data-testid="item-valuation-slider-input"]',
-    );
-
-    if (sliderInput === null) {
-      return;
-    }
-
-    if (sliderValueText === null) {
-      sliderInput.removeAttribute("aria-valuetext");
-      return;
-    }
-
-    // A range input announces its raw value — here a step index, which means
-    // nothing. The price is what the user is choosing.
-    sliderInput.setAttribute("aria-valuetext", sliderValueText);
-  });
-}
 
 function ItemValuationBody(): React.JSX.Element {
   const view = useItemValuationContext();
@@ -107,7 +60,12 @@ function ItemValuationBody(): React.JSX.Element {
           <PriceCoverageChip {...view.chip} />
         </div>
       ) : null}
-      {view.slider ? <PriceSlider {...view.slider} /> : null}
+      {view.slider ? (
+        // 22g: assistive tech announces the price, never the raw step index.
+        // The prop landed as the phase-1 amendment this page's earlier
+        // imperative patch asked for (fold-back, 2026-08-20).
+        <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
+      ) : null}
       {view.table ? <WorkImpactTable {...view.table} /> : null}
       {view.bootstrap ? <PurchaseBootstrapCard {...view.bootstrap} /> : null}
       {view.empty ? <ItemValuationEmptyState {...view.empty} /> : null}
@@ -118,9 +76,6 @@ function ItemValuationBody(): React.JSX.Element {
 
 function ItemValuationView(): React.JSX.Element {
   const view = useItemValuationContext();
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useItemValuationA11yPatches(rootRef, view.sliderValueText);
 
   return (
     <PullToRefresh
@@ -128,10 +83,7 @@ function ItemValuationView(): React.JSX.Element {
       scrollClassName="overflow-y-auto overscroll-y-none"
       onRefresh={view.refetch}
     >
-      <div
-        className="flex flex-col px-4 pb-[calc(var(--safe-bottom,0px)+1.5rem)] pt-4"
-        ref={rootRef}
-      >
+      <div className="flex flex-col px-4 pb-[calc(var(--safe-bottom,0px)+1.5rem)] pt-4">
         <ItemValuationFrame
           headerExtra={
             view.provenance ? (

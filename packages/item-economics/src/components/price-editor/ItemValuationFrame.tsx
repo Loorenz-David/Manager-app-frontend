@@ -14,6 +14,12 @@ export type ItemValuationFrameProps = {
   children: React.ReactNode;
   className?: string;
   "data-testid"?: string;
+  /**
+   * The three-dot button is decorative this iteration; it stays out of the tab
+   * order until it gains an action. Post-approval amendment (phase-2 fold-back,
+   * 2026-08-20).
+   */
+  isMenuFocusable?: boolean;
 };
 
 /**
@@ -28,6 +34,7 @@ export function ItemValuationFrame({
   children,
   className,
   "data-testid": testId,
+  isMenuFocusable = false,
 }: ItemValuationFrameProps): React.JSX.Element {
   return (
     <section
@@ -55,6 +62,7 @@ export function ItemValuationFrame({
             aria-label="More options"
             className="shrink-0 rounded-full p-1.5 text-muted-foreground"
             data-testid="item-valuation-menu-button"
+            tabIndex={isMenuFocusable ? undefined : -1}
           >
             <EllipsisVertical aria-hidden="true" className="size-5" />
           </button>

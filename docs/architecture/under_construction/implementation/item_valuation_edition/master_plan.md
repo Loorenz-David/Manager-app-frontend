@@ -279,6 +279,13 @@ Charter rules 1–11½ imported wholesale. Project-specific additions:
   (`apps/managers-app/ManagerBeyo-app-managers/`): `npm run test:e2e:mobile` then
   `npm run test:e2e:desktop`. Fixture/auth conventions per
   `34_runtime_validation_local.md` (`fixtures/app-fixture`, `auth.signIn()`).
+  **Pre-existing failure baseline (measured 2026-08-20, phase-2 implementer, on a
+  clean tree):** mobile 15 passed / 54 failed / 15 did-not-run; the dominant failure
+  is `TypeError: Importing a module script failed` in auth/cases/task-creation/
+  worker-stats specs — a dev-server module-loading problem, not test content.
+  Judge a phase by its own specs and by no-pass-to-fail regressions, never by the
+  global count. The dev server on `:5173` is owner-started and reused
+  (`reuseExistingServer: true`) — sessions never launch one.
 - **Mobile tap caveat (earned):** clicks inside `PullToRefresh` are swallowed on the
   mobile project — use the `tap()`/`press()` helper, not `click()`.
 - **npm install caveat (earned):** after ANY `npm install`, vite/vitest may fail with

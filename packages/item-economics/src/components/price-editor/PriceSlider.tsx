@@ -24,6 +24,11 @@ export type PriceSliderProps = {
   disabled?: boolean;
   /** Shown under the track when disabled — never disable without a reason. */
   disabledReason?: string | null;
+  /**
+   * What assistive tech announces instead of the raw step index — the formatted
+   * per-piece price. Post-approval amendment (phase-2 fold-back, 2026-08-20).
+   */
+  ariaValueText?: string | null;
 };
 
 function clampFraction(value: number): number {
@@ -48,6 +53,7 @@ export function PriceSlider({
   maxLabel,
   disabled = false,
   disabledReason = null,
+  ariaValueText = null,
 }: PriceSliderProps): React.JSX.Element {
   const steps = Math.max(1, Math.round(stepCount));
   const handleFraction = clampFraction(fraction);
@@ -120,6 +126,7 @@ export function PriceSlider({
         <input
           type="range"
           aria-label="Expected sold price"
+          aria-valuetext={ariaValueText ?? undefined}
           className="absolute inset-0 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
           data-testid="item-valuation-slider-input"
           disabled={disabled}

@@ -278,6 +278,28 @@ describe("PriceSlider emissions (criteria 52–53)", () => {
     expect(onFractionChange).toHaveBeenCalledWith(1);
   });
 
+  it("announces the formatted price via aria-valuetext, or nothing when absent (22g)", () => {
+    render(
+      <PriceSlider
+        {...baseProps}
+        ariaValueText="2 225 SEK per piece"
+        fraction={0.5}
+        onFractionChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("item-valuation-slider-input")).toHaveAttribute(
+      "aria-valuetext",
+      "2 225 SEK per piece",
+    );
+    cleanup();
+    render(
+      <PriceSlider {...baseProps} fraction={0.5} onFractionChange={vi.fn()} />,
+    );
+    expect(
+      screen.getByTestId("item-valuation-slider-input"),
+    ).not.toHaveAttribute("aria-valuetext");
+  });
+
   it("renders an off-grid fraction without emitting anything", () => {
     const onFractionChange = vi.fn();
     render(
@@ -351,6 +373,11 @@ describe("interaction wiring", () => {
     expect(screen.getByTestId("item-valuation-skeleton")).toBeVisible();
     expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
       "Expected sold price",
+    );
+    // 22g: decorative while it has no action — out of the tab order by default.
+    expect(screen.getByTestId("item-valuation-menu-button")).toHaveAttribute(
+      "tabindex",
+      "-1",
     );
   });
 });
