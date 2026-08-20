@@ -30,7 +30,6 @@
     "packages/*"
   ],
   "dependencies": {
-    "@rolldown/binding-darwin-arm64": "^1.2.4",
     "lightningcss-darwin-arm64": "^1.33.0",
     "socket.io-client": "^4.8.3",
     "ulid": "^3.0.2"
