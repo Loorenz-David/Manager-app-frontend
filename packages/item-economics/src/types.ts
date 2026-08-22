@@ -190,6 +190,43 @@ export const TaskProductionTimeSchema = z.object({
 });
 export type TaskProductionTime = z.infer<typeof TaskProductionTimeSchema>;
 
+// --- Budget allocations (worker step cards) ---------------------------------
+// One batched call per feed page; the cards' single economics source
+// (HANDOFF_TO_FRONTEND_worker_step_card_budget_allocations_20260822).
+// Unknown keys are stripped by default, which is the required tolerance for
+// the additive item-aware-typicals fields (§6 of the handoff).
+
+export const BudgetAllocationStepSchema = z.object({
+  step_id: z.string(),
+  working_section_id: z.string(),
+  section_name_snapshot: z.string(),
+  typical_worker_seconds: z.number().int().nullable(),
+  allowance_seconds: z.number().int().nullable(),
+  worked_seconds: z.number().int(),
+  // Negative means over budget — a state, not an error.
+  left_seconds: z.number().int().nullable(),
+  share_state: ProductionTimeShareStateSchema,
+});
+export type BudgetAllocationStep = z.infer<typeof BudgetAllocationStepSchema>;
+
+export const TaskBudgetAllocationSchema = z.object({
+  task_id: z.string(),
+  status: ItemEconomicsStatusSchema,
+  allowed_worker_minutes: DecimalStringSchema.nullable(),
+  actual_worker_seconds: z.number().int(),
+  remaining_worker_minutes: DecimalStringSchema.nullable(),
+  allocation_method: z.string(),
+  steps: z.array(BudgetAllocationStepSchema),
+});
+export type TaskBudgetAllocation = z.infer<typeof TaskBudgetAllocationSchema>;
+
+export const TaskBudgetAllocationsResponseSchema = z.object({
+  budget_allocations: z.array(TaskBudgetAllocationSchema),
+});
+export type TaskBudgetAllocationsResponse = z.infer<
+  typeof TaskBudgetAllocationsResponseSchema
+>;
+
 // --- Price scenario (expected sold price editor) ----------------------------
 //
 // Source of truth: docs/handoff/from_backend/HANDOFF_TO_FRONTEND_price_scenario_20260819.md
