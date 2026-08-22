@@ -19,8 +19,9 @@ export type ProductionTimeRowDetailProps = {
 
 /**
  * The active row's own bar: worked time against this section's allowance, with
- * a tick marking where the section's typical duration falls, and the server's
- * verdict beneath.
+ * the server's verdict beneath. The typical appears as text in the budget
+ * line — the marker it once drew was provably identical on every row (plan
+ * E3) and was removed with the 2026-08-22 live-clock integration.
  */
 export function ProductionTimeRowDetail({
   detail,
@@ -32,31 +33,20 @@ export function ProductionTimeRowDetail({
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="production-time-row-detail">
-      {/* The track sits inside a taller box so the typical tick can overhang it
-       * without being clipped by the track's own rounded overflow. */}
       <div
         aria-hidden="true"
-        className="relative h-3 w-full"
+        className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40"
         data-testid="production-time-row-progress"
       >
-        <div className="absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-muted/40">
-          <span
-            className="block h-full rounded-full"
-            style={{
-              width: `${detail.progressPercent}%`,
-              backgroundColor: isOverShare
-                ? PRODUCTION_TIME_TONE_FILL.blocked
-                : PRODUCTION_TIME_TONE_FILL.working,
-            }}
-          />
-        </div>
-        {detail.typicalMarkerPercent !== null ? (
-          <span
-            className="absolute top-0 h-3 w-px bg-foreground/40"
-            data-testid="production-time-row-typical-marker"
-            style={{ left: `${detail.typicalMarkerPercent}%` }}
-          />
-        ) : null}
+        <span
+          className="block h-full rounded-full"
+          style={{
+            width: `${detail.progressPercent}%`,
+            backgroundColor: isOverShare
+              ? PRODUCTION_TIME_TONE_FILL.blocked
+              : PRODUCTION_TIME_TONE_FILL.working,
+          }}
+        />
       </div>
 
       <div className="flex items-center justify-between gap-3">

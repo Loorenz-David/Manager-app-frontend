@@ -7,8 +7,6 @@ import {
 } from "../types";
 import { toProductionTimeViewModel } from "./production-time-dto";
 
-const NOW_MS = Date.parse("2026-08-17T09:22:00+00:00");
-
 function typical(seconds: number | null) {
   return {
     typical_worker_seconds: seconds,
@@ -97,7 +95,7 @@ describe("TaskProductionTimeSchema", () => {
 
 describe("toProductionTimeViewModel", () => {
   it("maps sections 1:1 in payload order and preserves a reassignment", () => {
-    const viewModel = toProductionTimeViewModel(makeDto(), NOW_MS);
+    const viewModel = toProductionTimeViewModel(makeDto());
 
     expect(viewModel.kind).toBe("budget");
     if (viewModel.kind !== "budget") return;
@@ -111,43 +109,40 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.rows).toHaveLength(3);
   });
 
-  it("anchors live time to state_entered_at and advances all card geometry", () => {
-    const viewModel = toProductionTimeViewModel(makeDto(), NOW_MS);
+  it("renders the served figures verbatim — the clock is the backend's", () => {
+    // Since the 2026-08-22 go-live the payload already contains the open
+    // working interval. Any client-elapsed addition here is a double count.
+    const viewModel = toProductionTimeViewModel(makeDto());
 
     expect(viewModel.kind).toBe("budget");
     if (viewModel.kind !== "budget") return;
 
     expect(viewModel.card.rows[0]).toMatchObject({
-      workedSeconds: 2_100,
-      workedLabel: "35m",
+      workedSeconds: 1_500,
+      workedLabel: "25m",
     });
-    expect(viewModel.card.headline.workedLabel).toBe("2h 50m");
-    expect(viewModel.card.headline.remainingLabel).toBe("25m left");
+    expect(viewModel.card.headline.workedLabel).toBe("2h 40m");
+    expect(viewModel.card.headline.remainingLabel).toBe("35m left");
     expect(viewModel.card.segments[0]?.widthPercent).toBeCloseTo(
-      (2_100 / 11_700) * 100,
+      (1_500 / 11_700) * 100,
     );
   });
 
-  it("does not tick from fetch time when state_entered_at is missing or invalid", () => {
-    const missing = toProductionTimeViewModel(makeDto(), NOW_MS);
-    const invalid = toProductionTimeViewModel(
+  it("gives state_entered_at no influence over any figure", () => {
+    // Two payloads that differ only in when the open interval started must
+    // render identically — the served worked_seconds already contains it.
+    const base = toProductionTimeViewModel(makeDto());
+    const shifted = toProductionTimeViewModel(
       makeDto({
         sections: makeDto().sections.map((section, index) =>
           index === 0
-            ? { ...section, state_entered_at: "not-a-date" }
+            ? { ...section, state_entered_at: "2020-01-01T00:00:00+00:00" }
             : section,
         ),
       }),
-      NOW_MS,
     );
 
-    expect(missing.kind).toBe("budget");
-    expect(invalid.kind).toBe("budget");
-    if (missing.kind !== "budget" || invalid.kind !== "budget") return;
-
-    expect(missing.card.rows[1]?.workedSeconds).toBe(600);
-    expect(invalid.card.rows[0]?.workedSeconds).toBe(1_500);
-    expect(Number.isNaN(invalid.card.rows[0]?.workedSeconds)).toBe(false);
+    expect(shifted).toEqual(base);
   });
 
   it("copies share_state through even when client-side arithmetic suggests otherwise", () => {
@@ -162,7 +157,7 @@ describe("toProductionTimeViewModel", () => {
         },
       ],
     });
-    const viewModel = toProductionTimeViewModel(dto, NOW_MS);
+    const viewModel = toProductionTimeViewModel(dto);
 
     expect(viewModel.kind).toBe("budget");
     if (viewModel.kind !== "budget") return;
@@ -172,14 +167,13 @@ describe("toProductionTimeViewModel", () => {
   });
 
   it("guards a non-positive allowance and uses the server over-share verdict", () => {
-    const viewModel = toProductionTimeViewModel(makeDto(), NOW_MS);
+    const viewModel = toProductionTimeViewModel(makeDto());
 
     expect(viewModel.kind).toBe("budget");
     if (viewModel.kind !== "budget") return;
 
     expect(viewModel.card.rows[1]?.detail).toEqual({
       progressPercent: 100,
-      typicalMarkerPercent: null,
       verdictLabel: "Over share",
       verdictTone: "over_share",
     });
@@ -204,7 +198,7 @@ describe("toProductionTimeViewModel", () => {
         },
       ],
     });
-    const viewModel = toProductionTimeViewModel(dto, NOW_MS);
+    const viewModel = toProductionTimeViewModel(dto);
 
     expect(viewModel.kind).toBe("budget");
     if (viewModel.kind !== "budget") return;
@@ -215,7 +209,7 @@ describe("toProductionTimeViewModel", () => {
     ]);
   });
 
-  it("sums degraded worked time from sections and still applies the live tick", () => {
+  it("sums degraded worked time from the served sections", () => {
     const dto = makeDto({
       status: "not_evaluated",
       budget: {
@@ -232,12 +226,12 @@ describe("toProductionTimeViewModel", () => {
         share_state: "no_budget" as const,
       })),
     });
-    const viewModel = toProductionTimeViewModel(dto, NOW_MS);
+    const viewModel = toProductionTimeViewModel(dto);
 
     expect(viewModel.kind).toBe("no_budget");
     if (viewModel.kind !== "no_budget") return;
 
-    expect(viewModel.card.workedLabel).toBe("45m");
+    expect(viewModel.card.workedLabel).toBe("35m");
     expect(viewModel.card.cta).toBeNull();
     expect(viewModel.card.rows[0]?.typicalComparisonLabel).toBe(
       "of typically 1h 0m",
@@ -259,7 +253,6 @@ describe("toProductionTimeViewModel", () => {
   ])("maps %s to its exact reason title", (status, title) => {
     const viewModel = toProductionTimeViewModel(
       makeDto({ status }),
-      NOW_MS,
     );
 
     expect(viewModel.kind).toBe("no_budget");
@@ -285,7 +278,6 @@ describe("toProductionTimeViewModel", () => {
           state_entered_at: null,
         })),
       }),
-      NOW_MS,
     );
 
     expect(viewModel.kind).toBe("budget");
@@ -299,7 +291,7 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.remainderPercent).toBe(0);
   });
 
-  it("prefers final headline values and freezes their tick", () => {
+  it("prefers final headline values over the live budget block", () => {
     const viewModel = toProductionTimeViewModel(
       makeDto({
         final: {
@@ -310,7 +302,6 @@ describe("toProductionTimeViewModel", () => {
           computed_at: "2026-08-17T18:03:00+00:00",
         },
       }),
-      NOW_MS,
     );
 
     expect(viewModel.kind).toBe("budget");
@@ -328,7 +319,6 @@ describe("toProductionTimeViewModel", () => {
       expect(
         toProductionTimeViewModel(
           makeDto({ item_binding: itemBinding }),
-          NOW_MS,
         ),
       ).toEqual({ kind: "unavailable", reason: itemBinding });
     },
@@ -355,7 +345,6 @@ describe("toProductionTimeViewModel", () => {
             },
           ],
         }),
-        NOW_MS,
       );
 
       expect(viewModel.kind).toBe("budget");
@@ -379,7 +368,6 @@ describe("toProductionTimeViewModel", () => {
             },
           ],
         }),
-        NOW_MS,
       );
 
       expect(viewModel.kind).toBe("budget");

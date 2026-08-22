@@ -12,7 +12,8 @@
   `docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_share_state_20260819.md`
   (answered: option C, `share_state` is settled-only by design) and its successor
   `docs/handoff/to_backend/HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`
-  (open: make the projection live, all six fields together)
+  (answered 2026-08-22: **live, all fields together** —
+  `docs/handoff/from_backend/HANDOFF_TO_FRONTEND_live_working_time_clock_20260822.md`)
 - Source evidence: a live `status: "ok"` response from `GET /api/v1/item-economics/tasks/
   tsk_01M0CSK8HZ80SD2V84FAVYAZG6/production-time`, captured 2026-08-19, plus four screenshots of
   the rendered card at 2m / 3m / 4m / 25m of elapsed work. **This is the first `ok` response the
@@ -197,6 +198,55 @@ The two candidate behaviours below are superseded and kept for provenance:
 
 Do not implement either until §Blocked resolves.
 
+**Closed 2026-08-22 — the backend went live and the gate was never needed.** The owner held S3
+before implementation (Review log, 2026-08-19 scope narrowing), so the interim gate clause died
+unexecuted: no suppression ever shipped, and there is nothing to retire — which is exactly what
+the go-live handoff §1 asks for. `share_state` now arrives computed on the same live basis as
+`worked_seconds` and `left_seconds`, so rendering it as received — which the code has done all
+along, mutation-tested since the predecessor — is simply correct. S3 resolves to **zero code
+change**; what ships instead is S4, which deletes the local tick that the live payload obsoletes.
+
+### S4 — integrate the live clock: delete the local tick, render as served (added 2026-08-22)
+
+The backend now serves settled work **plus the concurrency-averaged share of the open interval**
+on this endpoint (`HANDOFF_TO_FRONTEND_live_working_time_clock_20260822.md` §3). The frontend's
+local addition of `now − state_entered_at` — correct under the superseded 2026-08-18 §Live time
+guidance — would now **double-count** the open interval, at both levels it is applied:
+
+- per row: `liveTickSeconds` in `production-time-dto.ts` inflates `workedSeconds` and the bar;
+- headline: `totalLiveTickSeconds` is added to `budget.actual_worker_seconds` and subtracted from
+  the remaining figure.
+
+**Owner decision 2026-08-22 — Option 1, no smoothing.** Between polls the card renders the served
+values verbatim; the 45-second poll (`use-task-production-time-query.ts`) is the only motion. The
+alternative — receipt-anchored smoothing, which the handoff permits — was declined: the backend
+averages concurrent credit (a worker split across two sections accrues each at half rate), so a
+client ticking at 1 s/s over-runs the served value between every poll, and §5's three
+decrease-mode obligations (snap-down baseline, never clamp to a previous maximum, render
+settlement dips as given) all exist only to manage a smoothing baseline. With no baseline, every
+one of them is satisfied by construction: everything on screen **is** a served value.
+
+Work:
+- Delete `liveTickSeconds`, `totalLiveTickSeconds`, and the `nowMs` parameter from
+  `production-time-dto.ts`; the transform becomes a pure function of the DTO.
+- Delete `hooks/use-production-time-clock.ts` and its test; the controller stops ticking.
+- Remove the typical marker (E3, held since 2026-08-19): `typicalMarkerPercent` leaves the detail
+  view model, `buildRowDetail` loses its `typicalSeconds` parameter, the tick span leaves
+  `ProductionTimeRowDetail`. The typical remains on screen as text in the budget line S1 shipped.
+- Doc-comment the transform with the handoff's two standing warnings: the payload is a **live
+  operational projection, never payroll or archival data** (§4.3), and a served decrease is
+  authoritative — render it, never clamp to a previous maximum (§5).
+- Re-mirror the go-live handoff with provenance frontmatter (`mirror_of` / `source_modified` /
+  `source_sha256`). Diffing during this reopening found the source had already drifted from our
+  mirror — the backend archived its pipeline and updated the provenance-appendix paths — which is
+  the mirror-digest convention doing its job.
+
+Out of scope, unchanged by design: the worker task-step cards' `TickingTimer`
+(`entered_at`-anchored stopwatch over `total_working_seconds`). The go-live handoff §4.3 names the
+task/step serializer as a **settled** consumer still, so that surface's local tick remains both
+correct and required. The two surfaces answer different questions — a personal stopwatch at
+wall-clock rate versus a concurrency-averaged cost projection.
+
 ---
 
 ## Blocked — **RESOLVED 2026-08-19**, kept for provenance
@@ -237,22 +287,31 @@ predecessor's rounds 3–4, where two fixes shipped with no regression guard.
    division. *Mutation: drop the guard → a NaN/Infinity assertion fails.*
 3. The per-row typical tick is gone from the budget frame, and **no ratio replaces it**.
    *Mutation: restore the tick → a test asserting its absence fails.*
-4. The verdict pill does not render on a row whose `state` is `working`, and does render on every
-   other state that carries one. *Mutation: remove the gate → a working-row test fails; mutation:
-   gate on `isActive` for a non-working row → a completed-row test fails.*
+4. ~~The verdict pill does not render on a row whose `state` is `working`~~ — **superseded
+   2026-08-22, inverted by the go-live.** The verdict renders exactly as served in every state the
+   detail appears, `working` included; no state suppresses or relabels it. *Mutation: suppress the
+   verdict while `working` → the working-row verdict test fails.*
 5. Nothing in `packages/item-economics/src` compares elapsed or worked time to `allowance_seconds`
-   to produce a verdict, label or tone. The gate keys off `state`, nothing else. *Mutation:
-   derive a label from the comparison → a grep-level test fails.* (This is predecessor criterion 5,
-   still enforced; the gate is a display decision, not a rule.)
+   to produce a verdict, label or tone. *Mutation: derive a label from the comparison → the
+   copies-share_state-through test fails.* (Predecessor criterion 5, still enforced — now with no
+   gate qualifier at all.)
 6. The degraded (`no_budget`) frame is unchanged — same rows, same toggle, same absence of
    allowances. *Mutation: leak an allowance line into it → its test fails.*
 7. `npm run typecheck` clean; `npm run test:item-economics` passes; the workers Playwright
    production-time spec passes in both projects.
 
-**Removal condition, to be honoured rather than forgotten:** criteria 4 and 5's gate exists only
-while the payload is settled-only. When the backend ships the live projection
-(`HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`), the gate is deleted and the
-pill renders in every state. Whoever consumes that backend handoff owns removing it.
+8. A `working` section's rendered time equals the **served** `worked_seconds`, and
+   `state_entered_at` moves nothing: two payloads differing only in `state_entered_at` produce
+   identical view models. *Mutation: re-add `now − state_entered_at` to a working row → both the
+   verbatim-figures test and the identical-view-models test fail.*
+9. The headline renders the served `budget` figures verbatim — no tick added to worked, none
+   subtracted from remaining. *Mutation: add a client-elapsed term to the headline → the
+   verbatim-figures test fails.*
+
+**Removal condition — honoured 2026-08-22.** Criteria 4 and 5's interim gate existed only while
+the payload was settled-only; the gate was never implemented (owner hold), the payload went live
+(`HANDOFF_TO_FRONTEND_live_working_time_clock_20260822.md`), and criterion 4 is inverted above.
+Criteria 8 and 9 are the live-integration guards that replace it.
 
 ---
 
@@ -271,15 +330,20 @@ pill renders in every state. Whoever consumes that backend handoff owns removing
 
 ## Files
 
-Expected to change (all under `packages/item-economics/src`):
+Expected to change (all under `packages/item-economics/src` unless noted):
 
-- `lib/production-time-view-model.ts` — allowance label on the row VM, item ratio on the card VM,
-  `buildRowDetail` loses `typicalMarkerPercent`.
-- `lib/production-time-dto.ts` — compute the ratio in the transform.
-- `components/production-time/ProductionTimeRow.tsx` — render the allowance line.
-- `components/production-time/ProductionTimeRowDetail.tsx` — drop the tick.
-- `components/production-time/ProductionTimeHeadline.tsx` — render the ratio.
+- `lib/production-time-view-model.ts` — S1: allowance label on the row VM (shipped); S4:
+  `buildRowDetail` loses `typicalMarkerPercent` and its `typicalSeconds` parameter.
+- `lib/production-time-dto.ts` — S1: allowance label in the transform (shipped); S4: delete
+  `liveTickSeconds`/`totalLiveTickSeconds`/`nowMs`, add the live-basis doc comment.
+- `components/production-time/ProductionTimeRow.tsx` — S1: render the allowance line (shipped).
+- `components/production-time/ProductionTimeRowDetail.tsx` — S4: drop the typical marker.
+- `hooks/use-production-time-clock.ts` (+ test) — S4: deleted.
+- `controllers/use-production-time.controller.ts` — S4: stops ticking.
 - their tests and `production-time-fixtures.ts`.
+- `docs/handoff/from_backend/HANDOFF_TO_FRONTEND_live_working_time_clock_20260822.md` — S4:
+  re-mirrored from source with provenance frontmatter.
+- ~~`ProductionTimeHeadline.tsx` — render the ratio~~ — gone with S2's withdrawal.
 
 ---
 
@@ -306,15 +370,43 @@ Expected to change (all under `packages/item-economics/src`):
   **Mutation-verified:** rendering the line only on the active row — the exact defect S1 exists to
   fix — fails 2 tests; dropping the non-positive guard fails 1. Both reverted, suite back to green.
   131/131 item-economics, typecheck clean, lint clean, Playwright 2/2 mobile and desktop.
+- `2026-08-22` `Claude Fable 5` (plan reopened on its own trigger): the backend shipped the live
+  clock and delivered the promised go-live signal
+  (`HANDOFF_TO_FRONTEND_live_working_time_clock_20260822.md`). Consumed adversarially: every §4
+  answer checked against what this frontend actually does. Findings — (1) §1's "retire the
+  suppression gate" retires nothing here, the gate was held before it shipped; (2) the §3
+  supersession makes our `now − state_entered_at` tick a **double count**, the one mandatory
+  change; (3) §4.3 keeps the task/step serializer settled, so the worker cards' stopwatch is
+  explicitly out of scope — the owner asked and the boundary is now recorded in S4; (4) the
+  mirror had already drifted from source (backend archived its pipeline and updated appendix
+  paths) — semantically identical, caught by diff, re-mirrored with digest frontmatter.
+  **Owner decisions:** Option 1, no smoothing between polls; scope confirmed as S4 + S3 closure +
+  marker removal.
+- `2026-08-22` `Claude Fable 5` (S4 implemented): the transform is now a pure function of the DTO —
+  `liveTickSeconds`, `totalLiveTickSeconds` and the `nowMs` parameter deleted from
+  `production-time-dto.ts`, `use-production-time-clock.ts` and its test deleted, the controller no
+  longer ticks. `buildRowDetail` lost `typicalSeconds` and `typicalMarkerPercent`; the marker span
+  left `ProductionTimeRowDetail`, whose bar container flattened (the taller overhang box existed
+  only for the marker). Live-basis doc comment on the transform carries §4.3 (never payroll) and
+  §5 (a served decrease is authoritative). Go-live handoff re-mirrored with digest frontmatter.
+  **Mutations, all red then reverted:** M1 re-add `now − state_entered_at` → 3 tests fail
+  (criteria 8/9); M2 suppress the verdict on a working row → 2 fail (criterion 4 inverted); M3
+  restore the marker testid → 2 fail (criterion 3). Suite 300/300, typecheck clean, S4's files
+  lint clean (5 pre-existing errors in the valuation surface, untouched here, noted for that
+  plan). One process note: M1's revert used `git checkout` against uncommitted work and destroyed
+  the S4 dto edits, which were re-applied — mutations on uncommitted work must revert by exact
+  string swap, and M2/M3 did.
+  **Criterion 7 partially pending:** the workers Playwright spec reached sign-in and stopped —
+  the backend at 192.168.1.246:8000 was down (probe: no route). Environmental, not a regression;
+  to be re-run when the owner starts the backend.
 
 ---
 
 ## Lifecycle transition
 
-- Current state: **S1 implemented 2026-08-19**; the rest of the plan is deliberately parked.
-  S2 withdrawn. **S3 and the typical-marker removal are held** until the backend's live clock lands
-  — owner decision, so the area is touched once rather than twice.
-- Next state: when the backend ships the live projection
-  (`HANDOFF_TO_BACKEND_production_time_live_budget_clock_20260819.md`), reopen this plan for S3 and
-  the marker. Nothing else is outstanding.
+- Current state: **reopened 2026-08-22** — the parking condition resolved exactly as written: the
+  backend shipped the live projection and this plan reopened for S3 (closed, zero code) and the
+  marker (folded into S4, which the go-live made necessary). S1 shipped 2026-08-19; S2 withdrawn.
+- Current position: **S4 IMPLEMENTED 2026-08-22** — checkpoint committed, not approved. Playwright
+  re-run owed once the backend is up; then review per charter.
 - Transition owner: `David`

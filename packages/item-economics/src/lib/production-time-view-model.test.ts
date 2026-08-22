@@ -110,25 +110,23 @@ describe("buildSegments", () => {
 });
 
 describe("buildRowDetail", () => {
-  it("fills proportionally and marks where the typical falls", () => {
-    const detail = buildRowDetail(2400, 3900, 3600, "on_track");
+  it("fills proportionally against the allowance", () => {
+    const detail = buildRowDetail(2400, 3900, "on_track");
 
     expect(detail.progressPercent).toBeCloseTo(61.5, 1);
-    expect(detail.typicalMarkerPercent).toBeCloseTo(92.3, 1);
     expect(detail.verdictLabel).toBe("On track");
   });
 
   it("draws a full bar without dividing when the allowance is not positive", () => {
     for (const allowance of [0, -600, null]) {
-      const detail = buildRowDetail(3000, allowance, 1800, "over_share");
+      const detail = buildRowDetail(3000, allowance, "over_share");
 
       expect(detail.progressPercent).toBe(100);
-      expect(detail.typicalMarkerPercent).toBeNull();
     }
   });
 
   it("clamps a section that worked past its whole slice", () => {
-    expect(buildRowDetail(9000, 3600, null, "over_share").progressPercent).toBe(
+    expect(buildRowDetail(9000, 3600, "over_share").progressPercent).toBe(
       100,
     );
   });
@@ -136,10 +134,10 @@ describe("buildRowDetail", () => {
   it("takes the verdict from share_state rather than the arithmetic", () => {
     // Worked is comfortably under the allowance, but the server says the
     // section overran — across both of its passes. The server wins.
-    expect(buildRowDetail(600, 3600, null, "over_share").verdictTone).toBe(
+    expect(buildRowDetail(600, 3600, "over_share").verdictTone).toBe(
       "over_share",
     );
-    expect(buildRowDetail(9000, 3600, null, "on_track").verdictTone).toBe(
+    expect(buildRowDetail(9000, 3600, "on_track").verdictTone).toBe(
       "on_track",
     );
   });

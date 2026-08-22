@@ -65,7 +65,6 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
         ? buildRowDetail(
             input.workedSeconds,
             input.allowanceSeconds ?? null,
-            typicalSeconds,
             shareState,
           )
         : null,

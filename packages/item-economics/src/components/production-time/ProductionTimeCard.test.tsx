@@ -164,12 +164,17 @@ describe("ProductionTimeCard — budget state", () => {
     const details = screen.getAllByTestId("production-time-row-detail");
     expect(details).toHaveLength(1);
     expect(details[0]).toHaveTextContent("typical 1h 0m");
+    // The verdict renders as served in every state, working included — the
+    // live-clock go-live (2026-08-22) made the served value trustworthy
+    // mid-work, so nothing may suppress or relabel it.
     expect(
       screen.getByTestId("production-time-row-verdict"),
     ).toHaveTextContent("On track");
+    // The typical marker is gone (plan E3): provably at the same ratio on
+    // every row, it carried no information. The typical lives on as text.
     expect(
-      screen.getByTestId("production-time-row-typical-marker"),
-    ).toBeInTheDocument();
+      screen.queryByTestId("production-time-row-typical-marker"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not render a remaining-time footer note", () => {

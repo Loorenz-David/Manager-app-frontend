@@ -66,43 +66,14 @@ function decimalMinutesToSeconds(value: string | null): number | null {
   return Number.isFinite(minutes) ? Math.round(minutes * 60) : null;
 }
 
-function liveTickSeconds(
-  state: string,
-  stateEnteredAt: string | null,
-  nowMs: number,
-): number {
-  if (state !== "working" || stateEnteredAt === null) {
-    return 0;
-  }
-
-  const enteredAtMs = Date.parse(stateEnteredAt);
-  if (!Number.isFinite(enteredAtMs)) {
-    return 0;
-  }
-
-  return Math.max(0, Math.floor((nowMs - enteredAtMs) / 1_000));
-}
-
 function toRows(
   dto: TaskProductionTime,
-  nowMs: number,
   hasBudget: boolean,
-): { rows: ProductionTimeRowViewModel[]; totalLiveTickSeconds: number } {
-  let totalLiveTickSeconds = 0;
-
+): ProductionTimeRowViewModel[] {
   // This deliberately maps 1:1. The backend owns pipeline order and has
   // already collapsed reassignments into one section row.
-  const rows = dto.sections.map((section, index) => {
-    // Display-only extrapolation: concurrent sections can temporarily
-    // over-count the backend's averaged credit until the next reconciliation.
-    const tickSeconds = liveTickSeconds(
-      section.state,
-      section.state_entered_at,
-      nowMs,
-    );
-    totalLiveTickSeconds += tickSeconds;
-
-    const workedSeconds = section.worked_seconds + tickSeconds;
+  return dto.sections.map((section, index) => {
+    const workedSeconds = section.worked_seconds;
     const label =
       section.section_name_snapshot ??
       section.section_name ??
@@ -138,14 +109,11 @@ function toRows(
           ? buildRowDetail(
               workedSeconds,
               section.allowance_seconds,
-              typicalSeconds,
               section.share_state,
             )
           : null,
     };
   });
-
-  return { rows, totalLiveTickSeconds };
 }
 
 function remainingLabel(remainingSeconds: number | null): string | null {
@@ -158,16 +126,24 @@ function remainingLabel(remainingSeconds: number | null): string | null {
     : `${formatWorkSeconds(-remainingSeconds)} over`;
 }
 
+/**
+ * Every figure this transform emits is the server's, verbatim. Since the
+ * 2026-08-22 go-live the payload already contains the open working interval
+ * (concurrency-averaged), so nothing here may add client-elapsed time — a
+ * local tick would double-count. Two standing rules from that handoff:
+ * this is a live operational projection, never payroll or archival data
+ * (§4.3); and a served decrease is authoritative — render it as given,
+ * never clamp to a previously displayed maximum (§5).
+ */
 export function toProductionTimeViewModel(
   dto: TaskProductionTime,
-  nowMs: number,
 ): ProductionTimeViewModel {
   if (dto.item_binding !== "bound") {
     return { kind: "unavailable", reason: dto.item_binding };
   }
 
   const hasBudget = dto.status === "ok" || dto.status === "infeasible";
-  const { rows, totalLiveTickSeconds } = toRows(dto, nowMs, hasBudget);
+  const rows = toRows(dto, hasBudget);
 
   if (dto.status !== "ok" && dto.status !== "infeasible") {
     const workedSeconds = rows.reduce(
@@ -197,19 +173,13 @@ export function toProductionTimeViewModel(
     decimalMinutesToSeconds(dto.budget.allowed_worker_minutes) ?? 0;
   const final = dto.final;
   const isFinal = final !== null;
-  const storedHeadlineWorkedSeconds = final
+  const workedSeconds = final
     ? (decimalMinutesToSeconds(final.actual_worker_minutes) ?? 0)
     : (dto.budget.actual_worker_seconds ?? storedRowsWorkedSeconds);
-  const headlineTickSeconds = isFinal ? 0 : totalLiveTickSeconds;
-  const workedSeconds = storedHeadlineWorkedSeconds + headlineTickSeconds;
-  const storedRemainingSeconds = final
+  const remainingSeconds = final
     ? decimalMinutesToSeconds(final.variance_worker_minutes)
     : (decimalMinutesToSeconds(dto.budget.remaining_worker_minutes) ??
-      budgetSeconds - storedHeadlineWorkedSeconds);
-  const remainingSeconds =
-    storedRemainingSeconds === null
-      ? null
-      : storedRemainingSeconds - headlineTickSeconds;
+      budgetSeconds - workedSeconds);
   const { segments, remainderPercent } = buildSegments(rows, budgetSeconds);
 
   return {

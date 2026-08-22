@@ -31,8 +31,6 @@ export type ProductionTimeShareState =
 export type ProductionTimeRowDetailViewModel = {
   /** 0..100, clamped. 100 when the allowance is zero or negative. */
   progressPercent: number;
-  /** 0..100 tick position, or null when the section has no typical yet. */
-  typicalMarkerPercent: number | null;
   verdictLabel: string;
   verdictTone: "on_track" | "over_share";
 };
@@ -201,7 +199,6 @@ export function buildSegments(
 export function buildRowDetail(
   workedSeconds: number,
   allowanceSeconds: number | null,
-  typicalSeconds: number | null,
   shareState: ProductionTimeShareState,
 ): ProductionTimeRowDetailViewModel {
   const isOverShare = shareState === "over_share";
@@ -211,7 +208,6 @@ export function buildRowDetail(
   if (allowanceSeconds === null || allowanceSeconds <= 0) {
     return {
       progressPercent: 100,
-      typicalMarkerPercent: null,
       verdictLabel,
       verdictTone,
     };
@@ -219,10 +215,6 @@ export function buildRowDetail(
 
   return {
     progressPercent: clampPercent((workedSeconds / allowanceSeconds) * 100),
-    typicalMarkerPercent:
-      typicalSeconds === null || typicalSeconds <= 0
-        ? null
-        : clampPercent((typicalSeconds / allowanceSeconds) * 100),
     verdictLabel,
     verdictTone,
   };
