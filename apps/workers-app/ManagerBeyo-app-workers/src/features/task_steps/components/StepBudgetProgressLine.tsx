@@ -6,6 +6,7 @@ import {
   STEP_BUDGET_TONE_FILL,
   type StepBudget,
 } from "../domain/step-budget";
+import type { StepState } from "../types";
 
 // Thick enough to read as an energy/health bar rather than a hairline
 // separator between the card body and the action button.
@@ -163,25 +164,29 @@ function GrowingBar({
 type StepBudgetProgressLineProps = {
   stepId: TaskStepId;
   budget: StepBudget | null;
-  isWorking: boolean;
+  state: StepState;
 };
 
 /**
  * The fill line between the card body and the action button. Rendered only
- * when the step has an allocated budget — `no_budget` and `excluded` rows have
- * nothing to fill against.
+ * once a step has actually started — a pending step hasn't consumed any of
+ * its budget yet, so an empty line is the correct read, not the 10% starting
+ * floor `fractionOf` gives every started step. Also gated on the step having
+ * an allocated budget — `no_budget` and `excluded` rows have nothing to fill
+ * against. Owned here rather than left to each caller, so every card that
+ * mounts this component gets the pending exclusion for free.
  */
 export function StepBudgetProgressLine({
   stepId,
   budget,
-  isWorking,
+  state,
 }: StepBudgetProgressLineProps): React.JSX.Element | null {
   const allowanceSeconds = budget?.step.allowance_seconds ?? null;
-  if (budget === null || allowanceSeconds === null) {
+  if (state === "pending" || budget === null || allowanceSeconds === null) {
     return null;
   }
 
-  if (isWorking) {
+  if (state === "working") {
     return (
       <GrowingBar
         allowanceSeconds={allowanceSeconds}

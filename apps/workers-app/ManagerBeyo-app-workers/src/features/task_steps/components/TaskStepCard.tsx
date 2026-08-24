@@ -227,11 +227,12 @@ export const TaskStepCard = memo(function TaskStepCard({
       </div>
 
       {/* The mockup keeps not-yet-started cards line-free: the budget shows
-          as a figure on the action button instead. */}
-      {card.state !== "pending" && card.hasQuickAction ? (
+          as a figure on the action button instead (StepBudgetProgressLine
+          itself also refuses to render for a pending step). */}
+      {card.hasQuickAction ? (
         <StepBudgetProgressLine
           budget={budget}
-          isWorking={card.state === "working"}
+          state={card.state}
           stepId={stepId}
         />
       ) : null}

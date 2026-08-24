@@ -430,7 +430,6 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
   const hasCard = isBatchCard
     ? batchVms.length > 0
     : Boolean(step && vm);
-  const isWorking = vm?.state === "working";
   const TypeIcon = vm ? getTaskTypeIcon(vm.task.task_type) : null;
   const taskTypeLabel = vm ? getTaskTypeLabel(vm.task.task_type) : "";
   const cardToneClass =
@@ -553,10 +552,10 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
             </div>
           </div>
 
-          {vm.state !== "pending" && vm.hasQuickAction ? (
+          {vm.hasQuickAction ? (
             <StepBudgetProgressLine
               budget={budget}
-              isWorking={isWorking}
+              state={vm.state}
               stepId={vm.stepId}
             />
           ) : null}
