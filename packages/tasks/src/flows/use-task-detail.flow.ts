@@ -14,6 +14,7 @@ import {
   ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID,
   TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
   TASK_FULFILLMENT_METHOD_SHEET_SURFACE_ID,
@@ -54,6 +55,10 @@ export function useTaskDetailFlow(taskId: string, itemId: string | null) {
       useSurfaceStore.getState().open(TASK_READY_BY_AT_SHEET_SURFACE_ID, {
         taskId,
       }),
+    openCustomerDetailsSheet: () =>
+      useSurfaceStore
+        .getState()
+        .open(TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID, { taskId }),
     openAssortmentSheet: () =>
       useSurfaceStore.getState().open(TASK_ASSORTMENT_SHEET_SURFACE_ID, {
         taskId,

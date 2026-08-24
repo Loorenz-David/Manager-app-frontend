@@ -191,7 +191,10 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             taskDetail={controller.taskDetail}
           />
           <DashedInfoGroup>
-            <TaskCustomerSection taskDetail={controller.taskDetail} />
+            <TaskCustomerSection
+              onPress={controller.openCustomerDetailsSheet}
+              taskDetail={controller.taskDetail}
+            />
             <TaskWorkingSectionsField
               onOpenWorkingSections={controller.openWorkingSectionsSlide}
               taskId={controller.taskId}

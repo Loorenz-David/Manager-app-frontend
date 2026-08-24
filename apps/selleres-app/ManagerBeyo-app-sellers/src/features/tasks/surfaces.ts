@@ -17,6 +17,7 @@ import {
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
   TASK_FILTER_SHEET_SURFACE_ID,
@@ -34,6 +35,7 @@ import {
   loadItemUpholsteryAmountSheetPage,
   loadPinNotificationsSlidePage,
   loadPinTaskStepStatesSheetPage,
+  loadTaskCustomerDetailsSheetPage,
   loadTaskDetailMenuSheetPage,
   loadTaskEditSlidePage,
   loadTaskTypeSheetPage,
@@ -111,6 +113,9 @@ const itemPositionSheet = lazyWithPreload(() =>
 const itemUpholsteryAmountSheet = lazyWithPreload(
   loadItemUpholsteryAmountSheetPage,
 );
+const taskCustomerDetailsSheet = lazyWithPreload(
+  loadTaskCustomerDetailsSheetPage,
+);
 const taskFlowRecordDetailSheet = lazyWithPreload(
   loadTaskFlowRecordDetailSheetPage,
 );
@@ -161,6 +166,7 @@ export {
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
   TASK_FILTER_SHEET_SURFACE_ID,
@@ -196,6 +202,7 @@ export type {
   PinTaskStepStatesSheetSurfaceProps,
   TaskActionsSurfaceProps,
   TaskAssortmentSheetSurfaceProps,
+  TaskCustomerDetailsSheetSurfaceProps,
   TaskDetailSurfaceProps,
   TaskEditSurfaceProps,
   TaskFlowRecordDetailSurfaceProps,
@@ -293,6 +300,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [ITEM_UPHOLSTERY_AMOUNT_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: itemUpholsteryAmountSheet.Component,
+  },
+  [TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: taskCustomerDetailsSheet.Component,
   },
   [TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID]: {
     surface: "sheet",

@@ -35,6 +35,11 @@ export type DateOnly = z.infer<typeof DateOnlySchema>;
 
 export const AddressSchema = z
   .object({
+    // The API sends `line1`/`line2` for the street portion; `street` is the
+    // older key still present on some payloads. Both are optional and readers
+    // fall back from one to the other.
+    line1: z.string().optional(),
+    line2: z.string().optional(),
     street: z.string().optional(),
     city: z.string().optional(),
     postal_code: z.string().optional(),

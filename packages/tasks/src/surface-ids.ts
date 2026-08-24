@@ -20,6 +20,8 @@ export const TASK_POST_HANDLING_FILTER_SHEET_SURFACE_ID =
 export const TASK_POST_HANDLING_PENDING_WARNING_SHEET_SURFACE_ID =
   "task-post-handling-pending-warning-sheet";
 export const TASK_DETAIL_SURFACE_ID = "task-detail-slide";
+export const TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID =
+  "task-customer-details-sheet";
 export const TASK_ACTIONS_SHEET_SURFACE_ID = "task-actions-sheet";
 export const TASK_FILTER_SHEET_SURFACE_ID = "task-filter-sheet";
 export const ITEM_QUANTITY_SHEET_SURFACE_ID = "item-quantity-sheet";
@@ -65,6 +67,10 @@ export type TaskFilterSheetSurfaceProps = {
 };
 
 export type TaskDetailSurfaceProps = {
+  taskId: string;
+};
+
+export type TaskCustomerDetailsSheetSurfaceProps = {
   taskId: string;
 };
 

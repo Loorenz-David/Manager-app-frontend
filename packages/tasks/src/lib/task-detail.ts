@@ -108,7 +108,8 @@ export function formatAddress(address: Address): string | null {
   }
 
   const parts = [
-    address.street,
+    address.line1 ?? address.street,
+    address.line2,
     address.postal_code,
     address.city,
     address.country,

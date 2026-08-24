@@ -150,6 +150,7 @@ export {
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_ASSORTMENT_SHEET_SURFACE_ID,
+  TASK_CUSTOMER_DETAILS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
   TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID,
   TASK_EDIT_SLIDE_SURFACE_ID,
@@ -168,6 +169,7 @@ export type {
   PinTaskStepStatesSheetSurfaceProps,
   TaskActionsSurfaceProps,
   TaskAssortmentSheetSurfaceProps,
+  TaskCustomerDetailsSheetSurfaceProps,
   TaskDetailSurfaceProps,
   TaskEditSurfaceProps,
   TaskFlowRecordDetailSurfaceProps,
@@ -340,6 +342,11 @@ export function loadTaskEditSlidePage() {
 export function loadTaskTypeSheetPage() {
   return import("./pages/TaskTypeSheetPage").then((m) => ({
     default: m.TaskTypeSheetPage,
+  }));
+}
+export function loadTaskCustomerDetailsSheetPage() {
+  return import("./pages/TaskCustomerDetailsSheetPage").then((m) => ({
+    default: m.TaskCustomerDetailsSheetPage,
   }));
 }
 export function loadTaskFlowRecordDetailSheetPage() {

@@ -240,6 +240,9 @@ export const TaskDetailRawSchema = z.object({
     scheduled_start_at: z.string().nullable(),
     scheduled_end_at: z.string().nullable(),
     customer_id: z.string().nullable(),
+    // Denormalized customer name captured when the task was created. Optional
+    // rather than required so older fixtures and mocks keep parsing.
+    customer_name_snapshot: z.string().nullable().optional(),
     primary_phone_number: z.string().nullable(),
     secondary_phone_number: z.string().nullable(),
     primary_email: z.string().nullable(),
