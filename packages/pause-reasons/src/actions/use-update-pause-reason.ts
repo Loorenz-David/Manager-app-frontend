@@ -3,7 +3,7 @@ import { notify, type PauseReasonId } from "@beyo/lib";
 import { updatePauseReason } from "../api/update-pause-reason";
 import { pauseReasonKeys } from "../api/pause-reason-keys";
 import type {
-  PauseReason,
+  ConfiguredPauseReason,
   PauseReasonsList,
   UpdatePauseReasonInput,
 } from "../types";
@@ -23,14 +23,14 @@ export function useUpdatePauseReason() {
       await queryClient.cancelQueries({ queryKey: pauseReasonKeys.detail(id) });
       await queryClient.cancelQueries({ queryKey: pauseReasonKeys.lists() });
 
-      const previousDetail = queryClient.getQueryData<PauseReason>(
+      const previousDetail = queryClient.getQueryData<ConfiguredPauseReason>(
         pauseReasonKeys.detail(id),
       );
       const previousLists = queryClient.getQueriesData<PauseReasonsList>({
         queryKey: pauseReasonKeys.lists(),
       });
 
-      queryClient.setQueryData<PauseReason>(
+      queryClient.setQueryData<ConfiguredPauseReason>(
         pauseReasonKeys.detail(id),
         (old) => (old ? { ...old, ...changes } : old),
       );

@@ -67,6 +67,10 @@ vi.mock("@beyo/api-client", () => ({
   ApiRequestError: MockApiRequestError,
 }));
 
+vi.mock("@beyo/auth", () => ({
+  useAuth: () => ({ user: { id: "usr_worker" } }),
+}));
+
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
 }));
@@ -131,9 +135,11 @@ afterEach(() => {
 });
 
 describe("WorkerStateSheetPage", () => {
-  it("loads only declarable (personal) reasons", () => {
+  it("loads reasons scoped to this worker", () => {
     render(<WorkerStateSheetPage />);
-    expect(mocks.reasonsParams).toEqual({ pause_type: "personal" });
+    expect(mocks.reasonsParams).toEqual({
+      user_ids: ["usr_worker"],
+    });
   });
 
   it("declares without user_id and closes on success", async () => {

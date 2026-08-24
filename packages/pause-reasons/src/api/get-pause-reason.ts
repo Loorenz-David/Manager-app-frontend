@@ -1,16 +1,19 @@
 import { apiClient } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import { z } from "zod";
-import { PauseReasonSchema, type PauseReason } from "../types";
+import {
+  ConfiguredPauseReasonSchema,
+  type ConfiguredPauseReason,
+} from "../types";
 import type { PauseReasonId } from "@beyo/lib";
 
 const GetPauseReasonResponseSchema = ApiEnvelopeSchema(
-  z.object({ pause_reason: PauseReasonSchema }),
+  z.object({ pause_reason: ConfiguredPauseReasonSchema }),
 );
 
 export async function getPauseReason(
   id: PauseReasonId,
-): Promise<PauseReason> {
+): Promise<ConfiguredPauseReason> {
   const response = await apiClient.get(
     `/api/v1/pause-reasons/${id}`,
     GetPauseReasonResponseSchema,

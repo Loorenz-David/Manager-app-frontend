@@ -1,6 +1,7 @@
 export {
   PauseReasonIdSchema,
   PauseReasonSchema,
+  ConfiguredPauseReasonSchema,
   PauseReasonsListSchema,
   PauseReasonsPaginationSchema,
   PauseTypeSchema,
@@ -9,6 +10,7 @@ export type {
   CreatePauseReasonInput,
   ListPauseReasonsParams,
   PauseReason,
+  ConfiguredPauseReason,
   PauseReasonPickerOption,
   PauseReasonsList,
   PauseType,

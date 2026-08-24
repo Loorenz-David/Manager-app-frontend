@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ApiRequestError } from "@beyo/api-client";
+import { useAuth } from "@beyo/auth";
 import { notify } from "@beyo/lib";
 import {
   usePauseReasonsQuery,
@@ -17,11 +18,16 @@ export type WorkerStateSheetView = "picker" | "description";
 
 export function useWorkerStateSheetController(onClose: () => void) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Only `personal` reasons are declarable — a `blocker` reason is a 422
-  // (handoff §12.5/§12.7). The task-step pause sheet keeps its unfiltered list;
-  // the param-keyed cache holds the two lists separately.
-  const reasonsQuery = usePauseReasonsQuery({ pause_type: "personal" });
+  // Scoped to this worker (plus reasons with no user link, which are global)
+  // — the backend now decides eligibility, no client-side pause_type filter.
+  // The task-step pause sheet scopes by working section instead; the
+  // param-keyed cache holds the two lists separately.
+  const reasonsQuery = usePauseReasonsQuery(
+    { user_ids: user?.id ? [user.id] : [] },
+    { enabled: Boolean(user?.id) },
+  );
   const { declareState, isPending: isDeclaring } = useDeclareState();
 
   const [view, setView] = useState<WorkerStateSheetView>("picker");
@@ -75,7 +81,7 @@ export function useWorkerStateSheetController(onClose: () => void) {
               return;
             }
 
-            // Defensive: the picker is already filtered to `personal`, so a 422
+            // Defensive: the picker is already scoped to this worker, so a 422
             // or 404 here means the reason changed under us — refresh the list.
             void reasonsQuery.refetch();
             setInlineError(

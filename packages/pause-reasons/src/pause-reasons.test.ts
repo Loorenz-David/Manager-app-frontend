@@ -21,12 +21,18 @@ const lunchReason = {
   updated_by_id: null,
 } as const;
 
+const configuredLunchReason = {
+  ...lunchReason,
+  linked_user_ids: ["usr_1"],
+  linked_working_section_ids: ["wsec_1"],
+} as const;
+
 describe("pause reason DTOs", () => {
   it("parses the list envelope and preserves backend fields", () => {
     const response = ApiEnvelopeSchema(PauseReasonsListSchema).parse({
       ok: true,
       data: {
-        pause_reasons: [lunchReason],
+        pause_reasons: [configuredLunchReason],
         pause_reasons_pagination: { has_more: false, limit: 50, offset: 0 },
       },
       warnings: [],
@@ -36,6 +42,7 @@ describe("pause reason DTOs", () => {
       lunchReason.client_id,
     );
     expect(response.data.pause_reasons[0]?.image_url).toBeNull();
+    expect(response.data.pause_reasons[0]?.linked_user_ids).toEqual(["usr_1"]);
   });
 
   it("maps a reason to a picker option without inventing an image", () => {

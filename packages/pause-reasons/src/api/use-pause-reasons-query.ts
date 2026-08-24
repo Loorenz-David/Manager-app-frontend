@@ -5,10 +5,14 @@ import type { ListPauseReasonsParams } from "../types";
 
 export const PAUSE_REASONS_STALE_TIME = 5 * 60 * 1000;
 
-export function usePauseReasonsQuery(params: ListPauseReasonsParams = {}) {
+export function usePauseReasonsQuery(
+  params: ListPauseReasonsParams = {},
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: pauseReasonKeys.list(params),
     queryFn: () => listPauseReasons(params),
     staleTime: PAUSE_REASONS_STALE_TIME,
+    enabled: options.enabled,
   });
 }

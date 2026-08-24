@@ -4,11 +4,13 @@ import { createPauseReason } from "../api/create-pause-reason";
 import { pauseReasonKeys } from "../api/pause-reason-keys";
 import type {
   CreatePauseReasonInput,
-  PauseReason,
+  ConfiguredPauseReason,
   PauseReasonsList,
 } from "../types";
 
-function toOptimisticPauseReason(input: CreatePauseReasonInput): PauseReason {
+function toOptimisticPauseReason(
+  input: CreatePauseReasonInput,
+): ConfiguredPauseReason {
   return {
     client_id: `par_optimistic_${crypto.randomUUID()}` as PauseReasonId,
     name: input.name,
@@ -22,6 +24,8 @@ function toOptimisticPauseReason(input: CreatePauseReasonInput): PauseReason {
     created_by_id: null,
     updated_at: null,
     updated_by_id: null,
+    linked_user_ids: input.linked_user_ids ?? [],
+    linked_working_section_ids: input.linked_working_section_ids ?? [],
   };
 }
 

@@ -1,21 +1,21 @@
 import { apiClient } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import { z } from "zod";
-import { PauseReasonSchema } from "../types";
+import { ConfiguredPauseReasonSchema } from "../types";
 import type {
-  PauseReason,
+  ConfiguredPauseReason,
   UpdatePauseReasonInput,
 } from "../types";
 import type { PauseReasonId } from "@beyo/lib";
 
 const UpdatePauseReasonResponseSchema = ApiEnvelopeSchema(
-  z.object({ pause_reason: PauseReasonSchema }),
+  z.object({ pause_reason: ConfiguredPauseReasonSchema }),
 );
 
 export async function updatePauseReason(
   id: PauseReasonId,
   changes: UpdatePauseReasonInput,
-): Promise<PauseReason> {
+): Promise<ConfiguredPauseReason> {
   const response = await apiClient.patch(
     `/api/v1/pause-reasons/${id}`,
     UpdatePauseReasonResponseSchema,

@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@beyo/lib";
 import { deletePauseReason } from "../api/delete-pause-reason";
 import { pauseReasonKeys } from "../api/pause-reason-keys";
-import type { PauseReason, PauseReasonsList } from "../types";
+import type { ConfiguredPauseReason, PauseReasonsList } from "../types";
 
 export function useDeletePauseReason() {
   const queryClient = useQueryClient();
@@ -15,7 +15,7 @@ export function useDeletePauseReason() {
       const previousLists = queryClient.getQueriesData<PauseReasonsList>({
         queryKey: pauseReasonKeys.lists(),
       });
-      const previousDetail = queryClient.getQueryData<PauseReason>(
+      const previousDetail = queryClient.getQueryData<ConfiguredPauseReason>(
         pauseReasonKeys.detail(id),
       );
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
+import { useAuth } from "@beyo/auth";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import { usePauseReasonsQuery, PauseReasonPicker, type PauseReason } from "@beyo/pause-reasons";
 import { tabVariants, transitions } from "@beyo/lib";
@@ -26,6 +27,7 @@ function PauseReasonPickerSkeleton(): React.JSX.Element {
 }
 
 export function PauseReasonSheetPage(): React.JSX.Element {
+  const { user } = useAuth();
   const header = useSurfaceHeader();
   const { closeTop } = useSurface();
   const { stepId, taskId, workingSectionId } =
@@ -34,7 +36,13 @@ export function PauseReasonSheetPage(): React.JSX.Element {
     data: pauseReasonsData,
     isPending: isReasonsPending,
     isError: isReasonsError,
-  } = usePauseReasonsQuery({});
+  } = usePauseReasonsQuery(
+    {
+      user_ids: user?.id ? [user.id] : [],
+      working_section_ids: workingSectionId ? [workingSectionId] : [],
+    },
+    { enabled: Boolean(user?.id && workingSectionId) },
+  );
   const { transitionStepState, isPending: isTransitionPending } =
     useTransitionStepState();
 

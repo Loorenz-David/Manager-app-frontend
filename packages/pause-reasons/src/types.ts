@@ -24,6 +24,14 @@ export const PauseReasonSchema = z.object({
 });
 export type PauseReason = z.infer<typeof PauseReasonSchema>;
 
+export const ConfiguredPauseReasonSchema = PauseReasonSchema.extend({
+  linked_user_ids: z.array(z.string()),
+  linked_working_section_ids: z.array(z.string()),
+});
+export type ConfiguredPauseReason = z.infer<
+  typeof ConfiguredPauseReasonSchema
+>;
+
 export const PauseReasonsPaginationSchema = z.object({
   has_more: z.boolean(),
   limit: z.number(),
@@ -31,7 +39,7 @@ export const PauseReasonsPaginationSchema = z.object({
 });
 
 export const PauseReasonsListSchema = z.object({
-  pause_reasons: z.array(PauseReasonSchema),
+  pause_reasons: z.array(ConfiguredPauseReasonSchema),
   pause_reasons_pagination: PauseReasonsPaginationSchema,
 });
 export type PauseReasonsList = z.infer<typeof PauseReasonsListSchema>;
@@ -40,6 +48,8 @@ export type ListPauseReasonsParams = {
   limit?: number;
   offset?: number;
   pause_type?: PauseType;
+  user_ids?: string[];
+  working_section_ids?: string[];
 };
 
 export type CreatePauseReasonInput = {
@@ -48,6 +58,8 @@ export type CreatePauseReasonInput = {
   pause_type: PauseType;
   description?: string;
   requires_description: boolean;
+  linked_user_ids?: string[];
+  linked_working_section_ids?: string[];
 };
 
 export type UpdatePauseReasonInput = {
@@ -56,6 +68,8 @@ export type UpdatePauseReasonInput = {
   pause_type?: PauseType;
   description?: string | null;
   requires_description?: boolean;
+  linked_user_ids?: string[];
+  linked_working_section_ids?: string[];
 };
 
 export type PauseReasonPickerOption = {

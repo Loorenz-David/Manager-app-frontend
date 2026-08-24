@@ -6,6 +6,7 @@ import { PauseReasonSheetPage } from "./PauseReasonSheetPage";
 const mocks = vi.hoisted(() => ({
   transition: vi.fn(),
   requestClose: vi.fn(),
+  reasonsParams: undefined as unknown,
 }));
 
 const reasons = [
@@ -67,12 +68,19 @@ vi.mock("@beyo/hooks", () => ({
   }),
 }));
 
+vi.mock("@beyo/auth", () => ({
+  useAuth: () => ({ user: { id: "usr_worker" } }),
+}));
+
 vi.mock("@beyo/pause-reasons", () => ({
-  usePauseReasonsQuery: () => ({
-    data: { pause_reasons: reasons },
-    isPending: false,
-    isError: false,
-  }),
+  usePauseReasonsQuery: (params: unknown) => {
+    mocks.reasonsParams = params;
+    return {
+      data: { pause_reasons: reasons },
+      isPending: false,
+      isError: false,
+    };
+  },
   PauseReasonPicker: ({
     onSelect,
   }: {
@@ -110,6 +118,15 @@ afterEach(() => {
 });
 
 describe("PauseReasonSheetPage", () => {
+  it("loads reasons for the acting worker and actual step section", () => {
+    render(<PauseReasonSheetPage />);
+
+    expect(mocks.reasonsParams).toEqual({
+      user_ids: ["usr_worker"],
+      working_section_ids: ["wks_section"],
+    });
+  });
+
   it("sends a plain reason ID and paused state", () => {
     render(<PauseReasonSheetPage />);
 
