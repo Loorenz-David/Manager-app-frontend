@@ -19,6 +19,7 @@ const REFERENCE_MODEL: PriceScenarioModel = PriceScenarioModelSchema.parse({
   residual_percent_milli: 22000,
   constant_deduction_minor: 0,
   cost_per_worker_minute_ten_thousandths: 13000000,
+  budget_cap_percent_milli: 25000,
   is_purely_proportional: true,
 });
 
@@ -29,6 +30,16 @@ const REFERENCE_MODEL: PriceScenarioModel = PriceScenarioModelSchema.parse({
 const DEDUCTING_MODEL: PriceScenarioModel = PriceScenarioModelSchema.parse({
   ...REFERENCE_MODEL,
   constant_deduction_minor: 50000,
+});
+
+/**
+ * A residual slope (30%) steeper than the 25% cap, so `budgetMinor` must
+ * bind on `cap_affine(P)` rather than `residual_affine(P)`
+ * (`HANDOFF_TO_FRONTEND_production_budget_cap_20260820.md`).
+ */
+const CAPPED_MODEL: PriceScenarioModel = PriceScenarioModelSchema.parse({
+  ...REFERENCE_MODEL,
+  residual_percent_milli: 30000,
 });
 
 describe("roundHalfEven (M2, handoff §9.1)", () => {
@@ -60,6 +71,19 @@ describe("the allowance pipeline (M2, handoff §4)", () => {
 
   it("returns the exact positive budget of the published model", () => {
     expect(budgetMinor(855000, REFERENCE_MODEL)).toBe(188100n);
+  });
+
+  it("binds the budget to the v2 cap when the residual slope exceeds it", () => {
+    // residual_affine(1_000_000) = round(1_000_000 × 0.30) = 300_000
+    // cap_affine(1_000_000)      = round(1_000_000 × 0.25) = 250_000
+    expect(budgetMinor(1_000_000, CAPPED_MODEL)).toBe(250000n);
+  });
+
+  it("leaves the budget on the residual slope when the cap does not bind", () => {
+    // residual_percent_milli (22%) stays under the 25% cap for every price, so
+    // REFERENCE_MODEL's uncapped values (criteria 6/7) must be unaffected by
+    // the v2 min(residual, cap) change.
+    expect(budgetMinor(300000, REFERENCE_MODEL)).toBe(66000n);
   });
 });
 

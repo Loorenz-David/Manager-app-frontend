@@ -114,6 +114,7 @@ export { TaskListCard } from "./components/TaskListCard";
 export { TasksHeader } from "./components/TasksHeader";
 export { TasksView } from "./components/TasksView";
 export type { TaskListCardProps } from "./components/TaskListCard";
+export type { TasksViewProps } from "./components/TasksView";
 export {
   TaskBodyCategoryRow,
   TaskAssortmentPill,

@@ -199,7 +199,11 @@ export type TaskProductionTime = z.infer<typeof TaskProductionTimeSchema>;
 export const BudgetAllocationStepSchema = z.object({
   step_id: z.string(),
   working_section_id: z.string(),
-  section_name_snapshot: z.string(),
+  // Nullable to match ProductionTimeSectionSchema, which describes the same
+  // backend column: the handoff's example shows a string, but a section whose
+  // snapshot was never written answers null, and a stricter schema here would
+  // fail the whole batch over a field the cards do not even read.
+  section_name_snapshot: z.string().nullable(),
   typical_worker_seconds: z.number().int().nullable(),
   allowance_seconds: z.number().int().nullable(),
   worked_seconds: z.number().int(),
@@ -213,7 +217,13 @@ export const TaskBudgetAllocationSchema = z.object({
   task_id: z.string(),
   status: ItemEconomicsStatusSchema,
   allowed_worker_minutes: DecimalStringSchema.nullable(),
-  actual_worker_seconds: z.number().int(),
+  /**
+   * Nullable, despite the handoff's §5 table calling it "never null":
+   * `get_task_budget_allocations.py` sets it to None for every task whose
+   * status is outside the budget set, and `ProductionTimeBudgetSchema` — the
+   * same figure on the sibling surface — already declares it nullable.
+   */
+  actual_worker_seconds: z.number().int().nullable(),
   remaining_worker_minutes: DecimalStringSchema.nullable(),
   allocation_method: z.string(),
   steps: z.array(BudgetAllocationStepSchema),
@@ -230,10 +240,12 @@ export type TaskBudgetAllocationsResponse = z.infer<
 // --- Price scenario (expected sold price editor) ----------------------------
 //
 // Source of truth: docs/handoff/from_backend/HANDOFF_TO_FRONTEND_price_scenario_20260819.md
-// §2 (payload) and §5 (null semantics). Every field the handoff lists as
-// nullable is `.nullable()` and never `.optional()` — the backend always sends
-// the key, so an `.optional()` here would hide a dropped field instead of
-// failing loudly (intention §4A M13).
+// §2 (payload) and §5 (null semantics), extended additively by
+// docs/handoff/from_backend/HANDOFF_TO_FRONTEND_production_budget_cap_20260820.md
+// (calculation_version 2, `model.budget_cap_percent_milli`). Every field the
+// handoff lists as nullable is `.nullable()` and never `.optional()` — the
+// backend always sends the key, so an `.optional()` here would hide a dropped
+// field instead of failing loudly (intention §4A M13).
 
 /**
  * The three currencies the item economics domain prices in. It exists here
@@ -260,7 +272,7 @@ export type ItemBinding = z.infer<typeof ItemBindingSchema>;
  * version of the formula must fail parse rather than be projected with rules it
  * was not produced by.
  */
-export const PRICE_SCENARIO_CALCULATION_VERSION = 1;
+export const PRICE_SCENARIO_CALCULATION_VERSION = 2;
 
 /** `null` on `item_binding: "detached"` — there is no item row to describe. */
 export const PriceScenarioItemSchema = z.object({
@@ -292,7 +304,8 @@ export type PriceScenarioSaved = z.infer<typeof PriceScenarioSavedSchema>;
 /**
  * The cost model constants the local projection runs on. The two scaled fields
  * are integers, not the house decimal string, precisely so the arithmetic stays
- * exact (handoff §2).
+ * exact (handoff §2). `budget_cap_percent_milli` (§v2 handoff) is non-nullable —
+ * it is always present whenever `model` is present, never absent inside it.
  */
 export const PriceScenarioModelSchema = z.object({
   cost_model_version_id: z.string(),
@@ -300,6 +313,7 @@ export const PriceScenarioModelSchema = z.object({
   residual_percent_milli: z.number().int(),
   constant_deduction_minor: z.number().int(),
   cost_per_worker_minute_ten_thousandths: z.number().int(),
+  budget_cap_percent_milli: z.number().int(),
   is_purely_proportional: z.boolean(),
 });
 export type PriceScenarioModel = z.infer<typeof PriceScenarioModelSchema>;

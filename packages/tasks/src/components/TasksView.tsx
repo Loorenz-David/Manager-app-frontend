@@ -1,5 +1,12 @@
 import { useMemo, useRef } from "react";
 
+import type { TaskId } from "@beyo/lib";
+import {
+  TaskBudgetOverrunBand,
+  buildTaskBudgetOverrun,
+  buildTaskBudgetAllocationMap,
+  useTaskBudgetAllocationsQuery,
+} from "@beyo/item-economics";
 import { PullToRefresh } from "@beyo/ui";
 import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 
@@ -7,9 +14,34 @@ import { useTasksViewContext } from "../providers/TasksViewProvider";
 import { TaskListCard } from "./TaskListCard";
 import { TasksHeader } from "./TasksHeader";
 
-export function TasksView(): React.JSX.Element {
+export type TasksViewProps = {
+  /**
+   * Fetches the batched budget-allocations query for the loaded task ids and
+   * renders a red "over budget" footer on any task that has actually run
+   * over — manager-only today (sellers/workers use this view without it).
+   */
+  showBudgetOverrun?: boolean;
+};
+
+export function TasksView({
+  showBudgetOverrun = false,
+}: TasksViewProps = {}): React.JSX.Element {
   const controller = useTasksViewContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const budgetTaskIds = useMemo(
+    () =>
+      showBudgetOverrun
+        ? controller.cards.map((card) => card.taskId as TaskId)
+        : [],
+    [controller.cards, showBudgetOverrun],
+  );
+  const budgetQuery = useTaskBudgetAllocationsQuery(budgetTaskIds);
+  const budgetAllocationByTaskId = useMemo(
+    () => buildTaskBudgetAllocationMap(budgetQuery.data?.allocations),
+    [budgetQuery.data],
+  );
+
   const taskCards = useMemo(
     () =>
       controller.renderRows.map((entry) => {
@@ -26,9 +58,17 @@ export function TasksView(): React.JSX.Element {
         }
 
         const card = entry.row;
+        const allocation = showBudgetOverrun
+          ? budgetAllocationByTaskId.get(card.taskId as TaskId)
+          : undefined;
+        const overrun = allocation ? buildTaskBudgetOverrun(allocation) : null;
+
         return (
           <TaskListCard
             key={card.taskId}
+            bottomAction={
+              overrun ? <TaskBudgetOverrunBand overrun={overrun} /> : undefined
+            }
             imageUrl={
               card.firstImage
                 ? (card.firstImage.localObjectUrl ?? card.firstImage.imageUrl)
@@ -66,6 +106,8 @@ export function TasksView(): React.JSX.Element {
       controller.openTaskActions,
       controller.openTaskDetail,
       controller.toggleFold,
+      showBudgetOverrun,
+      budgetAllocationByTaskId,
     ],
   );
 

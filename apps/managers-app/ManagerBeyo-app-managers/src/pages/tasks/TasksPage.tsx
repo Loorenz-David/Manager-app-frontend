@@ -12,7 +12,7 @@ export function TasksPage(): React.JSX.Element {
     <>
       <div className="flex h-full min-h-0 flex-col">
         <Suspense fallback={<PageSkeleton />}>
-          <TasksRouteEntry />
+          <TasksRouteEntry showBudgetOverrun />
         </Suspense>
       </div>
       <TaskCreationFab />

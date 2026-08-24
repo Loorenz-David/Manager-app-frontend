@@ -30,7 +30,12 @@ import {
   type ImageUploadState,
   type ImageViewModel,
 } from "@beyo/images";
+import {
+  buildStepBudgetMap,
+  useTaskBudgetAllocationsQuery,
+} from "@beyo/item-economics";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
+import type { StepBudget } from "../domain/step-budget";
 import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
 import { usePaginatedWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
@@ -129,6 +134,7 @@ export type WorkingSectionStepsController = {
   renderRows: StepRenderRow[];
   toggleFold: (reactKey: string) => void;
   rawSteps: import("../types").TaskStep[];
+  stepBudgets: Map<TaskStepId, StepBudget>;
   nonTerminalCounts: NonTerminalStepCounts;
   isPending: boolean;
   isError: boolean;
@@ -251,6 +257,29 @@ export function useWorkingSectionStepsController(
       return vm;
     });
   }, [query.data?.items]);
+
+  const budgetTaskIds = useMemo(
+    () =>
+      Array.from(
+        new Set((query.data?.items ?? []).map((item) => item.task_id)),
+      ),
+    [query.data?.items],
+  );
+  const budgetQuery = useTaskBudgetAllocationsQuery(budgetTaskIds);
+  const stepBudgets = useMemo(() => {
+    const map = new Map<TaskStepId, StepBudget>();
+    if (!budgetQuery.data) {
+      return map;
+    }
+
+    // receivedAtMs is stamped in the queryFn, so a keepPreviousData
+    // placeholder keeps its own original baseline — the smoothing anchor of
+    // the live-clock handoff §5 never re-anchors without a fresh payload.
+    const { allocations, receivedAtMs } = budgetQuery.data;
+    const byStepId = buildStepBudgetMap(allocations);
+    byStepId.forEach((step, stepId) => map.set(stepId, { step, receivedAtMs }));
+    return map;
+  }, [budgetQuery.data]);
 
   const { renderRows, toggleFold } = useUpholsteryGrouping({
     rows: steps,
@@ -509,6 +538,7 @@ export function useWorkingSectionStepsController(
     renderRows,
     toggleFold,
     rawSteps: query.data?.items ?? [],
+    stepBudgets,
     nonTerminalCounts,
     isPending,
     isError: query.isError,

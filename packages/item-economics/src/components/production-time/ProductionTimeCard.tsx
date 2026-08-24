@@ -9,6 +9,7 @@ import { ProductionTimeBudgetBar } from "./ProductionTimeBudgetBar";
 import { ProductionTimeFrame } from "./ProductionTimeFrame";
 import { ProductionTimeHeadline } from "./ProductionTimeHeadline";
 import { ProductionTimeNoBudgetCard } from "./ProductionTimeNoBudgetCard";
+import { ProductionTimeOutlook } from "./ProductionTimeOutlook";
 import { ProductionTimeRow } from "./ProductionTimeRow";
 import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
 import { ProductionTimeUnavailableCard } from "./ProductionTimeUnavailableCard";
@@ -38,6 +39,7 @@ function ProductionTimeBudgetBody({
           remainderPercent={card.remainderPercent}
           segments={card.segments}
         />
+        {card.outlook ? <ProductionTimeOutlook outlook={card.outlook} /> : null}
       </div>
 
       {visibleRows.map((row) => (

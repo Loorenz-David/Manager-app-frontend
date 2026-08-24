@@ -1,5 +1,6 @@
 import type { ItemEconomicsStatus, TaskProductionTime } from "../types";
 import {
+  buildOutlook,
   buildRowDetail,
   buildSegments,
   formatWorkSeconds,
@@ -181,6 +182,16 @@ export function toProductionTimeViewModel(
     : (decimalMinutesToSeconds(dto.budget.remaining_worker_minutes) ??
       budgetSeconds - workedSeconds);
   const { segments, remainderPercent } = buildSegments(rows, budgetSeconds);
+  // A closed task has no work left to project — its numbers are frozen.
+  const outlook = isFinal
+    ? null
+    : buildOutlook(
+        dto.sections.map((section) => ({
+          state: section.state,
+          leftSeconds: section.left_seconds,
+        })),
+        remainingSeconds,
+      );
 
   return {
     kind: "budget",
@@ -197,6 +208,7 @@ export function toProductionTimeViewModel(
       },
       segments,
       remainderPercent,
+      outlook,
       rows,
     },
   };

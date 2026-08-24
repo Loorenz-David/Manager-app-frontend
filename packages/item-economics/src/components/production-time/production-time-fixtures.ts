@@ -9,6 +9,7 @@
  */
 
 import {
+  buildOutlook,
   buildRowDetail,
   buildSegments,
   formatWorkSeconds,
@@ -80,6 +81,20 @@ function makeBudgetCard(
   const totalWorked = rows.reduce((sum, row) => sum + row.workedSeconds, 0);
   const remainingSeconds = budgetSeconds - totalWorked;
   const { segments, remainderPercent } = buildSegments(rows, budgetSeconds);
+  const isFinal = options.isFinal ?? false;
+  const outlook = isFinal
+    ? null
+    : buildOutlook(
+        inputs.map((input) => ({
+          state: input.state,
+          leftSeconds:
+            input.allowanceSeconds === null ||
+            input.allowanceSeconds === undefined
+              ? null
+              : input.allowanceSeconds - input.workedSeconds,
+        })),
+        remainingSeconds,
+      );
 
   return {
     headline: {
@@ -90,10 +105,11 @@ function makeBudgetCard(
           ? `${formatWorkSeconds(remainingSeconds)} left`
           : `${formatWorkSeconds(-remainingSeconds)} over`,
       isOverBudget: remainingSeconds < 0,
-      isFinal: options.isFinal ?? false,
+      isFinal,
     },
     segments,
     remainderPercent,
+    outlook,
     rows,
   };
 }
@@ -263,6 +279,65 @@ export const productionTimeLongPipelineFixture: ProductionTimeViewModel = {
       typicalSeconds: index === 7 ? 3600 : 1500,
     })),
     14_400,
+  ),
+};
+
+/**
+ * Every remaining stage is comfortably on track and the task is still inside
+ * its budget, yet it can no longer finish inside it: two completed stages
+ * overran by more than a third one came in under, so the 36m + 6m still
+ * committed no longer fit in the 27m left. Taken from a real payload
+ * (`tsk_01KXGHT2BP0JXVHW065KSJSRVZ`, 2026-08-22) — the case that motivated the
+ * outlook line.
+ */
+export const productionTimeProjectedOverrunFixture: ProductionTimeViewModel = {
+  kind: "budget",
+  card: makeBudgetCard(
+    [
+      {
+        key: "wsec-cleaning-seat",
+        label: "cleaning seat",
+        state: "completed",
+        workedSeconds: 6961,
+        allowanceSeconds: 2958,
+        typicalSeconds: 2877,
+        shareState: "over_share",
+      },
+      {
+        key: "wsec-structural-repair",
+        label: "structural repair",
+        state: "completed",
+        workedSeconds: 4977,
+        allowanceSeconds: 9550,
+        typicalSeconds: 9290,
+      },
+      {
+        key: "wsec-upholstery-removal",
+        label: "upholstery removal",
+        state: "completed",
+        workedSeconds: 2981,
+        allowanceSeconds: 1462,
+        typicalSeconds: 1422,
+        shareState: "over_share",
+      },
+      {
+        key: "wsec-weaving",
+        label: "weaving",
+        state: "pending",
+        workedSeconds: 0,
+        allowanceSeconds: 2210,
+        typicalSeconds: null,
+      },
+      {
+        key: "wsec-photography",
+        label: "photography",
+        state: "pending",
+        workedSeconds: 0,
+        allowanceSeconds: 409,
+        typicalSeconds: 398,
+      },
+    ],
+    16_589,
   ),
 };
 

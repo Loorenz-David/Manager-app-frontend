@@ -313,6 +313,103 @@ describe("toProductionTimeViewModel", () => {
     });
   });
 
+  describe("projected overrun", () => {
+    // A real payload (tsk_01KXGHT2BP0JXVHW065KSJSRVZ, 2026-08-22): every
+    // remaining stage on track and the task still inside its budget, yet the
+    // 43m still committed no longer fits the 27m of pot left.
+    function staticSplitDto(): TaskProductionTime {
+      const base = makeDto().sections[0];
+
+      return makeDto({
+        budget: {
+          allowed_worker_minutes: "276.48",
+          actual_worker_seconds: 14_919,
+          actual_worker_minutes: "248.65",
+          remaining_worker_minutes: "27.83",
+          percent_consumed: "89.93",
+        },
+        sections: [
+          {
+            ...base,
+            working_section_id: "wsec_cleaning",
+            state: "completed",
+            worked_seconds: 6_961,
+            allowance_seconds: 2_958,
+            left_seconds: -4_003,
+            share_state: "over_share",
+          },
+          {
+            ...base,
+            working_section_id: "wsec_structural",
+            state: "completed",
+            worked_seconds: 4_977,
+            allowance_seconds: 9_550,
+            left_seconds: 4_573,
+            share_state: "on_track",
+          },
+          {
+            ...base,
+            working_section_id: "wsec_weaving",
+            state: "pending",
+            worked_seconds: 0,
+            allowance_seconds: 2_210,
+            left_seconds: 2_210,
+            share_state: "on_track",
+          },
+          {
+            ...base,
+            working_section_id: "wsec_photography",
+            state: "pending",
+            worked_seconds: 0,
+            allowance_seconds: 409,
+            left_seconds: 409,
+            share_state: "on_track",
+          },
+        ],
+      });
+    }
+
+    it("warns when the unfinished slices no longer fit the remaining pot", () => {
+      const viewModel = toProductionTimeViewModel(staticSplitDto());
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+
+      expect(viewModel.card.outlook?.label).toBe(
+        "Remaining work is budgeted at 43m — projected ~15m over.",
+      );
+      // The served figures are untouched by the projection.
+      expect(viewModel.card.headline.remainingLabel).toBe("27m left");
+      expect(viewModel.card.headline.isOverBudget).toBe(false);
+      expect(viewModel.card.rows[2]?.allowanceLabel).toBe("36m allowed");
+    });
+
+    it("says nothing once the task is closed", () => {
+      const viewModel = toProductionTimeViewModel({
+        ...staticSplitDto(),
+        final: {
+          actual_worker_minutes: "248.65",
+          variance_worker_minutes: "-27.83",
+          percent_consumed: "89.93",
+          task_state_snapshot: "completed",
+          computed_at: "2026-08-22T18:03:00+00:00",
+        },
+      });
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.outlook).toBeNull();
+    });
+
+    it("says nothing on an ordinary task whose remaining work fits", () => {
+      const viewModel = toProductionTimeViewModel(makeDto());
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.outlook).toBeNull();
+    });
+  });
+
   it.each(["detached", "mismatched"] as const)(
     "returns unavailable for a %s item binding",
     (itemBinding) => {

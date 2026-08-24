@@ -15,7 +15,7 @@ const REFERENCE_PAYLOAD = {
   item_binding: "bound",
   can_commit: true,
   currency: "swedish_krona",
-  calculation_version: 1,
+  calculation_version: 2,
   config_fingerprint: "cmv_7a1:pcbv_3f9:v1",
   item: {
     client_id: "itm_ref0001",
@@ -40,6 +40,7 @@ const REFERENCE_PAYLOAD = {
     residual_percent_milli: 22000,
     constant_deduction_minor: 0,
     cost_per_worker_minute_ten_thousandths: 13000000,
+    budget_cap_percent_milli: 25000,
     is_purely_proportional: true,
   },
   typical: {

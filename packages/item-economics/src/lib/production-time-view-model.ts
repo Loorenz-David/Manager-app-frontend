@@ -79,11 +79,31 @@ export type ProductionTimeHeadlineViewModel = {
   isFinal: boolean;
 };
 
+/**
+ * The forecast line under the bar: the unfinished sections' own targets no
+ * longer fit in what is left of the task pot.
+ *
+ * This is the one figure on the card the backend does not serve. It is a
+ * *projection*, deliberately phrased as one, and it is not a verdict: the
+ * served `share_state` and the served remaining minutes are still rendered
+ * exactly as received, and nothing here feeds back into them.
+ */
+export type ProductionTimeOutlookViewModel = {
+  /** "Remaining work is budgeted at 43m — projected ~16m over." */
+  label: string;
+  /** Sum of the unfinished sections' own remaining targets. */
+  remainingCommitmentSeconds: number;
+  /** How much that overshoots the task's remaining pot. Always positive. */
+  projectedOverrunSeconds: number;
+};
+
 export type ProductionTimeCardViewModel = {
   headline: ProductionTimeHeadlineViewModel;
   segments: ProductionTimeSegmentViewModel[];
   /** Hatched tail. 0 once the budget is fully consumed. */
   remainderPercent: number;
+  /** Null whenever the remaining work still fits, or the task is closed. */
+  outlook: ProductionTimeOutlookViewModel | null;
   rows: ProductionTimeRowViewModel[];
 };
 
@@ -217,6 +237,82 @@ export function buildRowDetail(
     progressPercent: clampPercent((workedSeconds / allowanceSeconds) * 100),
     verdictLabel,
     verdictTone,
+  };
+}
+
+/** Sections that will not consume any more of the pot. */
+const SETTLED_SECTION_STATES = new Set([
+  "completed",
+  "skipped",
+  "failed",
+  "cancelled",
+]);
+
+/**
+ * Below this the sentence is noise: `formatWorkSeconds` floors to minutes, so
+ * a smaller gap would announce itself as "0m over".
+ */
+export const PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS = 60;
+
+export type ProductionTimeOutlookInput = {
+  state: string | null | undefined;
+  /** The section's own `left_seconds`, as served. */
+  leftSeconds: number | null;
+};
+
+/**
+ * Compares what the unfinished sections are still budgeted for against what is
+ * left of the task pot, and speaks up only when the first no longer fits in
+ * the second.
+ *
+ * Why the two can disagree at all: the split is static
+ * (`static_proportional_section_v1`). Each section's slice is fixed at
+ * evaluation time and an overrun in one section is never redistributed out of
+ * another's — deliberately, so a stage's target stays a stable number its
+ * worker can hit rather than one that shrinks because an earlier stage ran
+ * long. The consequence is this card can show every remaining stage a
+ * comfortable target while the task as a whole is already committed to
+ * finishing over budget. That gap is what this line names.
+ *
+ * A section already past its own slice contributes nothing rather than a
+ * negative: how far it will *keep* overrunning is not knowable, and letting it
+ * subtract would quietly cancel out another stage's real remaining work.
+ */
+export function buildOutlook(
+  sections: readonly ProductionTimeOutlookInput[],
+  remainingSeconds: number | null,
+): ProductionTimeOutlookViewModel | null {
+  if (remainingSeconds === null) {
+    return null;
+  }
+
+  const remainingCommitmentSeconds = sections.reduce((sum, section) => {
+    if (
+      section.leftSeconds === null ||
+      SETTLED_SECTION_STATES.has(section.state ?? "")
+    ) {
+      return sum;
+    }
+
+    return sum + Math.max(0, section.leftSeconds);
+  }, 0);
+
+  if (remainingCommitmentSeconds <= 0) {
+    return null;
+  }
+
+  const projectedOverrunSeconds = remainingCommitmentSeconds - remainingSeconds;
+
+  if (projectedOverrunSeconds < PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS) {
+    return null;
+  }
+
+  return {
+    label: `Remaining work is budgeted at ${formatWorkSeconds(
+      remainingCommitmentSeconds,
+    )} — projected ~${formatWorkSeconds(projectedOverrunSeconds)} over.`,
+    remainingCommitmentSeconds,
+    projectedOverrunSeconds,
   };
 }
 

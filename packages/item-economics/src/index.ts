@@ -16,6 +16,9 @@ export {
   ProductionTimeBudgetSchema,
   ProductionTimeFinalSchema,
   TaskProductionTimeSchema,
+  BudgetAllocationStepSchema,
+  TaskBudgetAllocationSchema,
+  TaskBudgetAllocationsResponseSchema,
 } from "./types";
 export type {
   MajorCategory,
@@ -29,9 +32,22 @@ export type {
   ProductionTimeBudget,
   ProductionTimeFinal,
   TaskProductionTime,
+  BudgetAllocationStep,
+  TaskBudgetAllocation,
+  TaskBudgetAllocationsResponse,
 } from "./types";
 
 export { itemEconomicsKeys } from "./api/item-economics-keys";
+export {
+  BUDGET_ALLOCATIONS_MAX_TASK_IDS,
+  fetchTaskBudgetAllocations,
+} from "./api/fetch-task-budget-allocations";
+export {
+  buildStepBudgetMap,
+  buildTaskBudgetAllocationMap,
+  useTaskBudgetAllocationsQuery,
+} from "./api/use-task-budget-allocations-query";
+export type { TaskBudgetAllocationsSnapshot } from "./api/use-task-budget-allocations-query";
 export { itemEconomicsSocketEvents } from "./socket-events";
 
 export { parseErrorIdentity } from "./lib/error-identity";
@@ -41,6 +57,8 @@ export { parseErrorIdentity } from "./lib/error-identity";
 
 export {
   PRODUCTION_TIME_COLLAPSED_ROW_COUNT,
+  PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS,
+  buildOutlook,
   buildRowDetail,
   buildSegments,
   formatPassCount,
@@ -53,6 +71,8 @@ export type {
   ProductionTimeCardViewModel,
   ProductionTimeHeadlineViewModel,
   ProductionTimeNoBudgetViewModel,
+  ProductionTimeOutlookInput,
+  ProductionTimeOutlookViewModel,
   ProductionTimeRowDetailViewModel,
   ProductionTimeRowViewModel,
   ProductionTimeSegmentViewModel,
@@ -71,6 +91,15 @@ export {
 export type { ProductionTimeCardProps } from "./components/production-time";
 export { ProductionTimeSection } from "./components/production-time/ProductionTimeSection";
 export type { ProductionTimeSectionProps } from "./components/production-time/ProductionTimeSection";
+
+// --- Task budget overrun (task-card footer) ---------------------------------
+
+export {
+  buildTaskBudgetOverrun,
+  type TaskBudgetOverrunViewModel,
+} from "./lib/task-budget-overrun";
+export { TaskBudgetOverrunBand } from "./components/task-budget-overrun";
+export type { TaskBudgetOverrunBandProps } from "./components/task-budget-overrun";
 
 export {
   ITEM_VALUATION_SLIDE_SURFACE_ID,

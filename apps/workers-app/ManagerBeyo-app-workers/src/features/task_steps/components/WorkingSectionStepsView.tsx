@@ -47,6 +47,7 @@ export function WorkingSectionStepsView({
     renderRows,
     toggleFold,
     rawSteps,
+    stepBudgets,
     isPending,
     isError,
     hasMore,
@@ -310,6 +311,7 @@ export function WorkingSectionStepsView({
                 ) : (
                   <AnimatedRemovalItem key={entry.row.stepId}>
                     <TaskStepCard
+                      budget={stepBudgets.get(entry.row.stepId) ?? null}
                       card={entry.row}
                       transitioningStepId={transitioningStepId}
                       onTapActions={handleOpenTaskActions}

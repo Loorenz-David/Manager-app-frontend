@@ -3,15 +3,22 @@ import type { PriceScenarioModel } from "../types";
 /**
  * The money → allowance pipeline of the expected sold price editor.
  *
- * Contract: `HANDOFF_TO_FRONTEND_price_scenario_20260819.md` §4, and intention
- * §4A M2/M3. Three integer operations turn a candidate whole-item price into an
- * allowance in seconds, in the server's exact order and scaling:
+ * Contract: `HANDOFF_TO_FRONTEND_price_scenario_20260819.md` §4, extended by
+ * `HANDOFF_TO_FRONTEND_production_budget_cap_20260820.md` (calculation_version
+ * 2), and intention §4A M2/M3. Three integer operations turn a candidate
+ * whole-item price into an allowance in seconds, in the server's exact order
+ * and scaling:
  *
- *   budget_minor(P)      = round_half_even(P × residual_percent_milli, 100_000)
+ *   residual_affine(P)   = round_half_even(P × residual_percent_milli, 100_000)
  *                          − constant_deduction_minor
+ *   cap_affine(P)        = round_half_even(P × budget_cap_percent_milli, 100_000)
+ *   budget_minor(P)      = min(residual_affine(P), cap_affine(P))
  *   allowed_centimin(P)  = round_half_even(budget_minor(P) × 1_000_000,
  *                                          cost_per_worker_minute_ten_thousandths)
  *   allowance_seconds(P) = round_half_even(allowed_centimin(P) × 3, 5)
+ *
+ * Above the price where the cap crosses the residual slope, the budget — and
+ * so the AT-PRICE allowance — goes flat rather than continuing to grow with P.
  *
  * There is no algebraic shortcut: collapsing budget → seconds disagrees with the
  * server by up to a second, which would make this screen and the production-time
@@ -47,20 +54,29 @@ export function roundHalfEven(a: bigint, b: bigint): bigint {
 }
 
 /**
- * What is left of the whole-item price `P` to spend on work, in minor units.
- * Negative for any price below the constant deduction — the `infeasible` state
- * this screen exists to fix — so every consumer must handle a negative bigint.
+ * What is left of the whole-item price `P` to spend on work, in minor units:
+ * the lesser of the residual affine budget and the v2 hard cap
+ * (`budget_cap_percent_milli` of `P`). Negative for any price below the
+ * constant deduction — the `infeasible` state this screen exists to fix — so
+ * every consumer must handle a negative bigint. The cap itself is never
+ * negative, so a capped budget can only ever be non-negative.
  */
 export function budgetMinor(
   priceMinor: number,
   model: PriceScenarioModel,
 ): bigint {
-  const residual = roundHalfEven(
-    BigInt(priceMinor) * BigInt(model.residual_percent_milli),
+  const price = BigInt(priceMinor);
+
+  const residual =
+    roundHalfEven(price * BigInt(model.residual_percent_milli), 100_000n) -
+    BigInt(model.constant_deduction_minor);
+
+  const cap = roundHalfEven(
+    price * BigInt(model.budget_cap_percent_milli),
     100_000n,
   );
 
-  return residual - BigInt(model.constant_deduction_minor);
+  return residual < cap ? residual : cap;
 }
 
 /** The budget expressed in centi-minutes of worker time. */

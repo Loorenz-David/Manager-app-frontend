@@ -40,7 +40,7 @@ describe("fetchTaskPriceScenario", () => {
     mocks.get.mockImplementation(
       async (_path: string, schema: { parse: (input: unknown) => unknown }) =>
         schema.parse(
-          envelope({ ...PRICE_SCENARIO_REFERENCE_JSON, calculation_version: 2 }),
+          envelope({ ...PRICE_SCENARIO_REFERENCE_JSON, calculation_version: 1 }),
         ),
     );
 

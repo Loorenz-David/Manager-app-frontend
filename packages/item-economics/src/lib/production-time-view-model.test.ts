@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   formatPassCount,
+  buildOutlook,
   buildRowDetail,
   buildSegments,
   formatWorkSeconds,
@@ -139,6 +140,111 @@ describe("buildRowDetail", () => {
     );
     expect(buildRowDetail(9000, 3600, "on_track").verdictTone).toBe(
       "on_track",
+    );
+  });
+});
+
+describe("buildOutlook", () => {
+  // The payload that motivated the line: three completed sections, two of them
+  // over their slice by more than the third came in under, leaving 27m of pot
+  // against 43m of still-committed work.
+  const REAL_PAYLOAD_SECTIONS = [
+    { state: "completed", leftSeconds: -4003 },
+    { state: "completed", leftSeconds: 4573 },
+    { state: "completed", leftSeconds: -1519 },
+    { state: "pending", leftSeconds: 2210 },
+    { state: "pending", leftSeconds: 409 },
+  ];
+
+  it("names the gap between the unfinished targets and the pot", () => {
+    const outlook = buildOutlook(REAL_PAYLOAD_SECTIONS, 1670);
+
+    expect(outlook).toEqual({
+      label: "Remaining work is budgeted at 43m — projected ~15m over.",
+      remainingCommitmentSeconds: 2619,
+      projectedOverrunSeconds: 949,
+    });
+  });
+
+  it("counts only the sections that can still consume the pot", () => {
+    // The completed overruns are already inside the served remaining figure;
+    // counting them again would double the gap.
+    const outlook = buildOutlook(
+      [
+        { state: "completed", leftSeconds: -4003 },
+        { state: "skipped", leftSeconds: 600 },
+        { state: "cancelled", leftSeconds: 600 },
+        { state: "failed", leftSeconds: 600 },
+        { state: "pending", leftSeconds: 2210 },
+      ],
+      1200,
+    );
+
+    expect(outlook?.remainingCommitmentSeconds).toBe(2210);
+  });
+
+  it("lets an unfinished section that is already over contribute nothing", () => {
+    // How much further it will overrun is unknowable; a negative would quietly
+    // cancel out another stage's real remaining work.
+    const outlook = buildOutlook(
+      [
+        { state: "working", leftSeconds: -900 },
+        { state: "pending", leftSeconds: 2400 },
+      ],
+      1200,
+    );
+
+    expect(outlook?.remainingCommitmentSeconds).toBe(2400);
+    expect(outlook?.projectedOverrunSeconds).toBe(1200);
+  });
+
+  it("ignores a section with no slice at all", () => {
+    const outlook = buildOutlook(
+      [
+        { state: "cancelled", leftSeconds: null },
+        { state: "pending", leftSeconds: 2400 },
+      ],
+      1200,
+    );
+
+    expect(outlook?.remainingCommitmentSeconds).toBe(2400);
+  });
+
+  it("says nothing while the remaining work still fits", () => {
+    expect(
+      buildOutlook([{ state: "pending", leftSeconds: 1200 }], 3600),
+    ).toBeNull();
+  });
+
+  it("stays quiet under a minute, which would read as '0m over'", () => {
+    expect(
+      buildOutlook([{ state: "pending", leftSeconds: 1259 }], 1200),
+    ).toBeNull();
+    expect(
+      buildOutlook([{ state: "pending", leftSeconds: 1260 }], 1200),
+    ).not.toBeNull();
+  });
+
+  it("says nothing when no work is left to project", () => {
+    expect(
+      buildOutlook([{ state: "completed", leftSeconds: -600 }], 1200),
+    ).toBeNull();
+    expect(buildOutlook([], 1200)).toBeNull();
+  });
+
+  it("says nothing without a remaining figure to compare against", () => {
+    expect(
+      buildOutlook([{ state: "pending", leftSeconds: 2400 }], null),
+    ).toBeNull();
+  });
+
+  it("projects past an overrun that has already happened", () => {
+    // The headline already says "10m over"; the forecast is the bigger number.
+    const outlook = buildOutlook([{ state: "pending", leftSeconds: 2619 }], -600);
+
+    expect(outlook?.projectedOverrunSeconds).toBe(3219);
+    expect(outlook?.label).toBe(
+      "Remaining work is budgeted at 43m — projected ~53m over.",
     );
   });
 });

@@ -41,6 +41,16 @@ export const itemEconomicsKeys = {
     [...itemEconomicsKeys.task(taskId), "evaluations", params] as const,
 
   /**
+   * Batched across tasks, so it hangs directly off `tasks()` rather than a
+   * single `task(taskId)`. Being under the `tasks()` branch is deliberate:
+   * the `task:step-state-changed` socket handler invalidates that branch, so
+   * start/pause transitions refresh the step cards' worked/left figures
+   * immediately.
+   */
+  taskBudgetAllocations: (taskIds: readonly TaskId[]) =>
+    [...itemEconomicsKeys.tasks(), "budget-allocations", taskIds] as const,
+
+  /**
    * Deliberately its own branch directly under `all`, **not** under `tasks()`
    * (intention §4A M9): the existing `task:step-state-changed` handler
    * invalidates the whole `tasks()` branch immediately, and this aggregate is

@@ -4,7 +4,9 @@ import type { TaskId, TaskStepId } from "@beyo/lib";
 import { ImageAnnotationSvgLayer } from "@beyo/images";
 import { BackendImage, ImagePlaceholder } from "@beyo/ui";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
+import type { StepBudget } from "../domain/step-budget";
 import type { StepState, TaskStepCardViewModel } from "../types";
+import { StepBudgetProgressLine } from "./StepBudgetProgressLine";
 import { TaskStepActionButton } from "./TaskStepActionButton";
 
 const RETURN_SOURCE_LABEL: Record<string, string> = {
@@ -94,6 +96,7 @@ function ThreeDotIcon(): React.JSX.Element {
 
 type TaskStepCardProps = {
   card: TaskStepCardViewModel;
+  budget?: StepBudget | null;
   onTapImage: (stepId: TaskStepId) => void;
   onTapActions: (
     stepId: TaskStepId,
@@ -111,6 +114,7 @@ type TaskStepCardProps = {
 
 export const TaskStepCard = memo(function TaskStepCard({
   card,
+  budget = null,
   onTapImage,
   onTapActions,
   onTapCard,
@@ -222,7 +226,18 @@ export const TaskStepCard = memo(function TaskStepCard({
         </div>
       </div>
 
+      {/* The mockup keeps not-yet-started cards line-free: the budget shows
+          as a figure on the action button instead. */}
+      {card.state !== "pending" && card.hasQuickAction ? (
+        <StepBudgetProgressLine
+          budget={budget}
+          isWorking={card.state === "working"}
+          stepId={stepId}
+        />
+      ) : null}
+
       <TaskStepActionButton
+        budget={budget}
         isTransitioning={isTransitioning}
         lastStateRecord={lastStateRecord}
         state={card.state}
