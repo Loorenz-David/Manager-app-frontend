@@ -17,6 +17,7 @@ export {
 
 export {
   ItemValuationFrame,
+  type ItemValuationFrameHeaderIdentity,
   type ItemValuationFrameProps,
 } from "./ItemValuationFrame";
 export {

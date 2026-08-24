@@ -12,9 +12,14 @@ import {
   type ImageUploadState,
   type ImageViewModel,
 } from "@beyo/images";
+import {
+  buildStepBudgetMap,
+  useTaskBudgetAllocationsQuery,
+} from "@beyo/item-economics";
 import { useTransitionBatchStepStates } from "../actions/use-transition-batch-step-states";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { useUserLastActiveStepQuery } from "../api/use-user-last-active-step";
+import type { StepBudget } from "../domain/step-budget";
 import {
   BATCH_DETAIL_SLIDE_SURFACE_ID,
   PAUSE_REASON_SHEET_SURFACE_ID,
@@ -80,6 +85,24 @@ export function useLastActiveStepCardController() {
     () => (batchSteps ?? []).map(toTaskStepCardViewModel),
     [batchSteps],
   );
+
+  // Batch card has no single worked/left value to show, so budgets are only
+  // fetched for the single-step card.
+  const budgetTaskIds = useMemo(
+    () => (step ? [step.task_id] : []),
+    [step?.task_id],
+  );
+  const budgetQuery = useTaskBudgetAllocationsQuery(budgetTaskIds);
+  const budget = useMemo<StepBudget | null>(() => {
+    if (!step || !budgetQuery.data) {
+      return null;
+    }
+
+    const { allocations, receivedAtMs } = budgetQuery.data;
+    const byStepId = buildStepBudgetMap(allocations);
+    const budgetStep = byStepId.get(step.client_id);
+    return budgetStep ? { step: budgetStep, receivedAtMs } : null;
+  }, [step, budgetQuery.data]);
 
   const {
     transitionStepState,
@@ -212,6 +235,7 @@ export function useLastActiveStepCardController() {
   return {
     step,
     vm,
+    budget,
     batchSteps: batchSteps as TaskStep[] | null,
     batchVms,
     isBatchCard,

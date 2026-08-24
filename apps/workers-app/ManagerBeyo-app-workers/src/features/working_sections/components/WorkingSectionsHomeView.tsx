@@ -83,7 +83,7 @@ export function WorkingSectionsHomeView({
         )}
 
         {isPending || isError ? null : (
-          <div className="pb-2 pt-1">
+          <div className="pb-28 pt-1">
             <OtherWorkingSectionsList onSelectSection={onSelectSection} />
           </div>
         )}

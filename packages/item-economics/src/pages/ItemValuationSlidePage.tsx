@@ -101,7 +101,7 @@ function ItemValuationView(): React.JSX.Element {
               <ItemValuationProvenanceRow {...view.provenance} />
             ) : undefined
           }
-          subtitle={view.frame.subtitle}
+          identity={view.frame.identity}
           title={view.frame.title}
           onBackPress={() => header?.requestClose()}
         >

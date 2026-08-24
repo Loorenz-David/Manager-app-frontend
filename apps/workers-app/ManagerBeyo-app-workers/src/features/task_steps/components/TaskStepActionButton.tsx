@@ -1,16 +1,15 @@
 import { CircleAlert, Pause, Play } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
-import { useTickingElapsed } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
 import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import {
-  budgetToneFor,
   formatDurationHM,
   formatOverBudgetAmount,
-  STEP_BUDGET_TONE_TEXT,
+  useLiveStepBudget,
   type StepBudget,
 } from "../domain/step-budget";
+import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
 import { preloadPauseReasonSheetSurface } from "../surfaces";
 import {
   STEP_QUICK_TRANSITION,
@@ -87,58 +86,6 @@ function ActionButtonShell({
   );
 }
 
-/**
- * The line under the timer: budget position when allocated ("44m left" /
- * "of 2h 00m"), or the section's history when there is no budget ("usually
- * ~40m"). The two wordings must stay distinct — a limit and history are
- * different kinds of truth (budget-allocations handoff §4).
- */
-function budgetSecondaryLabel(
-  stepId: TaskStepId,
-  budget: StepBudget,
-  workedSeconds: number,
-  leftSeconds: number | null,
-): React.ReactNode {
-  const { allowance_seconds, share_state, typical_worker_seconds } =
-    budget.step;
-
-  if (allowance_seconds !== null && leftSeconds !== null) {
-    if (leftSeconds < 0) {
-      return (
-        <span
-          className="font-mono text-xs font-medium text-[#b9382a]"
-          data-testid={`step-budget-secondary-${stepId}`}
-        >
-          of {formatDurationHM(allowance_seconds)}
-        </span>
-      );
-    }
-
-    const tone = budgetToneFor(workedSeconds, allowance_seconds);
-    return (
-      <span
-        className={`font-mono text-xs font-medium ${STEP_BUDGET_TONE_TEXT[tone]}`}
-        data-testid={`step-budget-secondary-${stepId}`}
-      >
-        {formatDurationHM(leftSeconds)} left
-      </span>
-    );
-  }
-
-  if (share_state === "no_budget" && typical_worker_seconds !== null) {
-    return (
-      <span
-        className="text-xs text-muted-foreground"
-        data-testid={`step-budget-secondary-${stepId}`}
-      >
-        usually ~{formatDurationHM(typical_worker_seconds)}
-      </span>
-    );
-  }
-
-  return null;
-}
-
 type WorkingBudgetButtonProps = {
   stepId: TaskStepId;
   label: string;
@@ -147,11 +94,6 @@ type WorkingBudgetButtonProps = {
   onClick: () => void;
 };
 
-// Only mounted while the step is working, so idle cards never subscribe to
-// the shared one-second ticker. The served value is the baseline on every
-// receipt (live-clock handoff §5): elapsed time is added on top from the
-// moment of receipt, and a served decrease snaps down in one step because the
-// baseline resets — never clamped to the previous maximum, never animated.
 function WorkingBudgetButton({
   stepId,
   label,
@@ -159,21 +101,12 @@ function WorkingBudgetButton({
   disabled,
   onClick,
 }: WorkingBudgetButtonProps): React.JSX.Element {
-  const elapsedMs = useTickingElapsed(budget.receivedAtMs);
-  const elapsedSeconds = Math.floor(elapsedMs / 1000);
-  const workedSeconds = budget.step.worked_seconds + elapsedSeconds;
-  const leftSeconds =
-    budget.step.left_seconds === null
-      ? null
-      : budget.step.left_seconds - elapsedSeconds;
-  // The over-budget banner keys on the step's own position, not on
-  // share_state — that one describes the whole section (handoff §5 nuance).
-  const isOver = leftSeconds !== null && leftSeconds < 0;
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
 
   return (
     <ActionButtonShell
       banner={
-        isOver ? (
+        isOver && leftSeconds !== null ? (
           <span
             className="flex items-center gap-1.5 text-xs font-bold text-[#b9382a]"
             data-testid={`step-budget-over-banner-${stepId}`}
@@ -195,7 +128,12 @@ function WorkingBudgetButton({
           >
             {formatSecondsHHMMSS(workedSeconds)}
           </span>
-          {budgetSecondaryLabel(stepId, budget, workedSeconds, leftSeconds)}
+          <StepBudgetSecondaryLabel
+            budget={budget}
+            leftSeconds={leftSeconds}
+            stepId={stepId}
+            workedSeconds={workedSeconds}
+          />
         </span>
       }
       stepId={stepId}
@@ -270,12 +208,12 @@ export function TaskStepActionButton({
           >
             {formatSecondsHHMMSS(budget.step.worked_seconds)}
           </span>
-          {budgetSecondaryLabel(
-            stepId,
-            budget,
-            budget.step.worked_seconds,
-            budget.step.left_seconds,
-          )}
+          <StepBudgetSecondaryLabel
+            budget={budget}
+            leftSeconds={budget.step.left_seconds}
+            stepId={stepId}
+            workedSeconds={budget.step.worked_seconds}
+          />
         </span>
       );
     } else {

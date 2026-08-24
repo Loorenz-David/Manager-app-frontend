@@ -1,3 +1,4 @@
+import { useTickingElapsed } from "@beyo/lib";
 import type { BudgetAllocationStep } from "@beyo/item-economics";
 
 /**
@@ -31,6 +32,33 @@ export function budgetToneFor(
     return "warn";
   }
   return "ok";
+}
+
+export type LiveStepBudget = {
+  workedSeconds: number;
+  leftSeconds: number | null;
+  isOver: boolean;
+};
+
+// Only meant to be mounted while the step is working, so idle cards never
+// subscribe to the shared one-second ticker. The served value is the
+// baseline on every receipt (live-clock handoff §5): elapsed time is added on
+// top from the moment of receipt, and a served decrease snaps down in one
+// step because the baseline resets — never clamped to the previous maximum,
+// never animated.
+export function useLiveStepBudget(budget: StepBudget): LiveStepBudget {
+  const elapsedMs = useTickingElapsed(budget.receivedAtMs);
+  const elapsedSeconds = Math.floor(elapsedMs / 1000);
+  const workedSeconds = budget.step.worked_seconds + elapsedSeconds;
+  const leftSeconds =
+    budget.step.left_seconds === null
+      ? null
+      : budget.step.left_seconds - elapsedSeconds;
+  // The over-budget state keys on the step's own position, not on
+  // share_state — that one describes the whole section (handoff §5 nuance).
+  const isOver = leftSeconds !== null && leftSeconds < 0;
+
+  return { workedSeconds, leftSeconds, isOver };
 }
 
 export const STEP_BUDGET_TONE_FILL: Record<StepBudgetTone, string> = {

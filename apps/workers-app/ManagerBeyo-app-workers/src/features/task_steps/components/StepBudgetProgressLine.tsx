@@ -7,7 +7,9 @@ import {
   type StepBudget,
 } from "../domain/step-budget";
 
-const TRACK_CLASS = "relative h-1.5 w-full overflow-hidden bg-muted";
+// Thick enough to read as an energy/health bar rather than a hairline
+// separator between the card body and the action button.
+const TRACK_CLASS = "relative h-3 w-full overflow-hidden bg-muted";
 
 /**
  * The fill is a full-width block scaled from its left edge rather than a
@@ -15,20 +17,27 @@ const TRACK_CLASS = "relative h-1.5 w-full overflow-hidden bg-muted";
  * pixel — a two-hour budget advances about a pixel a minute, which a width
  * animation would render as a stair.
  *
- * The inset highlight gives the bar a little depth at this thickness; it
- * survives the horizontal scale because it has no horizontal offset or blur.
+ * The inset highlights bevel the bar for depth at this thickness; they
+ * survive the horizontal scale because they have no horizontal offset or blur.
  */
 const FILL_CLASS =
-  "absolute inset-y-0 left-0 w-full origin-left shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]";
+  "absolute inset-y-0 left-0 w-full origin-left overflow-hidden shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.18)]";
 
 const COLOR_TRANSITION = "background-color 600ms ease";
+
+// A freshly-started step reads as an empty bar without this — a small floor
+// makes "just started" visibly distinct from "no budget data yet" at a glance.
+const MIN_FILL_FRACTION = 0.1;
 
 function fractionOf(workedSeconds: number, allowanceSeconds: number): number {
   if (allowanceSeconds <= 0) {
     return 1;
   }
 
-  return Math.min(1, Math.max(0, workedSeconds / allowanceSeconds));
+  return Math.min(
+    1,
+    Math.max(MIN_FILL_FRACTION, workedSeconds / allowanceSeconds),
+  );
 }
 
 type StaticBarProps = {
@@ -138,7 +147,15 @@ function GrowingBar({
         ref={fillRef}
         className={FILL_CLASS}
         style={{ backgroundColor: STEP_BUDGET_TONE_FILL[tone] }}
-      />
+      >
+        {/* Sweeping gleam so a slow-growing bar still reads as "charging"
+            rather than stalled — a separate overlay, not a class on the fill
+            itself, so it never touches the fill's own position/background. */}
+        <div
+          aria-hidden="true"
+          className="step-budget-bar-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+        />
+      </div>
     </div>
   );
 }

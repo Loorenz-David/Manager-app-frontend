@@ -19,6 +19,7 @@ import { useTaskPriceScenarioQuery } from "../api/use-task-price-scenario-query"
 import type {
   ItemValuationEmptyStateProps,
   ItemValuationFooterProps,
+  ItemValuationFrameHeaderIdentity,
   ItemValuationFrameProps,
   ItemValuationProvenanceRowProps,
   PriceCoverageChipProps,
@@ -79,6 +80,14 @@ const BLANK_DRAFT_STATE: PriceDraftState = {
 /** M10: older than this at the moment Save is pressed and the press refetches first. */
 const STALENESS_LIMIT_MS = 60_000;
 
+/**
+ * The S4 fetch CTA holds its pending look for at least this long, even when
+ * the lookup+PUT round-trip finishes faster: a sub-second pending state on
+ * the automatic first attempt reads as a flicker rather than as work
+ * happening (owner request 2026-08-24).
+ */
+const MIN_BOOTSTRAP_PENDING_DISPLAY_MS = 1_000;
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -132,29 +141,31 @@ function formatWholeItem(minor: number): string {
 }
 
 /**
- * `ITEM 0000608 · DINING CHAIRS (6)` — either fragment is omitted when the
- * payload lacks it, and an absent item leaves no subtitle at all (§3.4).
+ * `#0000608` / `DINING CHAIRS (6)` — either fragment may be absent, and an
+ * absent item leaves no identity at all (§3.4). The "ITEM" label is dropped
+ * here (owner redesign 2026-08-24 — the "#" the frame renders is
+ * self-explanatory); article number and type/quantity stay separate so the
+ * frame can weight them differently.
  */
-function resolveSubtitle(scenario: PriceScenario): string | null {
+function resolveIdentity(
+  scenario: PriceScenario,
+): ItemValuationFrameHeaderIdentity | null {
   const item = scenario.item;
 
   if (item === null) {
     return null;
   }
 
-  const fragments: string[] = [];
+  const detail =
+    item.label === null
+      ? null
+      : `${item.label.toUpperCase()} (${resolvePricingQuantity(item.quantity)})`;
 
-  if (item.article_number !== null) {
-    fragments.push(`ITEM ${item.article_number}`);
+  if (item.article_number === null && detail === null) {
+    return null;
   }
 
-  if (item.label !== null) {
-    fragments.push(
-      `${item.label.toUpperCase()} (${resolvePricingQuantity(item.quantity)})`,
-    );
-  }
-
-  return fragments.length === 0 ? null : fragments.join(" · ");
+  return { articleNumber: item.article_number, detail };
 }
 
 function resolveUnboundMessage(scenario: PriceScenario): string {
@@ -219,9 +230,9 @@ function resolveStepCount(domain: PriceScenarioDomain): number {
 
 export type ItemValuationViewModel = {
   screenState: ItemValuationScreenState;
-  // `title` feeds the surface header (owner redesign 2026-08-20: the title
-  // sits beside the back arrow, not inside the frame); `subtitle` is the
-  // frame's identity line.
+  // `title` is the header row's accessible name and its fallback text;
+  // `identity` renders beside the back arrow in its place when there is one
+  // (owner redesign 2026-08-24).
   frame: { title: string } & Omit<
     ItemValuationFrameProps,
     "children" | "headerExtra"
@@ -277,6 +288,70 @@ export function useItemValuationController(
   const committedPriceRef = useRef<number | null>(null);
 
   const bootstrapAction = useBootstrapPurchasePrice(taskId);
+
+  /**
+   * S4 fires the purchase-price lookup itself, once, the moment the screen
+   * lands there — the user coming to this screen wants the fetch 100% of the
+   * time. `autoBootstrapTriggeredRef` is the "once" (it never resets so a
+   * failed attempt does not re-fire on its own); the CTA stays disabled until
+   * that attempt settles, at which point it's the manual retry.
+   *
+   * The minimum-display window is timed from `bootstrapAttemptStartRef`
+   * rather than from watching `bootstrapAction.isPending` flip true: a
+   * same-tick resolution (every test mock, and a cached/local response in
+   * production) can settle the mutation before React ever commits a render
+   * where `isPending` reads true, which would otherwise leave the CTA
+   * disabled forever with no pending look to show for it.
+   * `bootstrapDisplayTick` exists only to force a re-render once that window
+   * elapses, for the case where the mutation already settled before it did.
+   */
+  const autoBootstrapTriggeredRef = useRef(false);
+  const bootstrapAttemptStartRef = useRef<number | null>(null);
+  const bootstrapDisplayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const [, forceBootstrapDisplayTick] = useReducer(
+    (tick: number) => tick + 1,
+    0,
+  );
+
+  useEffect(
+    () => () => {
+      if (bootstrapDisplayTimeoutRef.current !== null) {
+        clearTimeout(bootstrapDisplayTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const { bootstrap: bootstrapPurchasePrice } = bootstrapAction;
+
+  const beginBootstrapAttempt = useCallback(
+    (scenario: PriceScenario): void => {
+      bootstrapAttemptStartRef.current = Date.now();
+      bootstrapPurchasePrice(scenario);
+
+      if (bootstrapDisplayTimeoutRef.current !== null) {
+        clearTimeout(bootstrapDisplayTimeoutRef.current);
+      }
+
+      bootstrapDisplayTimeoutRef.current = setTimeout(() => {
+        bootstrapDisplayTimeoutRef.current = null;
+        forceBootstrapDisplayTick();
+      }, MIN_BOOTSTRAP_PENDING_DISPLAY_MS);
+    },
+    [bootstrapPurchasePrice],
+  );
+
+  const bootstrapAttemptStartedAt = bootstrapAttemptStartRef.current;
+  const isWithinMinBootstrapDisplay =
+    bootstrapAttemptStartedAt !== null &&
+    Date.now() - bootstrapAttemptStartedAt < MIN_BOOTSTRAP_PENDING_DISPLAY_MS;
+  const isBootstrapPendingDisplayed =
+    bootstrapAction.isPending || isWithinMinBootstrapDisplay;
+  const hasBootstrapAttemptSettled =
+    bootstrapAttemptStartedAt !== null && !isBootstrapPendingDisplayed;
+
   const commitAction = useCommitItemValuation(taskId, (reconciled) => {
     dispatch({ type: "SAVE_OK" });
 
@@ -406,7 +481,7 @@ export function useItemValuationController(
     })();
   }, [commit, query, queryClient, scenario, taskId]);
 
-  const screenState =
+  const rawScreenState =
     scenario !== null && !isDraftSeeded
       ? "loading"
       : resolveScreenState(
@@ -414,9 +489,36 @@ export function useItemValuationController(
           query.isError ? "error" : query.isPending ? "pending" : "success",
         );
 
+  useEffect(() => {
+    if (
+      rawScreenState !== "purchase_required" ||
+      scenario === null ||
+      autoBootstrapTriggeredRef.current ||
+      scenario.item?.article_number == null
+    ) {
+      return;
+    }
+
+    autoBootstrapTriggeredRef.current = true;
+    beginBootstrapAttempt(scenario);
+  }, [rawScreenState, scenario, beginBootstrapAttempt]);
+
+  /**
+   * The invalidated refetch that follows a successful bootstrap can land
+   * before `MIN_BOOTSTRAP_PENDING_DISPLAY_MS` is up, which would otherwise
+   * swap the purchase-required card straight to the editor mid-fetch-display.
+   * Holding the display state here is what makes the loading look last its
+   * full second even though the underlying data already moved on.
+   */
+  const screenState: ItemValuationScreenState =
+    isBootstrapPendingDisplayed &&
+    (rawScreenState === "editor" || rawScreenState === "blocked")
+      ? "purchase_required"
+      : rawScreenState;
+
   const frame = {
     title: "Expected sold price",
-    subtitle: scenario === null ? null : resolveSubtitle(scenario),
+    identity: scenario === null ? null : resolveIdentity(scenario),
   };
 
   const base: ItemValuationViewModel = {
@@ -538,9 +640,12 @@ export function useItemValuationController(
           : PURCHASE_BOOTSTRAP_NO_ARTICLE_MESSAGE,
         errorMessage: bootstrapAction.errorMessage,
         ctaLabel: "Fetch purchase price",
-        isCtaDisabled: !hasArticleNumber,
-        isCtaPending: bootstrapAction.isPending,
-        onCtaPress: () => bootstrapAction.bootstrap(scenario),
+        // The automatic first attempt (effect above) is what the CTA waits
+        // out here — it only becomes a manual retry once that attempt has
+        // settled, success or failure (owner request 2026-08-24).
+        isCtaDisabled: !hasArticleNumber || !hasBootstrapAttemptSettled,
+        isCtaPending: isBootstrapPendingDisplayed,
+        onCtaPress: () => beginBootstrapAttempt(scenario),
       },
     };
   }

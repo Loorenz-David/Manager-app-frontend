@@ -255,7 +255,7 @@ export function WorkingSectionStepsView({
           </div>
         ) : section.allowsBatchWorking ? (
           <div
-            className="flex flex-col gap-4 py-2 pb-24"
+            className="flex flex-col gap-4 py-2 pb-28"
             data-testid="batch-steps-list"
           >
             <AnimatedRemovalGroup>
@@ -295,7 +295,7 @@ export function WorkingSectionStepsView({
           </div>
         ) : (
           <div
-            className="flex flex-col gap-4 py-2 pb-10"
+            className="flex flex-col gap-4 py-2 pb-28"
             data-testid="working-section-steps-list"
           >
             <AnimatedRemovalGroup>

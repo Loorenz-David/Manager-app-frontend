@@ -212,14 +212,6 @@ export const ReturnFormSchema = z
       });
     }
 
-    if (!data.customer.primary_email?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Email is required.",
-        path: ["customer", "primary_email"],
-      });
-    }
-
     if (!data.customer.primary_phone_number?.trim()) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -305,14 +297,6 @@ export const PreOrderFormSchema = z
         code: z.ZodIssueCode.custom,
         message: "Select at least one inventory location.",
         path: ["inventoryQuantities"],
-      });
-    }
-
-    if (!data.customer.primary_email?.trim()) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Email is required.",
-        path: ["customer", "primary_email"],
       });
     }
 

@@ -18,10 +18,18 @@ import { preloadPauseReasonSheetSurface } from "../surfaces";
 import { transitions } from "@/lib/animation";
 import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
+import {
+  formatDurationHM,
+  useLiveStepBudget,
+  type StepBudget,
+} from "../domain/step-budget";
+import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
 import { useLastActiveStepCardContext } from "../providers/LastActiveStepCardProvider";
+import { StepBudgetProgressLine } from "./StepBudgetProgressLine";
 import {
   getBatchTransitionItems,
   STEP_QUICK_TRANSITION,
+  type LastStateRecord,
   type StepState,
   type TaskStepCardViewModel,
   type TaskStep,
@@ -81,6 +89,135 @@ const CardThumbnail = memo(function CardThumbnail({
     </button>
   );
 });
+
+type LastActiveStepCardTimerProps = {
+  stepId: TaskStepId;
+  state: StepState;
+  lastStateRecord: LastStateRecord | null;
+  totalWorkingSeconds: number;
+  budget: StepBudget | null;
+};
+
+/**
+ * Mirrors TaskStepActionButton's timer/counter resolution exactly (minus the
+ * button shell) so the floating card reads identically to the step card —
+ * both draw from the same shared budget presentation (domain/step-budget*).
+ */
+function LastActiveStepCardTimer({
+  stepId,
+  state,
+  lastStateRecord,
+  totalWorkingSeconds,
+  budget,
+}: LastActiveStepCardTimerProps): React.JSX.Element | null {
+  if (state === "working" && budget) {
+    return <LastActiveStepCardWorkingBudgetTimer budget={budget} stepId={stepId} />;
+  }
+
+  if (state === "working" && lastStateRecord) {
+    return (
+      <TickingTimer
+        className="font-mono text-sm text-current opacity-80"
+        data-testid="last-active-card-timer"
+        offsetSeconds={totalWorkingSeconds}
+        startedAtIso={lastStateRecord.entered_at}
+      />
+    );
+  }
+
+  if (state === "paused" || state === "ended_shift") {
+    if (budget) {
+      return (
+        <span className="flex shrink-0 flex-col items-end">
+          <span
+            className="font-mono text-sm text-current opacity-80"
+            data-testid="last-active-card-timer"
+          >
+            {formatSecondsHHMMSS(budget.step.worked_seconds)}
+          </span>
+          <StepBudgetSecondaryLabel
+            budget={budget}
+            leftSeconds={budget.step.left_seconds}
+            stepId={stepId}
+            workedSeconds={budget.step.worked_seconds}
+          />
+        </span>
+      );
+    }
+
+    return (
+      <span
+        className="font-mono text-sm text-current opacity-80"
+        data-testid="last-active-card-timer"
+      >
+        {totalWorkingSeconds > 0
+          ? formatSecondsHHMMSS(totalWorkingSeconds)
+          : "—"}
+      </span>
+    );
+  }
+
+  if (state === "pending" && budget) {
+    if (budget.step.allowance_seconds !== null) {
+      return (
+        <span
+          className="shrink-0 font-mono text-sm text-current opacity-80"
+          data-testid={`step-budget-secondary-${stepId}`}
+        >
+          {formatDurationHM(budget.step.allowance_seconds)} budget
+        </span>
+      );
+    }
+
+    if (
+      budget.step.share_state === "no_budget" &&
+      budget.step.typical_worker_seconds !== null
+    ) {
+      return (
+        <span
+          className="shrink-0 text-xs text-current opacity-80"
+          data-testid={`step-budget-secondary-${stepId}`}
+        >
+          usually ~{formatDurationHM(budget.step.typical_worker_seconds)}
+        </span>
+      );
+    }
+  }
+
+  return null;
+}
+
+type LastActiveStepCardWorkingBudgetTimerProps = {
+  stepId: TaskStepId;
+  budget: StepBudget;
+};
+
+function LastActiveStepCardWorkingBudgetTimer({
+  stepId,
+  budget,
+}: LastActiveStepCardWorkingBudgetTimerProps): React.JSX.Element {
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
+
+  return (
+    <span className="flex shrink-0 flex-col items-end">
+      <span
+        className={cn(
+          "font-mono text-sm text-current opacity-80",
+          isOver && "text-[#b9382a] opacity-100",
+        )}
+        data-testid="last-active-card-timer"
+      >
+        {formatSecondsHHMMSS(workedSeconds)}
+      </span>
+      <StepBudgetSecondaryLabel
+        budget={budget}
+        leftSeconds={leftSeconds}
+        stepId={stepId}
+        workedSeconds={workedSeconds}
+      />
+    </span>
+  );
+}
 
 type CardActionButtonProps = {
   stepId: TaskStepId;
@@ -276,6 +413,7 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
   const {
     step,
     vm,
+    budget,
     batchSteps,
     batchVms,
     isBatchCard,
@@ -337,7 +475,7 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
           <m.div
             key="last-active-step-card"
             className={cn(
-              "pointer-events-auto flex items-stretch overflow-hidden",
+              "pointer-events-auto flex flex-col overflow-hidden",
               "rounded-tl-2xl rounded-tr-2xl border shadow-md",
               cardToneClass,
               cardBorderClass,
@@ -357,71 +495,71 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
             }
           }}
         >
-          <CardThumbnail
-            annotations={stableAnnotations}
-            heightPx={vm.firstImageHeightPx}
-            quantityPillLabel={vm.quantityPillLabel}
-            src={vm.firstImageUrl}
-            stepId={vm.stepId}
-            widthPx={vm.firstImageWidthPx}
-            onTap={handleOpenImageViewer}
-          />
+          <div className="flex items-stretch">
+            <CardThumbnail
+              annotations={stableAnnotations}
+              heightPx={vm.firstImageHeightPx}
+              quantityPillLabel={vm.quantityPillLabel}
+              src={vm.firstImageUrl}
+              stepId={vm.stepId}
+              widthPx={vm.firstImageWidthPx}
+              onTap={handleOpenImageViewer}
+            />
 
-          <div className="flex min-w-0 flex-1 flex-col justify-start  px-3 py-3">
-            <span
-              className="truncate text-md font-semibold text-current"
-              data-testid="last-active-card-label"
-            >
-              {vm.articleLabel}
-            </span>
-            <span
-              className="truncate text-sm capitalize text-current opacity-80"
-              data-testid="last-active-card-task-type"
-            >
-              <span className="inline-flex items-center gap-1.5">
-                {TypeIcon ? (
-                  <TypeIcon aria-hidden="true" className="size-3.5 shrink-0" />
-                ) : null}
-                <span className="truncate">{taskTypeLabel}</span>
+            <div className="flex min-w-0 flex-1 flex-col justify-start  px-3 py-3">
+              <span
+                className="truncate text-md font-semibold text-current"
+                data-testid="last-active-card-label"
+              >
+                {vm.articleLabel}
               </span>
-            </span>
-          </div>
+              <span
+                className="truncate text-sm capitalize text-current opacity-80"
+                data-testid="last-active-card-task-type"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  {TypeIcon ? (
+                    <TypeIcon aria-hidden="true" className="size-3.5 shrink-0" />
+                  ) : null}
+                  <span className="truncate">{taskTypeLabel}</span>
+                </span>
+              </span>
+            </div>
 
-          <div className="flex items-center gap-2 pr-6">
-            {isWorking && vm.lastStateRecord ? (
-              <TickingTimer
-                className="font-mono text-sm text-current opacity-80"
-                data-testid="last-active-card-timer"
-                offsetSeconds={vm.totalWorkingSeconds}
-                startedAtIso={vm.lastStateRecord.entered_at}
-              />
-            ) : vm.state === "paused" || vm.state === "ended_shift" ? (
-              <span
-                className="font-mono text-sm text-current opacity-80"
-                data-testid="last-active-card-timer"
-              >
-                {vm.totalWorkingSeconds > 0
-                  ? formatSecondsHHMMSS(vm.totalWorkingSeconds)
-                  : "—"}
-              </span>
-            ) : null}
-            {vm.state === "completed" ? (
-              <span
-                className="inline-flex h-12 items-center justify-center rounded-full border border-card/30 bg-card/20 px-4 text-sm font-semibold text-card"
-                data-testid="last-active-card-completed-pill"
-              >
-                Completed
-              </span>
-            ) : (
-              <CardActionButton
-                isTransitioning={isTransitioning}
+            <div className="flex items-center gap-2 pr-6">
+              <LastActiveStepCardTimer
+                budget={budget}
+                lastStateRecord={vm.lastStateRecord}
                 state={vm.state}
                 stepId={vm.stepId}
-                taskId={vm.taskId}
-                onTransition={handleTransition}
+                totalWorkingSeconds={vm.totalWorkingSeconds}
               />
-            )}
+              {vm.state === "completed" ? (
+                <span
+                  className="inline-flex h-12 items-center justify-center rounded-full border border-card/30 bg-card/20 px-4 text-sm font-semibold text-card"
+                  data-testid="last-active-card-completed-pill"
+                >
+                  Completed
+                </span>
+              ) : (
+                <CardActionButton
+                  isTransitioning={isTransitioning}
+                  state={vm.state}
+                  stepId={vm.stepId}
+                  taskId={vm.taskId}
+                  onTransition={handleTransition}
+                />
+              )}
+            </div>
           </div>
+
+          {vm.state !== "pending" && vm.hasQuickAction ? (
+            <StepBudgetProgressLine
+              budget={budget}
+              isWorking={isWorking}
+              stepId={vm.stepId}
+            />
+          ) : null}
         </m.div>
         ) : null}
       </AnimatePresence>

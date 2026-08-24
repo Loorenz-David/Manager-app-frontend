@@ -11,6 +11,7 @@
 
 import type { ItemValuationEmptyStateProps } from "./ItemValuationEmptyState";
 import type { ItemValuationFooterProps } from "./ItemValuationFooter";
+import type { ItemValuationFrameHeaderIdentity } from "./ItemValuationFrame";
 import type { ItemValuationProvenanceRowProps } from "./ItemValuationProvenanceRow";
 import type { PriceCoverageChipProps } from "./PriceCoverageChip";
 import type { PriceHeadlineProps } from "./PriceHeadline";
@@ -37,10 +38,10 @@ export type PriceEditorFixtureName =
 export type PriceEditorFixture = {
   name: PriceEditorFixtureName;
   /**
-   * `title` feeds the surface header (set by the page, beside the back arrow —
-   * owner redesign 2026-08-20); `subtitle` is the frame's identity line.
+   * `title` is the header row's accessible name and fallback text; `identity`
+   * renders beside the back arrow in its place (owner redesign 2026-08-24).
    */
-  frame: { title: string; subtitle: string | null };
+  frame: { title: string; identity: ItemValuationFrameHeaderIdentity | null };
   provenance?: ItemValuationProvenanceRowProps;
   headline?: PriceHeadlineProps;
   chip?: PriceCoverageChipProps;
@@ -60,7 +61,7 @@ export type PriceEditorFixture = {
 
 const FRAME: PriceEditorFixture["frame"] = {
   title: "Expected sold price",
-  subtitle: "ITEM 0000608 · DINING CHAIRS (6)",
+  identity: { articleNumber: "0000608", detail: "DINING CHAIRS (6)" },
 };
 
 // Standard band from the reference payload: 420 000…1 650 000, step 15 000,
@@ -281,7 +282,7 @@ export const PRICE_EDITOR_FIXTURES: Record<
 
   unbound: {
     name: "unbound",
-    frame: { ...FRAME, subtitle: null },
+    frame: { ...FRAME, identity: null },
     empty: {
       message:
         "This task has no item attached, so there is no price to set. Attach an item to the task first.",

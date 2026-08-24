@@ -121,7 +121,11 @@ describe("ItemValuationSlidePage — state to rendered blocks", () => {
 
   afterEach(cleanup);
 
-  it("22a. purchase_required shows the bootstrap message and no price", async () => {
+  it("22a. purchase_required shows the bootstrap message, auto-fetches, and the CTA becomes a retry once that attempt settles", async () => {
+    // No purchase_api match — the automatic attempt settles into a
+    // retryable error rather than hanging (owner request 2026-08-24).
+    mocks.fetchItemLookup.mockResolvedValue({ items: [] });
+
     await renderScenario(purchaseRequiredScenario());
 
     expect(
@@ -130,7 +134,19 @@ describe("ItemValuationSlidePage — state to rendered blocks", () => {
     expect(
       screen.getByTestId("item-valuation-bootstrap-message"),
     ).toBeInTheDocument();
-    expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeEnabled();
+    expect(mocks.fetchItemLookup).toHaveBeenCalledWith({
+      article_number: "0000608",
+    });
+    // The CTA holds its pending look for the automatic first attempt.
+    expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeDisabled();
+
+    await waitFor(
+      () =>
+        expect(
+          screen.getByTestId("item-valuation-fetch-purchase"),
+        ).toBeEnabled(),
+      { timeout: 2000 },
+    );
   });
 
   it("22a-b. purchase_required with no article number disables the CTA", async () => {
@@ -227,7 +243,7 @@ describe("ItemValuationSlidePage — the numbers meet the arithmetic once (22e)"
       "3h 25m",
     );
     expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
-      "ITEM 0000608 · DINING CHAIRS (6)",
+      "#0000608 · DINING CHAIRS (6)",
     );
   });
 
@@ -258,10 +274,15 @@ describe("ItemValuationSlidePage — accessibility (22g)", () => {
       `${grouped("1 425")} SEK per piece`,
     );
     // Owner redesign round 3: the surface's built-in header is hidden and the
-    // page owns arrow + title, aligned with identity and provenance.
+    // page owns arrow + identity, aligned with provenance. Round 2026-08-24
+    // swaps the visible title for the item identity; "Expected sold price"
+    // remains the heading's accessible name.
     expect(surfaceHeaderMock.setHeaderHidden).toHaveBeenCalledWith(true);
+    expect(
+      screen.getByRole("heading", { name: "Expected sold price" }),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("item-valuation-header")).toHaveTextContent(
-      "Expected sold price",
+      "#0000608 · DINING CHAIRS (6)",
     );
     const { fireEvent } = await import("@testing-library/react");
     fireEvent.click(screen.getByTestId("item-valuation-back-arrow"));

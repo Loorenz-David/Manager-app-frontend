@@ -45,7 +45,7 @@ function renderScene(fixture: PriceEditorFixture): void {
           <ItemValuationProvenanceRow {...fixture.provenance} />
         ) : undefined
       }
-      subtitle={fixture.frame.subtitle}
+      identity={fixture.frame.identity}
       title={fixture.frame.title}
     >
       <div className="flex flex-col gap-6 px-6 py-8">
@@ -512,11 +512,11 @@ describe("interaction wiring", () => {
     expect(onPendingSave).not.toHaveBeenCalled();
   });
 
-  it("the frame owns the header stack: arrow + title, identity, no menu button", () => {
+  it("the frame owns the header stack: arrow + identity, no menu button", () => {
     const onBackPress = vi.fn();
     render(
       <ItemValuationFrame
-        subtitle="ITEM 0000608"
+        identity={{ articleNumber: "0000608", detail: null }}
         title="Expected sold price"
         onBackPress={onBackPress}
       >
@@ -525,8 +525,13 @@ describe("interaction wiring", () => {
     );
     expect(screen.getByTestId("item-valuation-skeleton")).toBeVisible();
     const frameHeader = screen.getByTestId("item-valuation-header");
-    expect(frameHeader).toHaveTextContent("Expected sold price");
-    expect(frameHeader).toHaveTextContent("ITEM 0000608");
+    // The identity renders in place of the title (owner redesign
+    // 2026-08-24); the title survives as the heading's accessible name.
+    expect(screen.getByRole("heading", { name: "Expected sold price" })).toBe(
+      frameHeader.querySelector("h1"),
+    );
+    expect(frameHeader).toHaveTextContent("#0000608");
+    expect(frameHeader).not.toHaveTextContent("Expected sold price");
     // Owner redesign round 3: the frame's own back arrow wires to the surface
     // close funnel; the decorative three-dot stays gone.
     fireEvent.click(screen.getByTestId("item-valuation-back-arrow"));
@@ -534,5 +539,31 @@ describe("interaction wiring", () => {
     expect(
       screen.queryByTestId("item-valuation-menu-button"),
     ).not.toBeInTheDocument();
+  });
+
+  it("the frame falls back to the visible title when there is no identity", () => {
+    render(
+      <ItemValuationFrame identity={null} title="Expected sold price">
+        <ItemValuationSkeleton />
+      </ItemValuationFrame>,
+    );
+    expect(
+      screen.getByTestId("item-valuation-header"),
+    ).toHaveTextContent("Expected sold price");
+  });
+
+  it("weights the article number bold and the type/quantity light, with a leading #", () => {
+    render(
+      <ItemValuationFrame
+        identity={{ articleNumber: "0000608", detail: "DINING CHAIRS (6)" }}
+        title="Expected sold price"
+      >
+        <ItemValuationSkeleton />
+      </ItemValuationFrame>,
+    );
+    const frameHeader = screen.getByTestId("item-valuation-header");
+    expect(frameHeader).toHaveTextContent("#0000608 · DINING CHAIRS (6)");
+    const detail = screen.getByText(/DINING CHAIRS \(6\)/);
+    expect(detail).toHaveClass("font-normal");
   });
 });
