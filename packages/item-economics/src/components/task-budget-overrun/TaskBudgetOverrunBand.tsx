@@ -1,43 +1,39 @@
 import { Clock } from "lucide-react";
 import { cn } from "@beyo/lib";
 
-import type { TaskBudgetOverrunViewModel } from "../../lib/task-budget-overrun";
+import type { TaskBudgetSignalDisplayViewModel } from "../../lib/task-budget-overrun";
 
 export type TaskBudgetOverrunBandProps = {
-  overrun: TaskBudgetOverrunViewModel;
-  /**
-   * "567 kr" — omitted until the budget-allocations endpoint serves a cost
-   * figure for the overrun; the band renders time-only until then.
-   */
-  costLabel?: string | null;
+  signal: TaskBudgetSignalDisplayViewModel;
   className?: string;
 };
 
 /**
- * Full-width warning strip for a task that has actually run over its
- * production budget. Colors match StatePill's danger palette (#fdecea /
- * #b9382a) so "over budget" reads the same everywhere it already appears
- * (ProductionTimeOutlook's danger text, the workers-app step budget line).
+ * Full-width warning strip for an actual or projected production-budget
+ * overrun. Actual overruns use the established danger palette; projections
+ * use the production-time forecast amber (#8a6d1c).
  */
 export function TaskBudgetOverrunBand({
-  overrun,
-  costLabel,
+  signal,
   className,
 }: TaskBudgetOverrunBandProps): React.JSX.Element {
+  const isProjected = signal.tone === "projected_over";
+
   return (
     <div
       className={cn(
-        "flex w-full items-center justify-between gap-3 bg-[#fdecea] px-4 py-3 text-sm font-semibold text-[#b9382a]",
+        "flex w-full items-center justify-between gap-3 px-4 py-3 text-sm font-semibold",
+        isProjected ? "bg-[#fff4d6] text-[#8a6d1c]" : "bg-[#fdecea] text-[#b9382a]",
         className,
       )}
       data-testid="task-budget-overrun-band"
     >
       <span className="flex min-w-0 items-center gap-2">
         <Clock aria-hidden="true" className="size-4 shrink-0" />
-        <span className="truncate">{overrun.label}</span>
+        <span className="truncate">{signal.label}</span>
       </span>
 
-      {costLabel ? <span className="shrink-0">{costLabel}</span> : null}
+      {signal.costLabel ? <span className="shrink-0">{signal.costLabel}</span> : null}
     </div>
   );
 }

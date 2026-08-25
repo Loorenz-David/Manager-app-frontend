@@ -2,10 +2,9 @@ import { useMemo, useRef } from "react";
 
 import type { TaskId } from "@beyo/lib";
 import {
-  TaskBudgetOverrunBand,
-  buildTaskBudgetOverrun,
-  buildTaskBudgetAllocationMap,
-  useTaskBudgetAllocationsQuery,
+  TaskBudgetSignalFooter,
+  buildTaskBudgetSignalMap,
+  useTaskBudgetSignalsQuery,
 } from "@beyo/item-economics";
 import { PullToRefresh } from "@beyo/ui";
 import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
@@ -16,9 +15,8 @@ import { TasksHeader } from "./TasksHeader";
 
 export type TasksViewProps = {
   /**
-   * Fetches the batched budget-allocations query for the loaded task ids and
-   * renders a red "over budget" footer on any task that has actually run
-   * over — manager-only today (sellers/workers use this view without it).
+   * Fetches manager-only task budget signals and renders their server-owned
+   * actual or projected-over-budget footer.
    */
   showBudgetOverrun?: boolean;
 };
@@ -36,9 +34,9 @@ export function TasksView({
         : [],
     [controller.cards, showBudgetOverrun],
   );
-  const budgetQuery = useTaskBudgetAllocationsQuery(budgetTaskIds);
-  const budgetAllocationByTaskId = useMemo(
-    () => buildTaskBudgetAllocationMap(budgetQuery.data?.allocations),
+  const budgetQuery = useTaskBudgetSignalsQuery(budgetTaskIds);
+  const budgetSignalByTaskId = useMemo(
+    () => buildTaskBudgetSignalMap(budgetQuery.data?.signals),
     [budgetQuery.data],
   );
 
@@ -58,16 +56,23 @@ export function TasksView({
         }
 
         const card = entry.row;
-        const allocation = showBudgetOverrun
-          ? budgetAllocationByTaskId.get(card.taskId as TaskId)
+        const signal = showBudgetOverrun
+          ? budgetSignalByTaskId.get(card.taskId as TaskId)
           : undefined;
-        const overrun = allocation ? buildTaskBudgetOverrun(allocation) : null;
+        const hasBudgetWarning =
+          signal?.budget_state === "over" ||
+          signal?.budget_state === "projected_over";
 
         return (
           <TaskListCard
             key={card.taskId}
             bottomAction={
-              overrun ? <TaskBudgetOverrunBand overrun={overrun} /> : undefined
+              hasBudgetWarning && signal ? (
+                <TaskBudgetSignalFooter
+                  receivedAtMs={budgetQuery.data?.receivedAtMs ?? 0}
+                  signal={signal}
+                />
+              ) : undefined
             }
             imageUrl={
               card.firstImage
@@ -107,7 +112,8 @@ export function TasksView({
       controller.openTaskDetail,
       controller.toggleFold,
       showBudgetOverrun,
-      budgetAllocationByTaskId,
+      budgetSignalByTaskId,
+      budgetQuery.data?.receivedAtMs,
     ],
   );
 

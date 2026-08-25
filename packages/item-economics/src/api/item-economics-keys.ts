@@ -50,6 +50,9 @@ export const itemEconomicsKeys = {
   taskBudgetAllocations: (taskIds: readonly TaskId[]) =>
     [...itemEconomicsKeys.tasks(), "budget-allocations", taskIds] as const,
 
+  taskBudgetSignals: (taskIds: readonly TaskId[]) =>
+    [...itemEconomicsKeys.tasks(), "budget-signals", taskIds] as const,
+
   /**
    * Deliberately its own branch directly under `all`, **not** under `tasks()`
    * (intention §4A M9): the existing `task:step-state-changed` handler

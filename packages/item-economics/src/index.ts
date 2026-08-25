@@ -23,6 +23,10 @@ export {
   BudgetAllocationStepSchema,
   TaskBudgetAllocationSchema,
   TaskBudgetAllocationsResponseSchema,
+  TaskBudgetStateSchema,
+  TaskBudgetSignalCurrencySchema,
+  TaskBudgetSignalSchema,
+  TaskBudgetSignalsResponseSchema,
 } from "./types";
 export type {
   MajorCategory,
@@ -42,6 +46,10 @@ export type {
   BudgetAllocationStep,
   TaskBudgetAllocation,
   TaskBudgetAllocationsResponse,
+  TaskBudgetState,
+  TaskBudgetSignalCurrency,
+  TaskBudgetSignal,
+  TaskBudgetSignalsResponse,
 } from "./types";
 
 export { itemEconomicsKeys } from "./api/item-economics-keys";
@@ -55,6 +63,16 @@ export {
   useTaskBudgetAllocationsQuery,
 } from "./api/use-task-budget-allocations-query";
 export type { TaskBudgetAllocationsSnapshot } from "./api/use-task-budget-allocations-query";
+export {
+  BUDGET_SIGNALS_MAX_TASK_IDS,
+  fetchTaskBudgetSignals,
+  parseTaskBudgetSignals,
+} from "./api/fetch-task-budget-signals";
+export {
+  buildTaskBudgetSignalMap,
+  useTaskBudgetSignalsQuery,
+} from "./api/use-task-budget-signals-query";
+export type { TaskBudgetSignalsSnapshot } from "./api/use-task-budget-signals-query";
 export { itemEconomicsSocketEvents } from "./socket-events";
 
 export { parseErrorIdentity } from "./lib/error-identity";
@@ -102,11 +120,13 @@ export type { ProductionTimeSectionProps } from "./components/production-time/Pr
 // --- Task budget overrun (task-card footer) ---------------------------------
 
 export {
-  buildTaskBudgetOverrun,
-  type TaskBudgetOverrunViewModel,
+  buildTaskBudgetSignalDisplay,
+  type TaskBudgetSignalDisplayViewModel,
 } from "./lib/task-budget-overrun";
 export { TaskBudgetOverrunBand } from "./components/task-budget-overrun";
 export type { TaskBudgetOverrunBandProps } from "./components/task-budget-overrun";
+export { TaskBudgetSignalFooter } from "./components/task-budget-overrun";
+export type { TaskBudgetSignalFooterProps } from "./components/task-budget-overrun";
 
 export {
   ITEM_VALUATION_SLIDE_SURFACE_ID,

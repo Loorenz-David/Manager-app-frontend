@@ -346,6 +346,48 @@ export type TaskBudgetAllocationsResponse = z.infer<
   typeof TaskBudgetAllocationsResponseSchema
 >;
 
+// --- Budget signals (manager task cards) ------------------------------------
+
+export const TaskBudgetStateSchema = z.enum([
+  "no_budget",
+  "over",
+  "projected_over",
+  "within_budget",
+]);
+export type TaskBudgetState = z.infer<typeof TaskBudgetStateSchema>;
+
+/** `no_currency` applies only to an unevaluated/no-budget task signal. */
+export const TaskBudgetSignalCurrencySchema = z.enum([
+  "swedish_krona",
+  "danish_krona",
+  "euro",
+  "no_currency",
+]);
+export type TaskBudgetSignalCurrency = z.infer<
+  typeof TaskBudgetSignalCurrencySchema
+>;
+
+export const TaskBudgetSignalSchema = z.object({
+  task_id: z.string(),
+  budget_state: TaskBudgetStateSchema,
+  over_seconds: z.number().int(),
+  over_cost_minor: z.number().int(),
+  projected_over_seconds: z.number().int(),
+  projected_over_cost_minor: z.number().int(),
+  currency: TaskBudgetSignalCurrencySchema,
+  allowed_seconds: z.number().int(),
+  actual_worked_seconds: z.number().int(),
+  cost_per_worker_minute_ten_thousandths: z.number().int(),
+});
+export type TaskBudgetSignal = z.infer<typeof TaskBudgetSignalSchema>;
+
+export const TaskBudgetSignalsResponseSchema = z.object({
+  budget_signals: z.array(TaskBudgetSignalSchema),
+});
+export type TaskBudgetSignalsResponse = z.infer<
+  typeof TaskBudgetSignalsResponseSchema
+>;
+
 // --- Price scenario (expected sold price editor) ----------------------------
 //
 // Source of truth: docs/handoff/from_backend/HANDOFF_TO_FRONTEND_price_scenario_20260819.md
