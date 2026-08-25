@@ -10,6 +10,12 @@ export const CAMERA_IDLE_RELEASE_MS = 90_000;
 
 const SCAN_LOOP_DELAY_MS = 90;
 const SCAN_SUCCESS_BACKOFF_MS = 650;
+// 1D barcodes have no error correction, so a single frame can decode to a
+// plausible-but-wrong string. Require the same value to be read repeatedly
+// within a short window before accepting it. QR has built-in error
+// correction and is accepted on the first hit.
+const BARCODE_CONSENSUS_REQUIRED_HITS = 3;
+const BARCODE_CONSENSUS_WINDOW_MS = 900;
 const MAX_DECODE_CANVAS_EDGE_PX = 960;
 const VIDEO_READY_TIMEOUT_MS = 2200;
 const VIDEO_REATTACH_READY_TIMEOUT_MS = 1400;
@@ -349,6 +355,49 @@ function buildDecodeCanvas(
   return canvas;
 }
 
+interface DecodeConsensusState {
+  value: string;
+  hits: number;
+  firstSeenAt: number;
+}
+
+export function getRequiredConsensusHits(scanFormat: ScanFormat): number {
+  return scanFormat === "qr" ? 1 : BARCODE_CONSENSUS_REQUIRED_HITS;
+}
+
+/**
+ * Feed one decoded frame value into the consensus tracker. Returns the
+ * value once it has been seen `requiredHits` times within the window, or
+ * null while consensus is still pending. Any different value resets the
+ * tally so a single phantom read can never be accepted.
+ */
+export function registerDecodeHit(
+  state: DecodeConsensusState | null,
+  value: string,
+  now: number,
+  requiredHits: number,
+  windowMs: number = BARCODE_CONSENSUS_WINDOW_MS,
+): { state: DecodeConsensusState | null; accepted: string | null } {
+  if (requiredHits <= 1) {
+    return { state: null, accepted: value };
+  }
+
+  const isContinuation =
+    state !== null &&
+    state.value === value &&
+    now - state.firstSeenAt <= windowMs;
+
+  const next: DecodeConsensusState = isContinuation
+    ? { value, hits: state.hits + 1, firstSeenAt: state.firstSeenAt }
+    : { value, hits: 1, firstSeenAt: now };
+
+  if (next.hits >= requiredHits) {
+    return { state: null, accepted: value };
+  }
+
+  return { state: next, accepted: null };
+}
+
 function stopDecodeControls(session: CameraSession): void {
   session.decodeControls?.stop();
   session.decodeControls = null;
@@ -593,6 +642,9 @@ export function attachDecodeSession(
       }
 
       const reader = readerFactory();
+      const scanFormat = options.scanFormat ?? "qr";
+      const requiredHits = getRequiredConsensusHits(scanFormat);
+      let consensus: DecodeConsensusState | null = null;
 
       const decodeNext = () => {
         clearScanLoopTimer();
@@ -622,12 +674,22 @@ export function attachDecodeSession(
           const result = reader.decodeFromCanvas(canvas);
           const value = result.getText();
           if (value) {
-            onDecode(value);
-            scanLoopTimerId = window.setTimeout(
-              decodeNext,
-              SCAN_SUCCESS_BACKOFF_MS,
+            const outcome = registerDecodeHit(
+              consensus,
+              value,
+              performance.now(),
+              requiredHits,
             );
-            return;
+            consensus = outcome.state;
+
+            if (outcome.accepted !== null) {
+              onDecode(outcome.accepted);
+              scanLoopTimerId = window.setTimeout(
+                decodeNext,
+                SCAN_SUCCESS_BACKOFF_MS,
+              );
+              return;
+            }
           }
         } catch {
           // No code found in this frame.
