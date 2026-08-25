@@ -18,6 +18,8 @@ const literalHandoffPayload: TaskProductionTime = {
   status: "ok",
   item_binding: "bound",
   allocation_method: "static_proportional_section_v2",
+  pressure_ratio: "1.00",
+  pressure_method: "open_share_proportional_v1",
   typical_resolution: {
     task_typical_basis: "section_wide_uniform",
     reconciliation_method: "uniform_basis_v1",
@@ -49,6 +51,7 @@ const literalHandoffPayload: TaskProductionTime = {
       worked_seconds: 1_500,
       step_count: 2,
       allowance_seconds: 3_600,
+      pressure_share_seconds: 2_400,
       left_seconds: 2_100,
       share_state: "on_track",
       typical: {
@@ -72,6 +75,7 @@ const literalHandoffPayload: TaskProductionTime = {
       worked_seconds: 600,
       step_count: 1,
       allowance_seconds: 0,
+      pressure_share_seconds: 0,
       left_seconds: -600,
       share_state: "over_share",
       typical: null,
@@ -86,6 +90,7 @@ const literalHandoffPayload: TaskProductionTime = {
       worked_seconds: 900,
       step_count: 1,
       allowance_seconds: 1_200,
+      pressure_share_seconds: null,
       left_seconds: 300,
       share_state: "on_track",
       typical: null,
@@ -177,6 +182,19 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(screen.getByText("50m")).toBeInTheDocument();
     expect(screen.queryByTestId("production-time-budget-bar")).not.toBeInTheDocument();
     expect(screen.getAllByTestId("production-time-row")).toHaveLength(3);
+  });
+
+  it("shows the static assignment beside the live pressure share", async () => {
+    server.use(
+      http.get(ENDPOINT, () => HttpResponse.json(envelope(literalHandoffPayload))),
+    );
+
+    renderSection();
+
+    await screen.findByTestId("production-time-card");
+    expect(screen.getAllByTestId("production-time-row-budget")[0]).toHaveTextContent(
+      "1h 0m assigned · 40m pressure · typical 1h 0m",
+    );
   });
 
   it("hides a 404 without retrying", async () => {

@@ -28,6 +28,8 @@ function makeDto(
     status: "ok",
     item_binding: "bound",
     allocation_method: "static_proportional_section_v2",
+    pressure_ratio: "1.00",
+    pressure_method: "open_share_proportional_v1",
     typical_resolution: {
       task_typical_basis: "item_narrowed_uniform",
       reconciliation_method: "uniform_basis_v1",
@@ -59,6 +61,7 @@ function makeDto(
         worked_seconds: 1_500,
         step_count: 2,
         allowance_seconds: 3_600,
+        pressure_share_seconds: 3_000,
         left_seconds: 2_100,
         share_state: "on_track",
         typical: typical(3_600),
@@ -73,6 +76,7 @@ function makeDto(
         worked_seconds: 600,
         step_count: 1,
         allowance_seconds: -300,
+        pressure_share_seconds: 0,
         left_seconds: -900,
         share_state: "over_share",
         typical: null,
@@ -87,6 +91,7 @@ function makeDto(
         worked_seconds: 0,
         step_count: 1,
         allowance_seconds: null,
+        pressure_share_seconds: null,
         left_seconds: null,
         share_state: "excluded",
         typical: typical(900),
@@ -105,6 +110,7 @@ describe("TaskProductionTimeSchema", () => {
     expect(parsed.sections[1]?.allowance_seconds).toBe(-300);
     expect(parsed.sections[1]?.section_name).toBeNull();
     expect(parsed.sections[1]?.typical).toBeNull();
+    expect(parsed.sections[0]?.pressure_share_seconds).toBe(3_000);
   });
 });
 
@@ -122,6 +128,8 @@ describe("toProductionTimeViewModel", () => {
     ]);
     expect(viewModel.card.rows[0]?.stepCount).toBe(2);
     expect(viewModel.card.rows).toHaveLength(3);
+    expect(viewModel.card.rows[0]?.allowanceLabel).toBe("1h 0m assigned");
+    expect(viewModel.card.rows[0]?.pressureLabel).toBe("50m pressure");
   });
 
   it("renders the served figures verbatim — the clock is the backend's", () => {
@@ -396,7 +404,7 @@ describe("toProductionTimeViewModel", () => {
       // The served figures are untouched by the projection.
       expect(viewModel.card.headline.remainingLabel).toBe("27m left");
       expect(viewModel.card.headline.isOverBudget).toBe(false);
-      expect(viewModel.card.rows[2]?.allowanceLabel).toBe("36m allowed");
+      expect(viewModel.card.rows[2]?.allowanceLabel).toBe("36m assigned");
     });
 
     it("says nothing once the task is closed", () => {
@@ -461,7 +469,7 @@ describe("toProductionTimeViewModel", () => {
 
       expect(viewModel.kind).toBe("budget");
       if (viewModel.kind !== "budget") return;
-      expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m allowed");
+      expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m assigned");
       expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m");
     });
 

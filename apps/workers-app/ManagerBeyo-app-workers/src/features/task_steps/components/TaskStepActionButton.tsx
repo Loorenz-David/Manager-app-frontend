@@ -7,6 +7,7 @@ import {
   formatDurationHM,
   formatOverBudgetAmount,
   useLiveStepBudget,
+  workerFacingAllowanceForBudget,
   type StepBudget,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
@@ -229,13 +230,14 @@ export function TaskStepActionButton({
       );
     }
   } else if (isPending && budget) {
-    if (budget.step.allowance_seconds !== null) {
+    const workerFacingAllowance = workerFacingAllowanceForBudget(budget);
+    if (workerFacingAllowance !== null) {
       right = (
         <span
           className="shrink-0 font-mono text-sm opacity-80"
           data-testid={`step-budget-secondary-${stepId}`}
         >
-          {formatDurationHM(budget.step.allowance_seconds)} budget
+          {formatDurationHM(workerFacingAllowance)} assigned
         </span>
       );
     } else if (

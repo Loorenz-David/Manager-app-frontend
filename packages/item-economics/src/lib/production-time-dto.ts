@@ -96,7 +96,14 @@ function toRows(
       allowanceLabel:
         section.allowance_seconds === null || section.allowance_seconds <= 0
           ? null
-          : `${formatWorkSeconds(section.allowance_seconds)} allowed`,
+          : `${formatWorkSeconds(section.allowance_seconds)} assigned`,
+      // Unlike the worker-facing target, this intentionally is not capped at
+      // the static assignment: managers need to see both the cause and the
+      // full downstream effect, including a pressure ratio above one.
+      pressureLabel:
+        section.pressure_share_seconds === null
+          ? null
+          : `${formatWorkSeconds(section.pressure_share_seconds)} pressure`,
       typicalLabel:
         typicalSeconds === null
           ? null

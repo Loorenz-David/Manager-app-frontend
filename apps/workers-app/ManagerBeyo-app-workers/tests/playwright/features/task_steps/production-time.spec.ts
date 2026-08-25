@@ -32,6 +32,8 @@ test("task detail renders the production-time projection above the flow timeline
             status: "ok",
             item_binding: "bound",
             allocation_method: "static_proportional_section_v1",
+            pressure_ratio: "0.75",
+            pressure_method: "open_share_proportional_v1",
             budget: {
               allowed_worker_minutes: "195.00",
               actual_worker_seconds: 9_600,
@@ -51,6 +53,7 @@ test("task detail renders the production-time projection above the flow timeline
                 worked_seconds: 1_500,
                 step_count: 2,
                 allowance_seconds: 3_600,
+                pressure_share_seconds: 2_700,
                 left_seconds: 2_100,
                 share_state: "on_track",
                 typical: {
@@ -71,6 +74,7 @@ test("task detail renders the production-time projection above the flow timeline
                 worked_seconds: 600,
                 step_count: 1,
                 allowance_seconds: 0,
+                pressure_share_seconds: 0,
                 left_seconds: -600,
                 share_state: "over_share",
                 typical: null,
@@ -85,6 +89,7 @@ test("task detail renders the production-time projection above the flow timeline
                 worked_seconds: 900,
                 step_count: 1,
                 allowance_seconds: 1_200,
+                pressure_share_seconds: null,
                 left_seconds: 300,
                 share_state: "on_track",
                 typical: null,

@@ -53,6 +53,7 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
       input.allowanceSeconds === null || input.allowanceSeconds === undefined || input.allowanceSeconds <= 0
         ? null
         : `${formatWorkSeconds(input.allowanceSeconds)} allowed`,
+    pressureLabel: null,
     typicalLabel:
       typicalSeconds === null
         ? null

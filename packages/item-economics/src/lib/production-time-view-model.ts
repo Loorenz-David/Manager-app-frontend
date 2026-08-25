@@ -55,6 +55,8 @@ export type ProductionTimeRowViewModel = {
    * anyone starts it, not once it is already running.
    */
   allowanceLabel: string | null;
+  /** "pressure 43m" — the server's live, un-clamped open-work share. */
+  pressureLabel: string | null;
   /** "typical 1h 0m", or null when the section has no typical yet. */
   typicalLabel: string | null;
   /** "of typically 50m" — the degraded, budget-less row line. */
@@ -130,9 +132,10 @@ export type ProductionTimeViewModel =
  */
 export function buildBudgetLine(
   allowanceLabel: string | null,
+  pressureLabel: string | null,
   typicalLabel: string | null,
 ): string | null {
-  const parts = [allowanceLabel, typicalLabel].filter(
+  const parts = [allowanceLabel, pressureLabel, typicalLabel].filter(
     (part): part is string => part !== null,
   );
 

@@ -3,6 +3,7 @@ import {
   budgetToneFor,
   formatDurationHM,
   STEP_BUDGET_TONE_TEXT,
+  workerFacingAllowanceForBudget,
   type StepBudget,
 } from "./step-budget";
 
@@ -29,6 +30,7 @@ export function StepBudgetSecondaryLabel({
 }: StepBudgetSecondaryLabelProps): React.JSX.Element | null {
   const { allowance_seconds, share_state, typical_worker_seconds } =
     budget.step;
+  const workerFacingAllowance = workerFacingAllowanceForBudget(budget);
 
   if (allowance_seconds !== null && leftSeconds !== null) {
     if (leftSeconds < 0) {
@@ -43,12 +45,33 @@ export function StepBudgetSecondaryLabel({
     }
 
     const tone = budgetToneFor(workedSeconds, allowance_seconds);
+    const targetIsExhausted = workerFacingAllowance === 0;
+    // Pressure is deliberately the only assignment a worker sees once it is
+    // constraining their step. Showing the original number beside it would
+    // undermine the operational signal to work to the tightened target.
+    const targetLabel =
+      workerFacingAllowance === allowance_seconds
+        ? `${formatDurationHM(leftSeconds)} left`
+        : `${formatDurationHM(workerFacingAllowance ?? 0)} assigned`;
     return (
       <span
-        className={`font-mono text-xs font-medium ${STEP_BUDGET_TONE_TEXT[tone]}`}
+        className={`font-mono text-xs font-medium ${targetIsExhausted ? STEP_BUDGET_TONE_TEXT.over : STEP_BUDGET_TONE_TEXT[tone]}`}
         data-testid={`step-budget-secondary-${stepId}`}
       >
-        {formatDurationHM(leftSeconds)} left
+        {targetLabel}
+      </span>
+    );
+  }
+
+  // A served zero is meaningful: it says this open step has no distributable
+  // time left. It remains distinct from null, which means not applicable.
+  if (workerFacingAllowance !== null) {
+    return (
+      <span
+        className={`font-mono text-xs font-medium ${workerFacingAllowance === 0 ? "text-[#b9382a]" : "text-muted-foreground"}`}
+        data-testid={`step-budget-secondary-${stepId}`}
+      >
+        {formatDurationHM(workerFacingAllowance)} current target
       </span>
     );
   }

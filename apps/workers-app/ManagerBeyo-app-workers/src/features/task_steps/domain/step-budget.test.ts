@@ -4,6 +4,7 @@ import {
   budgetToneFor,
   formatDurationHM,
   formatOverBudgetAmount,
+  workerFacingAllowanceSeconds,
 } from "./step-budget";
 
 describe("budgetToneFor", () => {
@@ -26,6 +27,21 @@ describe("budgetToneFor", () => {
     // below zero — dividing by it would be worse than calling it over.
     expect(budgetToneFor(0, 0)).toBe("over");
     expect(budgetToneFor(0, -600)).toBe("over");
+  });
+});
+
+describe("workerFacingAllowanceSeconds", () => {
+  it("caps a higher live pressure share at the static allowance", () => {
+    expect(workerFacingAllowanceSeconds(3600, 4800)).toBe(3600);
+  });
+
+  it("uses a lower served pressure share as the worker target", () => {
+    expect(workerFacingAllowanceSeconds(3600, 1200)).toBe(1200);
+  });
+
+  it("keeps zero distinct from a non-applicable pressure share", () => {
+    expect(workerFacingAllowanceSeconds(3600, 0)).toBe(0);
+    expect(workerFacingAllowanceSeconds(3600, null)).toBe(3600);
   });
 });
 

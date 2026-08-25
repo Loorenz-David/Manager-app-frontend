@@ -35,7 +35,7 @@ export function ProductionTimeRow({
   // is the whole point: a pending stage has to be able to look tight.
   const budgetLine = row.detail
     ? null
-    : buildBudgetLine(row.allowanceLabel, row.typicalLabel);
+    : buildBudgetLine(row.allowanceLabel, row.pressureLabel, row.typicalLabel);
 
   return (
     <div
@@ -128,6 +128,7 @@ export function ProductionTimeRow({
           <ProductionTimeRowDetail
             allowanceLabel={row.allowanceLabel}
             detail={row.detail}
+            pressureLabel={row.pressureLabel}
             typicalLabel={row.typicalLabel}
           />
         </div>

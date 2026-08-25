@@ -25,6 +25,7 @@ function row(
     isActive: false,
     isExcluded: false,
     allowanceLabel: null,
+    pressureLabel: null,
     typicalLabel: null,
     typicalComparisonLabel: null,
     detail: null,

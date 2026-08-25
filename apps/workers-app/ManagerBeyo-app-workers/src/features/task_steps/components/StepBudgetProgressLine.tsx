@@ -5,6 +5,7 @@ import {
   budgetToneFor,
   STEP_BUDGET_TONE_FILL,
   type StepBudget,
+  workerFacingAllowanceForBudget,
 } from "../domain/step-budget";
 import type { StepState } from "../types";
 
@@ -181,7 +182,9 @@ export function StepBudgetProgressLine({
   budget,
   state,
 }: StepBudgetProgressLineProps): React.JSX.Element | null {
-  const allowanceSeconds = budget?.step.allowance_seconds ?? null;
+  const allowanceSeconds = budget
+    ? workerFacingAllowanceForBudget(budget)
+    : null;
   if (state === "pending" || budget === null || allowanceSeconds === null) {
     return null;
   }

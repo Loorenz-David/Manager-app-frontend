@@ -233,6 +233,8 @@ export const ProductionTimeSectionSchema = z.object({
   worked_seconds: z.number().int(),
   step_count: z.number().int(),
   allowance_seconds: z.number().int().nullable(),
+  /** Live share of the remaining distributable task budget for open steps. */
+  pressure_share_seconds: z.number().int().nullable(),
   left_seconds: z.number().int().nullable(),
   share_state: ProductionTimeShareStateSchema,
   typical: ProductionTimeTypicalSchema.nullable(),
@@ -271,6 +273,9 @@ export const TaskProductionTimeSchema = z.object({
    * unchanged number does not mean the old contract still applies.
    */
   allocation_method: z.string(),
+  /** Exact, intentionally unclamped ratio behind the live pressure shares. */
+  pressure_ratio: DecimalStringSchema.nullable(),
+  pressure_method: z.string(),
   budget: ProductionTimeBudgetSchema,
   final: ProductionTimeFinalSchema.nullable(),
   typical_resolution: TypicalResolutionSchema,
@@ -301,6 +306,10 @@ export const BudgetAllocationStepSchema = z.object({
   typical_basis: TypicalBasisSchema,
   sample_count: z.number().int().catch(0),
   allowance_seconds: z.number().int().nullable(),
+  /** The step's own state; distinct from a section's governing state. */
+  state: z.string(),
+  /** Live share of the remaining distributable task budget. */
+  pressure_share_seconds: z.number().int().nullable(),
   worked_seconds: z.number().int(),
   // Negative means over budget — a state, not an error.
   left_seconds: z.number().int().nullable(),
@@ -322,6 +331,9 @@ export const TaskBudgetAllocationSchema = z.object({
   remaining_worker_minutes: DecimalStringSchema.nullable(),
   /** See TaskProductionTimeSchema — `…_v2` since 2026-08-24, never pinned. */
   allocation_method: z.string(),
+  /** Exact, intentionally unclamped ratio behind the live pressure shares. */
+  pressure_ratio: DecimalStringSchema.nullable(),
+  pressure_method: z.string(),
   typical_resolution: TypicalResolutionSchema,
   steps: z.array(BudgetAllocationStepSchema),
 });

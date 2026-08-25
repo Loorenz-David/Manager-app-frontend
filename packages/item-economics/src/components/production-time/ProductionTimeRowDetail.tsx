@@ -14,6 +14,7 @@ export type ProductionTimeRowDetailProps = {
   detail: ProductionTimeRowDetailViewModel;
   /** "3m allowed" — names the number the bar's full width represents. */
   allowanceLabel: string | null;
+  pressureLabel: string | null;
   typicalLabel: string | null;
 };
 
@@ -26,10 +27,11 @@ export type ProductionTimeRowDetailProps = {
 export function ProductionTimeRowDetail({
   detail,
   allowanceLabel,
+  pressureLabel,
   typicalLabel,
 }: ProductionTimeRowDetailProps): React.JSX.Element {
   const isOverShare = detail.verdictTone === "over_share";
-  const budgetLine = buildBudgetLine(allowanceLabel, typicalLabel);
+  const budgetLine = buildBudgetLine(allowanceLabel, pressureLabel, typicalLabel);
 
   return (
     <div className="flex flex-col gap-1.5" data-testid="production-time-row-detail">

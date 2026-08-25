@@ -21,6 +21,7 @@ import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import {
   formatDurationHM,
   useLiveStepBudget,
+  workerFacingAllowanceForBudget,
   type StepBudget,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
@@ -158,13 +159,14 @@ function LastActiveStepCardTimer({
   }
 
   if (state === "pending" && budget) {
-    if (budget.step.allowance_seconds !== null) {
+    const workerFacingAllowance = workerFacingAllowanceForBudget(budget);
+    if (workerFacingAllowance !== null) {
       return (
         <span
           className="shrink-0 font-mono text-sm text-current opacity-80"
           data-testid={`step-budget-secondary-${stepId}`}
         >
-          {formatDurationHM(budget.step.allowance_seconds)} budget
+          {formatDurationHM(workerFacingAllowance)} assigned
         </span>
       );
     }

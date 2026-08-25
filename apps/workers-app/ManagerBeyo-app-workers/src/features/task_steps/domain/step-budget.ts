@@ -40,6 +40,30 @@ export type LiveStepBudget = {
   isOver: boolean;
 };
 
+/**
+ * The live pressure share is a server-calculated target, never a client-side
+ * countdown. Workers must not receive more time just because an earlier
+ * section finished cheaply, so the target is capped by their original
+ * allowance. `null` means the pressure calculation does not apply.
+ */
+export function workerFacingAllowanceSeconds(
+  allowanceSeconds: number | null,
+  pressureShareSeconds: number | null,
+): number | null {
+  if (allowanceSeconds === null) return pressureShareSeconds;
+  if (pressureShareSeconds === null) return allowanceSeconds;
+  return Math.min(allowanceSeconds, pressureShareSeconds);
+}
+
+export function workerFacingAllowanceForBudget(
+  budget: StepBudget,
+): number | null {
+  return workerFacingAllowanceSeconds(
+    budget.step.allowance_seconds,
+    budget.step.pressure_share_seconds,
+  );
+}
+
 // Only meant to be mounted while the step is working, so idle cards never
 // subscribe to the shared one-second ticker. The served value is the
 // baseline on every receipt (live-clock handoff §5): elapsed time is added on
