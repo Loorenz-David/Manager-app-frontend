@@ -1,3 +1,4 @@
+import { cn } from "@beyo/lib";
 import { BoxPicker } from "@beyo/ui";
 import type { PauseReason } from "../types";
 import { toPauseReasonPickerOption } from "../lib/pause-reason-view-model";
@@ -20,7 +21,13 @@ export function PauseReasonPicker({
   return (
     <div
       aria-disabled={disabled}
-      className={disabled ? "pointer-events-none opacity-60" : undefined}
+      className={cn(
+        // Bleeds past the parent sheet's `px-4` so the scrollbar sits flush
+        // against the device edge, then reapplies the same inset as padding
+        // so the picker content still lines up with the rest of the sheet.
+        "-mx-4 max-h-[400px] overflow-y-auto overscroll-y-contain px-4",
+        disabled && "pointer-events-none opacity-60",
+      )}
     >
       <BoxPicker
         columns={2}

@@ -49,6 +49,20 @@ export const PRICE_SCENARIO_REFERENCE_JSON = {
     is_estimated: false,
     sections_without_sample: 0,
     sections_total: 4,
+    // Added to the reference payload by the item-aware typicals release
+    // (handoff 2026-08-24 §2), which publishes this block on all three surfaces.
+    typical_resolution: {
+      task_typical_basis: "item_narrowed_uniform",
+      reconciliation_method: "uniform_basis_v1",
+      comparability_profile: "primary_item_category_v1",
+      applied_filter: { item_category_ids: ["icat_chair"] },
+      participating_section_count: 4,
+      sections_by_basis: {
+        item_narrowed: 3,
+        section_wide: 1,
+        insufficient_sample: 0,
+      },
+    },
     method: "median_completed_section_totals",
     window_days: 90,
     min_sample_size: 5,

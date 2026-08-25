@@ -120,9 +120,91 @@ export type ProductionTimeShareStateDto = z.infer<
   typeof ProductionTimeShareStateSchema
 >;
 
+// --- Item-aware typicals ----------------------------------------------------
+// The `narrow_typical_work_times` release (handoff 2026-08-24) weights a task's
+// sections by same-item-category history where enough of it exists, and
+// publishes the provenance of every typical it serves. The same vocabulary
+// appears on production-time, budget-allocations and price-scenario.
+//
+// Every field below carries its documented default through `.catch()` rather
+// than being required outright. Two reasons, and neither is licence to invent
+// data: a backend mid-deploy would otherwise fail the whole row and blank the
+// surface, and an unfamiliar future basis value should make the client *less*
+// confident, not throw. All of it is provenance we display; nothing branches on
+// it in a direction a conservative default gets wrong.
+
+/** The population behind a `typical_worker_seconds` (handoff §2). */
+export const TypicalBasisSchema = z
+  .enum(["item_narrowed", "section_wide", "insufficient_sample"])
+  .catch("insufficient_sample");
+export type TypicalBasis = z.infer<typeof TypicalBasisSchema>;
+
+/**
+ * The filter actually derived for the task — the one new field that is
+ * genuinely nullable, being null when the primary item has no category or
+ * there is no primary item. Inactive axes are omitted from the object, so a
+ * future axis arrives additively.
+ */
+export const AppliedTypicalFilterSchema = z
+  .object({ item_category_ids: z.array(z.string()).optional() })
+  .nullable()
+  .catch(null);
+export type AppliedTypicalFilter = z.infer<typeof AppliedTypicalFilterSchema>;
+
+const SectionsByBasisSchema = z
+  .object({
+    item_narrowed: z.number().int().catch(0),
+    section_wide: z.number().int().catch(0),
+    insufficient_sample: z.number().int().catch(0),
+  })
+  .catch({ item_narrowed: 0, section_wide: 0, insufficient_sample: 0 });
+
+/** The serializer's documented fallback shape (handoff §2). */
+export const DEFAULT_TYPICAL_RESOLUTION = {
+  task_typical_basis: "section_wide_uniform",
+  reconciliation_method: "uniform_basis_v1",
+  comparability_profile: "primary_item_category_v1",
+  applied_filter: null,
+  participating_section_count: 0,
+  sections_by_basis: {
+    item_narrowed: 0,
+    section_wide: 0,
+    insufficient_sample: 0,
+  },
+} as const;
+
+/**
+ * One per task, identical on all three surfaces — the reconciliation
+ * provenance. `task_typical_basis` is `"item_narrowed_uniform"` or
+ * `"section_wide_uniform"` today; kept as a string because we only display it
+ * and a third value must not cost the task its figures.
+ */
+export const TypicalResolutionSchema = z
+  .object({
+    task_typical_basis: z.string().catch("section_wide_uniform"),
+    reconciliation_method: z.string().catch("uniform_basis_v1"),
+    comparability_profile: z.string().catch("primary_item_category_v1"),
+    applied_filter: AppliedTypicalFilterSchema,
+    participating_section_count: z.number().int().catch(0),
+    sections_by_basis: SectionsByBasisSchema,
+  })
+  .catch({ ...DEFAULT_TYPICAL_RESOLUTION });
+export type TypicalResolution = z.infer<typeof TypicalResolutionSchema>;
+
 export const ProductionTimeTypicalSchema = z.object({
+  /**
+   * A served `0` beside `section_wide` is a statistic, not missing data, and
+   * is rendered as such (handoff §4). The unreachable form is `item_narrowed`
+   * beside `0` — task economics requires a usable narrowed median above zero.
+   */
   typical_worker_seconds: z.number().int().nullable(),
+  /** Counts the population named by `typical_basis`, not the narrowed one. */
   sample_count: z.number().int(),
+  typical_basis: TypicalBasisSchema,
+  /** Raw same-item-category evidence, independent of which basis won. */
+  narrowed_sample_count: z.number().int().catch(0),
+  /** Raw section-wide evidence, independent of which basis won. */
+  section_sample_count: z.number().int().catch(0),
   method: z.string(),
   window_days: z.number().int(),
   min_sample_size: z.number().int(),
@@ -183,9 +265,15 @@ export const TaskProductionTimeSchema = z.object({
   task_id: z.string(),
   status: ItemEconomicsStatusSchema,
   item_binding: z.enum(["bound", "detached", "mismatched"]),
+  /**
+   * `static_proportional_section_v2` since 2026-08-24. Read as data and pinned
+   * nowhere: the split stayed static, only the weights became item-aware, so an
+   * unchanged number does not mean the old contract still applies.
+   */
   allocation_method: z.string(),
   budget: ProductionTimeBudgetSchema,
   final: ProductionTimeFinalSchema.nullable(),
+  typical_resolution: TypicalResolutionSchema,
   sections: z.array(ProductionTimeSectionSchema),
 });
 export type TaskProductionTime = z.infer<typeof TaskProductionTimeSchema>;
@@ -204,7 +292,14 @@ export const BudgetAllocationStepSchema = z.object({
   // snapshot was never written answers null, and a stricter schema here would
   // fail the whole batch over a field the cards do not even read.
   section_name_snapshot: z.string().nullable(),
+  /** Item-aware since 2026-08-24 — same field, same nullability, better number. */
   typical_worker_seconds: z.number().int().nullable(),
+  /**
+   * The provenance of the figure above. The two raw evidence counts that
+   * production-time carries are deliberately not repeated on every list row.
+   */
+  typical_basis: TypicalBasisSchema,
+  sample_count: z.number().int().catch(0),
   allowance_seconds: z.number().int().nullable(),
   worked_seconds: z.number().int(),
   // Negative means over budget — a state, not an error.
@@ -225,7 +320,9 @@ export const TaskBudgetAllocationSchema = z.object({
    */
   actual_worker_seconds: z.number().int().nullable(),
   remaining_worker_minutes: DecimalStringSchema.nullable(),
+  /** See TaskProductionTimeSchema — `…_v2` since 2026-08-24, never pinned. */
   allocation_method: z.string(),
+  typical_resolution: TypicalResolutionSchema,
   steps: z.array(BudgetAllocationStepSchema),
 });
 export type TaskBudgetAllocation = z.infer<typeof TaskBudgetAllocationSchema>;
@@ -321,9 +418,18 @@ export type PriceScenarioModel = z.infer<typeof PriceScenarioModelSchema>;
 /** Always present, even under a non-`bound` binding (handoff §5.1, §5.5). */
 export const PriceScenarioTypicalSchema = z.object({
   total_seconds: z.number().int(),
+  /**
+   * True when no section participates, or when the section-wide fallback fired
+   * for at least one participating section. Reconciling to
+   * `section_wide_uniform` alone does not set it. Narrowing can legitimately
+   * move this value — usable same-category history replacing an unusable
+   * section-wide zero flips it to false, which is the feature working.
+   */
   is_estimated: z.boolean(),
+  /** Participating sections whose *selected* typical is null or <= 0. */
   sections_without_sample: z.number().int(),
   sections_total: z.number().int(),
+  typical_resolution: TypicalResolutionSchema,
   method: z.string(),
   window_days: z.number().int(),
   min_sample_size: z.number().int(),

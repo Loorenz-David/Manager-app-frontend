@@ -17,7 +17,19 @@ const literalHandoffPayload: TaskProductionTime = {
   task_id: "tsk_example",
   status: "ok",
   item_binding: "bound",
-  allocation_method: "static_proportional_section_v1",
+  allocation_method: "static_proportional_section_v2",
+  typical_resolution: {
+    task_typical_basis: "section_wide_uniform",
+    reconciliation_method: "uniform_basis_v1",
+    comparability_profile: "primary_item_category_v1",
+    applied_filter: null,
+    participating_section_count: 1,
+    sections_by_basis: {
+      item_narrowed: 0,
+      section_wide: 1,
+      insufficient_sample: 0,
+    },
+  },
   budget: {
     allowed_worker_minutes: "195.00",
     actual_worker_seconds: 9_600,
@@ -42,6 +54,9 @@ const literalHandoffPayload: TaskProductionTime = {
       typical: {
         typical_worker_seconds: 3_600,
         sample_count: 23,
+        typical_basis: "section_wide" as const,
+        narrowed_sample_count: 0,
+        section_sample_count: 23,
         method: "median_completed_section_totals",
         window_days: 90,
         min_sample_size: 5,

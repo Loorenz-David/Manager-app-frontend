@@ -265,9 +265,10 @@ export type ProductionTimeOutlookInput = {
  * left of the task pot, and speaks up only when the first no longer fits in
  * the second.
  *
- * Why the two can disagree at all: the split is static
- * (`static_proportional_section_v1`). Each section's slice is fixed at
- * evaluation time and an overrun in one section is never redistributed out of
+ * Why the two can disagree at all: the split is static — the property the
+ * `static_proportional_section_*` family is named for, and which the v2
+ * item-aware release changed the weights of but not. Each section's slice is
+ * fixed at evaluation time and an overrun in one section is never redistributed out of
  * another's — deliberately, so a stage's target stays a stable number its
  * worker can hit rather than one that shrinks because an earlier stage ran
  * long. The consequence is this card can show every remaining stage a
