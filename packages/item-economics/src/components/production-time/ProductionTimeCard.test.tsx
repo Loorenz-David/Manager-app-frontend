@@ -57,24 +57,37 @@ function viewModelWithRows(
     kind,
     card: {
       ...productionTimeNotEvaluatedFixture.card,
-      rows: rows.map((row) => ({ ...row, detail: null })),
+      rows: rows.map((row) => ({
+        ...row,
+        terminalMetrics: null,
+        activeMetrics: null,
+        detail: null,
+      })),
     },
   };
 }
 
-describe("ProductionTimeCard — the allowance on screen", () => {
-  it("shows every row its allowance, working and pending alike", () => {
-    const rows = fiveRowsWithLastActive().map((row, index) => ({
-      ...row,
-      allowanceLabel: `${index + 1}m allowed`,
-      typicalLabel: `typical ${index + 2}m`,
-    }));
+describe("ProductionTimeCard — row information hierarchy", () => {
+  it("uses metric grids for terminal and active rows", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
-    render(<ProductionTimeCard viewModel={viewModelWithRows("budget", rows)} />);
+    const metrics = screen.getAllByTestId("production-time-row-metrics");
+    expect(metrics).toHaveLength(4);
+    expect(metrics[0]).toHaveTextContent("Budget1h 15m");
+    expect(metrics[0]).toHaveTextContent("Variance5munder budget");
+    expect(metrics[2]).toHaveTextContent("Pressure30m");
+  });
 
-    const budgetLines = screen.getAllByTestId("production-time-row-budget");
-    expect(budgetLines).toHaveLength(rows.length);
-    expect(budgetLines[0]).toHaveTextContent("1m allowed · typical 2m");
+  it("orders worked time before the filled semantic state pill", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    const firstRow = screen.getAllByTestId("production-time-row")[0]!;
+    const worked = within(firstRow).getByTestId("production-time-row-time");
+    const state = within(firstRow).getByTestId("production-time-row-state");
+    expect(
+      worked.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(state.firstElementChild).toHaveClass("bg-[#eaf8ef]");
   });
 
   it("says the allowance alone when the section has no typical yet", () => {
@@ -84,6 +97,9 @@ describe("ProductionTimeCard — the allowance on screen", () => {
         ...row,
         detail: null,
         isActive: false,
+        isTerminal: false,
+        terminalMetrics: null,
+        activeMetrics: null,
         allowanceLabel: "26m allowed",
         typicalLabel: null,
       }));
@@ -102,6 +118,9 @@ describe("ProductionTimeCard — the allowance on screen", () => {
         ...row,
         detail: null,
         isActive: false,
+        isTerminal: false,
+        terminalMetrics: null,
+        activeMetrics: null,
         allowanceLabel: null,
         typicalLabel: null,
       }));
@@ -158,18 +177,20 @@ describe("ProductionTimeCard — budget state", () => {
     expect(screen.getByTestId("production-time-budget-remainder")).toBeInTheDocument();
   });
 
-  it("expands only the working section, with its typical and verdict", () => {
+  it("expands working and paused sections with pressure and backend verdicts", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
     const details = screen.getAllByTestId("production-time-row-detail");
-    expect(details).toHaveLength(1);
-    expect(details[0]).toHaveTextContent("typical 1h 0m");
+    expect(details).toHaveLength(2);
+    expect(details[0]).toHaveTextContent("Pressure30m");
+    expect(details[1]).toHaveTextContent("Pressure55m");
     // The verdict renders as served in every state, working included — the
     // live-clock go-live (2026-08-22) made the served value trustworthy
     // mid-work, so nothing may suppress or relabel it.
-    expect(
-      screen.getByTestId("production-time-row-verdict"),
-    ).toHaveTextContent("On track");
+    expect(screen.getAllByTestId("production-time-row-verdict")).toHaveLength(2);
+    expect(screen.getAllByTestId("production-time-row-verdict")[0]).toHaveTextContent(
+      "ON TRACK",
+    );
     // The typical marker is gone (plan E3): provably at the same ratio on
     // every row, it carried no information. The typical lives on as text.
     expect(
@@ -195,8 +216,29 @@ describe("ProductionTimeCard — budget state", () => {
       screen.queryByTestId("production-time-budget-remainder"),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("production-time-row-verdict")).toHaveTextContent(
-      "Over share",
+      "OVER BUDGET",
     );
+    expect(screen.getByTestId("production-time-row-position")).toHaveTextContent(
+      "15m over",
+    );
+    expect(
+      screen.getByTestId("production-time-metric-over-budget"),
+    ).toHaveTextContent("Over budget15m");
+    expect(
+      screen.queryByTestId("production-time-metric-pressure"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("draws active progress against pressure rather than the larger budget", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    const details = screen.getAllByTestId("production-time-row-detail");
+    const workingProgress = within(details[1]!).getByTestId(
+      "production-time-row-progress",
+    );
+    expect(workingProgress.querySelector("span")).toHaveStyle({
+      width: `${(2400 / 3300) * 100}%`,
+    });
   });
 });
 
@@ -235,6 +277,18 @@ describe("ProductionTimeCard — edge cases from the handoff", () => {
     expect(excluded).toHaveClass("line-through");
     // Two sections worked; the excluded one contributes nothing to the bar.
     expect(screen.getAllByTestId("production-time-budget-segment")).toHaveLength(2);
+  });
+
+  it("keeps missing terminal metrics visible as dashes", () => {
+    render(<ProductionTimeCard viewModel={productionTimeEdgeCasesFixture} />);
+
+    const cancelledRow = screen.getAllByTestId("production-time-row")[1]!;
+    const metrics = within(cancelledRow).getByTestId(
+      "production-time-row-metrics",
+    );
+    expect(metrics).toHaveTextContent("Budget-");
+    expect(metrics).toHaveTextContent("Variance-");
+    expect(metrics).toHaveTextContent("Typical-");
   });
 
   it("draws a full bar for a section whose allowance is already negative", () => {

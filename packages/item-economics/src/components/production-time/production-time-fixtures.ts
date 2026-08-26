@@ -9,9 +9,11 @@
  */
 
 import {
+  buildActiveMetrics,
   buildOutlook,
   buildRowDetail,
   buildSegments,
+  buildTerminalMetrics,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -29,15 +31,23 @@ type RowInput = {
   workedSeconds: number;
   stepCount?: number;
   allowanceSeconds?: number | null;
+  pressureSeconds?: number | null;
   typicalSeconds?: number | null;
   shareState?: ProductionTimeShareState;
 };
 
 function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewModel {
   const shareState = input.shareState ?? "on_track";
-  const isActive = input.state === "working";
+  const isActive = ["working", "paused", "ended_shift"].includes(input.state);
+  const isTerminal = ["completed", "skipped", "failed", "cancelled"].includes(
+    input.state,
+  );
   const isExcluded = shareState === "excluded";
   const typicalSeconds = input.typicalSeconds ?? null;
+  const leftSeconds =
+    input.allowanceSeconds === null || input.allowanceSeconds === undefined
+      ? null
+      : input.allowanceSeconds - input.workedSeconds;
 
   return {
     key: input.key,
@@ -48,6 +58,7 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
     workedSeconds: input.workedSeconds,
     stepCount: input.stepCount ?? 1,
     isActive,
+    isTerminal,
     isExcluded,
     allowanceLabel:
       input.allowanceSeconds === null || input.allowanceSeconds === undefined || input.allowanceSeconds <= 0
@@ -62,11 +73,31 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
       typicalSeconds === null
         ? null
         : `of typically ${formatWorkSeconds(typicalSeconds)}`,
+    terminalMetrics:
+      isTerminal && hasBudget
+        ? buildTerminalMetrics(
+            input.workedSeconds,
+            input.allowanceSeconds ?? null,
+            typicalSeconds,
+          )
+        : null,
+    activeMetrics:
+      isActive && hasBudget && !isExcluded
+        ? buildActiveMetrics(
+            input.allowanceSeconds ?? null,
+            input.pressureSeconds ?? null,
+            typicalSeconds,
+            leftSeconds,
+            shareState,
+          )
+        : null,
     detail:
       isActive && hasBudget && !isExcluded
         ? buildRowDetail(
             input.workedSeconds,
             input.allowanceSeconds ?? null,
+            input.pressureSeconds ?? null,
+            leftSeconds,
             shareState,
           )
         : null,
@@ -138,6 +169,7 @@ const MOCKUP_ROWS: RowInput[] = [
     state: "paused",
     workedSeconds: 900,
     allowanceSeconds: 1800,
+    pressureSeconds: 1800,
     typicalSeconds: 1800,
   },
   {
@@ -146,6 +178,7 @@ const MOCKUP_ROWS: RowInput[] = [
     state: "working",
     workedSeconds: 2400,
     allowanceSeconds: 3900,
+    pressureSeconds: 3300,
     typicalSeconds: 3600,
   },
 ];
@@ -217,6 +250,7 @@ export const productionTimeOverBudgetFixture: ProductionTimeViewModel = {
         ...MOCKUP_ROWS[3],
         workedSeconds: 4800,
         allowanceSeconds: 3900,
+        pressureSeconds: 3300,
         shareState: "over_share",
       },
     ],
@@ -249,6 +283,7 @@ export const productionTimeEdgeCasesFixture: ProductionTimeViewModel = {
         state: "working",
         workedSeconds: 3000,
         allowanceSeconds: -600,
+        pressureSeconds: 0,
         typicalSeconds: 1800,
         shareState: "over_share",
       },
@@ -277,6 +312,7 @@ export const productionTimeLongPipelineFixture: ProductionTimeViewModel = {
       state: index < 7 ? "completed" : index === 7 ? "working" : "pending",
       workedSeconds: index < 7 ? 1200 : index === 7 ? 2400 : 0,
       allowanceSeconds: index === 7 ? 3900 : 1500,
+      pressureSeconds: index === 7 ? 3300 : null,
       typicalSeconds: index === 7 ? 3600 : 1500,
     })),
     14_400,

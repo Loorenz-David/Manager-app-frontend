@@ -1,8 +1,10 @@
 import type { ItemEconomicsStatus, TaskProductionTime } from "../types";
 import {
   buildOutlook,
+  buildActiveMetrics,
   buildRowDetail,
   buildSegments,
+  buildTerminalMetrics,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -11,6 +13,14 @@ import {
 } from "./production-time-view-model";
 
 type NoBudgetStatus = Exclude<ItemEconomicsStatus, "ok" | "infeasible">;
+
+const ACTIVE_SECTION_STATES = new Set(["working", "paused", "ended_shift"]);
+const TERMINAL_SECTION_STATES = new Set([
+  "completed",
+  "skipped",
+  "failed",
+  "cancelled",
+]);
 
 const NO_BUDGET_REASON: Record<
   NoBudgetStatus,
@@ -79,7 +89,8 @@ function toRows(
       section.section_name_snapshot ??
       section.section_name ??
       "Unnamed section";
-    const isActive = section.state === "working";
+    const isActive = ACTIVE_SECTION_STATES.has(section.state);
+    const isTerminal = TERMINAL_SECTION_STATES.has(section.state);
     const isExcluded = section.share_state === "excluded";
     const typicalSeconds = section.typical?.typical_worker_seconds ?? null;
 
@@ -92,14 +103,14 @@ function toRows(
       workedSeconds,
       stepCount: section.step_count,
       isActive,
+      isTerminal,
       isExcluded,
       allowanceLabel:
         section.allowance_seconds === null || section.allowance_seconds <= 0
           ? null
           : `${formatWorkSeconds(section.allowance_seconds)} assigned`,
-      // Unlike the worker-facing target, this intentionally is not capped at
-      // the static assignment: managers need to see both the cause and the
-      // full downstream effect, including a pressure ratio above one.
+      // Compact pending/blocked rows retain the served pressure. Expanded
+      // active rows use activeMetrics, where it is capped by the assignment.
       pressureLabel:
         section.pressure_share_seconds === null
           ? null
@@ -112,11 +123,31 @@ function toRows(
         typicalSeconds === null
           ? null
           : `of typically ${formatWorkSeconds(typicalSeconds)}`,
+      terminalMetrics:
+        isTerminal && hasBudget
+          ? buildTerminalMetrics(
+              workedSeconds,
+              section.allowance_seconds,
+              typicalSeconds,
+            )
+          : null,
+      activeMetrics:
+        isActive && hasBudget && !isExcluded
+          ? buildActiveMetrics(
+              section.allowance_seconds,
+              section.pressure_share_seconds,
+              typicalSeconds,
+              section.left_seconds,
+              section.share_state,
+            )
+          : null,
       detail:
         isActive && hasBudget && !isExcluded
           ? buildRowDetail(
               workedSeconds,
               section.allowance_seconds,
+              section.pressure_share_seconds,
+              section.left_seconds,
               section.share_state,
             )
           : null,
@@ -135,10 +166,12 @@ function remainingLabel(remainingSeconds: number | null): string | null {
 }
 
 /**
- * Every figure this transform emits is the server's, verbatim. Since the
- * 2026-08-22 go-live the payload already contains the open working interval
- * (concurrency-averaged), so nothing here may add client-elapsed time — a
- * local tick would double-count. Two standing rules from that handoff:
+ * Source seconds are the server's live figures. The view model only derives
+ * display relationships from the same snapshot: terminal variance and an
+ * active section's position against its capped pressure target. Since the
+ * payload already contains the open working interval (concurrency-averaged),
+ * nothing here may add client-elapsed time — a local tick would double-count.
+ * Two standing rules from that handoff:
  * this is a live operational projection, never payroll or archival data
  * (§4.3); and a served decrease is authoritative — render it as given,
  * never clamp to a previously displayed maximum (§5).

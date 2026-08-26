@@ -7,6 +7,7 @@ import {
   type ProductionTimeRowViewModel,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeRowDetail } from "./ProductionTimeRowDetail";
+import { ProductionTimeMetrics } from "./ProductionTimeMetrics";
 import {
   PRODUCTION_TIME_ACTIVE_ROW_ACCENT,
   PRODUCTION_TIME_ACTIVE_ROW_BG,
@@ -30,10 +31,10 @@ export function ProductionTimeRow({
 }: ProductionTimeRowProps): React.JSX.Element {
   const comparison = showTypicalComparison ? row.typicalComparisonLabel : null;
   const passCount = formatPassCount(row.stepCount);
-  // The active row states its budget inside its own detail block, beside the
-  // bar that draws it. Every other row has no bar, so it says it here — which
-  // is the whole point: a pending stage has to be able to look tight.
-  const budgetLine = row.detail
+  // Active and terminal rows use structured three-column metrics. Pending and
+  // blocked rows keep the compact fallback line so their targets remain
+  // visible before work starts.
+  const budgetLine = row.detail || row.terminalMetrics
     ? null
     : buildBudgetLine(row.allowanceLabel, row.pressureLabel, row.typicalLabel);
 
@@ -75,17 +76,6 @@ export function ProductionTimeRow({
           {row.label}
         </span>
 
-        {comparison === null ? (
-          <span className="shrink-0" data-testid="production-time-row-state">
-            <StatePill
-              className="text-xs"
-              label={row.stateLabel}
-              style="text"
-              variant={PRODUCTION_TIME_TONE_VARIANT[row.tone]}
-            />
-          </span>
-        ) : null}
-
         <span
           className={cn(
             "shrink-0 text-sm  tabular-nums",
@@ -100,6 +90,16 @@ export function ProductionTimeRow({
             </span>
           ) : null}
         </span>
+
+        {comparison === null ? (
+          <span className="shrink-0" data-testid="production-time-row-state">
+            <StatePill
+              className="rounded-lg px-2.5 py-1 text-xs"
+              label={row.stateLabel}
+              variant={PRODUCTION_TIME_TONE_VARIANT[row.tone]}
+            />
+          </span>
+        ) : null}
       </div>
 
       {/* Sits under the figure it explains: this section was worked more than
@@ -123,13 +123,17 @@ export function ProductionTimeRow({
         </p>
       ) : null}
 
-      {row.detail ? (
-        <div className="mt-2">
+      {row.terminalMetrics ? (
+        <div className="mt-3">
+          <ProductionTimeMetrics metrics={row.terminalMetrics} />
+        </div>
+      ) : null}
+
+      {row.detail && row.activeMetrics ? (
+        <div className="mt-3">
           <ProductionTimeRowDetail
-            allowanceLabel={row.allowanceLabel}
             detail={row.detail}
-            pressureLabel={row.pressureLabel}
-            typicalLabel={row.typicalLabel}
+            metrics={row.activeMetrics}
           />
         </div>
       ) : null}

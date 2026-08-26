@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildActiveMetrics,
   formatPassCount,
   buildOutlook,
   buildRowDetail,
   buildSegments,
+  buildTerminalMetrics,
+  capPressureSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   selectVisibleRows,
@@ -23,11 +26,14 @@ function row(
     workedSeconds: 3000,
     stepCount: 1,
     isActive: false,
+    isTerminal: true,
     isExcluded: false,
     allowanceLabel: null,
     pressureLabel: null,
     typicalLabel: null,
     typicalComparisonLabel: null,
+    terminalMetrics: null,
+    activeMetrics: null,
     detail: null,
     ...overrides,
   };
@@ -112,36 +118,119 @@ describe("buildSegments", () => {
 });
 
 describe("buildRowDetail", () => {
-  it("fills proportionally against the allowance", () => {
-    const detail = buildRowDetail(2400, 3900, "on_track");
+  it("fills proportionally against the capped pressure target", () => {
+    const detail = buildRowDetail(2400, 3900, 3300, 1500, "on_track");
 
-    expect(detail.progressPercent).toBeCloseTo(61.5, 1);
-    expect(detail.verdictLabel).toBe("On track");
+    expect(detail.progressPercent).toBeCloseTo(72.7, 1);
+    expect(detail.positionLabel).toBe("15m left");
+    expect(detail.verdictLabel).toBe("ON TRACK");
   });
 
-  it("draws a full bar without dividing when the allowance is not positive", () => {
-    for (const allowance of [0, -600, null]) {
-      const detail = buildRowDetail(3000, allowance, "over_share");
+  it("draws a full bar without dividing when the target is not positive", () => {
+    for (const target of [0, -600]) {
+      const detail = buildRowDetail(
+        3000,
+        target,
+        target,
+        target - 3000,
+        "over_share",
+      );
 
       expect(detail.progressPercent).toBe(100);
+      expect(detail.positionTone).toBe("over");
     }
   });
 
-  it("clamps a section that worked past its whole slice", () => {
-    expect(buildRowDetail(9000, 3600, "over_share").progressPercent).toBe(
-      100,
-    );
+  it("falls back to the assignment when pressure is not applicable", () => {
+    expect(buildRowDetail(900, 3600, null, 2700, "on_track")).toMatchObject({
+      progressPercent: 25,
+      positionLabel: "45m left",
+    });
+  });
+
+  it("clamps a section that worked past its pressure target", () => {
+    expect(
+      buildRowDetail(9000, 3600, 1800, -5400, "over_share").progressPercent,
+    ).toBe(100);
+  });
+
+  it("uses the served assignment overrun when zero pressure is exhausted", () => {
+    expect(buildRowDetail(2729, 1187, 0, -1542, "over_share")).toMatchObject({
+      progressPercent: 100,
+      positionLabel: "25m over",
+      positionTone: "over",
+      verdictLabel: "OVER BUDGET",
+    });
   });
 
   it("takes the verdict from share_state rather than the arithmetic", () => {
     // Worked is comfortably under the allowance, but the server says the
     // section overran — across both of its passes. The server wins.
-    expect(buildRowDetail(600, 3600, "over_share").verdictTone).toBe(
-      "over_share",
-    );
-    expect(buildRowDetail(9000, 3600, "on_track").verdictTone).toBe(
-      "on_track",
-    );
+    expect(
+      buildRowDetail(600, 3600, 1800, 3000, "over_share").verdictTone,
+    ).toBe("over_share");
+    expect(
+      buildRowDetail(9000, 3600, 1800, -5400, "on_track").verdictTone,
+    ).toBe("on_track");
+  });
+});
+
+describe("pressure and row metrics", () => {
+  it("caps a pressure improvement at the original assignment", () => {
+    expect(capPressureSeconds(3600, 4800)).toBe(3600);
+    expect(
+      buildActiveMetrics(3600, 4800, 3000, 3600, "on_track")[1]
+        .valueLabel,
+    ).toBe("1h 0m");
+  });
+
+  it("uses a tightened pressure target and preserves null as missing", () => {
+    expect(capPressureSeconds(3600, 1200)).toBe(1200);
+    expect(
+      buildActiveMetrics(3600, 1200, null, 3600, "on_track").map(
+        (metric) => metric.valueLabel,
+      ),
+    ).toEqual(["1h 0m", "20m", "-"]);
+    expect(
+      buildActiveMetrics(3600, null, 3000, 3600, "on_track")[1]
+        .valueLabel,
+    ).toBe("-");
+  });
+
+  it("replaces exhausted pressure with the served budget overrun", () => {
+    expect(buildActiveMetrics(1187, 0, 1171, -1542, "over_share")[1]).toEqual({
+      label: "Over budget",
+      valueLabel: "25m",
+      supportingLabel: null,
+      tone: "danger",
+    });
+  });
+
+  it("builds red over, green under, and green on-budget terminal variance", () => {
+    expect(buildTerminalMetrics(4200, 3600, 3000)[1]).toEqual({
+      label: "Variance",
+      valueLabel: "+10m",
+      supportingLabel: "over budget",
+      tone: "danger",
+    });
+    expect(buildTerminalMetrics(3000, 3600, 3000)[1]).toMatchObject({
+      valueLabel: "10m",
+      supportingLabel: "under budget",
+      tone: "success",
+    });
+    expect(buildTerminalMetrics(3600, 3600, 3000)[1]).toMatchObject({
+      valueLabel: "0m",
+      supportingLabel: "on budget",
+      tone: "success",
+    });
+  });
+
+  it("renders missing terminal metrics as dashes", () => {
+    expect(buildTerminalMetrics(3000, null, null).map((metric) => metric.valueLabel)).toEqual([
+      "-",
+      "-",
+      "-",
+    ]);
   });
 });
 

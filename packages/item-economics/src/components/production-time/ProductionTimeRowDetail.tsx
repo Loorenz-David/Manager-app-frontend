@@ -1,40 +1,53 @@
 import { cn } from "@beyo/lib";
+import { StatePill } from "@beyo/ui";
 
 import {
-  buildBudgetLine,
   type ProductionTimeRowDetailViewModel,
+  type ProductionTimeRowMetricsViewModel,
 } from "../../lib/production-time-view-model";
+import { ProductionTimeMetrics } from "./ProductionTimeMetrics";
 import {
   PRODUCTION_TIME_DANGER_TEXT,
-  PRODUCTION_TIME_SUCCESS_TEXT,
   PRODUCTION_TIME_TONE_FILL,
 } from "./production-time-tone";
 
 export type ProductionTimeRowDetailProps = {
   detail: ProductionTimeRowDetailViewModel;
-  /** "3m allowed" — names the number the bar's full width represents. */
-  allowanceLabel: string | null;
-  pressureLabel: string | null;
-  typicalLabel: string | null;
+  metrics: ProductionTimeRowMetricsViewModel;
 };
 
 /**
- * The active row's own bar: worked time against this section's allowance, with
- * the server's verdict beneath. The typical appears as text in the budget
- * line — the marker it once drew was provably identical on every row (plan
- * E3) and was removed with the 2026-08-22 live-clock integration.
+ * The active row's pressure-based position and progress. Remaining/overflow
+ * arithmetic is presentational; the semantic verdict still comes from the
+ * backend and is rendered unchanged apart from display wording.
  */
 export function ProductionTimeRowDetail({
   detail,
-  allowanceLabel,
-  pressureLabel,
-  typicalLabel,
+  metrics,
 }: ProductionTimeRowDetailProps): React.JSX.Element {
   const isOverShare = detail.verdictTone === "over_share";
-  const budgetLine = buildBudgetLine(allowanceLabel, pressureLabel, typicalLabel);
 
   return (
-    <div className="flex flex-col gap-1.5" data-testid="production-time-row-detail">
+    <div className="flex flex-col gap-3" data-testid="production-time-row-detail">
+      <div className="flex items-center justify-between gap-3">
+        <span
+          className={cn(
+            "text-sm font-medium tabular-nums",
+            detail.positionTone === "over" && PRODUCTION_TIME_DANGER_TEXT,
+          )}
+          data-testid="production-time-row-position"
+        >
+          {detail.positionLabel}
+        </span>
+        <span data-testid="production-time-row-verdict">
+          <StatePill
+            className="rounded-lg px-2.5 py-1 text-xs"
+            label={detail.verdictLabel}
+            variant={isOverShare ? "danger" : "success"}
+          />
+        </span>
+      </div>
+
       <div
         aria-hidden="true"
         className="h-1.5 w-full overflow-hidden rounded-full bg-muted/40"
@@ -50,26 +63,7 @@ export function ProductionTimeRowDetail({
           }}
         />
       </div>
-
-      <div className="flex items-center justify-between gap-3">
-        <span
-          className="min-w-0 truncate text-sm text-muted-foreground"
-          data-testid="production-time-row-budget"
-        >
-          {budgetLine}
-        </span>
-        <span
-          className={cn(
-            "shrink-0 text-sm font-medium",
-            isOverShare
-              ? PRODUCTION_TIME_DANGER_TEXT
-              : PRODUCTION_TIME_SUCCESS_TEXT,
-          )}
-          data-testid="production-time-row-verdict"
-        >
-          {detail.verdictLabel}
-        </span>
-      </div>
+      <ProductionTimeMetrics metrics={metrics} />
     </div>
   );
 }

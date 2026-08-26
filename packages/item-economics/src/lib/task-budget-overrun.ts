@@ -24,7 +24,9 @@ function formatCost(
   currency: TaskBudgetSignalCurrency,
 ): string | null {
   const suffix = currencySuffix[currency];
-  return suffix === null ? null : `${moneyFormatter.format(minor / 100)} ${suffix}`;
+  return suffix === null
+    ? null
+    : `${moneyFormatter.format(minor / 100)} ${suffix}`;
 }
 
 /**
@@ -53,10 +55,13 @@ export function buildTaskBudgetSignalDisplay(
     case "projected_over":
       return {
         tone: "projected_over",
-        label: `Projected over budget by ${formatWorkSeconds(
+        label: `Projected over by ${formatWorkSeconds(
           signal.projected_over_seconds + elapsedSeconds,
         )}`,
-        costLabel: formatCost(signal.projected_over_cost_minor, signal.currency),
+        costLabel: formatCost(
+          signal.projected_over_cost_minor,
+          signal.currency,
+        ),
       };
     case "within_budget":
     case "no_budget":

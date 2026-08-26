@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
@@ -184,7 +184,7 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(screen.getAllByTestId("production-time-row")).toHaveLength(3);
   });
 
-  it("shows the static assignment beside the live pressure share", async () => {
+  it("shows the static budget, capped live pressure and typical metrics", async () => {
     server.use(
       http.get(ENDPOINT, () => HttpResponse.json(envelope(literalHandoffPayload))),
     );
@@ -192,8 +192,15 @@ describe("ProductionTimeSection MSW boundary", () => {
     renderSection();
 
     await screen.findByTestId("production-time-card");
-    expect(screen.getAllByTestId("production-time-row-budget")[0]).toHaveTextContent(
-      "1h 0m assigned · 40m pressure · typical 1h 0m",
+    const firstRow = screen.getAllByTestId("production-time-row")[0]!;
+    expect(within(firstRow).getByTestId("production-time-metric-budget")).toHaveTextContent(
+      "Budget1h 0m",
+    );
+    expect(within(firstRow).getByTestId("production-time-metric-pressure")).toHaveTextContent(
+      "Pressure40m",
+    );
+    expect(within(firstRow).getByTestId("production-time-metric-typical")).toHaveTextContent(
+      "Typical1h 0m",
     );
   });
 

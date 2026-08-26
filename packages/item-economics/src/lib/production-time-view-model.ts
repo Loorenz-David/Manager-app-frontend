@@ -29,11 +29,26 @@ export type ProductionTimeShareState =
   | "no_budget";
 
 export type ProductionTimeRowDetailViewModel = {
-  /** 0..100, clamped. 100 when the allowance is zero or negative. */
+  /** 0..100, clamped. 100 when the effective pressure target is exhausted. */
   progressPercent: number;
+  positionLabel: string;
+  positionTone: "neutral" | "over";
   verdictLabel: string;
   verdictTone: "on_track" | "over_share";
 };
+
+export type ProductionTimeMetricViewModel = {
+  label: string;
+  valueLabel: string;
+  supportingLabel: string | null;
+  tone: "neutral" | "success" | "danger";
+};
+
+export type ProductionTimeRowMetricsViewModel = readonly [
+  ProductionTimeMetricViewModel,
+  ProductionTimeMetricViewModel,
+  ProductionTimeMetricViewModel,
+];
 
 export type ProductionTimeRowViewModel = {
   /** `working_section_id`, falling back to the snapshot label plus its index. */
@@ -46,13 +61,14 @@ export type ProductionTimeRowViewModel = {
   workedSeconds: number;
   /** 2 after a reassignment — the section is still ONE row. */
   stepCount: number;
+  /** Working, paused, and ended-shift rows retain the expanded treatment. */
   isActive: boolean;
+  /** Completed, skipped, failed, and cancelled rows show performance metrics. */
+  isTerminal: boolean;
   isExcluded: boolean;
   /**
-   * "3m allowed" — this section's slice of the item's budget, or null when the
-   * task has no budget or the slice is non-positive. Present on **every** row,
-   * pending ones included: a manager needs to see a stage is tight before
-   * anyone starts it, not once it is already running.
+   * Compact fallback copy for pending/blocked rows. Active and terminal rows
+   * use their structured metric grids instead.
    */
   allowanceLabel: string | null;
   /** "pressure 43m" — the server's live, un-clamped open-work share. */
@@ -61,6 +77,10 @@ export type ProductionTimeRowViewModel = {
   typicalLabel: string | null;
   /** "of typically 50m" — the degraded, budget-less row line. */
   typicalComparisonLabel: string | null;
+  /** Budget / Variance / Typical, only for terminal rows on budgeted tasks. */
+  terminalMetrics: ProductionTimeRowMetricsViewModel | null;
+  /** Budget / Pressure-or-Over-budget / Typical for active budgeted rows. */
+  activeMetrics: ProductionTimeRowMetricsViewModel | null;
   /** Non-null only for an active row on a task that has a budget. */
   detail: ProductionTimeRowDetailViewModel | null;
 };
@@ -210,34 +230,200 @@ export function buildSegments(
   return { segments, remainderPercent };
 }
 
+function normalizedSeconds(seconds: number): number {
+  return Math.max(0, seconds);
+}
+
 /**
- * Geometry for an active row's inner bar. The verdict is the server's
- * `share_state` passed straight through — this function never compares worked
- * time to the allowance to decide whether a section is on track.
- *
- * A non-positive allowance draws a full over-share bar rather than dividing:
- * a section whose failed pass already ate its whole slice is legitimately at or
- * below zero.
+ * Pressure is allowed to tighten an active section, never loosen it beyond
+ * the original assignment. Null means pressure is not applicable.
+ */
+export function capPressureSeconds(
+  allowanceSeconds: number | null,
+  pressureSeconds: number | null,
+): number | null {
+  if (pressureSeconds === null) {
+    return null;
+  }
+
+  const pressure = normalizedSeconds(pressureSeconds);
+  return allowanceSeconds === null
+    ? pressure
+    : Math.min(normalizedSeconds(allowanceSeconds), pressure);
+}
+
+export function metricValueLabel(seconds: number | null): string {
+  return seconds === null ? "-" : formatWorkSeconds(normalizedSeconds(seconds));
+}
+
+export function buildTerminalMetrics(
+  workedSeconds: number,
+  allowanceSeconds: number | null,
+  typicalSeconds: number | null,
+): ProductionTimeRowMetricsViewModel {
+  const budgetSeconds =
+    allowanceSeconds === null ? null : normalizedSeconds(allowanceSeconds);
+  let variance: ProductionTimeMetricViewModel = {
+    label: "Variance",
+    valueLabel: "-",
+    supportingLabel: null,
+    tone: "neutral",
+  };
+
+  if (budgetSeconds !== null) {
+    const differenceSeconds = normalizedSeconds(workedSeconds) - budgetSeconds;
+
+    if (differenceSeconds > 0) {
+      variance = {
+        label: "Variance",
+        valueLabel: `+${formatWorkSeconds(differenceSeconds)}`,
+        supportingLabel: "over budget",
+        tone: "danger",
+      };
+    } else if (differenceSeconds < 0) {
+      variance = {
+        label: "Variance",
+        valueLabel: formatWorkSeconds(-differenceSeconds),
+        supportingLabel: "under budget",
+        tone: "success",
+      };
+    } else {
+      variance = {
+        label: "Variance",
+        valueLabel: "0m",
+        supportingLabel: "on budget",
+        tone: "success",
+      };
+    }
+  }
+
+  return [
+    {
+      label: "Budget",
+      valueLabel: metricValueLabel(budgetSeconds),
+      supportingLabel: null,
+      tone: "neutral",
+    },
+    variance,
+    {
+      label: "Typical",
+      valueLabel: metricValueLabel(typicalSeconds),
+      supportingLabel: null,
+      tone: "neutral",
+    },
+  ];
+}
+
+export function buildActiveMetrics(
+  allowanceSeconds: number | null,
+  pressureSeconds: number | null,
+  typicalSeconds: number | null,
+  leftSeconds: number | null,
+  shareState: ProductionTimeShareState,
+): ProductionTimeRowMetricsViewModel {
+  const middleMetric: ProductionTimeMetricViewModel =
+    shareState === "over_share"
+      ? {
+          label: "Over budget",
+          valueLabel:
+            leftSeconds !== null && leftSeconds < 0
+              ? formatWorkSeconds(-leftSeconds)
+              : "-",
+          supportingLabel: null,
+          tone: "danger",
+        }
+      : {
+          label: "Pressure",
+          valueLabel: metricValueLabel(
+            capPressureSeconds(allowanceSeconds, pressureSeconds),
+          ),
+          supportingLabel: null,
+          tone: "neutral",
+        };
+
+  return [
+    {
+      label: "Budget",
+      valueLabel: metricValueLabel(allowanceSeconds),
+      supportingLabel: null,
+      tone: "neutral",
+    },
+    middleMetric,
+    {
+      label: "Typical",
+      valueLabel: metricValueLabel(typicalSeconds),
+      supportingLabel: null,
+      tone: "neutral",
+    },
+  ];
+}
+
+/**
+ * Geometry and position copy for an active row. Remaining/over time and the
+ * progress denominator use the capped pressure target. Once the backend says
+ * the original assignment is exceeded, its served `left_seconds` owns the
+ * overflow amount so a zero pressure target does not count all worked time as
+ * budget overrun. The verdict remains the backend's `share_state`.
  */
 export function buildRowDetail(
   workedSeconds: number,
   allowanceSeconds: number | null,
+  pressureSeconds: number | null,
+  leftSeconds: number | null,
   shareState: ProductionTimeShareState,
 ): ProductionTimeRowDetailViewModel {
   const isOverShare = shareState === "over_share";
-  const verdictLabel = isOverShare ? "Over share" : "On track";
+  const verdictLabel = isOverShare ? "OVER BUDGET" : "ON TRACK";
   const verdictTone = isOverShare ? "over_share" : "on_track";
+  const cappedPressureSeconds = capPressureSeconds(
+    allowanceSeconds,
+    pressureSeconds,
+  );
+  const targetSeconds =
+    cappedPressureSeconds ??
+    (allowanceSeconds === null ? null : normalizedSeconds(allowanceSeconds));
 
-  if (allowanceSeconds === null || allowanceSeconds <= 0) {
+  const isOverAssignedBudget = leftSeconds !== null && leftSeconds < 0;
+
+  if (targetSeconds === null && !isOverAssignedBudget) {
+    return {
+      progressPercent: 0,
+      positionLabel: "-",
+      positionTone: "neutral",
+      verdictLabel,
+      verdictTone,
+    };
+  }
+
+  const differenceSeconds =
+    targetSeconds === null
+      ? null
+      : targetSeconds - normalizedSeconds(workedSeconds);
+  const isOverTarget = differenceSeconds !== null && differenceSeconds < 0;
+  const positionLabel = isOverAssignedBudget
+    ? `${formatWorkSeconds(-leftSeconds)} over`
+    : isOverTarget
+      ? `${formatWorkSeconds(-(differenceSeconds ?? 0))} over`
+      : `${formatWorkSeconds(differenceSeconds ?? 0)} left`;
+  const positionTone =
+    isOverAssignedBudget || isOverTarget ? "over" : "neutral";
+
+  if (targetSeconds === null || targetSeconds <= 0) {
     return {
       progressPercent: 100,
+      positionLabel,
+      positionTone,
       verdictLabel,
       verdictTone,
     };
   }
 
   return {
-    progressPercent: clampPercent((workedSeconds / allowanceSeconds) * 100),
+    progressPercent: clampPercent(
+      (normalizedSeconds(workedSeconds) / targetSeconds) * 100,
+    ),
+    positionLabel,
+    positionTone,
     verdictLabel,
     verdictTone,
   };

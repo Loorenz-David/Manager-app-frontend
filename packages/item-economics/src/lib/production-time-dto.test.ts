@@ -130,7 +130,94 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.rows).toHaveLength(3);
     expect(viewModel.card.rows[0]?.allowanceLabel).toBe("1h 0m assigned");
     expect(viewModel.card.rows[0]?.pressureLabel).toBe("50m pressure");
+    expect(viewModel.card.rows[0]?.detail?.positionLabel).toBe("25m left");
+    expect(viewModel.card.rows[0]?.activeMetrics?.[1].valueLabel).toBe("50m");
   });
+
+  it("caps an improving pressure target at the original assignment", () => {
+    const base = makeDto().sections[0]!;
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        sections: [{ ...base, pressure_share_seconds: 7_200 }],
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.rows[0]?.activeMetrics?.[1].valueLabel).toBe("1h 0m");
+    expect(viewModel.card.rows[0]?.detail?.positionLabel).toBe("35m left");
+  });
+
+  it("shows the served assigned-budget overrun when pressure is exhausted", () => {
+    const base = makeDto().sections[0]!;
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        sections: [
+          {
+            ...base,
+            worked_seconds: 2_729,
+            allowance_seconds: 1_187,
+            pressure_share_seconds: 0,
+            left_seconds: -1_542,
+            share_state: "over_share",
+          },
+        ],
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.rows[0]?.activeMetrics?.[1]).toEqual({
+      label: "Over budget",
+      valueLabel: "25m",
+      supportingLabel: null,
+      tone: "danger",
+    });
+    expect(viewModel.card.rows[0]?.detail).toMatchObject({
+      positionLabel: "25m over",
+      positionTone: "over",
+      progressPercent: 100,
+      verdictLabel: "OVER BUDGET",
+    });
+  });
+
+  it.each(["working", "paused", "ended_shift"] as const)(
+    "keeps %s sections expanded with active pressure metrics",
+    (state) => {
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({ sections: [{ ...base, state }] }),
+      );
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.rows[0]).toMatchObject({
+        isActive: true,
+        isTerminal: false,
+      });
+      expect(viewModel.card.rows[0]?.detail).not.toBeNull();
+      expect(viewModel.card.rows[0]?.activeMetrics).not.toBeNull();
+    },
+  );
+
+  it.each(["completed", "skipped", "failed", "cancelled"] as const)(
+    "renders %s sections as terminal performance rows",
+    (state) => {
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({ sections: [{ ...base, state }] }),
+      );
+
+      expect(viewModel.kind).toBe("budget");
+      if (viewModel.kind !== "budget") return;
+      expect(viewModel.card.rows[0]).toMatchObject({
+        isActive: false,
+        isTerminal: true,
+      });
+      expect(viewModel.card.rows[0]?.terminalMetrics).not.toBeNull();
+      expect(viewModel.card.rows[0]?.detail).toBeNull();
+    },
+  );
 
   it("renders the served figures verbatim — the clock is the backend's", () => {
     // Since the 2026-08-22 go-live the payload already contains the open
@@ -186,7 +273,7 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "budget") return;
 
     expect(viewModel.card.rows[0]?.detail?.verdictTone).toBe("on_track");
-    expect(viewModel.card.rows[0]?.detail?.verdictLabel).toBe("On track");
+    expect(viewModel.card.rows[0]?.detail?.verdictLabel).toBe("ON TRACK");
   });
 
   it("guards a non-positive allowance and uses the server over-share verdict", () => {
@@ -197,7 +284,9 @@ describe("toProductionTimeViewModel", () => {
 
     expect(viewModel.card.rows[1]?.detail).toEqual({
       progressPercent: 100,
-      verdictLabel: "Over share",
+      positionLabel: "15m over",
+      positionTone: "over",
+      verdictLabel: "OVER BUDGET",
       verdictTone: "over_share",
     });
   });
