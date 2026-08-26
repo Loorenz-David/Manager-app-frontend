@@ -15,7 +15,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
-import { createPortal } from "react-dom";
+import { createPortal, flushSync } from "react-dom";
 
 import { cn, transitions } from "@beyo/lib";
 import { useKeyboardInset } from "../../../providers/KeyboardInsetProvider";
@@ -83,6 +83,30 @@ export function preventFocusSteal(event: MouseEvent<HTMLElement>): void {
   event.preventDefault();
 }
 
+// While the panel is still opening (focus handoff + keyboard animation) WebKit
+// can report a transient full-height viewport; a "keyboard closed" reading in
+// that window has to persist this long before it counts as the user
+// dismissing the keyboard. Once the keyboard has been up past the settle
+// window, a closed reading is a real dismissal and the panel closes at once.
+const KEYBOARD_DISMISS_GRACE_MS = 300;
+const KEYBOARD_SETTLE_MS = 800;
+
+/**
+ * On touch devices the `panel` variant opens because the user focused the
+ * field, not because a keyboard-height heuristic fired: iOS (standalone PWAs
+ * especially) is inconsistent about whether the on-screen keyboard shrinks
+ * the visual viewport, the layout viewport, both, or neither, so the height
+ * is only trusted for *where* the keyboard edge is, never for *whether* to
+ * open. Read once per mount — the pointer type does not change under us.
+ */
+function readPrefersPanelOnFocus(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
 function readRootPixels(variableName: string): number {
   const value = Number.parseFloat(
     getComputedStyle(document.documentElement).getPropertyValue(variableName),
@@ -111,6 +135,10 @@ export function FloatingKeyboardBar({
   const animationGenerationRef = useRef(0);
   const focusOwnerRef = useRef<FocusOwner | null>(null);
   const reducedMotion = useReducedMotion();
+  const [prefersPanelOnFocus] = useState(readPrefersPanelOnFocus);
+  // `performance.now()` of the first frame the keyboard was seen open for the
+  // current panel session; null until then.
+  const keyboardSeenAtRef = useRef<number | null>(null);
   const panelY = useTransform(
     [progress, travelDistance],
     ([progressValue, distance]: number[]) =>
@@ -126,6 +154,10 @@ export function FloatingKeyboardBar({
   );
 
   const isPanelVariant = variant === "panel";
+  // Touch: focus alone opens the panel. Pointer/keyboard: the panel is only
+  // worth it when an on-screen keyboard is actually eating the viewport.
+  const shouldShowPanel =
+    isPanelVariant && isOwnFieldFocused && (prefersPanelOnFocus || isKeyboardOpen);
 
   useEffect(() => {
     const focusOwner: FocusOwner = {
@@ -142,10 +174,25 @@ export function FloatingKeyboardBar({
     }
 
     function handleFocusIn(event: FocusEvent): void {
-      if (isOwnInput(event.target)) {
-        claimFocus(focusOwner);
-        setIsOwnFieldFocused(true);
+      if (!isOwnInput(event.target)) {
+        return;
       }
+
+      claimFocus(focusOwner);
+
+      if (isPanelVariant && prefersPanelOnFocus && event.target !== floatingInputRef.current) {
+        // Hand focus to the floating input inside this same task, before the
+        // keyboard has started animating for the inline copy: iOS then opens
+        // the keyboard once, for the input that keeps it. Waiting for the
+        // keyboard measurement and refocusing mid-animation is what made
+        // WebKit dismiss and reopen — and, with the old blur-on-close, close
+        // the picker halfway through opening.
+        flushSync(() => setIsOwnFieldFocused(true));
+        floatingInputRef.current?.focus({ preventScroll: true });
+        return;
+      }
+
+      setIsOwnFieldFocused(true);
     }
 
     function handleFocusOut(event: FocusEvent): void {
@@ -176,15 +223,20 @@ export function FloatingKeyboardBar({
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", handleFocusOut);
     };
-  }, []);
+  }, [isPanelVariant, prefersPanelOnFocus]);
+
+  // Docked means the keyboard is up for this bar's own field — the same
+  // condition the render below uses to take the anchor.
+  const isBarDocked = !isPanelVariant && isKeyboardOpen && isOwnFieldFocused;
+  const isFloatingActive = shouldShowPanel || isBarDocked;
 
   useLayoutEffect(() => {
-    if (!isKeyboardOpen || !isOwnFieldFocused) {
+    if (!isFloatingActive) {
       return;
     }
 
     floatingInputRef.current?.focus({ preventScroll: true });
-  }, [isKeyboardOpen, isOwnFieldFocused]);
+  }, [isFloatingActive]);
 
   useLayoutEffect(() => {
     if (!isPanelVariant) {
@@ -196,7 +248,8 @@ export function FloatingKeyboardBar({
     const generation = animationGenerationRef.current + 1;
     animationGenerationRef.current = generation;
 
-    if (isKeyboardOpen && isOwnFieldFocused) {
+    if (shouldShowPanel) {
+      keyboardSeenAtRef.current = null;
       const inlineRect = inlineWrapperRef.current?.getBoundingClientRect();
       // Where the panel's own top edge lands, in the same (layout viewport)
       // coordinates `getBoundingClientRect` reports — see the portal below.
@@ -221,23 +274,23 @@ export function FloatingKeyboardBar({
     }
 
     if (
+      !prefersPanelOnFocus &&
       !isKeyboardOpen &&
       floatingInputRef.current &&
       document.activeElement === floatingInputRef.current
     ) {
       // Release the native input before the closing animation starts. Leaving
       // the floating input focused while the keyboard is disappearing can
-      // make mobile browsers reopen it when the portal is removed.
+      // make mobile browsers reopen it when the portal is removed. (On touch
+      // the panel is focus-driven, so it never closes on this signal; see the
+      // dismiss-grace effect below for the keyboard-swiped-away case.)
       floatingInputRef.current.blur();
     }
 
     const closingAnimation = animate(progress, 0, {
       ...transitions.base,
       onComplete: () => {
-        if (
-          animationGenerationRef.current !== generation ||
-          (isKeyboardOpen && isOwnFieldFocused)
-        ) {
+        if (animationGenerationRef.current !== generation || shouldShowPanel) {
           return;
         }
 
@@ -246,7 +299,45 @@ export function FloatingKeyboardBar({
       },
     });
     return () => closingAnimation.stop();
-  }, [isKeyboardOpen, isOwnFieldFocused, isPanelVariant, progress]);
+    // `isKeyboardOpen` is read, not depended on: re-running the opening branch
+    // on every keyboard flip would restart the animation and forget that the
+    // keyboard was already seen (see the dismiss grace below).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shouldShowPanel, isPanelVariant, prefersPanelOnFocus, progress]);
+
+  // Touch only: the keyboard is not what opens the panel, but the user can
+  // still dismiss it (swipe down, "Done") while the field keeps focus. Once
+  // the keyboard has been seen open for this panel, a *sustained* closed
+  // reading means exactly that, and blurring the field closes the picker
+  // through the normal focus path. A momentary closed frame is ignored.
+  useEffect(() => {
+    if (!prefersPanelOnFocus || !isPanelVariant || !isPanelMounted) {
+      return;
+    }
+
+    if (isKeyboardOpen) {
+      keyboardSeenAtRef.current ??= performance.now();
+      return;
+    }
+
+    const seenAt = keyboardSeenAtRef.current;
+    if (seenAt === null) {
+      return;
+    }
+
+    const isSettled = performance.now() - seenAt > KEYBOARD_SETTLE_MS;
+    const timeoutId = window.setTimeout(
+      () => {
+        const floatingInput = floatingInputRef.current;
+        if (floatingInput && document.activeElement === floatingInput) {
+          floatingInput.blur();
+        }
+      },
+      isSettled ? 0 : KEYBOARD_DISMISS_GRACE_MS,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isKeyboardOpen, isPanelMounted, isPanelVariant, prefersPanelOnFocus]);
 
   useLayoutEffect(() => {
     if (!isPanelMounted || !isOwnFieldFocused) {
@@ -276,10 +367,6 @@ export function FloatingKeyboardBar({
 
   useBodyScrollLock(isPanelVariant && isPanelMounted);
 
-  // Docked means the keyboard is up for this bar's own field — the same
-  // condition the render below uses to take the anchor.
-  const isBarDocked = !isPanelVariant && isKeyboardOpen && isOwnFieldFocused;
-
   // The inline copy stays in the document while the bar is docked, so it is
   // the anchor for finding the scroll container to freeze. Its ref moves to
   // `noopInputRef` once the keyboard is open (see `inlineControls` below).
@@ -289,11 +376,11 @@ export function FloatingKeyboardBar({
   );
 
   const isInlineHidden = isPanelVariant && isPanelMounted;
-  const isPanelOpening = isPanelVariant && isKeyboardOpen && !isPanelMounted;
+  const isPanelOpening = shouldShowPanel && !isPanelMounted;
 
   const inlineControls = renderControls({
     inputRef:
-      isKeyboardOpen || (isPanelVariant && isPanelMounted)
+      isKeyboardOpen || isPanelMounted || shouldShowPanel
         ? noopInputRef
         : inlineInputRef,
     preventFocusSteal,
@@ -313,7 +400,7 @@ export function FloatingKeyboardBar({
   });
 
   if (isPanelVariant) {
-    if (!isKeyboardOpen && !isPanelMounted) {
+    if (!shouldShowPanel && !isPanelMounted) {
       return <div ref={inlineWrapperRef}>{inlineControls}</div>;
     }
 
@@ -340,7 +427,7 @@ export function FloatingKeyboardBar({
                     // below the safe area and padding it again wastes a strip
                     // of the little height the keyboard leaves.
                     "flex h-full flex-col bg-card pt-[max(0px,calc(var(--safe-top)_-_var(--viewport-offset-top,0px)))]",
-                    isKeyboardOpen && isOwnFieldFocused
+                    shouldShowPanel
                       ? "pointer-events-auto"
                       : "pointer-events-none",
                     className,

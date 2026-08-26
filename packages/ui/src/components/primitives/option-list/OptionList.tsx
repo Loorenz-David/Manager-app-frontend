@@ -29,7 +29,12 @@ export function OptionList<TValue extends string = string>({
     <div
       id={listboxId}
       role="listbox"
-      className={cn("w-full overflow-y-auto outline-none", className)}
+      className={cn(
+        // Hairline between rows: long, wrapping labels otherwise read as one
+        // block. Kept light so the active/selected states stay the focus.
+        "w-full divide-y divide-border/60 overflow-y-auto outline-none",
+        className,
+      )}
     >
       {options.length === 0 ? (
         <div className="px-3 py-4 text-sm text-muted-foreground">
@@ -48,7 +53,7 @@ export function OptionList<TValue extends string = string>({
               aria-selected={isSelected}
               aria-disabled={option.disabled || undefined}
               className={cn(
-                "flex min-h-12 cursor-pointer items-center px-3 text-sm text-foreground",
+                "flex min-h-12 cursor-pointer items-center px-3 py-2 text-sm text-foreground",
                 isActive && "bg-muted",
                 isSelected && "font-medium",
                 option.disabled &&

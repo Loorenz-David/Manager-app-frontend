@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import type { RefObject } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -227,6 +227,110 @@ describe("FloatingKeyboardBar", () => {
     const motionPanel = motionContent?.parentElement;
     expect(motionContent?.style.clipPath).toBe("inset(0px 0px 0px 0px)");
     expect(motionPanel?.style.transform ?? "").toMatch(/^$|none|0px/);
+  });
+
+  describe("touch devices", () => {
+    function stubCoarsePointer(): void {
+      vi.stubGlobal("matchMedia", (query: string) => ({
+        matches: query === "(pointer: coarse)",
+        media: query,
+        addEventListener: () => undefined,
+        removeEventListener: () => undefined,
+      }));
+    }
+
+    afterEach(() => {
+      vi.useRealTimers();
+      vi.unstubAllGlobals();
+    });
+
+    it("opens the panel on focus alone and hands focus over synchronously", () => {
+      stubCoarsePointer();
+      render(
+        <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+      );
+
+      screen.getByTestId("inline-input").focus();
+
+      // No keyboard measurement yet — the picker must not fall back to the
+      // inline dropdown while iOS makes up its mind about the viewport.
+      const floatingInput = screen.getByTestId("floating-input");
+      expect(document.activeElement).toBe(floatingInput);
+    });
+
+    it("survives a transient keyboard-closed reading", async () => {
+      stubCoarsePointer();
+      vi.useFakeTimers();
+      const view = render(
+        <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+      );
+      const rerender = () =>
+        view.rerender(
+          <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+        );
+
+      screen.getByTestId("inline-input").focus();
+      const floatingInput = screen.getByTestId("floating-input");
+
+      keyboardState.isOpen = true;
+      rerender();
+      keyboardState.isOpen = false;
+      rerender();
+      act(() => vi.advanceTimersByTime(100));
+      keyboardState.isOpen = true;
+      rerender();
+      act(() => vi.advanceTimersByTime(1000));
+
+      expect(document.activeElement).toBe(floatingInput);
+      expect(screen.getByTestId("floating-input")).toBeTruthy();
+    });
+
+    it("closes immediately when the keyboard is dismissed after it settled", () => {
+      stubCoarsePointer();
+      vi.useFakeTimers();
+      const view = render(
+        <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+      );
+      const rerender = () =>
+        view.rerender(
+          <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+        );
+
+      screen.getByTestId("inline-input").focus();
+      const floatingInput = screen.getByTestId("floating-input");
+
+      keyboardState.isOpen = true;
+      rerender();
+      act(() => vi.advanceTimersByTime(1000));
+      keyboardState.isOpen = false;
+      rerender();
+      act(() => vi.advanceTimersByTime(0));
+
+      expect(document.activeElement).not.toBe(floatingInput);
+    });
+
+    it("closes once the keyboard stays dismissed while the field keeps focus", async () => {
+      stubCoarsePointer();
+      vi.useFakeTimers();
+      const view = render(
+        <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+      );
+      const rerender = () =>
+        view.rerender(
+          <FloatingKeyboardBar variant="panel" renderControls={renderControls} />,
+        );
+
+      screen.getByTestId("inline-input").focus();
+      const floatingInput = screen.getByTestId("floating-input");
+
+      keyboardState.isOpen = true;
+      rerender();
+      keyboardState.isOpen = false;
+      rerender();
+      act(() => vi.advanceTimersByTime(1000));
+
+      expect(document.activeElement).not.toBe(floatingInput);
+    });
   });
 
   it("keeps the default bar presentation available", () => {
