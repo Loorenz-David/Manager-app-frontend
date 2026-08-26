@@ -103,6 +103,14 @@ const TYPICAL_EMPTY_REASON = "no completed work to estimate from yet";
 const NO_BAND_REASON =
   "No usable price band yet — not enough completed work to anchor one.";
 
+/**
+ * Replaces "Below typical work" once the draft drops to or under the server's
+ * one-second floor. Below-typical is a judgement about margin; this is a
+ * different kind of answer — the price funds no work at all — and the chip is
+ * the only place on this screen that can say so.
+ */
+const INFEASIBLE_CHIP_LABEL = "Too low to cover any work";
+
 function formatMonthDay(value: Date): string {
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
@@ -682,11 +690,16 @@ export function useItemValuationController(
 
   const draft = draftState.draft;
   const coverage = resolveCoverage(draft, scenario.anchors);
-  const tone: PriceEditorTone = !coverage.showChip
-    ? "neutral"
-    : coverage.isCovered
-      ? "positive"
-      : "negative";
+  // Infeasible outranks the coverage verdict: it is the same red, but it must
+  // survive the branch where there is no break-even and the chip would
+  // otherwise be neutral, so the slider fill and the "at price" 0m read red too.
+  const tone: PriceEditorTone = coverage.isInfeasible
+    ? "negative"
+    : !coverage.showChip
+      ? "neutral"
+      : coverage.isCovered
+        ? "positive"
+        : "negative";
 
   const perPiece = formatPerPiece(draft, quantity);
   const purchaseCostMinor = scenario.saved?.purchase_cost_minor ?? null;
@@ -702,6 +715,7 @@ export function useItemValuationController(
         ? null
         : `purchased for ${formatPerPiece(purchaseCostMinor, quantity)}/pc · ${formatWholeItem(purchaseCostMinor)} ${currencyCode} total`,
     muted: variant === "saved-pristine",
+    danger: coverage.isInfeasible,
     // Tap-to-type (owner round 5): the seed is the rounded whole-kronor
     // per-piece figure; a typed commit is the same DRAG event a slider move
     // dispatches, whole-item minor. Typed values may land off the band grid —
@@ -799,10 +813,13 @@ export function useItemValuationController(
     headline,
     chip: coverage.showChip
       ? {
-          label: coverage.isCovered
-            ? "Covers typical work"
-            : "Below typical work",
+          label: coverage.isInfeasible
+            ? INFEASIBLE_CHIP_LABEL
+            : coverage.isCovered
+              ? "Covers typical work"
+              : "Below typical work",
           tone,
+          isWarning: coverage.isInfeasible,
         }
       : null,
     slider,

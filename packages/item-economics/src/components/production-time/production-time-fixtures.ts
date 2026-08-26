@@ -10,6 +10,8 @@
 
 import {
   buildActiveMetrics,
+  buildHeadlineCost,
+  buildInfeasibleNotice,
   buildOutlook,
   buildRowDetail,
   buildSegments,
@@ -108,7 +110,26 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
 function makeBudgetCard(
   inputs: RowInput[],
   budgetSeconds: number,
-  options: { isFinal?: boolean } = {},
+  options: {
+    isFinal?: boolean;
+    /** The served `production_budget_minor` of an `infeasible` task — negative. */
+    infeasibleBudgetMinor?: number | null;
+    /**
+     * Drops the "of …" term from both units, as an infeasible task does: there
+     * is no pot to quote and the banner above already states the shortfall.
+     */
+    withoutBudgetTerm?: boolean;
+    /**
+     * The served money trio, in the payload's own order. Omit it to model a
+     * worker or seller session, whose body carries no money at all and whose
+     * headline therefore does not offer the cost tap.
+     */
+    costMinor?: {
+      productionBudget: number;
+      consumed: number;
+      variance: number;
+    };
+  } = {},
 ): ProductionTimeCardViewModel {
   const rows = inputs.map((input) => makeRow(input, true));
   const totalWorked = rows.reduce((sum, row) => sum + row.workedSeconds, 0);
@@ -132,14 +153,32 @@ function makeBudgetCard(
   return {
     headline: {
       workedLabel: formatWorkSeconds(totalWorked),
-      budgetLabel: `of ${formatWorkSeconds(budgetSeconds)}`,
+      budgetLabel: options.withoutBudgetTerm
+        ? null
+        : `of ${formatWorkSeconds(budgetSeconds)}`,
       remainingLabel:
         remainingSeconds >= 0
           ? `${formatWorkSeconds(remainingSeconds)} left`
           : `${formatWorkSeconds(-remainingSeconds)} over`,
       isOverBudget: remainingSeconds < 0,
       isFinal,
+      cost:
+        isFinal || options.costMinor === undefined
+          ? null
+          : buildHeadlineCost(
+              options.withoutBudgetTerm
+                ? null
+                : options.costMinor.productionBudget,
+              options.costMinor.consumed,
+              options.costMinor.variance,
+            ),
     },
+    infeasibleNotice:
+      options.infeasibleBudgetMinor === undefined
+        ? null
+        : // The pot in both units: `budgetSeconds` is the served negative
+          // allowance, the same money divided by the evaluation's rate.
+          buildInfeasibleNotice(options.infeasibleBudgetMinor, budgetSeconds),
     segments,
     remainderPercent,
     outlook,
@@ -184,10 +223,20 @@ const MOCKUP_ROWS: RowInput[] = [
   },
 ];
 
-/** The approved mockup: 2h 55m of 3h 15m, 20m left, Upholstery in progress. */
+/**
+ * The approved mockup: 2h 55m of 3h 15m, 20m left, Upholstery in progress.
+ * Served with money, so its headline also carries the cost reading behind the
+ * tap — 2 278,50 kr of 2 539 kr at roughly 13,02 kr a worker-minute.
+ */
 export const productionTimeMockupFixture: ProductionTimeViewModel = {
   kind: "budget",
-  card: makeBudgetCard(MOCKUP_ROWS, 11_700),
+  card: makeBudgetCard(MOCKUP_ROWS, 11_700, {
+    costMinor: {
+      productionBudget: 253_900,
+      consumed: 227_850,
+      variance: 26_050,
+    },
+  }),
 };
 
 /**
@@ -257,6 +306,14 @@ export const productionTimeOverBudgetFixture: ProductionTimeViewModel = {
       },
     ],
     11_700,
+    // 4h worked against a 3h 15m pot: 3 124,80 kr spent, 585,80 kr over.
+    {
+      costMinor: {
+        productionBudget: 253_900,
+        consumed: 312_480,
+        variance: -58_580,
+      },
+    },
   ),
 };
 
@@ -377,6 +434,83 @@ export const productionTimeProjectedOverrunFixture: ProductionTimeViewModel = {
       },
     ],
     16_589,
+  ),
+};
+
+/**
+ * An `infeasible` task: the item's non-labour costs came to 500,00 kr more
+ * than its sale price, so the pot was negative before any division and every
+ * section's slice is a legitimate 0m. Taken from a real payload
+ * (`tsk_01M0J44TAJ66HDF600CNV7YB8E`, 2026-08-26) together with the money block
+ * of the handoff's worked example.
+ *
+ * The one case where the notice carries the whole meaning of the card — the
+ * figures under it are all zeros and say nothing on their own. The headline
+ * quotes no budget in either unit, since there is none to quote.
+ */
+export const productionTimeInfeasibleFixture: ProductionTimeViewModel = {
+  kind: "budget",
+  card: makeBudgetCard(
+    [
+      {
+        key: "wsec-cleaning-wood",
+        label: "cleaning wood",
+        state: "completed",
+        workedSeconds: 3781,
+        allowanceSeconds: 0,
+        typicalSeconds: 2462,
+        shareState: "over_share",
+      },
+      {
+        key: "wsec-wood-fix",
+        label: "wood fix",
+        state: "completed",
+        workedSeconds: 0,
+        allowanceSeconds: 0,
+        typicalSeconds: 1980,
+      },
+      {
+        key: "wsec-ground-oil",
+        label: "ground oil",
+        state: "completed",
+        workedSeconds: 147,
+        allowanceSeconds: 0,
+        typicalSeconds: 338,
+        shareState: "over_share",
+      },
+      {
+        key: "wsec-hardwax-oil",
+        label: "hardwax oil",
+        state: "completed",
+        workedSeconds: 148,
+        allowanceSeconds: 0,
+        typicalSeconds: 246,
+        shareState: "over_share",
+      },
+      {
+        key: "wsec-photography",
+        label: "photography",
+        state: "pending",
+        workedSeconds: 0,
+        allowanceSeconds: 0,
+        pressureSeconds: 0,
+        typicalSeconds: 460,
+      },
+    ],
+    // −38.40 worker-minutes. Negative, deliberately unclamped: it is what makes
+    // the headline read "of 0m" with "1h 46m over" beside it.
+    -2304,
+    {
+      infeasibleBudgetMinor: -50_000,
+      withoutBudgetTerm: true,
+      // The handoff's worked example: a −500,00 kr pot, 884,56 kr of time
+      // already spent against it, 1 384,56 kr over.
+      costMinor: {
+        productionBudget: -50_000,
+        consumed: 88_456,
+        variance: -138_456,
+      },
+    },
   ),
 };
 

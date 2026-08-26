@@ -14,6 +14,7 @@ import {
   productionTimeEdgeCasesFixture,
   productionTimeEmptyFixture,
   productionTimeFiveStageFixture,
+  productionTimeInfeasibleFixture,
   productionTimeLongPipelineFixture,
   productionTimeMockupFixture,
   productionTimeNotEvaluatedFixture,
@@ -192,6 +193,142 @@ describe("ProductionTimeCard — budget state", () => {
       "bg-[#fff3f1]",
       "text-[#b9382a]",
     );
+  });
+
+  it("explains an infeasible task above the figures it makes sense of", () => {
+    render(<ProductionTimeCard viewModel={productionTimeInfeasibleFixture} />);
+
+    const notice = screen.getByTestId("production-time-infeasible-notice");
+    expect(notice).toHaveTextContent(
+      /^No time budget to allocateCosts already exceed the sale price by 500 kr \(about 38m of work\), so there is nothing left for labour\.$/,
+    );
+    // Both figures are emphasised: the time equivalent is what makes the
+    // headline's "1h 46m over" reconcile with its "1h 7m" worked.
+    expect(
+      within(notice)
+        .getAllByTestId("production-time-infeasible-figure")
+        .map((node) => node.textContent),
+    ).toEqual(["500\u00a0kr", "38m"]);
+
+    // Above the headline: the reason has to precede the zeros it explains.
+    const headline = screen.getByTestId("production-time-headline");
+    expect(
+      notice.compareDocumentPosition(headline) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // No "of 0m": a floored zero reads as missing data, and the banner has
+    // already said there is no budget.
+    expect(
+      screen.queryByTestId("production-time-headline-budget"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("production-time-headline-remaining"),
+    ).toHaveTextContent("1h 46m over");
+  });
+
+  it("leaves a feasible task without the infeasible notice", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    expect(
+      screen.queryByTestId("production-time-infeasible-notice"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("starts on time and turns the headline over to cost on tap", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    const headline = screen.getByTestId("production-time-headline");
+    expect(headline).toHaveAttribute("data-mode", "time");
+    expect(headline).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(headline);
+
+    expect(headline).toHaveAttribute("data-mode", "cost");
+    expect(headline).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByTestId("production-time-headline-cost-worked"),
+    ).toHaveTextContent("2 278,50 kr");
+    expect(
+      screen.getByTestId("production-time-headline-cost-budget"),
+    ).toHaveTextContent("of 2 539 kr");
+    expect(
+      screen.getByTestId("production-time-headline-cost-remaining"),
+    ).toHaveTextContent("260,50 kr left");
+
+    await user.click(headline);
+    expect(headline).toHaveAttribute("data-mode", "time");
+  });
+
+  it("keeps both readings mounted so the swap cannot reflow the row", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    // The time layer stays in the DOM behind the cost one — the stack is what
+    // holds the row's width steady across the tap.
+    const layers = screen
+      .getByTestId("production-time-headline")
+      .querySelectorAll("[data-mode='time'], [data-mode='cost']");
+    expect(layers).toHaveLength(4);
+    layers.forEach((layer) => {
+      expect(layer).toHaveClass("col-start-1", "row-start-1");
+      // `translate`, not `transform`: Tailwind v4 compiles `translate-y-*` to
+      // the standalone property, so naming `transform` here would leave the
+      // movement un-animated while the fade ran — a silent, visual-only break.
+      expect(layer).toHaveClass("transition-[opacity,translate]");
+      expect(layer.className).not.toMatch(/transition-\[[^\]]*transform/);
+    });
+  });
+
+  it("shows an overrun in the danger tone in either unit", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeOverBudgetFixture} />);
+
+    expect(
+      screen.getByTestId("production-time-headline-remaining"),
+    ).toHaveClass("text-[#b9382a]", "font-medium");
+
+    await user.click(screen.getByTestId("production-time-headline"));
+
+    const costRemaining = screen.getByTestId(
+      "production-time-headline-cost-remaining",
+    );
+    expect(costRemaining).toHaveTextContent("585,80 kr over");
+    expect(costRemaining).toHaveClass("text-[#b9382a]", "font-medium");
+  });
+
+  it("quotes no budget in either unit when there is none to quote", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeInfeasibleFixture} />);
+
+    expect(
+      screen.queryByTestId("production-time-headline-budget"),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("production-time-headline"));
+
+    // "884,56 kr … 1 384,56 kr over" with no middle term. A served "of −500 kr"
+    // would read as the subtraction the row is not doing.
+    expect(
+      screen.getByTestId("production-time-headline-cost-worked"),
+    ).toHaveTextContent("884,56 kr");
+    expect(
+      screen.queryByTestId("production-time-headline-cost-budget"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("production-time-headline-cost-remaining"),
+    ).toHaveTextContent("1 384,56 kr over");
+  });
+
+  it("offers no tap when the session was served no money", () => {
+    render(
+      <ProductionTimeCard viewModel={productionTimeProjectedOverrunFixture} />,
+    );
+
+    const headline = screen.getByTestId("production-time-headline");
+    expect(headline.tagName).toBe("DIV");
+    expect(
+      screen.queryByTestId("production-time-headline-cost-worked"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders the headline, the bar and the pipeline in payload order", () => {

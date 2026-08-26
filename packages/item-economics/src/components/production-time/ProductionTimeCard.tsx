@@ -8,6 +8,7 @@ import {
 import { ProductionTimeBudgetBar } from "./ProductionTimeBudgetBar";
 import { ProductionTimeFrame } from "./ProductionTimeFrame";
 import { ProductionTimeHeadline } from "./ProductionTimeHeadline";
+import { ProductionTimeInfeasibleNotice } from "./ProductionTimeInfeasibleNotice";
 import { ProductionTimeNoBudgetCard } from "./ProductionTimeNoBudgetCard";
 import { ProductionTimeOutlook } from "./ProductionTimeOutlook";
 import { ProductionTimeRow } from "./ProductionTimeRow";
@@ -33,6 +34,10 @@ function ProductionTimeBudgetBody({
   return (
     <>
       <div className="flex flex-col gap-3 px-4 py-4">
+        {/* Above the figures, not below: it is the reason they are zero. */}
+        {card.infeasibleNotice ? (
+          <ProductionTimeInfeasibleNotice notice={card.infeasibleNotice} />
+        ) : null}
         <ProductionTimeHeadline headline={card.headline} />
         <ProductionTimeBudgetBar
           remainderPercent={card.remainderPercent}

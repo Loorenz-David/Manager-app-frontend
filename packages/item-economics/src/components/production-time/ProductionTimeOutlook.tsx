@@ -2,7 +2,10 @@ import { TriangleAlert } from "lucide-react";
 import { cn } from "@beyo/lib";
 
 import type { ProductionTimeOutlookViewModel } from "../../lib/production-time-view-model";
-import { PRODUCTION_TIME_DANGER_TEXT } from "./production-time-tone";
+import {
+  PRODUCTION_TIME_DANGER_SURFACE,
+  PRODUCTION_TIME_DANGER_TEXT,
+} from "./production-time-tone";
 
 export type ProductionTimeOutlookProps = {
   outlook: ProductionTimeOutlookViewModel;
@@ -20,7 +23,8 @@ export function ProductionTimeOutlook({
   return (
     <p
       className={cn(
-        "flex items-start gap-2 rounded-lg border border-current bg-[#fff3f1] px-3 py-2 text-xs leading-5",
+        "flex items-start gap-2 rounded-lg border border-current px-3 py-2 text-xs leading-5",
+        PRODUCTION_TIME_DANGER_SURFACE,
         PRODUCTION_TIME_DANGER_TEXT,
       )}
       data-testid="production-time-outlook"

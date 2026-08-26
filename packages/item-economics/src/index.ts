@@ -83,10 +83,13 @@ export { parseErrorIdentity } from "./lib/error-identity";
 export {
   PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS,
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
+  buildHeadlineCost,
+  buildInfeasibleNotice,
   buildOutlook,
   buildRowDetail,
   buildSegments,
   formatPassCount,
+  formatProductionCostMinor,
   formatWorkSeconds,
   humanizeSectionState,
   selectAnchorRowIndex,
@@ -94,7 +97,9 @@ export {
 } from "./lib/production-time-view-model";
 export type {
   ProductionTimeCardViewModel,
+  ProductionTimeHeadlineCostViewModel,
   ProductionTimeHeadlineViewModel,
+  ProductionTimeInfeasibleNoticeViewModel,
   ProductionTimeNoBudgetViewModel,
   ProductionTimeOutlookInput,
   ProductionTimeOutlookViewModel,
@@ -110,10 +115,14 @@ export {
   ProductionTimeCard,
   ProductionTimeCardSkeleton,
   ProductionTimeFrame,
+  ProductionTimeInfeasibleNotice,
   PRODUCTION_TIME_TONE_FILL,
   PRODUCTION_TIME_TONE_VARIANT,
 } from "./components/production-time";
-export type { ProductionTimeCardProps } from "./components/production-time";
+export type {
+  ProductionTimeCardProps,
+  ProductionTimeInfeasibleNoticeProps,
+} from "./components/production-time";
 export { ProductionTimeSection } from "./components/production-time/ProductionTimeSection";
 export type { ProductionTimeSectionProps } from "./components/production-time/ProductionTimeSection";
 

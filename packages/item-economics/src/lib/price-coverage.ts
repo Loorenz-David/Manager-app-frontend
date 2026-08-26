@@ -12,20 +12,49 @@ import type { PriceScenarioAnchors } from "../types";
 export function resolveCoverage(
   draftMinor: number,
   anchors: PriceScenarioAnchors | null,
-): { showChip: boolean; isCovered: boolean; markerMinor: number | null } {
-  // No anchors, nothing fundable, or no break-even to compare against: the chip
-  // and the marker are not rendered, and the screen claims no coverage.
-  if (
-    anchors === null ||
-    !anchors.is_fundable ||
-    anchors.break_even_price_minor === null
-  ) {
-    return { showChip: false, isCovered: false, markerMinor: null };
+): {
+  showChip: boolean;
+  isCovered: boolean;
+  isInfeasible: boolean;
+  markerMinor: number | null;
+} {
+  // No anchors at all: nothing to judge the draft against.
+  if (anchors === null) {
+    return {
+      showChip: false,
+      isCovered: false,
+      isInfeasible: false,
+      markerMinor: null,
+    };
+  }
+
+  // Infeasibility is decided on its own, ahead of coverage, and never from
+  // `is_fundable`. That flag is only `break_even is not None`, which the server
+  // also returns null for a task with no typical sample yet — a perfectly
+  // feasible item we simply cannot break even against. `infeasible_at_or_below`
+  // is always served and always means the same thing: at or below it the price
+  // funds not one second of work.
+  const isInfeasible = draftMinor <= anchors.infeasible_at_or_below_minor;
+
+  // Nothing to break even against. The chip still speaks when the price funds
+  // no work at all — that is knowable without a break-even, and it is the one
+  // state the screen must never leave unsaid. The marker stays hidden, as
+  // before: a suggestion needs the anchor this branch is missing.
+  if (!anchors.is_fundable || anchors.break_even_price_minor === null) {
+    return {
+      showChip: isInfeasible,
+      isCovered: false,
+      isInfeasible,
+      markerMinor: null,
+    };
   }
 
   return {
     showChip: true,
+    // Break-even funds the whole typical, so it always sits above the
+    // one-second floor: covered and infeasible cannot both be true here.
     isCovered: draftMinor >= anchors.break_even_price_minor,
+    isInfeasible,
     // Independently nullable — a null suggestion hides the marker alone.
     markerMinor: anchors.suggested_price_minor,
   };

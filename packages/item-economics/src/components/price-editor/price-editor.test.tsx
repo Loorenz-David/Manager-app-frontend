@@ -187,6 +187,33 @@ describe("price editor scenes (criterion 51 — one row per closed fixture)", ()
     ).not.toBeInTheDocument();
   });
 
+  it("11a. editor-infeasible: warning chip and a red headline, not 'Below typical work'", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-infeasible"]);
+
+    const chip = screen.getByTestId("item-valuation-chip");
+    expect(chip).toHaveTextContent("Too low to cover any work");
+    expect(chip).not.toHaveTextContent("Below typical work");
+    expect(chip).toHaveAttribute("data-warning", "true");
+    expect(chip).toHaveAttribute("data-tone", "negative");
+
+    // The headline carries the shortfall red — the signal the slider cannot
+    // give, because a typed price sits outside the band it can render.
+    expect(screen.getByTestId("item-valuation-per-piece").className).toContain(
+      "text-[#b9382a]",
+    );
+  });
+
+  it("11b. a merely-below-typical price keeps the milder chip, with no icon", () => {
+    renderScene(PRICE_EDITOR_FIXTURES["editor-unpriced-pristine"]);
+
+    const chip = screen.getByTestId("item-valuation-chip");
+    expect(chip).toHaveTextContent("Below typical work");
+    expect(chip).not.toHaveAttribute("data-warning");
+    expect(screen.getByTestId("item-valuation-per-piece").className).not.toContain(
+      "text-[#b9382a]",
+    );
+  });
+
   it("12. editor-empty-typical: reason text, never a zero duration", () => {
     renderScene(PRICE_EDITOR_FIXTURES["editor-empty-typical"]);
     const typical = screen.getByTestId("item-valuation-typical");

@@ -18,6 +18,7 @@ describe("resolveCoverage (M7)", () => {
     expect(resolveCoverage(1211335, ANCHORS)).toEqual({
       showChip: true,
       isCovered: true,
+      isInfeasible: false,
       markerMinor: 1215000,
     });
   });
@@ -53,8 +54,54 @@ describe("resolveCoverage (M7)", () => {
     expect(resolveCoverage(1_500_000, null)).toEqual({
       showChip: false,
       isCovered: false,
+      isInfeasible: false,
       markerMinor: null,
     });
+  });
+
+  it("flags a draft at the infeasible floor, and one minor unit above it", () => {
+    // 29 is the reference model's floor: at or below it the price funds not
+    // one second, so 29 is infeasible and 30 is the first feasible figure.
+    expect(resolveCoverage(29, ANCHORS).isInfeasible).toBe(true);
+    expect(resolveCoverage(30, ANCHORS).isInfeasible).toBe(false);
+  });
+
+  it("shows the chip for an infeasible draft even with no break-even", () => {
+    // A task with no typical sample yet: `is_fundable` is false and the
+    // break-even is null, but the price still funds no work — the one state
+    // that used to render nothing at all.
+    const noSample = PriceScenarioAnchorsSchema.parse({
+      ...ANCHORS,
+      is_fundable: false,
+      break_even_price_minor: null,
+      suggested_price_minor: null,
+    });
+
+    expect(resolveCoverage(10, noSample)).toEqual({
+      showChip: true,
+      isCovered: false,
+      isInfeasible: true,
+      markerMinor: null,
+    });
+  });
+
+  it("stays silent for a feasible draft that merely has no break-even", () => {
+    const noSample = PriceScenarioAnchorsSchema.parse({
+      ...ANCHORS,
+      is_fundable: false,
+      break_even_price_minor: null,
+    });
+
+    expect(resolveCoverage(1_500_000, noSample).showChip).toBe(false);
+  });
+
+  it("never reports an infeasible draft as covered", () => {
+    // Break-even funds the whole typical, so it sits above the one-second
+    // floor by construction — the two verdicts cannot collide.
+    const coverage = resolveCoverage(29, ANCHORS);
+
+    expect(coverage.isInfeasible).toBe(true);
+    expect(coverage.isCovered).toBe(false);
   });
 
   it("keeps the chip and drops only the marker when the suggestion is null", () => {
@@ -66,6 +113,7 @@ describe("resolveCoverage (M7)", () => {
     expect(resolveCoverage(1_500_000, noSuggestion)).toEqual({
       showChip: true,
       isCovered: true,
+      isInfeasible: false,
       markerMinor: null,
     });
   });

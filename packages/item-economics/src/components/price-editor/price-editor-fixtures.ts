@@ -30,6 +30,7 @@ export type PriceEditorFixtureName =
   | "bootstrap-error"
   | "blocked"
   | "unbound"
+  | "editor-infeasible"
   | "editor-no-band"
   | "editor-non-fundable"
   | "editor-empty-typical"
@@ -181,6 +182,47 @@ export const PRICE_EDITOR_FIXTURES: Record<
     table: { ...TABLE_BASE, atPrice: "3h 13m", atPriceTone: "negative" },
     footer: {
       saveLabel: "Save 1 900 SEK / pc",
+      isSaveDisabled: false,
+      onSavePress: noop,
+      suggestedLabel: "Use suggested 2 025 SEK / pc",
+      onSuggestedPress: noop,
+    },
+  },
+
+  // The price funds no work at all: the chip says so with its warning icon
+  // instead of the milder "Below typical work", and the headline goes red.
+  "editor-infeasible": {
+    name: "editor-infeasible",
+    frame: FRAME,
+    provenance: {
+      avatarKind: "user",
+      avatarName: "You",
+      label: "You",
+      detail: "unsaved · just now",
+      backLabel: "Back to 1 625",
+      onBackPress: noop,
+    },
+    headline: {
+      perPiece: "40",
+      currencyCode: "SEK",
+      piecesLine: "× 6 pieces · 240 SEK total",
+      purchaseLine: "purchased for 475/pc · 2 850 SEK total",
+      danger: true,
+    },
+    chip: {
+      label: "Too low to cover any work",
+      tone: "negative",
+      isWarning: true,
+    },
+    slider: {
+      ...SLIDER_BASE,
+      // Below the band entirely — a typed price, which the slider clamps.
+      fraction: 0,
+      tone: "negative",
+    },
+    table: { ...TABLE_BASE, atPrice: "0m", atPriceTone: "negative" },
+    footer: {
+      saveLabel: "Save 40 SEK / pc",
       isSaveDisabled: false,
       onSavePress: noop,
       suggestedLabel: "Use suggested 2 025 SEK / pc",

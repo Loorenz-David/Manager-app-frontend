@@ -91,6 +91,19 @@ export type ProductionTimeSegmentViewModel = {
   widthPercent: number;
 };
 
+/**
+ * The money reading of the same three figures, shown when the headline is
+ * tapped. Deliberately the same shape as the time side: the two are one row in
+ * two units, and anything that renders one must be able to render the other.
+ */
+export type ProductionTimeHeadlineCostViewModel = {
+  workedLabel: string;
+  /** "of 2 540 kr". Null when the pot itself was not served. */
+  budgetLabel: string | null;
+  remainingLabel: string | null;
+  isOverBudget: boolean;
+};
+
 export type ProductionTimeHeadlineViewModel = {
   workedLabel: string;
   /** Already includes the preposition: "of 3h 15m". Null when there is no budget. */
@@ -99,6 +112,11 @@ export type ProductionTimeHeadlineViewModel = {
   isOverBudget: boolean;
   /** The headline came from `final` — the task is closed and the numbers are frozen. */
   isFinal: boolean;
+  /**
+   * Null disables the tap entirely: this role was served no money, or the task
+   * is closed and its frozen time must not be paired with live cost.
+   */
+  cost: ProductionTimeHeadlineCostViewModel | null;
 };
 
 /**
@@ -119,8 +137,29 @@ export type ProductionTimeOutlookViewModel = {
   projectedOverrunSeconds: number;
 };
 
+/**
+ * The banner above the headline on an `infeasible` task: there is no time to
+ * divide because the item's non-labour costs already consume the sale price.
+ *
+ * The sentence is split so the amount can be emphasised without the renderer
+ * having to parse copy back out of a string.
+ */
+export type ProductionTimeNoticeSegment = {
+  text: string;
+  /** A served figure, emphasised in the rendering. */
+  emphasis: boolean;
+};
+
+export type ProductionTimeInfeasibleNoticeViewModel = {
+  title: string;
+  /** The sentence in order, so the renderer never parses copy back out of a string. */
+  body: readonly ProductionTimeNoticeSegment[];
+};
+
 export type ProductionTimeCardViewModel = {
   headline: ProductionTimeHeadlineViewModel;
+  /** Non-null only for `infeasible` — the task has no pot to divide at all. */
+  infeasibleNotice: ProductionTimeInfeasibleNoticeViewModel | null;
   segments: ProductionTimeSegmentViewModel[];
   /** Hatched tail. 0 once the budget is fully consumed. */
   remainderPercent: number;
@@ -501,6 +540,156 @@ export function buildOutlook(
     )} over budget`,
     remainingCommitmentSeconds,
     projectedOverrunSeconds,
+  };
+}
+
+// Swedish grouping, fixed rather than device-derived: the figure is in the
+// workspace's currency regardless of the phone's locale. `production-time`
+// serves no currency field (handoff §"Response shape"), so the suffix is the
+// workspace's — the same assumption, and the same formatter settings, as the
+// budget-signal footer in `task-budget-overrun.ts`.
+//
+// Öre are all-or-nothing: "500 kr" and "884,56 kr" are both ordinary, while the
+// one-decimal "2 278,5 kr" a plain 0..2 range would produce for a round-öre
+// amount reads as a typo.
+const productionCostWholeFormatter = new Intl.NumberFormat("sv-SE", {
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+const productionCostOreFormatter = new Intl.NumberFormat("sv-SE", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/**
+ * Integer minor units (öre) → "1 384,56 kr". Display only.
+ *
+ * The space before the suffix is a non-breaking one, as is the group separator
+ * sv-SE already emits: the amount is a single token and must never be split
+ * across lines mid-sentence, least of all leaving a bare "kr" on the next one.
+ */
+export function formatProductionCostMinor(minor: number): string {
+  const formatter =
+    minor % 100 === 0
+      ? productionCostWholeFormatter
+      : productionCostOreFormatter;
+
+  return `${formatter.format(minor / 100)}\u00a0kr`;
+}
+
+/**
+ * The headline's money side, straight from the served trio. Nothing is derived
+ * from seconds and a rate, and nothing is clamped: a negative pot is the whole
+ * point of `infeasible` and reads as a negative budget here too.
+ *
+ * Returns null — which is what removes the tap affordance — whenever the cost
+ * of the worked time was not served, the case for every worker and seller
+ * session, since the money keys are absent from those bodies entirely.
+ */
+export function buildHeadlineCost(
+  productionBudgetMinor: number | null | undefined,
+  consumedCostMinor: number | null | undefined,
+  varianceCostMinor: number | null | undefined,
+): ProductionTimeHeadlineCostViewModel | null {
+  if (typeof consumedCostMinor !== "number") {
+    return null;
+  }
+
+  const hasVariance = typeof varianceCostMinor === "number";
+
+  return {
+    workedLabel: formatProductionCostMinor(consumedCostMinor),
+    budgetLabel:
+      typeof productionBudgetMinor === "number"
+        ? `of ${formatProductionCostMinor(productionBudgetMinor)}`
+        : null,
+    remainingLabel: !hasVariance
+      ? null
+      : varianceCostMinor < 0
+        ? `${formatProductionCostMinor(-varianceCostMinor)} over`
+        : `${formatProductionCostMinor(varianceCostMinor)} left`,
+    // The served sign is the verdict — `variance_cost_minor < 0` *is* the
+    // overflow signal (handoff §3), never a comparison we make ourselves.
+    isOverBudget: hasVariance && varianceCostMinor < 0,
+  };
+}
+
+const INFEASIBLE_NOTICE_TITLE = "No time budget to allocate";
+const INFEASIBLE_NOTICE_TAIL = ", so there is nothing left for labour.";
+
+/**
+ * Explains an `infeasible` task before the reader tries to make sense of the
+ * figures under it. The status means exactly `allowed_worker_minutes <= 0`: the
+ * item's other costs consumed the sale price, so the division had nothing to
+ * hand out and every section's slice is legitimately 0m.
+ *
+ * Both figures are served, not derived. The shortfall is `production_budget_minor`
+ * negated — a negative pot *is* the shortfall — and its time equivalent is
+ * `allowed_worker_minutes` negated, which is that same money divided by the
+ * evaluation's rate on the server. Naming the second is what makes the headline
+ * add up: the over-figure there counts this shortfall *plus* the work actually
+ * done, so without it a reader sees "1h 7m worked, 1h 46m over" and no way to
+ * reconcile the two.
+ *
+ * Each figure drops out on its own terms — money whenever the role was served
+ * none (worker and seller bodies carry no money keys), time whenever the pot
+ * landed at exactly zero, where there is no shortfall to name in either unit.
+ */
+export function buildInfeasibleNotice(
+  productionBudgetMinor: number | null | undefined,
+  allowedWorkerSeconds: number | null,
+): ProductionTimeInfeasibleNoticeViewModel {
+  const shortfallMinor =
+    typeof productionBudgetMinor === "number" && productionBudgetMinor < 0
+      ? -productionBudgetMinor
+      : null;
+  const shortfallSeconds =
+    allowedWorkerSeconds !== null && allowedWorkerSeconds < 0
+      ? -allowedWorkerSeconds
+      : null;
+
+  if (shortfallMinor !== null) {
+    return {
+      title: INFEASIBLE_NOTICE_TITLE,
+      body: [
+        { text: "Costs already exceed the sale price by ", emphasis: false },
+        { text: formatProductionCostMinor(shortfallMinor), emphasis: true },
+        ...(shortfallSeconds === null
+          ? []
+          : [
+              { text: " (about ", emphasis: false },
+              { text: formatWorkSeconds(shortfallSeconds), emphasis: true },
+              { text: " of work)", emphasis: false },
+            ]),
+        { text: INFEASIBLE_NOTICE_TAIL, emphasis: false },
+      ],
+    };
+  }
+
+  // Money-free, for the roles served no money: the time equivalent says the
+  // same thing in the unit they do get, so the sentence keeps its figure.
+  if (shortfallSeconds !== null) {
+    return {
+      title: INFEASIBLE_NOTICE_TITLE,
+      body: [
+        {
+          text: "Costs already exceed the sale price by about ",
+          emphasis: false,
+        },
+        { text: formatWorkSeconds(shortfallSeconds), emphasis: true },
+        { text: ` of work${INFEASIBLE_NOTICE_TAIL}`, emphasis: false },
+      ],
+    };
+  }
+
+  return {
+    title: INFEASIBLE_NOTICE_TITLE,
+    body: [
+      {
+        text: `Costs already take up the whole sale price${INFEASIBLE_NOTICE_TAIL}`,
+        emphasis: false,
+      },
+    ],
   };
 }
 

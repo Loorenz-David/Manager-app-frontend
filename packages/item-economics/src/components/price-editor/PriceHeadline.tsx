@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import { useVisualViewport } from "@beyo/hooks";
 import { cn } from "@beyo/lib";
 
+import { PRICE_EDITOR_TONE_TEXT } from "./price-editor-tone";
+
 export type PriceHeadlineProps = {
   /** Formatted per-piece amount, e.g. "2 225" — never a raw number. */
   perPiece: string;
@@ -14,6 +16,12 @@ export type PriceHeadlineProps = {
   purchaseLine: string | null;
   /** The saved-version state renders the number muted (mockup 3). */
   muted?: boolean;
+  /**
+   * The infeasible state renders the number in the shortfall red. It outranks
+   * `muted`: a saved price that funds no work is the one thing on this screen
+   * that must not read as settled.
+   */
+  danger?: boolean;
   /**
    * Digits-only seed for the tap-to-type editor, e.g. "4524" (owner round 5).
    * Editing is enabled only when both this and `onPerPieceCommit` are present.
@@ -42,6 +50,7 @@ export function PriceHeadline({
   piecesLine,
   purchaseLine,
   muted = false,
+  danger = false,
   perPieceDigits = null,
   onPerPieceCommit,
 }: PriceHeadlineProps): React.JSX.Element {
@@ -99,7 +108,11 @@ export function PriceHeadline({
 
   const amountClassName = cn(
     "text-6xl font-bold tabular-nums leading-none",
-    muted ? "text-muted-foreground" : "text-foreground",
+    danger
+      ? PRICE_EDITOR_TONE_TEXT.negative
+      : muted
+        ? "text-muted-foreground"
+        : "text-foreground",
   );
 
   return (

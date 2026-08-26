@@ -19,6 +19,11 @@ const moneyFormatter = new Intl.NumberFormat("sv-SE", {
   maximumFractionDigits: 2,
 });
 
+/**
+ * Non-breaking space before the suffix, matching the group separator sv-SE
+ * already emits: an amount is one token and must never wrap, least of all
+ * leaving a bare "kr" alone on the next line.
+ */
 function formatCost(
   minor: number,
   currency: TaskBudgetSignalCurrency,
@@ -26,7 +31,7 @@ function formatCost(
   const suffix = currencySuffix[currency];
   return suffix === null
     ? null
-    : `${moneyFormatter.format(minor / 100)} ${suffix}`;
+    : `${moneyFormatter.format(minor / 100)}\u00a0${suffix}`;
 }
 
 /**

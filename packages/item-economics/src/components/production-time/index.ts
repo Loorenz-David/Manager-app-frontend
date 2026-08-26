@@ -2,6 +2,8 @@ export { ProductionTimeCard } from "./ProductionTimeCard";
 export type { ProductionTimeCardProps } from "./ProductionTimeCard";
 export { ProductionTimeCardSkeleton } from "./ProductionTimeCardSkeleton";
 export { ProductionTimeFrame } from "./ProductionTimeFrame";
+export { ProductionTimeInfeasibleNotice } from "./ProductionTimeInfeasibleNotice";
+export type { ProductionTimeInfeasibleNoticeProps } from "./ProductionTimeInfeasibleNotice";
 export { ProductionTimeOutlook } from "./ProductionTimeOutlook";
 export type { ProductionTimeOutlookProps } from "./ProductionTimeOutlook";
 export {

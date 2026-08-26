@@ -2,6 +2,8 @@ import type { ItemEconomicsStatus, TaskProductionTime } from "../types";
 import {
   buildOutlook,
   buildActiveMetrics,
+  buildHeadlineCost,
+  buildInfeasibleNotice,
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
@@ -234,19 +236,52 @@ export function toProductionTimeViewModel(
         remainingSeconds,
       );
 
+  // An infeasible task has no pot for the headline to quote. Both readings of
+  // it mislead: the time floors at "of 0m", which looks like missing data, and
+  // the money shows "of −500 kr", which turns the row into an apparent
+  // subtraction — worked minus budget — that is not what the figures mean. The
+  // banner above already states the shortfall in full, so the budget term is
+  // dropped from both units and the headline says what was spent and how far
+  // past the line that puts the item.
+  const isInfeasible = dto.status === "infeasible";
+
   return {
     kind: "budget",
     card: {
       headline: {
         workedLabel: formatWorkSeconds(workedSeconds),
         budgetLabel:
-          dto.budget.allowed_worker_minutes === null
+          isInfeasible || dto.budget.allowed_worker_minutes === null
             ? null
             : `of ${formatWorkSeconds(budgetSeconds)}`,
         remainingLabel: remainingLabel(remainingSeconds),
         isOverBudget: remainingSeconds !== null && remainingSeconds < 0,
         isFinal,
+        // A closed task takes its time from the frozen `final` block, which the
+        // endpoint deliberately serves money-free. Pairing those minutes with
+        // the live cost below would put two different snapshots either side of
+        // one tap, so the closed card simply does not offer it.
+        cost: isFinal
+          ? null
+          : buildHeadlineCost(
+              // Withheld rather than negated: the builder's existing "no pot
+              // served" path is exactly the rendering an infeasible task wants.
+              isInfeasible ? null : dto.budget.production_budget_minor,
+              dto.budget.consumed_cost_minor,
+              dto.budget.variance_cost_minor,
+            ),
       },
+      // The status is the trigger, never the sign of the money: `infeasible`
+      // means `allowed_worker_minutes <= 0` and keeps meaning that whether or
+      // not this role was served the cost that explains it.
+      infeasibleNotice: isInfeasible
+        ? buildInfeasibleNotice(
+            dto.budget.production_budget_minor,
+            // The served negative allowance, not `budgetSeconds`, which floors
+            // its null to 0 and would silently lose the shortfall.
+            decimalMinutesToSeconds(dto.budget.allowed_worker_minutes),
+          )
+        : null,
       segments,
       remainderPercent,
       outlook,

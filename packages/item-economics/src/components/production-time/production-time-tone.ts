@@ -33,6 +33,11 @@ export const PRODUCTION_TIME_TONE_FILL: Record<ProductionTimeTone, string> = {
 export const PRODUCTION_TIME_SUCCESS_TEXT = "text-[#1e7a46]";
 export const PRODUCTION_TIME_DANGER_TEXT = "text-[#b9382a]";
 
+/** Body copy inside a danger container — reads as prose, not as a second alarm. */
+export const PRODUCTION_TIME_DANGER_BODY_TEXT = "text-[#8f4038]";
+/** The soft danger container shared by the outlook line and the infeasible notice. */
+export const PRODUCTION_TIME_DANGER_SURFACE = "bg-[#fff3f1]";
+
 /** The active row's highlight and its left accent rule. */
 export const PRODUCTION_TIME_ACTIVE_ROW_BG = "bg-[#f5f9ff]";
 export const PRODUCTION_TIME_ACTIVE_ROW_ACCENT = "bg-[#2f6fd0]";

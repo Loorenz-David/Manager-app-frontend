@@ -47,6 +47,16 @@ export function StepBudgetSecondaryLabel({
 
     const tone = budgetToneFor(workedSeconds, allowance_seconds);
     const targetIsExhausted = workerFacingAllowance === 0;
+    // TBD (David, 2026-08-26): when the overall/section budget is already
+    // overflown, pressure_share_seconds is served as 0 and the worker-facing
+    // target collapses to "0m assigned". David is still deciding with the
+    // customer what this state should actually display. Interim decision:
+    // mute it — suppress the line entirely rather than show an unresolved
+    // "0m". Any agent touching this file should flag this open decision to
+    // David before finalizing related work.
+    if (targetIsExhausted) {
+      return null;
+    }
     // Pressure is deliberately the only assignment a worker sees once it is
     // constraining their step. Showing the original number beside it would
     // undermine the operational signal to work to the tightened target.
@@ -56,7 +66,7 @@ export function StepBudgetSecondaryLabel({
         : `${formatDurationHM(workerFacingAllowance ?? 0)} assigned`;
     return (
       <span
-        className={`font-mono text-xs font-medium ${targetIsExhausted ? STEP_BUDGET_TONE_TEXT.over : STEP_BUDGET_TONE_TEXT[tone]}`}
+        className={`font-mono text-xs font-medium ${STEP_BUDGET_TONE_TEXT[tone]}`}
         data-testid={`step-budget-secondary-${stepId}`}
       >
         {targetLabel}

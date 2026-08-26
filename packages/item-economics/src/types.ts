@@ -243,12 +243,27 @@ export type ProductionTimeSectionDto = z.infer<
   typeof ProductionTimeSectionSchema
 >;
 
+// The money half of the block is ADMIN/MANAGER only — a worker or seller body
+// omits all three keys entirely, so each is `.optional()` on top of `.nullable()`
+// (handoff HANDOFF_TO_FRONTEND_production_time_budget_money_20260826 §1). The
+// nullable half covers a degraded task, where the keys are present but empty.
+// Integer minor units (öre); the response carries no currency field.
 export const ProductionTimeBudgetSchema = z.object({
   allowed_worker_minutes: DecimalStringSchema.nullable(),
   actual_worker_seconds: z.number().int().nullable(),
   actual_worker_minutes: DecimalStringSchema.nullable(),
   remaining_worker_minutes: DecimalStringSchema.nullable(),
   percent_consumed: DecimalStringSchema.nullable(),
+  /**
+   * The labour money pot: sale price minus the item's cost-model terms, capped
+   * at 25% of the price. **Negative is the `infeasible` case** — costs already
+   * exceed the price before any labour — and must never be clamped.
+   */
+  production_budget_minor: z.number().int().nullable().optional(),
+  /** What the worked time has cost so far, at the evaluation's snapshotted rate. */
+  consumed_cost_minor: z.number().int().nullable().optional(),
+  /** `production_budget_minor − consumed_cost_minor`. Negative *is* the overflow signal. */
+  variance_cost_minor: z.number().int().nullable().optional(),
 });
 export type ProductionTimeBudget = z.infer<
   typeof ProductionTimeBudgetSchema

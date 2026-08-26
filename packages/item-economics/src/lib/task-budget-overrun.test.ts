@@ -39,7 +39,7 @@ describe("buildTaskBudgetSignalDisplay", () => {
     ).toEqual({
       tone: "over",
       label: "Over budget by 1h 26m",
-      costLabel: "123,45 kr",
+      costLabel: "123,45\u00a0kr",
     });
   });
 
@@ -56,7 +56,7 @@ describe("buildTaskBudgetSignalDisplay", () => {
     ).toEqual({
       tone: "projected_over",
       label: "Projected over by 1h 0m",
-      costLabel: "9 €",
+      costLabel: "9\u00a0€",
     });
   });
 

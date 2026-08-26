@@ -371,7 +371,7 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.rawStatus).toBe(status);
   });
 
-  it("renders infeasible as a zero-budget overrun", () => {
+  it("renders infeasible as an overrun against no stated budget", () => {
     const viewModel = toProductionTimeViewModel(
       makeDto({
         status: "infeasible",
@@ -394,11 +394,206 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "budget") return;
     expect(viewModel.card.headline).toMatchObject({
       workedLabel: "2h 55m",
-      budgetLabel: "of 0m",
+      // A pot of exactly zero is still no pot to quote.
+      budgetLabel: null,
       remainingLabel: "2h 55m over",
       isOverBudget: true,
     });
     expect(viewModel.card.remainderPercent).toBe(0);
+  });
+
+  it("explains an infeasible task with its served negative pot", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          allowed_worker_minutes: "-38.40",
+          actual_worker_seconds: 4_076,
+          actual_worker_minutes: "67.93",
+          remaining_worker_minutes: "-106.33",
+          percent_consumed: null,
+          production_budget_minor: -50_000,
+          consumed_cost_minor: 88_456,
+          variance_cost_minor: -138_456,
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.infeasibleNotice?.title).toBe(
+      "No time budget to allocate",
+    );
+    expect(
+      viewModel.card.infeasibleNotice?.body
+        .map((segment) => segment.text)
+        .join(""),
+    ).toBe(
+      "Costs already exceed the sale price by 500 kr (about 38m of work), so there is nothing left for labour.",
+    );
+    expect(
+      viewModel.card.infeasibleNotice?.body
+        .filter((segment) => segment.emphasis)
+        .map((segment) => segment.text),
+    ).toEqual(["500 kr", "38m"]);
+  });
+
+  it("names the shortfall in time alone for a role served no money", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          ...makeDto().budget,
+          allowed_worker_minutes: "-38.40",
+          remaining_worker_minutes: "-106.33",
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    // A worker or seller still gets the figure that explains the card, just in
+    // the unit their session is allowed to see.
+    expect(
+      viewModel.card.infeasibleNotice?.body
+        .map((segment) => segment.text)
+        .join(""),
+    ).toBe(
+      "Costs already exceed the sale price by about 38m of work, so there is nothing left for labour.",
+    );
+  });
+
+  it("names no figure at all when the pot landed on exactly zero", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          ...makeDto().budget,
+          allowed_worker_minutes: "0.00",
+          remaining_worker_minutes: "-160.00",
+          production_budget_minor: 0,
+          consumed_cost_minor: 208_320,
+          variance_cost_minor: -208_320,
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(
+      viewModel.card.infeasibleNotice?.body
+        .map((segment) => segment.text)
+        .join(""),
+    ).toBe(
+      "Costs already take up the whole sale price, so there is nothing left for labour.",
+    );
+    expect(
+      viewModel.card.infeasibleNotice?.body.some((segment) => segment.emphasis),
+    ).toBe(false);
+  });
+
+  it("drops the budget term from both units on an infeasible task", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          allowed_worker_minutes: "-38.40",
+          actual_worker_seconds: 4_076,
+          actual_worker_minutes: "67.93",
+          remaining_worker_minutes: "-106.33",
+          percent_consumed: null,
+          production_budget_minor: -50_000,
+          consumed_cost_minor: 88_455,
+          variance_cost_minor: -138_455,
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    // Neither "of 0m" nor "of −500 kr" — the banner carries the shortfall, and
+    // a quoted pot beside the worked figure reads as a subtraction.
+    expect(viewModel.card.headline.budgetLabel).toBeNull();
+    expect(viewModel.card.headline.cost?.budgetLabel).toBeNull();
+    // What was spent and how far past the line it puts the item both stay.
+    expect(viewModel.card.headline.workedLabel).toBe("1h 7m");
+    expect(viewModel.card.headline.remainingLabel).toBe("1h 46m over");
+    expect(viewModel.card.headline.cost).toMatchObject({
+      workedLabel: "884,55\u00a0kr",
+      remainingLabel: "1\u00a0384,55\u00a0kr over",
+      isOverBudget: true,
+    });
+  });
+
+  it("keeps the budget term on a feasible task, however tight", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        budget: {
+          ...makeDto().budget,
+          production_budget_minor: 253_900,
+          consumed_cost_minor: 227_850,
+          variance_cost_minor: 26_050,
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.headline.budgetLabel).toBe("of 3h 15m");
+    expect(viewModel.card.headline.cost?.budgetLabel).toBe("of 2\u00a0539\u00a0kr");
+  });
+
+  it("removes the cost tap entirely for a role served no money", () => {
+    const workerBudget = makeDto().budget;
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        status: "infeasible",
+        budget: {
+          ...workerBudget,
+          allowed_worker_minutes: "-38.40",
+          remaining_worker_minutes: "-106.33",
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.headline.cost).toBeNull();
+  });
+
+  it("leaves a feasible task unexplained even when money is served", () => {
+    const viewModel = toProductionTimeViewModel(
+      makeDto({
+        budget: {
+          ...makeDto().budget,
+          production_budget_minor: 254_000,
+          consumed_cost_minor: 208_320,
+          variance_cost_minor: 45_680,
+        },
+      }),
+    );
+
+    expect(viewModel.kind).toBe("budget");
+    if (viewModel.kind !== "budget") return;
+    expect(viewModel.card.infeasibleNotice).toBeNull();
+  });
+
+  it("keeps the money keys optional, as worker and seller bodies omit them", () => {
+    const parsed = TaskProductionTimeSchema.parse(makeDto());
+
+    expect(parsed.budget.production_budget_minor).toBeUndefined();
+    expect(
+      TaskProductionTimeSchema.parse(
+        makeDto({
+          budget: {
+            ...makeDto().budget,
+            production_budget_minor: null,
+            consumed_cost_minor: null,
+            variance_cost_minor: null,
+          },
+        }),
+      ).budget.production_budget_minor,
+    ).toBeNull();
   });
 
   it("prefers final headline values over the live budget block", () => {
