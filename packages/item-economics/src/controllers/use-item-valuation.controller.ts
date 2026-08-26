@@ -254,6 +254,7 @@ export type ItemValuationViewModel = {
 
 export function useItemValuationController(
   taskId: TaskId,
+  onSaveSuccess?: () => void,
 ): ItemValuationViewModel {
   const query = useTaskPriceScenarioQuery(taskId);
   const queryClient = useQueryClient();
@@ -354,6 +355,8 @@ export function useItemValuationController(
 
   const commitAction = useCommitItemValuation(taskId, (reconciled) => {
     dispatch({ type: "SAVE_OK" });
+
+    onSaveSuccess?.();
 
     if (reconciled) {
       committedPriceRef.current = draftRef.current;

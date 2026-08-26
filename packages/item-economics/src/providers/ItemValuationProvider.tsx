@@ -16,14 +16,16 @@ const ItemValuationContext = createContext<ItemValuationViewModel | null>(null);
 
 type ItemValuationProviderProps = {
   taskId: TaskId;
+  onSaveSuccess?: () => void;
   children: React.ReactNode;
 };
 
 export function ItemValuationProvider({
   taskId,
+  onSaveSuccess,
   children,
 }: ItemValuationProviderProps): React.JSX.Element {
-  const controller = useItemValuationController(taskId);
+  const controller = useItemValuationController(taskId, onSaveSuccess);
 
   return (
     <ItemValuationContext.Provider value={controller}>

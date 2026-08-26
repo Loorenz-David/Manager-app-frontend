@@ -15,7 +15,13 @@ import {
   TASK_TYPE_ICON,
   TASK_TYPE_LABEL,
 } from "../lib/task-detail";
+import { TASK_TERMINAL_STATES } from "../types";
 import type { TaskReturnSource, TaskState, TaskType } from "../types";
+
+const TASK_STATES_WITHOUT_DEADLINE_STATUS: readonly TaskState[] = [
+  "ready",
+  ...TASK_TERMINAL_STATES,
+];
 
 function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
   // The countdown pill only shows once ready_by_at is within 7 days
@@ -132,6 +138,9 @@ export const TaskListCard = memo(function TaskListCard({
   const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
   const assortment = task.assortment?.trim();
   const days = daysUntil(task.ready_by_at);
+  const showDeadlineStatus = !TASK_STATES_WITHOUT_DEADLINE_STATUS.includes(
+    task.state,
+  );
   const stateLabel = humanizeSnakeCase(task.state) ?? task.state;
   const stateVariant: StatePillVariant =
     TASK_STATE_VARIANT[task.state] ?? "neutral";
@@ -248,7 +257,9 @@ export const TaskListCard = memo(function TaskListCard({
               <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
                 <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
                 <span>{readyByLabel}</span>
-                {days !== null ? <DaysLeftPill days={days} /> : null}
+                {days !== null && showDeadlineStatus ? (
+                  <DaysLeftPill days={days} />
+                ) : null}
               </div>
             ) : null}
 

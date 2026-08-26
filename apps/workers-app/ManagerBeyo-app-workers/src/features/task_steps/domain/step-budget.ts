@@ -109,15 +109,7 @@ export function formatDurationHM(totalSeconds: number): string {
   return `${minutes}m`;
 }
 
-/** "26m 28s" under an hour, "1h 04m" above — for the over-budget amount. */
+/** Minute-level overrun copy: "26m" under an hour, "1h 04m" above. */
 export function formatOverBudgetAmount(totalSeconds: number): string {
-  const safeSeconds = Math.max(0, totalSeconds);
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const seconds = safeSeconds % 60;
-
-  if (hours > 0) {
-    return `${hours}h ${String(minutes).padStart(2, "0")}m`;
-  }
-  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+  return formatDurationHM(totalSeconds);
 }

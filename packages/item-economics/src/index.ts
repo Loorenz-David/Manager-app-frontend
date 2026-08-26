@@ -81,15 +81,15 @@ export { parseErrorIdentity } from "./lib/error-identity";
 // Public DTO, pure view-model, presentation, and self-fetching root exports.
 
 export {
-  PRODUCTION_TIME_COLLAPSED_ROW_COUNT,
   PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS,
+  PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   buildOutlook,
   buildRowDetail,
   buildSegments,
   formatPassCount,
   formatWorkSeconds,
   humanizeSectionState,
-  selectVisibleRows,
+  selectAnchorRowIndex,
   stateToTone,
 } from "./lib/production-time-view-model";
 export type {

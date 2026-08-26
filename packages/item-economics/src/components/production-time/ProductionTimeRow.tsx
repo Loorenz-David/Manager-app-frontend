@@ -1,5 +1,4 @@
 import { cn } from "@beyo/lib";
-import { StatePill } from "@beyo/ui";
 
 import {
   buildBudgetLine,
@@ -12,15 +11,14 @@ import {
   PRODUCTION_TIME_ACTIVE_ROW_ACCENT,
   PRODUCTION_TIME_ACTIVE_ROW_BG,
   PRODUCTION_TIME_TONE_FILL,
-  PRODUCTION_TIME_TONE_VARIANT,
 } from "./production-time-tone";
 
 export type ProductionTimeRowProps = {
   row: ProductionTimeRowViewModel;
   /**
-   * The degraded, budget-less card: the row trades its state pill for the
-   * typical comparison — "Sanding · 25m of typically 50m" — which is the one
-   * case where the display is driven by the typical rather than an allowance.
+   * The degraded, budget-less card adds the typical comparison —
+   * "Sanding · 25m of typically 50m" — which is the one case where the display
+   * is driven by the typical rather than an allowance.
    */
   showTypicalComparison?: boolean;
 };
@@ -31,10 +29,14 @@ export function ProductionTimeRow({
 }: ProductionTimeRowProps): React.JSX.Element {
   const comparison = showTypicalComparison ? row.typicalComparisonLabel : null;
   const passCount = formatPassCount(row.stepCount);
-  // Active and terminal rows use structured three-column metrics. Pending and
-  // blocked rows keep the compact fallback line so their targets remain
-  // visible before work starts.
-  const budgetLine = row.detail || row.terminalMetrics
+  // Active and terminal rows use structured metrics. The entire compact
+  // fallback line is irrelevant without a valuation: typical already belongs
+  // in the header, and pressure has no actionable meaning in that state.
+  const budgetLine =
+    showTypicalComparison ||
+    row.detail ||
+    row.terminalMetrics ||
+    row.activeMetrics
     ? null
     : buildBudgetLine(row.allowanceLabel, row.pressureLabel, row.typicalLabel);
 
@@ -58,12 +60,15 @@ export function ProductionTimeRow({
 
       <div className="flex min-h-8 items-center gap-3">
         <span
-          aria-hidden="true"
+          aria-label={row.stateLabel}
           className={cn(
             "size-2.5 shrink-0 rounded-[3px]",
             row.isExcluded && "border border-border",
           )}
+          data-testid="production-time-row-state-indicator"
+          role="img"
           style={{ backgroundColor: PRODUCTION_TIME_TONE_FILL[row.tone] }}
+          title={row.stateLabel}
         />
 
         <span
@@ -91,15 +96,6 @@ export function ProductionTimeRow({
           ) : null}
         </span>
 
-        {comparison === null ? (
-          <span className="shrink-0" data-testid="production-time-row-state">
-            <StatePill
-              className="rounded-lg px-2.5 py-1 text-xs"
-              label={row.stateLabel}
-              variant={PRODUCTION_TIME_TONE_VARIANT[row.tone]}
-            />
-          </span>
-        ) : null}
       </div>
 
       {/* Sits under the figure it explains: this section was worked more than
@@ -133,6 +129,15 @@ export function ProductionTimeRow({
         <div className="mt-3">
           <ProductionTimeRowDetail
             detail={row.detail}
+            metrics={row.activeMetrics}
+          />
+        </div>
+      ) : null}
+
+      {!row.detail && row.activeMetrics ? (
+        <div className="mt-3">
+          <ProductionTimeMetrics
+            isMuted={row.tone === "pending"}
             metrics={row.activeMetrics}
           />
         </div>

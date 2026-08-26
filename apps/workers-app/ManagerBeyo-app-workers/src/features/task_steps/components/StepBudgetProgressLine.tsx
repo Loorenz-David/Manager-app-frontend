@@ -150,12 +150,13 @@ function GrowingBar({
         className={FILL_CLASS}
         style={{ backgroundColor: STEP_BUDGET_TONE_FILL[tone] }}
       >
-        {/* Sweeping gleam so a slow-growing bar still reads as "charging"
-            rather than stalled — a separate overlay, not a class on the fill
-            itself, so it never touches the fill's own position/background. */}
+        {/* Diagonal stripes cycling across the fill so a slow-growing bar
+            reads as a turning barber-pole cylinder rather than stalled — a
+            separate overlay, not a class on the fill itself, so it never
+            touches the fill's own position/background. */}
         <div
           aria-hidden="true"
-          className="step-budget-bar-shimmer absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+          className="step-budget-bar-barberpole absolute inset-0"
         />
       </div>
     </div>

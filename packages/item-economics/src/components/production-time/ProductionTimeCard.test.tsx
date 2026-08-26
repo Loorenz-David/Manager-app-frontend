@@ -18,6 +18,7 @@ import {
   productionTimeMockupFixture,
   productionTimeNotEvaluatedFixture,
   productionTimeOverBudgetFixture,
+  productionTimeProjectedOverrunFixture,
   productionTimeUnavailableFixture,
 } from "./production-time-fixtures";
 
@@ -68,6 +69,34 @@ function viewModelWithRows(
 }
 
 describe("ProductionTimeCard — row information hierarchy", () => {
+  it("shows a muted target grid for pending steps", () => {
+    if (productionTimeFiveStageFixture.kind !== "budget") {
+      throw new Error("Expected the five-stage fixture to carry a budget.");
+    }
+    const pendingRow = productionTimeFiveStageFixture.card.rows[4]!;
+
+    render(
+      <ProductionTimeCard
+        viewModel={{
+          kind: "budget",
+          card: {
+            ...productionTimeFiveStageFixture.card,
+            rows: [pendingRow],
+          },
+        }}
+      />,
+    );
+
+    const metrics = screen.getByTestId("production-time-row-metrics");
+    expect(metrics).toHaveClass("opacity-60");
+    expect(metrics).toHaveTextContent("Budget15m");
+    expect(metrics).toHaveTextContent("Pressure10m");
+    expect(metrics).toHaveTextContent("Typical15m");
+    expect(
+      screen.queryByTestId("production-time-row-budget"),
+    ).not.toBeInTheDocument();
+  });
+
   it("uses metric grids for terminal and active rows", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
@@ -78,16 +107,16 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     expect(metrics[2]).toHaveTextContent("Pressure30m");
   });
 
-  it("orders worked time before the filled semantic state pill", () => {
+  it("uses the bullet as the only visible state reference", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
     const firstRow = screen.getAllByTestId("production-time-row")[0]!;
-    const worked = within(firstRow).getByTestId("production-time-row-time");
-    const state = within(firstRow).getByTestId("production-time-row-state");
     expect(
-      worked.compareDocumentPosition(state) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(state.firstElementChild).toHaveClass("bg-[#eaf8ef]");
+      within(firstRow).queryByTestId("production-time-row-state"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(firstRow).getByTestId("production-time-row-state-indicator"),
+    ).toHaveAttribute("aria-label", "Completed");
   });
 
   it("says the allowance alone when the section has no typical yet", () => {
@@ -132,13 +161,13 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("leaves the degraded frame alone — it has no allowances to show", () => {
-    // The no-budget card's rows carry a null allowance by construction, so the
-    // line must not appear there. Guards the "degraded frame unchanged" rule.
+  it("never renders a fallback pressure line without a valuation", () => {
     const rows = fiveRowsWithLastActive().map((row) => ({
       ...row,
       allowanceLabel: null,
       typicalLabel: null,
+      typicalComparisonLabel: null,
+      pressureLabel: "30m pressure",
     }));
 
     render(
@@ -152,6 +181,19 @@ describe("ProductionTimeCard — row information hierarchy", () => {
 });
 
 describe("ProductionTimeCard — budget state", () => {
+  it("renders the projected-overrun warning as a soft danger alert", () => {
+    render(
+      <ProductionTimeCard viewModel={productionTimeProjectedOverrunFixture} />,
+    );
+
+    expect(screen.getByTestId("production-time-outlook")).toHaveClass(
+      "rounded-lg",
+      "border-current",
+      "bg-[#fff3f1]",
+      "text-[#b9382a]",
+    );
+  });
+
   it("renders the headline, the bar and the pipeline in payload order", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
@@ -177,20 +219,17 @@ describe("ProductionTimeCard — budget state", () => {
     expect(screen.getByTestId("production-time-budget-remainder")).toBeInTheDocument();
   });
 
-  it("expands working and paused sections with pressure and backend verdicts", () => {
+  it("expands working and paused sections with pressure and position copy", () => {
     render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
 
     const details = screen.getAllByTestId("production-time-row-detail");
     expect(details).toHaveLength(2);
     expect(details[0]).toHaveTextContent("Pressure30m");
     expect(details[1]).toHaveTextContent("Pressure55m");
-    // The verdict renders as served in every state, working included — the
-    // live-clock go-live (2026-08-22) made the served value trustworthy
-    // mid-work, so nothing may suppress or relabel it.
-    expect(screen.getAllByTestId("production-time-row-verdict")).toHaveLength(2);
-    expect(screen.getAllByTestId("production-time-row-verdict")[0]).toHaveTextContent(
-      "ON TRACK",
-    );
+    expect(screen.getAllByTestId("production-time-row-position")).toHaveLength(2);
+    expect(
+      screen.queryByTestId("production-time-row-verdict"),
+    ).not.toBeInTheDocument();
     // The typical marker is gone (plan E3): provably at the same ratio on
     // every row, it carried no information. The typical lives on as text.
     expect(
@@ -215,12 +254,12 @@ describe("ProductionTimeCard — budget state", () => {
     expect(
       screen.queryByTestId("production-time-budget-remainder"),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("production-time-row-verdict")).toHaveTextContent(
-      "OVER BUDGET",
-    );
-    expect(screen.getByTestId("production-time-row-position")).toHaveTextContent(
-      "15m over",
-    );
+    expect(
+      screen.queryByTestId("production-time-row-position"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("production-time-row-verdict"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("production-time-metric-over-budget"),
     ).toHaveTextContent("Over budget15m");
@@ -304,31 +343,29 @@ describe("ProductionTimeCard — edge cases from the handoff", () => {
 });
 
 describe("ProductionTimeCard — long pipelines", () => {
-  it("collapses to four rows but keeps the working stage visible", () => {
+  it("keeps every row in the DOM behind the collapsed scroll viewport", () => {
     render(<ProductionTimeCard viewModel={productionTimeLongPipelineFixture} />);
 
-    const labels = screen
-      .getAllByTestId("production-time-row-label")
-      .map((node) => node.textContent);
-
-    expect(labels).toEqual([
-      "Intake",
-      "Stripping",
-      "Structural Repair",
-      "Sanding",
-      "Upholstery",
-    ]);
+    // All nine rows render — the fixed three-row window scrolls over them
+    // rather than truncating the list.
+    expect(
+      screen.getByTestId("production-time-rows-viewport"),
+    ).toBeInTheDocument();
+    expect(screen.getAllByTestId("production-time-row-label")).toHaveLength(9);
     expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
       "Show all 9 stages",
     );
   });
 
-  it("shows the whole pipeline once expanded", async () => {
+  it("hands scrolling back to the page once expanded", async () => {
     const user = userEvent.setup();
     render(<ProductionTimeCard viewModel={productionTimeLongPipelineFixture} />);
 
     await user.click(screen.getByTestId("production-time-rows-toggle"));
 
+    expect(
+      screen.queryByTestId("production-time-rows-viewport"),
+    ).not.toBeInTheDocument();
     expect(screen.getAllByTestId("production-time-row-label")).toHaveLength(9);
     expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
       "Show less",
@@ -345,16 +382,19 @@ describe("ProductionTimeCard — long pipelines", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("offers no toggle for a short pipeline", () => {
+  it("offers no toggle or viewport for a pipeline that already fits", () => {
     render(<ProductionTimeCard viewModel={productionTimeEdgeCasesFixture} />);
 
     expect(
       screen.queryByTestId("production-time-rows-toggle"),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("production-time-rows-viewport"),
+    ).not.toBeInTheDocument();
   });
 
   it.each(["budget", "no_budget"] as const)(
-    "offers no dead toggle when all five %s rows are already visible",
+    "scrolls five %s rows behind the three-row window",
     (kind) => {
       render(
         <ProductionTimeCard
@@ -364,8 +404,11 @@ describe("ProductionTimeCard — long pipelines", () => {
 
       expect(screen.getAllByTestId("production-time-row")).toHaveLength(5);
       expect(
-        screen.queryByTestId("production-time-rows-toggle"),
-      ).not.toBeInTheDocument();
+        screen.getByTestId("production-time-rows-viewport"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("production-time-rows-toggle"),
+      ).toHaveTextContent("Show all 5 stages");
     },
   );
 });
@@ -391,6 +434,9 @@ describe("ProductionTimeCard — degraded states", () => {
     expect(within(rows[1]).getByTestId("production-time-row-time")).toHaveTextContent(
       /^50m\s*of typically 50m$/,
     );
+    expect(
+      within(rows[1]).queryByTestId("production-time-row-budget"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders no call to action while v1 is read-only", () => {
@@ -417,7 +463,10 @@ describe("ProductionTimeCard — degraded states", () => {
       />,
     );
 
-    expect(screen.getAllByTestId("production-time-row")).toHaveLength(5);
+    expect(screen.getAllByTestId("production-time-row")).toHaveLength(9);
+    expect(
+      screen.getByTestId("production-time-rows-viewport"),
+    ).toBeInTheDocument();
     expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
       "Show all 9 stages",
     );
@@ -425,6 +474,9 @@ describe("ProductionTimeCard — degraded states", () => {
     await user.click(screen.getByTestId("production-time-rows-toggle"));
 
     expect(screen.getAllByTestId("production-time-row")).toHaveLength(9);
+    expect(
+      screen.queryByTestId("production-time-rows-viewport"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("production-time-rows-toggle")).toHaveTextContent(
       "Show less",
     );

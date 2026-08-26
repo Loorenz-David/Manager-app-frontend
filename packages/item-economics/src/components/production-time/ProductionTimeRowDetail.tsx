@@ -1,5 +1,4 @@
 import { cn } from "@beyo/lib";
-import { StatePill } from "@beyo/ui";
 
 import {
   type ProductionTimeRowDetailViewModel,
@@ -17,9 +16,10 @@ export type ProductionTimeRowDetailProps = {
 };
 
 /**
- * The active row's pressure-based position and progress. Remaining/overflow
- * arithmetic is presentational; the semantic verdict still comes from the
- * backend and is rendered unchanged apart from display wording.
+ * The active row's pressure-based position and progress. On-track rows show
+ * the remaining time; over-budget rows omit that line because their overrun is
+ * already present in the metric grid. The backend verdict owns that choice and
+ * the bar and metric tones.
  */
 export function ProductionTimeRowDetail({
   detail,
@@ -29,24 +29,17 @@ export function ProductionTimeRowDetail({
 
   return (
     <div className="flex flex-col gap-3" data-testid="production-time-row-detail">
-      <div className="flex items-center justify-between gap-3">
+      {!isOverShare ? (
         <span
           className={cn(
-            "text-sm font-medium tabular-nums",
+            "self-end text-sm font-medium tabular-nums",
             detail.positionTone === "over" && PRODUCTION_TIME_DANGER_TEXT,
           )}
           data-testid="production-time-row-position"
         >
           {detail.positionLabel}
         </span>
-        <span data-testid="production-time-row-verdict">
-          <StatePill
-            className="rounded-lg px-2.5 py-1 text-xs"
-            label={detail.verdictLabel}
-            variant={isOverShare ? "danger" : "success"}
-          />
-        </span>
-      </div>
+      ) : null}
 
       <div
         aria-hidden="true"

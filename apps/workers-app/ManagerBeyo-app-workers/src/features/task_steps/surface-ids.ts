@@ -1,5 +1,6 @@
 import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { IncompleteDependencyViewModel } from "./types";
+import type { StepBudget } from "./domain/step-budget";
 import type {
   ListWorkingSectionStepsParams,
   ReadinessStatus,
@@ -51,6 +52,8 @@ export type TaskStepDetailSurfaceProps = {
   workingSectionId: WorkingSectionId;
   /** Rich step data already loaded by the listing, for instant detail opening. */
   initialStep?: TaskStep;
+  /** Budget snapshot already loaded by the listing; detail does not fetch it. */
+  initialBudget?: StepBudget | null;
   /** The listing query parameters, so detail reuses the exact same cache entry. */
   listQueryParams?: ListWorkingSectionStepsParams;
 };

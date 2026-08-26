@@ -1,11 +1,10 @@
-import { CircleAlert, Pause, Play } from "lucide-react";
+import { Pause, Play } from "lucide-react";
 import type { TaskId, TaskStepId } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
 import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import {
   formatDurationHM,
-  formatOverBudgetAmount,
   useLiveStepBudget,
   workerFacingAllowanceForBudget,
   type StepBudget,
@@ -47,7 +46,6 @@ type ActionButtonShellProps = {
   bgClass: string;
   disabled: boolean;
   onClick: () => void;
-  banner?: React.ReactNode;
   right?: React.ReactNode;
 };
 
@@ -58,7 +56,6 @@ function ActionButtonShell({
   bgClass,
   disabled,
   onClick,
-  banner,
   right,
 }: ActionButtonShellProps): React.JSX.Element {
   const Icon = icon === "pause" ? Pause : Play;
@@ -72,7 +69,7 @@ function ActionButtonShell({
       type="button"
       onClick={onClick}
     >
-      <span className="flex min-w-0 flex-col items-start gap-1">
+      <span className="flex min-w-0 flex-col items-start">
         <span className="flex items-center gap-3">
           <Icon
             aria-hidden="true"
@@ -80,7 +77,6 @@ function ActionButtonShell({
           />
           <span className="text-md font-medium">{label}</span>
         </span>
-        {banner}
       </span>
       {right}
     </button>
@@ -106,17 +102,6 @@ function WorkingBudgetButton({
 
   return (
     <ActionButtonShell
-      banner={
-        isOver && leftSeconds !== null ? (
-          <span
-            className="flex items-center gap-1.5 text-xs font-bold text-[#b9382a]"
-            data-testid={`step-budget-over-banner-${stepId}`}
-          >
-            <CircleAlert aria-hidden="true" className="size-4 shrink-0" />
-            Over budget by {formatOverBudgetAmount(-leftSeconds)}
-          </span>
-        ) : undefined
-      }
       bgClass={isOver ? OVER_BUDGET_BG : WORKING_BG}
       disabled={disabled}
       icon="pause"

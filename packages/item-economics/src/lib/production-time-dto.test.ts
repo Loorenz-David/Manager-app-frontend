@@ -177,7 +177,7 @@ describe("toProductionTimeViewModel", () => {
       positionLabel: "25m over",
       positionTone: "over",
       progressPercent: 100,
-      verdictLabel: "OVER BUDGET",
+      verdictTone: "over_share",
     });
   });
 
@@ -273,7 +273,6 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "budget") return;
 
     expect(viewModel.card.rows[0]?.detail?.verdictTone).toBe("on_track");
-    expect(viewModel.card.rows[0]?.detail?.verdictLabel).toBe("ON TRACK");
   });
 
   it("guards a non-positive allowance and uses the server over-share verdict", () => {
@@ -286,7 +285,6 @@ describe("toProductionTimeViewModel", () => {
       progressPercent: 100,
       positionLabel: "15m over",
       positionTone: "over",
-      verdictLabel: "OVER BUDGET",
       verdictTone: "over_share",
     });
   });
@@ -488,7 +486,7 @@ describe("toProductionTimeViewModel", () => {
       if (viewModel.kind !== "budget") return;
 
       expect(viewModel.card.outlook?.label).toBe(
-        "Remaining work is budgeted at 43m — projected ~15m over.",
+        "~43m expected left · ~15m over budget",
       );
       // The served figures are untouched by the projection.
       expect(viewModel.card.headline.remainingLabel).toBe("27m left");
@@ -560,6 +558,11 @@ describe("toProductionTimeViewModel", () => {
       if (viewModel.kind !== "budget") return;
       expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m assigned");
       expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m");
+      expect(
+        viewModel.card.rows[1]?.activeMetrics?.map(
+          ({ label, valueLabel }) => `${label}:${valueLabel}`,
+        ),
+      ).toEqual(["Budget:26m", "Pressure:26m", "Typical:46m"]);
     });
 
     it("renders no allowance rather than '0m allowed' when there is none", () => {

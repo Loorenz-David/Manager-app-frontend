@@ -6,7 +6,13 @@ import { fileURLToPath } from "node:url";
 import type { ReactNode } from "react";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { referenceScenario } from "../test-support/price-scenario-reference";
@@ -309,5 +315,38 @@ describe("ItemValuationSlidePage — accessibility (22g)", () => {
         `${grouped("2 750")} SEK per piece`,
       ),
     );
+  });
+
+  it("closes the slide page after a successful save", async () => {
+    mocks.commitTaskEvaluation.mockResolvedValue({
+      client_id: "ice_ref0001",
+      production_budget_minor: 188100,
+      allowed_worker_minutes: "144.69",
+    });
+
+    await renderScenario(referenceScenario());
+
+    fireEvent.change(screen.getByTestId("item-valuation-slider-input"), {
+      target: { value: "82" },
+    });
+    fireEvent.click(screen.getByTestId("item-valuation-save-button"));
+
+    await waitFor(() =>
+      expect(surfaceHeaderMock.requestClose).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it("keeps the slide page open when saving fails", async () => {
+    mocks.commitTaskEvaluation.mockRejectedValue(new Error("save failed"));
+
+    await renderScenario(referenceScenario());
+
+    fireEvent.change(screen.getByTestId("item-valuation-slider-input"), {
+      target: { value: "82" },
+    });
+    fireEvent.click(screen.getByTestId("item-valuation-save-button"));
+
+    await waitFor(() => expect(mocks.commitTaskEvaluation).toHaveBeenCalled());
+    expect(surfaceHeaderMock.requestClose).not.toHaveBeenCalled();
   });
 });

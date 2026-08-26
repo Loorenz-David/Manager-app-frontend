@@ -90,6 +90,7 @@ function toRows(
       section.section_name ??
       "Unnamed section";
     const isActive = ACTIVE_SECTION_STATES.has(section.state);
+    const isPending = section.state === "pending";
     const isTerminal = TERMINAL_SECTION_STATES.has(section.state);
     const isExcluded = section.share_state === "excluded";
     const typicalSeconds = section.typical?.typical_worker_seconds ?? null;
@@ -109,8 +110,8 @@ function toRows(
         section.allowance_seconds === null || section.allowance_seconds <= 0
           ? null
           : `${formatWorkSeconds(section.allowance_seconds)} assigned`,
-      // Compact pending/blocked rows retain the served pressure. Expanded
-      // active rows use activeMetrics, where it is capped by the assignment.
+      // Compact blocked rows retain the served pressure. Active and pending
+      // rows use activeMetrics, where it is capped by the assignment.
       pressureLabel:
         section.pressure_share_seconds === null
           ? null
@@ -132,7 +133,7 @@ function toRows(
             )
           : null,
       activeMetrics:
-        isActive && hasBudget && !isExcluded
+        (isActive || isPending) && hasBudget && !isExcluded
           ? buildActiveMetrics(
               section.allowance_seconds,
               section.pressure_share_seconds,

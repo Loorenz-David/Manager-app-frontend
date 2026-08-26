@@ -2,6 +2,7 @@ import type { TaskStepId } from "@beyo/lib";
 import {
   budgetToneFor,
   formatDurationHM,
+  formatOverBudgetAmount,
   STEP_BUDGET_TONE_TEXT,
   workerFacingAllowanceForBudget,
   type StepBudget,
@@ -16,8 +17,8 @@ type StepBudgetSecondaryLabelProps = {
 
 /**
  * The line under a step's timer: budget position when allocated ("44m left"
- * / "of 2h 00m"), or the section's history when there is no budget ("usually
- * ~40m"). The two wordings must stay distinct — a limit and history are
+ * / "Over by 26m"), or the section's history when there is no budget
+ * ("usually ~40m"). The two wordings must stay distinct — a limit and history are
  * different kinds of truth (budget-allocations handoff §4). Shared by every
  * card that renders a budget timer, so a future backend change to these
  * fields only needs to land here once.
@@ -39,7 +40,7 @@ export function StepBudgetSecondaryLabel({
           className="font-mono text-xs font-medium text-[#b9382a]"
           data-testid={`step-budget-secondary-${stepId}`}
         >
-          of {formatDurationHM(allowance_seconds)}
+          Over by {formatOverBudgetAmount(-leftSeconds)}
         </span>
       );
     }

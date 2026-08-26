@@ -1,11 +1,12 @@
 import { useState } from "react";
 
 import {
-  selectVisibleRows,
+  PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   type ProductionTimeNoBudgetViewModel,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeRow } from "./ProductionTimeRow";
 import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
+import { ProductionTimeRowsViewport } from "./ProductionTimeRowsViewport";
 
 export type ProductionTimeNoBudgetCardProps = {
   card: ProductionTimeNoBudgetViewModel;
@@ -23,9 +24,7 @@ export function ProductionTimeNoBudgetCard({
 }: ProductionTimeNoBudgetCardProps): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
   const cta = card.cta;
-  const collapsedRows = selectVisibleRows(card.rows, false);
-  const visibleRows = isExpanded ? card.rows : collapsedRows;
-  const isTruncatable = collapsedRows.length < card.rows.length;
+  const overflows = card.rows.length > PRODUCTION_TIME_VIEWPORT_ROW_COUNT;
 
   return (
     <>
@@ -65,11 +64,15 @@ export function ProductionTimeNoBudgetCard({
         ) : null}
       </div>
 
-      {visibleRows.map((row) => (
-        <ProductionTimeRow key={row.key} row={row} showTypicalComparison />
-      ))}
+      {overflows && !isExpanded ? (
+        <ProductionTimeRowsViewport rows={card.rows} showTypicalComparison />
+      ) : (
+        card.rows.map((row) => (
+          <ProductionTimeRow key={row.key} row={row} showTypicalComparison />
+        ))
+      )}
 
-      {isTruncatable ? (
+      {overflows ? (
         <ProductionTimeRowsToggle
           isExpanded={isExpanded}
           totalCount={card.rows.length}

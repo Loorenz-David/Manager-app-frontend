@@ -39,6 +39,7 @@ type RowInput = {
 function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewModel {
   const shareState = input.shareState ?? "on_track";
   const isActive = ["working", "paused", "ended_shift"].includes(input.state);
+  const isPending = input.state === "pending";
   const isTerminal = ["completed", "skipped", "failed", "cancelled"].includes(
     input.state,
   );
@@ -82,7 +83,7 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
           )
         : null,
     activeMetrics:
-      isActive && hasBudget && !isExcluded
+      (isActive || isPending) && hasBudget && !isExcluded
         ? buildActiveMetrics(
             input.allowanceSeconds ?? null,
             input.pressureSeconds ?? null,
@@ -205,6 +206,7 @@ export const productionTimeFiveStageFixture: ProductionTimeViewModel = {
         state: "pending",
         workedSeconds: 0,
         allowanceSeconds: 900,
+        pressureSeconds: 600,
         typicalSeconds: 900,
       },
     ],

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 import type { TaskId } from "@beyo/lib";
@@ -113,7 +113,12 @@ function ItemValuationView(): React.JSX.Element {
 }
 
 export function ItemValuationSlidePage(): React.JSX.Element {
+  const header = useSurfaceHeader();
   const { taskId } = useSurfaceProps<ItemValuationSlideSurfaceProps>();
+  const handleSaveSuccess = useCallback(
+    () => header?.requestClose(),
+    [header],
+  );
 
   if (!taskId) {
     return (
@@ -131,7 +136,10 @@ export function ItemValuationSlidePage(): React.JSX.Element {
       className="flex h-full min-h-0 flex-col bg-background"
       data-testid="item-valuation-page"
     >
-      <ItemValuationProvider taskId={taskId as TaskId}>
+      <ItemValuationProvider
+        onSaveSuccess={handleSaveSuccess}
+        taskId={taskId as TaskId}
+      >
         <ItemValuationView />
       </ItemValuationProvider>
     </div>

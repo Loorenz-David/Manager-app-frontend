@@ -8,6 +8,7 @@ import {
 
 export type ProductionTimeMetricsProps = {
   metrics: ProductionTimeRowMetricsViewModel;
+  isMuted?: boolean;
 };
 
 const METRIC_TONE_CLASS = {
@@ -19,10 +20,11 @@ const METRIC_TONE_CLASS = {
 /** Compact mobile-first Budget / Variance-or-Pressure / Typical grid. */
 export function ProductionTimeMetrics({
   metrics,
+  isMuted = false,
 }: ProductionTimeMetricsProps): React.JSX.Element {
   return (
     <div
-      className="grid grid-cols-3"
+      className={cn("grid grid-cols-3", isMuted && "opacity-60")}
       data-testid="production-time-row-metrics"
     >
       {metrics.map((metric, index) => (

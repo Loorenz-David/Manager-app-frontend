@@ -12,6 +12,7 @@ export type {
 } from "./providers/SurfaceProvider";
 export {
   KeyboardInsetProvider,
+  isEditableElement,
   useKeyboardInset,
 } from "./providers/KeyboardInsetProvider";
 

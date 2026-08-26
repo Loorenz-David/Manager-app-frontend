@@ -57,6 +57,7 @@ import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
 import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
 import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
+import type { StepBudget } from "../domain/step-budget";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import { COMPLETION_FEEDBACK_ENABLED } from "../lib/completion-feedback";
 import {
@@ -113,6 +114,7 @@ export type TaskStepDetailController = {
   isItemCategoryError: boolean;
   isSeatCategory: boolean;
   vm: TaskStepCardViewModel | null;
+  budget: StepBudget | null;
   isPending: boolean;
   isError: boolean;
   isStepTerminal: boolean;
@@ -141,8 +143,14 @@ export type TaskStepDetailController = {
 };
 
 export function useTaskStepDetailController(): TaskStepDetailController {
-  const { stepId, taskId, workingSectionId, initialStep, listQueryParams } =
-    useSurfaceProps<TaskStepDetailSurfaceProps>();
+  const {
+    stepId,
+    taskId,
+    workingSectionId,
+    initialStep,
+    initialBudget,
+    listQueryParams,
+  } = useSurfaceProps<TaskStepDetailSurfaceProps>();
   // useSurfaceProps returns Partial<T> — resolve once here, use resolved everywhere
   const resolvedStepId = stepId ?? ("" as TaskStepId);
   const resolvedTaskId = taskId ?? ("" as TaskId);
@@ -712,6 +720,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     isItemCategoryError,
     isSeatCategory,
     vm,
+    budget: initialBudget ?? null,
     // An initial step is already sufficient to render the detail surface while
     // the shared listing query is being reused or refreshed in the background.
     isPending: query.isPending && !step,

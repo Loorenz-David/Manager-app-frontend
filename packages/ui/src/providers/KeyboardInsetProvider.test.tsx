@@ -23,6 +23,7 @@ describe("KeyboardInsetProvider", () => {
 
   afterEach(() => {
     cleanup();
+    document.body.innerHTML = "";
     vi.restoreAllMocks();
     if (originalVisualViewport) {
       Object.defineProperty(window, "visualViewport", originalVisualViewport);
@@ -65,6 +66,10 @@ describe("KeyboardInsetProvider", () => {
       },
     );
 
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
     render(
       <KeyboardInsetProvider>
         <Probe />
@@ -99,6 +104,118 @@ describe("KeyboardInsetProvider", () => {
     ).toBe("283px");
   });
 
+  it("ignores a shrunk viewport when no editable element has focus", () => {
+    const listeners = new Map<string, () => void>();
+    const visualViewport = {
+      height: 425,
+      offsetTop: 0,
+      pageTop: 0,
+      addEventListener: (type: string, listener: () => void) => {
+        listeners.set(type, listener);
+      },
+      removeEventListener: (type: string) => {
+        listeners.delete(type);
+      },
+    } as unknown as VisualViewport;
+
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: visualViewport,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 708,
+    });
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      },
+    );
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    render(
+      <KeyboardInsetProvider>
+        <Probe />
+      </KeyboardInsetProvider>,
+    );
+
+    expect(screen.getByTestId("keyboard-open").textContent).toBe("true");
+    expect(
+      document.documentElement.style.getPropertyValue("--keyboard-inset"),
+    ).toBe("283px");
+
+    // The user switched to another app, typed there, and came back: WebKit
+    // still reports the *other* app's keyboard height and never fires a
+    // visualViewport resize. Nothing is focused here, so it must read as
+    // closed.
+    act(() => {
+      input.blur();
+    });
+
+    expect(screen.getByTestId("keyboard-open").textContent).toBe("false");
+    expect(
+      document.documentElement.style.getPropertyValue("--keyboard-inset"),
+    ).toBe("0px");
+  });
+
+  it("re-measures after the page becomes visible again", () => {
+    vi.useFakeTimers();
+    const visualViewport = {
+      height: 425,
+      offsetTop: 0,
+      pageTop: 0,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    } as unknown as VisualViewport;
+
+    Object.defineProperty(window, "visualViewport", {
+      configurable: true,
+      value: visualViewport,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 708,
+    });
+    vi.stubGlobal(
+      "requestAnimationFrame",
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 1;
+      },
+    );
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    render(
+      <KeyboardInsetProvider>
+        <Probe />
+      </KeyboardInsetProvider>,
+    );
+    expect(
+      document.documentElement.style.getPropertyValue("--keyboard-inset"),
+    ).toBe("283px");
+
+    // Viewport settles back to full height without any visualViewport event.
+    (visualViewport as { height: number }).height = 708;
+    act(() => {
+      document.dispatchEvent(new Event("visibilitychange"));
+      vi.advanceTimersByTime(600);
+    });
+
+    expect(screen.getByTestId("keyboard-open").textContent).toBe("false");
+    expect(
+      document.documentElement.style.getPropertyValue("--keyboard-inset"),
+    ).toBe("0px");
+    vi.useRealTimers();
+  });
+
   it("clears both published values when it unmounts", () => {
     const visualViewport = {
       height: 425,
@@ -116,6 +233,10 @@ describe("KeyboardInsetProvider", () => {
       configurable: true,
       value: 708,
     });
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
 
     const view = render(
       <KeyboardInsetProvider>

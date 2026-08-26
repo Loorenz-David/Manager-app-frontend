@@ -166,8 +166,9 @@ export function useLastActiveStepCardController() {
       taskId: step.task_id,
       workingSectionId: step.working_section_id,
       initialStep: step,
+      initialBudget: budget,
     } as TaskStepDetailSurfaceProps);
-  }, [step, openSurface]);
+  }, [budget, openSurface, step]);
 
   const handleOpenBatchDetail = useCallback(() => {
     if (!batchSteps?.length) return;

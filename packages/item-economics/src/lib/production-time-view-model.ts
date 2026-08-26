@@ -33,7 +33,7 @@ export type ProductionTimeRowDetailViewModel = {
   progressPercent: number;
   positionLabel: string;
   positionTone: "neutral" | "over";
-  verdictLabel: string;
+  /** Backend verdict retained for semantic progress and metric styling. */
   verdictTone: "on_track" | "over_share";
 };
 
@@ -79,7 +79,7 @@ export type ProductionTimeRowViewModel = {
   typicalComparisonLabel: string | null;
   /** Budget / Variance / Typical, only for terminal rows on budgeted tasks. */
   terminalMetrics: ProductionTimeRowMetricsViewModel | null;
-  /** Budget / Pressure-or-Over-budget / Typical for active budgeted rows. */
+  /** Budget / Pressure-or-Over-budget / Typical for active and pending rows. */
   activeMetrics: ProductionTimeRowMetricsViewModel | null;
   /** Non-null only for an active row on a task that has a budget. */
   detail: ProductionTimeRowDetailViewModel | null;
@@ -111,7 +111,7 @@ export type ProductionTimeHeadlineViewModel = {
  * exactly as received, and nothing here feeds back into them.
  */
 export type ProductionTimeOutlookViewModel = {
-  /** "Remaining work is budgeted at 43m — projected ~16m over." */
+  /** "~43m expected left · ~16m over budget" */
   label: string;
   /** Sum of the unfinished sections' own remaining targets. */
   remainingCommitmentSeconds: number;
@@ -162,8 +162,8 @@ export function buildBudgetLine(
   return parts.length === 0 ? null : parts.join(" · ");
 }
 
-/** Rows shown before the "Show all" toggle is used. */
-export const PRODUCTION_TIME_COLLAPSED_ROW_COUNT = 4;
+/** Rows the collapsed scroll viewport shows at once. */
+export const PRODUCTION_TIME_VIEWPORT_ROW_COUNT = 3;
 
 /**
  * "2h 55m" above the hour, "50m" below it. Negative input reads as "0m" —
@@ -373,7 +373,6 @@ export function buildRowDetail(
   shareState: ProductionTimeShareState,
 ): ProductionTimeRowDetailViewModel {
   const isOverShare = shareState === "over_share";
-  const verdictLabel = isOverShare ? "OVER BUDGET" : "ON TRACK";
   const verdictTone = isOverShare ? "over_share" : "on_track";
   const cappedPressureSeconds = capPressureSeconds(
     allowanceSeconds,
@@ -390,7 +389,6 @@ export function buildRowDetail(
       progressPercent: 0,
       positionLabel: "-",
       positionTone: "neutral",
-      verdictLabel,
       verdictTone,
     };
   }
@@ -413,7 +411,6 @@ export function buildRowDetail(
       progressPercent: 100,
       positionLabel,
       positionTone,
-      verdictLabel,
       verdictTone,
     };
   }
@@ -424,7 +421,6 @@ export function buildRowDetail(
     ),
     positionLabel,
     positionTone,
-    verdictLabel,
     verdictTone,
   };
 }
@@ -498,9 +494,11 @@ export function buildOutlook(
   }
 
   return {
-    label: `Remaining work is budgeted at ${formatWorkSeconds(
+    label: `~${formatWorkSeconds(
       remainingCommitmentSeconds,
-    )} — projected ~${formatWorkSeconds(projectedOverrunSeconds)} over.`,
+    )} expected left · ~${formatWorkSeconds(
+      projectedOverrunSeconds,
+    )} over budget`,
     remainingCommitmentSeconds,
     projectedOverrunSeconds,
   };
@@ -522,32 +520,34 @@ export function formatPassCount(stepCount: number): string | null {
 }
 
 /**
- * Collapsed, the card shows the first few rows plus every active row — the
- * stage being worked right now is the most useful line on the card and must
- * never be the one hidden behind the toggle. Payload order is preserved either
- * way.
+ * The row the collapsed viewport scrolls to on its own, so the reader never
+ * hunts for the live stage. Priority, in payload (production) order:
+ *
+ *   1. the oldest working section;
+ *   2. else the oldest paused one (ended-shift reads as paused);
+ *   3. else the last completed one — the pipeline's frontier;
+ *   4. else the top.
  */
-export function selectVisibleRows(
-  rows: readonly ProductionTimeRowViewModel[],
-  isExpanded: boolean,
-): ProductionTimeRowViewModel[] {
-  if (isExpanded || rows.length <= PRODUCTION_TIME_COLLAPSED_ROW_COUNT) {
-    return [...rows];
+export function selectAnchorRowIndex(
+  rows: readonly Pick<ProductionTimeRowViewModel, "tone">[],
+): number {
+  const firstWorking = rows.findIndex((row) => row.tone === "working");
+  if (firstWorking !== -1) {
+    return firstWorking;
   }
 
-  const visible = new Set<number>();
-
-  for (let index = 0; index < PRODUCTION_TIME_COLLAPSED_ROW_COUNT; index += 1) {
-    visible.add(index);
+  const firstPaused = rows.findIndex((row) => row.tone === "paused");
+  if (firstPaused !== -1) {
+    return firstPaused;
   }
 
-  rows.forEach((row, index) => {
-    if (row.isActive) {
-      visible.add(index);
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    if (rows[index]!.tone === "completed") {
+      return index;
     }
-  });
+  }
 
-  return rows.filter((_row, index) => visible.has(index));
+  return 0;
 }
 
 /**

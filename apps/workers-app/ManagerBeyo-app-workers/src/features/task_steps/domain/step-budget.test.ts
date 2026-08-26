@@ -66,9 +66,11 @@ describe("formatDurationHM", () => {
 });
 
 describe("formatOverBudgetAmount", () => {
-  it("keeps the seconds visible while the overrun is small", () => {
-    expect(formatOverBudgetAmount(1588)).toBe("26m 28s");
-    expect(formatOverBudgetAmount(5)).toBe("0m 05s");
+  it("changes only when the displayed minute changes", () => {
+    expect(formatOverBudgetAmount(1588)).toBe("26m");
+    expect(formatOverBudgetAmount(5)).toBe("0m");
+    expect(formatOverBudgetAmount(59)).toBe("0m");
+    expect(formatOverBudgetAmount(60)).toBe("1m");
   });
 
   it("drops to minutes once the overrun passes an hour", () => {
@@ -76,6 +78,6 @@ describe("formatOverBudgetAmount", () => {
   });
 
   it("never renders a negative overrun", () => {
-    expect(formatOverBudgetAmount(-60)).toBe("0m 00s");
+    expect(formatOverBudgetAmount(-60)).toBe("0m");
   });
 });

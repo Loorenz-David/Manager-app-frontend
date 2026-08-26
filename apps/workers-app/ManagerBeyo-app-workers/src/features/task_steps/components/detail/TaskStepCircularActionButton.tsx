@@ -1,8 +1,10 @@
-import { Pause, Play } from "lucide-react";
-import type { TaskId, TaskStepId } from "@beyo/lib";
+import { CircleAlert, Pause, Play } from "lucide-react";
+import { cn, type TaskId, type TaskStepId } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
 import { formatSecondsHHMMSS } from "../../domain/formatSecondsHHMMSS";
+import { useLiveStepBudget, type StepBudget } from "../../domain/step-budget";
+import { StepBudgetSecondaryLabel } from "../../domain/step-budget-presentation";
 import { preloadPauseReasonSheetSurface } from "../../surfaces";
 import {
   STEP_QUICK_TRANSITION,
@@ -16,6 +18,7 @@ type TaskStepCircularActionButtonProps = {
   state: StepState;
   lastStateRecord: LastStateRecord | null;
   totalWorkingSeconds: number;
+  budget: StepBudget | null;
   onTransition: (
     stepId: TaskStepId,
     taskId: TaskId,
@@ -36,12 +39,88 @@ function labelFromState(state: StepState): string {
   return "Tap to resume";
 }
 
+type WorkingBudgetTimerProps = {
+  stepId: TaskStepId;
+  budget: StepBudget;
+};
+
+type DetailBudgetSecondaryLabelProps = {
+  budget: StepBudget;
+  leftSeconds: number | null;
+  stepId: TaskStepId;
+  workedSeconds: number;
+};
+
+function DetailBudgetSecondaryLabel({
+  budget,
+  leftSeconds,
+  stepId,
+  workedSeconds,
+}: DetailBudgetSecondaryLabelProps): React.JSX.Element | null {
+  const isOver = budget.step.allowance_seconds !== null &&
+    leftSeconds !== null &&
+    leftSeconds < 0;
+  const label = (
+    <StepBudgetSecondaryLabel
+      budget={budget}
+      leftSeconds={leftSeconds}
+      stepId={stepId}
+      workedSeconds={workedSeconds}
+    />
+  );
+
+  if (!isOver) {
+    return label;
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-[#e2a39b] bg-[#c0473a]/10 px-2 py-0.5"
+      data-testid={`task-step-circular-overtime-${stepId}`}
+    >
+      <CircleAlert
+        aria-hidden="true"
+        className="size-3.5 shrink-0 text-[#b9382a]"
+      />
+      {label}
+    </span>
+  );
+}
+
+function WorkingBudgetTimer({
+  stepId,
+  budget,
+}: WorkingBudgetTimerProps): React.JSX.Element {
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
+
+  return (
+    <>
+      <span
+        className={cn(
+          "font-mono text-sm text-muted-foreground",
+          isOver && "text-[#b9382a]",
+        )}
+        data-testid={`task-step-circular-timer-${stepId}`}
+      >
+        {formatSecondsHHMMSS(workedSeconds)}
+      </span>
+      <DetailBudgetSecondaryLabel
+        budget={budget}
+        leftSeconds={leftSeconds}
+        stepId={stepId}
+        workedSeconds={workedSeconds}
+      />
+    </>
+  );
+}
+
 export function TaskStepCircularActionButton({
   stepId,
   taskId,
   state,
   lastStateRecord,
   totalWorkingSeconds,
+  budget,
   onTransition,
   isTransitioning,
 }: TaskStepCircularActionButtonProps): React.JSX.Element | null {
@@ -75,8 +154,10 @@ export function TaskStepCircularActionButton({
         />
       </button>
 
-      <div className="h-5">
-        {isWorking && lastStateRecord ? (
+      <div className="flex min-h-5 flex-col items-center">
+        {isWorking && budget ? (
+          <WorkingBudgetTimer budget={budget} stepId={stepId} />
+        ) : isWorking && lastStateRecord ? (
           <TickingTimer
             className="font-mono text-sm text-muted-foreground"
             data-testid={`task-step-circular-timer-${stepId}`}
@@ -84,14 +165,36 @@ export function TaskStepCircularActionButton({
             startedAtIso={lastStateRecord.entered_at}
           />
         ) : state === "paused" || state === "ended_shift" ? (
-          <span
-            className="font-mono text-sm text-muted-foreground"
-            data-testid={`task-step-circular-timer-${stepId}`}
-          >
-            {totalWorkingSeconds > 0
-              ? formatSecondsHHMMSS(totalWorkingSeconds)
-              : "—"}
-          </span>
+          budget ? (
+            <>
+              <span
+                className={cn(
+                  "font-mono text-sm text-muted-foreground",
+                  budget.step.left_seconds !== null &&
+                    budget.step.left_seconds < 0 &&
+                    "text-[#b9382a]",
+                )}
+                data-testid={`task-step-circular-timer-${stepId}`}
+              >
+                {formatSecondsHHMMSS(budget.step.worked_seconds)}
+              </span>
+              <DetailBudgetSecondaryLabel
+                budget={budget}
+                leftSeconds={budget.step.left_seconds}
+                stepId={stepId}
+                workedSeconds={budget.step.worked_seconds}
+              />
+            </>
+          ) : (
+            <span
+              className="font-mono text-sm text-muted-foreground"
+              data-testid={`task-step-circular-timer-${stepId}`}
+            >
+              {totalWorkingSeconds > 0
+                ? formatSecondsHHMMSS(totalWorkingSeconds)
+                : "—"}
+            </span>
+          )
         ) : null}
       </div>
 

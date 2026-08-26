@@ -33,14 +33,6 @@ export const PRODUCTION_TIME_TONE_FILL: Record<ProductionTimeTone, string> = {
 export const PRODUCTION_TIME_SUCCESS_TEXT = "text-[#1e7a46]";
 export const PRODUCTION_TIME_DANGER_TEXT = "text-[#b9382a]";
 
-/**
- * The projected-overrun line. Amber, not the danger red: nothing has gone
- * wrong yet — the overrun is a forecast, and the served figures around it are
- * still within budget. Darker than the `paused` fill so it holds contrast as
- * body text.
- */
-export const PRODUCTION_TIME_WARNING_TEXT = "text-[#8a6d1c]";
-
 /** The active row's highlight and its left accent rule. */
 export const PRODUCTION_TIME_ACTIVE_ROW_BG = "bg-[#f5f9ff]";
 export const PRODUCTION_TIME_ACTIVE_ROW_ACCENT = "bg-[#2f6fd0]";

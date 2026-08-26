@@ -10,7 +10,7 @@ import {
   capPressureSeconds,
   formatWorkSeconds,
   humanizeSectionState,
-  selectVisibleRows,
+  selectAnchorRowIndex,
   stateToTone,
   type ProductionTimeRowViewModel,
 } from "./production-time-view-model";
@@ -123,7 +123,7 @@ describe("buildRowDetail", () => {
 
     expect(detail.progressPercent).toBeCloseTo(72.7, 1);
     expect(detail.positionLabel).toBe("15m left");
-    expect(detail.verdictLabel).toBe("ON TRACK");
+    expect(detail.verdictTone).toBe("on_track");
   });
 
   it("draws a full bar without dividing when the target is not positive", () => {
@@ -159,7 +159,7 @@ describe("buildRowDetail", () => {
       progressPercent: 100,
       positionLabel: "25m over",
       positionTone: "over",
-      verdictLabel: "OVER BUDGET",
+      verdictTone: "over_share",
     });
   });
 
@@ -250,7 +250,7 @@ describe("buildOutlook", () => {
     const outlook = buildOutlook(REAL_PAYLOAD_SECTIONS, 1670);
 
     expect(outlook).toEqual({
-      label: "Remaining work is budgeted at 43m — projected ~15m over.",
+      label: "~43m expected left · ~15m over budget",
       remainingCommitmentSeconds: 2619,
       projectedOverrunSeconds: 949,
     });
@@ -334,7 +334,7 @@ describe("buildOutlook", () => {
 
     expect(outlook?.projectedOverrunSeconds).toBe(3219);
     expect(outlook?.label).toBe(
-      "Remaining work is budgeted at 43m — projected ~53m over.",
+      "~43m expected left · ~53m over budget",
     );
   });
 });
@@ -351,32 +351,39 @@ describe("formatPassCount", () => {
   });
 });
 
-describe("selectVisibleRows", () => {
-  const nine = Array.from({ length: 9 }, (_value, index) =>
-    row({ key: `row-${index}`, isActive: index === 7 }),
-  );
+describe("selectAnchorRowIndex", () => {
+  const tones = (...values: ProductionTimeRowViewModel["tone"][]) =>
+    values.map((tone, index) => row({ key: `row-${index}`, tone }));
 
-  it("keeps every row when the pipeline is short", () => {
-    const four = nine.slice(0, 4);
-    expect(selectVisibleRows(four, false)).toHaveLength(4);
+  it("anchors on the oldest working section first", () => {
+    expect(
+      selectAnchorRowIndex(
+        tones("completed", "working", "paused", "working", "pending"),
+      ),
+    ).toBe(1);
   });
 
-  it("keeps the active row visible while collapsed", () => {
-    const visible = selectVisibleRows(nine, false);
-
-    expect(visible.map((item) => item.key)).toEqual([
-      "row-0",
-      "row-1",
-      "row-2",
-      "row-3",
-      "row-7",
-    ]);
+  it("falls back to the oldest paused section", () => {
+    expect(
+      selectAnchorRowIndex(
+        tones("completed", "pending", "paused", "paused", "pending"),
+      ),
+    ).toBe(2);
   });
 
-  it("preserves payload order and never sorts", () => {
-    expect(selectVisibleRows(nine, true).map((item) => item.key)).toEqual(
-      nine.map((item) => item.key),
-    );
+  it("falls back to the last completed section", () => {
+    expect(
+      selectAnchorRowIndex(
+        tones("completed", "completed", "pending", "pending"),
+      ),
+    ).toBe(1);
+  });
+
+  it("stays at the top of an untouched pipeline", () => {
+    expect(
+      selectAnchorRowIndex(tones("pending", "blocked", "pending")),
+    ).toBe(0);
+    expect(selectAnchorRowIndex([])).toBe(0);
   });
 });
 
