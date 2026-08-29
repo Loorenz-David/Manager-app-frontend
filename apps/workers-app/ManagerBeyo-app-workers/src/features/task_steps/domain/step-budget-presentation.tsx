@@ -5,6 +5,7 @@ import {
   formatOverBudgetAmount,
   STEP_BUDGET_TONE_TEXT,
   workerFacingAllowanceForBudget,
+  workerFacingTypicalSeconds,
   type StepBudget,
 } from "./step-budget";
 
@@ -29,9 +30,9 @@ export function StepBudgetSecondaryLabel({
   workedSeconds,
   leftSeconds,
 }: StepBudgetSecondaryLabelProps): React.JSX.Element | null {
-  const { allowance_seconds, share_state, typical_worker_seconds } =
-    budget.step;
+  const { allowance_seconds, share_state } = budget.step;
   const workerFacingAllowance = workerFacingAllowanceForBudget(budget);
+  const typicalSeconds = workerFacingTypicalSeconds(budget);
 
   if (allowance_seconds !== null && leftSeconds !== null) {
     if (leftSeconds < 0) {
@@ -87,13 +88,13 @@ export function StepBudgetSecondaryLabel({
     );
   }
 
-  if (share_state === "no_budget" && typical_worker_seconds !== null) {
+  if (share_state === "no_budget" && typicalSeconds !== null) {
     return (
       <span
         className="text-xs text-muted-foreground"
         data-testid={`step-budget-secondary-${stepId}`}
       >
-        usually ~{formatDurationHM(typical_worker_seconds)}
+        usually ~{formatDurationHM(typicalSeconds)}
       </span>
     );
   }

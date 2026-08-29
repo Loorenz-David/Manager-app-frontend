@@ -1,10 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import type { BudgetAllocationStep } from "@beyo/item-economics";
+
 import {
   budgetToneFor,
   formatDurationHM,
   formatOverBudgetAmount,
   workerFacingAllowanceSeconds,
+  workerFacingTypicalSeconds,
+  type StepBudget,
 } from "./step-budget";
 
 describe("budgetToneFor", () => {
@@ -42,6 +46,61 @@ describe("workerFacingAllowanceSeconds", () => {
   it("keeps zero distinct from a non-applicable pressure share", () => {
     expect(workerFacingAllowanceSeconds(3600, 0)).toBe(0);
     expect(workerFacingAllowanceSeconds(3600, null)).toBe(3600);
+  });
+});
+
+describe("workerFacingTypicalSeconds", () => {
+  function budgetFor(
+    overrides: Partial<BudgetAllocationStep> = {},
+  ): StepBudget {
+    return {
+      receivedAtMs: 0,
+      step: {
+        step_id: "tstp_example",
+        working_section_id: "wsec_example",
+        section_name_snapshot: "Upholstery Installation",
+        typical_worker_seconds: 600,
+        typical_unit_worker_seconds: "140",
+        projected_typical_worker_seconds: 420,
+        typical_basis: "item_narrowed",
+        sample_count: 23,
+        allowance_seconds: null,
+        state: "pending",
+        pressure_share_seconds: null,
+        worked_seconds: 0,
+        left_seconds: null,
+        share_state: "no_budget",
+        ...overrides,
+      },
+    };
+  }
+
+  it("reads the server projection, not the raw historical median", () => {
+    // "usually ~Xm" answers how long *this* step should take. On a three-unit
+    // task the raw 10m median would understate it by more than half.
+    expect(workerFacingTypicalSeconds(budgetFor())).toBe(420);
+  });
+
+  it("falls back to the raw median only when no projection is served", () => {
+    // A backend mid-deploy. Dropping the line entirely would be worse than
+    // showing the pre-release number.
+    expect(
+      workerFacingTypicalSeconds(
+        budgetFor({ projected_typical_worker_seconds: null }),
+      ),
+    ).toBe(600);
+  });
+
+  it("stays null when the section has no usable sample at all", () => {
+    expect(
+      workerFacingTypicalSeconds(
+        budgetFor({
+          typical_worker_seconds: null,
+          typical_unit_worker_seconds: null,
+          projected_typical_worker_seconds: null,
+        }),
+      ),
+    ).toBeNull();
   });
 });
 

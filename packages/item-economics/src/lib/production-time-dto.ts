@@ -95,7 +95,17 @@ function toRows(
     const isPending = section.state === "pending";
     const isTerminal = TERMINAL_SECTION_STATES.has(section.state);
     const isExcluded = section.share_state === "excluded";
-    const typicalSeconds = section.typical?.typical_worker_seconds ?? null;
+    // The quantity-aware projection, not the raw historical median: every label
+    // built from this answers "how long should *this* section take", and the
+    // budget it sits beside already scales with quantity through the whole-order
+    // sale price (only the split *weights* use raw typicals, and those are
+    // ratios, so quantity cancels there). The raw median is the fallback for a
+    // backend mid-deploy, never a client-side multiplication
+    // (handoff quantity_normalized_typicals 2026-08-29).
+    const typicalSeconds =
+      section.typical?.projected_typical_worker_seconds ??
+      section.typical?.typical_worker_seconds ??
+      null;
 
     return {
       key: section.working_section_id || `${label}-${index}`,

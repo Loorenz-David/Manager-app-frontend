@@ -63,6 +63,7 @@ import {
   applyPurchasePriceLookupResult,
   createLookupResultSignature,
   findCachedItemCategoryOption,
+  applyLookupPropertiesResult,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
@@ -271,6 +272,7 @@ export function PreOrderFormContent({
       shouldDirty: true,
     });
     applyPurchasePriceLookupResult(form, selectedItem);
+    applyLookupPropertiesResult(form, selectedItem);
 
     applyLookupImages(selectedItem.images);
 

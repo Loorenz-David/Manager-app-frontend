@@ -21,6 +21,13 @@ export type ProductionTimeRowsViewportProps = {
  *
  * The expanded card does not use this — it lays the rows out flat and hands
  * scrolling back to the host page.
+ *
+ * `overscroll-y-auto` rather than `contain`: at either end of the list the
+ * scroll has to chain up to the host page, or the card becomes a dead zone
+ * the page cannot be scrolled through. Containing it here would also be
+ * redundant — the slide page's own scroller already carries
+ * `overscroll-y-none`, so the chain stops there and never reaches the
+ * document (no browser pull-to-refresh, no page rubber-band).
  */
 export function ProductionTimeRowsViewport({
   rows,
@@ -36,7 +43,7 @@ export function ProductionTimeRowsViewport({
     <div
       ref={viewportRef}
       aria-label={`Production stages, ${rows.length} total.`}
-      className="snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+      className="snap-y snap-mandatory overflow-y-auto overscroll-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
       data-testid="production-time-rows-viewport"
       role="group"
       tabIndex={0}

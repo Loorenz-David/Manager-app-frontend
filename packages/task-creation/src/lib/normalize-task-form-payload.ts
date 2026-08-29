@@ -121,6 +121,15 @@ function buildItemFields(
       ? {}
       : { expected_sale_price_minor: expectedSalePriceMinor }),
     ...(hasInlinePricing ? { currency: INLINE_PRICING_CURRENCY } : {}),
+    // Forwarded verbatim from the item lookup, never reshaped: the backend
+    // derives `properties_signature` from this exact blob and that signature
+    // is what groups the item's typical samples. Omitted when absent or
+    // empty — the write path treats `null` and `{}` alike as "nothing to say"
+    // and refuses to clear an existing snapshot with either, so sending them
+    // only adds noise to the request.
+    ...(item.properties && Object.keys(item.properties).length > 0
+      ? { properties: item.properties }
+      : {}),
   };
 }
 

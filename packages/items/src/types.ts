@@ -33,6 +33,16 @@ export const ItemDetailsFieldsSchema = z.object({
    * be omitted rather than sent as `null` (the column is non-nullable).
    */
   can_have_upholstery: z.boolean().optional(),
+  /**
+   * Externally-owned properties snapshot, carried verbatim from the item
+   * lookup to the create request. Never rendered and never user-editable: it
+   * lives in the form purely because the resolver's parsed output is what
+   * reaches `handleSubmit`, so a value not declared here is stripped before
+   * the payload is built. The backend derives `properties_signature` from
+   * this exact blob — reshaping it here would regroup the item's typical
+   * samples in item-economics — so it is passed through untouched.
+   */
+  properties: z.record(z.string(), z.unknown()).optional(),
 });
 export type ItemDetailsFields = z.infer<typeof ItemDetailsFieldsSchema>;
 
@@ -49,6 +59,11 @@ export const ItemLookupResultSchema = z.object({
   external_source: z.enum(ITEM_LOOKUP_EXTERNAL_SOURCE).nullable(),
   images: z.array(z.union([z.string(), ItemLookupImageObjectSchema])),
   purchase_price_minor: z.number().nullable().optional(),
+  /**
+   * Optional because the lookup endpoint does not serialize it yet — this
+   * accepts it the moment it starts to, without a coordinated release.
+   */
+  properties: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type ItemLookupResult = z.infer<typeof ItemLookupResultSchema>;
 

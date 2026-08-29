@@ -19,6 +19,8 @@ function step(overrides: Record<string, unknown> = {}) {
     working_section_id: "wsec_weaving",
     section_name_snapshot: "weaving",
     typical_worker_seconds: null,
+    typical_unit_worker_seconds: null,
+    projected_typical_worker_seconds: null,
     typical_basis: "insufficient_sample",
     sample_count: 0,
     allowance_seconds: 2210,
@@ -58,6 +60,7 @@ function allocation(overrides: Record<string, unknown> = {}) {
     pressure_ratio: "1.00",
     pressure_method: "open_share_proportional_v1",
     typical_resolution: typicalResolution(),
+    projection_quantity: 1,
     steps: [step()],
     ...overrides,
   };
@@ -201,6 +204,10 @@ describe("parseBudgetAllocations", () => {
     expect(parsed).toHaveLength(1);
     expect(parsed[0]?.steps[0]?.allowance_seconds).toBe(2210);
     expect(parsed[0]?.steps[0]?.typical_basis).toBe("insufficient_sample");
+    expect(parsed[0]?.steps[0]?.projected_typical_worker_seconds).toBeNull();
+    // One unit, never zero units: a missing quantity must not read as an order
+    // of nothing.
+    expect(parsed[0]?.projection_quantity).toBe(1);
     expect(parsed[0]?.typical_resolution).toEqual({
       task_typical_basis: "section_wide_uniform",
       reconciliation_method: "uniform_basis_v1",
@@ -213,6 +220,36 @@ describe("parseBudgetAllocations", () => {
         insufficient_sample: 0,
       },
     });
+  });
+
+  it("carries the quantity projection a step card renders", () => {
+    // Raw 600 / unit 140 / quantity 3 -> 420, the same cross-surface case the
+    // backend validated. The card reads the projection; the raw median stays
+    // beside it because the allowance is still derived from it.
+    const parsed = parseBudgetAllocations([
+      allocation({
+        projection_quantity: 3,
+        steps: [
+          step({
+            typical_worker_seconds: 600,
+            typical_unit_worker_seconds: "140",
+            projected_typical_worker_seconds: 420,
+            typical_basis: "item_narrowed",
+            sample_count: 23,
+          }),
+        ],
+      }),
+    ]);
+
+    expect(parsed[0]?.projection_quantity).toBe(3);
+    expect(parsed[0]?.steps[0]?.projected_typical_worker_seconds).toBe(420);
+    expect(parsed[0]?.steps[0]?.typical_unit_worker_seconds).toBe("140");
+    // Fractional per-unit medians must survive as strings — parsing "433.5" as
+    // a number is the same mistake the decimal-string rule exists to prevent.
+    expect(typeof parsed[0]?.steps[0]?.typical_unit_worker_seconds).toBe(
+      "string",
+    );
+    expect(parsed[0]?.steps[0]?.typical_worker_seconds).toBe(600);
   });
 });
 

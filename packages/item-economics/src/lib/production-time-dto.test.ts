@@ -7,9 +7,16 @@ import {
 } from "../types";
 import { toProductionTimeViewModel } from "./production-time-dto";
 
-function typical(seconds: number | null) {
+/**
+ * `projectedSeconds` defaults to the raw median, which is what the backend
+ * serves at quantity 1. Pass it explicitly to model a multi-unit task, or
+ * `undefined` via `typicalWithoutProjection` for a pre-release backend.
+ */
+function typical(seconds: number | null, projectedSeconds = seconds) {
   return {
     typical_worker_seconds: seconds,
+    typical_unit_worker_seconds: seconds === null ? null : String(seconds),
+    projected_typical_worker_seconds: projectedSeconds,
     sample_count: 23,
     typical_basis: "item_narrowed" as const,
     narrowed_sample_count: 23,
@@ -50,6 +57,7 @@ function makeDto(
       percent_consumed: "82.05",
     },
     final: null,
+    projection_quantity: 1,
     sections: [
       {
         working_section_id: "wsec_upholstery",
@@ -783,6 +791,79 @@ describe("toProductionTimeViewModel", () => {
       expect(viewModel.card.rows[1]?.allowanceLabel).toBeNull();
     });
   });
+
+  // Quantity-normalized typicals (handoff 2026-08-29). Everything a row says
+  // about "typical" answers how long *this* task should take, so it reads the
+  // server's projection. The raw median stays the allowance's reference and is
+  // only the fallback for a backend that has not shipped the projection.
+  describe("quantity-projected typical", () => {
+    function rowsForTypical(block: ReturnType<typeof typical>) {
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({
+          projection_quantity: 3,
+          sections: [{ ...base, typical: block }],
+        }),
+      );
+      if (viewModel.kind !== "budget") {
+        throw new Error("expected a budget card");
+      }
+      return viewModel.card.rows;
+    }
+
+    it("displays the projection, not the raw median, on every typical label", () => {
+      // Raw 600s, unit 140s, quantity 3 -> 420s. Both numbers are served; a row
+      // that showed 10m would be quoting a one-unit order for a three-unit task.
+      const rows = rowsForTypical({
+        ...typical(600, 420),
+        typical_unit_worker_seconds: "140",
+      });
+
+      expect(rows[0]?.typicalLabel).toBe("typical 7m");
+      expect(rows[0]?.typicalComparisonLabel).toBe("of typically 7m");
+      expect(
+        rows[0]?.activeMetrics?.map(
+          ({ label, valueLabel }) => `${label}:${valueLabel}`,
+        ),
+      ).toContain("Typical:7m");
+    });
+
+    it("never multiplies client-side — a projection equal to the raw median stands", () => {
+      // The server is the only place the multiplication happens. Serving the raw
+      // median back as the projection (quantity 1 history, or a section the
+      // scaling did not move) must render that number, not number x quantity.
+      const rows = rowsForTypical(typical(600, 600));
+
+      expect(rows[0]?.typicalLabel).toBe("typical 10m");
+    });
+
+    it("falls back to the raw median when the backend serves no projection", () => {
+      // `.catch(null)` covers a mid-deploy backend. Losing the label entirely
+      // would be worse than showing the pre-release number.
+      const rows = rowsForTypical({
+        ...typical(600),
+        projected_typical_worker_seconds: null,
+        typical_unit_worker_seconds: null,
+      });
+
+      expect(rows[0]?.typicalLabel).toBe("typical 10m");
+    });
+
+    it("keeps the existing insufficient-sample state when both are null", () => {
+      const rows = rowsForTypical(typical(null));
+
+      expect(rows[0]?.typicalLabel).toBeNull();
+      expect(rows[0]?.typicalComparisonLabel).toBeNull();
+    });
+
+    it("defaults projection_quantity to 1 rather than 0 when absent", () => {
+      const { projection_quantity: _omitted, ...withoutQuantity } = makeDto();
+      const parsed = TaskProductionTimeSchema.parse(withoutQuantity);
+
+      expect(parsed.projection_quantity).toBe(1);
+    });
+  });
+
 });
 
 type NoBudgetCaseStatus = Exclude<

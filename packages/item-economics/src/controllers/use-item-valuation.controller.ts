@@ -768,6 +768,11 @@ export function useItemValuationController(
 
   const table: WorkImpactTableProps = {
     rowLabel: "Time",
+    // Whole-order time since the quantity-normalization release (2026-08-29):
+    // the server scales the typical by the item's quantity, which is what the
+    // `atPrice` allowance beside it has always measured. Read as served — the
+    // multiplication is the server's, never ours.
+    //
     // Never "0m" for an absent typical: a median with no sample behind it would
     // read as "this job takes no time" (handoff §5.1).
     typical: hasTypical

@@ -40,6 +40,7 @@ const literalHandoffPayload: TaskProductionTime = {
     percent_consumed: "82.05",
   },
   final: null,
+  projection_quantity: 1,
   sections: [
     {
       working_section_id: "wsec_upholstery",
@@ -56,6 +57,8 @@ const literalHandoffPayload: TaskProductionTime = {
       share_state: "on_track",
       typical: {
         typical_worker_seconds: 3_600,
+        typical_unit_worker_seconds: "3600",
+        projected_typical_worker_seconds: 3_600,
         sample_count: 23,
         typical_basis: "section_wide" as const,
         narrowed_sample_count: 0,

@@ -129,3 +129,44 @@ describe("normalizeReturnFormPayload can_have_upholstery", () => {
     expect(payload.item).toMatchObject({ can_have_upholstery: false });
   });
 });
+
+describe("normalizeReturnFormPayload properties snapshot", () => {
+  function valuesWithProperties(properties: Record<string, unknown> | undefined) {
+    const defaults = buildReturnFormDefaultValues(false);
+    return {
+      ...defaults,
+      item: { ...defaults.item, article_number: "ABC-123", properties },
+    };
+  }
+
+  it("forwards the lookup snapshot verbatim", () => {
+    const properties = {
+      material: "oak",
+      dimensions: { height_cm: 80 },
+      tags: ["vintage"],
+    };
+
+    const payload = normalizeReturnFormPayload(
+      valuesWithProperties(properties),
+      ids,
+      "return",
+    );
+
+    expect(payload.item).toMatchObject({ properties });
+  });
+
+  it.each([
+    ["absent", undefined],
+    ["empty", {}],
+  ])("omits the key entirely when the snapshot is %s", (_label, properties) => {
+    const payload = normalizeReturnFormPayload(
+      valuesWithProperties(properties),
+      ids,
+      "return",
+    );
+
+    // The backend reads null and {} alike as "nothing to say" and will not
+    // clear an existing snapshot with either, so neither is worth sending.
+    expect(payload.item).not.toHaveProperty("properties");
+  });
+});

@@ -7,6 +7,7 @@ import {
   formatDurationHM,
   useLiveStepBudget,
   workerFacingAllowanceForBudget,
+  workerFacingTypicalSeconds,
   type StepBudget,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
@@ -216,6 +217,7 @@ export function TaskStepActionButton({
     }
   } else if (isPending && budget) {
     const workerFacingAllowance = workerFacingAllowanceForBudget(budget);
+    const typicalSeconds = workerFacingTypicalSeconds(budget);
     if (workerFacingAllowance !== null) {
       right = (
         <span
@@ -227,14 +229,14 @@ export function TaskStepActionButton({
       );
     } else if (
       budget.step.share_state === "no_budget" &&
-      budget.step.typical_worker_seconds !== null
+      typicalSeconds !== null
     ) {
       right = (
         <span
           className="shrink-0 text-xs opacity-80"
           data-testid={`step-budget-secondary-${stepId}`}
         >
-          usually ~{formatDurationHM(budget.step.typical_worker_seconds)}
+          usually ~{formatDurationHM(typicalSeconds)}
         </span>
       );
     }

@@ -64,6 +64,23 @@ export function workerFacingAllowanceForBudget(
   );
 }
 
+/**
+ * The "usually ~40m" figure, in one place because three cards render it.
+ *
+ * It is the quantity-projected typical, not the raw historical median: a worker
+ * reading it is asking how long *their* step should take on a task of this
+ * size. The raw median is only the fallback for a backend that has not shipped
+ * the projection yet — the multiplication is never done here
+ * (handoff quantity_normalized_typicals 2026-08-29).
+ */
+export function workerFacingTypicalSeconds(budget: StepBudget): number | null {
+  return (
+    budget.step.projected_typical_worker_seconds ??
+    budget.step.typical_worker_seconds ??
+    null
+  );
+}
+
 // Only meant to be mounted while the step is working, so idle cards never
 // subscribe to the shared one-second ticker. The served value is the
 // baseline on every receipt (live-clock handoff §5): elapsed time is added on

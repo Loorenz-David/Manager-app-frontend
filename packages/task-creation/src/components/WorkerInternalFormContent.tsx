@@ -42,6 +42,7 @@ import {
   buildCreateImagesFromUrlBatch,
   createLookupResultSignature,
   findCachedItemCategoryOption,
+  applyLookupPropertiesResult,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import {
@@ -224,6 +225,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     form.setValue("item.major_category", "wood", {
       shouldDirty: false,
     });
+    applyLookupPropertiesResult(form, selectedItem);
 
     if (isWoodCategory) {
       form.setValue(

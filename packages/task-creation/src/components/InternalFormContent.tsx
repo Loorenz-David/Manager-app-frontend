@@ -45,6 +45,7 @@ import {
   applyPurchasePriceLookupResult,
   createLookupResultSignature,
   findCachedItemCategoryOption,
+  applyLookupPropertiesResult,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import {
@@ -208,6 +209,7 @@ export function InternalFormContent(): React.JSX.Element {
       shouldDirty: true,
     });
     applyPurchasePriceLookupResult(form, selectedItem);
+    applyLookupPropertiesResult(form, selectedItem);
 
     applyLookupImages(selectedItem.images);
 

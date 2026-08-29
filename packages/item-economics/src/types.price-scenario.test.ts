@@ -41,7 +41,11 @@ const REFERENCE_PAYLOAD = {
     is_purely_proportional: true,
   },
   typical: {
+    // Quantity-projected since 2026-08-29; this reference item is quantity 6,
+    // so the whole-order total is six times the per-unit one.
     total_seconds: 12300,
+    total_unit_seconds: 2050,
+    quantity_applied: 6,
     is_estimated: false,
     sections_without_sample: 0,
     sections_total: 4,
@@ -136,6 +140,33 @@ describe("PriceScenarioSchema (M13)", () => {
     const { currency: _currency, ...withoutCurrency } = REFERENCE_PAYLOAD;
 
     expect(() => PriceScenarioSchema.parse(withoutCurrency)).toThrow();
+  });
+
+  it("reads the whole-order total and its per-unit companion", () => {
+    // `total_seconds` changed meaning rather than moving: break-even, the
+    // suggestion and the slider domain are now all whole-order figures, which
+    // is what the allowance beside them has always been.
+    const parsed = PriceScenarioSchema.parse(REFERENCE_PAYLOAD);
+
+    expect(parsed.typical.total_seconds).toBe(12300);
+    expect(parsed.typical.total_unit_seconds).toBe(2050);
+    expect(parsed.typical.quantity_applied).toBe(6);
+  });
+
+  it("defaults a missing quantity_applied to one unit, never zero", () => {
+    const {
+      total_unit_seconds: _unit,
+      quantity_applied: _quantity,
+      ...typicalWithoutProjection
+    } = REFERENCE_PAYLOAD.typical;
+    const parsed = PriceScenarioSchema.parse(
+      payload({ typical: typicalWithoutProjection }),
+    );
+
+    // The screen keeps its figures against a backend mid-deploy: total_seconds
+    // is still served, and it simply means what it used to.
+    expect(parsed.typical.total_seconds).toBe(12300);
+    expect(parsed.typical.quantity_applied).toBe(1);
   });
 
   it("criterion 50: rejects a scaled integer sent as a decimal string", () => {

@@ -22,6 +22,7 @@ import {
   formatDurationHM,
   useLiveStepBudget,
   workerFacingAllowanceForBudget,
+  workerFacingTypicalSeconds,
   type StepBudget,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
@@ -171,16 +172,14 @@ function LastActiveStepCardTimer({
       );
     }
 
-    if (
-      budget.step.share_state === "no_budget" &&
-      budget.step.typical_worker_seconds !== null
-    ) {
+    const typicalSeconds = workerFacingTypicalSeconds(budget);
+    if (budget.step.share_state === "no_budget" && typicalSeconds !== null) {
       return (
         <span
           className="shrink-0 text-xs text-current opacity-80"
           data-testid={`step-budget-secondary-${stepId}`}
         >
-          usually ~{formatDurationHM(budget.step.typical_worker_seconds)}
+          usually ~{formatDurationHM(typicalSeconds)}
         </span>
       );
     }

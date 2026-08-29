@@ -58,6 +58,7 @@ import {
 import {
   createLookupResultSignature,
   findCachedItemCategoryOption,
+  applyLookupPropertiesResult,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
 import { useLookupItemImages } from "../hooks/use-lookup-item-images";
@@ -245,6 +246,7 @@ export function ReturnFormContent({
     form.setValue("item.quantity", selectedItem.quantity, {
       shouldDirty: true,
     });
+    applyLookupPropertiesResult(form, selectedItem);
 
     applyLookupImages(selectedItem.images);
 

@@ -24,6 +24,16 @@ type PurchasePriceForm = {
   setValue: PurchasePriceSetValue;
 };
 
+type LookupPropertiesSetValue = (
+  name: "item.properties",
+  value: Record<string, unknown> | undefined,
+  options: { shouldDirty: true },
+) => void;
+
+type LookupPropertiesForm = {
+  setValue: LookupPropertiesSetValue;
+};
+
 export function selectPurchaseApiLookupResult(
   items: ItemLookupResult[],
 ): ItemLookupResult | null {
@@ -101,6 +111,27 @@ export function createLookupResultSignature(
     external_source: item.external_source,
     images: item.images,
     purchase_price_minor: item.purchase_price_minor ?? null,
+    // Part of the signature so two results that differ only in their
+    // properties snapshot are not mistaken for the same applied lookup.
+    properties: item.properties ?? null,
+  });
+}
+
+/**
+ * Copies the lookup's properties snapshot onto the form. Absent and empty are
+ * both left as `undefined`: the backend treats `null` and `{}` alike as
+ * "ingestion had nothing to say" and will not clear an existing snapshot with
+ * either, so there is nothing to gain by sending them.
+ */
+export function applyLookupPropertiesResult(
+  form: LookupPropertiesForm,
+  selectedItem: Pick<ItemLookupResult, "properties">,
+): void {
+  const properties = selectedItem.properties;
+  const hasProperties = properties != null && Object.keys(properties).length > 0;
+
+  form.setValue("item.properties", hasProperties ? properties : undefined, {
+    shouldDirty: true,
   });
 }
 

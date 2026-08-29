@@ -45,7 +45,11 @@ export const PRICE_SCENARIO_REFERENCE_JSON = {
     is_purely_proportional: true,
   },
   typical: {
+    // Quantity-projected since the 2026-08-29 release; this reference item is
+    // quantity 1, so the projection equals the per-unit total.
     total_seconds: 12300,
+    total_unit_seconds: 12300,
+    quantity_applied: 1,
     is_estimated: false,
     sections_without_sample: 0,
     sections_total: 4,

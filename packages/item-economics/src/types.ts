@@ -198,6 +198,21 @@ export const ProductionTimeTypicalSchema = z.object({
    * beside `0` — task economics requires a usable narrowed median above zero.
    */
   typical_worker_seconds: z.number().int().nullable(),
+  /**
+   * The same population's median at quantity 1, and the only field of the pair
+   * that may be fractional. We never multiply it ourselves — see
+   * `projected_typical_worker_seconds` (handoff §"Frontend action required" 2).
+   */
+  typical_unit_worker_seconds: DecimalStringSchema.nullable().catch(null),
+  /**
+   * `typical_unit_worker_seconds x projection_quantity`, half-even rounded
+   * server-side: the quantity-aware expectation for *this* task, and what every
+   * "how long should this take" surface displays. Null exactly when
+   * `typical_worker_seconds` is null — same basis, same sample gates — so it
+   * introduces no empty state of its own. `.catch(null)` only covers a backend
+   * mid-deploy, where the reader falls back to the raw median.
+   */
+  projected_typical_worker_seconds: z.number().int().nullable().catch(null),
   /** Counts the population named by `typical_basis`, not the narrowed one. */
   sample_count: z.number().int(),
   typical_basis: TypicalBasisSchema,
@@ -294,6 +309,13 @@ export const TaskProductionTimeSchema = z.object({
   budget: ProductionTimeBudgetSchema,
   final: ProductionTimeFinalSchema.nullable(),
   typical_resolution: TypicalResolutionSchema,
+  /**
+   * The PRIMARY item's quantity, clamped to at least 1, applied to every
+   * projection in this response (handoff 2026-08-29). A detached task or a
+   * legacy `quantity <= 0` answers 1, which is also the `.catch()` default: a
+   * missing field must degrade to "one unit", never to "no units".
+   */
+  projection_quantity: z.number().int().catch(1),
   sections: z.array(ProductionTimeSectionSchema),
 });
 export type TaskProductionTime = z.infer<typeof TaskProductionTimeSchema>;
@@ -314,6 +336,13 @@ export const BudgetAllocationStepSchema = z.object({
   section_name_snapshot: z.string().nullable(),
   /** Item-aware since 2026-08-24 — same field, same nullability, better number. */
   typical_worker_seconds: z.number().int().nullable(),
+  /** Per-unit median for the step's section, on the task's selected basis. */
+  typical_unit_worker_seconds: DecimalStringSchema.nullable().catch(null),
+  /**
+   * The server-computed projection for that section under this task's quantity
+   * — what a step card means by "usually ~40m". Never multiplied client-side.
+   */
+  projected_typical_worker_seconds: z.number().int().nullable().catch(null),
   /**
    * The provenance of the figure above. The two raw evidence counts that
    * production-time carries are deliberately not repeated on every list row.
@@ -350,6 +379,8 @@ export const TaskBudgetAllocationSchema = z.object({
   pressure_ratio: DecimalStringSchema.nullable(),
   pressure_method: z.string(),
   typical_resolution: TypicalResolutionSchema,
+  /** Per task, same clamping rule as production-time. */
+  projection_quantity: z.number().int().catch(1),
   steps: z.array(BudgetAllocationStepSchema),
 });
 export type TaskBudgetAllocation = z.infer<typeof TaskBudgetAllocationSchema>;
@@ -486,7 +517,19 @@ export type PriceScenarioModel = z.infer<typeof PriceScenarioModelSchema>;
 
 /** Always present, even under a non-`bound` binding (handoff §5.1, §5.5). */
 export const PriceScenarioTypicalSchema = z.object({
+  /**
+   * Since 2026-08-29 this is the **quantity-projected** task typical: each
+   * participating section's per-unit typical (business fallback applied in
+   * per-unit space) scaled by the current item's quantity, per-section half-even
+   * rounded, then summed. Break-even, the suggestion and the slider domain are
+   * all derived from it, so the screen prices the whole order — which is what
+   * `allowanceSeconds(draft, model)` beside it has always measured.
+   */
   total_seconds: z.number().int(),
+  /** The same total at quantity 1. Display only; never our multiplicand. */
+  total_unit_seconds: z.number().int().catch(0),
+  /** The clamped quantity behind `total_seconds`; always >= 1. */
+  quantity_applied: z.number().int().catch(1),
   /**
    * True when no section participates, or when the section-wide fallback fired
    * for at least one participating section. Reconciling to
