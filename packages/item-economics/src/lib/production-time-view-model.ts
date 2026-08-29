@@ -546,35 +546,26 @@ export function buildOutlook(
 // Swedish grouping, fixed rather than device-derived: the figure is in the
 // workspace's currency regardless of the phone's locale. `production-time`
 // serves no currency field (handoff §"Response shape"), so the suffix is the
-// workspace's — the same assumption, and the same formatter settings, as the
-// budget-signal footer in `task-budget-overrun.ts`.
+// workspace's.
 //
-// Öre are all-or-nothing: "500 kr" and "884,56 kr" are both ordinary, while the
-// one-decimal "2 278,5 kr" a plain 0..2 range would produce for a round-öre
-// amount reads as a typo.
-const productionCostWholeFormatter = new Intl.NumberFormat("sv-SE", {
+// Rounded to the whole krona: this card's figures are a quick on-track/
+// over-budget read, not a ledger, so öre are dropped — unlike the
+// budget-signal footer in `task-budget-overrun.ts`, which keeps them.
+const productionCostFormatter = new Intl.NumberFormat("sv-SE", {
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
-const productionCostOreFormatter = new Intl.NumberFormat("sv-SE", {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 /**
- * Integer minor units (öre) → "1 384,56 kr". Display only.
+ * Integer minor units (öre) → "1 385 kr", rounded to the nearest krona.
+ * Display only.
  *
  * The space before the suffix is a non-breaking one, as is the group separator
  * sv-SE already emits: the amount is a single token and must never be split
  * across lines mid-sentence, least of all leaving a bare "kr" on the next one.
  */
 export function formatProductionCostMinor(minor: number): string {
-  const formatter =
-    minor % 100 === 0
-      ? productionCostWholeFormatter
-      : productionCostOreFormatter;
-
-  return `${formatter.format(minor / 100)}\u00a0kr`;
+  return `${productionCostFormatter.format(minor / 100)}\u00a0kr`;
 }
 
 /**

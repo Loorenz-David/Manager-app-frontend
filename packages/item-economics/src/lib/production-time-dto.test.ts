@@ -527,8 +527,8 @@ describe("toProductionTimeViewModel", () => {
     expect(viewModel.card.headline.workedLabel).toBe("1h 7m");
     expect(viewModel.card.headline.remainingLabel).toBe("1h 46m over");
     expect(viewModel.card.headline.cost).toMatchObject({
-      workedLabel: "884,55\u00a0kr",
-      remainingLabel: "1\u00a0384,55\u00a0kr over",
+      workedLabel: "885\u00a0kr",
+      remainingLabel: "1\u00a0385\u00a0kr over",
       isOverBudget: true,
     });
   });

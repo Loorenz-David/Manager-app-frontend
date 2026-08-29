@@ -248,13 +248,13 @@ describe("ProductionTimeCard — budget state", () => {
     expect(headline).toHaveAttribute("aria-pressed", "true");
     expect(
       screen.getByTestId("production-time-headline-cost-worked"),
-    ).toHaveTextContent("2 278,50 kr");
+    ).toHaveTextContent("2 279 kr");
     expect(
       screen.getByTestId("production-time-headline-cost-budget"),
     ).toHaveTextContent("of 2 539 kr");
     expect(
       screen.getByTestId("production-time-headline-cost-remaining"),
-    ).toHaveTextContent("260,50 kr left");
+    ).toHaveTextContent("261 kr left");
 
     await user.click(headline);
     expect(headline).toHaveAttribute("data-mode", "time");
@@ -292,7 +292,7 @@ describe("ProductionTimeCard — budget state", () => {
     const costRemaining = screen.getByTestId(
       "production-time-headline-cost-remaining",
     );
-    expect(costRemaining).toHaveTextContent("585,80 kr over");
+    expect(costRemaining).toHaveTextContent("586 kr over");
     expect(costRemaining).toHaveClass("text-[#b9382a]", "font-medium");
   });
 
@@ -306,17 +306,17 @@ describe("ProductionTimeCard — budget state", () => {
 
     await user.click(screen.getByTestId("production-time-headline"));
 
-    // "884,56 kr … 1 384,56 kr over" with no middle term. A served "of −500 kr"
+    // "885 kr … 1 385 kr over" with no middle term. A served "of −500 kr"
     // would read as the subtraction the row is not doing.
     expect(
       screen.getByTestId("production-time-headline-cost-worked"),
-    ).toHaveTextContent("884,56 kr");
+    ).toHaveTextContent("885 kr");
     expect(
       screen.queryByTestId("production-time-headline-cost-budget"),
     ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("production-time-headline-cost-remaining"),
-    ).toHaveTextContent("1 384,56 kr over");
+    ).toHaveTextContent("1 385 kr over");
   });
 
   it("offers no tap when the session was served no money", () => {
