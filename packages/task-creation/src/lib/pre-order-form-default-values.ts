@@ -10,6 +10,7 @@ export function buildPreOrderFormDefaultValues(
 ): PreOrderFormValues {
   return {
     has_sku_template: hasSkuTemplate,
+    assortment: undefined,
     item: {
       designer: "",
       article_number: "",

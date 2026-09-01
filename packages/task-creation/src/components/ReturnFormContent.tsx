@@ -485,9 +485,7 @@ export function ReturnFormContent({
                   defaultTab="zone"
                   sku={itemSku}
                 />
-                {returnSource === "store_return" ? (
-                  <TaskAssortmentField />
-                ) : null}
+                <TaskAssortmentField />
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />

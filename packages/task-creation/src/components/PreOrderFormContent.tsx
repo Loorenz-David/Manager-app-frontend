@@ -40,6 +40,7 @@ import {
   type ScannerSlideSurfaceProps,
 } from "@beyo/scanner";
 import {
+  TaskAssortmentField,
   // TaskDeliveryDateField,
   TaskFulfillmentMethodField,
   TaskReadyByDateField,
@@ -107,6 +108,7 @@ export const PRE_ORDER_STEP_FIELDS_MAP: Record<
   FieldPath<PreOrderFormValues>[]
 > = {
   task: [
+    "assortment",
     "item.article_number",
     "item.sku",
     "item.designer",
@@ -604,6 +606,7 @@ export function PreOrderFormContent({
                   positionErrorRevealNonce={positionErrorRevealNonce}
                   sku={itemSku}
                 />
+                <TaskAssortmentField />
               </ContentCard>
               <ContentCard>
                 <ItemCategorySelectionField />

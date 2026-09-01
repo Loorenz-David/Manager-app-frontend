@@ -224,6 +224,7 @@ export type ReturnFormValues = z.input<typeof ReturnFormSchema>;
 
 export const PreOrderFormSchema = z
   .object({
+    assortment: z.string().optional(),
     item: ItemDetailsFieldsSchema,
     item_pricing: ItemPricingFieldsSchema,
     item_upholstery: ItemUpholsteryFieldsSchema,
