@@ -19,6 +19,7 @@ import {
   type UpholsteryCardEntry,
   type UpholsteryRequirementEntry,
 } from "@beyo/tasks";
+import { isResolvedUpholsteryRequirementState } from "@beyo/upholstery";
 import type { UpholsteryWarningSheetSurfaceProps } from "@/features/task_steps/surface-ids";
 
 function buildNoFabricMessage(upholsteryName: string): CaseMessageContent {
@@ -86,7 +87,9 @@ export function UpholsteryWarningSheetPage(): React.JSX.Element {
       .filter(
         (entry) =>
           entry.activeRequirement !== null &&
-          entry.activeRequirement.state !== "available" &&
+          !isResolvedUpholsteryRequirementState(
+            entry.activeRequirement.state,
+          ) &&
           entry.activeRequirement.state !== "failed",
       );
   }, [upholsteryQuery.data?.requirements, upholsteryQuery.data?.upholstery]);

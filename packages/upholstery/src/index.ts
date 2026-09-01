@@ -3,6 +3,7 @@ export {
   UPHOLSTERY_REQUIREMENT_VARIANT,
   formatUpholsteryRequirementLabel,
   getUpholsteryRequirementVariant,
+  isResolvedUpholsteryRequirementState,
   isUpholsteryRequirementState,
 } from "./requirement-state";
 export type { UpholsteryRequirementState } from "./requirement-state";

@@ -1,3 +1,5 @@
+import { isResolvedUpholsteryRequirementState } from "@beyo/upholstery";
+
 import type { TaskStep } from "../types";
 
 export const UPHOLSTERY_SECTION_NAMES = new Set([
@@ -15,7 +17,9 @@ export function hasNoAvailableUpholstery(step: TaskStep): boolean {
     return false;
   }
 
-  return !requirements.some((requirement) => requirement.state === "available");
+  return !requirements.some((requirement) =>
+    isResolvedUpholsteryRequirementState(requirement.state),
+  );
 }
 
 export function hasNoUpholsterySelected(step: TaskStep): boolean {
