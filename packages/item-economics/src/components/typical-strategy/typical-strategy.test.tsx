@@ -86,10 +86,14 @@ describe("TypicalStrategySheetContent", () => {
     const filters = screen.getByTestId("typical-strategy-filters");
     expect(filters).toHaveTextContent("Chair");
     expect(filters).toHaveTextContent("Up & Down");
+    expect(filters).toHaveClass("bg-white");
+    expect(filters).toHaveTextContent("Matched on");
 
     const breakdown = screen.getByTestId("typical-strategy-breakdown");
     expect(breakdown).toHaveTextContent("4 of 5 stages");
     expect(breakdown).toHaveTextContent("1 of 5 stages");
+    expect(breakdown).toHaveTextContent("By stage");
+    expect(breakdown.querySelectorAll("tr")).toHaveLength(2);
   });
 
   it("never renders the opaque specification hash", () => {

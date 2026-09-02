@@ -138,6 +138,10 @@ export function PriceHeadline({
             value={groupDigits(edit.digits)}
             onBlur={() => setEdit(null)}
             onChange={(event) => handleDigitsChange(event.target.value)}
+            // The amount is a replacement-style editor: opening it should
+            // make the next digit replace the displayed price, rather than
+            // append to it.
+            onFocus={(event) => event.currentTarget.select()}
             onKeyDown={(event) => {
               if (event.key === "Enter") event.currentTarget.blur();
               if (event.key === "Escape") handleEscape();

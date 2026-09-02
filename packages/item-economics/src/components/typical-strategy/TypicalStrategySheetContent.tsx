@@ -10,40 +10,46 @@ export type TypicalStrategySheetContentProps = {
 };
 
 function DetailRows({
+  title,
+  description,
   rows,
   testId,
 }: {
+  title: string;
+  description?: string | null;
   rows: TypicalStrategyDetailRow[];
   testId: string;
 }): React.JSX.Element {
   return (
-    <dl className="flex flex-col gap-2" data-testid={testId}>
-      {rows.map((row) => (
-        <div
-          className="flex items-baseline justify-between gap-4"
-          key={`${row.label}-${row.value}`}
-        >
-          <dt className="shrink-0 text-sm text-muted-foreground">{row.label}</dt>
-          <dd className="min-w-0 text-right text-sm font-medium">{row.value}</dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}): React.JSX.Element {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-        {title}
-      </h3>
-      {children}
+    <section
+      className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+      data-testid={testId}
+    >
+      <div className="px-4 pb-3 pt-4">
+        <h3 className="font-mono text-xs uppercase tracking-wider text-slate-500">
+          {title}
+        </h3>
+        {description ? (
+          <p className="mt-1.5 text-sm text-slate-500">{description}</p>
+        ) : null}
+      </div>
+      <table className="w-full table-fixed border-collapse border-t border-slate-100 text-sm">
+        <tbody className="divide-y divide-slate-100">
+          {rows.map((row) => (
+            <tr key={`${row.label}-${row.value}`}>
+              <th
+                className="w-1/2 px-4 py-3 text-left font-normal text-slate-500"
+                scope="row"
+              >
+                {row.label}
+              </th>
+              <td className="px-4 py-3 text-right font-medium text-slate-950">
+                {row.value}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </section>
   );
 }
@@ -80,26 +86,27 @@ export function TypicalStrategySheetContent({
       </div>
 
       {strategy.filters.length > 0 ? (
-        <Section title="Matched on">
-          <DetailRows rows={strategy.filters} testId="typical-strategy-filters" />
-        </Section>
+        <DetailRows
+          rows={strategy.filters}
+          testId="typical-strategy-filters"
+          title="Matched on"
+        />
       ) : null}
 
       {strategy.breakdownLabel ? (
-        <Section title="By stage">
-          <p className="text-sm text-muted-foreground">
-            {strategy.breakdownLabel}
-          </p>
-          <DetailRows
-            rows={strategy.breakdown}
-            testId="typical-strategy-breakdown"
-          />
-        </Section>
+        <DetailRows
+          description={strategy.breakdownLabel}
+          rows={strategy.breakdown}
+          testId="typical-strategy-breakdown"
+          title="By stage"
+        />
       ) : null}
 
-      <Section title="How it is measured">
-        <DetailRows rows={strategy.method} testId="typical-strategy-method" />
-      </Section>
+      <DetailRows
+        rows={strategy.method}
+        testId="typical-strategy-method"
+        title="How it is measured"
+      />
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         The same match sets each stage&rsquo;s share of the time budget, so a

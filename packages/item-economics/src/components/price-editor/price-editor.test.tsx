@@ -431,6 +431,9 @@ describe("PriceHeadline tap-to-type (owner round 5)", () => {
     const input = screen.getByTestId("item-valuation-per-piece-input");
     expect(input).toHaveValue("4 524");
     expect(input).toHaveAttribute("inputmode", "numeric");
+    expect(input).toHaveFocus();
+    expect(input).toHaveProperty("selectionStart", 0);
+    expect(input).toHaveProperty("selectionEnd", "4 524".length);
   });
 
   it("typing regroups thousands and propagates every keystroke live (owner round 6)", () => {
