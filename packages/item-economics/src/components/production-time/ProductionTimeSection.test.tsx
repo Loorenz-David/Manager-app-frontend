@@ -25,8 +25,11 @@ const literalHandoffPayload: TaskProductionTime = {
     reconciliation_method: "uniform_basis_v1",
     comparability_profile: "primary_item_category_v1",
     applied_filter: null,
+    facet: null,
     participating_section_count: 1,
     sections_by_basis: {
+      item_properties_narrowed: 0,
+      item_facet_narrowed: 0,
       item_narrowed: 0,
       section_wide: 1,
       insufficient_sample: 0,

@@ -59,9 +59,17 @@ export const PRICE_SCENARIO_REFERENCE_JSON = {
       task_typical_basis: "item_narrowed_uniform",
       reconciliation_method: "uniform_basis_v1",
       comparability_profile: "primary_item_category_v1",
-      applied_filter: { item_category_ids: ["icat_chair"] },
+      applied_filter: {
+        item_category_ids: ["icat_chair"],
+        // Names ride beside the ids since the category-names release
+        // (handoff 2026-09-02 §1).
+        item_categories: [{ client_id: "icat_chair", name: "Chair" }],
+      },
+      facet: null,
       participating_section_count: 4,
       sections_by_basis: {
+        item_properties_narrowed: 0,
+        item_facet_narrowed: 0,
         item_narrowed: 3,
         section_wide: 1,
         insufficient_sample: 0,

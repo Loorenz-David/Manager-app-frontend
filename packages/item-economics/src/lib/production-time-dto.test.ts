@@ -42,8 +42,11 @@ function makeDto(
       reconciliation_method: "uniform_basis_v1",
       comparability_profile: "primary_item_category_v1",
       applied_filter: { item_category_ids: ["icat_chair"] },
+      facet: null,
       participating_section_count: 2,
       sections_by_basis: {
+        item_properties_narrowed: 0,
+        item_facet_narrowed: 0,
         item_narrowed: 2,
         section_wide: 0,
         insufficient_sample: 0,

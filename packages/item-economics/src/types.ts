@@ -133,31 +133,95 @@ export type ProductionTimeShareStateDto = z.infer<
 // confident, not throw. All of it is provenance we display; nothing branches on
 // it in a direction a conservative default gets wrong.
 
-/** The population behind a `typical_worker_seconds` (handoff §2). */
+/**
+ * The population behind a `typical_worker_seconds`, strongest evidence first
+ * (facet-ladder handoff 2026-08-29 §1).
+ *
+ * `"unknown"` is ours, not the server's: it is where an unrecognised future
+ * basis lands. Catching to `"insufficient_sample"` instead — which this schema
+ * did until the ladder's two narrowed values were noticed missing — makes the
+ * *strongest* evidence impersonate the *weakest*, so a reader is told a figure
+ * rests on nothing when it actually rests on the closest match available.
+ * Degrading to "not recognised" is honest; degrading to "no sample" is a lie.
+ */
 export const TypicalBasisSchema = z
-  .enum(["item_narrowed", "section_wide", "insufficient_sample"])
-  .catch("insufficient_sample");
+  .enum([
+    "item_properties_narrowed",
+    "item_facet_narrowed",
+    "item_narrowed",
+    "section_wide",
+    "insufficient_sample",
+    "unknown",
+  ])
+  .catch("unknown");
 export type TypicalBasis = z.infer<typeof TypicalBasisSchema>;
 
 /**
- * The filter actually derived for the task — the one new field that is
- * genuinely nullable, being null when the primary item has no category or
- * there is no primary item. Inactive axes are omitted from the object, so a
- * future axis arrives additively.
+ * One entry per id in `item_category_ids`, same order. `name` is null for a
+ * category deleted since the history was measured — the entry survives so the
+ * count still matches (category-names handoff 2026-09-02 §3).
+ */
+export const AppliedTypicalCategorySchema = z.object({
+  client_id: z.string(),
+  name: z.string().nullable().catch(null),
+});
+export type AppliedTypicalCategory = z.infer<
+  typeof AppliedTypicalCategorySchema
+>;
+
+/**
+ * The filter actually derived for the task — genuinely nullable, being null
+ * when the primary item has no category or there is no primary item. Inactive
+ * axes are omitted from the object rather than sent as null, so every key here
+ * is optional and a future axis arrives additively.
+ *
+ * Every axis the serializer can emit is listed: zod strips unknown keys, so an
+ * axis missing from this object is not merely undocumented, it is *discarded*
+ * before any reader sees it.
  */
 export const AppliedTypicalFilterSchema = z
-  .object({ item_category_ids: z.array(z.string()).optional() })
+  .object({
+    item_category_ids: z.array(z.string()).optional(),
+    item_categories: z.array(AppliedTypicalCategorySchema).optional(),
+    major_categories: z.array(z.string()).optional(),
+    // Ranges, serialized as a two-element list; either bound may be null,
+    // which records "this dimension is known and unbounded on that side".
+    width_cm: z.array(z.number().nullable()).optional(),
+    height_cm: z.array(z.number().nullable()).optional(),
+    depth_cm: z.array(z.number().nullable()).optional(),
+    can_have_upholstery: z.boolean().optional(),
+    designers: z.array(z.string()).optional(),
+    /** An opaque hash. A presence signal only — never render the value. */
+    properties_signature: z.string().optional(),
+    /** Ladder rungs in priority order, e.g. `[{ upholstery: "Up & Down" }]`. */
+    properties_facets: z.array(z.record(z.string(), z.unknown())).optional(),
+  })
   .nullable()
   .catch(null);
 export type AppliedTypicalFilter = z.infer<typeof AppliedTypicalFilterSchema>;
 
+const EMPTY_SECTIONS_BY_BASIS = {
+  item_properties_narrowed: 0,
+  item_facet_narrowed: 0,
+  item_narrowed: 0,
+  section_wide: 0,
+  insufficient_sample: 0,
+} as const;
+
+/**
+ * One counter per basis, over the participating sections only. All five are
+ * required for the counts to sum to `participating_section_count` — with the
+ * two ladder counters missing they silently could not.
+ */
 const SectionsByBasisSchema = z
   .object({
+    item_properties_narrowed: z.number().int().catch(0),
+    item_facet_narrowed: z.number().int().catch(0),
     item_narrowed: z.number().int().catch(0),
     section_wide: z.number().int().catch(0),
     insufficient_sample: z.number().int().catch(0),
   })
-  .catch({ item_narrowed: 0, section_wide: 0, insufficient_sample: 0 });
+  .catch({ ...EMPTY_SECTIONS_BY_BASIS });
 
 /** The serializer's documented fallback shape (handoff §2). */
 export const DEFAULT_TYPICAL_RESOLUTION = {
@@ -165,19 +229,17 @@ export const DEFAULT_TYPICAL_RESOLUTION = {
   reconciliation_method: "uniform_basis_v1",
   comparability_profile: "primary_item_category_v1",
   applied_filter: null,
+  facet: null,
   participating_section_count: 0,
-  sections_by_basis: {
-    item_narrowed: 0,
-    section_wide: 0,
-    insufficient_sample: 0,
-  },
+  sections_by_basis: { ...EMPTY_SECTIONS_BY_BASIS },
 } as const;
 
 /**
  * One per task, identical on all three surfaces — the reconciliation
- * provenance. `task_typical_basis` is `"item_narrowed_uniform"` or
- * `"section_wide_uniform"` today; kept as a string because we only display it
- * and a third value must not cost the task its figures.
+ * provenance. `task_typical_basis` is one of `item_properties_narrowed_uniform`,
+ * `item_facet_narrowed_uniform`, `item_narrowed_uniform` or
+ * `section_wide_uniform`; kept as a string rather than an enum because we only
+ * display it and a fifth value must not cost the task its figures.
  */
 export const TypicalResolutionSchema = z
   .object({
@@ -185,6 +247,8 @@ export const TypicalResolutionSchema = z
     reconciliation_method: z.string().catch("uniform_basis_v1"),
     comparability_profile: z.string().catch("primary_item_category_v1"),
     applied_filter: AppliedTypicalFilterSchema,
+    /** The rung's name ("upholstery") on a facet basis; null otherwise. */
+    facet: z.string().nullable().catch(null),
     participating_section_count: z.number().int().catch(0),
     sections_by_basis: SectionsByBasisSchema,
   })

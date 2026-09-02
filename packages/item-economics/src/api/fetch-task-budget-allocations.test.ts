@@ -167,14 +167,34 @@ describe("parseBudgetAllocations", () => {
     expect(parsed[0]?.steps[0]?.typical_worker_seconds).toBe(0);
   });
 
-  it("falls back to the weakest basis rather than failing on an unfamiliar one", () => {
+  it("degrades an unfamiliar basis to 'unknown' rather than failing the row", () => {
     // A basis we have never seen must make the client less confident about the
-    // target, never cost the task its whole row.
+    // target, never cost the task its whole row — and never be filed as
+    // `insufficient_sample`, which would claim a figure rests on no evidence
+    // when it may rest on the closest match the ladder had.
     const parsed = parseBudgetAllocations([
       allocation({ steps: [step({ typical_basis: "item_and_upholstery_v9" })] }),
     ]);
 
-    expect(parsed[0]?.steps[0]?.typical_basis).toBe("insufficient_sample");
+    expect(parsed[0]?.steps[0]?.typical_basis).toBe("unknown");
+  });
+
+  it("keeps both ladder bases the facet release added", () => {
+    // These two reached the client as `insufficient_sample` until the enum was
+    // widened: the strongest evidence, filed as the weakest.
+    const parsed = parseBudgetAllocations([
+      allocation({
+        steps: [
+          step({ typical_basis: "item_properties_narrowed" }),
+          step({ typical_basis: "item_facet_narrowed" }),
+        ],
+      }),
+    ]);
+
+    expect(parsed[0]?.steps.map((row) => row.typical_basis)).toEqual([
+      "item_properties_narrowed",
+      "item_facet_narrowed",
+    ]);
   });
 
   it("survives a backend that has not deployed the provenance fields yet", () => {
@@ -203,7 +223,7 @@ describe("parseBudgetAllocations", () => {
 
     expect(parsed).toHaveLength(1);
     expect(parsed[0]?.steps[0]?.allowance_seconds).toBe(2210);
-    expect(parsed[0]?.steps[0]?.typical_basis).toBe("insufficient_sample");
+    expect(parsed[0]?.steps[0]?.typical_basis).toBe("unknown");
     expect(parsed[0]?.steps[0]?.projected_typical_worker_seconds).toBeNull();
     // One unit, never zero units: a missing quantity must not read as an order
     // of nothing.
@@ -213,8 +233,11 @@ describe("parseBudgetAllocations", () => {
       reconciliation_method: "uniform_basis_v1",
       comparability_profile: "primary_item_category_v1",
       applied_filter: null,
+      facet: null,
       participating_section_count: 0,
       sections_by_basis: {
+        item_properties_narrowed: 0,
+        item_facet_narrowed: 0,
         item_narrowed: 0,
         section_wide: 0,
         insufficient_sample: 0,
