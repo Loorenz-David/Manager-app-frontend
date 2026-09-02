@@ -6,7 +6,6 @@ import {
   useGetTaskQuery,
   type TaskDetailSurfaceProps,
 } from "@beyo/tasks";
-import { taskDetailSurfaceOpeners } from "@/features/tasks/surfaces";
 
 type CaseTaskInfoSheetContentProps = {
   taskId: string;
@@ -69,7 +68,6 @@ export function CaseTaskInfoSheetContent({
         onOpenTask={() => {
           surface.open(TASK_DETAIL_SURFACE_ID, {
             taskId,
-            surfaceOpeners: taskDetailSurfaceOpeners(surface),
           } satisfies TaskDetailSurfaceProps);
           header?.requestClose();
         }}

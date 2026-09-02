@@ -35,7 +35,6 @@ import {
   preloadTaskPostHandlingPendingWarningSheetSurface,
   type TaskPostHandlingPendingWarningSheetSurfaceProps,
   type TaskPostHandlingSlideSurfaceProps,
-  taskDetailSurfaceOpeners,
   type TaskDetailSurfaceProps,
 } from "@/features/tasks/surfaces";
 import { useSurface } from "@/hooks/use-surface";
@@ -108,7 +107,6 @@ export function HomeView(): React.JSX.Element {
         openTaskDetail: (taskId) =>
           surface.open(TASK_DETAIL_SURFACE_ID, {
             taskId,
-            surfaceOpeners: taskDetailSurfaceOpeners(surface),
           } satisfies TaskDetailSurfaceProps),
         openImageViewer,
       },
@@ -158,7 +156,6 @@ export function HomeView(): React.JSX.Element {
         openTaskDetail: (taskId) =>
           surface.open(TASK_DETAIL_SURFACE_ID, {
             taskId,
-            surfaceOpeners: taskDetailSurfaceOpeners(surface),
           } satisfies TaskDetailSurfaceProps),
         openTaskActions: (taskId, itemId) => {
           preloadPinNotificationsSlideSurface();

@@ -29,7 +29,6 @@ import {
   type TaskPostHandlingSlideSurfaceProps,
   preloadPinNotificationsSlideSurface,
   preloadTaskPostHandlingPendingWarningSheetSurface,
-  taskDetailSurfaceOpeners,
   type TaskDetailSurfaceProps,
 } from "@/features/tasks/surfaces";
 import { UPHOLSTERY_ORDERING_SLIDE_ID } from "@/features/upholstery-ordering";
@@ -123,7 +122,6 @@ export function HomeView(): React.JSX.Element {
         openTaskDetail: (taskId) =>
           surface.open(TASK_DETAIL_SURFACE_ID, {
             taskId,
-            surfaceOpeners: taskDetailSurfaceOpeners(surface),
           } satisfies TaskDetailSurfaceProps),
         openTaskActions: (taskId, itemId) => {
           preloadPinNotificationsSlideSurface();
@@ -171,7 +169,6 @@ export function HomeView(): React.JSX.Element {
         openTaskDetail: (taskId) =>
           surface.open(TASK_DETAIL_SURFACE_ID, {
             taskId,
-            surfaceOpeners: taskDetailSurfaceOpeners(surface),
           } satisfies TaskDetailSurfaceProps),
         openTaskActions: (taskId, itemId) => {
           preloadPinNotificationsSlideSurface();

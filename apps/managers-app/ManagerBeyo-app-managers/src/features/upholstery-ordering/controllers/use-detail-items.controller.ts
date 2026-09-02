@@ -5,7 +5,6 @@ import { IMAGE_VIEWER_SURFACE_ID, type ImageLinkEntityType } from "@beyo/images"
 import { useSurface } from "@/hooks/use-surface";
 import {
   TASK_DETAIL_SURFACE_ID,
-  taskDetailSurfaceOpeners,
   type TaskDetailSurfaceProps,
 } from "@/features/tasks/surfaces";
 
@@ -245,7 +244,6 @@ export function useDetailItemsController(source: DetailSource) {
   function openTaskDetail(taskId: string): void {
     surface.open(TASK_DETAIL_SURFACE_ID, {
       taskId,
-      surfaceOpeners: taskDetailSurfaceOpeners(surface),
     } satisfies TaskDetailSurfaceProps);
   }
 
