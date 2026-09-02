@@ -16,6 +16,7 @@ import {
   PurchaseBootstrapCard,
   WorkImpactTable,
 } from "../components/price-editor";
+import { TypicalStrategyPill } from "../components/typical-strategy";
 import {
   ItemValuationProvider,
   useItemValuationContext,
@@ -27,6 +28,30 @@ import type { ItemValuationSlideSurfaceProps } from "../surface-ids";
  * presentational components from the controller's view model and owns nothing
  * else: every string, tone and fraction below arrives already formatted.
  */
+
+/**
+ * The provenance line under the work table. Split out so the strategy narrows
+ * once, here, instead of being asserted non-null inside a press handler.
+ */
+function TypicalStrategyLine(): React.JSX.Element | null {
+  const { strategy, surfaceOpeners } = useItemValuationContext();
+
+  if (strategy === null) {
+    return null;
+  }
+
+  const open = surfaceOpeners.openTypicalStrategy;
+
+  return (
+    <div className="-mt-3 flex justify-end px-1">
+      <TypicalStrategyPill
+        label={strategy.pillLabel}
+        tone={strategy.tone}
+        onPress={open === undefined ? undefined : () => open({ strategy })}
+      />
+    </div>
+  );
+}
 
 function ItemValuationBody(): React.JSX.Element {
   const view = useItemValuationContext();
@@ -70,6 +95,9 @@ function ItemValuationBody(): React.JSX.Element {
         <PriceSlider {...view.slider} ariaValueText={view.sliderValueText} />
       ) : null}
       {view.table ? <WorkImpactTable {...view.table} /> : null}
+      {/* Directly under the figure it qualifies: the typical above is only
+       * meaningful once you know which history produced it. */}
+      {view.table ? <TypicalStrategyLine /> : null}
       {view.bootstrap ? <PurchaseBootstrapCard {...view.bootstrap} /> : null}
       {view.empty ? <ItemValuationEmptyState {...view.empty} /> : null}
       {view.footer ? <ItemValuationFooter {...view.footer} /> : null}
@@ -114,7 +142,8 @@ function ItemValuationView(): React.JSX.Element {
 
 export function ItemValuationSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { taskId } = useSurfaceProps<ItemValuationSlideSurfaceProps>();
+  const { taskId, surfaceOpeners } =
+    useSurfaceProps<ItemValuationSlideSurfaceProps>();
   const handleSaveSuccess = useCallback(
     () => header?.requestClose(),
     [header],
@@ -138,6 +167,7 @@ export function ItemValuationSlidePage(): React.JSX.Element {
     >
       <ItemValuationProvider
         onSaveSuccess={handleSaveSuccess}
+        surfaceOpeners={surfaceOpeners}
         taskId={taskId as TaskId}
       >
         <ItemValuationView />

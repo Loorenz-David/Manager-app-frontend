@@ -14,6 +14,7 @@ import {
   type ProductionTimeRowViewModel,
   type ProductionTimeViewModel,
 } from "./production-time-view-model";
+import { buildTypicalStrategy } from "./typical-strategy";
 
 type NoBudgetStatus = Exclude<ItemEconomicsStatus, "ok" | "infeasible">;
 
@@ -229,6 +230,17 @@ export function toProductionTimeViewModel(
 
   const hasBudget = dto.status === "ok" || dto.status === "infeasible";
   const rows = toRows(dto, hasBudget);
+  // The window and gate live on the per-section typical, not the task root, so
+  // they are read from the first section that has one. A task with no typical
+  // anywhere reports the basis without them rather than asserting a
+  // configuration this response never stated.
+  const sampledTypical =
+    dto.sections.find((section) => section.typical !== null)?.typical ?? null;
+  const strategy = buildTypicalStrategy({
+    resolution: dto.typical_resolution,
+    windowDays: sampledTypical?.window_days ?? null,
+    minSampleSize: sampledTypical?.min_sample_size ?? null,
+  });
 
   if (dto.status !== "ok" && dto.status !== "infeasible") {
     const workedSeconds = rows.reduce(
@@ -240,6 +252,7 @@ export function toProductionTimeViewModel(
     return {
       kind: "no_budget",
       card: {
+        strategy,
         workedLabel: formatWorkSeconds(workedSeconds),
         reasonTitle: reason.title,
         reasonBody: reason.body,
@@ -289,6 +302,7 @@ export function toProductionTimeViewModel(
   return {
     kind: "budget",
     card: {
+      strategy,
       headline: {
         workedLabel: formatWorkSeconds(workedSeconds),
         budgetLabel:

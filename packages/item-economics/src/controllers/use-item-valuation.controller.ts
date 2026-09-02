@@ -46,6 +46,10 @@ import {
   allowanceSeconds,
   formatAllowanceDuration,
 } from "../lib/price-scenario-math";
+import {
+  buildTypicalStrategy,
+  type TypicalStrategyViewModel,
+} from "../lib/typical-strategy";
 import { currencyDisplayCode, formatPerPiece } from "../lib/valuation-currency";
 import type {
   ItemEconomicsStatus,
@@ -250,6 +254,11 @@ export type ItemValuationViewModel = {
   chip: PriceCoverageChipProps | null;
   slider: PriceSliderProps | null;
   table: WorkImpactTableProps | null;
+  /**
+   * What the typical beside `table` was measured over. Null whenever there is
+   * no table, since a strategy with no figure to explain is noise.
+   */
+  strategy: TypicalStrategyViewModel | null;
   footer: ItemValuationFooterProps | null;
   bootstrap: PurchaseBootstrapCardProps | null;
   empty: ItemValuationEmptyStateProps | null;
@@ -540,6 +549,7 @@ export function useItemValuationController(
     chip: null,
     slider: null,
     table: null,
+    strategy: null,
     footer: null,
     bootstrap: null,
     empty: null,
@@ -784,6 +794,14 @@ export function useItemValuationController(
     atPriceTone: tone,
   };
 
+  // Built even when the typical itself is absent: "we had no history close
+  // enough" is exactly the case a reader most needs the strategy to explain.
+  const strategy = buildTypicalStrategy({
+    resolution: scenario.typical.typical_resolution,
+    windowDays: scenario.typical.window_days,
+    minSampleSize: scenario.typical.min_sample_size,
+  });
+
   const isPristine = draft === draftState.savedExpected;
   const isSavePending = isSavePressPending || commitAction.isPending;
 
@@ -829,6 +847,7 @@ export function useItemValuationController(
       : null,
     slider,
     table,
+    strategy,
     footer,
     sliderValueText: `${perPiece} ${currencyCode} per piece`,
   };

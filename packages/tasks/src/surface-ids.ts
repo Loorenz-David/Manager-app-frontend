@@ -1,3 +1,5 @@
+import type { ItemEconomicsSurfaceOpeners } from "@beyo/item-economics";
+
 type CalendarRangeOpenerProps = {
   currentFrom: string | null;
   currentTo: string | null;
@@ -68,6 +70,14 @@ export type TaskFilterSheetSurfaceProps = {
 
 export type TaskDetailSurfaceProps = {
   taskId: string;
+  /**
+   * Forwarded untouched to the production-time card, which needs an opener for
+   * its typical-strategy sheet and sits a package away from any registry. The
+   * real type, not a loose map: this page already imports the card from
+   * `@beyo/item-economics`, so naming the contract costs no new dependency and
+   * a wrongly shaped opener fails here rather than at the call site.
+   */
+  surfaceOpeners?: ItemEconomicsSurfaceOpeners;
 };
 
 export type TaskCustomerDetailsSheetSurfaceProps = {

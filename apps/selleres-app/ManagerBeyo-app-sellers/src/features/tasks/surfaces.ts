@@ -52,6 +52,14 @@ import {
   TaskActionsSheetSkeleton,
 } from "@beyo/tasks";
 import {
+  TYPICAL_STRATEGY_SHEET_SURFACE_ID,
+  loadTypicalStrategySheetPage,
+} from "@beyo/item-economics";
+import type {
+  ItemEconomicsSurfaceOpeners,
+  TypicalStrategySheetSurfaceProps,
+} from "@beyo/item-economics";
+import {
   CUSTOMER_COORDINATION_EMAIL_INBOX_FILTER_SHEET_SURFACE_ID,
   CUSTOMER_COORDINATION_EMAIL_INBOX_SLIDE_SURFACE_ID,
   CUSTOMER_COORDINATION_EMAIL_REPLY_SLIDE_SURFACE_ID,
@@ -144,6 +152,8 @@ const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
+const typicalStrategySheet = lazyWithPreload(loadTypicalStrategySheetPage);
+
 const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
 const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
 
@@ -156,6 +166,23 @@ export const preloadTaskNoteUnreadViewerSurface =
   taskNoteUnreadViewer.preload;
 export const preloadTaskPostHandlingPendingWarningSheetSurface =
   taskPostHandlingPendingWarningSheet.preload;
+
+/**
+ * The openers every task-detail surface needs, in one place.
+ *
+ * Packages never call `openSurface` (architecture §13), so the production-time
+ * card inside the task detail takes its opener from here. Built by a helper
+ * rather than spelled out per call site: a `surface.open(TASK_DETAIL_…)` that
+ * forgot the map would silently ship a pill that does not open.
+ */
+export function taskDetailSurfaceOpeners(surface: {
+  open: (id: string, props?: Record<string, unknown>) => void;
+}): ItemEconomicsSurfaceOpeners {
+  return {
+    openTypicalStrategy: (props: TypicalStrategySheetSurfaceProps) =>
+      surface.open(TYPICAL_STRATEGY_SHEET_SURFACE_ID, props),
+  };
+}
 
 export {
   FORCE_TASK_READY_SLIDE_SURFACE_ID,
@@ -348,6 +375,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [PIN_TASK_STEP_STATES_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: pinTaskStepStatesSheet.Component,
+  },
+  [TYPICAL_STRATEGY_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: typicalStrategySheet.Component,
   },
   [TASK_NOTES_SHEET_SURFACE_ID]: {
     surface: "sheet",

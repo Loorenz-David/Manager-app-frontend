@@ -59,6 +59,9 @@ function toRequirementState(value: string | null) {
 }
 
 function TaskDetailSlidePageContent(): React.JSX.Element {
+  // Read here rather than drilled from the page: this package forwards the
+  // openers untouched, and the surface context is already in scope.
+  const { surfaceOpeners } = useSurfaceProps<TaskDetailSurfaceProps>();
   const header = useSurfaceHeader();
   const controller = useTaskDetailContext();
   const queryClient = useQueryClient();
@@ -269,7 +272,10 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               }
             />
           )}
-          <ProductionTimeSection taskId={controller.taskId} />
+          <ProductionTimeSection
+            surfaceOpeners={surfaceOpeners}
+            taskId={controller.taskId}
+          />
           <TaskFlowTimeline
             taskId={controller.taskId}
             onRecordPress={controller.openFlowRecord}

@@ -5,7 +5,7 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { TaskProductionTime } from "../../types";
 import { ProductionTimeSection } from "./ProductionTimeSection";
@@ -110,14 +110,21 @@ function envelope(data: TaskProductionTime) {
 
 const server = setupServer();
 
-function renderSection() {
+function renderSection(
+  surfaceOpeners?: React.ComponentProps<
+    typeof ProductionTimeSection
+  >["surfaceOpeners"],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { gcTime: Infinity } },
   });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <ProductionTimeSection taskId="tsk_example" />
+      <ProductionTimeSection
+        surfaceOpeners={surfaceOpeners}
+        taskId="tsk_example"
+      />
     </QueryClientProvider>,
   );
 }
@@ -323,5 +330,99 @@ describe("ProductionTimeSection MSW boundary", () => {
       ).not.toBeInTheDocument(),
     );
     expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe("ProductionTimeSection — typical strategy disclosure", () => {
+  const FACET_PAYLOAD: TaskProductionTime = {
+    ...literalHandoffPayload,
+    typical_resolution: {
+      task_typical_basis: "item_facet_narrowed_uniform",
+      reconciliation_method: "uniform_basis_v1",
+      comparability_profile: "primary_item_category_properties_v2",
+      applied_filter: {
+        item_category_ids: ["itc_chair"],
+        item_categories: [{ client_id: "itc_chair", name: "Dining chair" }],
+        properties_signature: "sig-mahogany-ud",
+        properties_facets: [{ upholstery: "Up & Down" }],
+      },
+      facet: "upholstery",
+      participating_section_count: 2,
+      sections_by_basis: {
+        item_properties_narrowed: 0,
+        item_facet_narrowed: 1,
+        item_narrowed: 0,
+        section_wide: 1,
+        insufficient_sample: 0,
+      },
+    },
+  };
+
+  it("carries a facet basis from the wire through to the pill", async () => {
+    // The whole path: a payload whose basis and facet the client could not even
+    // represent before the enum was widened, ending in copy a reader can act on.
+    server.use(
+      http.get(ENDPOINT, () => HttpResponse.json(envelope(FACET_PAYLOAD))),
+    );
+
+    renderSection();
+
+    await screen.findByTestId("production-time-card");
+    expect(screen.getByTestId("typical-strategy-pill")).toHaveTextContent(
+      "Typical fromSame upholstery",
+    );
+    expect(screen.getByTestId("typical-strategy-pill")).toHaveAttribute(
+      "data-tone",
+      "narrow",
+    );
+  });
+
+  it("hands the built strategy to the injected opener on press", async () => {
+    const user = userEvent.setup();
+    const openTypicalStrategy = vi.fn();
+    server.use(
+      http.get(ENDPOINT, () => HttpResponse.json(envelope(FACET_PAYLOAD))),
+    );
+
+    renderSection({ openTypicalStrategy });
+
+    await screen.findByTestId("production-time-card");
+    await user.click(screen.getByTestId("typical-strategy-pill"));
+
+    expect(openTypicalStrategy).toHaveBeenCalledTimes(1);
+    const [{ strategy }] = openTypicalStrategy.mock.calls[0]!;
+    expect(strategy.pillLabel).toBe("Same upholstery");
+    // The mixed task is exactly the case the breakdown exists for.
+    expect(strategy.breakdown).toEqual([
+      { label: "Same facet", value: "1 of 2 stages" },
+      { label: "All work in the stage", value: "1 of 2 stages" },
+    ]);
+  });
+
+  it("shows the pill on a short pipeline that never expands", async () => {
+    // The rows toggle only appears above three stages. Putting the pill inside
+    // the expanded region would have hidden provenance from the simplest tasks.
+    server.use(
+      http.get(ENDPOINT, () => HttpResponse.json(envelope(FACET_PAYLOAD))),
+    );
+
+    renderSection();
+
+    await screen.findByTestId("production-time-card");
+    expect(
+      screen.queryByTestId("production-time-rows-toggle"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("typical-strategy-pill")).toBeInTheDocument();
+  });
+
+  it("states the pill without a button when no opener was injected", async () => {
+    server.use(
+      http.get(ENDPOINT, () => HttpResponse.json(envelope(FACET_PAYLOAD))),
+    );
+
+    renderSection();
+
+    await screen.findByTestId("production-time-card");
+    expect(screen.getByTestId("typical-strategy-pill").tagName).toBe("SPAN");
   });
 });

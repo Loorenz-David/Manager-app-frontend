@@ -47,7 +47,12 @@ import {
 } from "@beyo/tasks";
 import {
   ITEM_VALUATION_SLIDE_SURFACE_ID,
-  loadItemValuationSlidePage,
+  TYPICAL_STRATEGY_SHEET_SURFACE_ID,
+  loadTypicalStrategySheetPage,
+} from "@beyo/item-economics";
+import type {
+  ItemEconomicsSurfaceOpeners,
+  TypicalStrategySheetSurfaceProps,
 } from "@beyo/item-economics";
 import {
   QUICK_TASK_ASSIGN_SLIDE_SURFACE_ID,
@@ -117,7 +122,13 @@ const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
 );
-const itemValuationSlide = lazyWithPreload(loadItemValuationSlidePage);
+// The entry wrapper, not the page: it injects the surface openers the page's
+// strategy pill needs (see ItemValuationSurfaceEntry).
+const itemValuationSlide = lazyWithPreload(
+  () => import("./ItemValuationSurfaceEntry"),
+);
+
+const typicalStrategySheet = lazyWithPreload(loadTypicalStrategySheetPage);
 
 const taskNotesSheet = lazyWithPreload(loadTaskNotesSheetPage);
 const taskNoteUnreadViewer = lazyWithPreload(loadTaskNoteUnreadViewerPage);
@@ -132,6 +143,23 @@ export const preloadTaskNoteUnreadViewerSurface =
   taskNoteUnreadViewer.preload;
 export const preloadTaskPostHandlingPendingWarningSheetSurface =
   taskPostHandlingPendingWarningSheet.preload;
+
+/**
+ * The openers every task-detail surface needs, in one place.
+ *
+ * Packages never call `openSurface` (architecture §13), so the production-time
+ * card inside the task detail takes its opener from here. Built by a helper
+ * rather than spelled out per call site: a `surface.open(TASK_DETAIL_…)` that
+ * forgot the map would silently ship a pill that does not open.
+ */
+export function taskDetailSurfaceOpeners(surface: {
+  open: (id: string, props?: Record<string, unknown>) => void;
+}): ItemEconomicsSurfaceOpeners {
+  return {
+    openTypicalStrategy: (props: TypicalStrategySheetSurfaceProps) =>
+      surface.open(TYPICAL_STRATEGY_SHEET_SURFACE_ID, props),
+  };
+}
 
 export {
   FORCE_TASK_READY_SLIDE_SURFACE_ID,
@@ -292,6 +320,10 @@ export const taskSurfaces: SurfaceRegistrations = {
   [ITEM_VALUATION_SLIDE_SURFACE_ID]: {
     surface: "slide",
     component: itemValuationSlide.Component,
+  },
+  [TYPICAL_STRATEGY_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: typicalStrategySheet.Component,
   },
   [TASK_NOTES_SHEET_SURFACE_ID]: {
     surface: "sheet",

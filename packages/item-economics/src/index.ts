@@ -126,6 +126,25 @@ export type {
   ProductionTimeCardProps,
   ProductionTimeInfeasibleNoticeProps,
 } from "./components/production-time";
+export {
+  TypicalStrategyPill,
+  TypicalStrategySheetContent,
+} from "./components/typical-strategy";
+export type {
+  TypicalStrategyPillProps,
+  TypicalStrategySheetContentProps,
+} from "./components/typical-strategy";
+export {
+  buildStrategyFilters,
+  buildTypicalStrategy,
+  humanizeFacetName,
+} from "./lib/typical-strategy";
+export type {
+  TypicalStrategyDetailRow,
+  TypicalStrategyInput,
+  TypicalStrategyTone,
+  TypicalStrategyViewModel,
+} from "./lib/typical-strategy";
 export { ProductionTimeSection } from "./components/production-time/ProductionTimeSection";
 export type { ProductionTimeSectionProps } from "./components/production-time/ProductionTimeSection";
 
@@ -142,11 +161,14 @@ export type { TaskBudgetSignalFooterProps } from "./components/task-budget-overr
 
 export {
   ITEM_VALUATION_SLIDE_SURFACE_ID,
+  TYPICAL_STRATEGY_SHEET_SURFACE_ID,
   preloadItemValuationSlideSurface,
+  preloadTypicalStrategySheetSurface,
 } from "./surface-ids";
 export type {
   ItemEconomicsSurfaceOpeners,
   ItemValuationSlideSurfaceProps,
+  TypicalStrategySheetSurfaceProps,
 } from "./surface-ids";
 
 // --- Item pricing fields (task creation, operational handoff §9) -------------
@@ -243,5 +265,11 @@ export { currencyDisplayCode, formatPerPiece } from "./lib/valuation-currency";
 export function loadItemValuationSlidePage() {
   return import("./pages/ItemValuationSlidePage").then((m) => ({
     default: m.ItemValuationSlidePage,
+  }));
+}
+
+export function loadTypicalStrategySheetPage() {
+  return import("./pages/TypicalStrategySheetPage").then((m) => ({
+    default: m.TypicalStrategySheetPage,
   }));
 }

@@ -8,6 +8,7 @@
  * logic track and parses the payload proper.
  */
 
+import { buildTypicalStrategy } from "../../lib/typical-strategy";
 import {
   buildActiveMetrics,
   buildHeadlineCost,
@@ -41,6 +42,35 @@ type RowInput = {
   unitTypicalSeconds?: number | null;
   shareState?: ProductionTimeShareState;
 };
+
+
+/**
+ * The fixtures' strategy: a named category on the plain narrowed rung, which
+ * is the ordinary case the rest of these fixtures model. Built through the real
+ * builder so a change to the copy shows up in the fixtures too.
+ */
+const FIXTURE_STRATEGY = buildTypicalStrategy({
+  resolution: {
+    task_typical_basis: "item_narrowed_uniform",
+    reconciliation_method: "uniform_basis_v1",
+    comparability_profile: "primary_item_category_v1",
+    applied_filter: {
+      item_category_ids: ["itc_chair"],
+      item_categories: [{ client_id: "itc_chair", name: "Chair" }],
+    },
+    facet: null,
+    participating_section_count: 3,
+    sections_by_basis: {
+      item_properties_narrowed: 0,
+      item_facet_narrowed: 0,
+      item_narrowed: 3,
+      section_wide: 0,
+      insufficient_sample: 0,
+    },
+  },
+  windowDays: 90,
+  minSampleSize: 5,
+});
 
 function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewModel {
   const shareState = input.shareState ?? "on_track";
@@ -158,6 +188,7 @@ function makeBudgetCard(
       );
 
   return {
+    strategy: FIXTURE_STRATEGY,
     headline: {
       workedLabel: formatWorkSeconds(totalWorked),
       budgetLabel: options.withoutBudgetTerm
@@ -525,6 +556,7 @@ export const productionTimeInfeasibleFixture: ProductionTimeViewModel = {
 export const productionTimeNotEvaluatedFixture: ProductionTimeViewModel = {
   kind: "no_budget",
   card: {
+    strategy: FIXTURE_STRATEGY,
     workedLabel: formatWorkSeconds(10_500),
     reasonTitle: "Budget not calculated yet",
     reasonBody:
@@ -539,6 +571,7 @@ export const productionTimeNotEvaluatedFixture: ProductionTimeViewModel = {
 export const productionTimeUnvaluedFixture: ProductionTimeViewModel = {
   kind: "no_budget",
   card: {
+    strategy: FIXTURE_STRATEGY,
     workedLabel: formatWorkSeconds(10_500),
     reasonTitle: "This item has no price",
     reasonBody:

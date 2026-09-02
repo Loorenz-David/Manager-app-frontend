@@ -15,17 +15,56 @@ import { ProductionTimeRow } from "./ProductionTimeRow";
 import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
 import { ProductionTimeRowsViewport } from "./ProductionTimeRowsViewport";
 import { ProductionTimeUnavailableCard } from "./ProductionTimeUnavailableCard";
+import { TypicalStrategyPill } from "../typical-strategy";
+import type { TypicalStrategyViewModel } from "../../lib/typical-strategy";
 
 export type ProductionTimeCardProps = {
   viewModel: ProductionTimeViewModel;
   className?: string;
   onCtaPress?: (kind: "commit" | "valuation") => void;
+  /**
+   * Opens the strategy disclosure. Injected by the host, since packages never
+   * open surfaces themselves; omitted, the pill states without a tap target.
+   */
+  onStrategyPress?: (strategy: TypicalStrategyViewModel) => void;
 };
+
+/**
+ * The provenance footer, always at the card's bottom rather than inside the
+ * expanded region.
+ *
+ * The rows toggle only exists above `PRODUCTION_TIME_VIEWPORT_ROW_COUNT`
+ * stages, so a card with three or fewer never expands — hiding the strategy
+ * behind expansion would have withheld it from exactly the simplest tasks.
+ */
+function ProductionTimeStrategyFooter({
+  strategy,
+  onStrategyPress,
+}: {
+  strategy: TypicalStrategyViewModel;
+  onStrategyPress?: (strategy: TypicalStrategyViewModel) => void;
+}): React.JSX.Element {
+  return (
+    <div className="flex justify-end border-t border-border px-4 py-3">
+      <TypicalStrategyPill
+        label={strategy.pillLabel}
+        tone={strategy.tone}
+        onPress={
+          onStrategyPress === undefined
+            ? undefined
+            : () => onStrategyPress(strategy)
+        }
+      />
+    </div>
+  );
+}
 
 function ProductionTimeBudgetBody({
   card,
+  onStrategyPress,
 }: {
   card: ProductionTimeCardViewModel;
+  onStrategyPress?: (strategy: TypicalStrategyViewModel) => void;
 }): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -60,6 +99,10 @@ function ProductionTimeBudgetBody({
         />
       ) : null}
 
+      <ProductionTimeStrategyFooter
+        strategy={card.strategy}
+        onStrategyPress={onStrategyPress}
+      />
     </>
   );
 }
@@ -74,6 +117,7 @@ export function ProductionTimeCard({
   viewModel,
   className,
   onCtaPress,
+  onStrategyPress,
 }: ProductionTimeCardProps): React.JSX.Element | null {
   if (viewModel.kind === "unavailable") {
     return (
@@ -90,12 +134,21 @@ export function ProductionTimeCard({
   return (
     <ProductionTimeFrame className={className} data-testid="production-time-card">
       {viewModel.kind === "no_budget" ? (
-        <ProductionTimeNoBudgetCard
-          card={viewModel.card}
-          onCtaPress={onCtaPress}
-        />
+        <>
+          <ProductionTimeNoBudgetCard
+            card={viewModel.card}
+            onCtaPress={onCtaPress}
+          />
+          <ProductionTimeStrategyFooter
+            strategy={viewModel.card.strategy}
+            onStrategyPress={onStrategyPress}
+          />
+        </>
       ) : (
-        <ProductionTimeBudgetBody card={viewModel.card} />
+        <ProductionTimeBudgetBody
+          card={viewModel.card}
+          onStrategyPress={onStrategyPress}
+        />
       )}
     </ProductionTimeFrame>
   );

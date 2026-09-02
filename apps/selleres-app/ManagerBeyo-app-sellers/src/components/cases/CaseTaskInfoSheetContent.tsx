@@ -1,7 +1,12 @@
 import { CaseTaskInfoCard } from "@/components/cases/CaseTaskInfoCard";
 import { useSurface } from "@/hooks/use-surface";
 import { useSurfaceHeader } from "@/hooks/use-surface-header";
-import { TASK_DETAIL_SURFACE_ID, useGetTaskQuery } from "@beyo/tasks";
+import {
+  TASK_DETAIL_SURFACE_ID,
+  useGetTaskQuery,
+  type TaskDetailSurfaceProps,
+} from "@beyo/tasks";
+import { taskDetailSurfaceOpeners } from "@/features/tasks/surfaces";
 
 type CaseTaskInfoSheetContentProps = {
   taskId: string;
@@ -62,7 +67,10 @@ export function CaseTaskInfoSheetContent({
     <div className="flex flex-col gap-4 p-4">
       <CaseTaskInfoCard
         onOpenTask={() => {
-          surface.open(TASK_DETAIL_SURFACE_ID, { taskId });
+          surface.open(TASK_DETAIL_SURFACE_ID, {
+            taskId,
+            surfaceOpeners: taskDetailSurfaceOpeners(surface),
+          } satisfies TaskDetailSurfaceProps);
           header?.requestClose();
         }}
         taskDetail={taskDetail}

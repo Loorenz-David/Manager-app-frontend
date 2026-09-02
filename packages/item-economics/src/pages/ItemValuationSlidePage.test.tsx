@@ -20,6 +20,8 @@ import type { PriceScenario } from "../types";
 import { ItemValuationSlidePage } from "./ItemValuationSlidePage";
 
 const mocks = vi.hoisted(() => ({
+  /** Null models a host that never registered the strategy sheet. */
+  surfaceOpeners: null as { openTypicalStrategy?: unknown } | null,
   fetchTaskPriceScenario: vi.fn(),
   commitTaskEvaluation: vi.fn(),
   fetchItemLookup: vi.fn(),
@@ -49,7 +51,12 @@ const surfaceHeaderMock = vi.hoisted(() => ({
 }));
 
 vi.mock("@beyo/hooks", () => ({
-  useSurfaceProps: () => ({ taskId: "tsk_ref0001" }),
+  useSurfaceProps: () => ({
+    taskId: "tsk_ref0001",
+    ...(mocks.surfaceOpeners === null
+      ? {}
+      : { surfaceOpeners: mocks.surfaceOpeners }),
+  }),
   useSurfaceHeader: () => surfaceHeaderMock,
   useVisualViewport: () => ({
     isKeyboardOpen: false,
@@ -348,5 +355,59 @@ describe("ItemValuationSlidePage — accessibility (22g)", () => {
 
     await waitFor(() => expect(mocks.commitTaskEvaluation).toHaveBeenCalled());
     expect(surfaceHeaderMock.requestClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("ItemValuationSlidePage — typical strategy disclosure", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.surfaceOpeners = null;
+  });
+
+  afterEach(() => {
+    mocks.surfaceOpeners = null;
+    cleanup();
+  });
+
+  it("names the strategy under the work table, not beside the price", async () => {
+    // The pill qualifies the TYPICAL column: it must sit with the figure it
+    // explains rather than with the price the user is setting.
+    await renderScenario(referenceScenario());
+
+    const pill = screen.getByTestId("typical-strategy-pill");
+    expect(pill).toHaveTextContent("Typical fromSame category");
+    expect(
+      screen
+        .getByTestId("item-valuation-work-table")
+        .compareDocumentPosition(pill) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("states rather than opens when the host registered no sheet", async () => {
+    await renderScenario(referenceScenario());
+
+    expect(screen.getByTestId("typical-strategy-pill").tagName).toBe("SPAN");
+  });
+
+  it("hands the built strategy to the opener the host injected", async () => {
+    const openTypicalStrategy = vi.fn();
+    mocks.surfaceOpeners = { openTypicalStrategy };
+
+    await renderScenario(referenceScenario());
+    fireEvent.click(screen.getByTestId("typical-strategy-pill"));
+
+    expect(openTypicalStrategy).toHaveBeenCalledTimes(1);
+    const [{ strategy }] = openTypicalStrategy.mock.calls[0]!;
+    expect(strategy.pillLabel).toBe("Same category");
+    expect(strategy.filters).toContainEqual({
+      label: "Category",
+      value: "Chair",
+    });
+    // The reference task is mixed — 3 narrowed, 1 section-wide — so the
+    // breakdown is exactly what the reader needs.
+    expect(strategy.breakdown).toEqual([
+      { label: "Same category", value: "3 of 4 stages" },
+      { label: "All work in the stage", value: "1 of 4 stages" },
+    ]);
   });
 });

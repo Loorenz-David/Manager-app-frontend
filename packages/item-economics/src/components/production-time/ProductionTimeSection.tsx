@@ -1,4 +1,5 @@
 import { useProductionTimeController } from "../../controllers/use-production-time.controller";
+import type { ItemEconomicsSurfaceOpeners } from "../../surface-ids";
 import { ProductionTimeCard } from "./ProductionTimeCard";
 import { ProductionTimeCardSkeleton } from "./ProductionTimeCardSkeleton";
 import { ProductionTimeFrame } from "./ProductionTimeFrame";
@@ -6,11 +7,19 @@ import { ProductionTimeFrame } from "./ProductionTimeFrame";
 export type ProductionTimeSectionProps = {
   taskId: string;
   className?: string;
+  /**
+   * Injected down from the app that registered the sheet — this component
+   * lives two packages away from any surface registry, so it takes the opener
+   * rather than resolving one. Omitted, the strategy pill states rather than
+   * opens, which is the correct degradation for a host without the surface.
+   */
+  surfaceOpeners?: ItemEconomicsSurfaceOpeners;
 };
 
 export function ProductionTimeSection({
   taskId,
   className,
+  surfaceOpeners,
 }: ProductionTimeSectionProps): React.JSX.Element | null {
   const { viewModel, isPending, isError, isNotFound, refetch } =
     useProductionTimeController(taskId);
@@ -51,5 +60,17 @@ export function ProductionTimeSection({
     return null;
   }
 
-  return <ProductionTimeCard className={className} viewModel={viewModel} />;
+  const openStrategy = surfaceOpeners?.openTypicalStrategy;
+
+  return (
+    <ProductionTimeCard
+      className={className}
+      viewModel={viewModel}
+      onStrategyPress={
+        openStrategy === undefined
+          ? undefined
+          : (strategy) => openStrategy({ strategy })
+      }
+    />
+  );
 }

@@ -13,6 +13,8 @@
  *     zero or negative after a failed pass.
  */
 
+import type { TypicalStrategyViewModel } from "./typical-strategy";
+
 export type ProductionTimeTone =
   | "completed"
   | "working"
@@ -174,6 +176,8 @@ export type ProductionTimeInfeasibleNoticeViewModel = {
 
 export type ProductionTimeCardViewModel = {
   headline: ProductionTimeHeadlineViewModel;
+  /** What every "Typical" on this card was measured over. */
+  strategy: TypicalStrategyViewModel;
   /** Non-null only for `infeasible` — the task has no pot to divide at all. */
   infeasibleNotice: ProductionTimeInfeasibleNoticeViewModel | null;
   segments: ProductionTimeSegmentViewModel[];
@@ -185,6 +189,8 @@ export type ProductionTimeCardViewModel = {
 };
 
 export type ProductionTimeNoBudgetViewModel = {
+  /** Same disclosure: a budget-less card still shows typicals. */
+  strategy: TypicalStrategyViewModel;
   /** Summed from the rows — `budget.actual_worker_seconds` is null here. */
   workedLabel: string;
   /** Names the missing thing, never the status code. */

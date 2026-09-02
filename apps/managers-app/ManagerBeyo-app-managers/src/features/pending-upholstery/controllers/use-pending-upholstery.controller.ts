@@ -10,6 +10,7 @@ import {
   TASK_DETAIL_SURFACE_ID,
   type ItemUpholsteryAmountSurfaceProps,
   type TaskDetailSurfaceProps,
+  taskDetailSurfaceOpeners,
 } from "@/features/tasks/surfaces";
 import { UPHOLSTERY_PICKER_SLIDE_ID } from "@beyo/upholstery";
 
@@ -175,6 +176,7 @@ export function usePendingUpholsteryController() {
   function openTaskDetail(taskId: string): void {
     surface.open(TASK_DETAIL_SURFACE_ID, {
       taskId,
+      surfaceOpeners: taskDetailSurfaceOpeners(surface),
     } satisfies TaskDetailSurfaceProps);
   }
 

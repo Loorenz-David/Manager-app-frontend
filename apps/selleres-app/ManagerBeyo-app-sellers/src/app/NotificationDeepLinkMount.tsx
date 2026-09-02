@@ -5,6 +5,7 @@ import {
   type NotificationId,
 } from "@beyo/notifications";
 import { TASK_DETAIL_SURFACE_ID, type TaskDetailSurfaceProps } from "@beyo/tasks";
+import { taskDetailSurfaceOpeners } from "@/features/tasks/surfaces";
 import { buildCaseConversationRoute } from "@/lib/routes";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
@@ -51,6 +52,9 @@ export function NotificationDeepLinkMount(): null {
         if (notifId) {
           useSurfaceStore.getState().open(TASK_DETAIL_SURFACE_ID, {
             taskId: notifId,
+            surfaceOpeners: taskDetailSurfaceOpeners(
+              useSurfaceStore.getState(),
+            ),
           } satisfies TaskDetailSurfaceProps);
         }
         break;
