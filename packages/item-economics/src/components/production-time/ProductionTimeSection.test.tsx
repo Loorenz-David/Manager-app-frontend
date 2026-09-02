@@ -212,16 +212,16 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(within(firstRow).getByTestId("production-time-metric-pressure")).toHaveTextContent(
       "Pressure40m",
     );
-    // "pc" is part of the tile, not decoration: Budget and Pressure beside it
-    // are whole-order and the marker is what keeps the three from being read
-    // as one comparable set.
+    // "pc" qualifies the tile's NAME: Budget and Pressure beside it are
+    // whole-order, and the marker is what keeps the three from being read as
+    // one comparable set.
     expect(within(firstRow).getByTestId("production-time-metric-typical")).toHaveTextContent(
-      "Typical1h 0mpc",
+      "Typicalpc1h 0m",
     );
   });
 
   it("shows the per-piece typical, not the whole-order projection, on a multi-unit task", async () => {
-    // Unit 140s at quantity 3 projects to 7m. The tile must read 2m 20s: the
+    // Unit 140s at quantity 3 projects to 7m. The tile must read 2m: the
     // per-piece figure is the one that survives a change of order size.
     const base = literalHandoffPayload.sections[0]!;
     server.use(
@@ -252,7 +252,7 @@ describe("ProductionTimeSection MSW boundary", () => {
     const firstRow = screen.getAllByTestId("production-time-row")[0]!;
     expect(
       within(firstRow).getByTestId("production-time-metric-typical"),
-    ).toHaveTextContent("Typical2m 20spc");
+    ).toHaveTextContent("Typicalpc2m");
   });
 
   it("hides a 404 without retrying", async () => {

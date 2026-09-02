@@ -41,6 +41,12 @@ export type ProductionTimeRowDetailViewModel = {
 
 export type ProductionTimeMetricViewModel = {
   label: string;
+  /**
+   * A unit qualifying the metric's name — "Typical" + "pc". Sits with the
+   * label rather than the number so the figure stays a bare duration, and so
+   * the tile's test id keeps following the metric rather than its copy.
+   */
+  labelSuffix: string | null;
   valueLabel: string;
   supportingLabel: string | null;
   tone: "neutral" | "success" | "danger";
@@ -247,38 +253,32 @@ export function formatWorkSeconds(seconds: number): string {
 export const PRODUCTION_TIME_UNIT_SUFFIX = "pc";
 
 /**
- * Per-piece durations are an order of magnitude smaller than the whole-order
- * figures `formatWorkSeconds` was written for, where flooring to the minute
- * costs nothing. Here it does: a 45-second unit typical would read "0m", which
- * a reader cannot tell apart from missing data, and the served value is the one
- * genuinely fractional figure in the payload. So this rounds instead of
- * flooring and keeps seconds below the hour.
+ * Whole minutes, like every other figure on the card — seconds beside them
+ * read as false precision on a median.
+ *
+ * Still not `formatWorkSeconds`, for two reasons. It *rounds* where that one
+ * floors, which is the right treatment for the one genuinely fractional figure
+ * the payload serves: flooring 119.5s to "1m" throws away most of a minute a
+ * reader is entitled to. And a positive value below half a minute reads as
+ * "<1m" rather than "0m", because a real per-piece typical is the one thing
+ * that must not look like missing data.
  */
 export function formatUnitWorkSeconds(seconds: number): string {
   if (!Number.isFinite(seconds)) {
-    return "0s";
+    return "0m";
   }
 
-  const total = Math.max(0, Math.round(seconds));
-  const hours = Math.floor(total / 3600);
-  const minutes = Math.floor((total % 3600) / 60);
-  const remainder = total % 60;
+  const clamped = Math.max(0, seconds);
+  const totalMinutes = Math.round(clamped / 60);
 
-  // Above the hour the seconds are noise against the minutes beside them.
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+  if (totalMinutes === 0) {
+    return clamped > 0 ? "<1m" : "0m";
   }
 
-  if (minutes > 0) {
-    return remainder === 0 ? `${minutes}m` : `${minutes}m ${remainder}s`;
-  }
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
 
-  return `${remainder}s`;
-}
-
-/** "2m/pc" — a per-piece duration carrying its marker inline. */
-export function formatUnitWorkLabel(seconds: number): string {
-  return `${formatUnitWorkSeconds(seconds)}/${PRODUCTION_TIME_UNIT_SUFFIX}`;
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
 function clampPercent(value: number): number {
@@ -368,12 +368,12 @@ export function buildTypicalMetric(
 ): ProductionTimeMetricViewModel {
   return {
     label: "Typical",
+    labelSuffix: PRODUCTION_TIME_UNIT_SUFFIX,
     valueLabel:
       unitTypicalSeconds === null
         ? "-"
         : formatUnitWorkSeconds(normalizedSeconds(unitTypicalSeconds)),
-    supportingLabel:
-      unitTypicalSeconds === null ? null : PRODUCTION_TIME_UNIT_SUFFIX,
+    supportingLabel: null,
     tone: "neutral",
   };
 }
@@ -387,6 +387,7 @@ export function buildTerminalMetrics(
     allowanceSeconds === null ? null : normalizedSeconds(allowanceSeconds);
   let variance: ProductionTimeMetricViewModel = {
     label: "Variance",
+    labelSuffix: null,
     valueLabel: "-",
     supportingLabel: null,
     tone: "neutral",
@@ -398,6 +399,7 @@ export function buildTerminalMetrics(
     if (differenceSeconds > 0) {
       variance = {
         label: "Variance",
+        labelSuffix: null,
         valueLabel: `+${formatWorkSeconds(differenceSeconds)}`,
         supportingLabel: "over budget",
         tone: "danger",
@@ -405,6 +407,7 @@ export function buildTerminalMetrics(
     } else if (differenceSeconds < 0) {
       variance = {
         label: "Variance",
+        labelSuffix: null,
         valueLabel: formatWorkSeconds(-differenceSeconds),
         supportingLabel: "under budget",
         tone: "success",
@@ -412,6 +415,7 @@ export function buildTerminalMetrics(
     } else {
       variance = {
         label: "Variance",
+        labelSuffix: null,
         valueLabel: "0m",
         supportingLabel: "on budget",
         tone: "success",
@@ -422,6 +426,7 @@ export function buildTerminalMetrics(
   return [
     {
       label: "Budget",
+      labelSuffix: null,
       valueLabel: metricValueLabel(budgetSeconds),
       supportingLabel: null,
       tone: "neutral",
@@ -442,6 +447,7 @@ export function buildActiveMetrics(
     shareState === "over_share"
       ? {
           label: "Over budget",
+          labelSuffix: null,
           valueLabel:
             leftSeconds !== null && leftSeconds < 0
               ? formatWorkSeconds(-leftSeconds)
@@ -451,6 +457,7 @@ export function buildActiveMetrics(
         }
       : {
           label: "Pressure",
+          labelSuffix: null,
           valueLabel: metricValueLabel(
             capPressureSeconds(allowanceSeconds, pressureSeconds),
           ),
@@ -461,6 +468,7 @@ export function buildActiveMetrics(
   return [
     {
       label: "Budget",
+      labelSuffix: null,
       valueLabel: metricValueLabel(allowanceSeconds),
       supportingLabel: null,
       tone: "neutral",

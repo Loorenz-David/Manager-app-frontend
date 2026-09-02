@@ -17,7 +17,8 @@ import {
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
-  formatUnitWorkLabel,
+  PRODUCTION_TIME_UNIT_SUFFIX,
+  formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -106,7 +107,9 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
     typicalLabel:
       unitTypicalSeconds === null
         ? null
-        : `typical ${formatUnitWorkLabel(unitTypicalSeconds)}`,
+        : `typical ${PRODUCTION_TIME_UNIT_SUFFIX} ${formatUnitWorkSeconds(
+            unitTypicalSeconds,
+          )}`,
     typicalComparisonLabel:
       typicalSeconds === null
         ? null

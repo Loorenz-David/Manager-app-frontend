@@ -38,7 +38,14 @@ export function ProductionTimeMetrics({
             .toLowerCase()
             .replace(/\s+/g, "-")}`}
         >
-          <span className="text-xs text-muted-foreground">{metric.label}</span>
+          <span className="text-xs text-muted-foreground">
+            {metric.label}
+            {metric.labelSuffix ? (
+              // Dimmer than the name it qualifies: it is a unit, not a second
+              // metric competing for the same glance.
+              <span className="ml-0.5 opacity-70">{metric.labelSuffix}</span>
+            ) : null}
+          </span>
           <span
             className={cn(
               "mt-1 text-sm font-medium tabular-nums",

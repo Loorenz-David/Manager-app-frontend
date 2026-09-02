@@ -91,7 +91,6 @@ export {
   buildSegments,
   formatPassCount,
   formatProductionCostMinor,
-  formatUnitWorkLabel,
   formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,

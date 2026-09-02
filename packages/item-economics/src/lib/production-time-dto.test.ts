@@ -180,6 +180,7 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "budget") return;
     expect(viewModel.card.rows[0]?.activeMetrics?.[1]).toEqual({
       label: "Over budget",
+      labelSuffix: null,
       valueLabel: "25m",
       supportingLabel: null,
       tone: "danger",
@@ -763,14 +764,15 @@ describe("toProductionTimeViewModel", () => {
       expect(viewModel.kind).toBe("budget");
       if (viewModel.kind !== "budget") return;
       expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m assigned");
-      // Per piece, and seconds-resolution: 2790s is 46m30s, which the
-      // whole-order formatter would have floored to a flat "46m".
-      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m 30s/pc");
+      // Per piece, whole minutes, and rounded: 2790s is 46m30s, which the
+      // whole-order formatter floors to "46m" and this one rounds to "47m".
+      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical pc 47m");
       expect(
         viewModel.card.rows[1]?.activeMetrics?.map(
-          ({ label, valueLabel }) => `${label}:${valueLabel}`,
+          ({ label, labelSuffix, valueLabel }) =>
+            `${label}${labelSuffix ? ` ${labelSuffix}` : ""}:${valueLabel}`,
         ),
-      ).toEqual(["Budget:26m", "Pressure:26m", "Typical:46m 30s"]);
+      ).toEqual(["Budget:26m", "Pressure:26m", "Typical pc:47m"]);
     });
 
     it("renders no allowance rather than '0m allowed' when there is none", () => {
@@ -824,13 +826,13 @@ describe("toProductionTimeViewModel", () => {
         typical_unit_worker_seconds: "140",
       });
 
-      expect(rows[0]?.typicalLabel).toBe("typical 2m 20s/pc");
+      expect(rows[0]?.typicalLabel).toBe("typical pc 2m");
       expect(
         rows[0]?.activeMetrics?.map(
-          ({ label, valueLabel, supportingLabel }) =>
-            `${label}:${valueLabel}:${supportingLabel}`,
+          ({ label, labelSuffix, valueLabel }) =>
+            `${label} ${labelSuffix}:${valueLabel}`,
         ),
-      ).toContain("Typical:2m 20s:pc");
+      ).toContain("Typical pc:2m");
       expect(rows[0]?.unitTypicalSeconds).toBe(140);
       expect(rows[0]?.projectedTypicalSeconds).toBe(420);
     });
@@ -847,14 +849,15 @@ describe("toProductionTimeViewModel", () => {
     });
 
     it("keeps a fractional per-piece median, rounding only at the formatter", () => {
-      // The unit field is the one served duration that may be fractional.
+      // The unit field is the one served duration that may be fractional. The
+      // fraction survives on the view model and is rounded once, for display.
       const rows = rowsForTypical({
         ...typical(428, 428),
         typical_unit_worker_seconds: "142.5",
       });
 
       expect(rows[0]?.unitTypicalSeconds).toBe(142.5);
-      expect(rows[0]?.typicalLabel).toBe("typical 2m 23s/pc");
+      expect(rows[0]?.typicalLabel).toBe("typical pc 2m");
     });
 
     it("never divides client-side — a multi-unit task with no unit figure shows no typical", () => {
@@ -893,7 +896,7 @@ describe("toProductionTimeViewModel", () => {
         throw new Error("expected a budget card");
       }
 
-      expect(viewModel.card.rows[0]?.typicalLabel).toBe("typical 10m/pc");
+      expect(viewModel.card.rows[0]?.typicalLabel).toBe("typical pc 10m");
     });
 
     it("keeps the existing insufficient-sample state when both are null", () => {

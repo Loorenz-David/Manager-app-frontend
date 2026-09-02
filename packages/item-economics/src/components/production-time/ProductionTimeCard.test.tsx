@@ -92,7 +92,7 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     expect(metrics).toHaveClass("opacity-60");
     expect(metrics).toHaveTextContent("Budget15m");
     expect(metrics).toHaveTextContent("Pressure10m");
-    expect(metrics).toHaveTextContent("Typical15m");
+    expect(metrics).toHaveTextContent("Typicalpc15m");
     expect(
       screen.queryByTestId("production-time-row-budget"),
     ).not.toBeInTheDocument();
@@ -464,7 +464,7 @@ describe("ProductionTimeCard — edge cases from the handoff", () => {
     );
     expect(metrics).toHaveTextContent("Budget-");
     expect(metrics).toHaveTextContent("Variance-");
-    expect(metrics).toHaveTextContent("Typical-");
+    expect(metrics).toHaveTextContent("Typicalpc-");
   });
 
   it("draws a full bar for a section whose allowance is already negative", () => {

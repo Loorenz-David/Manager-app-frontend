@@ -9,7 +9,6 @@ import {
   buildTerminalMetrics,
   buildTypicalMetric,
   capPressureSeconds,
-  formatUnitWorkLabel,
   formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
@@ -73,59 +72,60 @@ describe("formatWorkSeconds", () => {
 });
 
 describe("formatUnitWorkSeconds", () => {
-  it("keeps seconds below a minute rather than flooring to '0m'", () => {
-    // The whole reason this formatter exists: `formatWorkSeconds(45)` is "0m",
-    // which a reader takes for missing data, and per-piece figures live here.
-    expect(formatWorkSeconds(45)).toBe("0m");
-    expect(formatUnitWorkSeconds(45)).toBe("45s");
-    expect(formatUnitWorkSeconds(0)).toBe("0s");
-  });
-
-  it("keeps seconds beside the minutes below an hour", () => {
-    expect(formatUnitWorkSeconds(90)).toBe("1m 30s");
-    expect(formatUnitWorkSeconds(2790)).toBe("46m 30s");
-  });
-
-  it("drops a zero seconds component", () => {
+  it("renders whole minutes, never seconds", () => {
+    // Seconds beside the whole-order figures in the same grid read as false
+    // precision on a median.
+    expect(formatUnitWorkSeconds(140)).toBe("2m");
     expect(formatUnitWorkSeconds(120)).toBe("2m");
-  });
-
-  it("drops seconds above the hour, where they are noise", () => {
+    expect(formatUnitWorkSeconds(2790)).toBe("47m");
     expect(formatUnitWorkSeconds(3661)).toBe("1h 1m");
   });
 
-  it("rounds a fractional median rather than truncating it", () => {
-    expect(formatUnitWorkSeconds(142.5)).toBe("2m 23s");
-    expect(formatUnitWorkSeconds(59.6)).toBe("1m");
+  it("rounds where the whole-order formatter floors", () => {
+    // The served unit value is the one fractional figure in the payload;
+    // flooring 119.5s to "1m" would discard most of a minute.
+    expect(formatWorkSeconds(119.5)).toBe("1m");
+    expect(formatUnitWorkSeconds(119.5)).toBe("2m");
+    expect(formatUnitWorkSeconds(142.5)).toBe("2m");
+    expect(formatUnitWorkSeconds(170)).toBe("3m");
+  });
+
+  it("says '<1m' for a real value under half a minute, not '0m'", () => {
+    // "0m" is what an absent typical would look like, and this one is present.
+    expect(formatWorkSeconds(20)).toBe("0m");
+    expect(formatUnitWorkSeconds(20)).toBe("<1m");
+    expect(formatUnitWorkSeconds(0.4)).toBe("<1m");
+  });
+
+  it("keeps a true zero as '0m'", () => {
+    expect(formatUnitWorkSeconds(0)).toBe("0m");
   });
 
   it("never renders a negative duration", () => {
-    expect(formatUnitWorkSeconds(-600)).toBe("0s");
-    expect(formatUnitWorkSeconds(Number.NaN)).toBe("0s");
-  });
-});
-
-describe("formatUnitWorkLabel", () => {
-  it("marks the figure as per-piece inline", () => {
-    expect(formatUnitWorkLabel(140)).toBe("2m 20s/pc");
+    expect(formatUnitWorkSeconds(-600)).toBe("0m");
+    expect(formatUnitWorkSeconds(Number.NaN)).toBe("0m");
   });
 });
 
 describe("buildTypicalMetric", () => {
-  it("carries the per-piece marker in the supporting slot", () => {
+  it("qualifies the metric's name with the unit, leaving the value bare", () => {
     // The two tiles beside it are whole-order, so the marker is what stops the
-    // grid reading as three comparable figures.
+    // grid reading as three comparable figures — but it belongs with "Typical",
+    // not glued to the duration.
     expect(buildTypicalMetric(140)).toEqual({
       label: "Typical",
-      valueLabel: "2m 20s",
-      supportingLabel: "pc",
+      labelSuffix: "pc",
+      valueLabel: "2m",
+      supportingLabel: null,
       tone: "neutral",
     });
   });
 
-  it("drops the marker along with the value when there is no typical", () => {
+  it("keeps the unit on the label even with no typical to show", () => {
+    // The tile still says what it would be measuring.
     expect(buildTypicalMetric(null)).toEqual({
       label: "Typical",
+      labelSuffix: "pc",
       valueLabel: "-",
       supportingLabel: null,
       tone: "neutral",
@@ -266,6 +266,7 @@ describe("pressure and row metrics", () => {
   it("replaces exhausted pressure with the served budget overrun", () => {
     expect(buildActiveMetrics(1187, 0, 1171, -1542, "over_share")[1]).toEqual({
       label: "Over budget",
+      labelSuffix: null,
       valueLabel: "25m",
       supportingLabel: null,
       tone: "danger",
@@ -275,6 +276,7 @@ describe("pressure and row metrics", () => {
   it("builds red over, green under, and green on-budget terminal variance", () => {
     expect(buildTerminalMetrics(4200, 3600, 3000)[1]).toEqual({
       label: "Variance",
+      labelSuffix: null,
       valueLabel: "+10m",
       supportingLabel: "over budget",
       tone: "danger",

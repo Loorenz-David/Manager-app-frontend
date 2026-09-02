@@ -7,7 +7,8 @@ import {
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
-  formatUnitWorkLabel,
+  PRODUCTION_TIME_UNIT_SUFFIX,
+  formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -158,7 +159,9 @@ function toRows(
       typicalLabel:
         unitTypicalSeconds === null
           ? null
-          : `typical ${formatUnitWorkLabel(unitTypicalSeconds)}`,
+          : `typical ${PRODUCTION_TIME_UNIT_SUFFIX} ${formatUnitWorkSeconds(
+              unitTypicalSeconds,
+            )}`,
       // Whole-order deliberately: this line is glued to `workedLabel` — "25m of
       // typically 50m" — and a per-piece figure there would invite the reader
       // to subtract two numbers that are not in the same unit.
