@@ -73,10 +73,26 @@ export type ProductionTimeRowViewModel = {
   allowanceLabel: string | null;
   /** "pressure 43m" — the server's live, un-clamped open-work share. */
   pressureLabel: string | null;
-  /** "typical 1h 0m", or null when the section has no typical yet. */
+  /** "typical 2m/pc" — per piece, or null when the section has no typical yet. */
   typicalLabel: string | null;
-  /** "of typically 50m" — the degraded, budget-less row line. */
+  /**
+   * "of typically 50m" — the degraded, budget-less row line. Whole-order, not
+   * per piece: it is read directly against `workedLabel` beside it, which is
+   * the time the whole order has taken.
+   */
   typicalComparisonLabel: string | null;
+  /**
+   * The served per-piece median, quantity-independent. The number every
+   * "Typical" on the row displays, and null exactly when there is no typical.
+   */
+  unitTypicalSeconds: number | null;
+  /**
+   * The same typical scaled to this task's quantity, as served. Not displayed
+   * anywhere today except the comparison line — kept on the row so the
+   * whole-order reading can be offered without re-deriving it, which the
+   * handoff forbids doing client-side.
+   */
+  projectedTypicalSeconds: number | null;
   /** Budget / Variance / Typical, only for terminal rows on budgeted tasks. */
   terminalMetrics: ProductionTimeRowMetricsViewModel | null;
   /** Budget / Pressure-or-Over-budget / Typical for active and pending rows. */
@@ -221,6 +237,44 @@ export function formatWorkSeconds(seconds: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
+/** Marks a figure as per-piece rather than whole-order. */
+export const PRODUCTION_TIME_UNIT_SUFFIX = "pc";
+
+/**
+ * Per-piece durations are an order of magnitude smaller than the whole-order
+ * figures `formatWorkSeconds` was written for, where flooring to the minute
+ * costs nothing. Here it does: a 45-second unit typical would read "0m", which
+ * a reader cannot tell apart from missing data, and the served value is the one
+ * genuinely fractional figure in the payload. So this rounds instead of
+ * flooring and keeps seconds below the hour.
+ */
+export function formatUnitWorkSeconds(seconds: number): string {
+  if (!Number.isFinite(seconds)) {
+    return "0s";
+  }
+
+  const total = Math.max(0, Math.round(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainder = total % 60;
+
+  // Above the hour the seconds are noise against the minutes beside them.
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return remainder === 0 ? `${minutes}m` : `${minutes}m ${remainder}s`;
+  }
+
+  return `${remainder}s`;
+}
+
+/** "2m/pc" — a per-piece duration carrying its marker inline. */
+export function formatUnitWorkLabel(seconds: number): string {
+  return `${formatUnitWorkSeconds(seconds)}/${PRODUCTION_TIME_UNIT_SUFFIX}`;
+}
+
 function clampPercent(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
@@ -295,10 +349,33 @@ export function metricValueLabel(seconds: number | null): string {
   return seconds === null ? "-" : formatWorkSeconds(normalizedSeconds(seconds));
 }
 
+/**
+ * The Typical tile, in per-piece seconds.
+ *
+ * The two tiles beside it — Budget, and Variance or Pressure — are whole-order,
+ * so this one carries the "pc" marker in its supporting slot. Without it the
+ * grid reads as three comparable figures and a single-piece typical next to a
+ * whole-order budget looks like an enormous underrun.
+ */
+export function buildTypicalMetric(
+  unitTypicalSeconds: number | null,
+): ProductionTimeMetricViewModel {
+  return {
+    label: "Typical",
+    valueLabel:
+      unitTypicalSeconds === null
+        ? "-"
+        : formatUnitWorkSeconds(normalizedSeconds(unitTypicalSeconds)),
+    supportingLabel:
+      unitTypicalSeconds === null ? null : PRODUCTION_TIME_UNIT_SUFFIX,
+    tone: "neutral",
+  };
+}
+
 export function buildTerminalMetrics(
   workedSeconds: number,
   allowanceSeconds: number | null,
-  typicalSeconds: number | null,
+  unitTypicalSeconds: number | null,
 ): ProductionTimeRowMetricsViewModel {
   const budgetSeconds =
     allowanceSeconds === null ? null : normalizedSeconds(allowanceSeconds);
@@ -344,19 +421,14 @@ export function buildTerminalMetrics(
       tone: "neutral",
     },
     variance,
-    {
-      label: "Typical",
-      valueLabel: metricValueLabel(typicalSeconds),
-      supportingLabel: null,
-      tone: "neutral",
-    },
+    buildTypicalMetric(unitTypicalSeconds),
   ];
 }
 
 export function buildActiveMetrics(
   allowanceSeconds: number | null,
   pressureSeconds: number | null,
-  typicalSeconds: number | null,
+  unitTypicalSeconds: number | null,
   leftSeconds: number | null,
   shareState: ProductionTimeShareState,
 ): ProductionTimeRowMetricsViewModel {
@@ -388,12 +460,7 @@ export function buildActiveMetrics(
       tone: "neutral",
     },
     middleMetric,
-    {
-      label: "Typical",
-      valueLabel: metricValueLabel(typicalSeconds),
-      supportingLabel: null,
-      tone: "neutral",
-    },
+    buildTypicalMetric(unitTypicalSeconds),
   ];
 }
 

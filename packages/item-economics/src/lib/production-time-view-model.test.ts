@@ -7,7 +7,10 @@ import {
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
+  buildTypicalMetric,
   capPressureSeconds,
+  formatUnitWorkLabel,
+  formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   selectAnchorRowIndex,
@@ -32,6 +35,8 @@ function row(
     pressureLabel: null,
     typicalLabel: null,
     typicalComparisonLabel: null,
+    unitTypicalSeconds: null,
+    projectedTypicalSeconds: null,
     terminalMetrics: null,
     activeMetrics: null,
     detail: null,
@@ -64,6 +69,67 @@ describe("formatWorkSeconds", () => {
   it("never renders a negative duration", () => {
     expect(formatWorkSeconds(-600)).toBe("0m");
     expect(formatWorkSeconds(Number.NaN)).toBe("0m");
+  });
+});
+
+describe("formatUnitWorkSeconds", () => {
+  it("keeps seconds below a minute rather than flooring to '0m'", () => {
+    // The whole reason this formatter exists: `formatWorkSeconds(45)` is "0m",
+    // which a reader takes for missing data, and per-piece figures live here.
+    expect(formatWorkSeconds(45)).toBe("0m");
+    expect(formatUnitWorkSeconds(45)).toBe("45s");
+    expect(formatUnitWorkSeconds(0)).toBe("0s");
+  });
+
+  it("keeps seconds beside the minutes below an hour", () => {
+    expect(formatUnitWorkSeconds(90)).toBe("1m 30s");
+    expect(formatUnitWorkSeconds(2790)).toBe("46m 30s");
+  });
+
+  it("drops a zero seconds component", () => {
+    expect(formatUnitWorkSeconds(120)).toBe("2m");
+  });
+
+  it("drops seconds above the hour, where they are noise", () => {
+    expect(formatUnitWorkSeconds(3661)).toBe("1h 1m");
+  });
+
+  it("rounds a fractional median rather than truncating it", () => {
+    expect(formatUnitWorkSeconds(142.5)).toBe("2m 23s");
+    expect(formatUnitWorkSeconds(59.6)).toBe("1m");
+  });
+
+  it("never renders a negative duration", () => {
+    expect(formatUnitWorkSeconds(-600)).toBe("0s");
+    expect(formatUnitWorkSeconds(Number.NaN)).toBe("0s");
+  });
+});
+
+describe("formatUnitWorkLabel", () => {
+  it("marks the figure as per-piece inline", () => {
+    expect(formatUnitWorkLabel(140)).toBe("2m 20s/pc");
+  });
+});
+
+describe("buildTypicalMetric", () => {
+  it("carries the per-piece marker in the supporting slot", () => {
+    // The two tiles beside it are whole-order, so the marker is what stops the
+    // grid reading as three comparable figures.
+    expect(buildTypicalMetric(140)).toEqual({
+      label: "Typical",
+      valueLabel: "2m 20s",
+      supportingLabel: "pc",
+      tone: "neutral",
+    });
+  });
+
+  it("drops the marker along with the value when there is no typical", () => {
+    expect(buildTypicalMetric(null)).toEqual({
+      label: "Typical",
+      valueLabel: "-",
+      supportingLabel: null,
+      tone: "neutral",
+    });
   });
 });
 

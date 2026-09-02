@@ -16,6 +16,7 @@ import {
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
+  formatUnitWorkLabel,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -34,7 +35,10 @@ type RowInput = {
   stepCount?: number;
   allowanceSeconds?: number | null;
   pressureSeconds?: number | null;
+  /** Whole-order, as the projection is served. */
   typicalSeconds?: number | null;
+  /** Per piece. Defaults to the whole-order figure, i.e. a quantity-1 order. */
+  unitTypicalSeconds?: number | null;
   shareState?: ProductionTimeShareState;
 };
 
@@ -47,6 +51,7 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
   );
   const isExcluded = shareState === "excluded";
   const typicalSeconds = input.typicalSeconds ?? null;
+  const unitTypicalSeconds = input.unitTypicalSeconds ?? typicalSeconds;
   const leftSeconds =
     input.allowanceSeconds === null || input.allowanceSeconds === undefined
       ? null
@@ -69,19 +74,21 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
         : `${formatWorkSeconds(input.allowanceSeconds)} allowed`,
     pressureLabel: null,
     typicalLabel:
-      typicalSeconds === null
+      unitTypicalSeconds === null
         ? null
-        : `typical ${formatWorkSeconds(typicalSeconds)}`,
+        : `typical ${formatUnitWorkLabel(unitTypicalSeconds)}`,
     typicalComparisonLabel:
       typicalSeconds === null
         ? null
         : `of typically ${formatWorkSeconds(typicalSeconds)}`,
+    unitTypicalSeconds,
+    projectedTypicalSeconds: typicalSeconds,
     terminalMetrics:
       isTerminal && hasBudget
         ? buildTerminalMetrics(
             input.workedSeconds,
             input.allowanceSeconds ?? null,
-            typicalSeconds,
+            unitTypicalSeconds,
           )
         : null,
     activeMetrics:
@@ -89,7 +96,7 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
         ? buildActiveMetrics(
             input.allowanceSeconds ?? null,
             input.pressureSeconds ?? null,
-            typicalSeconds,
+            unitTypicalSeconds,
             leftSeconds,
             shareState,
           )

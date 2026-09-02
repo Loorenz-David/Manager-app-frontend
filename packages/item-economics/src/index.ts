@@ -82,6 +82,7 @@ export { parseErrorIdentity } from "./lib/error-identity";
 
 export {
   PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS,
+  PRODUCTION_TIME_UNIT_SUFFIX,
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   buildHeadlineCost,
   buildInfeasibleNotice,
@@ -90,6 +91,8 @@ export {
   buildSegments,
   formatPassCount,
   formatProductionCostMinor,
+  formatUnitWorkLabel,
+  formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   selectAnchorRowIndex,

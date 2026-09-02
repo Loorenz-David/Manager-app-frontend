@@ -202,9 +202,47 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(within(firstRow).getByTestId("production-time-metric-pressure")).toHaveTextContent(
       "Pressure40m",
     );
+    // "pc" is part of the tile, not decoration: Budget and Pressure beside it
+    // are whole-order and the marker is what keeps the three from being read
+    // as one comparable set.
     expect(within(firstRow).getByTestId("production-time-metric-typical")).toHaveTextContent(
-      "Typical1h 0m",
+      "Typical1h 0mpc",
     );
+  });
+
+  it("shows the per-piece typical, not the whole-order projection, on a multi-unit task", async () => {
+    // Unit 140s at quantity 3 projects to 7m. The tile must read 2m 20s: the
+    // per-piece figure is the one that survives a change of order size.
+    const base = literalHandoffPayload.sections[0]!;
+    server.use(
+      http.get(ENDPOINT, () =>
+        HttpResponse.json(
+          envelope({
+            ...literalHandoffPayload,
+            projection_quantity: 3,
+            sections: [
+              {
+                ...base,
+                typical: {
+                  ...base.typical!,
+                  typical_worker_seconds: 600,
+                  typical_unit_worker_seconds: "140",
+                  projected_typical_worker_seconds: 420,
+                },
+              },
+            ],
+          }),
+        ),
+      ),
+    );
+
+    renderSection();
+
+    await screen.findByTestId("production-time-card");
+    const firstRow = screen.getAllByTestId("production-time-row")[0]!;
+    expect(
+      within(firstRow).getByTestId("production-time-metric-typical"),
+    ).toHaveTextContent("Typical2m 20spc");
   });
 
   it("hides a 404 without retrying", async () => {

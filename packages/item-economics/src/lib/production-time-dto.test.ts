@@ -760,12 +760,14 @@ describe("toProductionTimeViewModel", () => {
       expect(viewModel.kind).toBe("budget");
       if (viewModel.kind !== "budget") return;
       expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m assigned");
-      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m");
+      // Per piece, and seconds-resolution: 2790s is 46m30s, which the
+      // whole-order formatter would have floored to a flat "46m".
+      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 46m 30s/pc");
       expect(
         viewModel.card.rows[1]?.activeMetrics?.map(
           ({ label, valueLabel }) => `${label}:${valueLabel}`,
         ),
-      ).toEqual(["Budget:26m", "Pressure:26m", "Typical:46m"]);
+      ).toEqual(["Budget:26m", "Pressure:26m", "Typical:46m 30s"]);
     });
 
     it("renders no allowance rather than '0m allowed' when there is none", () => {
@@ -811,42 +813,84 @@ describe("toProductionTimeViewModel", () => {
       return viewModel.card.rows;
     }
 
-    it("displays the projection, not the raw median, on every typical label", () => {
-      // Raw 600s, unit 140s, quantity 3 -> 420s. Both numbers are served; a row
-      // that showed 10m would be quoting a one-unit order for a three-unit task.
+    it("displays the per-piece median on the typical label and tile", () => {
+      // Raw 600s, unit 140s, quantity 3 -> projection 420s. The row shows the
+      // 140s: it is the figure that does not move when the order size does.
       const rows = rowsForTypical({
         ...typical(600, 420),
         typical_unit_worker_seconds: "140",
       });
 
-      expect(rows[0]?.typicalLabel).toBe("typical 7m");
-      expect(rows[0]?.typicalComparisonLabel).toBe("of typically 7m");
+      expect(rows[0]?.typicalLabel).toBe("typical 2m 20s/pc");
       expect(
         rows[0]?.activeMetrics?.map(
-          ({ label, valueLabel }) => `${label}:${valueLabel}`,
+          ({ label, valueLabel, supportingLabel }) =>
+            `${label}:${valueLabel}:${supportingLabel}`,
         ),
-      ).toContain("Typical:7m");
+      ).toContain("Typical:2m 20s:pc");
+      expect(rows[0]?.unitTypicalSeconds).toBe(140);
+      expect(rows[0]?.projectedTypicalSeconds).toBe(420);
     });
 
-    it("never multiplies client-side — a projection equal to the raw median stands", () => {
-      // The server is the only place the multiplication happens. Serving the raw
-      // median back as the projection (quantity 1 history, or a section the
-      // scaling did not move) must render that number, not number x quantity.
-      const rows = rowsForTypical(typical(600, 600));
+    it("keeps the worked-time comparison whole-order, not per piece", () => {
+      // "25m of typically 7m" is a subtraction the reader can actually make.
+      // Putting the 2m20s per-piece figure here would not be.
+      const rows = rowsForTypical({
+        ...typical(600, 420),
+        typical_unit_worker_seconds: "140",
+      });
 
-      expect(rows[0]?.typicalLabel).toBe("typical 10m");
+      expect(rows[0]?.typicalComparisonLabel).toBe("of typically 7m");
     });
 
-    it("falls back to the raw median when the backend serves no projection", () => {
-      // `.catch(null)` covers a mid-deploy backend. Losing the label entirely
-      // would be worse than showing the pre-release number.
+    it("keeps a fractional per-piece median, rounding only at the formatter", () => {
+      // The unit field is the one served duration that may be fractional.
+      const rows = rowsForTypical({
+        ...typical(428, 428),
+        typical_unit_worker_seconds: "142.5",
+      });
+
+      expect(rows[0]?.unitTypicalSeconds).toBe(142.5);
+      expect(rows[0]?.typicalLabel).toBe("typical 2m 23s/pc");
+    });
+
+    it("never divides client-side — a multi-unit task with no unit figure shows no typical", () => {
+      // `.catch(null)` on the unit field covers a mid-deploy backend. Deriving
+      // the per-piece number from the projection is exactly what the handoff
+      // rules out, and the server's half-even rounding means the result would
+      // not reproduce the projection anyway. No figure beats a wrong one.
       const rows = rowsForTypical({
         ...typical(600),
-        projected_typical_worker_seconds: null,
         typical_unit_worker_seconds: null,
       });
 
-      expect(rows[0]?.typicalLabel).toBe("typical 10m");
+      expect(rows[0]?.typicalLabel).toBeNull();
+      expect(rows[0]?.unitTypicalSeconds).toBeNull();
+    });
+
+    it("reads the projection as the per-piece figure at quantity 1", () => {
+      // Not a derivation: at one unit the two are the same number, so a
+      // mid-deploy backend still gets a labelled typical.
+      const base = makeDto().sections[0]!;
+      const viewModel = toProductionTimeViewModel(
+        makeDto({
+          projection_quantity: 1,
+          sections: [
+            {
+              ...base,
+              typical: {
+                ...typical(600),
+                typical_unit_worker_seconds: null,
+              },
+            },
+          ],
+        }),
+      );
+      if (viewModel.kind !== "budget") {
+        throw new Error("expected a budget card");
+      }
+
+      expect(viewModel.card.rows[0]?.typicalLabel).toBe("typical 10m/pc");
     });
 
     it("keeps the existing insufficient-sample state when both are null", () => {

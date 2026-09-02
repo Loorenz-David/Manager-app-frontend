@@ -7,6 +7,7 @@ import {
   buildRowDetail,
   buildSegments,
   buildTerminalMetrics,
+  formatUnitWorkLabel,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
@@ -79,6 +80,20 @@ function decimalMinutesToSeconds(value: string | null): number | null {
   return Number.isFinite(minutes) ? Math.round(minutes * 60) : null;
 }
 
+/**
+ * `typical_unit_worker_seconds` is already in seconds and is the only served
+ * duration that may be fractional, so it is kept fractional here and rounded
+ * once, at the formatter.
+ */
+function decimalSeconds(value: string | null | undefined): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  const seconds = Number(value);
+  return Number.isFinite(seconds) ? seconds : null;
+}
+
 function toRows(
   dto: TaskProductionTime,
   hasBudget: boolean,
@@ -95,17 +110,28 @@ function toRows(
     const isPending = section.state === "pending";
     const isTerminal = TERMINAL_SECTION_STATES.has(section.state);
     const isExcluded = section.share_state === "excluded";
-    // The quantity-aware projection, not the raw historical median: every label
-    // built from this answers "how long should *this* section take", and the
-    // budget it sits beside already scales with quantity through the whole-order
-    // sale price (only the split *weights* use raw typicals, and those are
-    // ratios, so quantity cancels there). The raw median is the fallback for a
-    // backend mid-deploy, never a client-side multiplication
+    // The quantity-aware projection, not the raw historical median: it answers
+    // "how long should *this* order take", and is the only typical that may be
+    // read directly against a worked total. The raw median is the fallback for
+    // a backend mid-deploy, never a client-side multiplication
     // (handoff quantity_normalized_typicals 2026-08-29).
-    const typicalSeconds =
+    const projectedTypicalSeconds =
       section.typical?.projected_typical_worker_seconds ??
       section.typical?.typical_worker_seconds ??
       null;
+    // The per-piece median is what the row *displays*. It is the figure a
+    // worker can hold in their head — it does not move when the order quantity
+    // does — and it is comparable across orders, which the projection is not.
+    //
+    // At quantity 1 the projection *is* the per-piece figure, so that identity
+    // covers a mid-deploy backend that serves no unit field. Above quantity 1
+    // there is no fallback: dividing the projection here would be exactly the
+    // client-side derivation the handoff rules out, and the server rounds
+    // half-even at the projection step, so the result would not even agree with
+    // the number it was derived from.
+    const unitTypicalSeconds =
+      decimalSeconds(section.typical?.typical_unit_worker_seconds) ??
+      (dto.projection_quantity === 1 ? projectedTypicalSeconds : null);
 
     return {
       key: section.working_section_id || `${label}-${index}`,
@@ -129,19 +155,24 @@ function toRows(
           ? null
           : `${formatWorkSeconds(section.pressure_share_seconds)} pressure`,
       typicalLabel:
-        typicalSeconds === null
+        unitTypicalSeconds === null
           ? null
-          : `typical ${formatWorkSeconds(typicalSeconds)}`,
+          : `typical ${formatUnitWorkLabel(unitTypicalSeconds)}`,
+      // Whole-order deliberately: this line is glued to `workedLabel` — "25m of
+      // typically 50m" — and a per-piece figure there would invite the reader
+      // to subtract two numbers that are not in the same unit.
       typicalComparisonLabel:
-        typicalSeconds === null
+        projectedTypicalSeconds === null
           ? null
-          : `of typically ${formatWorkSeconds(typicalSeconds)}`,
+          : `of typically ${formatWorkSeconds(projectedTypicalSeconds)}`,
+      unitTypicalSeconds,
+      projectedTypicalSeconds,
       terminalMetrics:
         isTerminal && hasBudget
           ? buildTerminalMetrics(
               workedSeconds,
               section.allowance_seconds,
-              typicalSeconds,
+              unitTypicalSeconds,
             )
           : null,
       activeMetrics:
@@ -149,7 +180,7 @@ function toRows(
           ? buildActiveMetrics(
               section.allowance_seconds,
               section.pressure_share_seconds,
-              typicalSeconds,
+              unitTypicalSeconds,
               section.left_seconds,
               section.share_state,
             )
