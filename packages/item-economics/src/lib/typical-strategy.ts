@@ -315,7 +315,10 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     // Presence, not value.
     rows.push({
       label: "Specification",
-      value: "Full specification",
+      // What the criterion IS. Whether it held is the group's to say, so the
+      // value no longer has to carry a verdict — "Full specification" beside
+      // the label "Specification" only ever restated it.
+      value: "All recorded properties",
       tier: { kind: "specification" },
     });
   }

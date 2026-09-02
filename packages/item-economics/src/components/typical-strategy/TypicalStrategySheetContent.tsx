@@ -1,5 +1,6 @@
 import type {
   TypicalStrategyCriterionRow,
+  TypicalStrategyCriterionStatus,
   TypicalStrategyDetailRow,
   TypicalStrategyViewModel,
 } from "../../lib/typical-strategy";
@@ -55,13 +56,78 @@ function DetailRows({
   );
 }
 
+/** The groups, strongest claim first. A group with no rows does not render. */
+const CRITERION_GROUPS = [
+  { status: "used", title: "Used to measure" },
+  { status: "not_used", title: "Not used" },
+  { status: "unknown", title: "Not known" },
+] as const;
+
+function CriterionGroup({
+  rows,
+  status,
+  title,
+}: {
+  rows: TypicalStrategyCriterionRow[];
+  status: TypicalStrategyCriterionStatus;
+  title: string;
+}): React.JSX.Element | null {
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const applied = status === "used";
+
+  return (
+    <div
+      className={cn(
+        "border-t border-slate-100",
+        applied ? null : "bg-slate-50/80",
+      )}
+      data-testid={`typical-strategy-criteria-${status}`}
+    >
+      <h4 className="px-4 pb-1 pt-3 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+        {title}
+      </h4>
+      <table className="w-full table-fixed border-collapse text-sm">
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={`${row.label}-${row.value}`}
+              data-status={row.status}
+              data-testid={`typical-strategy-criterion-${row.label
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
+            >
+              <th
+                className="w-1/2 px-4 py-2.5 text-left font-normal text-slate-500"
+                scope="row"
+              >
+                {row.label}
+              </th>
+              <td
+                className={cn(
+                  "px-4 py-2.5 text-right font-medium",
+                  applied ? "text-slate-950" : "text-slate-400",
+                )}
+              >
+                {row.value}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
  * The item's criteria under a heading that describes rather than claims.
  *
- * Only the dropped rows are flagged. Marking every row would put "Used" beside
- * five criteria on the common full-match case for no gain; the note above the
- * table carries that case, and the flags carry the one that matters — a
- * criterion the reader can see but the measurement never applied.
+ * Grouped rather than tagged row by row. A per-row "Not used" chip had to
+ * share a fixed half-width cell with the value and wrapped into it; grouping
+ * says the same thing once, in a place with room for it, and lets a reader see
+ * the split without reading every row.
  */
 function CriterionRows({
   note,
@@ -81,43 +147,14 @@ function CriterionRows({
         </h3>
         {note ? <p className="mt-1.5 text-sm text-slate-500">{note}</p> : null}
       </div>
-      <table className="w-full table-fixed border-collapse border-t border-slate-100 text-sm">
-        <tbody className="divide-y divide-slate-100">
-          {rows.map((row) => (
-            <tr
-              key={`${row.label}-${row.value}`}
-              data-status={row.status}
-              data-testid={`typical-strategy-criterion-${row.label
-                .toLowerCase()
-                .replace(/\s+/g, "-")}`}
-            >
-              <th
-                className="w-1/2 px-4 py-3 text-left font-normal text-slate-500"
-                scope="row"
-              >
-                {row.label}
-              </th>
-              <td className="px-4 py-3 text-right">
-                <span
-                  className={cn(
-                    "font-medium",
-                    row.status === "not_used"
-                      ? "text-slate-400 line-through decoration-slate-300"
-                      : "text-slate-950",
-                  )}
-                >
-                  {row.value}
-                </span>
-                {row.status === "not_used" ? (
-                  <span className="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-                    Not used
-                  </span>
-                ) : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {CRITERION_GROUPS.map(({ status, title }) => (
+        <CriterionGroup
+          key={status}
+          rows={rows.filter((row) => row.status === status)}
+          status={status}
+          title={title}
+        />
+      ))}
     </section>
   );
 }

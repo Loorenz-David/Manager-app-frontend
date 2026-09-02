@@ -243,7 +243,7 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
     // The rung it fell back FROM, and a rung it never reached.
     expect(rows).toContainEqual({
       label: "Specification",
-      value: "Full specification",
+      value: "All recorded properties",
       status: "not_used",
     });
     expect(rows).toContainEqual({
@@ -329,7 +329,7 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
 
     expect(rows).toContainEqual({
       label: "Specification",
-      value: "Full specification",
+      value: "All recorded properties",
       status: "used",
     });
     expect(JSON.stringify(rows)).not.toContain("sig-mahogany-ud");

@@ -63,6 +63,10 @@ function criterion(label: string): HTMLElement {
   return screen.getByTestId(`typical-strategy-criterion-${label}`);
 }
 
+function group(status: "used" | "not_used" | "unknown"): HTMLElement {
+  return screen.getByTestId(`typical-strategy-criteria-${status}`);
+}
+
 describe("TypicalStrategyPill", () => {
   it("states the basis without a tap target when no opener was injected", () => {
     // A host that has not registered the sheet must still get the label —
@@ -152,9 +156,12 @@ describe("TypicalStrategySheetContent", () => {
     expect(criterion("category")).toHaveAttribute("data-status", "used");
     expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
     expect(criterion("specification")).toHaveAttribute("data-status", "used");
+    // Nothing was dropped, so the dropped group must not render at all — an
+    // empty "Not used" heading would read as a claim of its own.
     expect(
-      screen.getByTestId("typical-strategy-criteria").textContent,
-    ).not.toContain("Not used");
+      screen.queryByTestId("typical-strategy-criteria-not_used"),
+    ).not.toBeInTheDocument();
+    expect(group("used")).toHaveTextContent("Used to measure");
   });
 
   it("2. facet winner marks the specification dropped, not matched", () => {
@@ -169,7 +176,9 @@ describe("TypicalStrategySheetContent", () => {
 
     const specification = criterion("specification");
     expect(specification).toHaveAttribute("data-status", "not_used");
-    expect(specification).toHaveTextContent("Not used");
+    // The row must sit under the dropped heading, not merely be styled as one.
+    expect(group("not_used")).toContainElement(specification);
+    expect(group("used")).toContainElement(criterion("upholstery"));
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).toHaveTextContent("full specification did not have enough completed history");
@@ -196,8 +205,12 @@ describe("TypicalStrategySheetContent", () => {
 
     for (const label of ["category", "upholstery", "specification"]) {
       expect(criterion(label)).toHaveAttribute("data-status", "not_used");
-      expect(criterion(label)).toHaveTextContent("Not used");
+      expect(group("not_used")).toContainElement(criterion(label));
     }
+    // Every row is dropped, so there is no "used" group to head.
+    expect(
+      screen.queryByTestId("typical-strategy-criteria-used"),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).toHaveTextContent("None of these were used");
@@ -238,7 +251,7 @@ describe("TypicalStrategySheetContent", () => {
       <TypicalStrategySheetContent strategy={MIXED_STRATEGY} />,
     );
 
-    expect(container.textContent).toContain("Full specification");
+    expect(container.textContent).toContain("All recorded properties");
     expect(container.textContent).not.toContain("sig-mahogany-ud");
   });
 
