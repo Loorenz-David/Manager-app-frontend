@@ -134,11 +134,13 @@ export type {
   TypicalStrategySheetContentProps,
 } from "./components/typical-strategy";
 export {
-  buildStrategyFilters,
+  buildStrategyCriteria,
   buildTypicalStrategy,
   humanizeFacetName,
 } from "./lib/typical-strategy";
 export type {
+  TypicalStrategyCriterionRow,
+  TypicalStrategyCriterionStatus,
   TypicalStrategyDetailRow,
   TypicalStrategyInput,
   TypicalStrategyTone,

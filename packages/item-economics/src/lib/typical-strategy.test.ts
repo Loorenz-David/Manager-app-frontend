@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TypicalResolution } from "../types";
 import {
-  buildStrategyFilters,
+  buildStrategyCriteria,
   buildTypicalStrategy,
   humanizeFacetName,
 } from "./typical-strategy";
@@ -89,7 +89,7 @@ describe("buildTypicalStrategy — the basis a reader sees", () => {
     expect(strategy.pillLabel).toBe("All work in the stage");
     expect(strategy.tone).toBe("weak");
     expect(strategy.summary).toContain("not enough history");
-    expect(strategy.filters).toEqual([]);
+    expect(strategy.criteria).toEqual([]);
   });
 
   it("admits an unrecognised basis instead of describing one", () => {
@@ -112,9 +112,10 @@ describe("buildTypicalStrategy — the basis a reader sees", () => {
     });
 
     expect(strategy.summary).toContain("other items in this category");
-    expect(strategy.filters).toContainEqual({
+    expect(strategy.criteria).toContainEqual({
       label: "Category",
       value: "1 category",
+      status: "used",
     });
     expect(JSON.stringify(strategy)).not.toContain("itc_gone");
   });
@@ -171,46 +172,282 @@ describe("buildTypicalStrategy — the stage breakdown", () => {
   });
 });
 
-describe("buildStrategyFilters", () => {
+/**
+ * Every axis an item can carry, so each basis can be asserted against the same
+ * list. The point of the table below is that the list never changes — only the
+ * rung's verdict on it does.
+ */
+const FULL_FILTER = {
+  item_category_ids: ["itc_chair"],
+  item_categories: [{ client_id: "itc_chair", name: "Dining Chairs" }],
+  width_cm: [40, 60],
+  can_have_upholstery: true,
+  designers: ["dsg_aalto"],
+  properties_facets: [
+    { upholstery: "Up & Down" },
+    { extension_type: "Butterfly" },
+  ],
+  properties_signature: "sig-mahogany-ud",
+};
+
+const ITEM_LABELS = ["Category", "Width", "Upholstered", "Designer"];
+
+function usedLabels(basis: string, facet: string | null): string[] {
+  return buildStrategyCriteria(FULL_FILTER, basis, facet)
+    .filter((row) => row.status === "used")
+    .map((row) => row.label);
+}
+
+describe("buildStrategyCriteria — what the rung actually applied", () => {
+  it("lists the same criteria whatever the basis", () => {
+    // The list is a description of the item, so it must not shrink when the
+    // match weakens — that was the old bug in reverse.
+    const labels = ["Upholstery", "Extension type", "Specification"];
+
+    for (const basis of [
+      "item_properties_narrowed_uniform",
+      "item_facet_narrowed_uniform",
+      "item_narrowed_uniform",
+      "section_wide_uniform",
+    ]) {
+      expect(
+        buildStrategyCriteria(FULL_FILTER, basis, "upholstery").map(
+          (row) => row.label,
+        ),
+      ).toEqual([...ITEM_LABELS, ...labels]);
+    }
+  });
+
+  it("1. full-specification winner marks every criterion used", () => {
+    // Equal signatures mean identical property snapshots, so the facets held
+    // too — this is the one rung entitled to claim the whole list.
+    expect(usedLabels("item_properties_narrowed_uniform", null)).toEqual([
+      ...ITEM_LABELS,
+      "Upholstery",
+      "Extension type",
+      "Specification",
+    ]);
+  });
+
+  it("2. facet winner keeps the winning facet and drops the specification", () => {
+    expect(usedLabels("item_facet_narrowed_uniform", "upholstery")).toEqual([
+      ...ITEM_LABELS,
+      "Upholstery",
+    ]);
+
+    const rows = buildStrategyCriteria(
+      FULL_FILTER,
+      "item_facet_narrowed_uniform",
+      "upholstery",
+    );
+    // The rung it fell back FROM, and a rung it never reached.
+    expect(rows).toContainEqual({
+      label: "Specification",
+      value: "Full specification",
+      status: "not_used",
+    });
+    expect(rows).toContainEqual({
+      label: "Extension type",
+      value: "Butterfly",
+      status: "not_used",
+    });
+  });
+
+  it("2b. a facet name the app cannot line up claims nothing", () => {
+    // Under-claiming is the safe direction: a rung we cannot identify must not
+    // borrow the verdict of one we can.
+    expect(usedLabels("item_facet_narrowed_uniform", "leg_finish")).toEqual(
+      ITEM_LABELS,
+    );
+  });
+
+  it("3. category winner drops every facet and the specification", () => {
+    expect(usedLabels("item_narrowed_uniform", null)).toEqual(ITEM_LABELS);
+  });
+
+  it("4. section-wide winner claims nothing at all", () => {
+    // The reported bug: this basis measured over stage history alone, yet the
+    // sheet listed the item's category as something it had matched on.
+    const rows = buildStrategyCriteria(
+      FULL_FILTER,
+      "section_wide_uniform",
+      null,
+    );
+
+    expect(rows.every((row) => row.status === "not_used")).toBe(true);
+    expect(usedLabels("section_wide_uniform", null)).toEqual([]);
+  });
+
+  it("says it does not know rather than guessing on an unknown basis", () => {
+    const rows = buildStrategyCriteria(
+      FULL_FILTER,
+      "item_colour_uniform",
+      null,
+    );
+
+    expect(rows.every((row) => row.status === "unknown")).toBe(true);
+  });
+
+  it("never marks a criterion used on a rung that does not apply it", () => {
+    // The invariant the whole change exists to hold. Stated as a rule rather
+    // than a fixture so a new axis cannot quietly grant itself a claim.
+    const APPLIES: Record<string, (label: string) => boolean> = {
+      item_properties_narrowed_uniform: () => true,
+      item_facet_narrowed_uniform: (label) =>
+        ITEM_LABELS.includes(label) || label === "Upholstery",
+      item_narrowed_uniform: (label) => ITEM_LABELS.includes(label),
+      section_wide_uniform: () => false,
+    };
+
+    for (const [basis, applies] of Object.entries(APPLIES)) {
+      for (const row of buildStrategyCriteria(
+        FULL_FILTER,
+        basis,
+        "upholstery",
+      )) {
+        if (row.status === "used") {
+          expect(
+            applies(row.label),
+            `${basis} claimed "${row.label}" without applying it`,
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
   it("reports the specification hash as a presence, never a value", () => {
     // It is an opaque hash; printing it would look like something actionable.
-    const rows = buildStrategyFilters({
-      item_category_ids: ["itc_chair"],
-      item_categories: [{ client_id: "itc_chair", name: "Chair" }],
-      properties_signature: "sig-mahogany-ud",
-    });
+    const rows = buildStrategyCriteria(
+      {
+        item_category_ids: ["itc_chair"],
+        item_categories: [{ client_id: "itc_chair", name: "Chair" }],
+        properties_signature: "sig-mahogany-ud",
+      },
+      "item_properties_narrowed_uniform",
+      null,
+    );
 
     expect(rows).toContainEqual({
       label: "Specification",
-      value: "Matched in full",
+      value: "Full specification",
+      status: "used",
     });
     expect(JSON.stringify(rows)).not.toContain("sig-mahogany-ud");
   });
 
   it("spells out the facet key and value a reader can check", () => {
-    const rows = buildStrategyFilters({
-      properties_facets: [{ upholstery: "Up & Down" }],
-    });
-
-    expect(rows).toEqual([{ label: "Upholstery", value: "Up & Down" }]);
+    expect(
+      buildStrategyCriteria(
+        { properties_facets: [{ upholstery: "Up & Down" }] },
+        "item_facet_narrowed_uniform",
+        "upholstery",
+      ),
+    ).toEqual([{ label: "Upholstery", value: "Up & Down", status: "used" }]);
   });
 
   it("renders each dimension range, open bounds included", () => {
-    const rows = buildStrategyFilters({
-      width_cm: [40, 60],
-      height_cm: [null, 120],
-      depth_cm: [30, null],
-    });
-
-    expect(rows).toEqual([
-      { label: "Width", value: "40–60 cm" },
-      { label: "Height", value: "up to 120 cm" },
-      { label: "Depth", value: "30 cm and up" },
+    expect(
+      buildStrategyCriteria(
+        { width_cm: [40, 60], height_cm: [null, 120], depth_cm: [30, null] },
+        "item_narrowed_uniform",
+        null,
+      ),
+    ).toEqual([
+      { label: "Width", value: "40–60 cm", status: "used" },
+      { label: "Height", value: "up to 120 cm", status: "used" },
+      { label: "Depth", value: "30 cm and up", status: "used" },
     ]);
   });
 
   it("is empty when the task narrows on nothing", () => {
-    expect(buildStrategyFilters(null)).toEqual([]);
+    expect(buildStrategyCriteria(null, "section_wide_uniform", null)).toEqual(
+      [],
+    );
+  });
+});
+
+describe("buildTypicalStrategy — the note that reconciles list and rung", () => {
+  it("confirms the whole list on a full-specification match", () => {
+    const strategy = build({
+      task_typical_basis: "item_properties_narrowed_uniform",
+      applied_filter: FULL_FILTER,
+    });
+
+    expect(strategy.criteriaNote).toContain("All of these were used");
+  });
+
+  it("names the specification as the thing that ran out of history", () => {
+    const strategy = build({
+      task_typical_basis: "item_facet_narrowed_uniform",
+      facet: "upholstery",
+      applied_filter: FULL_FILTER,
+    });
+
+    expect(strategy.criteriaNote).toContain(
+      "full specification did not have enough completed history",
+    );
+    expect(strategy.criteriaNote).toContain("same upholstery");
+  });
+
+  it("does not claim something was dropped when nothing was", () => {
+    // A filter with no signature and no facets abandoned nothing on the way to
+    // the category rung; saying otherwise would swap one untruth for another.
+    const strategy = build({
+      task_typical_basis: "item_narrowed_uniform",
+      applied_filter: {
+        item_category_ids: ["itc_chair"],
+        item_categories: [{ client_id: "itc_chair", name: "Chair" }],
+      },
+    });
+
+    expect(strategy.criteriaNote).toBe(
+      "All of these were used to narrow the history.",
+    );
+  });
+
+  it("says plainly that a category-rung fallback dropped the closer rungs", () => {
+    const strategy = build({
+      task_typical_basis: "item_narrowed_uniform",
+      applied_filter: FULL_FILTER,
+    });
+
+    expect(strategy.criteriaNote).toContain("were dropped");
+  });
+
+  it("states outright that section-wide used none of them", () => {
+    const strategy = build({
+      task_typical_basis: "section_wide_uniform",
+      applied_filter: FULL_FILTER,
+    });
+
+    expect(strategy.criteriaNote).toContain("None of these were used");
+  });
+
+  it("has no note to give when the item narrows on nothing", () => {
+    const strategy = build({
+      task_typical_basis: "section_wide_uniform",
+      applied_filter: null,
+    });
+
+    expect(strategy.criteriaNote).toBeNull();
+  });
+});
+
+describe("buildTypicalStrategy — the budget note", () => {
+  it("ties the winning match to the stage shares", () => {
+    expect(build().budgetNote).toContain("share of the time budget");
+    expect(build().budgetNote).toContain("closer match");
+  });
+
+  it("drops the closer-match advice for a reader who did not get one", () => {
+    // "A closer match would change the allowances" is empty counsel to a task
+    // that has just been told no closer match existed.
+    const note = build({
+      task_typical_basis: "section_wide_uniform",
+    }).budgetNote;
+
+    expect(note).toContain("stage-wide history");
+    expect(note).toContain("not on anything specific to this item");
   });
 });
 

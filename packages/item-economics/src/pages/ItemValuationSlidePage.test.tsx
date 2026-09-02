@@ -399,9 +399,10 @@ describe("ItemValuationSlidePage — typical strategy disclosure", () => {
     expect(openTypicalStrategy).toHaveBeenCalledTimes(1);
     const [{ strategy }] = openTypicalStrategy.mock.calls[0]!;
     expect(strategy.pillLabel).toBe("Same category");
-    expect(strategy.filters).toContainEqual({
+    expect(strategy.criteria).toContainEqual({
       label: "Category",
       value: "Chair",
+      status: "used",
     });
     // The reference task is mixed — 3 narrowed, 1 section-wide — so the
     // breakdown is exactly what the reader needs.

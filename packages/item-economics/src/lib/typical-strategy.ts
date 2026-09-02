@@ -26,6 +26,18 @@ export type TypicalStrategyDetailRow = {
   value: string;
 };
 
+/**
+ * Whether the winning rung actually applied a criterion when it measured.
+ *
+ * `unknown` exists for a basis this app version does not recognise: claiming
+ * "not used" there would be as much of an invention as claiming "used".
+ */
+export type TypicalStrategyCriterionStatus = "used" | "not_used" | "unknown";
+
+export type TypicalStrategyCriterionRow = TypicalStrategyDetailRow & {
+  status: TypicalStrategyCriterionStatus;
+};
+
 export type TypicalStrategyViewModel = {
   /** "Same upholstery" — short enough for a pill beside a number. */
   pillLabel: string;
@@ -39,8 +51,28 @@ export type TypicalStrategyViewModel = {
    */
   breakdownLabel: string | null;
   breakdown: TypicalStrategyDetailRow[];
-  /** The filter axes, humanised. Empty when the task narrows on nothing. */
-  filters: TypicalStrategyDetailRow[];
+  /**
+   * What the item *is*, humanised — never a claim that anything matched.
+   *
+   * `applied_filter` is the spec the server derived from the item and
+   * publishes whenever the item is narrowable at all, independent of which
+   * rung won. Reading it as "matched on" told a section-wide reader that their
+   * typicals were narrowed to a category the search had in fact abandoned, so
+   * each row instead carries the rung's own verdict.
+   */
+  criteria: TypicalStrategyCriterionRow[];
+  /**
+   * One sentence reconciling the list with the winning rung: which criteria
+   * survived, and why the rest were dropped. Null when there are none to
+   * qualify.
+   */
+  criteriaNote: string | null;
+  /**
+   * The closing line, naming the winning basis as the thing that sized the
+   * stage shares. Basis-specific because "a closer match" means nothing to a
+   * reader who did not get one.
+   */
+  budgetNote: string;
   /** Sample window and gate — the same for every basis. */
   method: TypicalStrategyDetailRow[];
 };
@@ -148,31 +180,81 @@ function formatRange(range: readonly (number | null)[]): string {
 }
 
 /**
- * The filter, in the reader's terms.
+ * Which rung of the ladder applies a given criterion.
  *
- * `properties_signature` is deliberately reported as a presence, never a value:
- * it is an opaque hash, and printing it would look like data the reader could
- * act on.
+ * Mirrors `_typical_item_filter.py`: every rung starts from the same
+ * `build_item_match` predicate — category, type, dimensions, upholstered,
+ * designer — and then adds signature equality (properties), JSONB containment
+ * of one facet's pairs (facet), or nothing at all (narrowed). Section-wide
+ * applies no item predicate whatsoever.
  */
-export function buildStrategyFilters(
-  filter: AppliedTypicalFilter,
-): TypicalStrategyDetailRow[] {
+type CriterionTier =
+  | { kind: "item" }
+  | { kind: "facet"; rung: string }
+  | { kind: "specification" };
+
+type TieredRow = TypicalStrategyDetailRow & { tier: CriterionTier };
+
+/**
+ * The rung's own verdict on one criterion.
+ *
+ * The full-signature rung marks facets used rather than not: equal signatures
+ * mean identical property snapshots, so the facet's pairs necessarily held
+ * too. Every other rung is a strict subset, and anything it did not apply is
+ * reported as dropped rather than left to look like a match.
+ */
+function criterionStatus(
+  tier: CriterionTier,
+  basis: string,
+  winningFacet: string | null,
+): TypicalStrategyCriterionStatus {
+  switch (basis) {
+    case "item_properties_narrowed_uniform":
+      return "used";
+    case "item_facet_narrowed_uniform":
+      if (tier.kind === "item") {
+        return "used";
+      }
+      // Only the rung that actually won. A lower-priority facet was never
+      // reached; a higher-priority one was reached and failed.
+      return tier.kind === "facet" && tier.rung === winningFacet
+        ? "used"
+        : "not_used";
+    case "item_narrowed_uniform":
+      return tier.kind === "item" ? "used" : "not_used";
+    case "section_wide_uniform":
+      return "not_used";
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * The filter, in the reader's terms, tagged with the rung that would apply it.
+ *
+ * `properties_signature` is deliberately reported as a presence, never a
+ * value: it is an opaque hash, and printing it would look like data the reader
+ * could act on.
+ */
+function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
   if (filter === null) {
     return [];
   }
 
-  const rows: TypicalStrategyDetailRow[] = [];
+  const rows: TieredRow[] = [];
+  const item = { kind: "item" } as const;
   const named = categoryName(filter);
   const idCount = filter.item_category_ids?.length ?? 0;
 
   if (named !== null) {
-    rows.push({ label: "Category", value: named });
+    rows.push({ label: "Category", value: named, tier: item });
   } else if (idCount > 0) {
     // The ids are here but no name resolved — a deleted category. Say the
     // count rather than printing an id nobody can look up.
     rows.push({
       label: "Category",
       value: idCount === 1 ? "1 category" : `${idCount} categories`,
+      tier: item,
     });
   }
 
@@ -180,6 +262,7 @@ export function buildStrategyFilters(
     rows.push({
       label: "Type",
       value: filter.major_categories.map(titleCase).join(", "),
+      tier: item,
     });
   }
 
@@ -190,7 +273,7 @@ export function buildStrategyFilters(
   ] as const) {
     const range = filter[key];
     if (range !== undefined) {
-      rows.push({ label, value: formatRange(range) });
+      rows.push({ label, value: formatRange(range), tier: item });
     }
   }
 
@@ -198,6 +281,7 @@ export function buildStrategyFilters(
     rows.push({
       label: "Upholstered",
       value: filter.can_have_upholstery ? "Yes" : "No",
+      tier: item,
     });
   }
 
@@ -208,24 +292,110 @@ export function buildStrategyFilters(
         filter.designers.length === 1
           ? "Same designer"
           : `${filter.designers.length} designers`,
+      tier: item,
     });
   }
 
   for (const facet of filter.properties_facets ?? []) {
+    // The rung's name is its keys joined in ladder order, which is the order
+    // the server serialised them in. A rung whose name does not line up with
+    // the served `facet` simply reads as not used — the safe direction, since
+    // the failure mode of a mismatch is under-claiming rather than over-.
+    const rung = Object.keys(facet).join("+");
     for (const [key, value] of Object.entries(facet)) {
       rows.push({
         label: titleCase(FACET_LABEL[key] ?? key.replace(/_/g, " ")),
         value: typeof value === "string" ? value : JSON.stringify(value),
+        tier: { kind: "facet", rung },
       });
     }
   }
 
   if (filter.properties_signature !== undefined) {
     // Presence, not value.
-    rows.push({ label: "Specification", value: "Matched in full" });
+    rows.push({
+      label: "Specification",
+      value: "Full specification",
+      tier: { kind: "specification" },
+    });
   }
 
   return rows;
+}
+
+/**
+ * The item's criteria, each carrying whether the winning rung applied it.
+ *
+ * Derived from the served basis rather than from the filter's own presence:
+ * the filter says what the server *tried*, and only the basis says what it
+ * ended up measuring over.
+ */
+export function buildStrategyCriteria(
+  filter: AppliedTypicalFilter,
+  basis: string,
+  winningFacet: string | null,
+): TypicalStrategyCriterionRow[] {
+  return buildFilterRows(filter).map(({ tier, ...row }) => ({
+    ...row,
+    status: criterionStatus(tier, basis, winningFacet),
+  }));
+}
+
+/**
+ * The sentence that reconciles the list with the rung.
+ *
+ * Written from the criteria actually produced rather than from the basis
+ * alone: a task whose filter carried no signature dropped nothing when it
+ * settled on the category, and telling that reader something was "dropped"
+ * would be a fresh untruth in place of the one being fixed.
+ */
+function buildCriteriaNote(
+  criteria: TypicalStrategyCriterionRow[],
+  basis: string,
+  facet: string | null,
+): string | null {
+  if (criteria.length === 0) {
+    return null;
+  }
+
+  const dropped = criteria.some((row) => row.status === "not_used");
+
+  switch (basis) {
+    case "item_properties_narrowed_uniform":
+      return "All of these were used: the history was narrowed to items built to this same full specification.";
+    case "item_facet_narrowed_uniform":
+      return facet === null
+        ? "The full specification did not have enough completed history, so the criteria marked below were dropped to widen the match."
+        : `The full specification did not have enough completed history, so it was dropped and the match widened to items with the same ${facet}.`;
+    case "item_narrowed_uniform":
+      return dropped
+        ? "No closer population had enough completed history, so the match was widened to the item's category and the criteria marked below were dropped."
+        : "All of these were used to narrow the history.";
+    case "section_wide_uniform":
+      return "None of these were used. No narrower population had enough completed history, so the typicals come from all work in each stage, whatever item it was for.";
+    default:
+      return "This app version does not recognise the basis the server used, so it cannot say which of these criteria were applied.";
+  }
+}
+
+/**
+ * The closing line — the reason the surface exists at all.
+ *
+ * The same rung that produced the displayed typical produced the division
+ * weights, so a reader who has just been told their match was abandoned needs
+ * telling that their stage allowances were sized the same way.
+ */
+function buildBudgetNote(basis: string): string {
+  switch (basis) {
+    case "section_wide_uniform":
+      return "Each stage's share of the time budget was divided on this same stage-wide history, not on anything specific to this item.";
+    case "item_properties_narrowed_uniform":
+    case "item_facet_narrowed_uniform":
+    case "item_narrowed_uniform":
+      return "Each stage's share of the time budget was divided on this same match, so a closer match would change the allowances as well as the typical shown.";
+    default:
+      return "Each stage's share of the time budget was divided on this same basis, so it governs the allowances as well as the typical shown.";
+  }
 }
 
 export type TypicalStrategyInput = {
@@ -286,6 +456,11 @@ export function buildTypicalStrategy({
   }
 
   const { label: breakdownLabel, rows: breakdown } = buildBreakdown(resolution);
+  const criteria = buildStrategyCriteria(
+    resolution.applied_filter,
+    basis,
+    resolution.facet,
+  );
 
   return {
     pillLabel,
@@ -294,7 +469,9 @@ export function buildTypicalStrategy({
     summary,
     breakdownLabel,
     breakdown,
-    filters: buildStrategyFilters(resolution.applied_filter),
+    criteria,
+    criteriaNote: buildCriteriaNote(criteria, basis, facet),
+    budgetNote: buildBudgetNote(basis),
     method: [
       ...(windowDays === null
         ? []
