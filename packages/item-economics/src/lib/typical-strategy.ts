@@ -68,6 +68,11 @@ export type TypicalStrategyViewModel = {
    */
   criteriaNote: string | null;
   /**
+   * The item's specification, plainly and without verdicts. Empty unless the
+   * filter carried a signature, since only then did any property take part.
+   */
+  itemProperties: TypicalStrategyDetailRow[];
+  /**
    * The closing line, naming the winning basis as the thing that sized the
    * stage shares. Basis-specific because "a closer match" means nothing to a
    * reader who did not get one.
@@ -177,6 +182,40 @@ function formatRange(range: readonly (number | null)[]): string {
   // Both bounds open still records that the dimension was known — see
   // `TypicalFilterSpec`'s note that (None, None) is not an unset dimension.
   return "any size";
+}
+
+/**
+ * One property, in the reader's terms.
+ *
+ * Keys are workspace-defined and values are trusted verbatim by the server's
+ * signature — `compute_properties_signature` canonicalizes structure only — so
+ * neither is a known shape and a non-string value must still render.
+ */
+function propertyRow(key: string, value: unknown): TypicalStrategyDetailRow {
+  return {
+    label: titleCase(FACET_LABEL[key] ?? key.replace(/_/g, " ")),
+    value: typeof value === "string" ? value : JSON.stringify(value),
+  };
+}
+
+/**
+ * The item's whole specification, plainly — no verdicts.
+ *
+ * Its own table because the criteria list answers "what was matched on" and
+ * this answers "what is this item", and the reported confusion was exactly
+ * that one sheet said "Same specification" while showing a list that could not
+ * add up to one.
+ */
+export function buildItemProperties(
+  filter: AppliedTypicalFilter,
+): TypicalStrategyDetailRow[] {
+  if (filter?.properties === undefined) {
+    return [];
+  }
+
+  return Object.entries(filter.properties).map(([key, value]) =>
+    propertyRow(key, value),
+  );
 }
 
 /**
@@ -303,11 +342,7 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     // the failure mode of a mismatch is under-claiming rather than over-.
     const rung = Object.keys(facet).join("+");
     for (const [key, value] of Object.entries(facet)) {
-      rows.push({
-        label: titleCase(FACET_LABEL[key] ?? key.replace(/_/g, " ")),
-        value: typeof value === "string" ? value : JSON.stringify(value),
-        tier: { kind: "facet", rung },
-      });
+      rows.push({ ...propertyRow(key, value), tier: { kind: "facet", rung } });
     }
   }
 
@@ -315,10 +350,9 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     // Presence, not value.
     rows.push({
       label: "Specification",
-      // What the criterion IS. Whether it held is the group's to say, so the
-      // value no longer has to carry a verdict — "Full specification" beside
-      // the label "Specification" only ever restated it.
-      value: "All recorded properties",
+      // Names the criterion; the properties table below spells out what it
+      // covers, so this no longer has to stand in for values it cannot show.
+      value: "Full specification",
       tier: { kind: "specification" },
     });
   }
@@ -480,6 +514,7 @@ export function buildTypicalStrategy({
     breakdown,
     criteria,
     criteriaNote: buildCriteriaNote(criteria, basis, facet),
+    itemProperties: buildItemProperties(resolution.applied_filter),
     budgetNote: buildBudgetNote(basis),
     method: [
       ...(windowDays === null

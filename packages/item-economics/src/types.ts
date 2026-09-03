@@ -193,6 +193,15 @@ export const AppliedTypicalFilterSchema = z
     designers: z.array(z.string()).optional(),
     /** An opaque hash. A presence signal only — never render the value. */
     properties_signature: z.string().optional(),
+    /**
+     * The snapshot the signature hashes — the item's whole specification.
+     *
+     * Served only beside a signature, since without one the properties took no
+     * part in the match. Keys are workspace-defined and values are trusted
+     * verbatim by `compute_properties_signature`, so neither is a known shape:
+     * `unknown` is the honest type and rendering must survive a non-string.
+     */
+    properties: z.record(z.string(), z.unknown()).optional(),
     /** Ladder rungs in priority order, e.g. `[{ upholstery: "Up & Down" }]`. */
     properties_facets: z.array(z.record(z.string(), z.unknown())).optional(),
   })

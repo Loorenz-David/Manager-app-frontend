@@ -56,10 +56,11 @@ function DetailRows({
 }
 
 /**
- * The item's criteria under a heading that describes rather than claims. The
- * server's opaque specification signature is intentionally not a table row:
- * it is already implicit in the other item details and offers no actionable
- * value to the reader.
+ * What the measurement actually matched on, with the rung's verdict per row.
+ *
+ * Titled for the question it answers. It used to be headed "This item", which
+ * collided with the properties table below it — one says what was measured by,
+ * the other says what the item is, and a reader could not tell which was which.
  */
 function CriterionRows({
   note,
@@ -68,9 +69,7 @@ function CriterionRows({
   note: string | null;
   rows: TypicalStrategyCriterionRow[];
 }): React.JSX.Element | null {
-  const visibleRows = rows.filter(
-    (row) => row.value !== "All recorded properties",
-  );
+  const visibleRows = rows;
 
   if (visibleRows.length === 0) {
     return null;
@@ -83,7 +82,7 @@ function CriterionRows({
     >
       <div className="px-4 pb-3 pt-4">
         <h3 className="font-mono text-xs uppercase tracking-wider text-slate-500">
-          This item
+          Measured by
         </h3>
         {note ? <p className="mt-1.5 text-sm text-slate-500">{note}</p> : null}
       </div>
@@ -163,6 +162,16 @@ export function TypicalStrategySheetContent({
 
       {strategy.criteria.length > 0 ? (
         <CriterionRows note={strategy.criteriaNote} rows={strategy.criteria} />
+      ) : null}
+
+      {/* The detail behind the criteria table's "Specification" row: a reader
+          told the full specification matched can finally see what it was. */}
+      {strategy.itemProperties.length > 0 ? (
+        <DetailRows
+          rows={strategy.itemProperties}
+          testId="typical-strategy-item-properties"
+          title="This item's properties"
+        />
       ) : null}
 
       {strategy.breakdownLabel ? (

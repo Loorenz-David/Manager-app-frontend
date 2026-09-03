@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { TypicalResolution } from "../types";
 import {
+  buildItemProperties,
   buildStrategyCriteria,
   buildTypicalStrategy,
   humanizeFacetName,
@@ -189,6 +190,7 @@ const FULL_FILTER = {
     { extension_type: "Butterfly" },
   ],
   properties_signature: "sig-mahogany-ud",
+  properties: { wood_type: "Walnut", upholstery: "Up & Down" },
 };
 
 const ITEM_LABELS = ["Category", "Width", "Upholstered", "Designer"];
@@ -244,7 +246,7 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
     // The rung it fell back FROM, and a rung it never reached.
     expect(rows).toContainEqual({
       label: "Specification",
-      value: "All recorded properties",
+      value: "Full specification",
       status: "not_used",
     });
     expect(rows).toContainEqual({
@@ -330,7 +332,7 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
 
     expect(rows).toContainEqual({
       label: "Specification",
-      value: "All recorded properties",
+      value: "Full specification",
       status: "used",
     });
     expect(JSON.stringify(rows)).not.toContain("sig-mahogany-ud");
@@ -499,5 +501,52 @@ describe("buildTypicalStrategy — method rows", () => {
     });
 
     expect(strategy.method).toEqual([{ label: "Value used", value: "Median" }]);
+  });
+});
+
+describe("buildItemProperties — what the item actually is", () => {
+  it("names every property the signature covers", () => {
+    // The reported bug: the sheet said "Same specification" while showing
+    // Category and Upholstery, so wood type — which cut the cleaning-seat
+    // cohort from 45 jobs to 10 — was invisible.
+    expect(buildItemProperties(FULL_FILTER)).toEqual([
+      { label: "Wood type", value: "Walnut" },
+      { label: "Upholstery", value: "Up & Down" },
+    ]);
+  });
+
+  it("is empty when the filter carried no snapshot", () => {
+    // No signature means no property took part in the match, so there is
+    // nothing here to explain.
+    expect(buildItemProperties({ item_category_ids: ["itc_chair"] })).toEqual(
+      [],
+    );
+    expect(buildItemProperties(null)).toEqual([]);
+  });
+
+  it("renders a non-string value rather than dropping the row", () => {
+    // Values are trusted verbatim by the server's signature, so the shape is
+    // not ours to assume.
+    expect(
+      buildItemProperties({
+        properties_signature: "sig",
+        properties: { seat_count: 4, reclines: true },
+      }),
+    ).toEqual([
+      { label: "Seat count", value: "4" },
+      { label: "Reclines", value: "true" },
+    ]);
+  });
+
+  it("reaches the view model beside the criteria", () => {
+    const strategy = build({
+      task_typical_basis: "item_properties_narrowed_uniform",
+      applied_filter: FULL_FILTER,
+    });
+
+    expect(strategy.itemProperties).toContainEqual({
+      label: "Wood type",
+      value: "Walnut",
+    });
   });
 });

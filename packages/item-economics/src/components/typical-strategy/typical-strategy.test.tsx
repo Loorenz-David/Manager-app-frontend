@@ -19,6 +19,7 @@ const APPLIED_FILTER = {
   item_category_ids: ["itc_chair"],
   item_categories: [{ client_id: "itc_chair", name: "Chair" }],
   properties_signature: "sig-mahogany-ud",
+  properties: { wood_type: "Walnut", upholstery: "Up & Down" },
   properties_facets: [{ upholstery: "Up & Down" }],
 };
 
@@ -151,7 +152,9 @@ describe("TypicalStrategySheetContent", () => {
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
     expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
-    expect(screen.queryByTestId("typical-strategy-criterion-specification")).not.toBeInTheDocument();
+    // The signature row is back now that a table below spells out what it
+    // covers; on this rung it is the one criterion entitled to claim the lot.
+    expect(criterion("specification")).toHaveAttribute("data-status", "used");
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).not.toHaveTextContent("Used to measure");
@@ -167,7 +170,11 @@ describe("TypicalStrategySheetContent", () => {
     expect(criterion("category")).toHaveAttribute("data-status", "used");
     expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
 
-    expect(screen.queryByTestId("typical-strategy-criterion-specification")).not.toBeInTheDocument();
+    // Reached by falling back FROM the signature, so it must not read as held.
+    expect(criterion("specification")).toHaveAttribute(
+      "data-status",
+      "not_used",
+    );
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).toHaveTextContent("Some stages had too few finished jobs");
@@ -231,12 +238,79 @@ describe("TypicalStrategySheetContent", () => {
     }
   });
 
-  it("never renders the opaque specification hash or redundant signature row", () => {
+  it("separates what was measured by from what the item is", () => {
+    // The two tables answer different questions and must say which is which;
+    // both were headed "This item" before, so a reader could not tell.
+    render(
+      <TypicalStrategySheetContent
+        strategy={strategyOn("item_properties_narrowed_uniform")}
+      />,
+    );
+
+    expect(screen.getByTestId("typical-strategy-criteria")).toHaveTextContent(
+      "Measured by",
+    );
+
+    const properties = screen.getByTestId("typical-strategy-item-properties");
+    expect(properties).toHaveTextContent("This item's properties");
+    expect(properties).toHaveTextContent("Wood type");
+    expect(properties).toHaveTextContent("Walnut");
+  });
+
+  it("names the property the criteria table could not, on every rung", () => {
+    // Wood type is not on the facet ladder, so before the snapshot was served
+    // it was unnameable — while doing most of the narrowing.
+    for (const [basis, facet] of [
+      ["item_properties_narrowed_uniform", null],
+      ["item_facet_narrowed_uniform", "upholstery"],
+      ["item_narrowed_uniform", null],
+      ["section_wide_uniform", null],
+    ] as const) {
+      const { unmount } = render(
+        <TypicalStrategySheetContent strategy={strategyOn(basis, facet)} />,
+      );
+
+      expect(
+        screen.getByTestId("typical-strategy-item-properties"),
+      ).toHaveTextContent("Walnut");
+      unmount();
+    }
+  });
+
+  it("omits the properties table when the filter carried no snapshot", () => {
+    const noSignature = buildTypicalStrategy({
+      resolution: {
+        task_typical_basis: "item_narrowed_uniform",
+        reconciliation_method: "uniform_basis_v1",
+        comparability_profile: "primary_item_category_v1",
+        applied_filter: { item_category_ids: ["itc_chair"] },
+        facet: null,
+        participating_section_count: 3,
+        sections_by_basis: {
+          item_properties_narrowed: 0,
+          item_facet_narrowed: 0,
+          item_narrowed: 3,
+          section_wide: 0,
+          insufficient_sample: 0,
+        },
+      },
+      windowDays: 90,
+      minSampleSize: 5,
+    });
+
+    render(<TypicalStrategySheetContent strategy={noSignature} />);
+
+    expect(
+      screen.queryByTestId("typical-strategy-item-properties"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("never renders the opaque specification hash", () => {
     const { container } = render(
       <TypicalStrategySheetContent strategy={MIXED_STRATEGY} />,
     );
 
-    expect(container.textContent).not.toContain("All recorded properties");
+    expect(container.textContent).toContain("Full specification");
     expect(container.textContent).not.toContain("sig-mahogany-ud");
   });
 
