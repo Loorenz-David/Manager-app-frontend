@@ -64,6 +64,11 @@ function criterion(label: string): HTMLElement {
   return screen.getByTestId(`typical-strategy-criterion-${label}`);
 }
 
+/** A row in the properties table, where per-property verdicts now live. */
+function property(label: string): HTMLElement {
+  return screen.getByTestId(`typical-strategy-property-${label}`);
+}
+
 describe("TypicalStrategyPill", () => {
   it("states the basis without a tap target when no opener was injected", () => {
     // A host that has not registered the sheet must still get the label —
@@ -114,8 +119,10 @@ describe("TypicalStrategySheetContent", () => {
 
     const criteria = screen.getByTestId("typical-strategy-criteria");
     expect(criteria).toHaveTextContent("Chair");
-    expect(criteria).toHaveTextContent("Up & Down");
     expect(criteria).toHaveClass("bg-white");
+    expect(
+      screen.getByTestId("typical-strategy-item-properties"),
+    ).toHaveTextContent("Up & Down");
 
     const breakdown = screen.getByTestId("typical-strategy-breakdown");
     expect(breakdown).toHaveTextContent("4 of 5 stages");
@@ -151,10 +158,11 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
     // The signature row is back now that a table below spells out what it
     // covers; on this rung it is the one criterion entitled to claim the lot.
     expect(criterion("specification")).toHaveAttribute("data-status", "used");
+    expect(property("wood-type")).toHaveAttribute("data-status", "used");
+    expect(property("upholstery")).toHaveAttribute("data-status", "used");
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).not.toHaveTextContent("Used to measure");
@@ -168,7 +176,14 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
+    // The whole point of the properties table: a partial match names the
+    // property that survived AND the one that was given up. 0000611 falls back
+    // to upholstery precisely because its Mahogany had too little history.
+    expect(property("upholstery")).toHaveAttribute("data-status", "used");
+    expect(property("wood-type")).toHaveAttribute("data-status", "not_used");
+    expect(
+      screen.getByTestId("typical-strategy-item-properties"),
+    ).toHaveTextContent("Only the upholstery was matched");
 
     // Reached by falling back FROM the signature, so it must not read as held.
     expect(criterion("specification")).toHaveAttribute(
@@ -188,7 +203,7 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    const upholstery = criterion("upholstery");
+    const upholstery = property("upholstery");
     expect(upholstery).toHaveAttribute("data-status", "not_used");
     expect(upholstery).toHaveClass("bg-slate-50/80");
     expect(upholstery.querySelector("td")).toHaveClass("line-through");
@@ -201,39 +216,52 @@ describe("TypicalStrategySheetContent", () => {
       />,
     );
 
-    for (const label of ["category", "upholstery"]) {
-      expect(criterion(label)).toHaveAttribute("data-status", "not_used");
+    expect(criterion("category")).toHaveAttribute("data-status", "not_used");
+    for (const label of ["upholstery", "wood-type"]) {
+      expect(property(label)).toHaveAttribute("data-status", "not_used");
     }
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).toHaveTextContent("times come from all work in each stage instead");
   });
 
-  it("never marks a criterion used on a rung that did not apply it", () => {
-    // The invariant, asserted where the reader actually meets it: the DOM.
+  it("never marks anything used on a rung that did not apply it", () => {
+    // The invariant, asserted where the reader actually meets it: the DOM, and
+    // across BOTH tables — a claim moved from one to the other is still a
+    // claim. Swept rather than spot-checked so a row added later cannot slip
+    // in unexamined.
     const APPLIES: Record<string, string[]> = {
       item_properties_narrowed_uniform: [
-        "category",
-        "upholstery",
+        "typical-strategy-criterion-category",
+        "typical-strategy-criterion-specification",
+        "typical-strategy-property-wood-type",
+        "typical-strategy-property-upholstery",
       ],
-      item_facet_narrowed_uniform: ["category", "upholstery"],
-      item_narrowed_uniform: ["category"],
+      // The facet rung carried upholstery and gave up the wood.
+      item_facet_narrowed_uniform: [
+        "typical-strategy-criterion-category",
+        "typical-strategy-property-upholstery",
+      ],
+      item_narrowed_uniform: ["typical-strategy-criterion-category"],
       section_wide_uniform: [],
     };
 
     for (const [basis, allowed] of Object.entries(APPLIES)) {
       const { unmount } = render(
-        <TypicalStrategySheetContent strategy={strategyOn(basis, "upholstery")} />,
+        <TypicalStrategySheetContent
+          strategy={strategyOn(basis, "upholstery")}
+        />,
       );
 
-      for (const label of ["category", "upholstery"]) {
-        if (criterion(label).getAttribute("data-status") === "used") {
-          expect(
-            allowed,
-            `${basis} rendered "${label}" as used without applying it`,
-          ).toContain(label);
-        }
-      }
+      const claimed = Array.from(
+        screen
+          .getByTestId("typical-strategy-sheet")
+          .querySelectorAll('[data-status="used"]'),
+      ).map((row) => row.getAttribute("data-testid"));
+
+      expect(claimed.sort(), `${basis} claimed the wrong rows`).toEqual(
+        [...allowed].sort(),
+      );
       unmount();
     }
   });

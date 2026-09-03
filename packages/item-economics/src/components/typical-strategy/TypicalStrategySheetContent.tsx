@@ -65,9 +65,15 @@ function DetailRows({
 function CriterionRows({
   note,
   rows,
+  testId,
+  testIdPrefix,
+  title,
 }: {
   note: string | null;
   rows: TypicalStrategyCriterionRow[];
+  testId: string;
+  testIdPrefix: string;
+  title: string;
 }): React.JSX.Element | null {
   const visibleRows = rows;
 
@@ -78,11 +84,11 @@ function CriterionRows({
   return (
     <section
       className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
-      data-testid="typical-strategy-criteria"
+      data-testid={testId}
     >
       <div className="px-4 pb-3 pt-4">
         <h3 className="font-mono text-xs uppercase tracking-wider text-slate-500">
-          Measured by
+          {title}
         </h3>
         {note ? <p className="mt-1.5 text-sm text-slate-500">{note}</p> : null}
       </div>
@@ -96,7 +102,7 @@ function CriterionRows({
                 className={isUnused ? "bg-slate-50/80" : undefined}
                 key={`${row.label}-${row.value}`}
                 data-status={row.status}
-                data-testid={`typical-strategy-criterion-${row.label
+                data-testid={`${testIdPrefix}${row.label
                   .toLowerCase()
                   .replace(/\s+/g, "-")}`}
               >
@@ -160,19 +166,24 @@ export function TypicalStrategySheetContent({
         </p>
       </div>
 
-      {strategy.criteria.length > 0 ? (
-        <CriterionRows note={strategy.criteriaNote} rows={strategy.criteria} />
-      ) : null}
+      <CriterionRows
+        note={strategy.criteriaNote}
+        rows={strategy.criteria}
+        testId="typical-strategy-criteria"
+        testIdPrefix="typical-strategy-criterion-"
+        title="Measured by"
+      />
 
-      {/* The detail behind the criteria table's "Specification" row: a reader
-          told the full specification matched can finally see what it was. */}
-      {strategy.itemProperties.length > 0 ? (
-        <DetailRows
-          rows={strategy.itemProperties}
-          testId="typical-strategy-item-properties"
-          title="This item's properties"
-        />
-      ) : null}
+      {/* The detail behind the criteria table's "Specification" row, and the
+          only place a PARTIAL match becomes legible: "the full specification
+          was dropped" does not say which property did the dropping. */}
+      <CriterionRows
+        note={strategy.propertiesNote}
+        rows={strategy.itemProperties}
+        testId="typical-strategy-item-properties"
+        testIdPrefix="typical-strategy-property-"
+        title="This item's properties"
+      />
 
       {strategy.breakdownLabel ? (
         <DetailRows

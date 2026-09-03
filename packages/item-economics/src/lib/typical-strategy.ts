@@ -68,10 +68,16 @@ export type TypicalStrategyViewModel = {
    */
   criteriaNote: string | null;
   /**
-   * The item's specification, plainly and without verdicts. Empty unless the
-   * filter carried a signature, since only then did any property take part.
+   * The item's specification, each property carrying whether the winning rung
+   * matched on it. Empty unless the filter carried a signature, since only
+   * then did any property take part.
    */
-  itemProperties: TypicalStrategyDetailRow[];
+  itemProperties: TypicalStrategyCriterionRow[];
+  /**
+   * One line telling the reader how to read the verdicts beside the
+   * properties. Null when there are none to read.
+   */
+  propertiesNote: string | null;
   /**
    * The closing line, naming the winning basis as the thing that sized the
    * stage shares. Basis-specific because "a closer match" means nothing to a
@@ -199,26 +205,6 @@ function propertyRow(key: string, value: unknown): TypicalStrategyDetailRow {
 }
 
 /**
- * The item's whole specification, plainly — no verdicts.
- *
- * Its own table because the criteria list answers "what was matched on" and
- * this answers "what is this item", and the reported confusion was exactly
- * that one sheet said "Same specification" while showing a list that could not
- * add up to one.
- */
-export function buildItemProperties(
-  filter: AppliedTypicalFilter,
-): TypicalStrategyDetailRow[] {
-  if (filter?.properties === undefined) {
-    return [];
-  }
-
-  return Object.entries(filter.properties).map(([key, value]) =>
-    propertyRow(key, value),
-  );
-}
-
-/**
  * Which rung of the ladder applies a given criterion.
  *
  * Mirrors `_typical_item_filter.py`: every rung starts from the same
@@ -266,6 +252,45 @@ function criterionStatus(
     default:
       return "unknown";
   }
+}
+
+/**
+ * The item's whole specification, each property carrying whether the winning
+ * rung actually matched on it.
+ *
+ * This is where a partial match becomes legible. The criteria table can only
+ * say the full specification was dropped; it takes a per-property verdict to
+ * say WHICH property did the dropping — and on 0000611 that one property, wood
+ * type, is the entire difference between a full-specification match and an
+ * upholstery-only one.
+ *
+ * The facet rung is the only partial case the ladder can produce, so a
+ * property is matched there exactly when its key belongs to the winning rung.
+ */
+export function buildItemProperties(
+  filter: AppliedTypicalFilter,
+  basis: string,
+  winningFacet: string | null,
+): TypicalStrategyCriterionRow[] {
+  if (filter?.properties === undefined) {
+    return [];
+  }
+
+  // "upholstery+extension_type" is one rung over two keys, both matched.
+  const matchedKeys = new Set(
+    winningFacet === null ? [] : winningFacet.split("+"),
+  );
+
+  return Object.entries(filter.properties).map(([key, value]) => ({
+    ...propertyRow(key, value),
+    status: criterionStatus(
+      matchedKeys.has(key)
+        ? { kind: "facet", rung: winningFacet as string }
+        : { kind: "specification" },
+      basis,
+      winningFacet,
+    ),
+  }));
 }
 
 /**
@@ -335,14 +360,20 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     });
   }
 
-  for (const facet of filter.properties_facets ?? []) {
-    // The rung's name is its keys joined in ladder order, which is the order
-    // the server serialised them in. A rung whose name does not line up with
-    // the served `facet` simply reads as not used — the safe direction, since
-    // the failure mode of a mismatch is under-claiming rather than over-.
-    const rung = Object.keys(facet).join("+");
-    for (const [key, value] of Object.entries(facet)) {
-      rows.push({ ...propertyRow(key, value), tier: { kind: "facet", rung } });
+  // Facet rungs are drawn from the same snapshot the properties table lists,
+  // so they are only spelled out here when that table cannot be built. A
+  // payload predating `properties` still names its rungs; one carrying it gets
+  // the fuller per-property account instead of both.
+  if (filter.properties === undefined) {
+    for (const facet of filter.properties_facets ?? []) {
+      // The rung's name is its keys joined in ladder order, which is the order
+      // the server serialised them in. A rung whose name does not line up with
+      // the served `facet` reads as not used — the safe direction, since the
+      // failure mode of a mismatch is under-claiming rather than over-.
+      const rung = Object.keys(facet).join("+");
+      for (const [key, value] of Object.entries(facet)) {
+        rows.push({ ...propertyRow(key, value), tier: { kind: "facet", rung } });
+      }
     }
   }
 
@@ -418,6 +449,40 @@ function buildCriteriaNote(
       return "Some stages had too few finished jobs for this item, so times come from all work in each stage instead.";
     default:
       return "This app version cannot tell which of these were used.";
+  }
+}
+
+/**
+ * How to read the properties table.
+ *
+ * Written from the winning rung, because the whole point of the table is that
+ * a partial match is a statement about individual properties: on the facet
+ * rung one property carried the match and the others were let go, and naming
+ * which is the difference between a reader understanding their typicals and
+ * merely being told a tier.
+ */
+function buildPropertiesNote(
+  properties: TypicalStrategyCriterionRow[],
+  basis: string,
+  facet: string | null,
+): string | null {
+  if (properties.length === 0) {
+    return null;
+  }
+
+  switch (basis) {
+    case "item_properties_narrowed_uniform":
+      return "All of these were matched.";
+    case "item_facet_narrowed_uniform":
+      return facet === null
+        ? "Only the ones marked were matched; the rest had too few finished jobs."
+        : `Only the ${facet} was matched — too few stages had finished jobs for the rest.`;
+    case "item_narrowed_uniform":
+      return "None of these were matched — the times come from the category alone.";
+    case "section_wide_uniform":
+      return "None of these were matched.";
+    default:
+      return null;
   }
 }
 
@@ -499,6 +564,11 @@ export function buildTypicalStrategy({
   }
 
   const { label: breakdownLabel, rows: breakdown } = buildBreakdown(resolution);
+  const itemProperties = buildItemProperties(
+    resolution.applied_filter,
+    basis,
+    resolution.facet,
+  );
   const criteria = buildStrategyCriteria(
     resolution.applied_filter,
     basis,
@@ -514,7 +584,8 @@ export function buildTypicalStrategy({
     breakdown,
     criteria,
     criteriaNote: buildCriteriaNote(criteria, basis, facet),
-    itemProperties: buildItemProperties(resolution.applied_filter),
+    itemProperties,
+    propertiesNote: buildPropertiesNote(itemProperties, basis, facet),
     budgetNote: buildBudgetNote(basis),
     method: [
       ...(windowDays === null
