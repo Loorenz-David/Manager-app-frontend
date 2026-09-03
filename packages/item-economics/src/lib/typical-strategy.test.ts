@@ -204,9 +204,9 @@ function usedLabels(basis: string, facet: string | null): string[] {
 describe("buildStrategyCriteria — what the rung actually applied", () => {
   it("lists the same criteria whatever the basis", () => {
     // The list is a description of the item, so it must not shrink when the
-    // match weakens — that was the old bug in reverse. The facet rungs are not
-    // here: they are properties, and the properties table names them.
-    const labels = ["Specification"];
+    // match weakens — that was the old bug in reverse. Every property is an
+    // attempted criterion, so every property is on it whatever the rung.
+    const labels = ["Wood type", "Upholstery"];
 
     for (const basis of [
       "item_properties_narrowed_uniform",
@@ -226,16 +226,16 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
     // This is the one rung entitled to claim the whole list.
     expect(usedLabels("item_properties_narrowed_uniform", null)).toEqual([
       ...ITEM_LABELS,
-      "Specification",
+      "Wood type",
+      "Upholstery",
     ]);
   });
 
-  it("2. facet winner drops the specification it fell back from", () => {
-    // Which property survived is the properties table's to say; here the point
-    // is only that the full specification did not hold.
-    expect(usedLabels("item_facet_narrowed_uniform", "upholstery")).toEqual(
-      ITEM_LABELS,
-    );
+  it("2. facet winner keeps the rung it landed on and drops the rest", () => {
+    expect(usedLabels("item_facet_narrowed_uniform", "upholstery")).toEqual([
+      ...ITEM_LABELS,
+      "Upholstery",
+    ]);
 
     expect(
       buildStrategyCriteria(
@@ -244,13 +244,13 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
         "upholstery",
       ),
     ).toContainEqual({
-      label: "Specification",
-      value: "Full specification",
+      label: "Wood type",
+      value: "Walnut",
       status: "not_used",
     });
   });
 
-  it("3. category winner drops the specification too", () => {
+  it("3. category winner drops every property", () => {
     expect(usedLabels("item_narrowed_uniform", null)).toEqual(ITEM_LABELS);
   });
 
@@ -282,7 +282,8 @@ describe("buildStrategyCriteria — what the rung actually applied", () => {
     // than a fixture so a new axis cannot quietly grant itself a claim.
     const APPLIES: Record<string, (label: string) => boolean> = {
       item_properties_narrowed_uniform: () => true,
-      item_facet_narrowed_uniform: (label) => ITEM_LABELS.includes(label),
+      item_facet_narrowed_uniform: (label) =>
+        ITEM_LABELS.includes(label) || label === "Upholstery",
       item_narrowed_uniform: (label) => ITEM_LABELS.includes(label),
       section_wide_uniform: () => false,
     };
@@ -489,43 +490,76 @@ describe("buildTypicalStrategy — method rows", () => {
   });
 });
 
-describe("buildItemProperties — which properties made the match", () => {
-  it("names every property the signature covers", () => {
+describe("buildItemProperties — what the item is", () => {
+  it("names every property the signature covers, without verdicts", () => {
     // The reported bug: the sheet said "Same specification" while showing
     // Category and Upholstery, so wood type — which cut the cleaning-seat
     // cohort from 45 jobs to 10 — was invisible.
-    expect(
-      buildItemProperties(
-        FULL_FILTER,
-        "item_properties_narrowed_uniform",
-        null,
-      ),
-    ).toEqual([
-      { label: "Wood type", value: "Walnut", status: "used" },
-      { label: "Upholstery", value: "Up & Down", status: "used" },
+    expect(buildItemProperties(FULL_FILTER)).toEqual([
+      { label: "Wood type", value: "Walnut" },
+      { label: "Upholstery", value: "Up & Down" },
     ]);
   });
 
-  it("marks exactly the winning facet on a partial match", () => {
-    // 0000606 (Walnut) clears the gate in every stage and matches in full;
-    // 0000611 (Mahogany) clears it in none and falls back to upholstery. The
-    // difference is one property, and this is the only place it is legible.
+  it("is empty when the filter carried no snapshot", () => {
+    // No signature means no property took part in the match, so there is
+    // nothing here to explain.
+    expect(buildItemProperties({ item_category_ids: ["itc_chair"] })).toEqual(
+      [],
+    );
+    expect(buildItemProperties(null)).toEqual([]);
+  });
+
+  it("renders a non-string value rather than dropping the row", () => {
+    // Values are trusted verbatim by the server's signature, so the shape is
+    // not ours to assume.
     expect(
-      buildItemProperties(
+      buildItemProperties({
+        properties_signature: "sig",
+        properties: { seat_count: 4, reclines: true },
+      }),
+    ).toEqual([
+      { label: "Seat count", value: "4" },
+      { label: "Reclines", value: "true" },
+    ]);
+  });
+});
+
+describe("buildStrategyCriteria — every property the match attempted", () => {
+  it("lists each property with the rung's verdict on it", () => {
+    // 0000606 (Walnut) clears the five-job gate in all eight stages and
+    // matches in full; 0000611 (Mahogany) clears it in none and falls back to
+    // upholstery. One property is the whole difference, so the criteria table
+    // has to carry it rather than an aggregate that hides which.
+    expect(
+      buildStrategyCriteria(
         FULL_FILTER,
         "item_facet_narrowed_uniform",
         "upholstery",
-      ),
+      ).map((row) => [row.label, row.status]),
     ).toEqual([
-      { label: "Wood type", value: "Walnut", status: "not_used" },
-      { label: "Upholstery", value: "Up & Down", status: "used" },
+      ["Category", "used"],
+      ["Width", "used"],
+      ["Upholstered", "used"],
+      ["Designer", "used"],
+      ["Wood type", "not_used"],
+      ["Upholstery", "used"],
     ]);
   });
 
-  it("matches every key of a multi-key rung", () => {
-    // "upholstery+extension_type" is one rung over two keys; both were applied.
+  it("claims every property on the full-specification rung", () => {
     expect(
-      buildItemProperties(
+      buildStrategyCriteria(
+        FULL_FILTER,
+        "item_properties_narrowed_uniform",
+        null,
+      ).every((row) => row.status === "used"),
+    ).toBe(true);
+  });
+
+  it("matches every key of a multi-key rung", () => {
+    expect(
+      buildStrategyCriteria(
         {
           properties_signature: "sig",
           properties: {
@@ -533,6 +567,9 @@ describe("buildItemProperties — which properties made the match", () => {
             extension_type: "Butterfly",
             wood_type: "Oak",
           },
+          properties_facets: [
+            { upholstery: "Up & Down", extension_type: "Butterfly" },
+          ],
         },
         "item_facet_narrowed_uniform",
         "upholstery+extension_type",
@@ -546,90 +583,39 @@ describe("buildItemProperties — which properties made the match", () => {
 
   it("claims no property on the category or section-wide rungs", () => {
     for (const basis of ["item_narrowed_uniform", "section_wide_uniform"]) {
-      expect(
-        buildItemProperties(FULL_FILTER, basis, null).every(
-          (row) => row.status === "not_used",
-        ),
-      ).toBe(true);
+      const properties = buildStrategyCriteria(FULL_FILTER, basis, null).filter(
+        (row) => row.label === "Wood type" || row.label === "Upholstery",
+      );
+
+      expect(properties).toHaveLength(2);
+      expect(properties.every((row) => row.status === "not_used")).toBe(true);
     }
   });
 
-  it("is empty when the filter carried no snapshot", () => {
-    // No signature means no property took part in the match, so there is
-    // nothing here to explain.
+  it("drops the aggregate specification row once it can name the parts", () => {
+    // "Full specification" beside rows that already say which properties held
+    // would be a third account of the same fact.
     expect(
-      buildItemProperties(
-        { item_category_ids: ["itc_chair"] },
-        "item_narrowed_uniform",
-        null,
-      ),
-    ).toEqual([]);
-    expect(buildItemProperties(null, "section_wide_uniform", null)).toEqual([]);
-  });
-
-  it("renders a non-string value rather than dropping the row", () => {
-    // Values are trusted verbatim by the server's signature, so the shape is
-    // not ours to assume.
-    expect(
-      buildItemProperties(
-        {
-          properties_signature: "sig",
-          properties: { seat_count: 4, reclines: true },
-        },
+      buildStrategyCriteria(
+        FULL_FILTER,
         "item_properties_narrowed_uniform",
         null,
-      ),
-    ).toEqual([
-      { label: "Seat count", value: "4", status: "used" },
-      { label: "Reclines", value: "true", status: "used" },
-    ]);
+      ).map((row) => row.label),
+    ).not.toContain("Specification");
   });
 
-  it("does not also spell the facet out in the criteria table", () => {
-    // Both lists come from the same snapshot; naming the rung twice would read
-    // as two separate criteria.
-    const criteria = buildStrategyCriteria(
-      FULL_FILTER,
+  it("falls back to rungs and a signature row for an older payload", () => {
+    // A server predating `properties` sends facets only; that reader must not
+    // lose the property information it does send.
+    const { properties: _omitted, ...legacy } = FULL_FILTER;
+    const labels = buildStrategyCriteria(
+      legacy,
       "item_facet_narrowed_uniform",
       "upholstery",
     ).map((row) => row.label);
 
-    expect(criteria).not.toContain("Upholstery");
-    expect(criteria).toContain("Specification");
-  });
-
-  it("still names the rungs for a payload predating the snapshot", () => {
-    // Older servers send facets and no properties; that reader must not lose
-    // the only property information they had.
-    const { properties: _omitted, ...legacy } = FULL_FILTER;
-
-    expect(
-      buildStrategyCriteria(
-        legacy,
-        "item_facet_narrowed_uniform",
-        "upholstery",
-      ).map((row) => row.label),
-    ).toContain("Upholstery");
-  });
-
-  it("tells the reader how to read the verdicts", () => {
-    expect(
-      build({
-        task_typical_basis: "item_facet_narrowed_uniform",
-        facet: "upholstery",
-        applied_filter: FULL_FILTER,
-      }).propertiesNote,
-    ).toBe(
-      "Only the upholstery was matched — too few stages had finished jobs for the rest.",
-    );
-
-    expect(
-      build({
-        task_typical_basis: "item_properties_narrowed_uniform",
-        applied_filter: FULL_FILTER,
-      }).propertiesNote,
-    ).toBe("All of these were matched.");
-
-    expect(build().propertiesNote).toBeNull();
+    expect(labels).toContain("Upholstery");
+    expect(labels).toContain("Specification");
+    expect(labels).not.toContain("Wood type");
   });
 });

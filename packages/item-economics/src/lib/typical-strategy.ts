@@ -68,16 +68,10 @@ export type TypicalStrategyViewModel = {
    */
   criteriaNote: string | null;
   /**
-   * The item's specification, each property carrying whether the winning rung
-   * matched on it. Empty unless the filter carried a signature, since only
-   * then did any property take part.
+   * What the item is, plainly. Empty unless the filter carried a signature,
+   * since only then did any property take part in the match.
    */
-  itemProperties: TypicalStrategyCriterionRow[];
-  /**
-   * One line telling the reader how to read the verdicts beside the
-   * properties. Null when there are none to read.
-   */
-  propertiesNote: string | null;
+  itemProperties: TypicalStrategyDetailRow[];
   /**
    * The closing line, naming the winning basis as the thing that sized the
    * stage shares. Basis-specific because "a closer match" means nothing to a
@@ -255,42 +249,24 @@ function criterionStatus(
 }
 
 /**
- * The item's whole specification, each property carrying whether the winning
- * rung actually matched on it.
+ * What the item is — plainly, with no verdicts.
  *
- * This is where a partial match becomes legible. The criteria table can only
- * say the full specification was dropped; it takes a per-property verdict to
- * say WHICH property did the dropping — and on 0000611 that one property, wood
- * type, is the entire difference between a full-specification match and an
- * upholstery-only one.
- *
- * The facet rung is the only partial case the ladder can produce, so a
- * property is matched there exactly when its key belongs to the winning rung.
+ * Deliberately duplicates the property rows in the criteria table. The two
+ * tables answer different questions ("what is this item" against "what did the
+ * match apply"), and a reader who had to reconcile one row's absence from one
+ * table with its presence in the other found that harder than reading the same
+ * value twice.
  */
 export function buildItemProperties(
   filter: AppliedTypicalFilter,
-  basis: string,
-  winningFacet: string | null,
-): TypicalStrategyCriterionRow[] {
+): TypicalStrategyDetailRow[] {
   if (filter?.properties === undefined) {
     return [];
   }
 
-  // "upholstery+extension_type" is one rung over two keys, both matched.
-  const matchedKeys = new Set(
-    winningFacet === null ? [] : winningFacet.split("+"),
+  return Object.entries(filter.properties).map(([key, value]) =>
+    propertyRow(key, value),
   );
-
-  return Object.entries(filter.properties).map(([key, value]) => ({
-    ...propertyRow(key, value),
-    status: criterionStatus(
-      matchedKeys.has(key)
-        ? { kind: "facet", rung: winningFacet as string }
-        : { kind: "specification" },
-      basis,
-      winningFacet,
-    ),
-  }));
 }
 
 /**
@@ -360,20 +336,45 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     });
   }
 
-  // Facet rungs are drawn from the same snapshot the properties table lists,
-  // so they are only spelled out here when that table cannot be built. A
-  // payload predating `properties` still names its rungs; one carrying it gets
-  // the fuller per-property account instead of both.
-  if (filter.properties === undefined) {
+  if (filter.properties !== undefined) {
+    // Every property is a criterion the match attempted, so every property is
+    // listed here with the rung's verdict on it. A property belongs to the
+    // facet tier exactly when its key is on the winning rung — the only
+    // partial case the ladder can produce — and to the specification tier
+    // otherwise, which only the full-signature rung applies.
+    const rungByKey = new Map<string, string>();
     for (const facet of filter.properties_facets ?? []) {
-      // The rung's name is its keys joined in ladder order, which is the order
-      // the server serialised them in. A rung whose name does not line up with
-      // the served `facet` reads as not used — the safe direction, since the
-      // failure mode of a mismatch is under-claiming rather than over-.
       const rung = Object.keys(facet).join("+");
-      for (const [key, value] of Object.entries(facet)) {
-        rows.push({ ...propertyRow(key, value), tier: { kind: "facet", rung } });
+      for (const key of Object.keys(facet)) {
+        rungByKey.set(key, rung);
       }
+    }
+
+    for (const [key, value] of Object.entries(filter.properties)) {
+      const rung = rungByKey.get(key);
+      rows.push({
+        ...propertyRow(key, value),
+        tier:
+          rung === undefined
+            ? { kind: "specification" }
+            : { kind: "facet", rung },
+      });
+    }
+
+    return rows;
+  }
+
+  // A payload predating `properties` can only name its ladder rungs and an
+  // aggregate signature row. Kept so an older server does not cost that reader
+  // the property information it does send.
+  for (const facet of filter.properties_facets ?? []) {
+    // The rung's name is its keys joined in ladder order, which is the order
+    // the server serialised them in. A rung whose name does not line up with
+    // the served `facet` reads as not used — the safe direction, since the
+    // failure mode of a mismatch is under-claiming rather than over-.
+    const rung = Object.keys(facet).join("+");
+    for (const [key, value] of Object.entries(facet)) {
+      rows.push({ ...propertyRow(key, value), tier: { kind: "facet", rung } });
     }
   }
 
@@ -381,8 +382,6 @@ function buildFilterRows(filter: AppliedTypicalFilter): TieredRow[] {
     // Presence, not value.
     rows.push({
       label: "Specification",
-      // Names the criterion; the properties table below spells out what it
-      // covers, so this no longer has to stand in for values it cannot show.
       value: "Full specification",
       tier: { kind: "specification" },
     });
@@ -449,40 +448,6 @@ function buildCriteriaNote(
       return "Some stages had too few finished jobs for this item, so times come from all work in each stage instead.";
     default:
       return "This app version cannot tell which of these were used.";
-  }
-}
-
-/**
- * How to read the properties table.
- *
- * Written from the winning rung, because the whole point of the table is that
- * a partial match is a statement about individual properties: on the facet
- * rung one property carried the match and the others were let go, and naming
- * which is the difference between a reader understanding their typicals and
- * merely being told a tier.
- */
-function buildPropertiesNote(
-  properties: TypicalStrategyCriterionRow[],
-  basis: string,
-  facet: string | null,
-): string | null {
-  if (properties.length === 0) {
-    return null;
-  }
-
-  switch (basis) {
-    case "item_properties_narrowed_uniform":
-      return "All of these were matched.";
-    case "item_facet_narrowed_uniform":
-      return facet === null
-        ? "Only the ones marked were matched; the rest had too few finished jobs."
-        : `Only the ${facet} was matched — too few stages had finished jobs for the rest.`;
-    case "item_narrowed_uniform":
-      return "None of these were matched — the times come from the category alone.";
-    case "section_wide_uniform":
-      return "None of these were matched.";
-    default:
-      return null;
   }
 }
 
@@ -564,11 +529,7 @@ export function buildTypicalStrategy({
   }
 
   const { label: breakdownLabel, rows: breakdown } = buildBreakdown(resolution);
-  const itemProperties = buildItemProperties(
-    resolution.applied_filter,
-    basis,
-    resolution.facet,
-  );
+  const itemProperties = buildItemProperties(resolution.applied_filter);
   const criteria = buildStrategyCriteria(
     resolution.applied_filter,
     basis,
@@ -585,7 +546,6 @@ export function buildTypicalStrategy({
     criteria,
     criteriaNote: buildCriteriaNote(criteria, basis, facet),
     itemProperties,
-    propertiesNote: buildPropertiesNote(itemProperties, basis, facet),
     budgetNote: buildBudgetNote(basis),
     method: [
       ...(windowDays === null

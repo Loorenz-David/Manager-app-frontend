@@ -174,16 +174,17 @@ export function TypicalStrategySheetContent({
         title="Measured by"
       />
 
-      {/* The detail behind the criteria table's "Specification" row, and the
-          only place a PARTIAL match becomes legible: "the full specification
-          was dropped" does not say which property did the dropping. */}
-      <CriterionRows
-        note={strategy.propertiesNote}
-        rows={strategy.itemProperties}
-        testId="typical-strategy-item-properties"
-        testIdPrefix="typical-strategy-property-"
-        title="This item's properties"
-      />
+      {/* What the item is, with no verdicts — those belong to the criteria
+          table above, which lists these same properties as things the match
+          attempted. The repetition is deliberate: one table per question
+          reads more easily than one table doing both. */}
+      {strategy.itemProperties.length > 0 ? (
+        <DetailRows
+          rows={strategy.itemProperties}
+          testId="typical-strategy-item-properties"
+          title="This item's properties"
+        />
+      ) : null}
 
       {strategy.breakdownLabel ? (
         <DetailRows

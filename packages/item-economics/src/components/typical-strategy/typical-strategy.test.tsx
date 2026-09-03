@@ -64,9 +64,9 @@ function criterion(label: string): HTMLElement {
   return screen.getByTestId(`typical-strategy-criterion-${label}`);
 }
 
-/** A row in the properties table, where per-property verdicts now live. */
-function property(label: string): HTMLElement {
-  return screen.getByTestId(`typical-strategy-property-${label}`);
+/** The plain properties table — facts about the item, no verdicts. */
+function properties(): HTMLElement {
+  return screen.getByTestId("typical-strategy-item-properties");
 }
 
 describe("TypicalStrategyPill", () => {
@@ -158,11 +158,9 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    // The signature row is back now that a table below spells out what it
-    // covers; on this rung it is the one criterion entitled to claim the lot.
-    expect(criterion("specification")).toHaveAttribute("data-status", "used");
-    expect(property("wood-type")).toHaveAttribute("data-status", "used");
-    expect(property("upholstery")).toHaveAttribute("data-status", "used");
+    // Every property is an attempted criterion, and this rung applied them all.
+    expect(criterion("wood-type")).toHaveAttribute("data-status", "used");
+    expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).not.toHaveTextContent("Used to measure");
@@ -176,20 +174,16 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    // The whole point of the properties table: a partial match names the
-    // property that survived AND the one that was given up. 0000611 falls back
-    // to upholstery precisely because its Mahogany had too little history.
-    expect(property("upholstery")).toHaveAttribute("data-status", "used");
-    expect(property("wood-type")).toHaveAttribute("data-status", "not_used");
-    expect(
-      screen.getByTestId("typical-strategy-item-properties"),
-    ).toHaveTextContent("Only the upholstery was matched");
-
-    // Reached by falling back FROM the signature, so it must not read as held.
-    expect(criterion("specification")).toHaveAttribute(
-      "data-status",
-      "not_used",
-    );
+    // The whole point: a partial match names the property that survived AND
+    // the one given up. 0000611 falls back to upholstery precisely because its
+    // Mahogany had too little history — so that row, and only that row, is
+    // struck through here.
+    expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
+    expect(criterion("wood-type")).toHaveAttribute("data-status", "not_used");
+    // And the same values stand unqualified in the properties table, which
+    // says what the item is rather than what the match did.
+    expect(properties()).toHaveTextContent("Walnut");
+    expect(properties().querySelector(".line-through")).toBeNull();
     expect(
       screen.getByTestId("typical-strategy-criteria"),
     ).toHaveTextContent("Some stages had too few finished jobs");
@@ -203,7 +197,7 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    const upholstery = property("upholstery");
+    const upholstery = criterion("upholstery");
     expect(upholstery).toHaveAttribute("data-status", "not_used");
     expect(upholstery).toHaveClass("bg-slate-50/80");
     expect(upholstery.querySelector("td")).toHaveClass("line-through");
@@ -216,9 +210,8 @@ describe("TypicalStrategySheetContent", () => {
       />,
     );
 
-    expect(criterion("category")).toHaveAttribute("data-status", "not_used");
-    for (const label of ["upholstery", "wood-type"]) {
-      expect(property(label)).toHaveAttribute("data-status", "not_used");
+    for (const label of ["category", "upholstery", "wood-type"]) {
+      expect(criterion(label)).toHaveAttribute("data-status", "not_used");
     }
     expect(
       screen.getByTestId("typical-strategy-criteria"),
@@ -233,14 +226,13 @@ describe("TypicalStrategySheetContent", () => {
     const APPLIES: Record<string, string[]> = {
       item_properties_narrowed_uniform: [
         "typical-strategy-criterion-category",
-        "typical-strategy-criterion-specification",
-        "typical-strategy-property-wood-type",
-        "typical-strategy-property-upholstery",
+        "typical-strategy-criterion-wood-type",
+        "typical-strategy-criterion-upholstery",
       ],
       // The facet rung carried upholstery and gave up the wood.
       item_facet_narrowed_uniform: [
         "typical-strategy-criterion-category",
-        "typical-strategy-property-upholstery",
+        "typical-strategy-criterion-upholstery",
       ],
       item_narrowed_uniform: ["typical-strategy-criterion-category"],
       section_wide_uniform: [],
@@ -279,10 +271,9 @@ describe("TypicalStrategySheetContent", () => {
       "Measured by",
     );
 
-    const properties = screen.getByTestId("typical-strategy-item-properties");
-    expect(properties).toHaveTextContent("This item's properties");
-    expect(properties).toHaveTextContent("Wood type");
-    expect(properties).toHaveTextContent("Walnut");
+    expect(properties()).toHaveTextContent("This item's properties");
+    expect(properties()).toHaveTextContent("Wood type");
+    expect(properties()).toHaveTextContent("Walnut");
   });
 
   it("names the property the criteria table could not, on every rung", () => {
@@ -298,9 +289,7 @@ describe("TypicalStrategySheetContent", () => {
         <TypicalStrategySheetContent strategy={strategyOn(basis, facet)} />,
       );
 
-      expect(
-        screen.getByTestId("typical-strategy-item-properties"),
-      ).toHaveTextContent("Walnut");
+      expect(properties()).toHaveTextContent("Walnut");
       unmount();
     }
   });
@@ -338,7 +327,8 @@ describe("TypicalStrategySheetContent", () => {
       <TypicalStrategySheetContent strategy={MIXED_STRATEGY} />,
     );
 
-    expect(container.textContent).toContain("Full specification");
+    // The properties stand in for the signature; the hash itself never shows.
+    expect(container.textContent).toContain("Walnut");
     expect(container.textContent).not.toContain("sig-mahogany-ud");
   });
 
