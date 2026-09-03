@@ -88,7 +88,8 @@ describe("buildTypicalStrategy — the basis a reader sees", () => {
 
     expect(strategy.pillLabel).toBe("All work in the stage");
     expect(strategy.tone).toBe("weak");
-    expect(strategy.summary).toContain("not enough history");
+    // The reason moved to the criteria note, which states it more precisely.
+    expect(strategy.summary).toContain("whatever item it was for");
     expect(strategy.criteria).toEqual([]);
   });
 
@@ -373,7 +374,9 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
       applied_filter: FULL_FILTER,
     });
 
-    expect(strategy.criteriaNote).toContain("All of these were used");
+    expect(strategy.criteriaNote).toBe(
+      "Every stage had enough finished jobs for this exact item.",
+    );
   });
 
   it("names the specification as the thing that ran out of history", () => {
@@ -383,8 +386,10 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
       applied_filter: FULL_FILTER,
     });
 
+    // Names the mechanism a reader can act on — a thin STAGE, not a thin
+    // history — and the rung it landed on.
     expect(strategy.criteriaNote).toContain(
-      "full specification did not have enough completed history",
+      "Some stages had too few finished jobs",
     );
     expect(strategy.criteriaNote).toContain("same upholstery");
   });
@@ -401,7 +406,7 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
     });
 
     expect(strategy.criteriaNote).toBe(
-      "All of these were used to narrow the history.",
+      "Every stage had enough finished jobs for this match.",
     );
   });
 
@@ -411,7 +416,9 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
       applied_filter: FULL_FILTER,
     });
 
-    expect(strategy.criteriaNote).toContain("were dropped");
+    expect(strategy.criteriaNote).toBe(
+      "Some stages had too few finished jobs for a closer match, so only the category was used.",
+    );
   });
 
   it("states outright that section-wide used none of them", () => {
@@ -420,7 +427,9 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
       applied_filter: FULL_FILTER,
     });
 
-    expect(strategy.criteriaNote).toContain("None of these were used");
+    expect(strategy.criteriaNote).toBe(
+      "Some stages had too few finished jobs for this item, so times come from all work in each stage instead.",
+    );
   });
 
   it("has no note to give when the item narrows on nothing", () => {
@@ -434,9 +443,10 @@ describe("buildTypicalStrategy — the note that reconciles list and rung", () =
 });
 
 describe("buildTypicalStrategy — the budget note", () => {
-  it("ties the winning match to the stage shares", () => {
-    expect(build().budgetNote).toContain("share of the time budget");
-    expect(build().budgetNote).toContain("closer match");
+  it("stays silent when the match held", () => {
+    // A reader whose match survived does not need telling what a fallback
+    // would have cost them; the note is for the fallback cases.
+    expect(build().budgetNote).toBe("");
   });
 
   it("drops the closer-match advice for a reader who did not get one", () => {
@@ -474,8 +484,8 @@ describe("buildTypicalStrategy — method rows", () => {
   it("states the window and gate when the payload carried them", () => {
     expect(build().method).toEqual([
       { label: "History window", value: "Last 90 days" },
-      { label: "Minimum sample", value: "5 completed jobs per stage" },
-      { label: "Value used", value: "Median, not average" },
+      { label: "Minimum sample", value: "5 finished jobs per stage" },
+      { label: "Value used", value: "Median" },
     ]);
   });
 
@@ -488,8 +498,6 @@ describe("buildTypicalStrategy — method rows", () => {
       minSampleSize: null,
     });
 
-    expect(strategy.method).toEqual([
-      { label: "Value used", value: "Median, not average" },
-    ]);
+    expect(strategy.method).toEqual([{ label: "Value used", value: "Median" }]);
   });
 });

@@ -345,7 +345,13 @@ export function buildStrategyCriteria(
 }
 
 /**
- * The sentence that reconciles the list with the rung.
+ * The one line that reconciles the list with the rung.
+ *
+ * Says why in the reader's terms: a stage ran short of finished jobs. That is
+ * literally the mechanism — every rung test is `all(participating sections)`,
+ * so ONE thin stage drops the whole task, however rich the others are. The
+ * earlier copy blamed "no narrower population", which reads as the whole
+ * history being thin and sends a reader looking in the wrong place.
  *
  * Written from the criteria actually produced rather than from the basis
  * alone: a task whose filter carried no signature dropped nothing when it
@@ -365,19 +371,19 @@ function buildCriteriaNote(
 
   switch (basis) {
     case "item_properties_narrowed_uniform":
-      return "All of these were used: the history was narrowed to items built to this same full specification.";
+      return "Every stage had enough finished jobs for this exact item.";
     case "item_facet_narrowed_uniform":
       return facet === null
-        ? "The full specification did not have enough completed history, so the criteria marked below were dropped to widen the match."
-        : `The full specification did not have enough completed history, so it was dropped and the match widened to items with the same ${facet}.`;
+        ? "Some stages had too few finished jobs for this exact item, so the match was widened."
+        : `Some stages had too few finished jobs for this exact item, so the match was widened to the same ${facet}.`;
     case "item_narrowed_uniform":
       return dropped
-        ? "No closer population had enough completed history, so the match was widened to the item's category and the criteria marked below were dropped."
-        : "All of these were used to narrow the history.";
+        ? "Some stages had too few finished jobs for a closer match, so only the category was used."
+        : "Every stage had enough finished jobs for this match.";
     case "section_wide_uniform":
-      return "None of these were used. No narrower population had enough completed history, so the typicals come from all work in each stage, whatever item it was for.";
+      return "Some stages had too few finished jobs for this item, so times come from all work in each stage instead.";
     default:
-      return "This app version does not recognise the basis the server used, so it cannot say which of these criteria were applied.";
+      return "This app version cannot tell which of these were used.";
   }
 }
 
@@ -395,7 +401,7 @@ function buildBudgetNote(basis: string): string {
     case "item_properties_narrowed_uniform":
     case "item_facet_narrowed_uniform":
     case "item_narrowed_uniform":
-      return "Each stage's share of the time budget was divided on this same match, so a closer match would change the allowances as well as the typical shown.";
+      return "";
     default:
       return "Each stage's share of the time budget was divided on this same basis, so it governs the allowances as well as the typical shown.";
   }
@@ -448,7 +454,7 @@ export function buildTypicalStrategy({
     case "section_wide_uniform":
       pillLabel = "All work in the stage";
       summary =
-        "Measured on all past work in each stage, whatever item it was for — there was not enough history for a closer match.";
+        "Measured on all past work in each stage, whatever item it was for.";
       break;
     default:
       // A basis this app version does not know. Say so rather than guessing at
@@ -484,12 +490,14 @@ export function buildTypicalStrategy({
         : [
             {
               label: "Minimum sample",
-              value: `${minSampleSize} completed ${
+              // "finished", matching the criteria note. The sheet should not
+              // make a reader map two words onto one idea.
+              value: `${minSampleSize} finished ${
                 minSampleSize === 1 ? "job" : "jobs"
               } per stage`,
             },
           ]),
-      { label: "Value used", value: "Median, not average" },
+      { label: "Value used", value: "Median" },
     ],
   };
 }

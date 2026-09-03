@@ -63,10 +63,6 @@ function criterion(label: string): HTMLElement {
   return screen.getByTestId(`typical-strategy-criterion-${label}`);
 }
 
-function group(status: "used" | "not_used" | "unknown"): HTMLElement {
-  return screen.getByTestId(`typical-strategy-criteria-${status}`);
-}
-
 describe("TypicalStrategyPill", () => {
   it("states the basis without a tap target when no opener was injected", () => {
     // A host that has not registered the sheet must still get the label —
@@ -155,16 +151,13 @@ describe("TypicalStrategySheetContent", () => {
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
     expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
-    expect(criterion("specification")).toHaveAttribute("data-status", "used");
-    // Nothing was dropped, so the dropped group must not render at all — an
-    // empty "Not used" heading would read as a claim of its own.
+    expect(screen.queryByTestId("typical-strategy-criterion-specification")).not.toBeInTheDocument();
     expect(
-      screen.queryByTestId("typical-strategy-criteria-not_used"),
-    ).not.toBeInTheDocument();
-    expect(group("used")).toHaveTextContent("Used to measure");
+      screen.getByTestId("typical-strategy-criteria"),
+    ).not.toHaveTextContent("Used to measure");
   });
 
-  it("2. facet winner marks the specification dropped, not matched", () => {
+  it("2. facet winner keeps the winning facet in the same table", () => {
     render(
       <TypicalStrategySheetContent
         strategy={strategyOn("item_facet_narrowed_uniform", "upholstery")}
@@ -174,17 +167,13 @@ describe("TypicalStrategySheetContent", () => {
     expect(criterion("category")).toHaveAttribute("data-status", "used");
     expect(criterion("upholstery")).toHaveAttribute("data-status", "used");
 
-    const specification = criterion("specification");
-    expect(specification).toHaveAttribute("data-status", "not_used");
-    // The row must sit under the dropped heading, not merely be styled as one.
-    expect(group("not_used")).toContainElement(specification);
-    expect(group("used")).toContainElement(criterion("upholstery"));
+    expect(screen.queryByTestId("typical-strategy-criterion-specification")).not.toBeInTheDocument();
     expect(
       screen.getByTestId("typical-strategy-criteria"),
-    ).toHaveTextContent("full specification did not have enough completed history");
+    ).toHaveTextContent("Some stages had too few finished jobs");
   });
 
-  it("3. category winner does not imply the facet or specification held", () => {
+  it("3. category winner mutes and strikes through unused filter values", () => {
     render(
       <TypicalStrategySheetContent
         strategy={strategyOn("item_narrowed_uniform")}
@@ -192,8 +181,10 @@ describe("TypicalStrategySheetContent", () => {
     );
 
     expect(criterion("category")).toHaveAttribute("data-status", "used");
-    expect(criterion("upholstery")).toHaveAttribute("data-status", "not_used");
-    expect(criterion("specification")).toHaveAttribute("data-status", "not_used");
+    const upholstery = criterion("upholstery");
+    expect(upholstery).toHaveAttribute("data-status", "not_used");
+    expect(upholstery).toHaveClass("bg-slate-50/80");
+    expect(upholstery.querySelector("td")).toHaveClass("line-through");
   });
 
   it("4. section-wide winner says outright that none of them were used", () => {
@@ -203,17 +194,12 @@ describe("TypicalStrategySheetContent", () => {
       />,
     );
 
-    for (const label of ["category", "upholstery", "specification"]) {
+    for (const label of ["category", "upholstery"]) {
       expect(criterion(label)).toHaveAttribute("data-status", "not_used");
-      expect(group("not_used")).toContainElement(criterion(label));
     }
-    // Every row is dropped, so there is no "used" group to head.
-    expect(
-      screen.queryByTestId("typical-strategy-criteria-used"),
-    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId("typical-strategy-criteria"),
-    ).toHaveTextContent("None of these were used");
+    ).toHaveTextContent("times come from all work in each stage instead");
   });
 
   it("never marks a criterion used on a rung that did not apply it", () => {
@@ -222,7 +208,6 @@ describe("TypicalStrategySheetContent", () => {
       item_properties_narrowed_uniform: [
         "category",
         "upholstery",
-        "specification",
       ],
       item_facet_narrowed_uniform: ["category", "upholstery"],
       item_narrowed_uniform: ["category"],
@@ -234,7 +219,7 @@ describe("TypicalStrategySheetContent", () => {
         <TypicalStrategySheetContent strategy={strategyOn(basis, "upholstery")} />,
       );
 
-      for (const label of ["category", "upholstery", "specification"]) {
+      for (const label of ["category", "upholstery"]) {
         if (criterion(label).getAttribute("data-status") === "used") {
           expect(
             allowed,
@@ -246,23 +231,22 @@ describe("TypicalStrategySheetContent", () => {
     }
   });
 
-  it("never renders the opaque specification hash", () => {
+  it("never renders the opaque specification hash or redundant signature row", () => {
     const { container } = render(
       <TypicalStrategySheetContent strategy={MIXED_STRATEGY} />,
     );
 
-    expect(container.textContent).toContain("All recorded properties");
+    expect(container.textContent).not.toContain("All recorded properties");
     expect(container.textContent).not.toContain("sig-mahogany-ud");
   });
 
-  it("says the winning basis also set the budget shares", () => {
-    // The reason this surface exists: a basis is a fact about the allowances,
-    // not only about a displayed number.
+  it("keeps the budget note off a sheet whose match held", () => {
+    // An empty note must not leave an empty paragraph behind it.
     render(<TypicalStrategySheetContent strategy={MIXED_STRATEGY} />);
 
-    expect(screen.getByTestId("typical-strategy-budget-note")).toHaveTextContent(
-      "share of the time budget",
-    );
+    expect(
+      screen.queryByTestId("typical-strategy-budget-note"),
+    ).not.toBeInTheDocument();
   });
 
   it("does not dangle closer-match advice at a reader who got none", () => {
