@@ -91,8 +91,11 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     const metrics = screen.getByTestId("production-time-row-metrics");
     expect(metrics).toHaveClass("opacity-60");
     expect(metrics).toHaveTextContent("Budget15m");
+    expect(metrics).toHaveTextContent("Worked0m");
     expect(metrics).toHaveTextContent("Pressure10m");
-    expect(metrics).toHaveTextContent("Typicalpc15m");
+    expect(screen.getByTestId("production-time-row-time")).toHaveTextContent(
+      "Typicalpc15m",
+    );
     expect(
       screen.queryByTestId("production-time-row-budget"),
     ).not.toBeInTheDocument();
@@ -104,8 +107,17 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     const metrics = screen.getAllByTestId("production-time-row-metrics");
     expect(metrics).toHaveLength(4);
     expect(metrics[0]).toHaveTextContent("Budget1h 15m");
-    expect(metrics[0]).toHaveTextContent("Variance5munder budget");
+    expect(metrics[0]).toHaveTextContent("Worked1h 10m");
+    expect(metrics[0]).toHaveTextContent("Variance+5munder budget");
     expect(metrics[2]).toHaveTextContent("Pressure30m");
+    expect(Array.from(metrics[0].children)).toHaveLength(3);
+    expect(
+      Array.from(metrics[0].children).map((metric) => metric.dataset.testid),
+    ).toEqual([
+      "production-time-metric-budget",
+      "production-time-metric-worked",
+      "production-time-metric-variance",
+    ]);
   });
 
   it("uses the bullet as the only visible state reference", () => {
@@ -464,7 +476,9 @@ describe("ProductionTimeCard — edge cases from the handoff", () => {
     );
     expect(metrics).toHaveTextContent("Budget-");
     expect(metrics).toHaveTextContent("Variance-");
-    expect(metrics).toHaveTextContent("Typicalpc-");
+    expect(within(cancelledRow).getByTestId("production-time-row-time")).toHaveTextContent(
+      "Typicalpc-",
+    );
   });
 
   it("draws a full bar for a section whose allowance is already negative", () => {

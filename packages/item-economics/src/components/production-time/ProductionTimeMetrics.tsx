@@ -8,6 +8,8 @@ import {
 
 export type ProductionTimeMetricsProps = {
   metrics: ProductionTimeRowMetricsViewModel;
+  /** The row's accumulated time, placed between budget and variance. */
+  workedLabel?: string;
   isMuted?: boolean;
 };
 
@@ -17,17 +19,35 @@ const METRIC_TONE_CLASS = {
   danger: PRODUCTION_TIME_DANGER_TEXT,
 } as const;
 
-/** Compact mobile-first Budget / Variance-or-Pressure / Typical grid. */
+/** Compact mobile-first Budget / Worked / Variance-or-Pressure grid. */
 export function ProductionTimeMetrics({
   metrics,
+  workedLabel,
   isMuted = false,
 }: ProductionTimeMetricsProps): React.JSX.Element {
+  // Typical moves to the row headline. The other two served metrics keep their
+  // order around the accumulated working time, so Budget remains first.
+  const displayedMetrics =
+    workedLabel === undefined
+      ? metrics
+      : [
+          metrics[0],
+          {
+            label: "Worked",
+            labelSuffix: null,
+            valueLabel: workedLabel,
+            supportingLabel: null,
+            tone: "neutral" as const,
+          },
+          metrics[1],
+        ];
+
   return (
     <div
       className={cn("grid grid-cols-3", isMuted && "opacity-60")}
       data-testid="production-time-row-metrics"
     >
-      {metrics.map((metric, index) => (
+      {displayedMetrics.map((metric, index) => (
         <div
           key={metric.label}
           className={cn(

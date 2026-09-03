@@ -400,7 +400,7 @@ export function buildTerminalMetrics(
       variance = {
         label: "Variance",
         labelSuffix: null,
-        valueLabel: `+${formatWorkSeconds(differenceSeconds)}`,
+        valueLabel: `-${formatWorkSeconds(differenceSeconds)}`,
         supportingLabel: "over budget",
         tone: "danger",
       };
@@ -408,7 +408,7 @@ export function buildTerminalMetrics(
       variance = {
         label: "Variance",
         labelSuffix: null,
-        valueLabel: formatWorkSeconds(-differenceSeconds),
+        valueLabel: `+${formatWorkSeconds(-differenceSeconds)}`,
         supportingLabel: "under budget",
         tone: "success",
       };

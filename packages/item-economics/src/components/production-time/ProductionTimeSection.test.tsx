@@ -212,10 +212,9 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(within(firstRow).getByTestId("production-time-metric-pressure")).toHaveTextContent(
       "Pressure40m",
     );
-    // "pc" qualifies the tile's NAME: Budget and Pressure beside it are
-    // whole-order, and the marker is what keeps the three from being read as
-    // one comparable set.
-    expect(within(firstRow).getByTestId("production-time-metric-typical")).toHaveTextContent(
+    // "pc" travels with Typical to the row headline, distinguishing this
+    // per-piece amount from the whole-order metrics below.
+    expect(within(firstRow).getByTestId("production-time-row-time")).toHaveTextContent(
       "Typicalpc1h 0m",
     );
   });
@@ -251,7 +250,7 @@ describe("ProductionTimeSection MSW boundary", () => {
     await screen.findByTestId("production-time-card");
     const firstRow = screen.getAllByTestId("production-time-row")[0]!;
     expect(
-      within(firstRow).getByTestId("production-time-metric-typical"),
+      within(firstRow).getByTestId("production-time-row-time"),
     ).toHaveTextContent("Typicalpc2m");
   });
 

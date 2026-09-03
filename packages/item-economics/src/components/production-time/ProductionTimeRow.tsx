@@ -29,6 +29,8 @@ export function ProductionTimeRow({
 }: ProductionTimeRowProps): React.JSX.Element {
   const comparison = showTypicalComparison ? row.typicalComparisonLabel : null;
   const passCount = formatPassCount(row.stepCount);
+  const metrics = row.terminalMetrics ?? row.activeMetrics;
+  const typicalMetric = metrics?.[2] ?? null;
   // Active and terminal rows use structured metrics. The entire compact
   // fallback line is irrelevant without a valuation: typical already belongs
   // in the header, and pressure has no actionable meaning in that state.
@@ -88,7 +90,21 @@ export function ProductionTimeRow({
           )}
           data-testid="production-time-row-time"
         >
-          {row.workedLabel}
+          {typicalMetric ? (
+            <>
+              <span className="mr-1 text-xs text-muted-foreground">
+                {typicalMetric.label}
+                {typicalMetric.labelSuffix ? (
+                  <span className="ml-0.5 opacity-70">
+                    {typicalMetric.labelSuffix}
+                  </span>
+                ) : null}
+              </span>
+              {typicalMetric.valueLabel}
+            </>
+          ) : (
+            row.workedLabel
+          )}
           {comparison ? (
             <span className="ml-1 text-sm font-normal text-muted-foreground">
               {comparison}
@@ -121,7 +137,10 @@ export function ProductionTimeRow({
 
       {row.terminalMetrics ? (
         <div className="mt-3">
-          <ProductionTimeMetrics metrics={row.terminalMetrics} />
+          <ProductionTimeMetrics
+            metrics={row.terminalMetrics}
+            workedLabel={row.workedLabel}
+          />
         </div>
       ) : null}
 
@@ -130,6 +149,7 @@ export function ProductionTimeRow({
           <ProductionTimeRowDetail
             detail={row.detail}
             metrics={row.activeMetrics}
+            workedLabel={row.workedLabel}
           />
         </div>
       ) : null}
@@ -139,6 +159,7 @@ export function ProductionTimeRow({
           <ProductionTimeMetrics
             isMuted={row.tone === "pending"}
             metrics={row.activeMetrics}
+            workedLabel={row.workedLabel}
           />
         </div>
       ) : null}

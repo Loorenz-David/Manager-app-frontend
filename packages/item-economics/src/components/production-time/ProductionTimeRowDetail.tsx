@@ -13,6 +13,7 @@ import {
 export type ProductionTimeRowDetailProps = {
   detail: ProductionTimeRowDetailViewModel;
   metrics: ProductionTimeRowMetricsViewModel;
+  workedLabel: string;
 };
 
 /**
@@ -24,6 +25,7 @@ export type ProductionTimeRowDetailProps = {
 export function ProductionTimeRowDetail({
   detail,
   metrics,
+  workedLabel,
 }: ProductionTimeRowDetailProps): React.JSX.Element {
   const isOverShare = detail.verdictTone === "over_share";
 
@@ -56,7 +58,7 @@ export function ProductionTimeRowDetail({
           }}
         />
       </div>
-      <ProductionTimeMetrics metrics={metrics} />
+      <ProductionTimeMetrics metrics={metrics} workedLabel={workedLabel} />
     </div>
   );
 }

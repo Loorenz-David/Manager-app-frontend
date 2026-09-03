@@ -273,16 +273,16 @@ describe("pressure and row metrics", () => {
     });
   });
 
-  it("builds red over, green under, and green on-budget terminal variance", () => {
+  it("builds negative red over, positive green under, and green on-budget variance", () => {
     expect(buildTerminalMetrics(4200, 3600, 3000)[1]).toEqual({
       label: "Variance",
       labelSuffix: null,
-      valueLabel: "+10m",
+      valueLabel: "-10m",
       supportingLabel: "over budget",
       tone: "danger",
     });
     expect(buildTerminalMetrics(3000, 3600, 3000)[1]).toMatchObject({
-      valueLabel: "10m",
+      valueLabel: "+10m",
       supportingLabel: "under budget",
       tone: "success",
     });
