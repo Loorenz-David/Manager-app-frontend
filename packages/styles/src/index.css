@@ -74,6 +74,26 @@ body {
 }
 
 @layer base {
+  /* iOS eats taps on controls whose label is selectable text: WebKit's
+   * long-press selection recognizer lives in the UI process, so whenever the
+   * web process is busy answering the tap (a staged-form Next runs async form
+   * validation and a full re-render) the recognizer wins the race, raises the
+   * selection loupe, and the touch never becomes a click — the button looks
+   * dead and the step never advances. Android has no such recognizer, which is
+   * why it was only ever reported on iPhones. Opting controls out of selection
+   * and the callout removes the competing gesture entirely; `manipulation`
+   * additionally drops the double-tap-zoom recognizer, which still arms on any
+   * app whose viewport allows user scaling. Base layer, so a `select-text`
+   * utility still wins where a control's label really is meant to be copied. */
+  button,
+  summary,
+  [role="button"] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+
   :root {
     --skeleton-base: color-mix(in srgb, var(--color-muted) 72%, transparent);
     --skeleton-highlight: color-mix(
