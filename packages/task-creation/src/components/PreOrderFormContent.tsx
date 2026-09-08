@@ -121,8 +121,6 @@ export const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "item_upholstery.upholstery_client_id",
     "item_upholstery.upholstery_amount_meters",
     "item_pricing.expected_sale_price_per_piece",
-    "shopIntegrationIds",
-    "inventoryQuantities",
   ],
   customer: [
     "customer",
@@ -131,7 +129,17 @@ export const PRE_ORDER_STEP_FIELDS_MAP: Record<
     "scheduled_end_at",
   ],
   assignment: ["working_section_assignments"],
-  details: ["item_issues", "note_content", "ready_by_at"],
+  // `shopIntegrationIds`/`inventoryQuantities` are gated here, not on `task`:
+  // PreOrderShopifySection — the only place either can be filled in, and the
+  // only place their errors render — lives on this step. Gating them earlier
+  // makes the Task step's Next fail with nothing on screen to explain it.
+  details: [
+    "item_issues",
+    "note_content",
+    "ready_by_at",
+    "shopIntegrationIds",
+    "inventoryQuantities",
+  ],
 };
 
 type PreOrderFormContentProps = {
@@ -320,13 +328,7 @@ export function PreOrderFormContent({
           const { errors } = form.formState;
           let firstErrorStep: string | null = null;
 
-          if (
-            errors.item ??
-            errors.item_upholstery ??
-            errors.item_pricing ??
-            errors.shopIntegrationIds ??
-            errors.inventoryQuantities
-          ) {
+          if (errors.item ?? errors.item_upholstery ?? errors.item_pricing) {
             setStatus("task", "error");
             firstErrorStep ??= "task";
           }
@@ -334,7 +336,13 @@ export function PreOrderFormContent({
             setStatus("assignment", "error");
             firstErrorStep ??= "assignment";
           }
-          if (errors.item_issues ?? errors.note_content ?? errors.ready_by_at) {
+          if (
+            errors.item_issues ??
+            errors.note_content ??
+            errors.ready_by_at ??
+            errors.shopIntegrationIds ??
+            errors.inventoryQuantities
+          ) {
             setStatus("details", "error");
             firstErrorStep ??= "details";
           }
@@ -427,11 +435,7 @@ export function PreOrderFormContent({
   useEffect(() => {
     const stepErrorMap = {
       task: Boolean(
-        errors.item ??
-        errors.item_upholstery ??
-        errors.item_pricing ??
-        errors.shopIntegrationIds ??
-        errors.inventoryQuantities,
+        errors.item ?? errors.item_upholstery ?? errors.item_pricing,
       ),
       customer: Boolean(
         errors.customer ??
@@ -441,7 +445,11 @@ export function PreOrderFormContent({
       ),
       assignment: Boolean(!isSeller && errors.working_section_assignments),
       details: Boolean(
-        errors.item_issues ?? errors.note_content ?? errors.ready_by_at,
+        errors.item_issues ??
+        errors.note_content ??
+        errors.ready_by_at ??
+        errors.shopIntegrationIds ??
+        errors.inventoryQuantities,
       ),
     } as const;
 
