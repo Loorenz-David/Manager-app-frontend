@@ -2,12 +2,15 @@ import {
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   selectAnchorRowIndex,
   type ProductionTimeRowViewModel,
+  type ProductionTimeUnit,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeRow } from "./ProductionTimeRow";
 import { useSnapScroll } from "./use-snap-scroll";
 
 export type ProductionTimeRowsViewportProps = {
   rows: readonly ProductionTimeRowViewModel[];
+  /** Passed straight through — the window itself has no figures of its own. */
+  unit?: ProductionTimeUnit;
   showTypicalComparison?: boolean;
 };
 
@@ -31,6 +34,7 @@ export type ProductionTimeRowsViewportProps = {
  */
 export function ProductionTimeRowsViewport({
   rows,
+  unit = "total",
   showTypicalComparison = false,
 }: ProductionTimeRowsViewportProps): React.JSX.Element {
   const { viewportRef, listRef } = useSnapScroll({
@@ -57,6 +61,7 @@ export function ProductionTimeRowsViewport({
             key={row.key}
             row={row}
             showTypicalComparison={showTypicalComparison}
+            unit={unit}
           />
         ))}
       </div>

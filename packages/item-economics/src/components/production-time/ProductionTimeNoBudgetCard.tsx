@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   type ProductionTimeNoBudgetViewModel,
+  type ProductionTimeUnit,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeRow } from "./ProductionTimeRow";
 import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
@@ -10,6 +11,8 @@ import { ProductionTimeRowsViewport } from "./ProductionTimeRowsViewport";
 
 export type ProductionTimeNoBudgetCardProps = {
   card: ProductionTimeNoBudgetViewModel;
+  /** Which unit the card is speaking in. Whole order unless told otherwise. */
+  unit?: ProductionTimeUnit;
   onCtaPress?: (kind: "commit" | "valuation") => void;
 };
 
@@ -20,11 +23,16 @@ export type ProductionTimeNoBudgetCardProps = {
  */
 export function ProductionTimeNoBudgetCard({
   card,
+  unit = "total",
   onCtaPress,
 }: ProductionTimeNoBudgetCardProps): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
   const cta = card.cta;
   const overflows = card.rows.length > PRODUCTION_TIME_VIEWPORT_ROW_COUNT;
+  // The summed figure and every row's "of typically …" belong to the same
+  // reading, so one press moves them together.
+  const workedLabel =
+    (unit === "piece" ? card.unit?.workedLabel : null) ?? card.workedLabel;
 
   return (
     <>
@@ -34,7 +42,7 @@ export function ProductionTimeNoBudgetCard({
       >
         <div className="flex items-baseline gap-2">
           <span className="text-md font-semibold tracking-tight tabular-nums">
-            {card.workedLabel}
+            {workedLabel}
           </span>
           <span className="text-base font-normal text-muted-foreground">
             worked so far
@@ -65,10 +73,19 @@ export function ProductionTimeNoBudgetCard({
       </div>
 
       {overflows && !isExpanded ? (
-        <ProductionTimeRowsViewport rows={card.rows} showTypicalComparison />
+        <ProductionTimeRowsViewport
+          rows={card.rows}
+          showTypicalComparison
+          unit={unit}
+        />
       ) : (
         card.rows.map((row) => (
-          <ProductionTimeRow key={row.key} row={row} showTypicalComparison />
+          <ProductionTimeRow
+            key={row.key}
+            row={row}
+            showTypicalComparison
+            unit={unit}
+          />
         ))
       )}
 

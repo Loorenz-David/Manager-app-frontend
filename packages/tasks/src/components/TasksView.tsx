@@ -91,6 +91,7 @@ export function TasksView({
                   }
                 : null
             }
+            dateDisplay={card.task.display_date}
             taskId={card.taskId}
             task={{
               task_type: card.task.task_type,

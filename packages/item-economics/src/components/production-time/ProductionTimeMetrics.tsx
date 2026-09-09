@@ -34,7 +34,6 @@ export function ProductionTimeMetrics({
           metrics[0],
           {
             label: "Worked",
-            labelSuffix: null,
             valueLabel: workedLabel,
             supportingLabel: null,
             tone: "neutral" as const,
@@ -60,11 +59,6 @@ export function ProductionTimeMetrics({
         >
           <span className="text-xs text-muted-foreground">
             {metric.label}
-            {metric.labelSuffix ? (
-              // Dimmer than the name it qualifies: it is a unit, not a second
-              // metric competing for the same glance.
-              <span className="ml-0.5 opacity-70">{metric.labelSuffix}</span>
-            ) : null}
           </span>
           <span
             className={cn(

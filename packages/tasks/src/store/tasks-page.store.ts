@@ -4,6 +4,7 @@ import {
   readTasksListGroupByUpholstery,
   writeTasksListGroupByUpholstery,
 } from "../lib/grouping-preference-storage";
+import { resolveTaskStateSelection } from "../lib/task-state-filter";
 import type { TaskState, TaskTypeFilter } from "../types";
 
 type TasksPageStoreState = {
@@ -30,12 +31,15 @@ const INITIAL_STATE: Pick<
   itemPosition: "",
 };
 
-export const useTasksPageStore = create<TasksPageStoreState>((set) => ({
+export const useTasksPageStore = create<TasksPageStoreState>((set, get) => ({
   ...INITIAL_STATE,
   // Persisted view preference — hydrated from localStorage, default OFF.
   groupByUpholstery: readTasksListGroupByUpholstery(),
   setTaskType: (value) => set({ taskType: value }),
-  setTaskStates: (value) => set({ taskStates: value }),
+  // Normalized on write rather than in the controller so the completion-cohort
+  // rule holds for every caller of this store, not just the list header.
+  setTaskStates: (value) =>
+    set({ taskStates: resolveTaskStateSelection(get().taskStates, value) }),
   setQ: (value) => set({ q: value }),
   setItemPosition: (value) => set({ itemPosition: value }),
   setGroupByUpholstery: (value) => {

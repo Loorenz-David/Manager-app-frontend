@@ -212,16 +212,18 @@ describe("ProductionTimeSection MSW boundary", () => {
     expect(within(firstRow).getByTestId("production-time-metric-pressure")).toHaveTextContent(
       "Pressure40m",
     );
-    // "pc" travels with Typical to the row headline, distinguishing this
-    // per-piece amount from the whole-order metrics below.
+    // Typical travels to the row headline. No unit marker on it: this is a
+    // one-piece order, so the card offers no toggle and speaks one unit
+    // throughout.
     expect(within(firstRow).getByTestId("production-time-row-time")).toHaveTextContent(
-      "Typicalpc1h 0m",
+      "Typical1h 0m",
     );
   });
 
-  it("shows the per-piece typical, not the whole-order projection, on a multi-unit task", async () => {
-    // Unit 140s at quantity 3 projects to 7m. The tile must read 2m: the
-    // per-piece figure is the one that survives a change of order size.
+  it("swaps the typical between the two SERVED figures, never a division", async () => {
+    // Unit 140s at quantity 3 projects to 7m. The card opens on the whole order
+    // and reads 7m; pressing "Per piece" must read 2m — the served unit median,
+    // not 420/3, which is the derivation the handoff rules out.
     const base = literalHandoffPayload.sections[0]!;
     server.use(
       http.get(ENDPOINT, () =>
@@ -251,7 +253,15 @@ describe("ProductionTimeSection MSW boundary", () => {
     const firstRow = screen.getAllByTestId("production-time-row")[0]!;
     expect(
       within(firstRow).getByTestId("production-time-row-time"),
-    ).toHaveTextContent("Typicalpc2m");
+    ).toHaveTextContent("Typical7m");
+
+    await userEvent.click(screen.getByTestId("production-time-unit-piece"));
+
+    expect(
+      within(screen.getAllByTestId("production-time-row")[0]!).getByTestId(
+        "production-time-row-time",
+      ),
+    ).toHaveTextContent("Typical2m");
   });
 
   it("hides a 404 without retrying", async () => {

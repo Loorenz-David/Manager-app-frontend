@@ -3,6 +3,7 @@ import { useState } from "react";
 import {
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   type ProductionTimeCardViewModel,
+  type ProductionTimeUnit,
   type ProductionTimeViewModel,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeBudgetBar } from "./ProductionTimeBudgetBar";
@@ -15,6 +16,7 @@ import { ProductionTimeRow } from "./ProductionTimeRow";
 import { ProductionTimeRowsToggle } from "./ProductionTimeRowsToggle";
 import { ProductionTimeRowsViewport } from "./ProductionTimeRowsViewport";
 import { ProductionTimeUnavailableCard } from "./ProductionTimeUnavailableCard";
+import { ProductionTimeUnitToggle } from "./ProductionTimeUnitToggle";
 import { TypicalStrategyPill } from "../typical-strategy";
 import type { TypicalStrategyViewModel } from "../../lib/typical-strategy";
 
@@ -61,34 +63,52 @@ function ProductionTimeStrategyFooter({
 
 function ProductionTimeBudgetBody({
   card,
+  unit,
   onStrategyPress,
 }: {
   card: ProductionTimeCardViewModel;
+  unit: ProductionTimeUnit;
   onStrategyPress?: (strategy: TypicalStrategyViewModel) => void;
 }): React.JSX.Element {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const overflows = card.rows.length > PRODUCTION_TIME_VIEWPORT_ROW_COUNT;
+  // The per-piece figures are picked here rather than pushed down as a mode, so
+  // the headline, outlook and notice components stay exactly as they were — and
+  // so `cost`, `isOverBudget` and `isFinal` come from the whole-order model by
+  // construction. Money never divides, and the spread order is what enforces it.
+  const reading = unit === "piece" ? (card.unit ?? null) : null;
+  const headline = reading
+    ? { ...card.headline, ...reading.headline }
+    : card.headline;
+  const outlook = reading ? reading.outlook : card.outlook;
+  const infeasibleNotice = reading
+    ? reading.infeasibleNotice
+    : card.infeasibleNotice;
 
   return (
     <>
       <div className="flex flex-col gap-3 px-4 py-4">
         {/* Above the figures, not below: it is the reason they are zero. */}
-        {card.infeasibleNotice ? (
-          <ProductionTimeInfeasibleNotice notice={card.infeasibleNotice} />
+        {infeasibleNotice ? (
+          <ProductionTimeInfeasibleNotice notice={infeasibleNotice} />
         ) : null}
-        <ProductionTimeHeadline headline={card.headline} />
+        <ProductionTimeHeadline headline={headline} />
+        {/* Not restated per piece: every width is a ratio of figures that all
+          * divide by the same quantity, so the bar is identical in both units. */}
         <ProductionTimeBudgetBar
           remainderPercent={card.remainderPercent}
           segments={card.segments}
         />
-        {card.outlook ? <ProductionTimeOutlook outlook={card.outlook} /> : null}
+        {outlook ? <ProductionTimeOutlook outlook={outlook} /> : null}
       </div>
 
       {overflows && !isExpanded ? (
-        <ProductionTimeRowsViewport rows={card.rows} />
+        <ProductionTimeRowsViewport rows={card.rows} unit={unit} />
       ) : (
-        card.rows.map((row) => <ProductionTimeRow key={row.key} row={row} />)
+        card.rows.map((row) => (
+          <ProductionTimeRow key={row.key} row={row} unit={unit} />
+        ))
       )}
 
       {overflows ? (
@@ -119,6 +139,14 @@ export function ProductionTimeCard({
   onCtaPress,
   onStrategyPress,
 }: ProductionTimeCardProps): React.JSX.Element | null {
+  // A local, deliberately unpersisted preference that always starts on the
+  // whole order — the same reasoning as the headline's time/cost tap: the card
+  // is read at a glance, and a per-piece figure remembered from a previous task
+  // would be taken for this one's order total.
+  //
+  // Above the early returns, so the hook order never depends on the view model.
+  const [unit, setUnit] = useState<ProductionTimeUnit>("total");
+
   if (viewModel.kind === "unavailable") {
     return (
       <ProductionTimeFrame className={className} data-testid="production-time-card">
@@ -131,12 +159,24 @@ export function ProductionTimeCard({
     return null;
   }
 
+  // The per-piece reading's presence is the toggle's whole condition: it is
+  // null exactly when the order is one piece and there is nothing to switch to.
+  const labelTrailing =
+    viewModel.card.unit == null ? null : (
+      <ProductionTimeUnitToggle value={unit} onChange={setUnit} />
+    );
+
   return (
-    <ProductionTimeFrame className={className} data-testid="production-time-card">
+    <ProductionTimeFrame
+      className={className}
+      data-testid="production-time-card"
+      labelTrailing={labelTrailing}
+    >
       {viewModel.kind === "no_budget" ? (
         <>
           <ProductionTimeNoBudgetCard
             card={viewModel.card}
+            unit={unit}
             onCtaPress={onCtaPress}
           />
           <ProductionTimeStrategyFooter
@@ -147,6 +187,7 @@ export function ProductionTimeCard({
       ) : (
         <ProductionTimeBudgetBody
           card={viewModel.card}
+          unit={unit}
           onStrategyPress={onStrategyPress}
         />
       )}

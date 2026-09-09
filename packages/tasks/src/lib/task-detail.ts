@@ -1,4 +1,11 @@
-import { RotateCcw, ShoppingBag, Wrench } from "lucide-react";
+import {
+  Calendar,
+  CheckCheck,
+  CircleCheck,
+  RotateCcw,
+  ShoppingBag,
+  Wrench,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { daysUntil } from "@beyo/lib";
@@ -7,6 +14,7 @@ import type { StatePillVariant } from "@beyo/ui";
 
 import type {
   PostHandlingState,
+  TaskCardDateKind,
   TaskFlowRecord,
   TaskPriority,
   TaskReturnSource,
@@ -46,6 +54,26 @@ export const TASK_TYPE_LABEL: Record<TaskType, string> = {
   return: "Return",
   pre_order: "Pre-order",
   internal: "Internal",
+};
+
+/**
+ * The icon is the only thing distinguishing the three dates a list card can
+ * show, so the shapes need to read apart at `size-3.5`.
+ */
+export const TASK_CARD_DATE_ICON: Record<TaskCardDateKind, LucideIcon> = {
+  ready_by: Calendar,
+  completed: CircleCheck,
+  closed: CheckCheck,
+};
+
+/**
+ * Accessible name for the icon above. Carries the meaning that the icon-only
+ * treatment leaves off the screen, for screen readers and for tests.
+ */
+export const TASK_CARD_DATE_LABEL: Record<TaskCardDateKind, string> = {
+  ready_by: "Ready by",
+  completed: "Completed",
+  closed: "Resolved",
 };
 
 export function humanizeSnakeCase(

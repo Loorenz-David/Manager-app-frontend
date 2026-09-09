@@ -14,10 +14,11 @@ import {
   buildHeadlineCost,
   buildInfeasibleNotice,
   buildOutlook,
+  buildOutlookLabel,
   buildRowDetail,
+  buildRowUnitReading,
   buildSegments,
   buildTerminalMetrics,
-  PRODUCTION_TIME_UNIT_SUFFIX,
   formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
@@ -73,7 +74,15 @@ const FIXTURE_STRATEGY = buildTypicalStrategy({
   minSampleSize: 5,
 });
 
-function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewModel {
+/** The wording both readings of a fixture row's allowance line share. */
+const FIXTURE_ALLOWANCE_SUFFIX = "allowed";
+
+function makeRow(
+  input: RowInput,
+  hasBudget: boolean,
+  /** Above 1, the row gains a per-piece reading, exactly as the transform does. */
+  quantity = 1,
+): ProductionTimeRowViewModel {
   const shareState = input.shareState ?? "on_track";
   const isActive = ["working", "paused", "ended_shift"].includes(input.state);
   const isPending = input.state === "pending";
@@ -87,6 +96,9 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
     input.allowanceSeconds === null || input.allowanceSeconds === undefined
       ? null
       : input.allowanceSeconds - input.workedSeconds;
+  const hasTerminalMetrics = isTerminal && hasBudget;
+  const hasActiveMetrics = (isActive || isPending) && hasBudget && !isExcluded;
+  const hasDetail = isActive && hasBudget && !isExcluded;
 
   return {
     key: input.key,
@@ -102,48 +114,59 @@ function makeRow(input: RowInput, hasBudget: boolean): ProductionTimeRowViewMode
     allowanceLabel:
       input.allowanceSeconds === null || input.allowanceSeconds === undefined || input.allowanceSeconds <= 0
         ? null
-        : `${formatWorkSeconds(input.allowanceSeconds)} allowed`,
+        : `${formatWorkSeconds(input.allowanceSeconds)} ${FIXTURE_ALLOWANCE_SUFFIX}`,
     pressureLabel: null,
     typicalLabel:
-      unitTypicalSeconds === null
+      typicalSeconds === null
         ? null
-        : `typical ${PRODUCTION_TIME_UNIT_SUFFIX} ${formatUnitWorkSeconds(
-            unitTypicalSeconds,
-          )}`,
+        : `typical ${formatUnitWorkSeconds(typicalSeconds)}`,
     typicalComparisonLabel:
       typicalSeconds === null
         ? null
-        : `of typically ${formatWorkSeconds(typicalSeconds)}`,
+        : `of typically ${formatUnitWorkSeconds(typicalSeconds)}`,
     unitTypicalSeconds,
     projectedTypicalSeconds: typicalSeconds,
-    terminalMetrics:
-      isTerminal && hasBudget
-        ? buildTerminalMetrics(
-            input.workedSeconds,
-            input.allowanceSeconds ?? null,
-            unitTypicalSeconds,
-          )
-        : null,
-    activeMetrics:
-      (isActive || isPending) && hasBudget && !isExcluded
-        ? buildActiveMetrics(
-            input.allowanceSeconds ?? null,
-            input.pressureSeconds ?? null,
-            unitTypicalSeconds,
+    terminalMetrics: hasTerminalMetrics
+      ? buildTerminalMetrics(
+          input.workedSeconds,
+          input.allowanceSeconds ?? null,
+          typicalSeconds,
+        )
+      : null,
+    activeMetrics: hasActiveMetrics
+      ? buildActiveMetrics(
+          input.allowanceSeconds ?? null,
+          input.pressureSeconds ?? null,
+          typicalSeconds,
+          leftSeconds,
+          shareState,
+        )
+      : null,
+    detail: hasDetail
+      ? buildRowDetail(
+          input.workedSeconds,
+          input.allowanceSeconds ?? null,
+          input.pressureSeconds ?? null,
+          leftSeconds,
+          shareState,
+        )
+      : null,
+    unit:
+      quantity <= 1
+        ? null
+        : buildRowUnitReading({
+            quantity,
+            workedSeconds: input.workedSeconds,
+            allowanceSeconds: input.allowanceSeconds ?? null,
+            pressureSeconds: input.pressureSeconds ?? null,
             leftSeconds,
+            unitTypicalSeconds,
             shareState,
-          )
-        : null,
-    detail:
-      isActive && hasBudget && !isExcluded
-        ? buildRowDetail(
-            input.workedSeconds,
-            input.allowanceSeconds ?? null,
-            input.pressureSeconds ?? null,
-            leftSeconds,
-            shareState,
-          )
-        : null,
+            hasTerminalMetrics,
+            hasActiveMetrics,
+            hasDetail,
+            allowanceSuffix: FIXTURE_ALLOWANCE_SUFFIX,
+          }),
   };
 }
 
@@ -169,9 +192,16 @@ function makeBudgetCard(
       consumed: number;
       variance: number;
     };
+    /**
+     * The order's piece count. Left at 1 the card carries no per-piece reading
+     * and renders no unit toggle, which is every fixture that predates it.
+     */
+    quantity?: number;
   } = {},
 ): ProductionTimeCardViewModel {
-  const rows = inputs.map((input) => makeRow(input, true));
+  const quantity = options.quantity ?? 1;
+  const divisor = quantity > 1 ? quantity : null;
+  const rows = inputs.map((input) => makeRow(input, true, quantity));
   const totalWorked = rows.reduce((sum, row) => sum + row.workedSeconds, 0);
   const remainingSeconds = budgetSeconds - totalWorked;
   const { segments, remainderPercent } = buildSegments(rows, budgetSeconds);
@@ -224,6 +254,44 @@ function makeBudgetCard(
     remainderPercent,
     outlook,
     rows,
+    unit:
+      divisor === null
+        ? null
+        : {
+            headline: {
+              workedLabel: formatUnitWorkSeconds(totalWorked / divisor),
+              budgetLabel: options.withoutBudgetTerm
+                ? null
+                : `of ${formatUnitWorkSeconds(budgetSeconds / divisor)}`,
+              remainingLabel:
+                remainingSeconds >= 0
+                  ? `${formatUnitWorkSeconds(remainingSeconds / divisor)} left`
+                  : `${formatUnitWorkSeconds(-remainingSeconds / divisor)} over`,
+            },
+            outlook:
+              outlook === null
+                ? null
+                : {
+                    label: buildOutlookLabel(
+                      outlook.remainingCommitmentSeconds / divisor,
+                      outlook.projectedOverrunSeconds / divisor,
+                      formatUnitWorkSeconds,
+                    ),
+                    remainingCommitmentSeconds:
+                      outlook.remainingCommitmentSeconds / divisor,
+                    projectedOverrunSeconds:
+                      outlook.projectedOverrunSeconds / divisor,
+                  },
+            infeasibleNotice:
+              options.infeasibleBudgetMinor === undefined
+                ? null
+                : buildInfeasibleNotice(
+                    // Money untouched; only the "of work" figure divides.
+                    options.infeasibleBudgetMinor,
+                    budgetSeconds / divisor,
+                    formatUnitWorkSeconds,
+                  ),
+          },
   };
 }
 
@@ -584,6 +652,119 @@ export const productionTimeUnvaluedFixture: ProductionTimeViewModel = {
     rows: MOCKUP_ROWS.map((input) => makeRow(input, false)),
   } satisfies ProductionTimeNoBudgetViewModel,
 };
+
+/**
+ * A four-piece order, for the unit toggle.
+ *
+ * Every `unitTypicalSeconds` here is deliberately NOT `typicalSeconds / 4`, so
+ * the fixture is itself the guard: the moment anyone makes the code derive one
+ * typical from the other, these rows render a different number and the tests
+ * fail loudly. (Structural: 4200 whole-order would divide to 1050 — "18m" — but
+ * the served per-piece median is 1320, which reads "22m".)
+ */
+const MULTI_UNIT_ROWS: RowInput[] = [
+  {
+    key: "wsec-structural",
+    label: "Structural Repair",
+    state: "completed",
+    workedSeconds: 4200,
+    allowanceSeconds: 4500,
+    typicalSeconds: 4200,
+    unitTypicalSeconds: 1320,
+  },
+  {
+    key: "wsec-sanding",
+    label: "Sanding",
+    state: "completed",
+    workedSeconds: 3000,
+    allowanceSeconds: 3000,
+    typicalSeconds: 3000,
+    unitTypicalSeconds: 900,
+  },
+  {
+    key: "wsec-finishing",
+    label: "Finishing",
+    state: "paused",
+    workedSeconds: 900,
+    allowanceSeconds: 1800,
+    pressureSeconds: 1800,
+    typicalSeconds: 1800,
+    unitTypicalSeconds: 600,
+  },
+  {
+    key: "wsec-upholstery",
+    label: "Upholstery",
+    state: "working",
+    workedSeconds: 2400,
+    allowanceSeconds: 3900,
+    pressureSeconds: 3300,
+    typicalSeconds: 3600,
+    unitTypicalSeconds: 1200,
+  },
+];
+
+/**
+ * The mockup's figures on an order of four: 2h 55m of 3h 15m whole-order,
+ * 44m of 49m per piece. Carries money, so the headline still offers the cost
+ * tap — which stays in kronor for the whole order in both units — and its two
+ * open stages still commit more time than the pot has left, so the outlook
+ * sentence is exercised in both units too.
+ */
+export const productionTimeMultiUnitFixture: ProductionTimeViewModel = {
+  kind: "budget",
+  card: makeBudgetCard(MULTI_UNIT_ROWS, 11_700, {
+    quantity: 4,
+    costMinor: {
+      productionBudget: 253_900,
+      consumed: 227_850,
+      variance: 26_050,
+    },
+  }),
+};
+
+/** The same four-piece order before anyone committed a budget. */
+export const productionTimeMultiUnitNoBudgetFixture: ProductionTimeViewModel = {
+  kind: "no_budget",
+  card: {
+    strategy: FIXTURE_STRATEGY,
+    workedLabel: formatWorkSeconds(10_500),
+    reasonTitle: "Budget not calculated yet",
+    reasonBody:
+      "Nothing is missing — the production budget just has not been worked out for this task.",
+    rawStatus: "not_evaluated",
+    cta: null,
+    rows: MULTI_UNIT_ROWS.map((input) => makeRow(input, false, 4)),
+    unit: { workedLabel: formatUnitWorkSeconds(10_500 / 4) },
+  } satisfies ProductionTimeNoBudgetViewModel,
+};
+
+/**
+ * An infeasible four-piece order. The notice's krona shortfall is identical in
+ * both units — money is never divided — while the "about … of work" figure
+ * beside it goes from 38m to 10m.
+ */
+export const productionTimeMultiUnitInfeasibleFixture: ProductionTimeViewModel =
+  {
+    kind: "budget",
+    card: makeBudgetCard(
+      MULTI_UNIT_ROWS.map((input) => ({
+        ...input,
+        allowanceSeconds: 0,
+        shareState: "over_share" as const,
+      })),
+      -2304,
+      {
+        quantity: 4,
+        infeasibleBudgetMinor: -50_000,
+        withoutBudgetTerm: true,
+        costMinor: {
+          productionBudget: -50_000,
+          consumed: 88_456,
+          variance: -138_456,
+        },
+      },
+    ),
+  };
 
 /** The task lost its primary item — empty state, never stale numbers. */
 export const productionTimeUnavailableFixture: ProductionTimeViewModel = {

@@ -3,7 +3,9 @@ import { cn } from "@beyo/lib";
 import {
   buildBudgetLine,
   formatPassCount,
+  type ProductionTimeRowUnitViewModel,
   type ProductionTimeRowViewModel,
+  type ProductionTimeUnit,
 } from "../../lib/production-time-view-model";
 import { ProductionTimeRowDetail } from "./ProductionTimeRowDetail";
 import { ProductionTimeMetrics } from "./ProductionTimeMetrics";
@@ -15,6 +17,8 @@ import {
 
 export type ProductionTimeRowProps = {
   row: ProductionTimeRowViewModel;
+  /** Which unit the card is speaking in. Whole order unless told otherwise. */
+  unit?: ProductionTimeUnit;
   /**
    * The degraded, budget-less card adds the typical comparison —
    * "Sanding · 25m of typically 50m" — which is the one case where the display
@@ -25,22 +29,35 @@ export type ProductionTimeRowProps = {
 
 export function ProductionTimeRow({
   row,
+  unit = "total",
   showTypicalComparison = false,
 }: ProductionTimeRowProps): React.JSX.Element {
-  const comparison = showTypicalComparison ? row.typicalComparisonLabel : null;
+  // One row, two units. Everything below reads from `reading`, so a figure can
+  // never be half-swapped: the whole row is either whole-order or per piece.
+  // The per-piece reading is absent on a one-piece order, where the two are the
+  // same numbers anyway.
+  const reading: ProductionTimeRowUnitViewModel =
+    unit === "piece" && row.unit ? row.unit : row;
+  const comparison = showTypicalComparison
+    ? reading.typicalComparisonLabel
+    : null;
   const passCount = formatPassCount(row.stepCount);
-  const metrics = row.terminalMetrics ?? row.activeMetrics;
+  const metrics = reading.terminalMetrics ?? reading.activeMetrics;
   const typicalMetric = metrics?.[2] ?? null;
   // Active and terminal rows use structured metrics. The entire compact
   // fallback line is irrelevant without a valuation: typical already belongs
   // in the header, and pressure has no actionable meaning in that state.
   const budgetLine =
     showTypicalComparison ||
-    row.detail ||
-    row.terminalMetrics ||
-    row.activeMetrics
+    reading.detail ||
+    reading.terminalMetrics ||
+    reading.activeMetrics
     ? null
-    : buildBudgetLine(row.allowanceLabel, row.pressureLabel, row.typicalLabel);
+    : buildBudgetLine(
+        reading.allowanceLabel,
+        reading.pressureLabel,
+        reading.typicalLabel,
+      );
 
   return (
     <div
@@ -94,16 +111,11 @@ export function ProductionTimeRow({
             <>
               <span className="mr-1 text-xs text-muted-foreground">
                 {typicalMetric.label}
-                {typicalMetric.labelSuffix ? (
-                  <span className="ml-0.5 opacity-70">
-                    {typicalMetric.labelSuffix}
-                  </span>
-                ) : null}
               </span>
               {typicalMetric.valueLabel}
             </>
           ) : (
-            row.workedLabel
+            reading.workedLabel
           )}
           {comparison ? (
             <span className="ml-1 text-sm font-normal text-muted-foreground">
@@ -135,31 +147,31 @@ export function ProductionTimeRow({
         </p>
       ) : null}
 
-      {row.terminalMetrics ? (
+      {reading.terminalMetrics ? (
         <div className="mt-3">
           <ProductionTimeMetrics
-            metrics={row.terminalMetrics}
-            workedLabel={row.workedLabel}
+            metrics={reading.terminalMetrics}
+            workedLabel={reading.workedLabel}
           />
         </div>
       ) : null}
 
-      {row.detail && row.activeMetrics ? (
+      {reading.detail && reading.activeMetrics ? (
         <div className="mt-3">
           <ProductionTimeRowDetail
-            detail={row.detail}
-            metrics={row.activeMetrics}
-            workedLabel={row.workedLabel}
+            detail={reading.detail}
+            metrics={reading.activeMetrics}
+            workedLabel={reading.workedLabel}
           />
         </div>
       ) : null}
 
-      {!row.detail && row.activeMetrics ? (
+      {!reading.detail && reading.activeMetrics ? (
         <div className="mt-3">
           <ProductionTimeMetrics
             isMuted={row.tone === "pending"}
-            metrics={row.activeMetrics}
-            workedLabel={row.workedLabel}
+            metrics={reading.activeMetrics}
+            workedLabel={reading.workedLabel}
           />
         </div>
       ) : null}

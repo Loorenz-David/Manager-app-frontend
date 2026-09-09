@@ -17,6 +17,9 @@ import {
   productionTimeInfeasibleFixture,
   productionTimeLongPipelineFixture,
   productionTimeMockupFixture,
+  productionTimeMultiUnitFixture,
+  productionTimeMultiUnitInfeasibleFixture,
+  productionTimeMultiUnitNoBudgetFixture,
   productionTimeNotEvaluatedFixture,
   productionTimeOverBudgetFixture,
   productionTimeProjectedOverrunFixture,
@@ -94,7 +97,7 @@ describe("ProductionTimeCard — row information hierarchy", () => {
     expect(metrics).toHaveTextContent("Worked0m");
     expect(metrics).toHaveTextContent("Pressure10m");
     expect(screen.getByTestId("production-time-row-time")).toHaveTextContent(
-      "Typicalpc15m",
+      "Typical15m",
     );
     expect(
       screen.queryByTestId("production-time-row-budget"),
@@ -494,7 +497,7 @@ describe("ProductionTimeCard — edge cases from the handoff", () => {
     expect(metrics).toHaveTextContent("Variance-");
     expect(
       within(cancelledRow).getByTestId("production-time-row-time"),
-    ).toHaveTextContent("Typicalpc-");
+    ).toHaveTextContent("Typical-");
   });
 
   it("draws a full bar for a section whose allowance is already negative", () => {
@@ -689,5 +692,209 @@ describe("ProductionTimeCardSkeleton", () => {
 
     expect(screen.getByTestId("production-time-skeleton")).toBeInTheDocument();
     expect(screen.getByText("Production time")).toBeInTheDocument();
+  });
+});
+
+describe("ProductionTimeCard — the unit toggle", () => {
+  function rowTimes(): string[] {
+    return screen
+      .getAllByTestId("production-time-row-time")
+      .map((node) => node.textContent ?? "");
+  }
+
+  it("offers no toggle on a one-piece order", () => {
+    // Both readings would be the same numbers, and a control that changes
+    // nothing is worse than no control.
+    render(<ProductionTimeCard viewModel={productionTimeMockupFixture} />);
+
+    expect(
+      screen.queryByTestId("production-time-unit-toggle"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers no toggle on the unavailable card", () => {
+    render(<ProductionTimeCard viewModel={productionTimeUnavailableFixture} />);
+
+    expect(
+      screen.queryByTestId("production-time-unit-toggle"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("opens on the whole order", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    expect(screen.getByTestId("production-time-unit-toggle")).toBeVisible();
+    expect(screen.getByTestId("production-time-unit-total")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(screen.getByTestId("production-time-headline-worked")).toHaveTextContent(
+      "2h 55m",
+    );
+  });
+
+  it("restates every time figure in one press", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    expect(screen.getByTestId("production-time-unit-piece")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    // 2h 55m of 3h 15m over four pieces.
+    expect(screen.getByTestId("production-time-headline-worked")).toHaveTextContent(
+      "44m",
+    );
+    expect(screen.getByTestId("production-time-headline-budget")).toHaveTextContent(
+      "of 49m",
+    );
+    expect(
+      screen.getByTestId("production-time-headline-remaining"),
+    ).toHaveTextContent("5m left");
+    // 40m expected left against 20m of pot, whole order.
+    expect(screen.getByTestId("production-time-outlook")).toHaveTextContent(
+      "~10m expected left · ~5m over budget",
+    );
+
+    const active = screen.getAllByTestId("production-time-row")[3]!;
+    const metrics = within(active).getByTestId("production-time-row-metrics");
+    expect(metrics).toHaveTextContent("Budget16m");
+    expect(metrics).toHaveTextContent("Worked10m");
+    expect(metrics).toHaveTextContent("Pressure14m");
+    expect(
+      within(active).getByTestId("production-time-row-position"),
+    ).toHaveTextContent("4m left");
+  });
+
+  it("leaves the bar, the tones and the metric ids untouched", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />,
+    );
+    const widths = (): (string | undefined)[] =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>(
+          "[data-testid='production-time-budget-segment'], [data-testid='production-time-budget-remainder'], [data-testid='production-time-row-progress'] > span",
+        ),
+      ).map((node) => node.style.width);
+    const before = widths();
+    const idsBefore = screen
+      .getAllByTestId(/^production-time-metric-/)
+      .map((node) => node.getAttribute("data-testid"));
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    // Every width is a ratio of figures that divide by the same quantity.
+    expect(widths()).toEqual(before);
+    expect(
+      screen
+        .getAllByTestId(/^production-time-metric-/)
+        .map((node) => node.getAttribute("data-testid")),
+    ).toEqual(idsBefore);
+  });
+
+  it("keeps the money in kronor for the whole order in both units", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    await user.click(screen.getByTestId("production-time-headline"));
+    const wholeOrderCost = screen.getByTestId(
+      "production-time-headline-cost-worked",
+    ).textContent;
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    // `textContent` directly: the krona grouping is a non-breaking space, which
+    // `toHaveTextContent` normalises on one side of the comparison only.
+    expect(
+      screen.getByTestId("production-time-headline-cost-worked").textContent,
+    ).toBe(wholeOrderCost);
+  });
+
+  it("divides the infeasible notice's time but never its kronor", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductionTimeCard viewModel={productionTimeMultiUnitInfeasibleFixture} />,
+    );
+
+    const notice = screen.getByTestId("production-time-infeasible-notice");
+    expect(notice).toHaveTextContent("500 kr");
+    expect(notice).toHaveTextContent("38m");
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    expect(
+      screen.getByTestId("production-time-infeasible-notice"),
+    ).toHaveTextContent("500 kr");
+    expect(
+      screen.getByTestId("production-time-infeasible-notice"),
+    ).toHaveTextContent("10m");
+  });
+
+  it("swaps the Typical tile between two served figures, never a division", async () => {
+    const user = userEvent.setup();
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    // Structural Repair: 4200s whole order — a division by four would render
+    // "18m". The served per-piece median is 1320s, which reads "22m".
+    expect(rowTimes()[0]).toContain("1h 10m");
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    expect(rowTimes()[0]).toContain("22m");
+    expect(rowTimes()[0]).not.toContain("18m");
+    for (const time of rowTimes()) {
+      expect(time).not.toContain("pc");
+    }
+  });
+
+  it("flips the degraded card's summed time and comparison line together", async () => {
+    const user = userEvent.setup();
+    render(
+      <ProductionTimeCard viewModel={productionTimeMultiUnitNoBudgetFixture} />,
+    );
+
+    expect(screen.getByTestId("production-time-no-budget")).toHaveTextContent(
+      "2h 55m",
+    );
+    expect(rowTimes()[0]).toBe("1h 10mof typically 1h 10m");
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+
+    expect(screen.getByTestId("production-time-no-budget")).toHaveTextContent(
+      "44m",
+    );
+    // 4200s worked over four pieces, against the served 1320s median.
+    expect(rowTimes()[0]).toBe("18mof typically 22m");
+  });
+
+  it("forgets the unit between mountings", async () => {
+    // Deliberately unpersisted, like the headline's cost tap: a per-piece
+    // figure remembered from another task would be read as this one's total.
+    const user = userEvent.setup();
+    const { unmount } = render(
+      <ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />,
+    );
+
+    await user.click(screen.getByTestId("production-time-unit-piece"));
+    unmount();
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    expect(screen.getByTestId("production-time-unit-total")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  it("names the group for a screen reader", () => {
+    render(<ProductionTimeCard viewModel={productionTimeMultiUnitFixture} />);
+
+    expect(
+      screen.getByRole("radiogroup", {
+        name: "Show production times for the whole order or per piece",
+      }),
+    ).toBeVisible();
   });
 });

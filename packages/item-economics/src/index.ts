@@ -82,12 +82,13 @@ export { parseErrorIdentity } from "./lib/error-identity";
 
 export {
   PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS,
-  PRODUCTION_TIME_UNIT_SUFFIX,
   PRODUCTION_TIME_VIEWPORT_ROW_COUNT,
   buildHeadlineCost,
   buildInfeasibleNotice,
   buildOutlook,
+  buildOutlookLabel,
   buildRowDetail,
+  buildRowUnitReading,
   buildSegments,
   formatPassCount,
   formatProductionCostMinor,
@@ -98,18 +99,25 @@ export {
   stateToTone,
 } from "./lib/production-time-view-model";
 export type {
+  ProductionTimeCardUnitViewModel,
   ProductionTimeCardViewModel,
   ProductionTimeHeadlineCostViewModel,
+  ProductionTimeHeadlineUnitViewModel,
   ProductionTimeHeadlineViewModel,
   ProductionTimeInfeasibleNoticeViewModel,
+  ProductionTimeNoBudgetUnitViewModel,
   ProductionTimeNoBudgetViewModel,
   ProductionTimeOutlookInput,
   ProductionTimeOutlookViewModel,
   ProductionTimeRowDetailViewModel,
+  ProductionTimeRowUnitInput,
+  ProductionTimeRowUnitViewModel,
   ProductionTimeRowViewModel,
+  ProductionTimeSecondsFormatter,
   ProductionTimeSegmentViewModel,
   ProductionTimeShareState,
   ProductionTimeTone,
+  ProductionTimeUnit,
   ProductionTimeViewModel,
 } from "./lib/production-time-view-model";
 

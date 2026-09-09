@@ -1,17 +1,19 @@
 import type { ItemEconomicsStatus, TaskProductionTime } from "../types";
 import {
   buildOutlook,
+  buildOutlookLabel,
   buildActiveMetrics,
   buildHeadlineCost,
   buildInfeasibleNotice,
   buildRowDetail,
+  buildRowUnitReading,
   buildSegments,
   buildTerminalMetrics,
-  PRODUCTION_TIME_UNIT_SUFFIX,
   formatUnitWorkSeconds,
   formatWorkSeconds,
   humanizeSectionState,
   stateToTone,
+  type ProductionTimeSecondsFormatter,
   type ProductionTimeRowViewModel,
   type ProductionTimeViewModel,
 } from "./production-time-view-model";
@@ -96,6 +98,44 @@ function decimalSeconds(value: string | null | undefined): number | null {
   return Number.isFinite(seconds) ? seconds : null;
 }
 
+/**
+ * The per-piece divisor, or null when there is nothing to divide: a one-piece
+ * order, where the two readings are the same numbers and no toggle is offered,
+ * or a quantity this response could not state. The schema's `.catch(1)` already
+ * turns a missing field into one unit; this also refuses a zero or a negative,
+ * which the backend documents as impossible but which would otherwise produce
+ * an `Infinity` that `formatUnitWorkSeconds` renders as a silent "0m" on every
+ * figure of the card.
+ *
+ * SANCTIONED CLIENT-SIDE DIVISION — read this before concluding the invariant
+ * broke. The package's rule is that a TYPICAL is never derived client-side: the
+ * server rounds `projected_typical_worker_seconds` half-even from
+ * `typical_unit_worker_seconds x projection_quantity`, so dividing the
+ * projection back would not reproduce the number it came from and the two
+ * readings of "Typical" would disagree with each other. That rule is upheld
+ * below without exception — the whole-order Typical is the SERVED projection,
+ * the per-piece Typical the SERVED unit median, and neither is ever computed
+ * from the other.
+ *
+ * Every OTHER duration on this card is divided by this quantity, and that is a
+ * different act: worked seconds, allowances, pressure shares, `left_seconds`
+ * and the task pot are exact second counts for this order, not rounded
+ * estimates of a population, so "per piece" is arithmetic on them rather than a
+ * second guess at a statistic. Money is not divided at all — a shortfall in
+ * kronor is a fact about the order.
+ *
+ * THE FORMATTER RULE. Every Typical reading rounds (`formatUnitWorkSeconds`) in
+ * both units, because a median is the one estimated figure on this card. Every
+ * other figure floors (`formatWorkSeconds`) whole-order, where it is an exact
+ * second count, and rounds per piece, where division has made it fractional.
+ */
+function unitDivisor(quantity: number): number | null {
+  return Number.isFinite(quantity) && quantity > 1 ? quantity : null;
+}
+
+/** The wording both readings of a row's allowance line share. */
+const ALLOWANCE_SUFFIX = "assigned";
+
 function toRows(
   dto: TaskProductionTime,
   hasBudget: boolean,
@@ -112,28 +152,37 @@ function toRows(
     const isPending = section.state === "pending";
     const isTerminal = TERMINAL_SECTION_STATES.has(section.state);
     const isExcluded = section.share_state === "excluded";
-    // The quantity-aware projection, not the raw historical median: it answers
-    // "how long should *this* order take", and is the only typical that may be
-    // read directly against a worked total. The raw median is the fallback for
-    // a backend mid-deploy, never a client-side multiplication
-    // (handoff quantity_normalized_typicals 2026-08-29).
+    // The quantity-aware projection: what the WHOLE-ORDER reading displays, and
+    // the only typical that may be read directly against a worked total. The
+    // raw median is the fallback for a backend mid-deploy, never a client-side
+    // multiplication (handoff quantity_normalized_typicals 2026-08-29).
     const projectedTypicalSeconds =
       section.typical?.projected_typical_worker_seconds ??
       section.typical?.typical_worker_seconds ??
       null;
-    // The per-piece median is what the row *displays*. It is the figure a
-    // worker can hold in their head — it does not move when the order quantity
-    // does — and it is comparable across orders, which the projection is not.
+    // The per-piece median: what the PER-PIECE reading displays. It is the
+    // figure a worker can hold in their head — it does not move when the order
+    // quantity does — and it is comparable across orders, which the projection
+    // is not.
     //
     // At quantity 1 the projection *is* the per-piece figure, so that identity
     // covers a mid-deploy backend that serves no unit field. Above quantity 1
     // there is no fallback: dividing the projection here would be exactly the
     // client-side derivation the handoff rules out, and the server rounds
     // half-even at the projection step, so the result would not even agree with
-    // the number it was derived from.
+    // the number it was derived from. On such a backend the per-piece reading
+    // simply has no typical while the whole-order one does — the one structural
+    // difference between the two, and the refusal working as intended.
     const unitTypicalSeconds =
       decimalSeconds(section.typical?.typical_unit_worker_seconds) ??
       (dto.projection_quantity === 1 ? projectedTypicalSeconds : null);
+    const divisor = unitDivisor(dto.projection_quantity);
+    // Decided once, on the whole-order row, and handed to the per-piece reading
+    // so both have the same shape.
+    const hasTerminalMetrics = isTerminal && hasBudget;
+    const hasActiveMetrics =
+      (isActive || isPending) && hasBudget && !isExcluded;
+    const hasDetail = isActive && hasBudget && !isExcluded;
 
     return {
       key: section.working_section_id || `${label}-${index}`,
@@ -149,7 +198,7 @@ function toRows(
       allowanceLabel:
         section.allowance_seconds === null || section.allowance_seconds <= 0
           ? null
-          : `${formatWorkSeconds(section.allowance_seconds)} assigned`,
+          : `${formatWorkSeconds(section.allowance_seconds)} ${ALLOWANCE_SUFFIX}`,
       // Compact blocked rows retain the served pressure. Active and pending
       // rows use activeMetrics, where it is capped by the assignment.
       pressureLabel:
@@ -157,60 +206,74 @@ function toRows(
           ? null
           : `${formatWorkSeconds(section.pressure_share_seconds)} pressure`,
       typicalLabel:
-        unitTypicalSeconds === null
+        projectedTypicalSeconds === null
           ? null
-          : `typical ${PRODUCTION_TIME_UNIT_SUFFIX} ${formatUnitWorkSeconds(
-              unitTypicalSeconds,
-            )}`,
-      // Whole-order deliberately: this line is glued to `workedLabel` — "25m of
-      // typically 50m" — and a per-piece figure there would invite the reader
-      // to subtract two numbers that are not in the same unit.
+          : `typical ${formatUnitWorkSeconds(projectedTypicalSeconds)}`,
+      // This line is glued to `workedLabel` — "25m of typically 50m" — so it
+      // must always be in the same unit as it. Both come from one reading, so
+      // they cannot flip independently.
       typicalComparisonLabel:
         projectedTypicalSeconds === null
           ? null
-          : `of typically ${formatWorkSeconds(projectedTypicalSeconds)}`,
+          : `of typically ${formatUnitWorkSeconds(projectedTypicalSeconds)}`,
       unitTypicalSeconds,
       projectedTypicalSeconds,
-      terminalMetrics:
-        isTerminal && hasBudget
-          ? buildTerminalMetrics(
+      terminalMetrics: hasTerminalMetrics
+        ? buildTerminalMetrics(
+            workedSeconds,
+            section.allowance_seconds,
+            projectedTypicalSeconds,
+          )
+        : null,
+      activeMetrics: hasActiveMetrics
+        ? buildActiveMetrics(
+            section.allowance_seconds,
+            section.pressure_share_seconds,
+            projectedTypicalSeconds,
+            section.left_seconds,
+            section.share_state,
+          )
+        : null,
+      detail: hasDetail
+        ? buildRowDetail(
+            workedSeconds,
+            section.allowance_seconds,
+            section.pressure_share_seconds,
+            section.left_seconds,
+            section.share_state,
+          )
+        : null,
+      unit:
+        divisor === null
+          ? null
+          : buildRowUnitReading({
+              quantity: divisor,
               workedSeconds,
-              section.allowance_seconds,
+              allowanceSeconds: section.allowance_seconds,
+              pressureSeconds: section.pressure_share_seconds,
+              leftSeconds: section.left_seconds,
               unitTypicalSeconds,
-            )
-          : null,
-      activeMetrics:
-        (isActive || isPending) && hasBudget && !isExcluded
-          ? buildActiveMetrics(
-              section.allowance_seconds,
-              section.pressure_share_seconds,
-              unitTypicalSeconds,
-              section.left_seconds,
-              section.share_state,
-            )
-          : null,
-      detail:
-        isActive && hasBudget && !isExcluded
-          ? buildRowDetail(
-              workedSeconds,
-              section.allowance_seconds,
-              section.pressure_share_seconds,
-              section.left_seconds,
-              section.share_state,
-            )
-          : null,
+              shareState: section.share_state,
+              hasTerminalMetrics,
+              hasActiveMetrics,
+              hasDetail,
+              allowanceSuffix: ALLOWANCE_SUFFIX,
+            }),
     };
   });
 }
 
-function remainingLabel(remainingSeconds: number | null): string | null {
+function remainingLabel(
+  remainingSeconds: number | null,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
+): string | null {
   if (remainingSeconds === null) {
     return null;
   }
 
   return remainingSeconds >= 0
-    ? `${formatWorkSeconds(remainingSeconds)} left`
-    : `${formatWorkSeconds(-remainingSeconds)} over`;
+    ? `${formatSeconds(remainingSeconds)} left`
+    : `${formatSeconds(-remainingSeconds)} over`;
 }
 
 /**
@@ -233,6 +296,7 @@ export function toProductionTimeViewModel(
 
   const hasBudget = dto.status === "ok" || dto.status === "infeasible";
   const rows = toRows(dto, hasBudget);
+  const divisor = unitDivisor(dto.projection_quantity);
   // The window and gate live on the per-section typical, not the task root, so
   // they are read from the first section that has one. A task with no typical
   // anywhere reports the basis without them rather than asserting a
@@ -262,6 +326,12 @@ export function toProductionTimeViewModel(
         rawStatus: dto.status,
         cta: null,
         rows,
+        // The sum is divided once rather than each summand, so no rounding
+        // compounds across the rows.
+        unit:
+          divisor === null
+            ? null
+            : { workedLabel: formatUnitWorkSeconds(workedSeconds / divisor) },
       },
     };
   }
@@ -344,6 +414,52 @@ export function toProductionTimeViewModel(
       remainderPercent,
       outlook,
       rows,
+      // No `segments` or `remainderPercent` here: every width is a ratio of
+      // figures that all divide by the same quantity, so the bar is identical
+      // in the two units.
+      unit:
+        divisor === null
+          ? null
+          : {
+              headline: {
+                workedLabel: formatUnitWorkSeconds(workedSeconds / divisor),
+                budgetLabel:
+                  isInfeasible || dto.budget.allowed_worker_minutes === null
+                    ? null
+                    : `of ${formatUnitWorkSeconds(budgetSeconds / divisor)}`,
+                remainingLabel: remainingLabel(
+                  remainingSeconds === null ? null : remainingSeconds / divisor,
+                  formatUnitWorkSeconds,
+                ),
+              },
+              // Restated, never re-gated: the whole-order `outlook` above
+              // already decided whether this sentence exists at all.
+              outlook:
+                outlook === null
+                  ? null
+                  : {
+                      label: buildOutlookLabel(
+                        outlook.remainingCommitmentSeconds / divisor,
+                        outlook.projectedOverrunSeconds / divisor,
+                        formatUnitWorkSeconds,
+                      ),
+                      remainingCommitmentSeconds:
+                        outlook.remainingCommitmentSeconds / divisor,
+                      projectedOverrunSeconds:
+                        outlook.projectedOverrunSeconds / divisor,
+                    },
+              infeasibleNotice: !isInfeasible
+                ? null
+                : buildInfeasibleNotice(
+                    // Untouched: the krona shortfall is the ORDER's in both
+                    // units. Only the "of work" figure beside it divides.
+                    dto.budget.production_budget_minor,
+                    (decimalMinutesToSeconds(
+                      dto.budget.allowed_worker_minutes,
+                    ) ?? 0) / divisor,
+                    formatUnitWorkSeconds,
+                  ),
+            },
     },
   };
 }

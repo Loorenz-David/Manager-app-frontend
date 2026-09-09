@@ -180,7 +180,6 @@ describe("toProductionTimeViewModel", () => {
     if (viewModel.kind !== "budget") return;
     expect(viewModel.card.rows[0]?.activeMetrics?.[1]).toEqual({
       label: "Over budget",
-      labelSuffix: null,
       valueLabel: "25m",
       supportingLabel: null,
       tone: "danger",
@@ -764,15 +763,15 @@ describe("toProductionTimeViewModel", () => {
       expect(viewModel.kind).toBe("budget");
       if (viewModel.kind !== "budget") return;
       expect(viewModel.card.rows[1]?.allowanceLabel).toBe("26m assigned");
-      // Per piece, whole minutes, and rounded: 2790s is 46m30s, which the
-      // whole-order formatter floors to "46m" and this one rounds to "47m".
-      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical pc 47m");
+      // Whole minutes, and rounded even in the whole-order reading: a median is
+      // the one estimated figure on the card, so 2790s — 46m30s — reads "47m"
+      // rather than being floored to "46m" like the exact counts beside it.
+      expect(viewModel.card.rows[1]?.typicalLabel).toBe("typical 47m");
       expect(
         viewModel.card.rows[1]?.activeMetrics?.map(
-          ({ label, labelSuffix, valueLabel }) =>
-            `${label}${labelSuffix ? ` ${labelSuffix}` : ""}:${valueLabel}`,
+          ({ label, valueLabel }) => `${label}:${valueLabel}`,
         ),
-      ).toEqual(["Budget:26m", "Pressure:26m", "Typical pc:47m"]);
+      ).toEqual(["Budget:26m", "Pressure:26m", "Typical:47m"]);
     });
 
     it("renders no allowance rather than '0m allowed' when there is none", () => {
@@ -799,10 +798,11 @@ describe("toProductionTimeViewModel", () => {
     });
   });
 
-  // Quantity-normalized typicals (handoff 2026-08-29). Everything a row says
-  // about "typical" answers how long *this* task should take, so it reads the
-  // server's projection. The raw median stays the allowance's reference and is
-  // only the fallback for a backend that has not shipped the projection.
+  // Quantity-normalized typicals (handoff 2026-08-29). Both readings of
+  // "typical" come off the wire: the whole-order one reads the server's
+  // projection, the per-piece one the served unit median. Neither is ever
+  // computed from the other. The raw median stays the allowance's reference and
+  // is only the fallback for a backend that has not shipped the projection.
   describe("quantity-projected typical", () => {
     function rowsForTypical(block: ReturnType<typeof typical>) {
       const base = makeDto().sections[0]!;
@@ -818,34 +818,43 @@ describe("toProductionTimeViewModel", () => {
       return viewModel.card.rows;
     }
 
-    it("displays the per-piece median on the typical label and tile", () => {
-      // Raw 600s, unit 140s, quantity 3 -> projection 420s. The row shows the
-      // 140s: it is the figure that does not move when the order size does.
+    it("serves each reading its own typical — projection, then unit median", () => {
+      // Raw 600s, unit 140s, quantity 3 -> projection 420s. The whole-order
+      // reading shows the 420s; the per-piece one the 140s, which is the figure
+      // that does not move when the order size does.
       const rows = rowsForTypical({
         ...typical(600, 420),
         typical_unit_worker_seconds: "140",
       });
 
-      expect(rows[0]?.typicalLabel).toBe("typical pc 2m");
+      expect(rows[0]?.typicalLabel).toBe("typical 7m");
       expect(
         rows[0]?.activeMetrics?.map(
-          ({ label, labelSuffix, valueLabel }) =>
-            `${label} ${labelSuffix}:${valueLabel}`,
+          ({ label, valueLabel }) => `${label}:${valueLabel}`,
         ),
-      ).toContain("Typical pc:2m");
+      ).toContain("Typical:7m");
+
+      expect(rows[0]?.unit?.typicalLabel).toBe("typical 2m");
+      expect(
+        rows[0]?.unit?.activeMetrics?.map(
+          ({ label, valueLabel }) => `${label}:${valueLabel}`,
+        ),
+      ).toContain("Typical:2m");
+
       expect(rows[0]?.unitTypicalSeconds).toBe(140);
       expect(rows[0]?.projectedTypicalSeconds).toBe(420);
     });
 
-    it("keeps the worked-time comparison whole-order, not per piece", () => {
+    it("keeps the worked-time comparison in the same unit as the time beside it", () => {
       // "25m of typically 7m" is a subtraction the reader can actually make.
-      // Putting the 2m20s per-piece figure here would not be.
+      // Both terms come from one reading, so they can never disagree on unit.
       const rows = rowsForTypical({
         ...typical(600, 420),
         typical_unit_worker_seconds: "140",
       });
 
       expect(rows[0]?.typicalComparisonLabel).toBe("of typically 7m");
+      expect(rows[0]?.unit?.typicalComparisonLabel).toBe("of typically 2m");
     });
 
     it("keeps a fractional per-piece median, rounding only at the formatter", () => {
@@ -857,21 +866,28 @@ describe("toProductionTimeViewModel", () => {
       });
 
       expect(rows[0]?.unitTypicalSeconds).toBe(142.5);
-      expect(rows[0]?.typicalLabel).toBe("typical pc 2m");
+      expect(rows[0]?.unit?.typicalLabel).toBe("typical 2m");
     });
 
-    it("never divides client-side — a multi-unit task with no unit figure shows no typical", () => {
+    it("never divides client-side — with no unit figure the per-piece reading has no typical", () => {
       // `.catch(null)` on the unit field covers a mid-deploy backend. Deriving
       // the per-piece number from the projection is exactly what the handoff
       // rules out, and the server's half-even rounding means the result would
       // not reproduce the projection anyway. No figure beats a wrong one.
+      //
+      // This is the ONE structural difference the toggle is allowed to have:
+      // the whole-order reading still shows the served projection, so the row
+      // loses its typical on the way to per piece rather than everywhere.
       const rows = rowsForTypical({
         ...typical(600),
         typical_unit_worker_seconds: null,
       });
 
-      expect(rows[0]?.typicalLabel).toBeNull();
       expect(rows[0]?.unitTypicalSeconds).toBeNull();
+      expect(rows[0]?.unit?.typicalLabel).toBeNull();
+      expect(rows[0]?.unit?.activeMetrics?.[2]?.valueLabel).toBe("-");
+
+      expect(rows[0]?.typicalLabel).toBe("typical 10m");
     });
 
     it("reads the projection as the per-piece figure at quantity 1", () => {
@@ -896,7 +912,11 @@ describe("toProductionTimeViewModel", () => {
         throw new Error("expected a budget card");
       }
 
-      expect(viewModel.card.rows[0]?.typicalLabel).toBe("typical pc 10m");
+      expect(viewModel.card.rows[0]?.typicalLabel).toBe("typical 10m");
+      // One piece: the two readings are the same numbers, so there is nothing
+      // to switch between and no toggle is offered.
+      expect(viewModel.card.rows[0]?.unit).toBeNull();
+      expect(viewModel.card.unit).toBeNull();
     });
 
     it("keeps the existing insufficient-sample state when both are null", () => {
@@ -920,3 +940,189 @@ type NoBudgetCaseStatus = Exclude<
   ItemEconomicsStatus,
   "ok" | "infeasible"
 >;
+
+// --- The per-piece reading --------------------------------------------------
+// Presence and tone are decided once, on the whole-order figures; only
+// magnitudes divide. A toggle press restates the card, never restructures it.
+
+describe("per-piece readings", () => {
+  function quantityDto(quantity: number): TaskProductionTime {
+    return makeDto({ projection_quantity: quantity });
+  }
+
+  function budgetCard(dto: TaskProductionTime) {
+    const viewModel = toProductionTimeViewModel(dto);
+    if (viewModel.kind !== "budget") {
+      throw new Error("expected a budget card");
+    }
+    return viewModel.card;
+  }
+
+  it("offers no reading — and so no toggle — on a one-piece order", () => {
+    const card = budgetCard(quantityDto(1));
+
+    expect(card.unit).toBeNull();
+    for (const row of card.rows) {
+      expect(row.unit).toBeNull();
+    }
+  });
+
+  it.each([0, -2])(
+    "degrades an impossible quantity of %i to the whole order",
+    (quantity) => {
+      // A zero would divide to Infinity, which the formatter renders as a
+      // silent "0m" on every figure of the card. It must read as "one unit",
+      // never as "no units".
+      const card = budgetCard(quantityDto(quantity));
+
+      expect(card.unit).toBeNull();
+      expect(card.rows[0]?.unit).toBeNull();
+    },
+  );
+
+  it("divides every exact count on the headline and the rows", () => {
+    const card = budgetCard(quantityDto(4));
+
+    // 9600s worked of 11700s allowed, 2100s left.
+    expect(card.headline.workedLabel).toBe("2h 40m");
+    expect(card.unit?.headline.workedLabel).toBe("40m");
+    expect(card.headline.budgetLabel).toBe("of 3h 15m");
+    expect(card.unit?.headline.budgetLabel).toBe("of 49m");
+    expect(card.headline.remainingLabel).toBe("35m left");
+    expect(card.unit?.headline.remainingLabel).toBe("9m left");
+
+    const active = card.rows[0]!;
+    expect(active.unit?.workedLabel).toBe("6m");
+    expect(active.unit?.allowanceLabel).toBe("15m assigned");
+    expect(active.unit?.pressureLabel).toBe("13m pressure");
+    expect(
+      active.unit?.activeMetrics?.map(
+        ({ label, valueLabel }) => `${label}:${valueLabel}`,
+      ),
+      // Budget and Pressure divide; Typical does not. The helper serves 3600s
+      // as the per-unit median, and it reaches the tile verbatim — that it is
+      // now LARGER than the divided budget beside it is the invariant working,
+      // not a slip: a typical is read off the wire, never derived.
+    ).toEqual(["Budget:15m", "Pressure:13m", "Typical:1h 0m"]);
+  });
+
+  it("leaves the bar geometry and every tone exactly where they were", () => {
+    const card = budgetCard(quantityDto(4));
+
+    for (const row of card.rows) {
+      if (!row.detail || !row.unit?.detail) continue;
+      expect(row.unit.detail.progressPercent).toBeCloseTo(
+        row.detail.progressPercent,
+      );
+      expect(row.unit.detail.positionTone).toBe(row.detail.positionTone);
+      expect(row.unit.detail.verdictTone).toBe(row.detail.verdictTone);
+    }
+  });
+
+  it("gives the two readings the same shape, row for row", () => {
+    const card = budgetCard(quantityDto(4));
+
+    for (const row of card.rows) {
+      expect(row.unit).not.toBeNull();
+      expect(row.unit!.terminalMetrics === null).toBe(
+        row.terminalMetrics === null,
+      );
+      expect(row.unit!.activeMetrics === null).toBe(row.activeMetrics === null);
+      expect(row.unit!.detail === null).toBe(row.detail === null);
+    }
+  });
+
+  it("keeps the excluded row's terminal grid, which the whole-order row has too", () => {
+    // The terminal guard is `isTerminal && hasBudget` and deliberately does not
+    // check `isExcluded`, so a cancelled+excluded row does carry a grid. Both
+    // readings must mirror that rather than tidying it into consistency.
+    const excluded = budgetCard(quantityDto(4)).rows.find(
+      (row) => row.isExcluded,
+    )!;
+
+    expect(excluded.terminalMetrics).not.toBeNull();
+    expect(excluded.unit?.terminalMetrics).not.toBeNull();
+  });
+
+  it("never divides money — only the notice's time figure moves", () => {
+    const dto = makeDto({
+      projection_quantity: 4,
+      status: "infeasible",
+      budget: {
+        allowed_worker_minutes: "-38.40",
+        actual_worker_seconds: 4_076,
+        actual_worker_minutes: "67.93",
+        remaining_worker_minutes: "-106.33",
+        percent_consumed: null,
+        production_budget_minor: -50_000,
+        consumed_cost_minor: 88_456,
+        variance_cost_minor: -138_456,
+      },
+    });
+    const card = budgetCard(dto);
+    const figures = (notice: typeof card.infeasibleNotice): string[] =>
+      (notice?.body ?? [])
+        .filter((segment) => segment.emphasis)
+        .map(({ text }) => text);
+
+    // The krona shortfall is the ORDER's in both units.
+    expect(figures(card.unit?.infeasibleNotice ?? null)[0]).toBe(
+      figures(card.infeasibleNotice)[0],
+    );
+    expect(figures(card.infeasibleNotice)[1]).toBe("38m");
+    expect(figures(card.unit?.infeasibleNotice ?? null)[1]).toBe("10m");
+
+    // The headline's money reading has no per-piece sibling at all.
+    expect(card.headline.cost).not.toBeNull();
+    expect(card.unit?.headline).not.toHaveProperty("cost");
+  });
+
+  it("restates the overrun outlook rather than re-gating it", () => {
+    const card = budgetCard(quantityDto(4));
+
+    // Presence is decided once, on the whole order.
+    expect(card.unit?.outlook === null).toBe(card.outlook === null);
+    if (card.outlook && card.unit?.outlook) {
+      expect(card.unit.outlook.projectedOverrunSeconds).toBeCloseTo(
+        card.outlook.projectedOverrunSeconds / 4,
+      );
+    }
+  });
+
+  it("reads the SERVED per-piece median, not the projection divided", () => {
+    // Unit 100s, projection 500s, quantity 3. A division would give 166.7s and
+    // render "3m" — the served figure renders "2m", so the two disagree and the
+    // assertion can tell them apart.
+    const base = makeDto().sections[0]!;
+    const card = budgetCard(
+      makeDto({
+        projection_quantity: 3,
+        sections: [
+          {
+            ...base,
+            typical: {
+              ...typical(500, 500),
+              typical_unit_worker_seconds: "100",
+            },
+          },
+        ],
+      }),
+    );
+
+    expect(card.rows[0]?.typicalLabel).toBe("typical 8m");
+    expect(card.rows[0]?.unit?.typicalLabel).toBe("typical 2m");
+  });
+
+  it("divides the degraded card's summed time once, not row by row", () => {
+    const card = toProductionTimeViewModel(
+      makeDto({ projection_quantity: 4, status: "not_evaluated" }),
+    );
+    if (card.kind !== "no_budget") {
+      throw new Error("expected a no-budget card");
+    }
+
+    // 1500 + 600 + 0 = 2100s worked, 525s per piece.
+    expect(card.card.workedLabel).toBe("35m");
+    expect(card.card.unit?.workedLabel).toBe("9m");
+  });
+});

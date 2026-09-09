@@ -11,9 +11,10 @@ import {
 } from "@beyo/upholstery";
 
 import { useListTasksQuery } from "../api/use-list-tasks-query";
+import { buildTaskListParams } from "../lib/task-list-params";
 import { useTasksPageStore } from "../store/tasks-page.store";
 import type { TaskCardViewModel, TaskListItemRaw } from "../types";
-import { TASK_DEFAULT_LIST_EXCLUDED_STATES, toTaskViewModel } from "../types";
+import { toTaskViewModel } from "../types";
 
 export type TaskRenderRow = UpholsteryGroupedRow<TaskCardViewModel>;
 
@@ -115,16 +116,14 @@ export function useTasksPageFlow(): TasksPageFlow {
   }, [q]);
 
   const params = useMemo(
-    () => ({
-      ...(taskType !== "all" ? { task_types: taskType } : {}),
-      ...(taskStates.length > 0 ? { task_states: taskStates.join(",") } : {}),
-      ...(debouncedQ ? { q: debouncedQ } : {}),
-      ...(itemPosition ? { item_position: itemPosition } : {}),
-      ...(groupByUpholstery ? { group_by_upholstery: true } : {}),
-      ...(taskStates.length === 0 && !debouncedQ
-        ? { not_task_states: TASK_DEFAULT_LIST_EXCLUDED_STATES.join(",") }
-        : {}),
-    }),
+    () =>
+      buildTaskListParams({
+        taskType,
+        taskStates,
+        q: debouncedQ,
+        itemPosition,
+        groupByUpholstery,
+      }),
     [debouncedQ, groupByUpholstery, itemPosition, taskStates, taskType],
   );
 

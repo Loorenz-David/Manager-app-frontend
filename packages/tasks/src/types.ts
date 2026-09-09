@@ -198,6 +198,18 @@ export type TaskItemLocation = (typeof TASK_ITEM_LOCATION)[number];
 export type TaskFulfillmentMethod = (typeof TASK_FULFILLMENT_METHOD)[number];
 export type PostHandlingState = (typeof POST_HANDLING_STATE)[number];
 
+/**
+ * The task states that describe finished work. Selecting one of these in the
+ * list filter switches the list into its "recently completed" cohort: the other
+ * states are cleared and the backend is asked to order by `completed_at`.
+ * Declared here rather than beside the other state constants because it needs
+ * `TaskState` to exist.
+ */
+export const TASK_COMPLETION_FILTER_STATES = [
+  "ready",
+  "resolved",
+] as const satisfies readonly TaskState[];
+
 export const TaskNoteContentBlockSchema = z
   .object({
     type: z.string(),
@@ -315,6 +327,11 @@ export const TaskListItemRawSchema = z.object({
     created_at: z.string(),
     updated_at: z.string().nullable(),
     closed_at: z.string().nullable(),
+    // The task's *current* completion. Set when the task enters `ready` or
+    // `resolved`, and cleared back to null when it is reopened to `working`.
+    // Not the same as `closed_at`: a `ready` task has a completion but no
+    // closure, and a `failed`/`cancelled` task has a closure but no completion.
+    completed_at: z.string().nullable(),
     is_deleted: z.boolean(),
     deleted_at: z.string().nullable(),
     post_handling: z.array(TaskPostHandlingSchema).nullable(),
@@ -343,6 +360,10 @@ export const TaskListItemRawSchema = z.object({
     })
     .nullable(),
   item_images: z.array(z.record(z.string(), z.unknown())),
+  // Newest step-state transition on the task, narrowed to `working_section_ids`
+  // when that filter is sent. A computed aggregate, so it sits on the list row
+  // rather than inside `task`. Only present on `GET /api/v1/tasks`.
+  last_interacted_at: z.string().nullable(),
 }).extend(UpholsteryGroupFieldsSchema.shape);
 export type TaskListItemRaw = z.infer<typeof TaskListItemRawSchema>;
 
@@ -435,6 +456,38 @@ export type CreateTaskInput = z.infer<typeof CreateTaskInputSchema>;
 
 export type TaskTypeFilter = TaskType | "all";
 
+/**
+ * Which of the task's three dates the list card shows. A completed task is
+ * described by when it finished, not by when it was due.
+ */
+export type TaskCardDateKind = "ready_by" | "completed" | "closed";
+
+export type TaskListCardDate = {
+  kind: TaskCardDateKind;
+  /** ISO string, or null when the task has no date of that kind. */
+  at: string | null;
+};
+
+/**
+ * Falls back to `ready_by` when the state's own date is missing — a `ready`
+ * task backfilled before `completed_at` existed still shows something useful,
+ * and the icon keeps agreeing with the value beside it.
+ */
+export function resolveTaskCardDate(
+  task: Pick<
+    TaskListItemRaw["task"],
+    "state" | "ready_by_at" | "closed_at" | "completed_at"
+  >,
+): TaskListCardDate {
+  if (task.state === "ready" && task.completed_at) {
+    return { kind: "completed", at: task.completed_at };
+  }
+  if (task.state === "resolved" && task.closed_at) {
+    return { kind: "closed", at: task.closed_at };
+  }
+  return { kind: "ready_by", at: task.ready_by_at };
+}
+
 export type TaskViewModel = TaskListItemRaw["task"] & {
   display_number: string;
   state_label: string;
@@ -442,6 +495,7 @@ export type TaskViewModel = TaskListItemRaw["task"] & {
   task_type_label: string;
   ready_by_formatted: string | null;
   scheduled_range_formatted: string | null;
+  display_date: TaskListCardDate;
   is_overdue: boolean;
   is_open: boolean;
   has_customer: boolean;
@@ -512,6 +566,7 @@ export function toTaskViewModel(task: TaskListItemRaw["task"]): TaskViewModel {
     task_type_label: task.task_type,
     ready_by_formatted: readyByFormatted,
     scheduled_range_formatted: scheduledRangeFormatted,
+    display_date: resolveTaskCardDate(task),
     is_overdue: isOverdue,
     is_open: !(TASK_TERMINAL_STATES as readonly string[]).includes(task.state),
     has_customer: Boolean(task.customer_id),

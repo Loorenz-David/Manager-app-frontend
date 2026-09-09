@@ -9,6 +9,7 @@ export {
   TASK_PRIORITY,
   TASK_RETURN_METHOD,
   TASK_ITEM_LOCATION,
+  TASK_COMPLETION_FILTER_STATES,
   TaskFlowRecordActorSchema,
   TaskFlowRecordSchema,
   TaskFlowRecordsPaginationSchema,
@@ -23,6 +24,7 @@ export {
   TaskStepCountsByStateSchema,
   TaskStepForPinSchema,
   TaskStepRichSchema,
+  resolveTaskCardDate,
   UpholsteryRequirementEntrySchema,
 } from "./types";
 export type {
@@ -35,9 +37,11 @@ export type {
   ListTaskFlowRecordsResponse,
   PostHandlingState,
   TaskAdditionalDetailsFields,
+  TaskCardDateKind,
   TaskCardViewModel,
   TaskDetailRaw,
   TaskFulfillmentMethod,
+  TaskListCardDate,
   TaskListItemRaw,
   TaskPriority,
   TaskPostHandling,
@@ -201,6 +205,14 @@ export {
   TASK_FORCE_READY_BLOCKED_STATES,
   TASK_STEP_OPEN_STATES,
 } from "./lib/force-task-ready";
+export { buildTaskListParams } from "./lib/task-list-params";
+export type { TaskListParamsInput } from "./lib/task-list-params";
+export {
+  isTaskCompletionFilterState,
+  resolveTaskListOrderBy,
+  resolveTaskStateSelection,
+  TASK_RECENTLY_COMPLETED_ORDER_BY,
+} from "./lib/task-state-filter";
 export { useRemoveTaskStep } from "./actions/use-remove-task-step";
 export { useTransitionTaskStep } from "./actions/use-transition-task-step";
 export type { TransitionTaskStepVariables } from "./actions/use-transition-task-step";

@@ -41,6 +41,7 @@ function buildTaskListItem() {
       created_at: "2026-07-28T08:00:00.000Z",
       updated_at: null,
       closed_at: null,
+      completed_at: null,
       is_deleted: false,
       deleted_at: null,
       post_handling: null,
@@ -74,6 +75,7 @@ function buildTaskListItem() {
         image_url: ITEM_IMAGE_URL,
       },
     ],
+    last_interacted_at: null,
   };
 }
 

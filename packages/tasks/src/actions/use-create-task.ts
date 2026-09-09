@@ -64,6 +64,7 @@ function buildOptimisticListItem(
       created_at: now,
       updated_at: null,
       closed_at: null,
+      completed_at: null,
       is_deleted: false,
       deleted_at: null,
       post_handling: null,
@@ -92,6 +93,7 @@ function buildOptimisticListItem(
         }
       : null,
     item_images: [],
+    last_interacted_at: null,
     upholstery_group_key: null,
     upholstery_group_image_url: null,
     upholstery_group_upholstery_id: null,

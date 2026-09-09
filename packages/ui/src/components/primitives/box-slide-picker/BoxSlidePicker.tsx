@@ -25,6 +25,7 @@ const INDICATOR_SPRING = {
 export function BoxSlidePicker<T extends string>({
   value,
   options,
+  ariaLabel,
   size = 'md',
   distribution = 'fill',
   disabled = false,
@@ -69,6 +70,7 @@ export function BoxSlidePicker<T extends string>({
 
   return (
     <div
+      aria-label={ariaLabel}
       className={cn(boxSlidePickerContainerVariants({ size }), className)}
       data-testid={dataTestId}
       role="radiogroup"

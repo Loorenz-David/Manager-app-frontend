@@ -41,12 +41,6 @@ export type ProductionTimeRowDetailViewModel = {
 
 export type ProductionTimeMetricViewModel = {
   label: string;
-  /**
-   * A unit qualifying the metric's name — "Typical" + "pc". Sits with the
-   * label rather than the number so the figure stays a bare duration, and so
-   * the tile's test id keeps following the metric rather than its copy.
-   */
-  labelSuffix: string | null;
   valueLabel: string;
   supportingLabel: string | null;
   tone: "neutral" | "success" | "danger";
@@ -81,24 +75,23 @@ export type ProductionTimeRowViewModel = {
   allowanceLabel: string | null;
   /** "pressure 43m" — the server's live, un-clamped open-work share. */
   pressureLabel: string | null;
-  /** "typical 2m/pc" — per piece, or null when the section has no typical yet. */
+  /** "typical 5m", in this reading's unit, or null when there is no typical. */
   typicalLabel: string | null;
   /**
-   * "of typically 50m" — the degraded, budget-less row line. Whole-order, not
-   * per piece: it is read directly against `workedLabel` beside it, which is
-   * the time the whole order has taken.
+   * "of typically 50m" — the degraded, budget-less row line. Always in the same
+   * unit as the `workedLabel` beside it, which is what it is read against: both
+   * come from one reading, so they cannot flip independently.
    */
   typicalComparisonLabel: string | null;
   /**
-   * The served per-piece median, quantity-independent. The number every
-   * "Typical" on the row displays, and null exactly when there is no typical.
+   * The served per-piece median, quantity-independent. What "Typical" displays
+   * in the per-piece reading, and null exactly when there is no typical.
    */
   unitTypicalSeconds: number | null;
   /**
-   * The same typical scaled to this task's quantity, as served. Not displayed
-   * anywhere today except the comparison line — kept on the row so the
-   * whole-order reading can be offered without re-deriving it, which the
-   * handoff forbids doing client-side.
+   * The same typical scaled to this task's quantity, as served. What "Typical"
+   * displays in the whole-order reading. Kept on the row rather than derived,
+   * because the handoff forbids computing either of the pair from the other.
    */
   projectedTypicalSeconds: number | null;
   /** Budget / Variance / Typical, only for terminal rows on budgeted tasks. */
@@ -107,7 +100,57 @@ export type ProductionTimeRowViewModel = {
   activeMetrics: ProductionTimeRowMetricsViewModel | null;
   /** Non-null only for an active row on a task that has a budget. */
   detail: ProductionTimeRowDetailViewModel | null;
+  /**
+   * The same row per piece. Null when the order is one piece — the two readings
+   * are the same numbers, so no toggle is offered — or when the served quantity
+   * was unusable.
+   */
+  unit?: ProductionTimeRowUnitViewModel | null;
 };
+
+/** Which unit the whole card is speaking in. */
+export type ProductionTimeUnit = "total" | "piece";
+
+/**
+ * The per-piece reading of one row.
+ *
+ * A `Pick` of the row itself, deliberately: every field here mirrors a
+ * whole-order field of the same name and means exactly the same thing for one
+ * piece, so a renderer holds ONE variable and every figure on the row moves
+ * together. Adding a whole-order duration without giving it a per-piece sibling
+ * then becomes a type error rather than a half-swapped card.
+ *
+ * WHY THE DIVISION BEHIND THIS IS NOT THE DERIVATION THE PACKAGE FORBIDS.
+ * The standing rule protects TYPICALS: the server rounds
+ * `projected_typical_worker_seconds` half-even from
+ * `typical_unit_worker_seconds x projection_quantity`, so dividing the
+ * projection back would not reproduce the number it came from and the two
+ * readings of "Typical" would disagree. That rule is upheld without exception —
+ * `typicalLabel`, `typicalComparisonLabel` and the Typical tile here are built
+ * from the SERVED per-unit median, their whole-order siblings from the SERVED
+ * projection, and neither is ever computed from the other.
+ *
+ * Every other figure here IS divided client-side by the quantity, which is a
+ * different act: worked seconds, allowances, pressure shares and `left_seconds`
+ * are exact second counts for this order, not rounded estimates of a
+ * population, so "per piece" is arithmetic on them rather than a second guess
+ * at a statistic.
+ *
+ * One structural difference between the readings is legitimate and is that same
+ * refusal at work: on a backend serving no per-unit median at quantity > 1, the
+ * whole-order reading shows the served projection while this one shows none.
+ */
+export type ProductionTimeRowUnitViewModel = Pick<
+  ProductionTimeRowViewModel,
+  | "workedLabel"
+  | "allowanceLabel"
+  | "pressureLabel"
+  | "typicalLabel"
+  | "typicalComparisonLabel"
+  | "terminalMetrics"
+  | "activeMetrics"
+  | "detail"
+>;
 
 export type ProductionTimeSegmentViewModel = {
   key: string;
@@ -142,6 +185,19 @@ export type ProductionTimeHeadlineViewModel = {
    */
   cost: ProductionTimeHeadlineCostViewModel | null;
 };
+
+/**
+ * The headline's three durations, per piece.
+ *
+ * Time only. `isOverBudget`, `isFinal` and the whole `cost` reading are facts
+ * about the ORDER: the sign of the variance does not change when both sides are
+ * divided by the same quantity, and money is never divided at all. The headline
+ * takes those three from its whole-order model in both units.
+ */
+export type ProductionTimeHeadlineUnitViewModel = Pick<
+  ProductionTimeHeadlineViewModel,
+  "workedLabel" | "budgetLabel" | "remainingLabel"
+>;
 
 /**
  * The forecast line under the bar: the unfinished sections' own targets no
@@ -192,6 +248,27 @@ export type ProductionTimeCardViewModel = {
   /** Null whenever the remaining work still fits, or the task is closed. */
   outlook: ProductionTimeOutlookViewModel | null;
   rows: ProductionTimeRowViewModel[];
+  /** Null exactly when the rows' own readings are — see the row's `unit`. */
+  unit?: ProductionTimeCardUnitViewModel | null;
+};
+
+/**
+ * The per-piece reading of the card's own figures. The rows carry theirs on
+ * `ProductionTimeRowViewModel.unit`.
+ *
+ * `segments` and `remainderPercent` are absent on purpose: both are ratios of
+ * figures that all divide by the same quantity, so the bar is identical in the
+ * two units and there is nothing to hold here.
+ *
+ * `outlook` and `infeasibleNotice` are non-null exactly when their whole-order
+ * siblings are. Whether an alert appears at all is decided once, on the
+ * whole-order figures — a unit toggle restates a warning, never conjures or
+ * silences one.
+ */
+export type ProductionTimeCardUnitViewModel = {
+  headline: ProductionTimeHeadlineUnitViewModel;
+  outlook: ProductionTimeOutlookViewModel | null;
+  infeasibleNotice: ProductionTimeInfeasibleNoticeViewModel | null;
 };
 
 export type ProductionTimeNoBudgetViewModel = {
@@ -206,7 +283,15 @@ export type ProductionTimeNoBudgetViewModel = {
   rawStatus: string;
   cta: { label: string; kind: "commit" | "valuation" } | null;
   rows: ProductionTimeRowViewModel[];
+  /** Null exactly when the rows' own readings are — see the row's `unit`. */
+  unit?: ProductionTimeNoBudgetUnitViewModel | null;
 };
+
+/** The degraded card's only card-level figure, per piece. */
+export type ProductionTimeNoBudgetUnitViewModel = Pick<
+  ProductionTimeNoBudgetViewModel,
+  "workedLabel"
+>;
 
 export type ProductionTimeViewModel =
   | { kind: "budget"; card: ProductionTimeCardViewModel }
@@ -249,8 +334,14 @@ export function formatWorkSeconds(seconds: number): string {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
-/** Marks a figure as per-piece rather than whole-order. */
-export const PRODUCTION_TIME_UNIT_SUFFIX = "pc";
+/**
+ * How a set of figures is rendered. Whole-order figures are exact second counts
+ * and floor; per-piece figures are those same counts divided, so they are
+ * fractional and round. A builder is handed one of these and the seconds it
+ * should apply it to — it never learns the quantity, which is the mechanical
+ * reason no builder can divide a typical.
+ */
+export type ProductionTimeSecondsFormatter = (seconds: number) => string;
 
 /**
  * Whole minutes, like every other figure on the card — seconds beside them
@@ -351,28 +442,34 @@ export function capPressureSeconds(
     : Math.min(normalizedSeconds(allowanceSeconds), pressure);
 }
 
-export function metricValueLabel(seconds: number | null): string {
-  return seconds === null ? "-" : formatWorkSeconds(normalizedSeconds(seconds));
+export function metricValueLabel(
+  seconds: number | null,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
+): string {
+  return seconds === null ? "-" : formatSeconds(normalizedSeconds(seconds));
 }
 
 /**
- * The Typical tile, in per-piece seconds.
+ * The Typical tile.
  *
- * The two tiles beside it — Budget, and Variance or Pressure — are whole-order,
- * so this one carries the "pc" marker in its supporting slot. Without it the
- * grid reads as three comparable figures and a single-piece typical next to a
- * whole-order budget looks like an enormous underrun.
+ * Whole-order it is handed the SERVED `projected_typical_worker_seconds`, per
+ * piece the SERVED `typical_unit_worker_seconds` — never one divided into the
+ * other. That is why it takes no formatter: both readings round, because a
+ * median is the one estimated figure on this card, and a formatter parameter
+ * here would be the affordance a future reader uses to divide a typical.
+ *
+ * No unit marker any more. The card's toggle names the unit once, for every
+ * figure at once, so a per-order Typical never sits in a per-piece grid.
  */
 export function buildTypicalMetric(
-  unitTypicalSeconds: number | null,
+  typicalSeconds: number | null,
 ): ProductionTimeMetricViewModel {
   return {
     label: "Typical",
-    labelSuffix: PRODUCTION_TIME_UNIT_SUFFIX,
     valueLabel:
-      unitTypicalSeconds === null
+      typicalSeconds === null
         ? "-"
-        : formatUnitWorkSeconds(normalizedSeconds(unitTypicalSeconds)),
+        : formatUnitWorkSeconds(normalizedSeconds(typicalSeconds)),
     supportingLabel: null,
     tone: "neutral",
   };
@@ -381,13 +478,13 @@ export function buildTypicalMetric(
 export function buildTerminalMetrics(
   workedSeconds: number,
   allowanceSeconds: number | null,
-  unitTypicalSeconds: number | null,
+  typicalSeconds: number | null,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
 ): ProductionTimeRowMetricsViewModel {
   const budgetSeconds =
     allowanceSeconds === null ? null : normalizedSeconds(allowanceSeconds);
   let variance: ProductionTimeMetricViewModel = {
     label: "Variance",
-    labelSuffix: null,
     valueLabel: "-",
     supportingLabel: null,
     tone: "neutral",
@@ -396,27 +493,27 @@ export function buildTerminalMetrics(
   if (budgetSeconds !== null) {
     const differenceSeconds = normalizedSeconds(workedSeconds) - budgetSeconds;
 
+    // The sign decides the branch before the formatter ever runs, so a
+    // per-piece variance under half a minute reads "-<1m over budget" rather
+    // than rounding to "0m" and turning a danger tile green on a toggle press.
     if (differenceSeconds > 0) {
       variance = {
         label: "Variance",
-        labelSuffix: null,
-        valueLabel: `-${formatWorkSeconds(differenceSeconds)}`,
+            valueLabel: `-${formatSeconds(differenceSeconds)}`,
         supportingLabel: "over budget",
         tone: "danger",
       };
     } else if (differenceSeconds < 0) {
       variance = {
         label: "Variance",
-        labelSuffix: null,
-        valueLabel: `+${formatWorkSeconds(-differenceSeconds)}`,
+            valueLabel: `+${formatSeconds(-differenceSeconds)}`,
         supportingLabel: "under budget",
         tone: "success",
       };
     } else {
       variance = {
         label: "Variance",
-        labelSuffix: null,
-        valueLabel: "0m",
+            valueLabel: "0m",
         supportingLabel: "on budget",
         tone: "success",
       };
@@ -426,40 +523,39 @@ export function buildTerminalMetrics(
   return [
     {
       label: "Budget",
-      labelSuffix: null,
-      valueLabel: metricValueLabel(budgetSeconds),
+        valueLabel: metricValueLabel(budgetSeconds, formatSeconds),
       supportingLabel: null,
       tone: "neutral",
     },
     variance,
-    buildTypicalMetric(unitTypicalSeconds),
+    buildTypicalMetric(typicalSeconds),
   ];
 }
 
 export function buildActiveMetrics(
   allowanceSeconds: number | null,
   pressureSeconds: number | null,
-  unitTypicalSeconds: number | null,
+  typicalSeconds: number | null,
   leftSeconds: number | null,
   shareState: ProductionTimeShareState,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
 ): ProductionTimeRowMetricsViewModel {
   const middleMetric: ProductionTimeMetricViewModel =
     shareState === "over_share"
       ? {
           label: "Over budget",
-          labelSuffix: null,
-          valueLabel:
+                valueLabel:
             leftSeconds !== null && leftSeconds < 0
-              ? formatWorkSeconds(-leftSeconds)
+              ? formatSeconds(-leftSeconds)
               : "-",
           supportingLabel: null,
           tone: "danger",
         }
       : {
           label: "Pressure",
-          labelSuffix: null,
-          valueLabel: metricValueLabel(
+                valueLabel: metricValueLabel(
             capPressureSeconds(allowanceSeconds, pressureSeconds),
+            formatSeconds,
           ),
           supportingLabel: null,
           tone: "neutral",
@@ -468,13 +564,12 @@ export function buildActiveMetrics(
   return [
     {
       label: "Budget",
-      labelSuffix: null,
-      valueLabel: metricValueLabel(allowanceSeconds),
+        valueLabel: metricValueLabel(allowanceSeconds, formatSeconds),
       supportingLabel: null,
       tone: "neutral",
     },
     middleMetric,
-    buildTypicalMetric(unitTypicalSeconds),
+    buildTypicalMetric(typicalSeconds),
   ];
 }
 
@@ -484,6 +579,11 @@ export function buildActiveMetrics(
  * the original assignment is exceeded, its served `left_seconds` owns the
  * overflow amount so a zero pressure target does not count all worked time as
  * budget overrun. The verdict remains the backend's `share_state`.
+ *
+ * Only `positionLabel` differs between the two unit readings. `progressPercent`
+ * is a ratio of two figures that divide by the same quantity — and
+ * `capPressureSeconds` is `min`/`max(0, ·)` composed, so it commutes with that
+ * division — which leaves the bar, both tones and every branch guard identical.
  */
 export function buildRowDetail(
   workedSeconds: number,
@@ -491,6 +591,7 @@ export function buildRowDetail(
   pressureSeconds: number | null,
   leftSeconds: number | null,
   shareState: ProductionTimeShareState,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
 ): ProductionTimeRowDetailViewModel {
   const isOverShare = shareState === "over_share";
   const verdictTone = isOverShare ? "over_share" : "on_track";
@@ -519,10 +620,10 @@ export function buildRowDetail(
       : targetSeconds - normalizedSeconds(workedSeconds);
   const isOverTarget = differenceSeconds !== null && differenceSeconds < 0;
   const positionLabel = isOverAssignedBudget
-    ? `${formatWorkSeconds(-leftSeconds)} over`
+    ? `${formatSeconds(-leftSeconds)} over`
     : isOverTarget
-      ? `${formatWorkSeconds(-(differenceSeconds ?? 0))} over`
-      : `${formatWorkSeconds(differenceSeconds ?? 0)} left`;
+      ? `${formatSeconds(-(differenceSeconds ?? 0))} over`
+      : `${formatSeconds(differenceSeconds ?? 0)} left`;
   const positionTone =
     isOverAssignedBudget || isOverTarget ? "over" : "neutral";
 
@@ -545,6 +646,109 @@ export function buildRowDetail(
   };
 }
 
+export type ProductionTimeRowUnitInput = {
+  /** Strictly greater than 1 — the caller has already decided a reading exists. */
+  quantity: number;
+  workedSeconds: number;
+  allowanceSeconds: number | null;
+  pressureSeconds: number | null;
+  leftSeconds: number | null;
+  /** The SERVED per-unit median. Passed through untouched; never divided. */
+  unitTypicalSeconds: number | null;
+  shareState: ProductionTimeShareState;
+  /**
+   * Presence is decided on the whole-order row and handed in, so the two
+   * readings always have the same shape: a toggle press restates the row and
+   * can never add or remove a metric grid.
+   */
+  hasTerminalMetrics: boolean;
+  hasActiveMetrics: boolean;
+  hasDetail: boolean;
+  /** The whole-order wording, so both readings say "assigned" or both "allowed". */
+  allowanceSuffix: string;
+};
+
+/**
+ * The per-piece reading of one row, shared by the DTO transform and the render
+ * fixtures so the two can never drift on the arithmetic or on the typical.
+ *
+ * The divisions here are the sanctioned ones — see
+ * `ProductionTimeRowUnitViewModel` for why dividing an allowance is not the
+ * derivation the package forbids. `unitTypicalSeconds` is the served figure and
+ * reaches the tile verbatim.
+ *
+ * Presence guards read the UNDIVIDED values, matching the whole-order row: a
+ * positive allowance stays positive when divided, so the two agree anyway, but
+ * reading the original is what makes that a guarantee rather than a coincidence.
+ */
+export function buildRowUnitReading(
+  input: ProductionTimeRowUnitInput,
+): ProductionTimeRowUnitViewModel {
+  const {
+    quantity,
+    allowanceSeconds,
+    pressureSeconds,
+    leftSeconds,
+    unitTypicalSeconds,
+    shareState,
+  } = input;
+  const perPiece = (seconds: number | null): number | null =>
+    seconds === null ? null : seconds / quantity;
+
+  const workedSeconds = input.workedSeconds / quantity;
+  const allowance = perPiece(allowanceSeconds);
+  const pressure = perPiece(pressureSeconds);
+  const left = perPiece(leftSeconds);
+
+  return {
+    workedLabel: formatUnitWorkSeconds(workedSeconds),
+    allowanceLabel:
+      allowanceSeconds === null || allowanceSeconds <= 0
+        ? null
+        : `${formatUnitWorkSeconds(allowance ?? 0)} ${input.allowanceSuffix}`,
+    pressureLabel:
+      pressureSeconds === null
+        ? null
+        : `${formatUnitWorkSeconds(pressure ?? 0)} pressure`,
+    typicalLabel:
+      unitTypicalSeconds === null
+        ? null
+        : `typical ${formatUnitWorkSeconds(unitTypicalSeconds)}`,
+    typicalComparisonLabel:
+      unitTypicalSeconds === null
+        ? null
+        : `of typically ${formatUnitWorkSeconds(unitTypicalSeconds)}`,
+    terminalMetrics: input.hasTerminalMetrics
+      ? buildTerminalMetrics(
+          workedSeconds,
+          allowance,
+          unitTypicalSeconds,
+          formatUnitWorkSeconds,
+        )
+      : null,
+    activeMetrics: input.hasActiveMetrics
+      ? buildActiveMetrics(
+          allowance,
+          pressure,
+          unitTypicalSeconds,
+          left,
+          shareState,
+          formatUnitWorkSeconds,
+        )
+      : null,
+    detail: input.hasDetail
+      ? buildRowDetail(
+          workedSeconds,
+          allowance,
+          pressure,
+          left,
+          shareState,
+          formatUnitWorkSeconds,
+        )
+      : null,
+  };
+}
+
 /** Sections that will not consume any more of the pot. */
 const SETTLED_SECTION_STATES = new Set([
   "completed",
@@ -556,8 +760,24 @@ const SETTLED_SECTION_STATES = new Set([
 /**
  * Below this the sentence is noise: `formatWorkSeconds` floors to minutes, so
  * a smaller gap would announce itself as "0m over".
+ *
+ * A WHOLE-ORDER threshold. Whether this sentence appears is a fact about the
+ * order, decided once, so the per-piece reading restates the same warning
+ * rather than re-gating it — which is why a per-piece restatement may
+ * legitimately read "~<1m over budget" on a large order.
  */
 export const PRODUCTION_TIME_OUTLOOK_MIN_OVERRUN_SECONDS = 60;
+
+/** "~43m expected left · ~16m over budget", in whichever unit the caller formats. */
+export function buildOutlookLabel(
+  remainingCommitmentSeconds: number,
+  projectedOverrunSeconds: number,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
+): string {
+  return `~${formatSeconds(
+    remainingCommitmentSeconds,
+  )} expected left · ~${formatSeconds(projectedOverrunSeconds)} over budget`;
+}
 
 export type ProductionTimeOutlookInput = {
   state: string | null | undefined;
@@ -614,11 +834,10 @@ export function buildOutlook(
   }
 
   return {
-    label: `~${formatWorkSeconds(
+    label: buildOutlookLabel(
       remainingCommitmentSeconds,
-    )} expected left · ~${formatWorkSeconds(
       projectedOverrunSeconds,
-    )} over budget`,
+    ),
     remainingCommitmentSeconds,
     projectedOverrunSeconds,
   };
@@ -708,8 +927,11 @@ const INFEASIBLE_NOTICE_TAIL = ", so there is nothing left for labour.";
  * landed at exactly zero, where there is no shortfall to name in either unit.
  */
 export function buildInfeasibleNotice(
+  /** Money. Never divided — a shortfall in kronor is the ORDER's, in both units. */
   productionBudgetMinor: number | null | undefined,
+  /** Already divided by the caller when this is the per-piece reading. */
   allowedWorkerSeconds: number | null,
+  formatSeconds: ProductionTimeSecondsFormatter = formatWorkSeconds,
 ): ProductionTimeInfeasibleNoticeViewModel {
   const shortfallMinor =
     typeof productionBudgetMinor === "number" && productionBudgetMinor < 0
@@ -730,7 +952,7 @@ export function buildInfeasibleNotice(
           ? []
           : [
               { text: " (about ", emphasis: false },
-              { text: formatWorkSeconds(shortfallSeconds), emphasis: true },
+              { text: formatSeconds(shortfallSeconds), emphasis: true },
               { text: " of work)", emphasis: false },
             ]),
         { text: INFEASIBLE_NOTICE_TAIL, emphasis: false },
@@ -748,7 +970,7 @@ export function buildInfeasibleNotice(
           text: "Costs already exceed the sale price by about ",
           emphasis: false,
         },
-        { text: formatWorkSeconds(shortfallSeconds), emphasis: true },
+        { text: formatSeconds(shortfallSeconds), emphasis: true },
         { text: ` of work${INFEASIBLE_NOTICE_TAIL}`, emphasis: false },
       ],
     };

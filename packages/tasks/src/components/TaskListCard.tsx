@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { m } from "framer-motion";
-import { Calendar, Check, ShoppingBag } from "lucide-react";
+import { Check, ShoppingBag } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { cn, daysUntil } from "@beyo/lib";
@@ -11,12 +11,19 @@ import {
   formatLocalDateYYMMDD,
   humanizeSnakeCase,
   RETURN_SOURCE_LABEL,
+  TASK_CARD_DATE_ICON,
+  TASK_CARD_DATE_LABEL,
   TASK_STATE_VARIANT,
   TASK_TYPE_ICON,
   TASK_TYPE_LABEL,
 } from "../lib/task-detail";
 import { TASK_TERMINAL_STATES } from "../types";
-import type { TaskReturnSource, TaskState, TaskType } from "../types";
+import type {
+  TaskListCardDate,
+  TaskReturnSource,
+  TaskState,
+  TaskType,
+} from "../types";
 
 const TASK_STATES_WITHOUT_DEADLINE_STATUS: readonly TaskState[] = [
   "ready",
@@ -93,6 +100,11 @@ export type TaskListCardProps = {
   /** Extra content rendered inside the card body, below the ready-by row. */
   bodyExtra?: React.ReactNode;
   statePill?: { label: string; variant: StatePillVariant };
+  /**
+   * Which date the card shows. Defaults to the task's ready-by date, so
+   * callers that build the `task` prop by hand keep their current behaviour.
+   */
+  dateDisplay?: TaskListCardDate;
   typeIcon?: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   showAssortment?: boolean;
   batchMode?: boolean;
@@ -114,6 +126,7 @@ export const TaskListCard = memo(function TaskListCard({
   onMissingValuesPress,
   bodyExtra,
   statePill,
+  dateDisplay,
   typeIcon,
   showAssortment = false,
   batchMode = false,
@@ -135,12 +148,19 @@ export const TaskListCard = memo(function TaskListCard({
     item?.item_major_category_snapshot?.toLowerCase() === "seat"
       ? `#${item.quantity}`
       : null;
-  const readyByLabel = formatLocalDateYYMMDD(task.ready_by_at);
+  const dateKind = dateDisplay?.kind ?? "ready_by";
+  // Ternary, not `??`: an explicit `{ kind: "completed", at: null }` must render
+  // nothing rather than fall back to a ready-by date under a completed icon.
+  const dateValue = dateDisplay ? dateDisplay.at : task.ready_by_at;
+  const dateLabel = formatLocalDateYYMMDD(dateValue);
+  const DateIcon = TASK_CARD_DATE_ICON[dateKind];
   const assortment = task.assortment?.trim();
+  // Stays on `ready_by_at`: the countdown is a deadline, never a measure of how
+  // long ago something finished.
   const days = daysUntil(task.ready_by_at);
-  const showDeadlineStatus = !TASK_STATES_WITHOUT_DEADLINE_STATUS.includes(
-    task.state,
-  );
+  const showDeadlineStatus =
+    dateKind === "ready_by" &&
+    !TASK_STATES_WITHOUT_DEADLINE_STATUS.includes(task.state);
   const stateLabel = humanizeSnakeCase(task.state) ?? task.state;
   const stateVariant: StatePillVariant =
     TASK_STATE_VARIANT[task.state] ?? "neutral";
@@ -253,10 +273,18 @@ export const TaskListCard = memo(function TaskListCard({
               </span>
             </div>
 
-            {readyByLabel ? (
-              <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                <Calendar aria-hidden="true" className="size-3.5 shrink-0" />
-                <span>{readyByLabel}</span>
+            {dateLabel ? (
+              <div
+                className="mt-2 flex items-center gap-1 text-xs text-muted-foreground"
+                data-date-kind={dateKind}
+                data-testid={`tasks-card-date-${taskId}`}
+              >
+                <DateIcon
+                  aria-label={TASK_CARD_DATE_LABEL[dateKind]}
+                  className="size-3.5 shrink-0"
+                  role="img"
+                />
+                <span>{dateLabel}</span>
                 {days !== null && showDeadlineStatus ? (
                   <DaysLeftPill days={days} />
                 ) : null}

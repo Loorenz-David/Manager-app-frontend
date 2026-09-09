@@ -53,7 +53,10 @@ export function useTasksViewController(): TasksViewController {
     setGroupByUpholstery,
   } = useTasksPageStore();
   // Grouping is a view mode, not a filter — it does not reduce results, so it is
-  // deliberately excluded from the "filters active" badge count.
+  // deliberately excluded from the "filters active" badge count. The completion
+  // sort implied by the ready/resolved pills is excluded for the same reason:
+  // the pills themselves are already counted, the ordering they imply is not a
+  // second filter.
   const activeFilterCount =
     taskStates.length + (taskType !== "all" ? 1 : 0) + (itemPosition ? 1 : 0);
 
