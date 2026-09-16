@@ -20,10 +20,12 @@ import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import { getTaskTypeIcon, getTaskTypeLabel } from "../domain/task-type-meta";
 import {
   formatDurationHM,
+  restingStepBudget,
   useLiveStepBudget,
   workerFacingAllowanceForBudget,
   workerFacingTypicalSeconds,
   type StepBudget,
+  type StepClockContext,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
 import { useLastActiveStepCardContext } from "../providers/LastActiveStepCardProvider";
@@ -112,8 +114,19 @@ function LastActiveStepCardTimer({
   totalWorkingSeconds,
   budget,
 }: LastActiveStepCardTimerProps): React.JSX.Element | null {
+  const clock: StepClockContext = {
+    stepState: state,
+    stateEnteredAtIso: lastStateRecord?.entered_at ?? null,
+  };
+
   if (state === "working" && budget) {
-    return <LastActiveStepCardWorkingBudgetTimer budget={budget} stepId={stepId} />;
+    return (
+      <LastActiveStepCardWorkingBudgetTimer
+        budget={budget}
+        clock={clock}
+        stepId={stepId}
+      />
+    );
   }
 
   if (state === "working" && lastStateRecord) {
@@ -129,19 +142,22 @@ function LastActiveStepCardTimer({
 
   if (state === "paused" || state === "ended_shift") {
     if (budget) {
+      // Frozen at the moment of the pause, not at the last poll — see
+      // projectStepBudget.
+      const paused = restingStepBudget(budget, clock);
       return (
         <span className="flex shrink-0 flex-col items-end">
           <span
             className="font-mono text-sm text-current opacity-80"
             data-testid="last-active-card-timer"
           >
-            {formatSecondsHHMMSS(budget.step.worked_seconds)}
+            {formatSecondsHHMMSS(paused.workedSeconds)}
           </span>
           <StepBudgetSecondaryLabel
             budget={budget}
-            leftSeconds={budget.step.left_seconds}
+            leftSeconds={paused.leftSeconds}
             stepId={stepId}
-            workedSeconds={budget.step.worked_seconds}
+            workedSeconds={paused.workedSeconds}
           />
         </span>
       );
@@ -191,13 +207,15 @@ function LastActiveStepCardTimer({
 type LastActiveStepCardWorkingBudgetTimerProps = {
   stepId: TaskStepId;
   budget: StepBudget;
+  clock: StepClockContext;
 };
 
 function LastActiveStepCardWorkingBudgetTimer({
   stepId,
   budget,
+  clock,
 }: LastActiveStepCardWorkingBudgetTimerProps): React.JSX.Element {
-  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget, clock);
 
   return (
     <span className="flex shrink-0 flex-col items-end">
@@ -557,6 +575,7 @@ export const LastActiveStepCard = memo(function LastActiveStepCard({
             <StepBudgetProgressLine
               budget={budget}
               state={vm.state}
+              stateEnteredAtIso={vm.lastStateRecord?.entered_at ?? null}
               stepId={vm.stepId}
             />
           ) : null}

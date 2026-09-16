@@ -18,6 +18,65 @@ export type TaskBudgetAllocationsSnapshot = {
   receivedAtMs: number;
 };
 
+/**
+ * TEMPORARY diagnostic (batch pause bug). For every step that is working or
+ * was working at the previous payload, prints how many seconds the SERVER
+ * credited it since that payload, against how many seconds actually passed.
+ *
+ * `rate` is the ratio. A single running step should sit at ~1.00. If several
+ * steps run at once and the server averages by concurrency, each one accrues
+ * at ~1/N while the client's timer counts a full second per second — which
+ * would make every one of them snap down on pause.
+ */
+const lastServed = new Map<string, { worked: number; atMs: number }>();
+
+function logServedAccrualRates(
+  allocations: { steps: { step_id: string; state: string; worked_seconds: number }[] }[],
+  receivedAtMs: number,
+): void {
+  const rows: Record<string, unknown>[] = [];
+
+  for (const allocation of allocations) {
+    for (const step of allocation.steps) {
+      const previous = lastServed.get(step.step_id);
+      const isRelevant = step.state === "working" || step.state === "paused";
+      if (!isRelevant && !previous) {
+        continue;
+      }
+
+      if (previous && (step.state === "working" || previous.worked !== step.worked_seconds)) {
+        const elapsedSec = (receivedAtMs - previous.atMs) / 1000;
+        const creditedSec = step.worked_seconds - previous.worked;
+        rows.push({
+          id: step.step_id.slice(-6),
+          state: step.state,
+          worked: step.worked_seconds,
+          credited: creditedSec,
+          elapsed: Math.round(elapsedSec),
+          rate: elapsedSec > 0 ? (creditedSec / elapsedSec).toFixed(2) : "n/a",
+        });
+      }
+
+      if (isRelevant) {
+        lastServed.set(step.step_id, {
+          worked: step.worked_seconds,
+          atMs: receivedAtMs,
+        });
+      } else {
+        lastServed.delete(step.step_id);
+      }
+    }
+  }
+
+  if (rows.length > 0) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[step-clock ${new Date(receivedAtMs).toISOString().slice(11, 23)}] served-rate`,
+      JSON.stringify(rows),
+    );
+  }
+}
+
 export function useTaskBudgetAllocationsQuery(taskIds: TaskId[]) {
   // Deduped and sorted so pagination order and page growth don't churn the
   // query key beyond actual membership changes.
@@ -28,10 +87,13 @@ export function useTaskBudgetAllocationsQuery(taskIds: TaskId[]) {
 
   return useQuery({
     queryKey: itemEconomicsKeys.taskBudgetAllocations(normalizedIds),
-    queryFn: async (): Promise<TaskBudgetAllocationsSnapshot> => ({
-      allocations: await fetchTaskBudgetAllocations(normalizedIds),
-      receivedAtMs: Date.now(),
-    }),
+    queryFn: async (): Promise<TaskBudgetAllocationsSnapshot> => {
+      const allocations = await fetchTaskBudgetAllocations(normalizedIds);
+      const receivedAtMs = Date.now();
+      // TEMPORARY diagnostic (batch pause bug) — remove with its siblings.
+      logServedAccrualRates(allocations, receivedAtMs);
+      return { allocations, receivedAtMs };
+    },
     enabled: normalizedIds.length > 0,
     // Live operational projection, same polling window as production time;
     // TanStack pauses the interval in hidden tabs.

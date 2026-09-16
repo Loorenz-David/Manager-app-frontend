@@ -1,5 +1,8 @@
 import { useTickingElapsed } from "@beyo/lib";
 import type { BudgetAllocationStep } from "@beyo/item-economics";
+import type { StepState } from "../types";
+// TEMPORARY — see lib/step-clock-debug.ts
+import { logStepClockOnce } from "../lib/step-clock-debug";
 
 /**
  * A step's budget row paired with the moment its payload was received.
@@ -81,25 +84,127 @@ export function workerFacingTypicalSeconds(budget: StepBudget): number | null {
   );
 }
 
-// Only meant to be mounted while the step is working, so idle cards never
-// subscribe to the shared one-second ticker. The served value is the
-// baseline on every receipt (live-clock handoff §5): elapsed time is added on
-// top from the moment of receipt, and a served decrease snaps down in one
-// step because the baseline resets — never clamped to the previous maximum,
-// never animated.
-export function useLiveStepBudget(budget: StepBudget): LiveStepBudget {
-  const elapsedMs = useTickingElapsed(budget.receivedAtMs);
-  const elapsedSeconds = Math.floor(elapsedMs / 1000);
-  const workedSeconds = budget.step.worked_seconds + elapsedSeconds;
+/**
+ * What this client believes the step is doing, which is not always what the
+ * served payload believes. A start or a pause patches the cache optimistically
+ * while the budget payload in hand can still be up to a poll interval old.
+ */
+export type StepClockContext = {
+  stepState: StepState;
+  /** `last_state_record.entered_at` — when the client's state began. */
+  stateEnteredAtIso: string | null;
+};
+
+/**
+ * The window of work the client may add on top of the served `worked_seconds`.
+ *
+ * Anchoring to `receivedAtMs` alone is only correct while the payload itself
+ * was serving a working step. A payload fetched while the step was paused
+ * carries no part of the current run, so adding the time since its receipt
+ * credits the step for a period it was idle — the jump a worker sees when
+ * pressing Start, undone a second later by the refetch. The four cases:
+ *
+ * | served row | this client | accrues over |
+ * |---|---|---|
+ * | working | working | receipt (or the run's start, if later) → now |
+ * | paused  | working | the run's start → now |
+ * | working | paused  | receipt → the moment of the pause |
+ * | paused  | paused  | nothing; the served value is already whole |
+ *
+ * This stays inside live-clock handoff §5: elapsed time is only ever added on
+ * top of the served value, the served value is never replaced, and a real
+ * decrease still snaps down because the baseline resets on every receipt.
+ */
+function accruedSecondsSince(
+  budget: StepBudget,
+  { stepState, stateEnteredAtIso }: StepClockContext,
+  nowMs: number,
+): number {
+  const localRunning = stepState === "working";
+  const servedRunning = budget.step.state === "working";
+
+  if (!localRunning && !servedRunning) {
+    return 0;
+  }
+
+  const parsedEnteredAtMs =
+    stateEnteredAtIso === null ? Number.NaN : Date.parse(stateEnteredAtIso);
+  // Without a local record there is nothing better to anchor to than receipt.
+  const enteredAtMs = Number.isNaN(parsedEnteredAtMs)
+    ? budget.receivedAtMs
+    : parsedEnteredAtMs;
+
+  const startMs = servedRunning
+    ? localRunning
+      ? // A run that began after the payload was served is not covered by it —
+        // the payload predates a pause/resume round trip.
+        Math.max(budget.receivedAtMs, enteredAtMs)
+      : budget.receivedAtMs
+    : enteredAtMs;
+  const endMs = localRunning ? nowMs : enteredAtMs;
+
+  return Math.max(0, Math.floor((endMs - startMs) / 1000));
+}
+
+/**
+ * Pure: the figures a card should show for one step at one instant. Idle cards
+ * call this directly so they never subscribe to the shared one-second ticker —
+ * their result does not depend on `nowMs` at all.
+ */
+export function projectStepBudget(
+  budget: StepBudget,
+  context: StepClockContext,
+  nowMs: number,
+): LiveStepBudget {
+  const accruedSeconds = accruedSecondsSince(budget, context, nowMs);
+  const workedSeconds = budget.step.worked_seconds + accruedSeconds;
   const leftSeconds =
     budget.step.left_seconds === null
       ? null
-      : budget.step.left_seconds - elapsedSeconds;
+      : budget.step.left_seconds - accruedSeconds;
   // The over-budget state keys on the step's own position, not on
   // share_state — that one describes the whole section (handoff §5 nuance).
   const isOver = leftSeconds !== null && leftSeconds < 0;
 
   return { workedSeconds, leftSeconds, isOver };
+}
+
+/**
+ * The figures for a step this client is not running. A resting step's position
+ * is fixed by the moment it stopped, so this needs no clock at all — which is
+ * what makes it safe to call during render, unlike anything reading
+ * `Date.now()`. Pass the state the card is actually rendering; a running step
+ * routed through here would simply hold its served value.
+ */
+export function restingStepBudget(
+  budget: StepBudget,
+  context: StepClockContext,
+): LiveStepBudget {
+  const result = projectStepBudget(budget, context, budget.receivedAtMs);
+
+  // TEMPORARY — see lib/step-clock-debug.ts
+  logStepClockOnce(`resting:${budget.step.step_id}`, "resting", {
+    id: budget.step.step_id.slice(-6),
+    servedState: budget.step.state,
+    servedWorked: budget.step.worked_seconds,
+    payloadAgeSec: Math.round((Date.now() - budget.receivedAtMs) / 1000),
+    localState: context.stepState,
+    localEnteredAt: context.stateEnteredAtIso?.slice(11, 23) ?? null,
+    shows: result.workedSeconds,
+  });
+
+  return result;
+}
+
+// Only meant to be mounted while the step is working, so idle cards never
+// subscribe to the shared one-second ticker.
+export function useLiveStepBudget(
+  budget: StepBudget,
+  context: StepClockContext,
+): LiveStepBudget {
+  const elapsedMs = useTickingElapsed(budget.receivedAtMs);
+
+  return projectStepBudget(budget, context, budget.receivedAtMs + elapsedMs);
 }
 
 export const STEP_BUDGET_TONE_FILL: Record<StepBudgetTone, string> = {

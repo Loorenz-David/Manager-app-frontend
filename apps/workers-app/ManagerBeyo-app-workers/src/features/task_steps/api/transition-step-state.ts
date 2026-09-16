@@ -22,6 +22,12 @@ const ImmediateTransitionDataSchema = z
     new_state: StepStateSchema,
     last_state_record: LastStateRecordSchema,
     was_final_step: z.boolean(),
+    /**
+     * The step's settled working seconds as of the commit, excluding the run
+     * this transition just opened (settlement-window answer §5). Optional so a
+     * backend that predates it cannot fail the whole transition.
+     */
+    total_working_seconds: z.number().int().optional(),
   })
   .transform((data) => ({ kind: "immediate" as const, ...data }));
 

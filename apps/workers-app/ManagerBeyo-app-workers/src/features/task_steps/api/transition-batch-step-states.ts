@@ -14,6 +14,8 @@ const ResponseDataSchema = z.object({
       new_state: StepStateSchema,
       last_state_record: LastStateRecordSchema,
       was_final_step: z.boolean(),
+      /** Settled seconds at commit, mirroring the single-step response. */
+      total_working_seconds: z.number().int().optional(),
     }),
   ),
 });

@@ -1,10 +1,13 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTickingElapsed } from "@beyo/lib";
 import type { TaskStepId } from "@beyo/lib";
 import {
   budgetToneFor,
+  projectStepBudget,
+  restingStepBudget,
   STEP_BUDGET_TONE_FILL,
   type StepBudget,
+  type StepClockContext,
   workerFacingAllowanceForBudget,
 } from "../domain/step-budget";
 import type { StepState } from "../types";
@@ -80,6 +83,7 @@ function StaticBar({
 type GrowingBarProps = {
   stepId: TaskStepId;
   budget: StepBudget;
+  clock: StepClockContext;
   allowanceSeconds: number;
 };
 
@@ -96,11 +100,24 @@ type GrowingBarProps = {
 function GrowingBar({
   stepId,
   budget,
+  clock,
   allowanceSeconds,
 }: GrowingBarProps): React.JSX.Element {
   const fillRef = useRef<HTMLDivElement>(null);
   const elapsedMs = useTickingElapsed(budget.receivedAtMs);
-  const workedSeconds = budget.step.worked_seconds + Math.floor(elapsedMs / 1000);
+  // Held by identity so the geometry effect below re-runs on a real anchor
+  // change (the server-confirmed record replacing the optimistic one) and not
+  // on every render, which would restart the transition mid-flight.
+  const { stepState, stateEnteredAtIso } = clock;
+  const clockContext = useMemo(
+    () => ({ stepState, stateEnteredAtIso }),
+    [stepState, stateEnteredAtIso],
+  );
+  const { workedSeconds } = projectStepBudget(
+    budget,
+    clockContext,
+    budget.receivedAtMs + elapsedMs,
+  );
   const tone = budgetToneFor(workedSeconds, allowanceSeconds);
 
   useEffect(() => {
@@ -109,16 +126,11 @@ function GrowingBar({
 
     // Re-derived here rather than taken from the render above: this runs once
     // per payload, and the render's value ticks on.
-    const elapsedSinceReceiptSeconds = Math.max(
-      0,
-      (Date.now() - budget.receivedAtMs) / 1000,
-    );
-    const servedWorkedSeconds =
-      budget.step.worked_seconds + elapsedSinceReceiptSeconds;
+    const projected = projectStepBudget(budget, clockContext, Date.now());
+    const servedWorkedSeconds = projected.workedSeconds;
     const secondsToFull = Math.max(
       0,
-      (budget.step.left_seconds ?? allowanceSeconds - budget.step.worked_seconds) -
-        elapsedSinceReceiptSeconds,
+      projected.leftSeconds ?? allowanceSeconds - servedWorkedSeconds,
     );
 
     // Snap to where the server says the step actually is. A payload that
@@ -137,7 +149,7 @@ function GrowingBar({
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [allowanceSeconds, budget]);
+  }, [allowanceSeconds, budget, clockContext]);
 
   return (
     <div
@@ -167,6 +179,8 @@ type StepBudgetProgressLineProps = {
   stepId: TaskStepId;
   budget: StepBudget | null;
   state: StepState;
+  /** `last_state_record.entered_at` — the anchor of the client's own clock. */
+  stateEnteredAtIso: string | null;
 };
 
 /**
@@ -182,6 +196,7 @@ export function StepBudgetProgressLine({
   stepId,
   budget,
   state,
+  stateEnteredAtIso,
 }: StepBudgetProgressLineProps): React.JSX.Element | null {
   const allowanceSeconds = budget
     ? workerFacingAllowanceForBudget(budget)
@@ -190,11 +205,14 @@ export function StepBudgetProgressLine({
     return null;
   }
 
+  const clock: StepClockContext = { stepState: state, stateEnteredAtIso };
+
   if (state === "working") {
     return (
       <GrowingBar
         allowanceSeconds={allowanceSeconds}
         budget={budget}
+        clock={clock}
         stepId={stepId}
       />
     );
@@ -204,7 +222,7 @@ export function StepBudgetProgressLine({
     <StaticBar
       allowanceSeconds={allowanceSeconds}
       stepId={stepId}
-      workedSeconds={budget.step.worked_seconds}
+      workedSeconds={restingStepBudget(budget, clock).workedSeconds}
     />
   );
 }

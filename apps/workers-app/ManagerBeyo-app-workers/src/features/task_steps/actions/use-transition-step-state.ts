@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { runWhenUiSettled } from "@beyo/ui";
+import {
+  itemEconomicsKeys,
+  type TaskBudgetAllocationsSnapshot,
+} from "@beyo/item-economics";
 import { notify, type WorkingSectionId } from "@beyo/lib";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { transitionStepState } from "../api/transition-step-state";
@@ -80,6 +84,59 @@ function patchStepStateInSectionCache(
           };
         }),
       };
+    },
+  );
+}
+
+/**
+ * Seeds the served budget row with the settled total the transition response
+ * carries (settlement-window answer §5), so the card holds an authoritative
+ * figure from the moment the request returns rather than from the refetch.
+ *
+ * `state` and `worked_seconds` must move together: the projection adds elapsed
+ * time on top of a row it believes is running, so a row left as `working` with
+ * an already-complete total would count the run twice.
+ *
+ * `receivedAtMs` is deliberately left alone. It is the smoothing baseline for
+ * every step in the snapshot, and re-anchoring it here would silently discard
+ * the accrual of every other running step in the same payload.
+ */
+function seedSettledWorkedSeconds(
+  queryClient: ReturnType<typeof useQueryClient>,
+  stepId: string,
+  newState: StepState,
+  totalWorkingSeconds: number,
+) {
+  queryClient.setQueriesData<TaskBudgetAllocationsSnapshot>(
+    { queryKey: itemEconomicsKeys.taskBudgetAllocationsAll() },
+    (old) => {
+      if (!old) {
+        return old;
+      }
+
+      let patched = false;
+      const allocations = old.allocations.map((allocation) => ({
+        ...allocation,
+        steps: allocation.steps.map((step) => {
+          if (step.step_id !== stepId) {
+            return step;
+          }
+
+          patched = true;
+          const deltaSeconds = totalWorkingSeconds - step.worked_seconds;
+          return {
+            ...step,
+            state: newState,
+            worked_seconds: totalWorkingSeconds,
+            left_seconds:
+              step.left_seconds === null
+                ? null
+                : step.left_seconds - deltaSeconds,
+          };
+        }),
+      }));
+
+      return patched ? { ...old, allocations } : old;
     },
   );
 }
@@ -180,6 +237,13 @@ export function useTransitionStepState() {
       await queryClient.cancelQueries({
         queryKey: taskStepKeys.userLastActive(),
       });
+      // The budget poll runs on its own 45s interval. One already in flight was
+      // built before this transition, so letting it land would seat a payload
+      // that still describes the previous state — the timer's anchor. The
+      // socket handler and onSettled below refetch it afterwards either way.
+      await queryClient.cancelQueries({
+        queryKey: itemEconomicsKeys.tasks(),
+      });
 
       const previousSectionLists =
         queryClient.getQueriesData<TaskStepsPagination>({
@@ -268,6 +332,15 @@ export function useTransitionStepState() {
         data.new_state,
         data.last_state_record,
       );
+
+      if (data.total_working_seconds !== undefined) {
+        seedSettledWorkedSeconds(
+          queryClient,
+          data.step_id,
+          data.new_state,
+          data.total_working_seconds,
+        );
+      }
 
       // For paused / ended_shift transitions, patch userLastActive in-place with
       // the server-confirmed state — no network round-trip, no flicker.

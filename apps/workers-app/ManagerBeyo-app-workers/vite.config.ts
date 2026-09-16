@@ -55,6 +55,10 @@ export default defineConfig({
       devOptions: {
         enabled: true,
         type: "module",
+        // The dev service worker logs "Precaching did not find a match" for
+        // every module and API call, which is expected in dev (nothing is
+        // precached) and drowns the console during debugging.
+        suppressWarnings: true,
       },
     }),
   ] as PluginOption[],

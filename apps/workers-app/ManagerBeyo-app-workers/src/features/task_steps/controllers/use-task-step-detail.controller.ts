@@ -26,6 +26,10 @@ import {
   type ItemCategoryViewModel,
 } from "@beyo/item-categories";
 import {
+  buildStepBudgetMap,
+  useTaskBudgetAllocationsQuery,
+} from "@beyo/item-economics";
+import {
   CASE_CONVERSATION_SURFACE_ID,
   CASE_CREATION_SLIDE_SURFACE_ID,
   CASE_TYPE_PICKER_SHEET_SURFACE_ID,
@@ -217,6 +221,29 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     () => (step ? toTaskStepCardViewModel(step) : null),
     [step],
   );
+
+  // The surface is handed a budget snapshot when it opens, but a snapshot alone
+  // cannot carry a clock: the step's live figures are projected from the served
+  // payload's own state, so a payload frozen at open time knows nothing about a
+  // run that started afterwards — the step would fall back to its pre-run total
+  // the moment it was paused. The snapshot stays as the first-paint value only.
+  const budgetTaskId = step?.task_id ?? null;
+  const budgetTaskIds = useMemo(
+    () => (budgetTaskId ? [budgetTaskId as TaskId] : []),
+    [budgetTaskId],
+  );
+  const budgetQuery = useTaskBudgetAllocationsQuery(budgetTaskIds);
+  const budget = useMemo<StepBudget | null>(() => {
+    if (!step || !budgetQuery.data) {
+      return initialBudget ?? null;
+    }
+
+    const { allocations, receivedAtMs } = budgetQuery.data;
+    const budgetStep = buildStepBudgetMap(allocations).get(step.client_id);
+    return budgetStep
+      ? { step: budgetStep, receivedAtMs }
+      : (initialBudget ?? null);
+  }, [budgetQuery.data, initialBudget, step]);
   const allowsShopifyProductModifications = useMemo(() => {
     const cached = queryClient.getQueryData<WorkerWorkingSection[]>(workerWorkingSectionKeys.mine());
     return cached?.find((section) => section.client_id === resolvedWorkingSectionId)?.allows_shopify_product_modifications ?? false;
@@ -720,7 +747,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
     isItemCategoryError,
     isSeatCategory,
     vm,
-    budget: initialBudget ?? null,
+    budget,
     // An initial step is already sufficient to render the detail surface while
     // the shared listing query is being reused or refreshed in the background.
     isPending: query.isPending && !step,

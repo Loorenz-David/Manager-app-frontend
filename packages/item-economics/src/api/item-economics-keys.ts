@@ -47,8 +47,16 @@ export const itemEconomicsKeys = {
    * start/pause transitions refresh the step cards' worked/left figures
    * immediately.
    */
+  /**
+   * The branch every batched allocations query hangs off, whatever ids it was
+   * built with — so a single step's served row can be patched across all of
+   * them (the detail surface's one-task query and the list's batched one both
+   * hold it).
+   */
+  taskBudgetAllocationsAll: () =>
+    [...itemEconomicsKeys.tasks(), "budget-allocations"] as const,
   taskBudgetAllocations: (taskIds: readonly TaskId[]) =>
-    [...itemEconomicsKeys.tasks(), "budget-allocations", taskIds] as const,
+    [...itemEconomicsKeys.taskBudgetAllocationsAll(), taskIds] as const,
 
   taskBudgetSignals: (taskIds: readonly TaskId[]) =>
     [...itemEconomicsKeys.tasks(), "budget-signals", taskIds] as const,

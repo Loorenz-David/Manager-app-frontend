@@ -5,10 +5,12 @@ import { usePreloadSurface } from "@beyo/hooks";
 import { formatSecondsHHMMSS } from "../domain/formatSecondsHHMMSS";
 import {
   formatDurationHM,
+  restingStepBudget,
   useLiveStepBudget,
   workerFacingAllowanceForBudget,
   workerFacingTypicalSeconds,
   type StepBudget,
+  type StepClockContext,
 } from "../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../domain/step-budget-presentation";
 import { preloadPauseReasonSheetSurface } from "../surfaces";
@@ -88,6 +90,7 @@ type WorkingBudgetButtonProps = {
   stepId: TaskStepId;
   label: string;
   budget: StepBudget;
+  clock: StepClockContext;
   disabled: boolean;
   onClick: () => void;
 };
@@ -96,10 +99,11 @@ function WorkingBudgetButton({
   stepId,
   label,
   budget,
+  clock,
   disabled,
   onClick,
 }: WorkingBudgetButtonProps): React.JSX.Element {
-  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget, clock);
 
   return (
     <ActionButtonShell
@@ -154,11 +158,16 @@ export function TaskStepActionButton({
       ? "Pause Task"
       : "Switch to Start";
   const handleClick = (): void => onTransition(stepId, taskId, nextState);
+  const clock: StepClockContext = {
+    stepState: state,
+    stateEnteredAtIso: lastStateRecord?.entered_at ?? null,
+  };
 
   if (isWorking && budget) {
     return (
       <WorkingBudgetButton
         budget={budget}
+        clock={clock}
         disabled={isTransitioning}
         label={label}
         stepId={stepId}
@@ -187,19 +196,22 @@ export function TaskStepActionButton({
     );
   } else if (state === "paused" || state === "ended_shift") {
     if (budget) {
+      // Frozen, but at the moment of the pause — not at the last poll, which
+      // would drop the work done in between and read as the timer jumping back.
+      const paused = restingStepBudget(budget, clock);
       right = (
         <span className="flex shrink-0 flex-col items-end">
           <span
             className="font-mono text-sm font-semibold"
             data-testid={`task-step-timer-${stepId}`}
           >
-            {formatSecondsHHMMSS(budget.step.worked_seconds)}
+            {formatSecondsHHMMSS(paused.workedSeconds)}
           </span>
           <StepBudgetSecondaryLabel
             budget={budget}
-            leftSeconds={budget.step.left_seconds}
+            leftSeconds={paused.leftSeconds}
             stepId={stepId}
-            workedSeconds={budget.step.worked_seconds}
+            workedSeconds={paused.workedSeconds}
           />
         </span>
       );

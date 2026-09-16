@@ -233,6 +233,7 @@ export const TaskStepCard = memo(function TaskStepCard({
         <StepBudgetProgressLine
           budget={budget}
           state={card.state}
+          stateEnteredAtIso={lastStateRecord?.entered_at ?? null}
           stepId={stepId}
         />
       ) : null}

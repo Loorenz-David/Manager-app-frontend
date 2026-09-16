@@ -3,7 +3,12 @@ import { cn, type TaskId, type TaskStepId } from "@beyo/lib";
 import { TickingTimer } from "@beyo/ui";
 import { usePreloadSurface } from "@beyo/hooks";
 import { formatSecondsHHMMSS } from "../../domain/formatSecondsHHMMSS";
-import { useLiveStepBudget, type StepBudget } from "../../domain/step-budget";
+import {
+  restingStepBudget,
+  useLiveStepBudget,
+  type StepBudget,
+  type StepClockContext,
+} from "../../domain/step-budget";
 import { StepBudgetSecondaryLabel } from "../../domain/step-budget-presentation";
 import { preloadPauseReasonSheetSurface } from "../../surfaces";
 import {
@@ -42,6 +47,7 @@ function labelFromState(state: StepState): string {
 type WorkingBudgetTimerProps = {
   stepId: TaskStepId;
   budget: StepBudget;
+  clock: StepClockContext;
 };
 
 type DetailBudgetSecondaryLabelProps = {
@@ -90,8 +96,9 @@ function DetailBudgetSecondaryLabel({
 function WorkingBudgetTimer({
   stepId,
   budget,
+  clock,
 }: WorkingBudgetTimerProps): React.JSX.Element {
-  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget);
+  const { workedSeconds, leftSeconds, isOver } = useLiveStepBudget(budget, clock);
 
   return (
     <>
@@ -132,6 +139,13 @@ export function TaskStepCircularActionButton({
   }
 
   const isWorking = state === "working";
+  const clock: StepClockContext = {
+    stepState: state,
+    stateEnteredAtIso: lastStateRecord?.entered_at ?? null,
+  };
+  // Frozen at the moment of the pause rather than at the last poll — see
+  // projectStepBudget. Only read by the paused branch below.
+  const paused = budget ? restingStepBudget(budget, clock) : null;
   const label = labelFromState(state);
   const Icon = isWorking ? Pause : Play;
   const bgClass = isWorking
@@ -156,7 +170,7 @@ export function TaskStepCircularActionButton({
 
       <div className="flex min-h-5 flex-col items-center">
         {isWorking && budget ? (
-          <WorkingBudgetTimer budget={budget} stepId={stepId} />
+          <WorkingBudgetTimer budget={budget} clock={clock} stepId={stepId} />
         ) : isWorking && lastStateRecord ? (
           <TickingTimer
             className="font-mono text-sm text-muted-foreground"
@@ -165,24 +179,22 @@ export function TaskStepCircularActionButton({
             startedAtIso={lastStateRecord.entered_at}
           />
         ) : state === "paused" || state === "ended_shift" ? (
-          budget ? (
+          budget && paused ? (
             <>
               <span
                 className={cn(
                   "font-mono text-sm text-muted-foreground",
-                  budget.step.left_seconds !== null &&
-                    budget.step.left_seconds < 0 &&
-                    "text-[#b9382a]",
+                  paused.isOver && "text-[#b9382a]",
                 )}
                 data-testid={`task-step-circular-timer-${stepId}`}
               >
-                {formatSecondsHHMMSS(budget.step.worked_seconds)}
+                {formatSecondsHHMMSS(paused.workedSeconds)}
               </span>
               <DetailBudgetSecondaryLabel
                 budget={budget}
-                leftSeconds={budget.step.left_seconds}
+                leftSeconds={paused.leftSeconds}
                 stepId={stepId}
-                workedSeconds={budget.step.worked_seconds}
+                workedSeconds={paused.workedSeconds}
               />
             </>
           ) : (
