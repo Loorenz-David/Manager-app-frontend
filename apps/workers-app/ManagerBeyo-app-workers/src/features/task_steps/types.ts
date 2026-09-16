@@ -341,6 +341,8 @@ export type BatchStepTransitionResponseItem = {
   new_state: StepState;
   last_state_record: LastStateRecord;
   was_final_step: boolean;
+  /** Settled seconds at commit, excluding the run this transition opened. */
+  total_working_seconds?: number;
 };
 
 export type BatchStepTransitionResponse = {

@@ -127,7 +127,7 @@ describe("projectStepBudget", () => {
         pressure_share_seconds: null,
         worked_seconds: 600,
         left_seconds: 6600,
-        share_state: "allocated",
+        share_state: "on_track",
         ...overrides,
       },
     };
