@@ -51,6 +51,7 @@ export * from "./components/primitives/dashed-info-group";
 export * from "./components/primitives/dashed-info-section";
 export * from "./components/primitives/date";
 export * from "./components/primitives/form-field-container";
+export * from "./components/primitives/fab-menu";
 export * from "./components/primitives/floating-keyboard-bar";
 export * from "./components/primitives/horizontal-scroll-area";
 export * from "./components/primitives/image-placeholder";

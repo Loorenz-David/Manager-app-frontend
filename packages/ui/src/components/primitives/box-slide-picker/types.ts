@@ -11,6 +11,13 @@ export type BoxSlidePickerOption<T extends string> = {
   ariaLabel?: string;
   icon?: ReactNode;
   badge?: ReactNode;
+  /**
+   * Selected but rendered as if it were not: no sliding fill, unselected text.
+   * For options that are a resting default rather than a chosen value — an
+   * "Unset" bucket must not read as an active choice even while it is the
+   * active one. `role`/`aria-checked` are unaffected.
+   */
+  quiet?: boolean;
 };
 
 export type BoxSlidePickerProps<T extends string> = {
@@ -34,6 +41,8 @@ export type BoxSlidePickerProps<T extends string> = {
 export type BoxSlidePickerOptionButtonProps = {
   label: ReactNode;
   selected: boolean;
+  /** Selected, but painted with the unselected treatment. */
+  quiet?: boolean;
   size: BoxSlidePickerSize;
   distribution: BoxSlidePickerDistribution;
   disabled?: boolean;

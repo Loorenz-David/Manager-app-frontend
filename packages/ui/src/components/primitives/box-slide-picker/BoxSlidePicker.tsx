@@ -81,8 +81,14 @@ export function BoxSlidePicker<T extends string>({
             animate={{
               x: indicatorFrame.x,
               width: indicatorFrame.width,
+              // A quiet option keeps the indicator tracking its frame but
+              // invisible, so moving on to a loud option slides it back in
+              // from the right place instead of popping it into existence.
+              opacity: selectedOption?.quiet ? 0 : 1,
             }}
             className={cn(boxSlidePickerIndicatorVariants({ size }))}
+            data-testid={dataTestId ? `${dataTestId}-indicator` : undefined}
+            data-quiet={selectedOption?.quiet ? "" : undefined}
             initial={false}
             transition={INDICATOR_SPRING}
           />
@@ -99,6 +105,7 @@ export function BoxSlidePicker<T extends string>({
               ariaLabel={option.ariaLabel}
               disabled={disabled || option.disabled}
               distribution={distribution}
+              quiet={option.quiet}
               label={
                 <span className="flex min-w-0 items-center justify-center gap-2 whitespace-nowrap">
                   {option.icon}

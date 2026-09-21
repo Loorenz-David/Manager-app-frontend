@@ -38,6 +38,7 @@
     "@beyo/scanner": "*",
     "@beyo/shopify": "*",
     "@beyo/stats": "*",
+    "@beyo/stock-report": "*",
     "@beyo/styles": "*",
     "@beyo/task-notes": "*",
     "@beyo/task-working-sections": "*",

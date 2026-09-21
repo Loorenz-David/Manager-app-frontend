@@ -19,6 +19,11 @@ export const upholsteryInventoryPageRoute = lazyWithPreload(() =>
     default: m.UpholsteryInventoryPage,
   })),
 );
+export const stockReportPageRoute = lazyWithPreload(() =>
+  import("@/pages/stock-report/StockReportPage").then((m) => ({
+    default: m.StockReportPage,
+  })),
+);
 export const settingsPageRoute = lazyWithPreload(() =>
   import("@/pages/settings/SettingsPage").then((m) => ({
     default: m.SettingsPage,
@@ -37,6 +42,7 @@ export const TAB_ROUTE_COMPONENTS: Record<TabPath, React.ComponentType> = {
   [ROUTES.cases]: casesPageRoute.Component,
   [ROUTES.stats]: statsPageRoute.Component,
   [ROUTES.upholsteryInventory]: upholsteryInventoryPageRoute.Component,
+  [ROUTES.stockReport]: stockReportPageRoute.Component,
   [ROUTES.settings]: settingsPageRoute.Component,
 };
 
@@ -46,6 +52,7 @@ const PRIMARY_TAB_PRELOADERS: Record<TabPath, () => Promise<void>> = {
   [ROUTES.cases]: casesPageRoute.preload,
   [ROUTES.stats]: statsPageRoute.preload,
   [ROUTES.upholsteryInventory]: upholsteryInventoryPageRoute.preload,
+  [ROUTES.stockReport]: stockReportPageRoute.preload,
   [ROUTES.settings]: settingsPageRoute.preload,
 };
 

@@ -4,6 +4,7 @@ import {
   House,
   ListTodo,
   MessageCircle,
+  PackageSearch,
   Settings2,
   Spool,
   type LucideIcon,
@@ -36,6 +37,9 @@ const TABS: Tab[] = [
   { path: ROUTES.home, label: "Home", icon: House },
   { path: ROUTES.stats, label: "Stats", icon: ChartColumnIncreasing },
   { path: ROUTES.upholsteryInventory, label: "Uph inv", icon: Spool },
+  // The compact chip is one word wide; the More popup carries the full
+  // "Stock needs" label the product uses.
+  { path: ROUTES.stockReport, label: "Stock", icon: PackageSearch },
   { path: ROUTES.settings, label: "Settings", icon: Settings2 },
 ];
 
@@ -43,11 +47,11 @@ const PRIMARY_TAB_META = TABS.filter((tab) =>
   (PRIMARY_TABS as readonly TabPath[]).includes(tab.path),
 );
 
-const MORE_TAB_META: Record<MoreTabPath, Tab> = {
-  [ROUTES.stats]: TABS[3],
-  [ROUTES.upholsteryInventory]: TABS[4],
-  [ROUTES.settings]: TABS[5],
-};
+// Keyed by path rather than by position: a new More tab shifts every index
+// after it, and a silently wrong icon is the kind of drift nothing catches.
+const MORE_TAB_META = Object.fromEntries(
+  MORE_TABS.map((path) => [path, TABS.find((tab) => tab.path === path)!]),
+) as Record<MoreTabPath, Tab>;
 
 function isMoreTabPath(pathname: string): pathname is MoreTabPath {
   return (MORE_TABS as readonly string[]).includes(pathname);

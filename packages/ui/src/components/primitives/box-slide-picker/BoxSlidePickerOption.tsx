@@ -12,14 +12,27 @@ export const BoxSlidePickerOption = forwardRef<
   HTMLButtonElement,
   BoxSlidePickerOptionButtonProps
 >(
-  ({ label, selected, size, distribution, disabled = false, testId, ariaLabel, onPress }, ref) => (
+  (
+    {
+      label,
+      selected,
+      quiet = false,
+      size,
+      distribution,
+      disabled = false,
+      testId,
+      ariaLabel,
+      onPress,
+    },
+    ref,
+  ) => (
   <button
     ref={ref}
     aria-checked={selected}
     aria-label={ariaLabel}
     aria-selected={selected}
     className={cn(
-      boxSlidePickerOptionVariants({ selected, size }),
+      boxSlidePickerOptionVariants({ selected: selected && !quiet, size }),
       boxSlidePickerOptionDistributionClass(distribution),
     )}
     data-testid={testId}

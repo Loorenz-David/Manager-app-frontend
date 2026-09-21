@@ -1,0 +1,96 @@
+export {
+  STOCK_NEED_BUCKETS,
+  STOCK_NEED_BUCKET_LABEL,
+} from "./stock-report.types";
+export type {
+  FulfilmentQuantities,
+  FulfilmentSegments,
+  StockNeedBucket,
+  StockNeedCardData,
+  StockReportAssignmentCardData,
+  StockReportLoadStatus,
+} from "./stock-report.types";
+
+export {
+  COLOURED_BUDGET_PERCENT,
+  SEGMENT_MIN_PERCENT,
+  computeFulfilmentSegments,
+} from "./lib/fulfilment-bar";
+export type { FulfilmentSegment } from "./lib/fulfilment-bar";
+
+// --- board -----------------------------------------------------------------
+export { FulfilmentBar } from "./components/board/FulfilmentBar";
+export type {
+  FulfilmentBarProps,
+  FulfilmentBarSize,
+} from "./components/board/FulfilmentBar";
+export { FulfilmentLegend } from "./components/board/FulfilmentLegend";
+export { StockNeedPropertyTags } from "./components/board/StockNeedPropertyTags";
+export type { StockNeedPropertyTagsProps } from "./components/board/StockNeedPropertyTags";
+export { StockNeedQuantityPanel } from "./components/board/StockNeedQuantityPanel";
+export type { StockNeedQuantityPanelProps } from "./components/board/StockNeedQuantityPanel";
+export { StockNeedCard } from "./components/board/StockNeedCard";
+export type { StockNeedCardProps } from "./components/board/StockNeedCard";
+export { StockNeedCardSkeleton } from "./components/board/StockNeedCardSkeleton";
+export { StockNeedSortableList } from "./components/board/StockNeedSortableList";
+export type { StockNeedSortableListProps } from "./components/board/StockNeedSortableList";
+export { StockReportBucketPicker } from "./components/board/StockReportBucketPicker";
+export type { StockReportBucketPickerProps } from "./components/board/StockReportBucketPicker";
+export { StockReportSearchRow } from "./components/board/StockReportSearchRow";
+export type { StockReportSearchRowProps } from "./components/board/StockReportSearchRow";
+export {
+  StockReportBoardEmptyState,
+  StockReportBoardErrorState,
+  StockReportBoardSkeleton,
+} from "./components/board/StockReportBoardStates";
+export type { StockReportBoardErrorStateProps } from "./components/board/StockReportBoardStates";
+export { StockReportBoardFab } from "./components/board/StockReportBoardFab";
+export type { StockReportBoardFabProps } from "./components/board/StockReportBoardFab";
+export { StockReportBoardView } from "./components/board/StockReportBoardView";
+export type { StockReportBoardViewProps } from "./components/board/StockReportBoardView";
+
+// --- detail ----------------------------------------------------------------
+export { StockNeedSummaryCard } from "./components/detail/StockNeedSummaryCard";
+export type { StockNeedSummaryCardProps } from "./components/detail/StockNeedSummaryCard";
+export { StockReportAddItemButton } from "./components/detail/StockReportAddItemButton";
+export type { StockReportAddItemButtonProps } from "./components/detail/StockReportAddItemButton";
+export { StockReportSelectedItemsHeader } from "./components/detail/StockReportSelectedItemsHeader";
+export type { StockReportSelectedItemsHeaderProps } from "./components/detail/StockReportSelectedItemsHeader";
+export { StockReportAssignmentList } from "./components/detail/StockReportAssignmentList";
+export type { StockReportAssignmentListProps } from "./components/detail/StockReportAssignmentList";
+export {
+  StockReportAssignmentListSkeleton,
+  StockReportAssignmentsEmptyState,
+  StockReportDetailErrorState,
+  StockReportMissingNotice,
+} from "./components/detail/StockReportDetailStates";
+export type { StockReportDetailErrorStateProps } from "./components/detail/StockReportDetailStates";
+export { StockReportDetailView } from "./components/detail/StockReportDetailView";
+export type { StockReportDetailViewProps } from "./components/detail/StockReportDetailView";
+
+// --- sheet content ---------------------------------------------------------
+export { StockReportPrioritySheetContent } from "./components/sheets/StockReportPrioritySheetContent";
+export type { StockReportPrioritySheetContentProps } from "./components/sheets/StockReportPrioritySheetContent";
+export { StockReportActionsSheetContent } from "./components/sheets/StockReportActionsSheetContent";
+export type { StockReportActionsSheetContentProps } from "./components/sheets/StockReportActionsSheetContent";
+export { StockMatchWarningSheetContent } from "./components/sheets/StockMatchWarningSheetContent";
+export type {
+  StockMatchPropertyFailure,
+  StockMatchWarningSheetContentProps,
+} from "./components/sheets/StockMatchWarningSheetContent";
+export { StockMatchStatusRow } from "./components/sheets/StockMatchStatusRow";
+export type {
+  StockMatchStatusRowProps,
+  StockMatchStatusRowState,
+} from "./components/sheets/StockMatchStatusRow";
+
+// --- fixtures --------------------------------------------------------------
+export * from "./fixtures/stock-report-fixtures";
+
+/**
+ * TEMPORARY — the fixture-driven preview the owner uses to judge these screens
+ * on a phone before anything is wired. The logic session replaces it with the
+ * real route entry and deletes this export together with
+ * `components/preview/StockReportFixturePreview.tsx`.
+ */
+export { StockReportFixturePreview } from "./components/preview/StockReportFixturePreview";
