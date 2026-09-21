@@ -36,6 +36,18 @@
 
 ## Deviations / Remaining Verification
 
+- **This checkpoint is not feature-complete.** The generic task-creation seam
+  exists, but stock match-preview is not yet connected to identifier/category/
+  quantity changes, its status slot, locked warning-sheet choices, or the
+  accepted-override flag on the initial assignment request.
+- Detail task/image opener injection and assignment-card mapping need final
+  app-specific wiring. The worker body-tap restriction is present, but the
+  corresponding managers/sellers openers must be completed and exercised.
+- The match-warning surface is registered and lock-capable, but its runtime
+  props/callback flow needs completion before it can enforce Change item /
+  Continue behavior.
+- Dedicated MSW coverage for API adapters, mutations, controller opening rules,
+  optimistic rollback, and cache convergence remains to be written.
 - Playwright stock-report specifications and the requested mutation/guard
   campaign were not run in this session; they remain required before declaring
   the phase fully verified.
