@@ -4,6 +4,7 @@ import {
   House,
   ListTodo,
   MessageCircle,
+  PackageSearch,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
@@ -33,6 +34,7 @@ const TABS: Tab[] = [
   { path: ROUTES.cases, label: "Cases", icon: MessageCircle },
   { path: ROUTES.home, label: "Home", icon: House },
   { path: ROUTES.stats, label: "Stats", icon: ChartColumnIncreasing },
+  { path: ROUTES.stockReport, label: "Stock", icon: PackageSearch },
   { path: ROUTES.settings, label: "Settings", icon: Settings2 },
 ];
 
@@ -42,7 +44,8 @@ const PRIMARY_TAB_META = TABS.filter((tab) =>
 
 const MORE_TAB_META: Record<MoreTabPath, Tab> = {
   [ROUTES.stats]: TABS[3],
-  [ROUTES.settings]: TABS[4],
+  [ROUTES.stockReport]: TABS[4],
+  [ROUTES.settings]: TABS[5],
 };
 
 function isMoreTabPath(pathname: string): pathname is MoreTabPath {

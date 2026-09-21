@@ -1,5 +1,6 @@
 import {
   ChartColumnIncreasing,
+  PackageSearch,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
@@ -12,6 +13,7 @@ import { MORE_TABS, ROUTES, type MoreTabPath } from "@/lib/routes";
 
 const MORE_TAB_META: Record<MoreTabPath, { label: string; icon: LucideIcon }> = {
   [ROUTES.stats]: { label: "Stats", icon: ChartColumnIncreasing },
+  [ROUTES.stockReport]: { label: "Stock needs", icon: PackageSearch },
   [ROUTES.settings]: { label: "Settings", icon: Settings2 },
 };
 

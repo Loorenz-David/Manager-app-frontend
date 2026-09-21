@@ -15,6 +15,7 @@ const TAB_ROUTES = [
   ROUTES.tasks,
   ROUTES.cases,
   ROUTES.stats,
+  ROUTES.stockReport,
   ROUTES.settings,
 ].map((path) => ({ path, element: <></> }));
 

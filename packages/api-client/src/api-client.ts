@@ -12,12 +12,21 @@ const RateLimitErrorSchema = z.object({ detail: z.string() });
 export class ApiRequestError extends Error {
   public readonly status: number;
   public readonly code: string;
+  public readonly serverCode?: string;
+  public readonly details: unknown;
 
-  constructor(status: number, code: string, message: string) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    options: { serverCode?: string; details?: unknown } = {},
+  ) {
     super(message);
     this.name = "ApiRequestError";
     this.status = status;
     this.code = code;
+    this.serverCode = options.serverCode;
+    this.details = options.details;
   }
 }
 
@@ -81,6 +90,7 @@ async function handleErrorResponse(response: Response): Promise<never> {
       response.status,
       codeFromStatus(response.status),
       parsed.data.error,
+      { serverCode: parsed.data.code, details: parsed.data.details },
     );
   }
 

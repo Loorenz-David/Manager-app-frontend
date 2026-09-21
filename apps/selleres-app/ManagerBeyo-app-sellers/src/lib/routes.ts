@@ -5,6 +5,7 @@ export const ROUTES = {
   cases: '/cases',
   caseConversation: '/cases/:caseId',
   stats: '/stats',
+  stockReport: '/stock-needs',
   settings: '/settings',
 } as const;
 
@@ -17,6 +18,7 @@ export const TAB_ORDER = [
   ROUTES.cases,
   ROUTES.home,
   ROUTES.stats,
+  ROUTES.stockReport,
   ROUTES.settings,
 ] as const;
 
@@ -30,6 +32,7 @@ export const PRIMARY_TABS = [
 
 export const MORE_TABS = [
   ROUTES.stats,
+  ROUTES.stockReport,
   ROUTES.settings,
 ] as const satisfies TabPath[];
 

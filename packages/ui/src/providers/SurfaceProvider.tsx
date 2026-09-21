@@ -38,11 +38,17 @@ export type SurfaceRegistration = {
   skeleton?: ComponentType;
 };
 
+export type SurfaceOpenOptions = {
+  /** Defaults to true. Locked surfaces can only close programmatically. */
+  dismissible?: boolean;
+};
+
 export type SurfaceRegistrations = Record<string, SurfaceRegistration>;
 
 type ActiveSurface = SurfaceRegistration & {
   id: string;
   props: Record<string, unknown>;
+  dismissible: boolean;
 };
 
 type SurfaceState = {
@@ -50,7 +56,11 @@ type SurfaceState = {
   stack: ActiveSurface[];
   navigate?: NavigateFunction;
   init: (registry: SurfaceRegistrations, navigate: NavigateFunction) => void;
-  open: (id: string, props?: Record<string, unknown>) => void;
+  open: (
+    id: string,
+    props?: Record<string, unknown>,
+    options?: SurfaceOpenOptions,
+  ) => void;
   hydrate: (id: string, props?: Record<string, unknown>) => void;
   close: (id: string) => void;
   closeMany: (ids: string[]) => void;
@@ -157,7 +167,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
 
   init: (registry, navigate) => set({ registry, navigate }),
 
-  open: (id, props = {}) => {
+  open: (id, props = {}, options = {}) => {
     const { registry, stack, navigate } = get();
     const registration = registry[id];
 
@@ -174,7 +184,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       set((state) => ({
         stack: [
           ...state.stack.filter((surface) => surface.id !== id),
-          { id, ...registration, props },
+          { id, ...registration, props, dismissible: options.dismissible ?? true },
         ],
       }));
       return;
@@ -194,12 +204,18 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
         },
       });
       set((state) => ({
-        stack: [...state.stack, { id, ...registration, props }],
+        stack: [
+          ...state.stack,
+          { id, ...registration, props, dismissible: options.dismissible ?? true },
+        ],
       }));
       return;
     }
 
-    const nextStack = [...stack, { id, ...registration, props }];
+    const nextStack = [
+      ...stack,
+      { id, ...registration, props, dismissible: options.dismissible ?? true },
+    ];
     set({ stack: nextStack });
     pushSurfaceHistory(nextStack.length);
   },
@@ -220,7 +236,7 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
       return;
     }
 
-    const nextStack = [...stack, { id, ...registration, props }];
+    const nextStack = [...stack, { id, ...registration, props, dismissible: true }];
     set({ stack: nextStack });
     pushSurfaceHistory(nextStack.length);
   },
@@ -279,6 +295,7 @@ type SurfaceShellProps = {
   /** Position among the open overlays; slides use it for stack parallax. */
   stackIndex?: number;
   showBackdrop?: boolean;
+  dismissible?: boolean;
   children: ReactNode;
 };
 
@@ -366,6 +383,7 @@ function SurfaceRenderer(): React.JSX.Element {
                 });
               }}
               showBackdrop={entry.surface === "sheet" ? false : undefined}
+              dismissible={entry.dismissible}
               zIndex={50 + index * 10}
             >
               <SurfacePropsContext.Provider value={entry.props}>
@@ -417,6 +435,11 @@ export function SurfaceProvider({
   useEffect(() => {
     const handlePopState = (event: PopStateEvent) => {
       if (consumePendingProgrammaticPop()) return;
+      const top = useSurfaceStore.getState().stack.at(-1);
+      if (top && !top.dismissible) {
+        pushSurfaceHistory(useSurfaceStore.getState().stack.length);
+        return;
+      }
       useSurfaceStore.getState().syncToDepth(readSurfaceDepth(event.state));
     };
 

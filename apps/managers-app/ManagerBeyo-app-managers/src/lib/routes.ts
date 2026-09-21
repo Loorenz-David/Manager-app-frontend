@@ -8,10 +8,6 @@ export const ROUTES = {
   settings: '/settings',
   shopifyOAuthResult: '/settings/integrations/shopify/oauth-result',
   upholsteryInventory: '/upholstery-inventory',
-  // TEMPORARY (stock-report UI phase): the tab currently mounts a
-  // fixture-driven preview. The logic session swaps it for the real route
-  // entry; the route itself stays. Code identifiers keep the feature's name,
-  // the menu label reads "Stock needs" (intention §7, card 7).
   stockReport: '/stock-needs',
 } as const;
 

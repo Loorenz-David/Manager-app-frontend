@@ -12,6 +12,7 @@ type Props = {
   zIndex: number;
   isTopmost: boolean;
   showBackdrop?: boolean;
+  dismissible?: boolean;
   children: ReactNode;
 };
 
@@ -36,6 +37,7 @@ export function BottomSheetSurface({
   zIndex,
   isTopmost,
   showBackdrop = true,
+  dismissible = true,
   children,
 }: Props): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(true);
@@ -49,6 +51,7 @@ export function BottomSheetSurface({
   useUiTransitionToken(!isOpen);
 
   function handleClose(): void {
+    if (!dismissible) return;
     onStartClose?.();
 
     if (closeTimeoutRef.current !== null) {
@@ -81,6 +84,7 @@ export function BottomSheetSurface({
       <Drawer.Root
         direction="bottom"
         handleOnly
+        dismissible={dismissible}
         modal={false}
         repositionInputs={false}
         onOpenChange={(open) => {
@@ -102,7 +106,7 @@ export function BottomSheetSurface({
                   : "pointer-events-none",
               )}
               initial={{ opacity: 0 }}
-              onClick={handleClose}
+              onClick={dismissible ? handleClose : undefined}
               style={{ zIndex }}
               transition={transitions.surface}
               type="button"
@@ -116,7 +120,7 @@ export function BottomSheetSurface({
                   ? "pointer-events-auto"
                   : "pointer-events-none",
               )}
-              onClick={handleClose}
+              onClick={dismissible ? handleClose : undefined}
               style={{ zIndex }}
               type="button"
             />

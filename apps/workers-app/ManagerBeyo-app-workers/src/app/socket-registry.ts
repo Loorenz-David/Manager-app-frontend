@@ -10,6 +10,7 @@ import { upholsterySocketEvents } from "@/features/upholstery/socket-events";
 import { workerWorkingSectionSocketEvents } from "@/features/working_sections/socket-events";
 import { shopifyProductSyncSocketEvents } from "@beyo/shopify";
 import { workerShiftSocketEvents } from "@beyo/worker-shifts";
+import { stockReportSocketEvents } from "@beyo/stock-report";
 
 export const socketRegistry = composeSocketHandlers(
   workerShiftSocketEvents,
@@ -23,4 +24,5 @@ export const socketRegistry = composeSocketHandlers(
   pauseReasonSocketEvents,
   presentationSocketEvents,
   shopifyProductSyncSocketEvents,
+  stockReportSocketEvents,
 );

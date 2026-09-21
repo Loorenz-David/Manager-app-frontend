@@ -9,6 +9,7 @@ import {
 } from "@beyo/task-customer-coordination";
 import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { taskSocketEvents } from "@/features/tasks/socket-events";
+import { stockReportSocketEvents } from "@beyo/stock-report";
 
 export const socketRegistry = composeSocketHandlers(
   caseSocketEvents,
@@ -19,4 +20,5 @@ export const socketRegistry = composeSocketHandlers(
   presentationSocketEvents,
   customerCoordinationEmailSocketEvents,
   customerCoordinationSocketEvents,
+  stockReportSocketEvents,
 );

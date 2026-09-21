@@ -24,6 +24,35 @@ type ShopifyProductSyncInventoryResult =
     };
 
 export type ServerToClientEvents = {
+  "stock_report_item:created": (payload: { client_id: string }) => void;
+  "stock_report_item:updated": (payload: {
+    client_id: string;
+    quantity_requested: number | null;
+    quantity_in_queue: number | null;
+    quantity_in_progress: number | null;
+    quantity_awaiting: number | null;
+    priority: "high" | "medium" | "low" | null;
+    priority_order: number | null;
+  }) => void;
+  "stock_report_item:deleted": (payload: { client_id: string }) => void;
+  "stock_task_assignment:created": (payload: {
+    client_id: string;
+    stock_report_item_id: string;
+    task_id: string;
+    state: string;
+  }) => void;
+  "stock_task_assignment:state-changed": (payload: {
+    client_id: string;
+    stock_report_item_id: string;
+    task_id: string;
+    state: string;
+  }) => void;
+  "stock_task_assignment:deleted": (payload: {
+    client_id: string;
+    stock_report_item_id: string;
+    task_id: string;
+    state: string;
+  }) => void;
   "app_update_presentation:published": (payload: {
     client_id: string;
     logical_client_id: string;

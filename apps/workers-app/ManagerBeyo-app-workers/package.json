@@ -18,6 +18,7 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@beyo/stock-report": "*",
     "@beyo/api-client": "*",
     "@beyo/auth": "*",
     "@beyo/celebration": "*",

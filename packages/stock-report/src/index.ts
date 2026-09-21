@@ -9,6 +9,17 @@ export type {
   StockNeedCardData,
   StockReportAssignmentCardData,
   StockReportLoadStatus,
+  StockReportItem,
+  StockReportItemViewModel,
+  StockReportPriority,
+  StockReportAssignment,
+} from "./stock-report.types";
+export {
+  STOCK_REPORT_PRIORITY,
+  StockReportItemSchema,
+  StockReportAssignmentSchema,
+  toStockReportItemViewModel,
+  toStockReportPropertyTags,
 } from "./stock-report.types";
 
 export {
@@ -84,6 +95,31 @@ export type {
   StockMatchStatusRowState,
 } from "./components/sheets/StockMatchStatusRow";
 
+/** Page exports stay loader-only so the route entry remains code-split. */
+export function loadStockReportRouteEntryPage() {
+  return import("./route-entry").then((module) => ({ default: module.StockReportRouteEntryPage }));
+}
+export { stockReportKeys } from "./api/stock-report-keys";
+export { useStockReportListQuery, useStockReportAssignmentsQuery, prefetchStockReportAssignmentsData } from "./api/use-stock-report-queries";
+export { stockReportSocketEvents } from "./socket-events";
+export { useStockMatchPreview } from "./actions/use-stock-match-preview";
+export { useStockAssignmentGate } from "./hooks/use-stock-assignment-gate";
+export type { StockAssignmentGateOpener } from "./hooks/use-stock-assignment-gate";
+export { STOCK_REPORT_PERMISSIONS } from "./permissions";
+export { useStockReportPermissions } from "./lib/use-stock-report-permissions";
+export { StockReportOpenersProvider } from "./openers";
+export type { StockReportSurfaceOpeners } from "./openers";
+export {
+  stockReportSurfaces,
+  STOCK_REPORT_DETAIL_SURFACE_ID,
+  STOCK_REPORT_PRIORITY_SURFACE_ID,
+  STOCK_REPORT_ACTIONS_SURFACE_ID,
+  STOCK_MATCH_WARNING_SURFACE_ID,
+  preloadStockReportDetailSurface,
+  preloadStockMatchWarningSurface,
+} from "./surface-ids";
+export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportActionsSurfaceProps } from "./surface-ids";
+
 // --- fixtures --------------------------------------------------------------
 export * from "./fixtures/stock-report-fixtures";
 
@@ -93,4 +129,3 @@ export * from "./fixtures/stock-report-fixtures";
  * real route entry and deletes this export together with
  * `components/preview/StockReportFixturePreview.tsx`.
  */
-export { StockReportFixturePreview } from "./components/preview/StockReportFixturePreview";

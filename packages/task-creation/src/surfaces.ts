@@ -18,6 +18,7 @@ import {
 import { upholsterySurfaces } from "@beyo/upholstery";
 import type { CreateTaskResult } from "@beyo/tasks";
 import { workingSectionSurfaces } from "@beyo/working-sections";
+import type { ReactNode } from "react";
 
 /**
  * A task was successfully created from one of the creation slides. Apps inject
@@ -37,6 +38,14 @@ export type TaskCreatedInfo = {
  */
 export type TaskCreationCallbacks = {
   onTaskCreated?: (info: TaskCreatedInfo) => void;
+  /** Async consumer work after creation, e.g. assigning the new task to a need. */
+  afterCreate?: (info: TaskCreatedInfo) => Promise<"close" | "reset-stay">;
+  /** Generic pre-create gate. The package never names a consuming feature. */
+  candidateGate?: {
+    check: () => Promise<boolean>;
+    preload?: () => Promise<unknown>;
+    statusSlot?: ReactNode;
+  };
 };
 
 /** Surface props accepted by the task-creation slide surfaces. */

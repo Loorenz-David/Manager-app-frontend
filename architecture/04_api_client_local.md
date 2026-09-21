@@ -1,5 +1,10 @@
 > Extends: 04_api_client.md
 
+> **Stock-report extension (2026-09-21):** backend errors may include a
+> machine-readable `code` and opaque `details`. `ApiRequestError.code` remains
+> status-derived; the optional body value is exposed as `serverCode`, and
+> `details` is parsed only by the owning domain API adapter.
+
 # 04 — API Client — ManagerBeyo Managers App Extension
 
 ---

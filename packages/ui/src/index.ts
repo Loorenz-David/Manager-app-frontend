@@ -9,6 +9,7 @@ export type {
   SurfaceRegistration,
   SurfaceRegistrations,
   SurfaceHeaderValue,
+  SurfaceOpenOptions,
 } from "./providers/SurfaceProvider";
 export {
   KeyboardInsetProvider,

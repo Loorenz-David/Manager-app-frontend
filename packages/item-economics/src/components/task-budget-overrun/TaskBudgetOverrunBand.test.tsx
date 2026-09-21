@@ -69,6 +69,7 @@ describe("TaskBudgetOverrunBand", () => {
           allowed_seconds: 3_000,
           actual_worked_seconds: 3_060,
           cost_per_worker_minute_ten_thousandths: 37_500,
+          live_accrual_rate: "1.0000",
         }}
       />,
     );

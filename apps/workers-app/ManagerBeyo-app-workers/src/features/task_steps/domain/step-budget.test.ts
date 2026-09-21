@@ -71,6 +71,8 @@ describe("workerFacingTypicalSeconds", () => {
         worked_seconds: 0,
         left_seconds: null,
         share_state: "no_budget",
+        live_accrual_rate: null,
+        live_concurrency: null,
         ...overrides,
       },
     };

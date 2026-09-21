@@ -120,6 +120,7 @@ export function InternalFormContent(): React.JSX.Element {
     readRememberedInternalItemPosition(currentUserClientId),
   );
   const createTask = useCreateTask();
+  usePreloadSurface(callbacks.candidateGate?.preload ?? (() => Promise.resolve()));
   const applyLookupImages = useLookupItemImages(itemClientId);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
@@ -282,6 +283,10 @@ export function InternalFormContent(): React.JSX.Element {
     },
     onSubmit: () =>
       form.handleSubmit(async (values) => {
+        if (callbacks.candidateGate && !(await callbacks.candidateGate.check())) {
+          staged.navigateTo("item");
+          return;
+        }
         const payload = normalizeInternalFormPayload(values, {
           taskClientId,
           itemClientId,
@@ -295,10 +300,12 @@ export function InternalFormContent(): React.JSX.Element {
           currentUserClientId,
           values.item.item_position,
         );
-        callbacks.onTaskCreated?.({
+        const createdInfo = {
           result,
           hadUpholstery: Boolean(payload.item_upholstery),
-        });
+        };
+        callbacks.onTaskCreated?.(createdInfo);
+        const outcome = await callbacks.afterCreate?.(createdInfo);
         form.reset({
           item: {
             designer: "",
@@ -326,7 +333,9 @@ export function InternalFormContent(): React.JSX.Element {
         regenerateIds();
         lastAppliedLookupSignatureRef.current = null;
         staged.navigateTo("item");
-        surface.close(TASK_CREATION_INTERNAL_SURFACE_ID);
+        if (outcome !== "reset-stay") {
+          surface.close(TASK_CREATION_INTERNAL_SURFACE_ID);
+        }
       })(),
   });
 

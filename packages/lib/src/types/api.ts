@@ -10,6 +10,8 @@ export const ApiEnvelopeSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
 export const ApiErrorSchema = z.object({
   error: z.string(),
   ok: z.literal(false),
+  code: z.string().optional(),
+  details: z.unknown().optional(),
 });
 
 export type ApiResponse<T> = {

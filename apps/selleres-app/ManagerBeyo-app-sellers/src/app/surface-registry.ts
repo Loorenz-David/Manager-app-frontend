@@ -6,6 +6,7 @@ import { caseSurfaces } from "@/features/cases/surfaces";
 import { pwaSurfaces } from "@/features/pwa/surfaces";
 import { scannerSurfaces } from "@/features/scanner/surfaces";
 import { taskSurfaces } from "@/features/tasks/surfaces";
+import { stockReportSurfaces } from "@beyo/stock-report";
 
 export const surfaceRegistry: SurfaceRegistrations = {
   ...caseSurfaces,
@@ -15,6 +16,7 @@ export const surfaceRegistry: SurfaceRegistrations = {
   ...imageSurfaces,
   ...pwaSurfaces,
   ...presentationSurfaces,
+  ...stockReportSurfaces,
 };
 
 export type SurfaceId = keyof typeof surfaceRegistry;

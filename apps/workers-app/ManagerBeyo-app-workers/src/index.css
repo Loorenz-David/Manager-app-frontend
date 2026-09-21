@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@beyo/styles";
+@source "../../../../packages/stock-report/src";
 @source "../../../../packages/ui/src";
 @source "../../../../packages/auth/src";
 @source "../../../../packages/customers/src";

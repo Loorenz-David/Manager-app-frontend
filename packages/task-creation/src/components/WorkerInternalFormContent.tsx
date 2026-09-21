@@ -96,8 +96,10 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     noteClientId,
     currentUserClientId,
     regenerateIds,
+    callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
+  usePreloadSurface(callbacks.candidateGate?.preload ?? (() => Promise.resolve()));
   const createImagesFromUrl = useCreateImagesFromUrl();
   const workingSectionsFlow = useWorkingSectionPickerFlow();
   const defaultWoodFixSection = useMemo(
@@ -301,6 +303,9 @@ export function WorkerInternalFormContent(): React.JSX.Element {
   }
 
   async function handleSubmit(values: WorkerInternalFormValues): Promise<void> {
+    if (callbacks.candidateGate && !(await callbacks.candidateGate.check())) {
+      return;
+    }
     if (!defaultWoodFixSection) {
       form.setError("needs_cleaning_assignment", {
         type: "manual",
@@ -321,11 +326,16 @@ export function WorkerInternalFormContent(): React.JSX.Element {
       defaultWoodFixSection.client_id,
     );
 
-    await createTask.mutateAsync(payload);
+    const result = await createTask.mutateAsync(payload);
+    const createdInfo = { result, hadUpholstery: false };
+    callbacks.onTaskCreated?.(createdInfo);
+    const outcome = await callbacks.afterCreate?.(createdInfo);
     form.reset(buildDefaultValues());
     regenerateIds();
     lastAppliedLookupSignatureRef.current = null;
-    surface.close(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID);
+    if (outcome !== "reset-stay") {
+      surface.close(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID);
+    }
   }
 
   return (

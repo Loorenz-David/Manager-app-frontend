@@ -60,8 +60,8 @@ export const ItemLookupResultSchema = z.object({
   images: z.array(z.union([z.string(), ItemLookupImageObjectSchema])),
   purchase_price_minor: z.number().nullable().optional(),
   /**
-   * Optional because the lookup endpoint does not serialize it yet — this
-   * accepts it the moment it starts to, without a coordinated release.
+   * The purchase-API lookup serializes this opaque value. It is retained
+   * unchanged for task creation and stock-match preview requests.
    */
   properties: z.record(z.string(), z.unknown()).nullable().optional(),
 });

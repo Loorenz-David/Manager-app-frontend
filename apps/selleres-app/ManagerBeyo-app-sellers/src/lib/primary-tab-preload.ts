@@ -13,6 +13,9 @@ export const casesPageRoute = lazyWithPreload(() =>
 export const statsPageRoute = lazyWithPreload(() =>
   import("@/pages/stats/StatsPage").then((m) => ({ default: m.StatsPage })),
 );
+export const stockReportPageRoute = lazyWithPreload(() =>
+  import("@/pages/stock-report/StockReportPage").then((m) => ({ default: m.StockReportPage })),
+);
 export const settingsPageRoute = lazyWithPreload(() =>
   import("@/pages/settings/SettingsPage").then((m) => ({
     default: m.SettingsPage,
@@ -30,6 +33,7 @@ export const TAB_ROUTE_COMPONENTS: Record<TabPath, React.ComponentType> = {
   [ROUTES.tasks]: tasksPageRoute.Component,
   [ROUTES.cases]: casesPageRoute.Component,
   [ROUTES.stats]: statsPageRoute.Component,
+  [ROUTES.stockReport]: stockReportPageRoute.Component,
   [ROUTES.settings]: settingsPageRoute.Component,
 };
 
@@ -38,6 +42,7 @@ const PRIMARY_TAB_PRELOADERS: Record<TabPath, () => Promise<void>> = {
   [ROUTES.tasks]: tasksPageRoute.preload,
   [ROUTES.cases]: casesPageRoute.preload,
   [ROUTES.stats]: statsPageRoute.preload,
+  [ROUTES.stockReport]: stockReportPageRoute.preload,
   [ROUTES.settings]: settingsPageRoute.preload,
 };
 
