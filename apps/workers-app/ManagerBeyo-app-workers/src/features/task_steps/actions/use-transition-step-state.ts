@@ -1,14 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { runWhenUiSettled } from "@beyo/ui";
-import {
-  itemEconomicsKeys,
-  type TaskBudgetAllocationsSnapshot,
-} from "@beyo/item-economics";
+import { itemEconomicsKeys } from "@beyo/item-economics";
 import { notify, type WorkingSectionId } from "@beyo/lib";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { transitionStepState } from "../api/transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
+import { seedSettledWorkedSeconds } from "../lib/step-transition-cache";
 import {
   type PendingStepCompletion,
   STEP_TERMINAL_STATES,
@@ -84,59 +82,6 @@ function patchStepStateInSectionCache(
           };
         }),
       };
-    },
-  );
-}
-
-/**
- * Seeds the served budget row with the settled total the transition response
- * carries (settlement-window answer §5), so the card holds an authoritative
- * figure from the moment the request returns rather than from the refetch.
- *
- * `state` and `worked_seconds` must move together: the projection adds elapsed
- * time on top of a row it believes is running, so a row left as `working` with
- * an already-complete total would count the run twice.
- *
- * `receivedAtMs` is deliberately left alone. It is the smoothing baseline for
- * every step in the snapshot, and re-anchoring it here would silently discard
- * the accrual of every other running step in the same payload.
- */
-function seedSettledWorkedSeconds(
-  queryClient: ReturnType<typeof useQueryClient>,
-  stepId: string,
-  newState: StepState,
-  totalWorkingSeconds: number,
-) {
-  queryClient.setQueriesData<TaskBudgetAllocationsSnapshot>(
-    { queryKey: itemEconomicsKeys.taskBudgetAllocationsAll() },
-    (old) => {
-      if (!old) {
-        return old;
-      }
-
-      let patched = false;
-      const allocations = old.allocations.map((allocation) => ({
-        ...allocation,
-        steps: allocation.steps.map((step) => {
-          if (step.step_id !== stepId) {
-            return step;
-          }
-
-          patched = true;
-          const deltaSeconds = totalWorkingSeconds - step.worked_seconds;
-          return {
-            ...step,
-            state: newState,
-            worked_seconds: totalWorkingSeconds,
-            left_seconds:
-              step.left_seconds === null
-                ? null
-                : step.left_seconds - deltaSeconds,
-          };
-        }),
-      }));
-
-      return patched ? { ...old, allocations } : old;
     },
   );
 }

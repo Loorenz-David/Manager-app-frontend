@@ -128,10 +128,75 @@ describe("projectStepBudget", () => {
         worked_seconds: 600,
         left_seconds: 6600,
         share_state: "on_track",
+        live_accrual_rate: "1.0000",
+        live_concurrency: 1,
         ...overrides,
       },
     };
   }
+
+  describe("concurrency", () => {
+    it("credits a batched step only its share of the wall clock", () => {
+      // The captured defect: three steps running together, six seconds of wall
+      // clock. The server credits two seconds to each; a client counting a full
+      // second per second showed six and snapped back on pause.
+      const result = projectStepBudget(
+        budgetFor({ live_accrual_rate: "0.3333", live_concurrency: 3 }),
+        { stepState: "working", stateEnteredAtIso: iso(0) },
+        RECEIVED_AT_MS + 6_000,
+      );
+
+      expect(result.workedSeconds).toBe(601);
+    });
+
+    it("drains the step's own budget at the same share", () => {
+      const result = projectStepBudget(
+        budgetFor({ live_accrual_rate: "0.5000", live_concurrency: 2 }),
+        { stepState: "working", stateEnteredAtIso: iso(0) },
+        RECEIVED_AT_MS + 60_000,
+      );
+
+      expect(result.workedSeconds).toBe(630);
+      expect(result.leftSeconds).toBe(6570);
+    });
+
+    it("freezes a batched step at its share when paused", () => {
+      // 30s of wall clock between the payload and the tap, shared three ways.
+      const result = projectStepBudget(
+        budgetFor({ live_accrual_rate: "0.3333", live_concurrency: 3 }),
+        { stepState: "paused", stateEnteredAtIso: iso(30) },
+        RECEIVED_AT_MS + 90_000,
+      );
+
+      expect(result.workedSeconds).toBe(609);
+    });
+
+    it("keeps the clock running when the served row carries no rate yet", () => {
+      // The payload in hand when a step is started predates the run and has no
+      // rate. Treating that as zero would freeze the timer until the refetch.
+      const result = projectStepBudget(
+        budgetFor({
+          state: "paused",
+          live_accrual_rate: null,
+          live_concurrency: null,
+        }),
+        { stepState: "working", stateEnteredAtIso: iso(0) },
+        RECEIVED_AT_MS + 30_000,
+      );
+
+      expect(result.workedSeconds).toBe(630);
+    });
+
+    it("ignores a malformed rate rather than stalling the clock", () => {
+      const result = projectStepBudget(
+        budgetFor({ live_accrual_rate: "not-a-number" }),
+        { stepState: "working", stateEnteredAtIso: iso(0) },
+        RECEIVED_AT_MS + 30_000,
+      );
+
+      expect(result.workedSeconds).toBe(630);
+    });
+  });
 
   it("adds time since receipt while both the payload and the client are running", () => {
     const result = projectStepBudget(

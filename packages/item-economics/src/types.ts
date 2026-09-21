@@ -431,6 +431,22 @@ export const BudgetAllocationStepSchema = z.object({
   // Negative means over budget — a state, not an error.
   left_seconds: z.number().int().nullable(),
   share_state: ProductionTimeShareStateSchema,
+  /**
+   * Seconds credited to this step per wall-clock second right now — the
+   * multiplier for any elapsed time the client adds on top of `worked_seconds`.
+   * A worker running three steps at once accrues a third on each.
+   *
+   * `null` means nothing is accruing, and is also served for `excluded` /
+   * `no_budget` rows (accrual-rate answer §3, §4c). `.catch(null)` covers a
+   * backend mid-deploy, where the reader falls back to the un-scaled clock.
+   */
+  live_accrual_rate: DecimalStringSchema.nullable().catch(null),
+  /**
+   * How many of the worker's open records that share is divided across. For the
+   * label, never the arithmetic — `live_accrual_rate` is authoritative, and the
+   * two are always reciprocal (answer §3).
+   */
+  live_concurrency: z.number().int().nullable().catch(null),
 });
 export type BudgetAllocationStep = z.infer<typeof BudgetAllocationStepSchema>;
 
@@ -497,6 +513,16 @@ export const TaskBudgetSignalSchema = z.object({
   allowed_seconds: z.number().int(),
   actual_worked_seconds: z.number().int(),
   cost_per_worker_minute_ten_thousandths: z.number().int(),
+  /**
+   * Seconds credited to this whole task per wall-clock second, summed over its
+   * open records — so two workers on one task legitimately exceed 1.
+   *
+   * `null` when nothing is accruing, which is what stops an idle task's overrun
+   * from creeping between polls. Also `null` on `no_budget` tasks, whose
+   * `actual_worked_seconds` is a frozen zero that must not be ticked
+   * (accrual-rate answer §4c).
+   */
+  live_accrual_rate: DecimalStringSchema.nullable().catch(null),
 });
 export type TaskBudgetSignal = z.infer<typeof TaskBudgetSignalSchema>;
 

@@ -1,8 +1,6 @@
 import { useTickingElapsed } from "@beyo/lib";
 import type { BudgetAllocationStep } from "@beyo/item-economics";
 import type { StepState } from "../types";
-// TEMPORARY — see lib/step-clock-debug.ts
-import { logStepClockOnce } from "../lib/step-clock-debug";
 
 /**
  * A step's budget row paired with the moment its payload was received.
@@ -142,8 +140,32 @@ function accruedSecondsSince(
       : budget.receivedAtMs
     : enteredAtMs;
   const endMs = localRunning ? nowMs : enteredAtMs;
+  const wallClockSeconds = Math.max(0, (endMs - startMs) / 1000);
 
-  return Math.max(0, Math.floor((endMs - startMs) / 1000));
+  return Math.floor(wallClockSeconds * accrualRateOf(budget));
+}
+
+/**
+ * How fast this step's own total actually grows, in seconds per wall-clock
+ * second. A worker running three steps at once is not doing three times the
+ * work, so the server credits each a third — and a client that counts a full
+ * second per second on all three overshoots by two thirds of every run, then
+ * snaps back the moment the true totals arrive.
+ *
+ * `null` means the served row is not accruing. Falling back to 1 rather than 0
+ * is deliberate: a row that predates the current run (the payload in hand when
+ * a step is started) carries no rate yet, and freezing the timer until the next
+ * payload would read as a broken clock. The refetch that a transition triggers
+ * replaces it within a moment, so the un-scaled window is short.
+ */
+function accrualRateOf(budget: StepBudget): number {
+  const served = budget.step.live_accrual_rate;
+  if (served === null) {
+    return 1;
+  }
+
+  const parsed = Number(served);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
 /**
@@ -180,20 +202,7 @@ export function restingStepBudget(
   budget: StepBudget,
   context: StepClockContext,
 ): LiveStepBudget {
-  const result = projectStepBudget(budget, context, budget.receivedAtMs);
-
-  // TEMPORARY — see lib/step-clock-debug.ts
-  logStepClockOnce(`resting:${budget.step.step_id}`, "resting", {
-    id: budget.step.step_id.slice(-6),
-    servedState: budget.step.state,
-    servedWorked: budget.step.worked_seconds,
-    payloadAgeSec: Math.round((Date.now() - budget.receivedAtMs) / 1000),
-    localState: context.stepState,
-    localEnteredAt: context.stateEnteredAtIso?.slice(11, 23) ?? null,
-    shows: result.workedSeconds,
-  });
-
-  return result;
+  return projectStepBudget(budget, context, budget.receivedAtMs);
 }
 
 // Only meant to be mounted while the step is working, so idle cards never

@@ -35,15 +35,36 @@ function formatCost(
 }
 
 /**
+ * Seconds this task accrues per wall-clock second, summed over whatever is
+ * running on it right now — two workers on one task exceed 1.
+ *
+ * `null` is the case this exists for: nothing is running, so the figure must
+ * hold still. Before the server published this, an idle task's overrun crept
+ * upward between polls and snapped back on each one.
+ */
+function taskAccrualRate(signal: TaskBudgetSignal): number {
+  if (signal.live_accrual_rate === null) {
+    return 0;
+  }
+
+  const parsed = Number(signal.live_accrual_rate);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+/**
  * Renders the server-owned verdict without recreating its projection rule. A
  * fresh payload re-anchors the baseline; until the next poll only displayed
- * time advances. Costs remain the served, precisely rounded money values.
+ * time advances, and only as fast as the task is actually being worked. Costs
+ * remain the served, precisely rounded money values.
  */
 export function buildTaskBudgetSignalDisplay(
   signal: TaskBudgetSignal,
   elapsedMs = 0,
 ): TaskBudgetSignalDisplayViewModel | null {
-  const elapsedSeconds = Math.max(0, Math.floor(elapsedMs / 1000));
+  const elapsedSeconds = Math.max(
+    0,
+    Math.floor((elapsedMs / 1000) * taskAccrualRate(signal)),
+  );
 
   switch (signal.budget_state) {
     case "over": {

@@ -13,7 +13,53 @@ const signal = (overrides: Record<string, unknown> = {}) => ({
   allowed_seconds: 3_000,
   actual_worked_seconds: 2_000,
   cost_per_worker_minute_ten_thousandths: 37_500,
+  // One worker on the task, accruing in real time — the baseline these cases
+  // were written against, before the rate was published.
+  live_accrual_rate: "1.0000",
   ...overrides,
+});
+
+describe("buildTaskBudgetSignalDisplay — live accrual rate", () => {
+  const overSignal = (rate: string | null) =>
+    signal({
+      budget_state: "over",
+      over_seconds: 600,
+      over_cost_minor: 1_000,
+      allowed_seconds: 3_000,
+      actual_worked_seconds: 3_600,
+      live_accrual_rate: rate,
+    });
+
+  it("holds still when nothing is running on the task", () => {
+    // The defect this rule exists for: an idle task's overrun crept upward
+    // between polls and snapped back on each one, on a money-facing surface.
+    const idle = buildTaskBudgetSignalDisplay(overSignal(null), 300_000);
+    const untouched = buildTaskBudgetSignalDisplay(overSignal(null), 0);
+
+    expect(idle).toEqual(untouched);
+  });
+
+  it("advances at the served rate rather than in real time", () => {
+    // Two minutes of wall clock on a task whose single worker is splitting
+    // across three steps is forty seconds of task time, not one hundred twenty.
+    const shared = buildTaskBudgetSignalDisplay(overSignal("0.3333"), 120_000);
+    const sole = buildTaskBudgetSignalDisplay(overSignal("1.0000"), 40_000);
+
+    expect(shared?.label).toBe(sole?.label);
+  });
+
+  it("lets two workers on one task outpace the wall clock", () => {
+    const paired = buildTaskBudgetSignalDisplay(overSignal("2.0000"), 60_000);
+
+    // 600s served + 120s accrued.
+    expect(paired?.label).toBe("Over budget by 12m");
+  });
+
+  it("ignores a malformed rate rather than ticking on garbage", () => {
+    expect(
+      buildTaskBudgetSignalDisplay(overSignal("not-a-number"), 300_000),
+    ).toEqual(buildTaskBudgetSignalDisplay(overSignal(null), 0));
+  });
 });
 
 describe("buildTaskBudgetSignalDisplay", () => {
