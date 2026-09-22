@@ -4,6 +4,7 @@ import type { StatePillVariant } from "@beyo/ui";
 // across the stats cards (current state, granularity time pill).
 export const STATE_CHIP_CLASS: Record<StatePillVariant, string> = {
   neutral: "bg-muted text-muted-foreground",
+  standby: "border border-[#cfd8e3] bg-[#eff2f7] text-[#54677e]",
   active: "border border-[#b8d9ff] bg-[#eaf4ff] text-[#1f5ea8]",
   warning: "border border-[#f0c36a] bg-[#fff4d6] text-[#8a5a00]",
   success: "border border-[#9ed9b5] bg-[#eaf8ef] text-[#1e7a46]",

@@ -12,7 +12,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 8, inProgress: 4 }}
+        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 0 }}
       />,
     );
 
@@ -22,11 +22,33 @@ describe("FulfilmentBar", () => {
     expect(screen.getByTestId("bar")).not.toHaveTextContent("Fulfilled");
   });
 
+  it("renders queued work as its own segment, after in progress", () => {
+    render(
+      <FulfilmentBar
+        data-testid="bar"
+        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 6 }}
+      />,
+    );
+
+    expect(screen.getByTestId("bar-in-queue")).toHaveTextContent("6");
+    expect(screen.getByTestId("bar-remaining")).toHaveTextContent("12");
+
+    const order = Array.from(
+      screen.getByTestId("bar").querySelectorAll("[data-testid]"),
+    ).map((node) => node.getAttribute("data-testid"));
+    expect(order).toEqual([
+      "bar-fulfilled",
+      "bar-in-progress",
+      "bar-in-queue",
+      "bar-remaining",
+    ]);
+  });
+
   it("renders nothing at all for a zero segment", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 16, fulfilled: 0, inProgress: 6 }}
+        quantities={{ requested: 16, fulfilled: 0, inProgress: 6, inQueue: 0 }}
       />,
     );
 
@@ -39,7 +61,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 30, inProgress: 0 }}
+        quantities={{ requested: 30, fulfilled: 30, inProgress: 0, inQueue: 0 }}
       />,
     );
 
@@ -51,7 +73,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 28, inProgress: 1 }}
+        quantities={{ requested: 30, fulfilled: 28, inProgress: 1, inQueue: 0 }}
       />,
     );
 

@@ -1,5 +1,6 @@
 import {
   TASK_STATE,
+  TASK_STATE_VARIANT,
   TASK_TYPE,
   type TaskListCardProps,
   type TaskState,
@@ -172,7 +173,11 @@ export function toStockReportItemViewModel(
       quantities: {
         requested: displayNumber(item.quantity_requested),
         fulfilled: displayNumber(item.quantity_awaiting),
-        inProgress: displayNumber(item.quantity_in_queue) + displayNumber(item.quantity_in_progress),
+        // Owner, 2026-09-22: queued work is its own bar segment. This used to
+        // be `in_queue + in_progress` per intention §4.3, which overstated how
+        // much was actually moving.
+        inProgress: displayNumber(item.quantity_in_progress),
+        inQueue: displayNumber(item.quantity_in_queue),
       },
     },
   };
@@ -186,11 +191,33 @@ function toTaskState(value: string | null | undefined): TaskState {
   return TASK_STATE.includes(value as TaskState) ? (value as TaskState) : "pending";
 }
 
+/**
+ * An assignment's state, not its task's — `TaskListCard` renders whichever
+ * `statePill` it is given, and on this page that is the assignment.
+ *
+ * Owner, 2026-09-22. Two rules decide the colour:
+ *
+ *  1. A state with an obvious task-state counterpart borrows its variant from
+ *     `TASK_STATE_VARIANT` rather than picking one, so the same work cannot
+ *     read one way here and another on the task page — and a later change to
+ *     the task palette carries over by itself. `awaiting` counts as completed
+ *     and rides with the two resolved states.
+ *  2. The rest match the fulfilment bar sitting directly above the list, so a
+ *     green segment is backed by green pills. `in_queue` has no task-state
+ *     counterpart, so it takes the bar's amber directly.
+ *
+ * Anything unrecognised, or absent, stays neutral — the deliberate degrade from
+ * intention §8.1, which keeps an unknown state from blanking the list.
+ */
 function assignmentStatePill(state: string | null | undefined): NonNullable<TaskListCardProps["statePill"]> {
   const label = state?.replaceAll("_", " ") ?? "Unknown";
   if (state === "failed") return { label, variant: "danger" };
-  if (state === "resolved" || state === "resolved_early") return { label, variant: "success" };
-  if (state === "in_progress") return { label, variant: "warning" };
+  if (state === "resolved" || state === "resolved_early" || state === "awaiting") {
+    return { label, variant: TASK_STATE_VARIANT.ready };
+  }
+  if (state === "in_progress") return { label, variant: TASK_STATE_VARIANT.working };
+  // Matches the bar's in-queue segment; no task state means "queued".
+  if (state === "in_queue") return { label, variant: "warning" };
   return { label, variant: "neutral" };
 }
 

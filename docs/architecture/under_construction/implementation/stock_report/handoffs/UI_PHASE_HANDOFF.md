@@ -16,8 +16,10 @@ a callback. Your job is to build the view models, map them onto these props, and
 
 | Item | Path |
 |---|---|
-| `FabMenu` primitive + `fabMenuActionOffset` | `packages/ui/src/components/primitives/fab-menu/` |
-| `BoxSlidePickerOption.quiet` flag | `packages/ui/src/components/primitives/box-slide-picker/` |
+| `FabMenu` primitive + `fabMenuActionOffset` | `packages/ui/src/components/primitives/fab-menu/` — built as the intention requires; **not used by the board today**, and waiting for the board's second action |
+| `FabButton` primitive (a FAB that *is* its action) | `packages/ui/src/components/primitives/fab-menu/` |
+| `standby` variant on `StatePill` | `packages/ui/src/components/primitives/state-pill/` |
+| `BoxSlidePickerOption.quiet` flag | `packages/ui/src/components/primitives/box-slide-picker/` — built for design state D3; **the board no longer uses it** (owner, 2026-09-22), and nothing else does yet |
 
 The two existing FABs (`TaskCreationFab` in managers and sellers) were **not** migrated, as the
 intention requires.
@@ -64,7 +66,7 @@ const STOCK_NEED_BUCKETS = ["unset", "high", "medium", "low"] as const;   // as 
 type StockNeedBucket = "unset" | "high" | "medium" | "low";
 const STOCK_NEED_BUCKET_LABEL: Record<StockNeedBucket, string>;
 
-type FulfilmentQuantities = { requested: number; fulfilled: number; inProgress: number };
+type FulfilmentQuantities = { requested: number; fulfilled: number; inProgress: number; inQueue: number };
 
 type StockNeedCardData = {
   stockNeedId: string;                 // the row's client_id — drag id and testid suffix
@@ -85,6 +87,21 @@ cannot drift. `statePill` is optional: supply it to force a label/variant (that 
 **unknown assignment state degrades to the neutral pill** per intention §8.1); leave it out and the
 card derives one from `task.state`.
 
+On this page it is always supplied, by `assignmentStatePill()` in `stock-report.types.ts` — the card
+shows the **assignment's** state, not its task's. All six states of intention §4.2 are coloured, and
+they agree with the fulfilment bar above the list:
+
+| Assignment state | Variant | Source |
+|---|---|---|
+| `awaiting`, `resolved`, `resolved_early` | `TASK_STATE_VARIANT.ready` | `awaiting` is what the bar counts as fulfilled, so it counts as completed here |
+| `in_progress` | `TASK_STATE_VARIANT.working` | the task page's own colour for work under way |
+| `in_queue` | `warning` | the bar's amber; no task state means "queued" |
+| `failed` | `danger` | no counterpart, and none wanted |
+| anything else, or absent | `neutral` | the §8.1 degrade — neutral is **only** this path |
+
+The first two rows read their variant off `TASK_STATE_VARIANT` rather than naming one, so retuning
+the task palette carries over by itself.
+
 ### 2.2 Board
 
 **`StockReportBoardView`** — the whole board. Composes everything below.
@@ -100,7 +117,9 @@ card derives one from `task.state`.
 | `errorMessage` / `onRetry` | `string?` / `() => void?` | mapped copy (`13_errors`), refetch |
 | `onRefresh` | `() => Promise\|void` | refetch the active bucket (pull-to-refresh) |
 | `onCardPress` | `(stockNeedId) => void` | open the detail slide — works in reorganise mode too |
-| `canReorganise` | `boolean` | `canPrioritise`. `false` renders **no FAB at all** |
+| `canReorganise` | `boolean` | `canPrioritise`. `false` renders **no FAB at all** — and neither does the Unset bucket, whatever this says |
+| — | — | *(The FAB is a single direct-action button in both states — see `StockReportBoardFab`.)* |
+| `onSetPriority` | `(stockNeedId) => void` | open the priority sheet. In Unset the button is on **every card, always**; in an orderable bucket it appears with the drag handles in reorganise mode. Its label is `Set priority` in Unset and `Change priority` elsewhere — the `data-testid` stays `stock-need-card-set-priority-{id}` in both |
 | `isReorganiseMode` / `onToggleReorganise` | `boolean` / `() => void` | package client state |
 | `onSetPriority` | `(stockNeedId) => void` | open the priority sheet for that row |
 | `onReorder` | `(stockNeedId, toIndex) => void` | **see the warning below** |
@@ -114,7 +133,9 @@ card derives one from `task.state`.
 Behaviour already handled here, so you do not need to:
 - `<PullToRefresh>` with **no `scrollRef`** (§12B B10 — the only package-legal scroll registration),
   `disabled` while reorganise mode is on so pull and drag never compete.
-- `sortable` is derived internally: the **Unset bucket gets no handles**, only "Set priority".
+- `sortable` is derived internally: the **Unset bucket gets no handles**, and no FAB either. A
+  bucket with no order has nothing to enter a mode for, so its one action — giving the row a
+  priority — is on every card outright (owner, 2026-09-22).
 - Outside reorganise mode no `DndContext` is mounted at all and no card shows a handle or a button.
 - The dragged card keeps its place and takes the accent border + reduced opacity; the list reflows
   live with no drop indicator (design B2/B3).
@@ -151,7 +172,7 @@ Behaviour already handled here, so you do not need to:
   `mx-4` inset, which is this page's 16 px gutter, so the list adds no horizontal padding.
 
 **Smaller pieces:** `StockNeedSummaryCard`, `StockReportAddItemButton`,
-`StockReportSelectedItemsHeader`, `StockReportAssignmentList`, `StockReportAssignmentsEmptyState`,
+`StockReportAssignmentList`, `StockReportAssignmentsEmptyState`,
 `StockReportAssignmentListSkeleton`, `StockReportDetailErrorState`, `StockReportMissingNotice`.
 
 ### 2.4 Sheet **content** (you wrap each in a surface page — none is registered here)
@@ -194,7 +215,7 @@ Convention `[feature]-[element-type]-[context]` per `34_runtime_validation_local
 | Element | testid |
 |---|---|
 | Board root | `stock-report-board` |
-| Bucket picker | `stock-report-bucket-picker`, indicator `…-indicator` (carries `data-quiet` when the active bucket is Unset) |
+| Bucket picker | `stock-report-bucket-picker`, indicator `…-indicator` |
 | One bucket pill | `stock-report-bucket-{unset\|high\|medium\|low}` |
 | Search row / its input | `stock-report-search`, `stock-report-search-input` |
 | Board list | `stock-report-board-list` |
@@ -212,7 +233,6 @@ Convention `[feature]-[element-type]-[context]` per `34_runtime_validation_local
 | Summary card / panel / quantity / tags / bar | `stock-report-summary-card`, `-panel`, `-panel-quantity`, `-tags`, `-bar` |
 | Legend | `stock-report-fulfilment-legend` |
 | Add item | `stock-report-add-item` |
-| Item count | `stock-report-assignment-count` |
 | Assignment list | `stock-report-assignment-list` (rows keep `TaskListCard`'s own `tasks-card-{taskId}` ids) |
 | Assignments empty / skeleton | `stock-report-assignments-empty`, `stock-report-assignments-skeleton` |
 | Detail error / retry | `stock-report-detail-error`, `stock-report-detail-error-retry` |
@@ -233,9 +253,12 @@ Convention `[feature]-[element-type]-[context]` per `34_runtime_validation_local
   Per intention §4.1: one tag per key, values joined with `" / "` and capitalised
   (`"Dark / Teak"`), a key whose value list is `null` produces **no** tag, keys in the order
   received. That mapping is yours, and no component compares properties with an item's.
-- **It never maps a backend quantity.** `FulfilmentQuantities` takes three plain numbers. Per
-  intention §4.3: `fulfilled = quantity_awaiting`,
-  `inProgress = quantity_in_queue + quantity_in_progress`. `remaining` is computed inside the bar.
+- **It never maps a backend quantity.** `FulfilmentQuantities` takes four plain numbers:
+  `fulfilled = quantity_awaiting`, `inProgress = quantity_in_progress`,
+  `inQueue = quantity_in_queue`. `remaining` is computed inside the bar.
+  **Owner, 2026-09-22 — this supersedes intention §4.3 and ledger entry M4**, which folded
+  `quantity_in_queue` into `inProgress`; queued work is now its own bar segment, because summing
+  them overstated how much was actually moving.
 - **It never maps a reason code.** Both match-sheet views and the status row take finished copy.
 - **It never decides a role.** `canReorganise`, `canAssign`, `buckets` and the presence of
   `onTapCard` / `onTapActions` are the only role-shaped inputs, and they are plain props.
@@ -251,11 +274,15 @@ Convention `[feature]-[element-type]-[context]` per `34_runtime_validation_local
 `computeFulfilmentSegments({ requested, fulfilled, inProgress })` in `lib/fulfilment-bar.ts` is the
 single definition and is covered by 13 unit tests over design states A1–A7 plus the clamp.
 
-- `remaining = max(0, requested − fulfilled − inProgress)`; negatives and non-finite inputs → 0.
+- `remaining = max(0, requested − fulfilled − inProgress − inQueue)`; negatives and non-finite
+  inputs → 0.
 - A zero segment is `null` — renders nothing, occupies no width.
 - Each non-zero coloured segment keeps a **14 %** minimum.
-- The coloured pair is scaled into an **84 %** budget while `remaining > 0` (100 % when it is 0), so
-  the grey remainder always keeps room for its number.
+- The coloured set is scaled into an **84 %** budget while `remaining > 0` (100 % when it is 0), so
+  the grey remainder always keeps room for its number. Three segments at their floor come to 42 %,
+  well inside the budget, so the scaling only bites on genuinely lopsided numbers.
+- Segments read left to right from most advanced to least:
+  **fulfilled → in progress → in queue → remaining**.
 - Over-fulfilment clamps at 100 % — the surplus is invisible, no indicator (A7, intention §6.3).
 - `requested: 0` with coloured work present reads the proportions against the work itself rather
   than dividing by zero.
@@ -266,14 +293,23 @@ Exported as `computeFulfilmentSegments`, `SEGMENT_MIN_PERCENT`, `COLOURED_BUDGET
 
 ## 6. Literal values kept without a token
 
-`@beyo/styles` has no blue accent (`--color-primary` is `#303030`), so the bar's two meaning-carrying
-hues could not both be tokenised. **Owner decision, 2026-09-21:** use the repo's own values rather
-than the mockup's. All of them live in `lib/stock-report-theme.ts` as complete class strings.
+`@beyo/styles` has no accent hue for either bar colour, so the bar's two meaning-carrying hues could
+not be tokenised. All of them live in `lib/stock-report-theme.ts` as complete class strings.
+
+**Owner revision, 2026-09-22 — the hue assignment changed.** The first pass followed the mockup
+(deep blue = fulfilled, amber = in progress). On a device the blue read too dark and the amber read
+as an alarm, which is wrong for work merely under way. It now ships as **fulfilled = light green,
+in progress = light blue**, using the light tints `@beyo/ui`'s `StatePill` already carries for its
+`success` and `active` variants. Because each segment holds its own number, the light fills forced
+the numbers to darken with them — white is illegible on these tints, so each takes the saturated ink
+of its own family (7.9:1 green, 5.6:1 blue).
 
 | Mockup | Ships as | Note |
 |---|---|---|
-| `#2f6ee0` fulfilled / accent | **`#1f5ea8`** — the only literal | the blue `StatePill`'s `active` variant already uses |
-| `#b5801f` in progress | `var(--color-warning)` | token |
+| `#2f6ee0` fulfilled | **`#9ed9b5` fill, `#123a22` ink** | light green; both values already in the repo |
+| — (was folded into in progress) | **`#f0c36a` fill, `#6b4500` ink** | light amber for **in queue**, its own segment since 2026-09-22; `#f0c36a` is `StatePill`'s `warning` border, and `--color-warning` is only 3.6:1 on it so the ink is darkened |
+| `#b5801f` in progress | **`#b8d9ff` fill, `#2c5372` ink** | light blue; both values already in the repo |
+| `#2f6ee0` drag accent | `var(--color-primary)` | with blue now meaning "in progress", a blue drag border would read as a bar colour that escaped the bar |
 | `#ededee` bar track | `var(--color-light-border)` | token |
 | `#dcdcde` legend "remaining" swatch | `var(--color-muted)` | token |
 | `#e0e0e2` full-bleed divider | `var(--color-between-border)` | token |
@@ -292,9 +328,9 @@ Arbitrary Tailwind values used for geometry with no token, each carrying the com
 | `rounded-[1.125rem]` | summary card (18 px) | sits between `rounded-2xl` (16) and `rounded-3xl` (24) |
 | `text-[1.625rem]` | summary numeral (26 px) | between `text-2xl` and `text-3xl` |
 | `text-[11px]`, `text-[13px]`, `text-[15px]` | bar numbers, item count, section label | the design's small ramp has no token equivalents |
-| `rounded-[10px]` | category picture frame | between `rounded-lg` and `rounded-xl` |
 | `size-[18px]` | drag-handle glyph | the design's handle size |
-| `bg-[#1f5ea8]`, `border-[#1f5ea8]` | bar / drag accent | the one literal above |
+| `bg-[#9ed9b5]`, `text-[#123a22]`, `bg-[#b8d9ff]`, `text-[#2c5372]`, `bg-[#f0c36a]`, `text-[#6b4500]` | bar segments | the six literals above |
+| `bg-[#f0c36a]` | the priority button's diamond | the in-queue amber again, decorative here — the one place it is not a data value |
 
 ---
 
@@ -380,13 +416,22 @@ with one addition of my own noted at the end.
 | No loading or error states | card-shaped skeletons + the app's error pattern | design ambiguity 12 |
 | No keyboard path for reordering | dnd-kit `KeyboardSensor` + `sortableKeyboardCoordinates` | design ambiguity 11, §6.1 |
 | No pull-to-refresh | `PullToRefresh` on both views | §12B B10 |
-| Mockup colour literals | the repo's tokens plus one literal | §6 above, owner 2026-09-21 |
+| Mockup colour literals | the repo's tokens plus four literals | §6 above |
+| Blue = fulfilled, amber = in progress | **light green = fulfilled, light blue = in progress** | owner 2026-09-22 — the mockup's blue read too dark, its amber read as an alarm |
+| — (the FAB was undesigned beyond "expanding action buttons") | the FAB is a **single direct-action button** in both directions, not a menu | owner 2026-09-22 — one action is not a choice; it returns to `FabMenu` when a second action is added |
+| `Unset` renders with no active fill even when it is the active bucket (D3) | **every bucket wears the active fill**, Unset included | owner 2026-09-22 — an unfilled active pill read as "nothing is selected" rather than "Unset is selected" |
+| Priority is set from within reorganise mode, in every bucket | Unset shows the button on every card with **no mode at all**, and renders **no FAB**; orderable buckets are unchanged | owner 2026-09-22 — Unset has no order to express, so the mode had nothing to do there |
+| One label, "Set priority" | `Set priority` in Unset, `Change priority` elsewhere | owner 2026-09-22 — a row already in a bucket has a priority to change, not to set |
+| (undesigned — the mockup has no per-card action) | the priority button is a **detached dark pill below the card**, with an amber diamond, not a row inside the card's border | owner 2026-09-22, from a supplied mockup |
+| `Selected items` section header with an item count | **removed** — the cards start straight under the divider | owner 2026-09-22 |
+| Three bar values (in queue folded into in progress) | **four** — in queue is its own light-amber segment | owner 2026-09-22 — supersedes intention §4.3 and M4 |
+| `assigned` and `working` share one blue | `assigned` takes a new, greyer `standby` variant in `@beyo/ui`'s `StatePill` | owner 2026-09-22 — a new variant, not an edit to `active`, so the 40 files using that variant are untouched |
+| Assignment pills picked their own colours | every §4.2 state coloured, in agreement with the bar — see §2.1 | owner 2026-09-22 — the same work cannot read one way on a stock-need card and another on the task page, nor one way in the bar and another in the list below it |
+| The category picture sits in a bordered, rounded frame | unframed, `object-contain` | owner 2026-09-22 — these are transparent-background icons of varying aspect ratio; `object-cover` was cropping the wider ones |
+| Dragging also accents the type icon's stroke (B2) | only the card's border and opacity | follows — a real image has no stroke, and there is no longer a frame to accent |
 
-**Mine, and small:** the category picture is framed as a 40 px (card) / 44 px (summary) rounded
-square with a hairline border rather than sitting bare, so a photograph reads as an icon slot at the
-size the design reserved; the frame border is what takes the accent while the card is dragged. The
-`FabMenu` places a lone action straight up rather than at the arc's midpoint — with one action there
-is no arc to spread across, and the diagonal reads as an accident.
+**Mine, and small:** the `FabMenu` places a lone action straight up rather than at the arc's
+midpoint — with one action there is no arc to spread across, and the diagonal reads as an accident.
 
 ---
 
@@ -394,12 +439,11 @@ is no arc to spread across, and the diagonal reads as an accident.
 
 **Automated:** `test:stock-report` 67 passed, `test:ui` 192 passed, `test:tasks` 130 passed (no
 regression), `tsc` clean on both packages touched. The component tests cover the states that carry
-logic: bar segments and the budget/minimum rules, singular vs plural item count, the quiet Unset
-pill, handle presence by mode and by bucket, ⋮ presence by handler, Add-item presence by capability,
+logic: bar segments and the budget/minimum rules, singular vs plural item count, the bucket picker's
+active fill, handle presence by mode and by bucket, ⋮ presence by handler, Add-item presence by capability,
 the blocked vs warning sheet, and the three status-row looks.
 
-**Seen running:** the board, in the managers app at phone width — bucket picker with Unset quiet and
-High filled, the search row without sort or filter, the full-bleed divider, five cards with correct
+**Seen running:** the board, in the managers app at phone width — bucket picker, the search row without sort or filter, the full-bleed divider, five cards with correct
 bar segments across states A1–A4, and the FAB.
 
 **Left to the owner (2026-09-21):** `ui_design_documentation/08-implementation-checklist.md` is being

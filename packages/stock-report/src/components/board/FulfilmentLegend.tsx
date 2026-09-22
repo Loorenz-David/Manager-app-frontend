@@ -5,7 +5,7 @@ import { LEGEND_SWATCH_CLASS } from "../../lib/stock-report-theme";
 const ENTRIES = [
   { key: "fulfilled", label: "Fulfilled" },
   { key: "inProgress", label: "In progress" },
-  { key: "remaining", label: "Remaining" },
+  { key: "inQueue", label: "In queue" },
 ] as const;
 
 export type FulfilmentLegendProps = {
@@ -13,7 +13,7 @@ export type FulfilmentLegendProps = {
 };
 
 /**
- * Names the bar's three colours once, on the screen where the bar is the
+ * Names the bar's four colours once, on the screen where the bar is the
  * primary data display. List cards deliberately go without it.
  */
 export function FulfilmentLegend({

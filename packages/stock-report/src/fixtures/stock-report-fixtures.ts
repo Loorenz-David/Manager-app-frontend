@@ -28,13 +28,14 @@ function makeCard(
   requested: number,
   fulfilled: number,
   inProgress: number,
+  inQueue = 0,
 ): StockNeedCardData {
   return {
     stockNeedId,
     title,
     imageUrl: CATEGORY_PICTURE,
     propertyTags,
-    quantities: { requested, fulfilled, inProgress },
+    quantities: { requested, fulfilled, inProgress, inQueue },
   };
 }
 
@@ -60,6 +61,28 @@ export const stockNeedPartiallyFulfilledFixture = makeCard(
   30,
   8,
   4,
+);
+
+/** All four segments at once — fulfilled, in progress, in queue, remaining. */
+export const stockNeedWithQueueFixture = makeCard(
+  "need-queue",
+  "Dining chair",
+  ["Oak", "Spindle back"],
+  30,
+  8,
+  4,
+  6,
+);
+
+/** Queued work only: nothing fulfilled, nothing moving yet. */
+export const stockNeedQueuedOnlyFixture = makeCard(
+  "need-queued-only",
+  "Café table",
+  ["Beech", "Round"],
+  12,
+  0,
+  0,
+  5,
 );
 
 /** A3 — work started, nothing fulfilled (the mockup's second list row). */
@@ -145,6 +168,7 @@ export const stockNeedManyTagsFixture = makeCard(
 /** C1 — a bucket with results, in backend order. */
 export const stockReportBoardCardsFixture: readonly StockNeedCardData[] = [
   stockNeedPartiallyFulfilledFixture,
+  stockNeedWithQueueFixture,
   stockNeedWorkStartedFixture,
   stockNeedThinSliceFixture,
   stockNeedNoProgressFixture,
@@ -159,6 +183,8 @@ export const stockReportBoardAllBarStatesFixture: readonly StockNeedCardData[] =
   [
     stockNeedNoProgressFixture,
     stockNeedPartiallyFulfilledFixture,
+    stockNeedWithQueueFixture,
+    stockNeedQueuedOnlyFixture,
     stockNeedWorkStartedFixture,
     stockNeedThinSliceFixture,
     stockNeedFullyAccountedFixture,

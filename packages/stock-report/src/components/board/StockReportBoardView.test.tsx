@@ -26,8 +26,10 @@ function tapInsidePullContainer(element: HTMLElement): void {
   fireEvent.click(element);
 }
 
-function renderBoard(overrides: Partial<StockReportBoardViewProps> = {}) {
-  const props: StockReportBoardViewProps = {
+function boardProps(
+  overrides: Partial<StockReportBoardViewProps> = {},
+): StockReportBoardViewProps {
+  return {
     buckets: TRIAGE_BUCKETS,
     bucket: "unset",
     onBucketChange: vi.fn(),
@@ -44,6 +46,10 @@ function renderBoard(overrides: Partial<StockReportBoardViewProps> = {}) {
     onReorder: vi.fn(),
     ...overrides,
   };
+}
+
+function renderBoard(overrides: Partial<StockReportBoardViewProps> = {}) {
+  const props = boardProps(overrides);
 
   render(
     <LazyMotion features={domAnimation}>
@@ -68,24 +74,26 @@ describe("StockReportBoardView — controls", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("leaves the Unset pill without the active fill while it is the bucket", () => {
-    renderBoard({ bucket: "unset" });
+  it("gives every bucket the active fill, Unset included", () => {
+    // Owner, 2026-09-22: design state D3 had Unset render as unselected, which
+    // read as "nothing is selected" rather than "Unset is selected".
+    for (const bucket of ["unset", "high", "medium", "low"] as const) {
+      const { unmount } = render(
+        <LazyMotion features={domAnimation}>
+          <StockReportBoardView {...boardProps({ bucket })} />
+        </LazyMotion>,
+      );
 
-    expect(
-      screen.getByTestId("stock-report-bucket-picker-indicator"),
-    ).toHaveAttribute("data-quiet", "");
-    expect(screen.getByTestId("stock-report-bucket-unset")).toHaveAttribute(
-      "aria-checked",
-      "true",
-    );
-  });
+      expect(
+        screen.getByTestId("stock-report-bucket-picker-indicator"),
+      ).not.toHaveAttribute("data-quiet");
+      expect(screen.getByTestId(`stock-report-bucket-${bucket}`)).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
 
-  it("gives an ordinary bucket the active fill", () => {
-    renderBoard({ bucket: "high" });
-
-    expect(
-      screen.getByTestId("stock-report-bucket-picker-indicator"),
-    ).not.toHaveAttribute("data-quiet");
+      unmount();
+    }
   });
 
   it("offers a worker only the three prioritised buckets", () => {
@@ -141,25 +149,61 @@ describe("StockReportBoardView — list states", () => {
 
 describe("StockReportBoardView — reorganise mode", () => {
   it("renders no FAB for a role that cannot reorganise", () => {
-    renderBoard({ canReorganise: false });
+    renderBoard({ bucket: "high", canReorganise: false });
 
     expect(screen.queryByTestId("stock-report-fab")).not.toBeInTheDocument();
   });
 
-  it("renders the FAB for a role that can, and reports the toggle", async () => {
-    const props = renderBoard();
+  it("enters the mode on a single tap — the FAB is the action", async () => {
+    const props = renderBoard({ bucket: "high" });
 
-    await userEvent.click(screen.getByTestId("stock-report-fab"));
-    await userEvent.click(
-      screen.getByTestId("stock-report-fab-action-reorganise"),
-    );
+    const fab = screen.getByTestId("stock-report-fab");
+    expect(fab).toHaveAccessibleName("Reorganise");
+
+    await userEvent.click(fab);
 
     expect(props.onToggleReorganise).toHaveBeenCalledTimes(1);
   });
 
+  it("leaves the mode on a single tap — the FAB becomes the way out", async () => {
+    const props = renderBoard({ isReorganiseMode: true, bucket: "high" });
+
+    const fab = screen.getByTestId("stock-report-fab");
+    expect(fab).toHaveAccessibleName("Done reorganising");
+
+    await userEvent.click(fab);
+
+    expect(props.onToggleReorganise).toHaveBeenCalledTimes(1);
+  });
+
+  it("expands onto nothing in either direction — one action is not a choice", () => {
+    const { rerender } = render(
+      <LazyMotion features={domAnimation}>
+        <StockReportBoardView {...boardProps({ bucket: "high" })} />
+      </LazyMotion>,
+    );
+
+    for (const isReorganiseMode of [false, true]) {
+      rerender(
+        <LazyMotion features={domAnimation}>
+          <StockReportBoardView
+            {...boardProps({ bucket: "high", isReorganiseMode })}
+          />
+        </LazyMotion>,
+      );
+
+      expect(screen.getByTestId("stock-report-fab")).not.toHaveAttribute(
+        "aria-expanded",
+      );
+      expect(
+        screen.queryByTestId("stock-report-fab-action-reorganise"),
+      ).not.toBeInTheDocument();
+    }
+  });
+
   it("shows no handle and no priority button outside the mode", () => {
     const [first] = stockReportBoardCardsFixture;
-    renderBoard({ isReorganiseMode: false });
+    renderBoard({ bucket: "high", isReorganiseMode: false });
 
     expect(
       screen.queryByTestId(`stock-need-card-handle-${first.stockNeedId}`),
@@ -179,6 +223,49 @@ describe("StockReportBoardView — reorganise mode", () => {
     expect(
       screen.getByTestId(`stock-need-card-set-priority-${first.stockNeedId}`),
     ).toBeInTheDocument();
+  });
+
+  it("offers the priority button in Unset without entering any mode", () => {
+    const [first] = stockReportBoardCardsFixture;
+    renderBoard({ bucket: "unset", isReorganiseMode: false });
+
+    expect(
+      screen.getByTestId(`stock-need-card-set-priority-${first.stockNeedId}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`stock-need-card-handle-${first.stockNeedId}`),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders no FAB in Unset — there is no order to express there", () => {
+    renderBoard({ bucket: "unset", canReorganise: true });
+
+    expect(screen.queryByTestId("stock-report-fab")).not.toBeInTheDocument();
+  });
+
+  it("asks to set a priority in Unset and to change it everywhere else", () => {
+    const [first] = stockReportBoardCardsFixture;
+
+    const { unmount } = render(
+      <LazyMotion features={domAnimation}>
+        <StockReportBoardView {...boardProps({ bucket: "unset" })} />
+      </LazyMotion>,
+    );
+    expect(
+      screen.getByTestId(`stock-need-card-set-priority-${first.stockNeedId}`),
+    ).toHaveTextContent("Set priority");
+    unmount();
+
+    render(
+      <LazyMotion features={domAnimation}>
+        <StockReportBoardView
+          {...boardProps({ bucket: "high", isReorganiseMode: true })}
+        />
+      </LazyMotion>,
+    );
+    expect(
+      screen.getByTestId(`stock-need-card-set-priority-${first.stockNeedId}`),
+    ).toHaveTextContent("Change priority");
   });
 
   it("offers only the priority button in the Unset bucket — unordered rows have no handle", () => {

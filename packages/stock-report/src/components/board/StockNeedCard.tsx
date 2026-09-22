@@ -3,7 +3,10 @@ import { GripHorizontal } from "lucide-react";
 
 import { cn } from "@beyo/lib";
 
-import { DRAG_ACCENT_BORDER_CLASS } from "../../lib/stock-report-theme";
+import {
+  DRAG_ACCENT_BORDER_CLASS,
+  PRIORITY_ACTION_MARKER_CLASS,
+} from "../../lib/stock-report-theme";
 import type { StockNeedCardData } from "../../stock-report.types";
 import { FulfilmentBar } from "./FulfilmentBar";
 import { StockNeedPropertyTags } from "./StockNeedPropertyTags";
@@ -21,8 +24,13 @@ export type StockNeedCardProps = {
   dragHandleRef?: Ref<HTMLButtonElement>;
   showDragHandle?: boolean;
   isDragging?: boolean;
-  /** Reorganise mode only: renders the card's "Set priority" bottom button. */
+  /** Renders the card's priority bottom button. Omit it to render none. */
   onSetPriority?: (stockNeedId: string) => void;
+  /**
+   * What that button says. A row with no priority is having one *set*; a row
+   * already in a bucket is having it *changed*.
+   */
+  priorityActionLabel?: string;
 };
 
 export function StockNeedCard({
@@ -33,30 +41,35 @@ export function StockNeedCard({
   showDragHandle = false,
   isDragging = false,
   onSetPriority,
+  priorityActionLabel = "Set priority",
 }: StockNeedCardProps): React.JSX.Element {
   const isPressable = Boolean(onPress);
 
   return (
+    // The row, not the card: the priority action is detached below the card
+    // rather than tucked inside it, so the whole row is what dims while it is
+    // being dragged.
     <div
-      className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
-        isDragging && cn(DRAG_ACCENT_BORDER_CLASS, "opacity-65"),
-      )}
+      className={cn("flex flex-col gap-2", isDragging && "opacity-65")}
       data-dragging={isDragging ? "" : undefined}
       data-testid={`stock-need-card-${card.stockNeedId}`}
     >
-      <div className="flex">
+      <div
+        className={cn(
+          "flex overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+          isDragging && DRAG_ACCENT_BORDER_CLASS,
+        )}
+      >
         <StockNeedQuantityPanel
           data-testid={`stock-need-card-panel-${card.stockNeedId}`}
           imageAlt={card.title}
           imageUrl={card.imageUrl}
-          isDragging={isDragging}
           quantity={card.quantities.requested}
         />
 
         <div
           className={cn(
-            "flex min-w-0 flex-1 flex-col gap-2 px-3.5 py-3",
+            "flex min-w-0 flex-1 flex-col gap-2 pr-3.5 py-3",
             isPressable ? "cursor-pointer" : "cursor-default",
           )}
           data-testid={`stock-need-card-body-${card.stockNeedId}`}
@@ -111,12 +124,19 @@ export function StockNeedCard({
 
       {onSetPriority ? (
         <button
-          className="border-t border-border px-4 py-3 text-sm font-semibold text-foreground"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-semibold text-card"
           data-testid={`stock-need-card-set-priority-${card.stockNeedId}`}
           type="button"
           onClick={() => onSetPriority(card.stockNeedId)}
         >
-          Set priority
+          <span
+            aria-hidden="true"
+            className={cn(
+              "size-2.5 shrink-0 rotate-45 rounded-[2px]",
+              PRIORITY_ACTION_MARKER_CLASS,
+            )}
+          />
+          {priorityActionLabel}
         </button>
       ) : null}
     </div>

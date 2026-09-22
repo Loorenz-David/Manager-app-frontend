@@ -65,8 +65,6 @@ export { StockNeedSummaryCard } from "./components/detail/StockNeedSummaryCard";
 export type { StockNeedSummaryCardProps } from "./components/detail/StockNeedSummaryCard";
 export { StockReportAddItemButton } from "./components/detail/StockReportAddItemButton";
 export type { StockReportAddItemButtonProps } from "./components/detail/StockReportAddItemButton";
-export { StockReportSelectedItemsHeader } from "./components/detail/StockReportSelectedItemsHeader";
-export type { StockReportSelectedItemsHeaderProps } from "./components/detail/StockReportSelectedItemsHeader";
 export { StockReportAssignmentList } from "./components/detail/StockReportAssignmentList";
 export type { StockReportAssignmentListProps } from "./components/detail/StockReportAssignmentList";
 export {

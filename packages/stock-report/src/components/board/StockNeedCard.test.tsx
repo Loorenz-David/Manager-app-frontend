@@ -74,6 +74,18 @@ describe("StockNeedCard", () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
+  it("hangs the priority button below the card rather than inside it", () => {
+    render(<StockNeedCard card={CARD} onSetPriority={vi.fn()} />);
+
+    const button = screen.getByTestId(`stock-need-card-set-priority-${ID}`);
+    const row = screen.getByTestId(`stock-need-card-${ID}`);
+
+    // A direct child of the row, so it sits under the card surface with a gap
+    // rather than sharing its border and background.
+    expect(button.parentElement).toBe(row);
+    expect(button.closest(".bg-card")).toBeNull();
+  });
+
   it("marks the card while it is being dragged", () => {
     render(<StockNeedCard card={CARD} isDragging showDragHandle />);
 

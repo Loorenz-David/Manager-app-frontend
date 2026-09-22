@@ -25,7 +25,9 @@ export { isoWeek } from "@beyo/lib";
 
 export const TASK_STATE_VARIANT: Record<TaskState, StatePillVariant> = {
   pending: "neutral",
-  assigned: "active",
+  // Assigned and working both read as "blue" before; assigned is the quieter,
+  // greyer blue so a glance separates allocated work from work under way.
+  assigned: "standby",
   working: "active",
   stalled: "warning",
   ready: "success",

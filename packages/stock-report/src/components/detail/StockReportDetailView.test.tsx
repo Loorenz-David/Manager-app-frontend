@@ -8,7 +8,6 @@ import {
   stockNeedPartiallyFulfilledFixture,
   stockReportAssignmentsFixture,
   stockReportNoAssignmentsFixture,
-  stockReportSingleAssignmentFixture,
 } from "../../fixtures/stock-report-fixtures";
 import { StockReportDetailView } from "./StockReportDetailView";
 import type { StockReportDetailViewProps } from "./StockReportDetailView";
@@ -72,7 +71,7 @@ describe("StockReportDetailView — header", () => {
     expect(screen.getByTestId("stock-report-summary-bar")).toBeInTheDocument();
     expect(screen.getByText("Fulfilled")).toBeInTheDocument();
     expect(screen.getByText("In progress")).toBeInTheDocument();
-    expect(screen.getByText("Remaining")).toBeInTheDocument();
+    expect(screen.getByText("In queue")).toBeInTheDocument();
   });
 });
 
@@ -101,20 +100,17 @@ describe("StockReportDetailView — Add item", () => {
 });
 
 describe("StockReportDetailView — selected items", () => {
-  it("counts several items in the plural", () => {
+  it("heads the list with nothing — no section label, no item count", () => {
     renderDetail();
 
     expect(
-      screen.getByTestId("stock-report-assignment-count"),
-    ).toHaveTextContent("4 items");
-  });
-
-  it("counts a single item in the singular", () => {
-    renderDetail({ assignments: stockReportSingleAssignmentFixture });
-
+      screen.queryByTestId("stock-report-assignment-count"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Selected items")).not.toBeInTheDocument();
+    // The cards themselves are untouched; only the row above them is gone.
     expect(
-      screen.getByTestId("stock-report-assignment-count"),
-    ).toHaveTextContent("1 item");
+      screen.getByTestId("stock-report-assignment-list"),
+    ).toBeInTheDocument();
   });
 
   it("keeps the summary and Add item while the list is empty", () => {
@@ -126,9 +122,6 @@ describe("StockReportDetailView — selected items", () => {
     expect(
       screen.getByTestId("stock-report-assignments-empty"),
     ).toHaveTextContent("No items selected for this stock need yet.");
-    expect(
-      screen.getByTestId("stock-report-assignment-count"),
-    ).toHaveTextContent("0 items");
     expect(screen.getByTestId("stock-report-summary-card")).toBeInTheDocument();
     expect(screen.getByTestId("stock-report-add-item")).toBeInTheDocument();
   });
@@ -178,9 +171,6 @@ describe("StockReportDetailView — states", () => {
       screen.getByTestId("stock-report-assignments-skeleton"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("stock-report-summary-card")).toBeInTheDocument();
-    expect(
-      screen.queryByTestId("stock-report-assignment-count"),
-    ).not.toBeInTheDocument();
   });
 
   it("offers a retry from the error state", () => {

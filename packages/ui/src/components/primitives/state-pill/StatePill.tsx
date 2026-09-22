@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 
 export type StatePillVariant =
   | "neutral"
+  | "standby"
   | "active"
   | "warning"
   | "success"
@@ -10,6 +11,9 @@ export type StatePillVariant =
 
 const VARIANT_CLASS: Record<StatePillVariant, string> = {
   neutral: "bg-muted text-muted-foreground",
+  // Allocated but not yet moving: the same blue family as `active`, desaturated
+  // towards grey so the two never read as the same state at a glance.
+  standby: "border border-[#cfd8e3] bg-[#eff2f7] text-[#54677e]",
   active: "border border-[#b8d9ff] bg-[#eaf4ff] text-[#1f5ea8]",
   warning: "border border-[#f0c36a] bg-[#fff4d6] text-[#8a5a00]",
   success: "border border-[#9ed9b5] bg-[#eaf8ef] text-[#1e7a46]",
@@ -18,6 +22,7 @@ const VARIANT_CLASS: Record<StatePillVariant, string> = {
 
 const TEXT_VARIANT_CLASS: Record<StatePillVariant, string> = {
   neutral: "text-muted-foreground",
+  standby: "text-[#54677e]",
   active: "text-[#1f5ea8]",
   warning: "text-[#8a5a00]",
   success: "text-[#1e7a46]",

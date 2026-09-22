@@ -21,21 +21,23 @@ export function StockReportBucketPicker({
   value,
   onChange,
 }: StockReportBucketPickerProps): React.JSX.Element {
+  // Every bucket wears the active fill, Unset included (owner, 2026-09-22).
+  // Design state D3 had Unset render as though unselected, on the reasoning
+  // that it is a resting state rather than a chosen one; in use that read as
+  // "nothing is selected" rather than "Unset is selected", which is wrong —
+  // it is a bucket like any other, and the list below it is its contents.
   const options: BoxSlidePickerOptionType<StockNeedBucket>[] = buckets.map(
     (bucket) => ({
       value: bucket,
       label: STOCK_NEED_BUCKET_LABEL[bucket],
       testId: `stock-report-bucket-${bucket}`,
-      // Unset is the resting "no priority chosen" state, not a chosen value, so
-      // it must not wear the active fill even while it is the active bucket
-      // (design state D3).
-      quiet: bucket === "unset",
     }),
   );
 
   return (
     <BoxSlidePicker
       ariaLabel="Priority bucket"
+      size="sm"
       dataTestId="stock-report-bucket-picker"
       onValueChange={onChange}
       options={options}

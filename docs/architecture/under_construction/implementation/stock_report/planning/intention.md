@@ -40,10 +40,12 @@ Concretely, one shared package gives all three apps the same two screens:
   `architecture/35_shared_packages.md` exactly (source package, peers only, loaders for pages,
   never calls `openSurface`). The three apps differ **only** by what the role permits.
 - **HC-2 Built against a handoff, not a server.** The API authority is
-  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260921.md` plus, for the compatibility
-  check, `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_match_preview_v2_20260921.md`. The frontend
-  is built as if both were live, honouring its three tiers: STABLE is a contract; PROVISIONAL shapes are built but
-  field-level surprises are expected; NOT PINNED is never guessed (§8.1).
+  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_v2_20260921.md` (**current since the
+  2026-09-21 evening amendment** — it supersedes `..._api_20260921.md`, now in `archived/`) plus, for
+  the compatibility check, `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_match_preview_v2_20260921.md`.
+  The frontend is built as if both were live, honouring v2's two tiers: VERIFIED is read from shipping
+  code; SPECIFIED is pinned by a backend criterion row — build against it, a divergence is a backend
+  defect. Nullability stays nullish until the re-verified final handoff (§8.1).
 - **HC-3 The mockup is customer-confirmed.** `ui_design_documentation/` is the visual authority.
   Deviations are only those listed in §6.3, each with a reason.
 - **HC-4 The backend's role matrix is the permission truth** (§5). The UI hides what a role cannot
@@ -614,3 +616,14 @@ NOT PINNED items 1–3 close with the backend's final handoff (the design tolera
 **Post-ratification amendment — 2026-09-21 — owner (David): B7 and B8 closed.**
 - B7: the owner asked why locking cannot simply be a flag set from the open call. It can: the shaper's "deeper surgery" wording overstated it — Back is neutralised by re-pushing the history entry when the top surface is locked. Ships as a general `dismissible: false` open-option in `@beyo/ui` covering swipe, backdrop, Escape and Back; "Back = Change item" withdrawn.
 - B8 → option B: the workers' task-detail registration and its read-only view are deferred to the owner's next project; card 3 → C and card 9 are superseded for this build; M1 and the must-ship list updated. This narrows scope for one role's one tap; the owner made the call, status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-21 (evening) — backend contract v2 adopted.**
+- HC-2 now points at `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_v2_20260921.md`; the first api handoff is archived. The match-preview v2 handoff stays current. No section of this document changes meaning; v2 confirms the assumptions the build rested on and settles the ones that were open:
+  - `item_category.image_url` is always present, `string | null` (owner assumption → contract).
+  - Match preview is VERIFIED: standard success envelope, pinned field names, `item_category_id`, `properties` and `quantity` required, `checks[]` of exactly nine. Consequence for §8.5: the preview is never sent before a category is chosen; branch on `can_proceed`, never on `refusal_reason` (advisory `item_already_assigned` may fill it while proceeding). The envelope-agnostic parser of §12 is no longer needed.
+  - Assignment `item` (7 keys) and `task` (12 keys) are VERIFIED; six assignment states including `resolved_early` (a success state).
+  - Events: v2 §7 lists the builders' `extra` fields, but the wire payload is flat — `socket_handler.py` sends `{"client_id", **extra}` — so B4 stands unchanged.
+  - Auth and body-shape failures are `{detail}` with no `ok` key at 401/403/422 alike (v2 §2.3); B1's api-client rule is "no `ok` → detail response", for any status.
+  - Row reorder refusals (`STOCK_REPORT_ROW_HAS_NO_PRIORITY`, `STOCK_REPORT_TARGET_OUT_OF_RANGE`) arrive in the plain `{error, ok:false}` shape; the UI prevents both cases and never parses the text (§8.2 unchanged).
+  - `DELETE /items/{id}` and the consistency/repair routes exist; they remain out of scope (§10).
+- Status remains RATIFIED.

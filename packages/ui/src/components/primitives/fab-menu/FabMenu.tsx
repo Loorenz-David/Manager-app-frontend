@@ -5,22 +5,13 @@ import { useState } from "react";
 import { cn } from "@beyo/lib";
 
 import type { FabMenuProps } from "./fab-menu.types";
-
-const FAB_TRANSITION = {
-  duration: 0.3,
-  ease: [0.32, 0.72, 0, 1] as const,
-};
-
-const STAGGER_SECONDS = 0.03;
-
-/** Distance from the trigger's centre to an expanded action's centre. */
-const ARC_RADIUS = 72;
-
-const ANCHOR_CLASS =
-  "fixed bottom-[calc(var(--safe-bottom,0px)+0.75rem)] right-4 z-40";
-
-const BUTTON_CLASS =
-  "flex size-14 items-center justify-center rounded-full bg-primary text-card shadow-md disabled:opacity-50";
+import {
+  FAB_ANCHOR_CLASS,
+  FAB_ARC_RADIUS,
+  FAB_BUTTON_CLASS,
+  FAB_STAGGER_SECONDS,
+  FAB_TRANSITION,
+} from "./fab-shared";
 
 type ActionOffset = { x: number; y: number };
 
@@ -36,8 +27,8 @@ export function fabMenuActionOffset(index: number, count: number): ActionOffset 
   const degrees = count <= 1 ? 90 : (index * 90) / (count - 1);
   const radians = (degrees * Math.PI) / 180;
 
-  const x = Math.round(ARC_RADIUS * Math.cos(radians));
-  const y = Math.round(ARC_RADIUS * Math.sin(radians));
+  const x = Math.round(FAB_ARC_RADIUS * Math.cos(radians));
+  const y = Math.round(FAB_ARC_RADIUS * Math.sin(radians));
 
   // `-0` would leak out of a plain negation and reads as a different value.
   return { x: x === 0 ? 0 : -x, y: y === 0 ? 0 : -y };
@@ -75,8 +66,8 @@ export function FabMenu({
             }
             aria-label={action.label}
             className={cn(
-              ANCHOR_CLASS,
-              BUTTON_CLASS,
+              FAB_ANCHOR_CLASS,
+              FAB_BUTTON_CLASS,
               !isOpen && "pointer-events-none",
               className,
             )}
@@ -86,8 +77,8 @@ export function FabMenu({
             transition={{
               ...FAB_TRANSITION,
               delay: isOpen
-                ? index * STAGGER_SECONDS
-                : (actions.length - 1 - index) * STAGGER_SECONDS,
+                ? index * FAB_STAGGER_SECONDS
+                : (actions.length - 1 - index) * FAB_STAGGER_SECONDS,
             }}
             type="button"
             onClick={() => {
@@ -104,7 +95,7 @@ export function FabMenu({
         animate={{ scale: isOpen ? 0.7 : 1 }}
         aria-expanded={isOpen}
         aria-label={isOpen ? closeLabel : openLabel}
-        className={cn(ANCHOR_CLASS, BUTTON_CLASS, className)}
+        className={cn(FAB_ANCHOR_CLASS, FAB_BUTTON_CLASS, className)}
         data-testid={dataTestId}
         initial={false}
         transition={FAB_TRANSITION}

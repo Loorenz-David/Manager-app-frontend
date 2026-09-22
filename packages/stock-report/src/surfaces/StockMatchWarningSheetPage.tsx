@@ -1,16 +1,16 @@
 import { StockMatchWarningSheetContent } from "../components/sheets/StockMatchWarningSheetContent";
-import { useSurface, useSurfaceProps } from "@beyo/hooks";
-import {
-  STOCK_MATCH_WARNING_SURFACE_ID,
-  type StockMatchWarningSurfaceProps,
-} from "../surface-ids";
+import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import type { StockMatchWarningSurfaceProps } from "../surface-ids";
 
 export function StockMatchWarningSheetPage(): React.JSX.Element {
   const props = useSurfaceProps<StockMatchWarningSurfaceProps>();
-  const { close } = useSurface();
+  const header = useSurfaceHeader();
+  // The sheet is opened with `dismissible: false`: only these two buttons close
+  // it, through the surface's own animated close (never the store's `close`,
+  // which unmounts the sheet before Vaul can slide it down).
   const closeAfter = (callback: () => void) => () => {
     callback();
-    close(STOCK_MATCH_WARNING_SURFACE_ID);
+    header?.requestClose();
   };
 
   if (

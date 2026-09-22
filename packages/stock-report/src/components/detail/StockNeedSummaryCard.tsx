@@ -38,10 +38,10 @@ export function StockNeedSummaryCard({
         imageAlt={title}
         imageUrl={imageUrl}
         quantity={quantities.requested}
-        size="summary"
+        size="card"
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-2.5 px-4 py-4">
+      <div className="flex min-w-0 flex-1 flex-col gap-2.5 pr-4 py-4">
         <StockNeedPropertyTags
           data-testid="stock-report-summary-tags"
           tags={propertyTags}

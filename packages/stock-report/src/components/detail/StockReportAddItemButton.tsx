@@ -16,7 +16,7 @@ export function StockReportAddItemButton({
 }: StockReportAddItemButtonProps): React.JSX.Element {
   return (
     <button
-      className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-dashed border-border bg-transparent px-4 py-3.5 text-base font-semibold text-muted-foreground disabled:opacity-50"
+      className="flex w-full items-center justify-center gap-2.5 rounded-xl  bg-primary shadow-sm px-4 py-3 text-white font-semibold  disabled:opacity-50"
       data-testid="stock-report-add-item"
       disabled={disabled}
       type="button"

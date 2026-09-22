@@ -2,9 +2,8 @@ import { cn } from "@beyo/lib";
 
 import {
   BAR_TRACK_CLASS,
-  FULFILLED_SEGMENT_CLASS,
-  IN_PROGRESS_SEGMENT_CLASS,
-  REMAINING_TEXT_CLASS,
+  SEGMENT_FILL_CLASS,
+  SEGMENT_INK_CLASS,
 } from "../../lib/stock-report-theme";
 import { computeFulfilmentSegments } from "../../lib/fulfilment-bar";
 import type { FulfilmentQuantities } from "../../lib/fulfilment-bar";
@@ -49,7 +48,7 @@ export function FulfilmentBar({
     >
       {segments.fulfilled ? (
         <span
-          className={cn(SEGMENT_CLASS, FULFILLED_SEGMENT_CLASS)}
+          className={cn(SEGMENT_CLASS, SEGMENT_FILL_CLASS.fulfilled, SEGMENT_INK_CLASS.fulfilled)}
           data-testid={testId ? `${testId}-fulfilled` : undefined}
           style={{ width: `${segments.fulfilled.widthPercent}%` }}
         >
@@ -59,7 +58,11 @@ export function FulfilmentBar({
 
       {segments.inProgress ? (
         <span
-          className={cn(SEGMENT_CLASS, IN_PROGRESS_SEGMENT_CLASS)}
+          className={cn(
+            SEGMENT_CLASS,
+            SEGMENT_FILL_CLASS.inProgress,
+            SEGMENT_INK_CLASS.inProgress,
+          )}
           data-testid={testId ? `${testId}-in-progress` : undefined}
           style={{ width: `${segments.inProgress.widthPercent}%` }}
         >
@@ -67,11 +70,21 @@ export function FulfilmentBar({
         </span>
       ) : null}
 
+      {segments.inQueue ? (
+        <span
+          className={cn(SEGMENT_CLASS, SEGMENT_FILL_CLASS.inQueue, SEGMENT_INK_CLASS.inQueue)}
+          data-testid={testId ? `${testId}-in-queue` : undefined}
+          style={{ width: `${segments.inQueue.widthPercent}%` }}
+        >
+          {segments.inQueue.value}
+        </span>
+      ) : null}
+
       {segments.remaining ? (
         <span
           className={cn(
             "flex h-full min-w-0 flex-1 items-center justify-center overflow-hidden text-[11px] font-bold leading-none",
-            REMAINING_TEXT_CLASS,
+            SEGMENT_INK_CLASS.remaining,
           )}
           data-testid={testId ? `${testId}-remaining` : undefined}
         >

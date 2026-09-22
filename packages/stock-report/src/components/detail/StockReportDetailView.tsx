@@ -13,7 +13,6 @@ import {
   StockReportDetailErrorState,
   StockReportMissingNotice,
 } from "./StockReportDetailStates";
-import { StockReportSelectedItemsHeader } from "./StockReportSelectedItemsHeader";
 import { StockNeedSummaryCard } from "./StockNeedSummaryCard";
 
 export type StockReportDetailViewProps = {
@@ -88,7 +87,7 @@ export function StockReportDetailView({
         onRefresh={onRefresh}
       >
         <div className="pb-[calc(var(--safe-bottom,0px)+1.5rem)]">
-          <div className="px-4 pt-4">
+          <div className="px-4 ">
             <StockNeedSummaryCard
               imageUrl={imageUrl}
               propertyTags={propertyTags}
@@ -103,7 +102,10 @@ export function StockReportDetailView({
             ) : null}
           </div>
 
-          <div aria-hidden="true" className="mt-4 h-px w-full bg-between-border" />
+          <div
+            aria-hidden="true"
+            className="mt-4 h-px w-full bg-between-border"
+          />
 
           {status === "loading" ? (
             <StockReportAssignmentListSkeleton />
@@ -113,8 +115,9 @@ export function StockReportDetailView({
               onRetry={onRetry}
             />
           ) : (
-            <>
-              <StockReportSelectedItemsHeader count={assignments.length} />
+            // The list carries the top padding the section header used to
+            // provide, so the first card still clears the divider.
+            <div className="pt-4">
               {assignments.length === 0 ? (
                 <StockReportAssignmentsEmptyState />
               ) : (
@@ -125,7 +128,7 @@ export function StockReportDetailView({
                   onTapImage={onTapImage}
                 />
               )}
-            </>
+            </div>
           )}
         </div>
       </PullToRefresh>

@@ -31,7 +31,10 @@ export type StockReportBoardViewProps = {
 
   onCardPress: (stockNeedId: string) => void;
 
-  /** Whether this role may reorganise at all — the FAB's only gate. */
+  /**
+   * Whether this role may reorganise at all. Necessary for the FAB but not
+   * sufficient — the Unset bucket has no order to express, so it shows none.
+   */
   canReorganise: boolean;
   isReorganiseMode: boolean;
   onToggleReorganise: () => void;
@@ -61,6 +64,16 @@ export function StockReportBoardView({
   onReorder,
   reorderDisabled = false,
 }: StockReportBoardViewProps): React.JSX.Element {
+  // Unprioritised rows have no order to express: there is nothing to drag and
+  // so nothing to enter a mode for. Their one action — giving the row a
+  // priority — is offered on every card outright, and the FAB is not rendered
+  // at all (owner, 2026-09-22).
+  const isUnsetBucket = bucket === "unset";
+  const showFab = canReorganise && !isUnsetBucket;
+  // A row with no priority is having one set; a row already in a bucket is
+  // having it changed.
+  const priorityActionLabel = isUnsetBucket ? "Set priority" : "Change priority";
+
   return (
     <div className="relative min-h-0 flex-1" data-testid="stock-report-board">
       <PullToRefresh
@@ -86,13 +99,9 @@ export function StockReportBoardView({
               value={searchValue}
               onChange={onSearchChange}
             />
-            {/* The breathing room the design puts above the divider. */}
-            <div aria-hidden="true" className="h-4" />
           </div>
 
-          <div aria-hidden="true" className="h-px w-full bg-between-border" />
-
-          <div className="px-4 pb-[calc(var(--safe-bottom,0px)+7rem)] pt-3.5">
+          <div className="px-4 pb-[calc(var(--safe-bottom,0px)+7rem)] pt-5">
             {status === "loading" ? <StockReportBoardSkeleton /> : null}
 
             {status === "error" ? (
@@ -111,9 +120,8 @@ export function StockReportBoardView({
                 cards={cards}
                 disabled={reorderDisabled}
                 isReorganiseMode={isReorganiseMode}
-                // Unprioritised rows have no order to express, so the Unset
-                // bucket offers "Set priority" and no handles at all.
-                sortable={bucket !== "unset"}
+                priorityActionLabel={priorityActionLabel}
+                sortable={!isUnsetBucket}
                 onCardPress={onCardPress}
                 onReorder={onReorder}
                 onSetPriority={onSetPriority}
@@ -123,7 +131,7 @@ export function StockReportBoardView({
         </div>
       </PullToRefresh>
 
-      {canReorganise ? (
+      {showFab ? (
         <StockReportBoardFab
           isReorganiseMode={isReorganiseMode}
           onToggleReorganise={onToggleReorganise}

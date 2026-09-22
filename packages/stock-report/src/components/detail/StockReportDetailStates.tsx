@@ -61,7 +61,8 @@ export function StockReportMissingNotice(): React.JSX.Element {
  *
  * The summary card is not part of it: the stock need itself comes from the
  * board's cache, while the assignments are their own request (intention §8.3),
- * so the card is already on screen while this is showing.
+ * so the card is already on screen while this is showing. Nor is a section
+ * header — the list no longer has one (owner, 2026-09-22).
  */
 export function StockReportAssignmentListSkeleton(): React.JSX.Element {
   return (
@@ -70,12 +71,7 @@ export function StockReportAssignmentListSkeleton(): React.JSX.Element {
       className="flex flex-col"
       data-testid="stock-report-assignments-skeleton"
     >
-      <div className="flex items-center justify-between gap-3 px-4 pb-2.5 pt-4">
-        <span className="skeleton-shimmer block h-4 w-28 rounded-md" />
-        <span className="skeleton-shimmer block h-3 w-14 rounded-md" />
-      </div>
-
-      <div className="flex flex-col gap-2.5 px-4">
+      <div className="flex flex-col gap-2.5 px-4 pt-4">
         {Array.from({ length: 3 }).map((_, index) => (
           <span
             key={index}

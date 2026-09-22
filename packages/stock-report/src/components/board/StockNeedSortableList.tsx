@@ -41,6 +41,8 @@ export type StockNeedSortableListProps = {
   /** Drag off while a reorder is still in flight (§12B B16). */
   disabled?: boolean;
   onSetPriority: (stockNeedId: string) => void;
+  /** What the per-card priority button says — see `StockNeedCard`. */
+  priorityActionLabel?: string;
   /**
    * `toIndex` is the **0-based array index** of the drop position in the
    * complete bucket list. The 1-based `priority_order` the endpoint wants is
@@ -62,6 +64,7 @@ type SortableStockNeedCardProps = {
   card: StockNeedCardData;
   onPress: (stockNeedId: string) => void;
   onSetPriority: (stockNeedId: string) => void;
+  priorityActionLabel?: string;
   disabled: boolean;
 };
 
@@ -69,6 +72,7 @@ function SortableStockNeedCard({
   card,
   onPress,
   onSetPriority,
+  priorityActionLabel,
   disabled,
 }: SortableStockNeedCardProps): React.JSX.Element {
   const {
@@ -107,6 +111,7 @@ function SortableStockNeedCard({
         showDragHandle
         onPress={onPress}
         onSetPriority={onSetPriority}
+        priorityActionLabel={priorityActionLabel}
       />
     </div>
   );
@@ -119,6 +124,7 @@ export function StockNeedSortableList({
   sortable = true,
   disabled = false,
   onSetPriority,
+  priorityActionLabel,
   onReorder,
 }: StockNeedSortableListProps): React.JSX.Element {
   const [order, setOrder] = useState<readonly StockNeedCardData[]>(cards);
@@ -148,9 +154,14 @@ export function StockNeedSortableList({
     return (
       <StockNeedPlainList
         cards={cards}
-        isReorganiseMode={isReorganiseMode}
+        // A bucket with no ordering has nothing to enter a mode for, so its one
+        // action is offered outright: in Unset the priority button is always
+        // there (owner, 2026-09-22). An orderable bucket keeps it behind the
+        // mode, beside the drag handles.
+        showPriorityAction={!sortable || isReorganiseMode}
         onCardPress={onCardPress}
         onSetPriority={onSetPriority}
+        priorityActionLabel={priorityActionLabel}
       />
     );
   }
@@ -207,6 +218,7 @@ export function StockNeedSortableList({
               disabled={disabled}
               onPress={onCardPress}
               onSetPriority={onSetPriority}
+              priorityActionLabel={priorityActionLabel}
             />
           ))}
         </div>
@@ -217,16 +229,18 @@ export function StockNeedSortableList({
 
 type StockNeedPlainListProps = {
   cards: readonly StockNeedCardData[];
-  isReorganiseMode: boolean;
+  showPriorityAction: boolean;
   onCardPress: (stockNeedId: string) => void;
   onSetPriority: (stockNeedId: string) => void;
+  priorityActionLabel?: string;
 };
 
 function StockNeedPlainList({
   cards,
-  isReorganiseMode,
+  showPriorityAction,
   onCardPress,
   onSetPriority,
+  priorityActionLabel,
 }: StockNeedPlainListProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2.5" data-testid="stock-report-board-list">
@@ -235,7 +249,8 @@ function StockNeedPlainList({
           key={card.stockNeedId}
           card={card}
           onPress={onCardPress}
-          onSetPriority={isReorganiseMode ? onSetPriority : undefined}
+          onSetPriority={showPriorityAction ? onSetPriority : undefined}
+          priorityActionLabel={priorityActionLabel}
         />
       ))}
     </div>

@@ -50,8 +50,10 @@ export function BottomSheetSurface({
   // with `runWhenUiSettled` runs on the settled list rather than mid-close.
   useUiTransitionToken(!isOpen);
 
-  function handleClose(): void {
-    if (!dismissible) return;
+  // The animated close: fade the shared backdrop, let Vaul slide the sheet
+  // down, then remove the surface from the stack once the motion has ended.
+  // Every close goes through here so the two never run on separate timelines.
+  function closeAnimated(): void {
     onStartClose?.();
 
     if (closeTimeoutRef.current !== null) {
@@ -69,12 +71,20 @@ export function BottomSheetSurface({
     }, 350);
   }
 
+  // A user gesture (swipe, backdrop tap, Escape). `dismissible: false` blocks
+  // only these — the page itself can still close through `requestClose`, and
+  // that close animates like any other.
+  function handleClose(): void {
+    if (!dismissible) return;
+    closeAnimated();
+  }
+
   return (
     <SurfaceHeaderContext.Provider
       value={{
         setTitle,
         setActions,
-        requestClose: handleClose,
+        requestClose: closeAnimated,
         setHeaderHidden,
         setCloseInterceptor: () => {},
         setSwipeDismissDisabled: () => {},
