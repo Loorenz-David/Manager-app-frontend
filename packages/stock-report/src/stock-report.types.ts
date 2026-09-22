@@ -68,61 +68,81 @@ export type StockReportLoadStatus = "loading" | "error" | "ready";
 export const STOCK_REPORT_PRIORITY = ["high", "medium", "low"] as const;
 export type StockReportPriority = (typeof STOCK_REPORT_PRIORITY)[number];
 
-const NullishString = z.string().nullable().optional();
-const NullishNumber = z.number().nullable().optional();
+/*
+ * Nullability follows the field tables of
+ * `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md` §6, which
+ * a backend test keeps in step with the serializers. A field is `.nullable()`
+ * only where that table says so; a required field arriving null is a backend
+ * regression and should fail loudly here rather than render a fallback.
+ */
+const NullableString = z.string().nullable();
 
 export const StockReportItemSchema = z.object({
   client_id: z.string(),
   item_category: z.object({
     client_id: z.string(),
-    name: NullishString,
-    major_category: NullishString,
-    image_url: NullishString,
-  }).nullable().optional(),
-  properties: z.record(z.string(), z.array(z.string()).nullable()).nullable().optional(),
-  quantity_requested: NullishNumber,
-  quantity_in_queue: NullishNumber,
-  quantity_in_progress: NullishNumber,
-  quantity_awaiting: NullishNumber,
+    name: z.string(),
+    major_category: z.string(),
+    // The key is always present; null when the category has no picture.
+    image_url: NullableString,
+  }),
+  // Scanner controls the criteria values and the backend normaliser passes
+  // through anything it does not recognise (wiring guide W-1). Validating the
+  // values here would let one odd criterion fail the whole list parse and
+  // blank the board, so each value is checked in `toStockReportPropertyTags`
+  // and an odd one costs only its tag — the same rule B18 applies to `priority`.
+  properties: z.record(z.string(), z.unknown()),
+  quantity_requested: z.number(),
+  quantity_in_queue: z.number(),
+  quantity_in_progress: z.number(),
+  quantity_awaiting: z.number(),
   // Preserve unknown strings long enough for the mapper to drop only that row
   // instead of rejecting the complete response (B18).
-  priority: z.string().nullable().optional(),
-  priority_order: NullishNumber,
+  priority: z.string().nullable(),
+  priority_order: z.number().nullable(),
 });
 export type StockReportItem = z.infer<typeof StockReportItemSchema>;
 
 const StockReportAssignmentItemSchema = z.object({
-  client_id: z.string().nullable().optional(),
-  article_number: NullishString,
-  sku: NullishString,
-  quantity: NullishNumber,
-  item_category_snapshot: NullishString,
-  item_major_category_snapshot: NullishString,
-  item_images: z.array(z.object({ client_id: z.string().nullable().optional(), image_url: NullishString })).nullable().optional(),
-}).nullable().optional();
+  client_id: z.string(),
+  article_number: NullableString,
+  sku: NullableString,
+  quantity: z.number(),
+  item_category_snapshot: NullableString,
+  item_major_category_snapshot: NullableString,
+  // Possibly empty, never null (§6.3). The element shape is not pinned by a
+  // table, so it stays lenient.
+  item_images: z.array(
+    z.object({
+      client_id: z.string().nullable().optional(),
+      image_url: z.string().nullable().optional(),
+    }),
+  ),
+});
 
 const StockReportAssignmentTaskSchema = z.object({
-  client_id: z.string().nullable().optional(),
-  task_type: NullishString,
-  priority: NullishString,
-  state: NullishString,
-  title: NullishString,
-  return_source: NullishString,
-  ready_by_at: NullishString,
-  return_method: NullishString,
-  created_at: NullishString,
-  updated_at: NullishString,
-  closed_at: NullishString,
-  completed_at: NullishString,
-}).nullable().optional();
+  client_id: z.string(),
+  task_type: z.string(),
+  priority: z.string(),
+  state: z.string(),
+  title: NullableString,
+  return_source: NullableString,
+  ready_by_at: NullableString,
+  return_method: NullableString,
+  created_at: z.string(),
+  updated_at: NullableString,
+  closed_at: NullableString,
+  completed_at: NullableString,
+});
 
 export const StockReportAssignmentSchema = z.object({
   client_id: z.string(),
-  state: z.string().nullable().optional(),
+  // One of six states (§6.5); an unknown one degrades to a neutral pill.
+  state: z.string(),
   stock_report_item_id: z.string(),
   task_id: z.string(),
-  item_id: z.string().nullable().optional(),
-  quantity: NullishNumber,
+  item_id: z.string(),
+  quantity: z.number(),
   item: StockReportAssignmentItemSchema,
   task: StockReportAssignmentTaskSchema,
 });
@@ -133,23 +153,30 @@ export type StockReportItemViewModel = StockReportItem & {
   bucket: StockNeedBucket;
 };
 
-function displayNumber(value: number | null | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
-}
-
 function titleCase(value: string): string {
   return value
     .replace(/[_-]+/g, " ")
     .replace(/\b([a-z])/g, (letter: string) => letter.toUpperCase());
 }
 
-/** Converts Scanner criteria into the exact display tags owned by this feature. */
+function isStringList(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === "string")
+  );
+}
+
+/**
+ * Converts Scanner criteria into the exact display tags owned by this feature.
+ * The normalised form is `string[]` per key; any other value is Scanner noise
+ * the backend let through and is skipped, never thrown on (wiring guide W-1).
+ */
 export function toStockReportPropertyTags(
   properties: StockReportItem["properties"],
 ): readonly string[] {
-  if (!properties) return [];
   return Object.entries(properties).flatMap(([key, values]) =>
-    values === null ? [] : [`${titleCase(key)}: ${values.map(titleCase).join(" / ")}`],
+    isStringList(values) && values.length > 0
+      ? [`${titleCase(key)}: ${values.map(titleCase).join(" / ")}`]
+      : [],
   );
 }
 
@@ -167,27 +194,27 @@ export function toStockReportItemViewModel(
     bucket,
     card: {
       stockNeedId: item.client_id,
-      title: item.item_category?.name ?? "Stock need",
-      imageUrl: item.item_category?.image_url ?? null,
+      title: item.item_category.name,
+      imageUrl: item.item_category.image_url,
       propertyTags: toStockReportPropertyTags(item.properties),
       quantities: {
-        requested: displayNumber(item.quantity_requested),
-        fulfilled: displayNumber(item.quantity_awaiting),
+        requested: item.quantity_requested,
+        fulfilled: item.quantity_awaiting,
         // Owner, 2026-09-22: queued work is its own bar segment. This used to
         // be `in_queue + in_progress` per intention §4.3, which overstated how
         // much was actually moving.
-        inProgress: displayNumber(item.quantity_in_progress),
-        inQueue: displayNumber(item.quantity_in_queue),
+        inProgress: item.quantity_in_progress,
+        inQueue: item.quantity_in_queue,
       },
     },
   };
 }
 
-function toTaskType(value: string | null | undefined): TaskType {
+function toTaskType(value: string): TaskType {
   return TASK_TYPE.includes(value as TaskType) ? (value as TaskType) : "internal";
 }
 
-function toTaskState(value: string | null | undefined): TaskState {
+function toTaskState(value: string): TaskState {
   return TASK_STATE.includes(value as TaskState) ? (value as TaskState) : "pending";
 }
 
@@ -206,11 +233,32 @@ function toTaskState(value: string | null | undefined): TaskState {
  *     green segment is backed by green pills. `in_queue` has no task-state
  *     counterpart, so it takes the bar's amber directly.
  *
- * Anything unrecognised, or absent, stays neutral — the deliberate degrade from
- * intention §8.1, which keeps an unknown state from blanking the list.
+ * Anything unrecognised stays neutral — the deliberate degrade from intention
+ * §8.1, which keeps an unknown state from blanking the list.
  */
-function assignmentStatePill(state: string | null | undefined): NonNullable<TaskListCardProps["statePill"]> {
-  const label = state?.replaceAll("_", " ") ?? "Unknown";
+/**
+ * What each assignment state is called on the card.
+ *
+ * The wording matches the fulfilment bar's legend, so a row and the segment it
+ * belongs to are named the same thing. `awaiting` is the one that needed
+ * translating: it is the backend's word for stock that has been produced and is
+ * waiting to be taken up, which is exactly what the bar counts as **fulfilled**
+ * (owner, 2026-09-22). Showing "Awaiting" beside a green bar segment labelled
+ * "Fulfilled" invited the reader to think they were different things.
+ */
+const ASSIGNMENT_STATE_LABEL: Record<string, string> = {
+  in_queue: "In queue",
+  in_progress: "In progress",
+  awaiting: "Fulfilled",
+  resolved: "Resolved",
+  resolved_early: "Resolved early",
+  failed: "Failed",
+};
+
+function assignmentStatePill(state: string): NonNullable<TaskListCardProps["statePill"]> {
+  // An unrecognised state still gets a readable label rather than raw snake
+  // case — it is unknown to this build, not necessarily to the user.
+  const label = ASSIGNMENT_STATE_LABEL[state] ?? state.replaceAll("_", " ");
   if (state === "failed") return { label, variant: "danger" };
   if (state === "resolved" || state === "resolved_early" || state === "awaiting") {
     return { label, variant: TASK_STATE_VARIANT.ready };
@@ -225,26 +273,23 @@ function assignmentStatePill(state: string | null | undefined): NonNullable<Task
 export function toStockReportAssignmentCardData(
   assignment: StockReportAssignment,
 ): StockReportAssignmentCardData {
-  const item = assignment.item;
-  const task = assignment.task;
+  const { item, task } = assignment;
   return {
     taskId: assignment.task_id,
     task: {
-      task_type: toTaskType(task?.task_type),
-      state: toTaskState(task?.state),
-      return_source: task?.return_source as TaskListCardProps["task"]["return_source"],
-      ready_by_at: task?.ready_by_at ?? null,
+      task_type: toTaskType(task.task_type),
+      state: toTaskState(task.state),
+      return_source: task.return_source as TaskListCardProps["task"]["return_source"],
+      ready_by_at: task.ready_by_at,
     },
-    item: item
-      ? {
-          itemId: item.client_id ?? assignment.item_id ?? null,
-          article_number: item.article_number ?? null,
-          sku: item.sku ?? null,
-          item_major_category_snapshot: item.item_major_category_snapshot ?? null,
-          quantity: displayNumber(item.quantity ?? assignment.quantity),
-        }
-      : null,
-    imageUrl: item?.item_images?.[0]?.image_url ?? null,
+    item: {
+      itemId: item.client_id,
+      article_number: item.article_number,
+      sku: item.sku,
+      item_major_category_snapshot: item.item_major_category_snapshot,
+      quantity: item.quantity,
+    },
+    imageUrl: item.item_images[0]?.image_url ?? null,
     statePill: assignmentStatePill(assignment.state),
   };
 }

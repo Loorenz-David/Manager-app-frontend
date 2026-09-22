@@ -9,9 +9,15 @@ const api = vi.hoisted(() => ({
   reorderStockReportItem: vi.fn(),
   setStockReportPriority: vi.fn(),
 }));
+const notify = vi.hoisted(() => ({ error: vi.fn() }));
 
 vi.mock("../api/stock-report-api", () => api);
+vi.mock("@beyo/lib", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@beyo/lib")>()),
+  notify,
+}));
 
+import { ApiRequestError } from "@beyo/api-client";
 import {
   useCreateStockAssignment,
   useRemoveStockAssignment,
@@ -19,14 +25,18 @@ import {
   useSetStockReportPriority,
 } from "./use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
+import {
+  wireStockReportAssignment,
+  wireStockReportItem,
+} from "../fixtures/stock-report-wire-fixtures";
 import type { StockReportAssignment, StockReportItem } from "../stock-report.types";
 
 function item(client_id: string, priority: "high" | "low" | null): StockReportItem {
-  return { client_id, item_category: null, priority, priority_order: priority ? 1 : null };
+  return wireStockReportItem({ client_id, priority, priority_order: priority ? 1 : null });
 }
 
 function assignment(client_id: string): StockReportAssignment {
-  return { client_id, stock_report_item_id: "sri-1", task_id: "tsk-1", item_id: "itm-1" };
+  return wireStockReportAssignment({ client_id });
 }
 
 function setup() {
@@ -52,12 +62,16 @@ describe("stock-report mutations", () => {
 
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high"))?.map((row) => row.client_id)).toEqual(["sri-1"]);
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("low"))?.map((row) => row.client_id)).toEqual(["sri-2"]);
+    // A silent snap-back reads as a glitch (W-3); a non-API failure gets the generic copy.
+    expect(notify.error).toHaveBeenCalledWith("Priority not changed", "The change could not be saved. Pull to refresh and try again.");
   });
 
   it("converts a drop index to the one-based request and rolls back on refusal", async () => {
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(stockReportKeys.list("high"), [item("sri-1", "high"), item("sri-2", "high")]);
-    api.reorderStockReportItem.mockRejectedValueOnce(new Error("refused"));
+    // The backend's own sentence for STOCK_REPORT_TARGET_OUT_OF_RANGE, in the
+    // `{ error, ok: false }` shape the api-client lifts into `message`.
+    api.reorderStockReportItem.mockRejectedValueOnce(new ApiRequestError(422, "unprocessable", "Target position is out of range."));
     const { result } = renderHook(() => useReorderStockReportItem("high"), { wrapper });
 
     act(() => result.current.mutate({ stockNeedId: "sri-1", toIndex: 1 }));
@@ -65,6 +79,7 @@ describe("stock-report mutations", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high"))?.map((row) => row.client_id)).toEqual(["sri-1", "sri-2"]);
+    expect(notify.error).toHaveBeenCalledWith("Order not changed", "Target position is out of range.");
   });
 
   it("writes a successful created assignment straight to the detail cache", async () => {

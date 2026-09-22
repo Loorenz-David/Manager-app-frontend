@@ -49,6 +49,10 @@ export const stockReportSocketEvents: SocketEventHandlers = {
     const parsed = ItemIdSchema.safeParse(payload);
     if (!parsed.success) { queryClient.invalidateQueries({ queryKey: stockReportKeys.lists(), refetchType: "active" }); return; }
     for (const [key] of queryClient.getQueriesData({ queryKey: stockReportKeys.lists() })) queryClient.setQueryData<StockReportItem[]>(key, (rows = []) => rows.filter((row) => row.client_id !== parsed.data.client_id));
+    // The detail page sources its row from these lists and has no read endpoint
+    // of its own; its only exit is the assignments query 404-ing. Refetch it so
+    // an open page closes instead of hanging on "Loading" (wiring guide W-2).
+    queryClient.invalidateQueries({ queryKey: stockReportKeys.assignmentList(parsed.data.client_id), refetchType: "active" });
   },
   "stock_task_assignment:created": assignmentInvalidator,
   "stock_task_assignment:state-changed": assignmentInvalidator,

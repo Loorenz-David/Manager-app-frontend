@@ -40,12 +40,13 @@ Concretely, one shared package gives all three apps the same two screens:
   `architecture/35_shared_packages.md` exactly (source package, peers only, loaders for pages,
   never calls `openSurface`). The three apps differ **only** by what the role permits.
 - **HC-2 Built against a handoff, not a server.** The API authority is
-  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_v2_20260921.md` (**current since the
-  2026-09-21 evening amendment** — it supersedes `..._api_20260921.md`, now in `archived/`) plus, for
-  the compatibility check, `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_match_preview_v2_20260921.md`.
-  The frontend is built as if both were live, honouring v2's two tiers: VERIFIED is read from shipping
-  code; SPECIFIED is pinned by a backend criterion row — build against it, a divergence is a backend
-  defect. Nullability stays nullish until the re-verified final handoff (§8.1).
+  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md` (**current since the
+  2026-09-22 amendment** — the re-verified final handoff; every line is VERIFIED against shipping code
+  and its §6 nullability tables are enforced by a backend test. v1 and v2 of 2026-09-21 are in
+  `archived/`) plus, for the compatibility check,
+  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_match_preview_v2_20260921.md` (still current).
+  The frontend is built as if both were live; a divergence is a backend defect. Nullability follows
+  §6 of the 20260922 file field by field — the "nullish until re-verified" rule of §8.1 has ended.
 - **HC-3 The mockup is customer-confirmed.** `ui_design_documentation/` is the visual authority.
   Deviations are only those listed in §6.3, each with a reason.
 - **HC-4 The backend's role matrix is the permission truth** (§5). The UI hides what a role cannot
@@ -626,4 +627,22 @@ NOT PINNED items 1–3 close with the backend's final handoff (the design tolera
   - Auth and body-shape failures are `{detail}` with no `ok` key at 401/403/422 alike (v2 §2.3); B1's api-client rule is "no `ok` → detail response", for any status.
   - Row reorder refusals (`STOCK_REPORT_ROW_HAS_NO_PRIORITY`, `STOCK_REPORT_TARGET_OUT_OF_RANGE`) arrive in the plain `{error, ok:false}` shape; the UI prevents both cases and never parses the text (§8.2 unchanged).
   - `DELETE /items/{id}` and the consistency/repair routes exist; they remain out of scope (§10).
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — final backend contract adopted; wiring guide applied.**
+- HC-2 now points at `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md`, the
+  re-verified handoff v2 promised; v2 joins v1 in `archived/`. The match-preview v2 handoff stays
+  current. The backend's `WIRING_GUIDE_stock_report_20260922.md` listed the deltas; the frontend
+  applied them the same day:
+  - W-1: `properties` values are parsed as `unknown` and checked per value in the tag mapper, so one
+    odd Scanner value costs one tag instead of blanking the board; a schema-mismatch report is no
+    longer shown as board copy.
+  - W-2: `stock_report_item:deleted` also refetches the row's assignments so an open detail page
+    reaches its 404 exit instead of hanging on "Loading".
+  - W-3: priority and reorder refusals now toast — the backend's sentence for the `{error, ok:false}`
+    shape, generic copy for a body-shape `detail[]`.
+  - W-5: schemas tightened to §6's tables; the nullish fallbacks of §8.1 are gone. §8.1's "parse
+    nullish" rule is superseded for pinned fields; the degrade rules for *vocabularies* (unknown
+    priority drops the row, unknown assignment state is a neutral pill) stand.
+  - The board search row stays inert for now (owner, 2026-09-22: a later fix).
 - Status remains RATIFIED.

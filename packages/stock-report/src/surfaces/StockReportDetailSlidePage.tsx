@@ -196,17 +196,14 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
         const assignment = (assignments.data ?? []).find(
           (entry) => entry.task_id === taskId,
         );
-        const images = (assignment?.item?.item_images ?? []).flatMap((image) =>
+        if (!assignment) return;
+        const images = assignment.item.item_images.flatMap((image) =>
           image.client_id && image.image_url
             ? [{ clientId: image.client_id, imageUrl: image.image_url }]
             : [],
         );
         if (images.length > 0)
-          openers.openImageViewer?.(
-            taskId,
-            assignment?.item?.client_id ?? assignment?.item_id ?? null,
-            images,
-          );
+          openers.openImageViewer?.(taskId, assignment.item.client_id, images);
       }}
       propertyTags={viewModel.card.propertyTags}
       quantities={viewModel.card.quantities}

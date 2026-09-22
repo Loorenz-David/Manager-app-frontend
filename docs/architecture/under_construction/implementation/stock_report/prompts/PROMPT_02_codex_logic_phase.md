@@ -25,12 +25,12 @@ most likely to fail silently; give them the most care and the most tests.
 2. `handoffs/UI_PHASE_HANDOFF.md` — the UI session's inventory: components, prop types, callbacks,
    `data-testid`s, fixtures, and the temporary preview you must remove. **If this file is missing or
    the components it lists do not exist, stop and report — do not build UI yourself.**
-3. `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260921.md` and
+3. `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md` (the re-verified contract;
+   earlier api handoffs are in `backend_handoff/archived/` and must not be read as authority) and
    `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_match_preview_v2_20260921.md`. Check the folder
-   for any later-dated handoff superseding them. Respect their tiers: build against STABLE / FIXED /
-   RATIFIED; build the shape of PROVISIONAL; **never guess NOT PINNED / OPEN** — nullability in
-   particular (intention §8.1: every non-identifier field is parsed nullish, with display defaults in
-   the mapper).
+   for any later-dated handoff superseding them. Every line of the 20260922 file is VERIFIED; its §6
+   tables pin nullability per field — parse exactly that, **never guess** a field the tables do not
+   pin (the intention §8.1 "parse nullish" rule applied only while nullability was unverified).
 4. `task_system/frontend_contract_goal_mapping_guide.md`, then the contracts it routes to — core set,
    New feature (CRUD), Auth + permissions, Real-time, UI surfaces, Performance/dynamic loading,
    Runtime validation, and the additions named in §12B B22 — each with its `_local` companion.

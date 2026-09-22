@@ -48,11 +48,12 @@
 
 ## Backend Follow-ups
 
-- `item_category.image_url` remains nullish in schemas until the promised final
-  verification handoff; `packages/stock-report/src/stock-report.types.ts` is
-  the single tightening point.
-- The backend's final nullability handoff may tighten schemas in
-  `packages/stock-report/src/stock-report.types.ts`.
+- **Resolved 2026-09-22.** The promised verification handoff arrived as
+  `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md`; its §6
+  tables pin nullability per field. `packages/stock-report/src/stock-report.types.ts`
+  was tightened to them (no nullish fallbacks remain on pinned fields), and the
+  backend's `WIRING_GUIDE_stock_report_20260922.md` deltas W-1/W-2/W-3 were
+  applied the same day — see intention.md §15, amendment of 2026-09-22.
 
 ## Deviations / Remaining Verification
 

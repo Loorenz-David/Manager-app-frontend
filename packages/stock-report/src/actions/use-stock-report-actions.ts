@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { notify } from "@beyo/lib";
 import type { StockNeedBucket, StockReportAssignment, StockReportItem, StockReportPriority } from "../stock-report.types";
 import { createStockAssignment, removeStockAssignment, reorderStockReportItem, setStockReportPriority } from "../api/stock-report-api";
 import { stockReportKeys } from "../api/stock-report-keys";
+import { stockReportRequestFailureMessage } from "../lib/stock-report-request-failure";
 
 function move<T>(items: readonly T[], from: number, to: number): T[] {
   const next = [...items];
@@ -22,7 +24,11 @@ export function useSetStockReportPriority() {
       if (queryClient.getQueryState(destinationKey)) queryClient.setQueryData<StockReportItem[]>(destinationKey, (rows = []) => [...rows.filter((row) => row.client_id !== stockNeedId), { ...(previous.flatMap(([, rows]) => rows ?? []).find((row) => row.client_id === stockNeedId) ?? { client_id: stockNeedId }), priority } as StockReportItem]);
       return { previous };
     },
-    onError: (_error, _input, context) => context?.previous.forEach(([key, rows]) => queryClient.setQueryData(key, rows)),
+    // The rollback alone would snap the card back with no explanation (W-3).
+    onError: (error, _input, context) => {
+      context?.previous.forEach(([key, rows]) => queryClient.setQueryData(key, rows));
+      notify.error("Priority not changed", stockReportRequestFailureMessage(error));
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: stockReportKeys.lists(), refetchType: "active" }),
   });
 }
@@ -38,7 +44,10 @@ export function useReorderStockReportItem(bucket: StockNeedBucket) {
       if (previous && from >= 0) queryClient.setQueryData(key, move(previous, from, toIndex));
       return { key, previous };
     },
-    onError: (_error, _input, context) => queryClient.setQueryData(context?.key ?? stockReportKeys.list(bucket), context?.previous),
+    onError: (error, _input, context) => {
+      queryClient.setQueryData(context?.key ?? stockReportKeys.list(bucket), context?.previous);
+      notify.error("Order not changed", stockReportRequestFailureMessage(error));
+    },
     onSettled: () => queryClient.invalidateQueries({ queryKey: stockReportKeys.list(bucket), refetchType: "active" }),
   });
 }

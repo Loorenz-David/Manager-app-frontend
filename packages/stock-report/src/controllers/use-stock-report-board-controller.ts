@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ApiRequestError } from "@beyo/api-client";
 import { useSurface } from "@beyo/hooks";
 import { usePreloadSurface } from "@beyo/hooks";
 import { toStockReportItemViewModel, type StockNeedBucket } from "../stock-report.types";
@@ -6,6 +7,15 @@ import { useStockReportListQuery } from "../api/use-stock-report-queries";
 import { useReorderStockReportItem, useSetStockReportPriority } from "../actions/use-stock-report-actions";
 import { useStockReportPermissions } from "../lib/use-stock-report-permissions";
 import { preloadStockReportDetailSurface, STOCK_REPORT_DETAIL_SURFACE_ID, STOCK_REPORT_PRIORITY_SURFACE_ID } from "../surface-ids";
+
+function boardErrorMessage(error: unknown): string | undefined {
+  if (!(error instanceof Error)) return undefined;
+  if (error instanceof ApiRequestError && error.code === "invalid_response") {
+    console.error("[stock-report] board response rejected", error.message);
+    return undefined;
+  }
+  return error.message;
+}
 
 export function useStockReportBoardController() {
   const permissions = useStockReportPermissions();
@@ -39,7 +49,9 @@ export function useStockReportBoardController() {
     searchValue,
     setSearchValue,
     status: list.isPending ? "loading" as const : list.isError ? "error" as const : "ready" as const,
-    errorMessage: list.error instanceof Error ? list.error.message : undefined,
+    // A schema mismatch carries the zod report as its message; that is for the
+    // console, not the board, which then shows its generic copy (W-1).
+    errorMessage: boardErrorMessage(list.error),
     refetch: list.refetch,
     isReorganiseMode,
     toggleReorganise: () => setReorganiseMode((current) => !current),
