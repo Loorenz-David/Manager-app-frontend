@@ -7,7 +7,8 @@ import {
 } from './auth-token';
 import { ApiErrorSchema } from '@beyo/lib';
 
-const RateLimitErrorSchema = z.object({ detail: z.string() });
+/** Some backend failures deliberately do not use the project error envelope. */
+const DetailErrorSchema = z.object({ detail: z.unknown() });
 
 export class ApiRequestError extends Error {
   public readonly status: number;
@@ -94,12 +95,18 @@ async function handleErrorResponse(response: Response): Promise<never> {
     );
   }
 
-  const rateLimitParsed = RateLimitErrorSchema.safeParse(body);
-  if (rateLimitParsed.success) {
+  // The backend's auth and validation responses intentionally omit `ok` and
+  // use `{ detail }` at every status (not only the historical 403 special
+  // case). Keep arbitrary detail payloads — FastAPI commonly sends an array
+  // for validation failures.
+  const detailParsed = DetailErrorSchema.safeParse(body);
+  if (detailParsed.success) {
+    const detail = detailParsed.data.detail;
     throw new ApiRequestError(
       response.status,
       codeFromStatus(response.status),
-      rateLimitParsed.data.detail,
+      typeof detail === "string" ? detail : "Request failed.",
+      { details: detail },
     );
   }
 

@@ -102,3 +102,37 @@ describe('floor 401 revocation', () => {
     expect(requestLog.filter((entry) => entry.includes('/auth/refresh'))).toHaveLength(0);
   });
 });
+
+describe('detail-only API errors', () => {
+  it('preserves a 403 {detail} response without treating it as an invalid envelope', async () => {
+    server.use(
+      http.get(`${API_ORIGIN}/api/v1/forbidden`, () =>
+        HttpResponse.json({ detail: 'You do not have access.' }, { status: 403 }),
+      ),
+    );
+    const { apiClient } = await import('./api-client');
+
+    await expect(apiClient.get('/api/v1/forbidden', z.object({}))).rejects.toMatchObject({
+      status: 403,
+      code: 'forbidden',
+      message: 'You do not have access.',
+      details: 'You do not have access.',
+    });
+  });
+
+  it('preserves an array detail at 422 instead of crashing the error parser', async () => {
+    const detail = [{ loc: ['body', 'quantity'], msg: 'required' }];
+    server.use(
+      http.post(`${API_ORIGIN}/api/v1/invalid`, () =>
+        HttpResponse.json({ detail }, { status: 422 }),
+      ),
+    );
+    const { apiClient } = await import('./api-client');
+
+    await expect(apiClient.post('/api/v1/invalid', z.object({}), {})).rejects.toMatchObject({
+      status: 422,
+      code: 'unprocessable',
+      details: detail,
+    });
+  });
+});

@@ -104,6 +104,7 @@ export function InternalFormContent(): React.JSX.Element {
 
   const navigateToRef = useRef<(stepId: string) => void>(() => {});
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const lookupInjectedRef = useRef<Record<string, unknown>>({});
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
 
   const surface = useSurface();
@@ -120,7 +121,9 @@ export function InternalFormContent(): React.JSX.Element {
     readRememberedInternalItemPosition(currentUserClientId),
   );
   const createTask = useCreateTask();
-  usePreloadSurface(callbacks.candidateGate?.preload ?? (() => Promise.resolve()));
+  usePreloadSurface(
+    callbacks.candidateGate?.preload ?? (() => Promise.resolve()),
+  );
   const applyLookupImages = useLookupItemImages(itemClientId);
   const form = useForm<InternalFormValues>({
     resolver: zodResolver(InternalFormSchema),
@@ -168,6 +171,83 @@ export function InternalFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.sku",
   });
+  const itemCategoryId = useWatch({
+    control: form.control,
+    name: "item.item_category_id",
+  });
+  const itemProperties = useWatch({
+    control: form.control,
+    name: "item.properties",
+  });
+
+  const sameValue = (left: unknown, right: unknown): boolean =>
+    JSON.stringify(left) === JSON.stringify(right);
+
+  const clearLookupInjectedValues = (): void => {
+    const injected = lookupInjectedRef.current;
+    if (sameValue(form.getValues("item.item_category_id"), injected.category)) {
+      form.setValue("item.item_category_id", undefined, { shouldDirty: true });
+    }
+    if (
+      sameValue(form.getValues("item.article_number"), injected.articleNumber)
+    ) {
+      form.setValue("item.article_number", "", { shouldDirty: true });
+    }
+    if (
+      sameValue(form.getValues("item.major_category"), injected.majorCategory)
+    ) {
+      form.setValue("item.major_category", undefined, { shouldDirty: true });
+    }
+    if (sameValue(form.getValues("item.quantity"), injected.quantity)) {
+      form.setValue("item.quantity", 1, { shouldDirty: true });
+    }
+    if (
+      sameValue(
+        form.getValues("item_pricing.purchase_cost_per_piece"),
+        injected.purchaseCost,
+      )
+    ) {
+      form.setValue("item_pricing.purchase_cost_per_piece", null, {
+        shouldDirty: true,
+      });
+    }
+    if (sameValue(form.getValues("item.properties"), injected.properties)) {
+      form.setValue("item.properties", undefined, { shouldDirty: true });
+    }
+    lookupInjectedRef.current = {};
+    applyLookupImages([]);
+  };
+
+  const checkCandidate = async (): Promise<boolean> => {
+    const articleNumber = itemArticleNumber?.trim() || undefined;
+    return (
+      callbacks.candidateGate?.check(
+        {
+          articleNumber,
+          sku: articleNumber ? undefined : itemSku?.trim() || undefined,
+          itemCategoryId: itemCategoryId ?? undefined,
+          properties: itemProperties ?? {},
+          quantity: itemQuantity ?? 1,
+        },
+        { onChangeItem: clearLookupInjectedValues },
+      ) ?? true
+    );
+  };
+
+  useEffect(() => {
+    if (!callbacks.candidateGate) return;
+    const timeout = window.setTimeout(() => {
+      void checkCandidate();
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [
+    callbacks.candidateGate,
+    itemArticleNumber,
+    itemCategoryId,
+    itemProperties,
+    itemQuantity,
+    itemSku,
+  ]);
   const handleLookupResult = useEffectEvent((items: ItemLookupResult[]) => {
     const selectedItem = selectPurchaseApiLookupResult(items);
 
@@ -213,6 +293,24 @@ export function InternalFormContent(): React.JSX.Element {
     applyLookupPropertiesResult(form, selectedItem);
 
     applyLookupImages(selectedItem.images);
+
+    lookupInjectedRef.current = {
+      category: selectedItem.item_category_id ?? undefined,
+      articleNumber: selectedItem.article_number,
+      majorCategory: isMajorCategory(matchedCategory?.major_category)
+        ? matchedCategory.major_category
+        : undefined,
+      quantity: selectedItem.quantity,
+      purchaseCost:
+        selectedItem.purchase_price_minor == null
+          ? null
+          : selectedItem.purchase_price_minor / 100,
+      properties:
+        selectedItem.properties &&
+        Object.keys(selectedItem.properties).length > 0
+          ? selectedItem.properties
+          : undefined,
+    };
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;
@@ -279,11 +377,12 @@ export function InternalFormContent(): React.JSX.Element {
         setPositionErrorRevealNonce((current) => current + 1);
       }
 
-      return stepValid;
+      if (!stepValid) return false;
+      return currentStepId === "item" ? checkCandidate() : true;
     },
     onSubmit: () =>
       form.handleSubmit(async (values) => {
-        if (callbacks.candidateGate && !(await callbacks.candidateGate.check())) {
+        if (!(await checkCandidate())) {
           staged.navigateTo("item");
           return;
         }
@@ -332,6 +431,8 @@ export function InternalFormContent(): React.JSX.Element {
         });
         regenerateIds();
         lastAppliedLookupSignatureRef.current = null;
+        lookupInjectedRef.current = {};
+        callbacks.candidateGate?.clear?.();
         staged.navigateTo("item");
         if (outcome !== "reset-stay") {
           surface.close(TASK_CREATION_INTERNAL_SURFACE_ID);
@@ -340,6 +441,7 @@ export function InternalFormContent(): React.JSX.Element {
   });
 
   navigateToRef.current = staged.navigateTo;
+  const CandidateStatusSlot = callbacks.candidateGate?.statusSlot;
 
   useEffect(() => {
     const stepErrorMap = {
@@ -417,6 +519,7 @@ export function InternalFormContent(): React.JSX.Element {
                   onLookupResult={handleLookupResult}
                   onOpenScanner={handleOpenScanner}
                 />
+                {CandidateStatusSlot ? <CandidateStatusSlot /> : null}
                 <ItemPositionZoneField
                   articleNumber={itemArticleNumber}
                   defaultTab="position"

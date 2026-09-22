@@ -29,7 +29,8 @@ export function useStockReportBoardController() {
     const mapped = toStockReportItemViewModel(item);
     return mapped?.bucket === bucket ? [mapped.card] : [];
   });
-  const reorderAvailable = isReorganiseMode && bucket !== "unset" && searchValue.trim().length === 0;
+  const reorderAvailable =
+    isReorganiseMode && bucket !== "unset" && searchValue.trim().length === 0;
 
   return {
     permissions,

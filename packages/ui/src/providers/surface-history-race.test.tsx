@@ -23,6 +23,10 @@ const registry = {
     surface: "slide",
     component: lazy(async () => ({ default: () => <div>Confirm time</div> })),
   },
+  locked: {
+    surface: "sheet",
+    component: lazy(async () => ({ default: () => <div>Locked warning</div> })),
+  },
 } satisfies SurfaceRegistrations;
 
 beforeEach(() => {
@@ -35,6 +39,28 @@ afterEach(() => {
 });
 
 describe("surface stack vs. delayed history.go() popstate", () => {
+  it("re-pushes a locked surface on browser Back instead of closing it", async () => {
+    const pushState = vi.spyOn(window.history, "pushState");
+    render(
+      <MemoryRouter>
+        <SurfaceProvider registry={registry}>
+          <div>App</div>
+        </SurfaceProvider>
+      </MemoryRouter>,
+    );
+
+    act(() => useSurfaceStore.getState().open("locked", {}, { dismissible: false }));
+    await screen.findByText("Locked warning");
+    pushState.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new PopStateEvent("popstate", { state: { __surfaceDepth: 0 } }));
+    });
+
+    expect(useSurfaceStore.getState().stack.map((surface) => surface.id)).toEqual(["locked"]);
+    expect(pushState.mock.calls[0]?.slice(0, 2)).toEqual([{ __surfaceDepth: 1 }, ""]);
+  });
+
   it("keeps a surface opened right after a close, even once the close's own delayed popstate arrives", async () => {
     // Real browsers resolve history.go() asynchronously: its popstate lands on
     // a later task, carrying the depth that was live *at the moment go() was

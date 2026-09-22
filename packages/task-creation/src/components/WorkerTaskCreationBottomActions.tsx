@@ -2,10 +2,12 @@ import { useSurfaceHeader } from "@beyo/hooks";
 
 type WorkerTaskCreationBottomActionsProps = {
   isSubmitting?: boolean;
+  disabled?: boolean;
 };
 
 export function WorkerTaskCreationBottomActions({
   isSubmitting = false,
+  disabled = false,
 }: WorkerTaskCreationBottomActionsProps): React.JSX.Element {
   const header = useSurfaceHeader();
 
@@ -25,7 +27,7 @@ export function WorkerTaskCreationBottomActions({
         <button
           className="flex-1 rounded-2xl bg-primary px-4 py-3.5 text-md font-semibold text-card shadow-sm disabled:opacity-60"
           data-testid="worker-task-create-button"
-          disabled={isSubmitting}
+          disabled={isSubmitting || disabled}
           type="submit"
         >
           {isSubmitting ? "Creating..." : "Create"}

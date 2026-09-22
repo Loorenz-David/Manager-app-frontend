@@ -120,6 +120,9 @@ describe("StockReportDetailView — selected items", () => {
   it("keeps the summary and Add item while the list is empty", () => {
     renderDetail({ assignments: stockReportNoAssignmentsFixture });
 
+    // The slide surface's content wrapper is not itself flex. This explicit
+    // height keeps the absolutely positioned PullToRefresh content visible.
+    expect(screen.getByTestId("stock-report-detail")).toHaveClass("h-full");
     expect(
       screen.getByTestId("stock-report-assignments-empty"),
     ).toHaveTextContent("No items selected for this stock need yet.");

@@ -21,6 +21,19 @@ import { workingSectionSurfaces } from "@beyo/working-sections";
 import type { ReactNode } from "react";
 
 /**
+ * A feature-neutral description of the item a task form is about to create.
+ * Consumers may vet it before creation; task-creation deliberately owns no
+ * knowledge of stock report, matching, or warning surfaces.
+ */
+export type TaskCreationCandidate = {
+  articleNumber?: string;
+  sku?: string;
+  itemCategoryId?: string;
+  properties: Record<string, unknown>;
+  quantity: number;
+};
+
+/**
  * A task was successfully created from one of the creation slides. Apps inject
  * concrete handling via {@link TaskCreationCallbacks}; the package only reports
  * the domain event and never names app-local query keys.
@@ -42,9 +55,15 @@ export type TaskCreationCallbacks = {
   afterCreate?: (info: TaskCreatedInfo) => Promise<"close" | "reset-stay">;
   /** Generic pre-create gate. The package never names a consuming feature. */
   candidateGate?: {
-    check: () => Promise<boolean>;
+    check: (
+      candidate: TaskCreationCandidate,
+      options?: { onChangeItem?: () => void },
+    ) => Promise<boolean>;
     preload?: () => Promise<unknown>;
-    statusSlot?: ReactNode;
+    clear?: () => void;
+    isPending?: boolean;
+    /** A component, rather than an open-time node, so its status stays live. */
+    statusSlot?: () => ReactNode;
   };
 };
 

@@ -4,6 +4,12 @@
 > machine-readable `code` and opaque `details`. `ApiRequestError.code` remains
 > status-derived; the optional body value is exposed as `serverCode`, and
 > `details` is parsed only by the owning domain API adapter.
+>
+> **Detail-only errors (2026-09-21, stock-report API v2):** any response body
+> with no `ok` key and a `detail` key is a valid FastAPI error response at any
+> HTTP status — including 401, 403, and 422. `detail` is `unknown` (422 may be
+> an array), retained verbatim as `ApiRequestError.details`; its message is used
+> only when it is a string. This rule is not limited to rate limiting or 403.
 
 # 04 — API Client — ManagerBeyo Managers App Extension
 
@@ -196,8 +202,9 @@ shape from the standard service error:
 { "detail": "Rate limit exceeded. Please wait before retrying." }
 ```
 
-`handleErrorResponse` in `api-client.ts` tries `ApiErrorSchema` first, then
-`RateLimitErrorSchema ({ detail: z.string() })` as a fallback. Callers receive an
-`ApiRequestError` with `code: 'rate_limited'` and `message` set to the detail string.
+`handleErrorResponse` in `api-client.ts` tries `ApiErrorSchema` first, then the
+general `{ detail: unknown }` fallback. Callers receive an `ApiRequestError`
+with status-derived `code`; its message is the detail only when the detail is a
+string, and the original detail remains available on `details`.
 
 Add `429 → 'rate_limited'` to the error codes table.

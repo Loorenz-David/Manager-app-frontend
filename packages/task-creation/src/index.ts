@@ -37,6 +37,7 @@ export {
 export type {
   TaskCreatedInfo,
   TaskCreationCallbacks,
+  TaskCreationCandidate,
   TaskCreationSlideSurfaceProps,
 } from "./surfaces";
 export {

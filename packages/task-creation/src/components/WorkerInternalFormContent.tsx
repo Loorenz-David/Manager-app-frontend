@@ -4,12 +4,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   EntityImagesProvider,
-  imageKeys,
   ImagePreviewGrid,
   preloadImageCameraSurface,
   preloadImageEditorSurface,
   preloadImageViewerSurface,
-  useCreateImagesFromUrl,
 } from "@beyo/images";
 import { usePreloadSurface, useSurface } from "@beyo/hooks";
 import { ContentCard, usePrefetchOnCondition } from "@beyo/ui";
@@ -39,12 +37,12 @@ import {
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 
 import {
-  buildCreateImagesFromUrlBatch,
   createLookupResultSignature,
   findCachedItemCategoryOption,
   applyLookupPropertiesResult,
   selectPurchaseApiLookupResult,
 } from "../lib/item-lookup-prefill";
+import { useLookupItemImages } from "../hooks/use-lookup-item-images";
 import {
   normalizeWorkerInternalFormPayload,
   toWorkerItemIssueFields,
@@ -99,8 +97,10 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     callbacks,
   } = useTaskCreationFormContext();
   const createTask = useCreateTask();
-  usePreloadSurface(callbacks.candidateGate?.preload ?? (() => Promise.resolve()));
-  const createImagesFromUrl = useCreateImagesFromUrl();
+  usePreloadSurface(
+    callbacks.candidateGate?.preload ?? (() => Promise.resolve()),
+  );
+  const applyLookupImages = useLookupItemImages(itemClientId);
   const workingSectionsFlow = useWorkingSectionPickerFlow();
   const defaultWoodFixSection = useMemo(
     () => resolveDefaultWoodFixSection(workingSectionsFlow.options),
@@ -122,6 +122,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
   useCameraPrewarm(SCANNER_SESSION_ID, 200);
 
   const lastAppliedLookupSignatureRef = useRef<string | null>(null);
+  const lookupInjectedRef = useRef<Record<string, unknown>>({});
 
   const form = useForm<WorkerInternalFormValues>({
     resolver: zodResolver(WorkerInternalFormSchema),
@@ -132,10 +133,81 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     control: form.control,
     name: "item.item_category_id",
   });
+  const itemArticleNumber = useWatch({
+    control: form.control,
+    name: "item.article_number",
+  });
+  const itemSku = useWatch({
+    control: form.control,
+    name: "item.sku",
+  });
+  const itemQuantity = useWatch({
+    control: form.control,
+    name: "item.quantity",
+  });
+  const itemProperties = useWatch({
+    control: form.control,
+    name: "item.properties",
+  });
   const itemIssueDraft = useWatch({
     control: form.control,
     name: "item_issue_selection_draft",
   });
+
+  const sameValue = (left: unknown, right: unknown): boolean =>
+    JSON.stringify(left) === JSON.stringify(right);
+
+  const clearLookupInjectedValues = (): void => {
+    const injected = lookupInjectedRef.current;
+    if (
+      sameValue(form.getValues("item.article_number"), injected.articleNumber)
+    ) {
+      form.setValue("item.article_number", "", { shouldDirty: true });
+    }
+    if (sameValue(form.getValues("item.quantity"), injected.quantity)) {
+      form.setValue("item.quantity", 1, { shouldDirty: true });
+    }
+    if (sameValue(form.getValues("item.properties"), injected.properties)) {
+      form.setValue("item.properties", undefined, { shouldDirty: true });
+    }
+    if (sameValue(form.getValues("item.item_category_id"), injected.category)) {
+      form.setValue("item.item_category_id", undefined, { shouldDirty: true });
+    }
+    // Worker major_category is an invariant of this form, never lookup-clear it.
+    lookupInjectedRef.current = {};
+    applyLookupImages([]);
+  };
+
+  const checkCandidate = async (): Promise<boolean> => {
+    const articleNumber = itemArticleNumber?.trim() || undefined;
+    return (
+      callbacks.candidateGate?.check(
+        {
+          articleNumber,
+          sku: articleNumber ? undefined : itemSku?.trim() || undefined,
+          itemCategoryId: itemCategoryId ?? undefined,
+          properties: itemProperties ?? {},
+          quantity: itemQuantity ?? 1,
+        },
+        { onChangeItem: clearLookupInjectedValues },
+      ) ?? true
+    );
+  };
+
+  useEffect(() => {
+    if (!callbacks.candidateGate) return;
+    const timeout = window.setTimeout(() => {
+      void checkCandidate();
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [
+    callbacks.candidateGate,
+    itemArticleNumber,
+    itemCategoryId,
+    itemProperties,
+    itemQuantity,
+    itemSku,
+  ]);
 
   useEffect(() => {
     if (form.getValues("item.major_category") !== "wood") {
@@ -249,21 +321,20 @@ export function WorkerInternalFormContent(): React.JSX.Element {
       });
     }
 
-    if (selectedItem.images.length > 0) {
-      void createImagesFromUrl
-        .mutateAsync(
-          buildCreateImagesFromUrlBatch(selectedItem.images, itemClientId),
-        )
-        .then(() =>
-          queryClient.invalidateQueries({
-            queryKey: imageKeys.list({
-              entity_type: "item",
-              entity_client_id: itemClientId,
-            }),
-          }),
-        )
-        .catch(() => {});
-    }
+    applyLookupImages(selectedItem.images);
+
+    lookupInjectedRef.current = {
+      articleNumber: selectedItem.article_number,
+      quantity: selectedItem.quantity,
+      properties:
+        selectedItem.properties &&
+        Object.keys(selectedItem.properties).length > 0
+          ? selectedItem.properties
+          : undefined,
+      category: isWoodCategory
+        ? (selectedItem.item_category_id ?? undefined)
+        : undefined,
+    };
 
     lastAppliedLookupSignatureRef.current = signature;
     return isWoodCategory ? true : "invalid";
@@ -303,7 +374,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
   }
 
   async function handleSubmit(values: WorkerInternalFormValues): Promise<void> {
-    if (callbacks.candidateGate && !(await callbacks.candidateGate.check())) {
+    if (!(await checkCandidate())) {
       return;
     }
     if (!defaultWoodFixSection) {
@@ -333,10 +404,14 @@ export function WorkerInternalFormContent(): React.JSX.Element {
     form.reset(buildDefaultValues());
     regenerateIds();
     lastAppliedLookupSignatureRef.current = null;
+    lookupInjectedRef.current = {};
+    callbacks.candidateGate?.clear?.();
     if (outcome !== "reset-stay") {
       surface.close(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID);
     }
   }
+
+  const CandidateStatusSlot = callbacks.candidateGate?.statusSlot;
 
   return (
     <FormProvider {...form}>
@@ -355,6 +430,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
                 onLookupResult={handleLookupResult}
                 onOpenScanner={handleOpenScanner}
               />
+              {CandidateStatusSlot ? <CandidateStatusSlot /> : null}
               <ItemQuantityField />
               <WoodItemCategorySelectionField />
             </ContentCard>
@@ -398,6 +474,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
 
         <WorkerTaskCreationBottomActions
           isSubmitting={createTask.isPending || form.formState.isSubmitting}
+          disabled={callbacks.candidateGate?.isPending}
         />
       </form>
     </FormProvider>

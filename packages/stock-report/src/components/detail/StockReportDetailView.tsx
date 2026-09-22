@@ -79,7 +79,7 @@ export function StockReportDetailView({
 
   return (
     <div
-      className="relative min-h-0 flex-1"
+      className="relative h-full min-h-0 flex-1"
       data-testid="stock-report-detail"
     >
       <PullToRefresh

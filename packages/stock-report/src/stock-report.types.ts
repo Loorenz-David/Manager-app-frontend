@@ -1,4 +1,10 @@
-import type { TaskListCardProps } from "@beyo/tasks";
+import {
+  TASK_STATE,
+  TASK_TYPE,
+  type TaskListCardProps,
+  type TaskState,
+  type TaskType,
+} from "@beyo/tasks";
 
 import type { FulfilmentQuantities } from "./lib/fulfilment-bar";
 import { z } from "zod";
@@ -84,6 +90,31 @@ export const StockReportItemSchema = z.object({
 });
 export type StockReportItem = z.infer<typeof StockReportItemSchema>;
 
+const StockReportAssignmentItemSchema = z.object({
+  client_id: z.string().nullable().optional(),
+  article_number: NullishString,
+  sku: NullishString,
+  quantity: NullishNumber,
+  item_category_snapshot: NullishString,
+  item_major_category_snapshot: NullishString,
+  item_images: z.array(z.object({ client_id: z.string().nullable().optional(), image_url: NullishString })).nullable().optional(),
+}).nullable().optional();
+
+const StockReportAssignmentTaskSchema = z.object({
+  client_id: z.string().nullable().optional(),
+  task_type: NullishString,
+  priority: NullishString,
+  state: NullishString,
+  title: NullishString,
+  return_source: NullishString,
+  ready_by_at: NullishString,
+  return_method: NullishString,
+  created_at: NullishString,
+  updated_at: NullishString,
+  closed_at: NullishString,
+  completed_at: NullishString,
+}).nullable().optional();
+
 export const StockReportAssignmentSchema = z.object({
   client_id: z.string(),
   state: z.string().nullable().optional(),
@@ -91,8 +122,8 @@ export const StockReportAssignmentSchema = z.object({
   task_id: z.string(),
   item_id: z.string().nullable().optional(),
   quantity: NullishNumber,
-  item: z.unknown().nullable().optional(),
-  task: z.unknown().nullable().optional(),
+  item: StockReportAssignmentItemSchema,
+  task: StockReportAssignmentTaskSchema,
 });
 export type StockReportAssignment = z.infer<typeof StockReportAssignmentSchema>;
 
@@ -144,6 +175,50 @@ export function toStockReportItemViewModel(
         inProgress: displayNumber(item.quantity_in_queue) + displayNumber(item.quantity_in_progress),
       },
     },
+  };
+}
+
+function toTaskType(value: string | null | undefined): TaskType {
+  return TASK_TYPE.includes(value as TaskType) ? (value as TaskType) : "internal";
+}
+
+function toTaskState(value: string | null | undefined): TaskState {
+  return TASK_STATE.includes(value as TaskState) ? (value as TaskState) : "pending";
+}
+
+function assignmentStatePill(state: string | null | undefined): NonNullable<TaskListCardProps["statePill"]> {
+  const label = state?.replaceAll("_", " ") ?? "Unknown";
+  if (state === "failed") return { label, variant: "danger" };
+  if (state === "resolved" || state === "resolved_early") return { label, variant: "success" };
+  if (state === "in_progress") return { label, variant: "warning" };
+  return { label, variant: "neutral" };
+}
+
+/** Maps the verified compact assignment/task payload onto TaskListCard's API. */
+export function toStockReportAssignmentCardData(
+  assignment: StockReportAssignment,
+): StockReportAssignmentCardData {
+  const item = assignment.item;
+  const task = assignment.task;
+  return {
+    taskId: assignment.task_id,
+    task: {
+      task_type: toTaskType(task?.task_type),
+      state: toTaskState(task?.state),
+      return_source: task?.return_source as TaskListCardProps["task"]["return_source"],
+      ready_by_at: task?.ready_by_at ?? null,
+    },
+    item: item
+      ? {
+          itemId: item.client_id ?? assignment.item_id ?? null,
+          article_number: item.article_number ?? null,
+          sku: item.sku ?? null,
+          item_major_category_snapshot: item.item_major_category_snapshot ?? null,
+          quantity: displayNumber(item.quantity ?? assignment.quantity),
+        }
+      : null,
+    imageUrl: item?.item_images?.[0]?.image_url ?? null,
+    statePill: assignmentStatePill(assignment.state),
   };
 }
 

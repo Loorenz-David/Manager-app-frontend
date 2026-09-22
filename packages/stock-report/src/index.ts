@@ -118,14 +118,7 @@ export {
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
 } from "./surface-ids";
-export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportActionsSurfaceProps } from "./surface-ids";
+export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportActionsSurfaceProps, StockMatchWarningSurfaceProps } from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------
 export * from "./fixtures/stock-report-fixtures";
-
-/**
- * TEMPORARY — the fixture-driven preview the owner uses to judge these screens
- * on a phone before anything is wired. The logic session replaces it with the
- * real route entry and deletes this export together with
- * `components/preview/StockReportFixturePreview.tsx`.
- */

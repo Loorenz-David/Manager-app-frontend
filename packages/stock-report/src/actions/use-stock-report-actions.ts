@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { StockNeedBucket, StockReportItem, StockReportPriority } from "../stock-report.types";
+import type { StockNeedBucket, StockReportAssignment, StockReportItem, StockReportPriority } from "../stock-report.types";
 import { createStockAssignment, removeStockAssignment, reorderStockReportItem, setStockReportPriority } from "../api/stock-report-api";
 import { stockReportKeys } from "../api/stock-report-keys";
 
@@ -57,8 +57,8 @@ export function useRemoveStockAssignment(stockNeedId: string) {
     mutationFn: removeStockAssignment,
     onMutate: async (assignmentId) => {
       const key = stockReportKeys.assignmentList(stockNeedId);
-      const previous = queryClient.getQueryData<StockReportItem[]>(key);
-      queryClient.setQueryData<StockReportItem[]>(key, (rows = []) => rows.filter((row) => row.client_id !== assignmentId));
+      const previous = queryClient.getQueryData<StockReportAssignment[]>(key);
+      queryClient.setQueryData<StockReportAssignment[]>(key, (rows = []) => rows.filter((row) => row.client_id !== assignmentId));
       return { key, previous };
     },
     onError: (_error, _id, context) => queryClient.setQueryData(context?.key ?? stockReportKeys.assignmentList(stockNeedId), context?.previous),
