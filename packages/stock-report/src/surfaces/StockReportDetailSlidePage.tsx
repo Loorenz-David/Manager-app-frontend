@@ -48,6 +48,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
     .find((item) => item.client_id === stockNeedId);
   const viewModel = row ? toStockReportItemViewModel(row) : null;
   const assignments = useStockReportAssignmentsQuery(stockNeedId);
+  const canAddItem = permissions.canAssign && Boolean(openers.openTaskCreation);
   const isMissing =
     assignments.error instanceof Error &&
     "status" in assignments.error &&
@@ -59,6 +60,40 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   useEffect(() => {
     if (isMissing) close(STOCK_REPORT_DETAIL_SURFACE_ID);
   }, [close, isMissing]);
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    const unavailableReason = !permissions.canAssign
+      ? "The resolved role is not allowed to assign items."
+      : !openers.openTaskCreation
+        ? "This app did not supply a task-creation opener."
+        : null;
+    console.info("[stock-report] detail capabilities", {
+      stockNeedId,
+      role: permissions.role,
+      workspaceSpecialization: permissions.workspaceSpecialization,
+      canAssign: permissions.canAssign,
+      hasTaskCreationOpener: Boolean(openers.openTaskCreation),
+      canAddItem,
+      boardItemFound: Boolean(row),
+      assignmentQuery: assignments.isPending
+        ? "pending"
+        : assignments.isError
+          ? "error"
+          : "ready",
+      unavailableReason,
+    });
+  }, [
+    assignments.isError,
+    assignments.isPending,
+    canAddItem,
+    openers.openTaskCreation,
+    permissions.canAssign,
+    permissions.role,
+    permissions.workspaceSpecialization,
+    row,
+    stockNeedId,
+  ]);
 
   if (!viewModel)
     return (
@@ -131,7 +166,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
       assignments={(assignments.data ?? []).map(
         toStockReportAssignmentCardData,
       )}
-      canAssign={permissions.canAssign && Boolean(openers.openTaskCreation)}
+      canAssign={canAddItem}
       errorMessage={
         assignments.error instanceof Error
           ? assignments.error.message
