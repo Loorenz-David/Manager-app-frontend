@@ -1,4 +1,4 @@
-import type { WorkingSectionId } from "@beyo/lib";
+import type { TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { SocketEventHandlers } from "@beyo/realtime";
 import {
   itemUpholsteryKeys as tasksItemUpholsteryKeys,
@@ -16,6 +16,10 @@ export const taskStepSocketEvents: SocketEventHandlers = {
       refetchType: "active",
     });
     queryClient.invalidateQueries({
+      queryKey: taskStepKeys.details(),
+      refetchType: "active",
+    });
+    queryClient.invalidateQueries({
       queryKey: taskStepKeys.userLastActive(),
       refetchType: "active",
     });
@@ -24,6 +28,11 @@ export const taskStepSocketEvents: SocketEventHandlers = {
   "task:step-state-changed": (_payloads, { queryClient }) => {
     queryClient.invalidateQueries({
       queryKey: taskStepKeys.sectionLists(),
+      refetchType: "active",
+    });
+    // Only an open detail observes its entry, so this refetches at most one.
+    queryClient.invalidateQueries({
+      queryKey: taskStepKeys.details(),
       refetchType: "active",
     });
     queryClient.invalidateQueries({
@@ -155,6 +164,12 @@ export const taskStepSocketEvents: SocketEventHandlers = {
     const deletedIds = new Set(
       payloads.map((p: { client_id: string }) => p.client_id),
     );
+
+    for (const deletedId of deletedIds) {
+      queryClient.removeQueries({
+        queryKey: taskStepKeys.detail(deletedId as TaskStepId),
+      });
+    }
 
     if (activeStepId && deletedIds.has(activeStepId)) {
       queryClient.setQueryData<UserLastActivePayload>(

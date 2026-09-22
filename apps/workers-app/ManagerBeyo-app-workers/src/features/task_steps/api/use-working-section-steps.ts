@@ -1,21 +1,47 @@
 import { useCallback, useMemo, useState } from "react";
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQueries,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from "@tanstack/react-query";
 import {
   fetchWorkingSectionSteps,
   WORKING_SECTION_STEPS_PAGE_SIZE,
 } from "./fetch-working-section-steps";
 import { taskStepKeys } from "./task-step-keys";
+import { seedTaskStepDetails } from "../lib/task-step-detail-cache";
 import type {
   ListWorkingSectionStepsParams,
   TaskStepsPagination,
 } from "../types";
 
+/**
+ * Fetches a page and writes each row through to its detail entry. A page
+ * cancelled mid-flight (a transition cancels the section's lists before it
+ * patches them) describes the state before the tap, so it must not seed.
+ */
+async function fetchPageAndSeed(
+  queryClient: QueryClient,
+  params: ListWorkingSectionStepsParams,
+  signal: AbortSignal,
+): Promise<TaskStepsPagination> {
+  const page = await fetchWorkingSectionSteps(params);
+  if (!signal.aborted) {
+    seedTaskStepDetails(queryClient, page.items);
+  }
+  return page;
+}
+
 export function useWorkingSectionStepsQuery(
   params: ListWorkingSectionStepsParams,
 ) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: taskStepKeys.sectionList(params),
-    queryFn: () => fetchWorkingSectionSteps(params),
+    queryFn: ({ signal }) => fetchPageAndSeed(queryClient, params, signal),
     enabled: Boolean(params.working_section_id),
     placeholderData: keepPreviousData,
   });
@@ -29,6 +55,7 @@ type PaginationState = {
 export function usePaginatedWorkingSectionStepsQuery(
   params: ListWorkingSectionStepsParams,
 ) {
+  const queryClient = useQueryClient();
   const pageParams = useMemo(
     () => ({
       ...params,
@@ -53,7 +80,8 @@ export function usePaginatedWorkingSectionStepsQuery(
 
       return {
         queryKey: taskStepKeys.sectionList(requestParams),
-        queryFn: () => fetchWorkingSectionSteps(requestParams),
+        queryFn: ({ signal }: { signal: AbortSignal }) =>
+          fetchPageAndSeed(queryClient, requestParams, signal),
         enabled: Boolean(requestParams.working_section_id),
         placeholderData: index === 0 ? keepPreviousData : undefined,
       };

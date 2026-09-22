@@ -113,6 +113,13 @@ function renderBatchAction() {
     step: null,
     batchSteps: STEP_IDS.map((id) => step(id)),
   });
+  // Each member's own detail entry — what an open detail surface reads.
+  for (const id of STEP_IDS) {
+    queryClient.setQueryData<TaskStep>(
+      taskStepKeys.detail(id as TaskStepId),
+      step(id),
+    );
+  }
   queryClient.setQueryData<TaskBudgetAllocationsSnapshot>(BUDGET_KEY, {
     allocations: STEP_IDS.map(
       (id) =>
@@ -278,6 +285,51 @@ describe("useTransitionBatchStepStates", () => {
     await waitFor(() => {
       expect(queryClient.getQueryState(LIST_KEY)?.isInvalidated).toBe(true);
     });
+  });
+
+  it("patches every member's detail entry with the tap and then the server's record", async () => {
+    const pending = deferred<BatchStepTransitionResponse>();
+    mocks.transitionBatchStepStates.mockReturnValue(pending.promise);
+    const { queryClient, result } = renderBatchAction();
+    const detailOf = (id: string) =>
+      queryClient.getQueryData<TaskStep>(taskStepKeys.detail(id as TaskStepId));
+
+    act(() => {
+      result.current.transitionBatch(batchInput("paused"));
+    });
+
+    await waitFor(() => {
+      expect(STEP_IDS.map((id) => detailOf(id)?.state)).toEqual([
+        "paused",
+        "paused",
+        "paused",
+      ]);
+    });
+    expect(detailOf("tsp_a")?.last_state_record?.entered_at).not.toBe(RUN_STARTED);
+
+    pending.resolve(pausedResponse(102));
+    await waitFor(() => {
+      expect(detailOf("tsp_a")?.last_state_record?.entered_at).toBe(
+        SERVER_PAUSED_AT,
+      );
+    });
+    expect(detailOf("tsp_a")?.total_working_seconds).toBe(102);
+  });
+
+  it("restores every member's detail entry when the server refuses", async () => {
+    mocks.transitionBatchStepStates.mockRejectedValue(new Error("Conflict"));
+    const { queryClient, result } = renderBatchAction();
+    const detailKey = taskStepKeys.detail("tsp_b" as TaskStepId);
+    const before = queryClient.getQueryData(detailKey);
+
+    act(() => {
+      result.current.transitionBatch(batchInput("paused"));
+    });
+
+    await waitFor(() => {
+      expect(mocks.notifyError).toHaveBeenCalled();
+    });
+    expect(queryClient.getQueryData(detailKey)).toEqual(before);
   });
 
   it("leaves the rows alone while a batch completion is in flight", async () => {

@@ -59,8 +59,7 @@ import { workerWorkingSectionKeys } from "../../working_sections/api/working-sec
 import { useCancelPendingStepCompletion } from "../actions/use-cancel-pending-step-completion";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import { taskStepKeys } from "../api/task-step-keys";
-import { useWorkingSectionStepsQuery } from "../api/use-working-section-steps";
-import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
+import { useTaskStepQuery } from "../api/use-task-step";
 import type { StepBudget } from "../domain/step-budget";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import { COMPLETION_FEEDBACK_ENABLED } from "../lib/completion-feedback";
@@ -147,14 +146,8 @@ export type TaskStepDetailController = {
 };
 
 export function useTaskStepDetailController(): TaskStepDetailController {
-  const {
-    stepId,
-    taskId,
-    workingSectionId,
-    initialStep,
-    initialBudget,
-    listQueryParams,
-  } = useSurfaceProps<TaskStepDetailSurfaceProps>();
+  const { stepId, taskId, workingSectionId, initialStep, initialBudget } =
+    useSurfaceProps<TaskStepDetailSurfaceProps>();
   // useSurfaceProps returns Partial<T> — resolve once here, use resolved everywhere
   const resolvedStepId = stepId ?? ("" as TaskStepId);
   const resolvedTaskId = taskId ?? ("" as TaskId);
@@ -162,24 +155,12 @@ export function useTaskStepDetailController(): TaskStepDetailController {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const queryParams = useMemo(
-    () =>
-      listQueryParams ?? {
-        working_section_id: resolvedWorkingSectionId,
-        limit: WORKING_SECTION_STEPS_PAGE_SIZE,
-        offset: 0,
-      },
-    [listQueryParams, resolvedWorkingSectionId],
-  );
-
-  const query = useWorkingSectionStepsQuery(queryParams);
-
-  const step = useMemo(
-    () =>
-      query.data?.items.find((s) => s.client_id === resolvedStepId) ??
-      (initialStep?.client_id === resolvedStepId ? initialStep : null),
-    [initialStep, query.data?.items, resolvedStepId],
-  );
+  // The step's own detail entry is the only source here. Every opener seeds
+  // it, every list fetch writes through to it and both transition actions
+  // patch it, so the surface reads the same live row whether it was opened
+  // from a list page, the last-active card, a reassigned row or a push link.
+  const query = useTaskStepQuery(resolvedStepId, initialStep);
+  const step = query.data ?? null;
 
   const itemCategoryId =
     step?.item?.item_category_id != null
@@ -383,7 +364,7 @@ export function useTaskStepDetailController(): TaskStepDetailController {
           }
         }
 
-        proceedToStart();
+        void proceedToStart();
         return;
       }
 

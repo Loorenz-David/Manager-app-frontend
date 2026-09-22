@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { itemEconomicsKeys } from "@beyo/item-economics";
-import { notify, type WorkingSectionId } from "@beyo/lib";
+import { notify, type TaskStepId, type WorkingSectionId } from "@beyo/lib";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import { transitionBatchStepStates } from "../api/transition-batch-step-states";
 import { taskStepKeys } from "../api/task-step-keys";
 import { seedSettledWorkedSeconds } from "../lib/step-transition-cache";
+import { patchTaskStepDetail } from "../lib/task-step-detail-cache";
 import type {
   BatchStepTransitionRequest,
   LastStateRecord,
@@ -65,6 +66,18 @@ function patchSectionLists(
   );
 }
 
+// Each member's own detail entry — the detail surface's only source.
+function patchDetails(
+  queryClient: QueryClient,
+  patches: ReadonlyMap<string, StepPatch>,
+): void {
+  for (const [stepId, patch] of patches) {
+    patchTaskStepDetail(queryClient, stepId as TaskStepId, (step) =>
+      applyPatch(step, patch),
+    );
+  }
+}
+
 // The floating card reads `batchSteps` for a batch and `step` for a single
 // step; a batch member can be either, so both are patched.
 function patchLastActive(
@@ -111,6 +124,11 @@ export function useTransitionBatchStepStates() {
         queryClient.cancelQueries({
           queryKey: taskStepKeys.sectionListsBySection(working_section_id),
         }),
+        ...items.map((item) =>
+          queryClient.cancelQueries({
+            queryKey: taskStepKeys.detail(item.step_id),
+          }),
+        ),
         queryClient.cancelQueries({ queryKey: taskStepKeys.userLastActive() }),
         queryClient.cancelQueries({ queryKey: itemEconomicsKeys.tasks() }),
       ]);
@@ -119,6 +137,13 @@ export function useTransitionBatchStepStates() {
         queryClient.getQueriesData<TaskStepsPagination>({
           queryKey: taskStepKeys.sectionListsBySection(working_section_id),
         });
+      const previousDetails = items.map(
+        (item) =>
+          [
+            item.step_id,
+            queryClient.getQueryData<TaskStep>(taskStepKeys.detail(item.step_id)),
+          ] as const,
+      );
       const previousLastActive =
         queryClient.getQueryData<UserLastActivePayload>(
           taskStepKeys.userLastActive(),
@@ -140,15 +165,19 @@ export function useTransitionBatchStepStates() {
       );
 
       patchSectionLists(queryClient, working_section_id, patches);
+      patchDetails(queryClient, patches);
       patchLastActive(queryClient, patches);
 
-      return { previousSectionLists, previousLastActive };
+      return { previousSectionLists, previousDetails, previousLastActive };
     },
 
     onError: (error, _variables, context) => {
       if (context) {
         context.previousSectionLists.forEach(([key, data]) => {
           queryClient.setQueryData(key, data);
+        });
+        context.previousDetails.forEach(([stepId, data]) => {
+          queryClient.setQueryData(taskStepKeys.detail(stepId), data);
         });
         queryClient.setQueryData(
           taskStepKeys.userLastActive(),
@@ -178,6 +207,7 @@ export function useTransitionBatchStepStates() {
       );
 
       patchSectionLists(queryClient, variables.working_section_id, patches);
+      patchDetails(queryClient, patches);
       patchLastActive(queryClient, patches);
 
       for (const item of data.items) {
@@ -203,6 +233,11 @@ export function useTransitionBatchStepStates() {
       void queryClient.invalidateQueries({
         queryKey: taskStepKeys.sectionListsBySection(variables.working_section_id),
       });
+      for (const item of variables.items) {
+        void queryClient.invalidateQueries({
+          queryKey: taskStepKeys.detail(item.step_id),
+        });
+      }
       void queryClient.invalidateQueries({
         queryKey: workerWorkingSectionKeys.mine(),
       });

@@ -1,17 +1,17 @@
 import { useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { TaskId, TaskStepId, WorkingSectionId } from "@beyo/lib";
+import type { TaskId, TaskStepId } from "@beyo/lib";
 import {
   useMarkNotificationsRead,
   type NotificationId,
 } from "@beyo/notifications";
-import { fetchWorkingSectionSteps } from "@/features/task_steps/api/fetch-working-section-steps";
+import { fetchTaskStep } from "@/features/task_steps/api/fetch-task-step";
+import { taskStepKeys } from "@/features/task_steps/api/task-step-keys";
 import {
   TASK_STEP_DETAIL_SURFACE_ID,
   type TaskStepDetailSurfaceProps,
 } from "@/features/task_steps/surface-ids";
-import { fetchWorkerWorkingSections } from "@/features/working_sections/api/fetch-worker-working-sections";
-import type { TaskStep } from "@/features/task_steps/types";
 import { buildCaseConversationRoute, ROUTES } from "@/lib/routes";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 
@@ -29,49 +29,10 @@ function stripNotificationParams(search: string): string {
   return nextSearch ? `?${nextSearch}` : "";
 }
 
-async function resolveWorkingSectionIdForStep(
-  stepId: string,
-): Promise<{ workingSectionId: WorkingSectionId; step: TaskStep } | null> {
-  const sections = await fetchWorkerWorkingSections();
-  const orderedSections = [...sections].sort((a, b) => {
-    const activeA =
-      a.task_steps_counts.paused +
-      a.task_steps_counts.working +
-      a.task_steps_counts.ended_shift;
-    const activeB =
-      b.task_steps_counts.paused +
-      b.task_steps_counts.working +
-      b.task_steps_counts.ended_shift;
-    return activeB - activeA;
-  });
-
-  for (const section of orderedSections) {
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const page = await fetchWorkingSectionSteps({
-        working_section_id: section.client_id,
-        limit: 50,
-        offset,
-      });
-
-      const step = page.items.find((item) => item.client_id === stepId);
-      if (step) {
-        return { workingSectionId: section.client_id, step };
-      }
-
-      hasMore = page.has_more;
-      offset += page.limit;
-    }
-  }
-
-  return null;
-}
-
 export function NotificationDeepLinkMount(): null {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { markRead } = useMarkNotificationsRead();
 
   useEffect(() => {
@@ -119,8 +80,16 @@ export function NotificationDeepLinkMount(): null {
 
     let cancelled = false;
 
-    resolveWorkingSectionIdForStep(notifId)
-      .then((resolvedStep) => {
+    const stepId = notifId as TaskStepId;
+
+    // Fetched through the cache so the detail entry is seeded fresh before the
+    // surface reads it.
+    queryClient
+      .fetchQuery({
+        queryKey: taskStepKeys.detail(stepId),
+        queryFn: () => fetchTaskStep(stepId),
+      })
+      .then((step) => {
         if (cancelled) return;
 
         navigate(
@@ -131,13 +100,11 @@ export function NotificationDeepLinkMount(): null {
           { replace: true },
         );
 
-        if (!resolvedStep) return;
-
         useSurfaceStore.getState().open(TASK_STEP_DETAIL_SURFACE_ID, {
-          stepId: notifId as TaskStepId,
+          stepId,
           taskId: notifTaskId as TaskId,
-          workingSectionId: resolvedStep.workingSectionId,
-          initialStep: resolvedStep.step,
+          workingSectionId: step.working_section_id,
+          initialStep: step,
         } satisfies TaskStepDetailSurfaceProps);
       })
       .catch((error: unknown) => {
@@ -147,7 +114,7 @@ export function NotificationDeepLinkMount(): null {
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.search, markRead, navigate]);
+  }, [location.pathname, location.search, markRead, navigate, queryClient]);
 
   return null;
 }

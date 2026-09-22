@@ -1,4 +1,4 @@
-import type { WorkingSectionId } from "@beyo/lib";
+import type { TaskStepId, WorkingSectionId } from "@beyo/lib";
 import type { ListWorkingSectionStepsParams } from "../types";
 
 export const taskStepKeys = {
@@ -22,6 +22,13 @@ export const taskStepKeys = {
     ] as const,
   sectionListsBySection: (sectionId: WorkingSectionId) =>
     [...taskStepKeys.sectionLists(), sectionId] as const,
+  /**
+   * One entry per step, the detail surface's only data source. Every list
+   * fetch writes its rows through here and every transition patches it, so a
+   * detail opened from any entry point reads the same live object.
+   */
+  details: () => [...taskStepKeys.all, "detail"] as const,
+  detail: (stepId: TaskStepId) => [...taskStepKeys.details(), stepId] as const,
   userLastActive: () => [...taskStepKeys.all, "user-last-active"] as const,
   reassignmentAcks: () => [...taskStepKeys.all, "reassignment-acks"] as const,
 };

@@ -470,10 +470,9 @@ export function useWorkingSectionStepsController(
         workingSectionId: sectionId,
         initialStep,
         initialBudget: stepBudgets.get(stepId) ?? null,
-        listQueryParams: queryParams,
       } as TaskStepDetailSurfaceProps);
     },
-    [openSurface, query.data?.items, queryParams, sectionId, stepBudgets],
+    [openSurface, query.data?.items, sectionId, stepBudgets],
   );
 
   const handleOpenImageViewer = useCallback(

@@ -42,8 +42,8 @@ export function useReassignedStepRowController(step: ReassignedStepItem) {
   const card = useMemo(() => toTaskStepCardViewModel(step), [step]);
 
   const handleOpenTaskDetail = useCallback(() => {
-    // Opened from outside a section list, so no `listQueryParams` — the detail
-    // page falls back to `initialStep` plus its own fetch for that step.
+    // `initialStep` is only the first paint; the detail reads and refetches
+    // the step's own detail entry.
     openSurface(TASK_STEP_DETAIL_SURFACE_ID, {
       stepId: step.client_id,
       taskId: step.task_id,
