@@ -1,12 +1,12 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
-import type { StockNeedBucket } from "../stock-report.types";
+import type { StockNeedBucket, StockReportListFilter } from "../stock-report.types";
 import { fetchStockReportAssignments, fetchStockReportItems } from "./stock-report-api";
 import { stockReportKeys } from "./stock-report-keys";
 
 export const STOCK_REPORT_STALE_TIME = 60_000;
 
-export function useStockReportListQuery(bucket: StockNeedBucket) {
-  return useQuery({ queryKey: stockReportKeys.list(bucket), queryFn: () => fetchStockReportItems(bucket), staleTime: STOCK_REPORT_STALE_TIME });
+export function useStockReportListQuery(bucket: StockNeedBucket, filter: StockReportListFilter) {
+  return useQuery({ queryKey: stockReportKeys.list(bucket, filter), queryFn: () => fetchStockReportItems(bucket, filter), staleTime: STOCK_REPORT_STALE_TIME });
 }
 
 export function useStockReportAssignmentsQuery(stockNeedId: string) {

@@ -4,7 +4,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { MATCH_WARNING_BANNER_CLASS } from "../../lib/stock-report-theme";
 import { StockMatchStatusRow } from "./StockMatchStatusRow";
+
+const BANNER_CLASSES = MATCH_WARNING_BANNER_CLASS.split(" ");
 
 afterEach(cleanup);
 
@@ -35,5 +38,23 @@ describe("StockMatchStatusRow", () => {
 
     await userEvent.click(row);
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("wears the same amber banner as the sheet that armed the override", () => {
+    render(<StockMatchStatusRow state="mismatch-accepted" onPress={vi.fn()} />);
+
+    const row = screen.getByTestId("stock-match-status-row");
+    for (const className of [...BANNER_CLASSES, "rounded-xl", "border"]) {
+      expect(row).toHaveClass(className);
+    }
+  });
+
+  it("keeps a check in flight neutral — it is progress, not a warning", () => {
+    render(<StockMatchStatusRow state="checking" />);
+
+    const row = screen.getByTestId("stock-match-status-row");
+    for (const className of BANNER_CLASSES) {
+      expect(row).not.toHaveClass(className);
+    }
   });
 });

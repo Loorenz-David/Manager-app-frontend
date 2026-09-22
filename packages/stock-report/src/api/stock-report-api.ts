@@ -6,6 +6,7 @@ import {
   type StockNeedBucket,
   type StockReportAssignment,
   type StockReportItem,
+  type StockReportListFilter,
   type StockReportPriority,
 } from "../stock-report.types";
 
@@ -30,12 +31,18 @@ const AssignmentResponse = Envelope(
 
 export async function fetchStockReportItems(
   bucket: StockNeedBucket,
+  filter: StockReportListFilter,
 ): Promise<StockReportItem[]> {
-  const params = bucket === "unset" ? undefined : { priority: bucket };
   const response = await apiClient.get(
     "/api/v1/stock-report/items",
     ItemListResponse,
-    params,
+    {
+      // Omitted `priority` is the null-priority bucket, not "all" (§5.1).
+      priority: bucket === "unset" ? undefined : bucket,
+      // A repeated key the backend reads as `list[ItemMajorCategoryEnum]`; one
+      // element today because the sheet is single-select. Omitted = all.
+      item_major_categories: filter.majorCategory ? [filter.majorCategory] : undefined,
+    },
   );
   return response.data.stock_report_items;
 }
@@ -110,11 +117,29 @@ export async function removeStockAssignment(
   );
 }
 
+/**
+ * One failed criterion. The preview and the create endpoint's recoverable 409
+ * serialise it from the same backend helper, so one schema serves both here —
+ * the two sheets a user can reach must never describe a mismatch differently.
+ *
+ * `accepted_values` and `item_values` are always sent and hold the normalised
+ * lowercase tokens the matcher actually compared; making them display text is
+ * this client's job
+ * (`HANDOFF_TO_FRONTEND_stock_match_property_evaluations_20260922.md`).
+ */
+const MatchFailureElement = z.object({
+  key: z.string(),
+  reason: z.string(),
+  accepted_values: z.array(z.string()),
+  item_values: z.array(z.string()),
+});
+export type StockMatchFailure = z.infer<typeof MatchFailureElement>;
+
 const MatchPreviewBody = z.object({
   can_proceed: z.boolean(),
   override_required: z.boolean(),
   refusal_reason: z.string().nullable(),
-  property_failures: z.array(z.object({ key: z.string(), reason: z.string() })),
+  property_failures: z.array(MatchFailureElement),
   matched_item_client_id: z.string().nullable(),
   values_source: z.enum(["stored", "supplied"]),
   // Informational only. Keep it at this boundary so callers cannot confuse a
@@ -165,9 +190,7 @@ export function stockAssignmentErrorDetails(error: unknown): unknown {
 }
 
 const AssignmentMismatchDetailsSchema = z.array(
-  z.object({
-    failures: z.array(z.object({ key: z.string(), reason: z.string() })),
-  }),
+  z.object({ failures: z.array(MatchFailureElement) }),
 );
 
 const AssignmentRefusalDetailsSchema = z.array(
@@ -177,7 +200,7 @@ const AssignmentRefusalDetailsSchema = z.array(
 /** Parses stock-specific error details at this API boundary, never in a UI. */
 export function stockAssignmentMismatchFailures(
   error: unknown,
-): Array<{ key: string; reason: string }> | null {
+): StockMatchFailure[] | null {
   if (
     !(error instanceof ApiRequestError) ||
     error.serverCode !== "stock_assignment_property_mismatch"

@@ -246,12 +246,19 @@ source of truth and is unchanged.
   "article_number": "ABC-123", // optional; identifies an EXISTING item
   "sku": null,                 // alternative to article_number — never both
   "item_category_id": "cat_…", // REQUIRED
-  "properties": { "wood_group": ["teak"] },  // REQUIRED
+  "properties": { "wood_type": "Teak" },  // REQUIRED
   "quantity": 4 }              // REQUIRED
 ```
 
 `item_category_id` is **required**. An Item cannot validly exist without a category,
 so the preview is never more permissive than item creation.
+
+**`properties` is the candidate item's raw property snapshot, not the board row's
+normalized criteria.** Treat it as `Record<string, unknown>` in the frontend and send
+the values held by the candidate item (for example, `"wood_type": "Teak"`). Board-row
+criteria returned elsewhere use accepted-value arrays (for example,
+`"wood_group": ["teak"]`); sending that criteria object as this request's candidate
+properties asks the matcher to evaluate the wrong values.
 
 Sending both `article_number` and `sku` → **422**, §1.2 shape.
 
@@ -321,6 +328,15 @@ Roles: **admin, manager, worker, seller**.
 `medium` or `low`. **Omitted or empty means rows whose priority is NULL**, ordered by
 `created_at, client_id` — it does *not* mean "all rows". An unknown token → **422**,
 `STOCK_REPORT_UNKNOWN_PRIORITY_FILTER`.
+
+`include_zero_requested` is an optional boolean query parameter. It defaults to `false`,
+so rows with `quantity_requested = 0` are hidden. Pass
+`include_zero_requested=true` to include those rows in the same priority ordering.
+
+`item_major_categories` and `item_category_ids` are optional repeated query parameters.
+Use `?item_major_categories=seat&item_major_categories=wood` to match the two available
+major categories, or `?item_category_ids=itc_a&item_category_ids=itc_b` for exact category
+ids. When both are supplied they combine (AND); omit both to retain the current result set.
 
 ```jsonc
 { "data": { "stock_report_items": [ /* §6.1 */ ] }, "ok": true, "warnings": [] }
@@ -573,7 +589,12 @@ Make your handlers idempotent.
 - **No pagination anywhere**, by decision.
 - **No history read endpoint.** History records are written; nothing exposes them.
 - **No local row creation.** Rows are created by Scanner's demand webhook only.
-- **`is_stock_assignment` is not surfaced** on the task read shape.
+- ~~**`is_stock_assignment` is not surfaced** on the task read shape.~~ **Amended
+  2026-09-22:** it now is. `is_stock_assignment: boolean` sits on the `task` object of
+  `GET /api/v1/tasks` and `GET /api/v1/tasks/{id}`, and on `step.task` of
+  `GET /api/v1/working-sections/{id}/steps`. Both listings' **default** ordering ranks it
+  directly after `ready_by_at` (flagged first), above priority; an explicit `order_by` on
+  the tasks listing is unaffected.
 - **No "forgotten items" view** — there is no screen that lists items Scanner resolved
   early so someone can chase the step that was skipped. It was considered and deferred.
 - No batch match-preview — it is one row per call.

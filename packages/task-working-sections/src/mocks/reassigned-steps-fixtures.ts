@@ -64,6 +64,7 @@ export const REASSIGNED_STEP_RICH_ITEM: unknown = {
     scheduled_end_at: null,
     return_method: "pickup",
     assortment: "SOFA-3S",
+    is_stock_assignment: false,
   },
   item: {
     client_id: "item_77c2",

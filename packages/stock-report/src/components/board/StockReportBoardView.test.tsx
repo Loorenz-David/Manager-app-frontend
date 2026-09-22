@@ -35,6 +35,8 @@ function boardProps(
     onBucketChange: vi.fn(),
     searchValue: "",
     onSearchChange: vi.fn(),
+    activeFilterCount: 0,
+    onFilterPress: vi.fn(),
     cards: stockReportBoardCardsFixture,
     status: "ready",
     onRefresh: vi.fn(),
@@ -61,17 +63,24 @@ function renderBoard(overrides: Partial<StockReportBoardViewProps> = {}) {
 }
 
 describe("StockReportBoardView — controls", () => {
-  it("renders the bucket picker without a sort or filter control", () => {
-    renderBoard();
+  it("renders the bucket picker with a filter control and no sort control", () => {
+    const props = renderBoard();
 
     expect(screen.getByTestId("stock-report-bucket-picker")).toBeInTheDocument();
     expect(screen.getByTestId("stock-report-search")).toBeInTheDocument();
     expect(
       screen.queryByTestId("stock-report-search-sort"),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("stock-report-search-filter"),
-    ).not.toBeInTheDocument();
+
+    // The filter button is live now that a filter exists (owner, 2026-09-22).
+    fireEvent.click(screen.getByTestId("stock-report-search-filter"));
+    expect(props.onFilterPress).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the filter count the controller hands it on the filter button", () => {
+    renderBoard({ activeFilterCount: 1 });
+
+    expect(screen.getByTestId("stock-report-search-filter")).toHaveTextContent("1");
   });
 
   it("gives every bucket the active fill, Unset included", () => {
@@ -289,8 +298,10 @@ describe("StockReportBoardView — reorganise mode", () => {
           canReorganise
           cards={stockReportBoardCardsFixture}
           isReorganiseMode={false}
+          activeFilterCount={0}
           onBucketChange={vi.fn()}
           onCardPress={vi.fn()}
+          onFilterPress={vi.fn()}
           onRefresh={vi.fn()}
           onReorder={vi.fn()}
           onSearchChange={vi.fn()}
@@ -312,8 +323,10 @@ describe("StockReportBoardView — reorganise mode", () => {
           canReorganise
           cards={stockReportBoardCardsFixture}
           isReorganiseMode
+          activeFilterCount={0}
           onBucketChange={vi.fn()}
           onCardPress={vi.fn()}
+          onFilterPress={vi.fn()}
           onRefresh={vi.fn()}
           onReorder={vi.fn()}
           onSearchChange={vi.fn()}

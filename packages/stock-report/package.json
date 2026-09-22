@@ -10,6 +10,7 @@
     "@beyo/api-client": "*",
     "@beyo/auth": "*",
     "@beyo/hooks": "*",
+    "@beyo/item-categories": "*",
     "@beyo/lib": "*",
     "@beyo/realtime": "*",
     "@beyo/task-creation": "*",

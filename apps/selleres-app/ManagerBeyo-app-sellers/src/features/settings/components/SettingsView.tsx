@@ -2,7 +2,6 @@ import { Bell, BellOff, LogOut } from 'lucide-react';
 import type { PushSubscriptionStatus } from '@beyo/notifications';
 
 import { useSettingsViewContext } from '../providers/SettingsViewProvider';
-import { PushDebugLog } from './PushDebugLog';
 
 function pushStatusLabel(status: PushSubscriptionStatus): string {
   switch (status) {
@@ -92,8 +91,6 @@ export function SettingsView(): React.JSX.Element {
         <LogOut aria-hidden="true" className="size-4 shrink-0" />
         {isSigningOut ? 'Signing out…' : 'Log out'}
       </button>
-
-      <PushDebugLog />
     </div>
   );
 }

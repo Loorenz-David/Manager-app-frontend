@@ -32,6 +32,7 @@ import {
   removeStockAssignment,
   reorderStockReportItem,
   setStockReportPriority,
+  stockAssignmentMismatchFailures,
   stockAssignmentRefusalReasons,
 } from "./stock-report-api";
 
@@ -42,12 +43,20 @@ describe("stock-report API adapters", () => {
 
   it("requests exactly one priority bucket, with Unset omitting the query parameter", async () => {
     client.get.mockResolvedValue({ data: { stock_report_items: [item] } });
-    await expect(fetchStockReportItems("unset")).resolves.toEqual([item]);
-    await expect(fetchStockReportItems("high")).resolves.toEqual([item]);
+    await expect(fetchStockReportItems("unset", { majorCategory: null })).resolves.toEqual([item]);
+    await expect(fetchStockReportItems("high", { majorCategory: null })).resolves.toEqual([item]);
 
     expect(client.get.mock.calls[0]?.[0]).toBe("/api/v1/stock-report/items");
-    expect(client.get.mock.calls[0]?.[2]).toBeUndefined();
-    expect(client.get.mock.calls[1]?.[2]).toEqual({ priority: "high" });
+    // `undefined` entries are dropped by the api-client, so neither key is sent.
+    expect(client.get.mock.calls[0]?.[2]).toEqual({ priority: undefined, item_major_categories: undefined });
+    expect(client.get.mock.calls[1]?.[2]).toEqual({ priority: "high", item_major_categories: undefined });
+  });
+
+  it("sends the major category as a repeated-key list the backend reads as an enum list", async () => {
+    client.get.mockResolvedValue({ data: { stock_report_items: [item] } });
+    await fetchStockReportItems("medium", { majorCategory: "wood" });
+
+    expect(client.get.mock.calls[0]?.[2]).toEqual({ priority: "medium", item_major_categories: ["wood"] });
   });
 
   it("uses the verified priority, reorder, assignment, and delete endpoint bodies", async () => {
@@ -150,6 +159,61 @@ describe("stock-report API adapters", () => {
     expect(client.get.mock.calls[0]?.[0]).toBe(
       "/api/v1/stock-report/items/sri-1/assignments",
     );
+  });
+
+  it("reads the same failure element from a preview and from a 409", async () => {
+    const { ApiRequestError } = await import("@beyo/api-client");
+    const element = {
+      key: "upholstery",
+      reason: "value_not_accepted",
+      accepted_values: ["foam", "synthetic"],
+      item_values: ["down"],
+    };
+    client.post.mockResolvedValue({
+      data: {
+        can_proceed: true,
+        override_required: true,
+        refusal_reason: null,
+        property_failures: [element],
+        matched_item_client_id: null,
+        values_source: "supplied",
+        checks: [],
+      },
+    });
+
+    const preview = await previewStockAssignment("sri-1", {
+      articleNumber: "ABC",
+      itemCategoryId: "cat-1",
+      properties: {},
+      quantity: 1,
+    });
+    const conflict = stockAssignmentMismatchFailures(
+      new ApiRequestError(409, "conflict", "mismatch", {
+        serverCode: "stock_assignment_property_mismatch",
+        details: [{ index: 0, failures: [element] }],
+      }),
+    );
+
+    expect(preview.property_failures).toEqual([element]);
+    expect(conflict).toEqual(preview.property_failures);
+  });
+
+  it("does not quietly accept a failure element missing the compared values", async () => {
+    const { ApiRequestError } = await import("@beyo/api-client");
+
+    // An element without them cannot fill the Asked/Item columns, so parsing it
+    // leniently would put an empty comparison in front of the user instead of
+    // telling us the contract moved.
+    expect(
+      stockAssignmentMismatchFailures(
+        new ApiRequestError(409, "conflict", "mismatch", {
+          serverCode: "stock_assignment_property_mismatch",
+          details: [
+            { index: 0, failures: [{ key: "wood_group", reason: "value_not_accepted" }] },
+          ],
+        }),
+      ),
+    ).toEqual([]);
   });
 
   it("parses only the structured non-overridable assignment refusal", async () => {

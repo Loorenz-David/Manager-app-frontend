@@ -16,7 +16,8 @@ import type {
   StockNeedCardData,
   StockReportAssignmentCardData,
 } from "../stock-report.types";
-import type { StockMatchPropertyFailure } from "../components/sheets/StockMatchWarningSheetContent";
+import type { StockMatchFailure } from "../api/stock-report-api";
+import type { StockMatchFailureRow } from "../lib/stock-match-failure-rows";
 
 /** A stable stand-in for a backend picture URL; no network call is made. */
 const CATEGORY_PICTURE = null;
@@ -308,14 +309,70 @@ export const stockReportNoAssignmentsFixture: readonly StockReportAssignmentCard
 export const stockMatchBlockedReasonFixture =
   "This item is a different category than the stock need asks for.";
 
-/** A property mismatch: listed, and overridable with an explicit Continue. */
-export const stockMatchFailuresFixture: readonly StockMatchPropertyFailure[] = [
+/**
+ * A property mismatch as the backend reports it — one element per failed
+ * criterion, carrying the normalised tokens the matcher compared. All four
+ * reasons appear, so anything rendering these covers every branch.
+ */
+export const stockMatchFailureElementsFixture: readonly StockMatchFailure[] = [
   {
-    label: "Wood type",
-    explanation: "The stock need asks for oak; this item is walnut.",
+    key: "wood_group",
+    reason: "value_not_accepted",
+    accepted_values: ["light", "dark"],
+    item_values: ["teak"],
   },
   {
-    label: "Quantity",
-    explanation: "The stock need has room for 2 more pieces; this item is 4.",
+    key: "upholstery",
+    reason: "missing_on_item",
+    accepted_values: ["foam", "synthetic"],
+    item_values: [],
+  },
+  {
+    key: "wood_type",
+    reason: "no_group_for_value",
+    accepted_values: ["light"],
+    item_values: ["teak"],
+  },
+  {
+    key: "finish",
+    reason: "criterion_not_understood",
+    accepted_values: [],
+    item_values: [],
+  },
+];
+
+/**
+ * The same four failures as the sheet shows them. Written out rather than
+ * derived so a test can hold `toStockMatchFailureRows` to these exact strings;
+ * `stock-match-failure-rows.test.ts` asserts the two stay in step.
+ */
+export const stockMatchFailuresFixture: readonly StockMatchFailureRow[] = [
+  {
+    key: "wood_group",
+    label: "Wood group",
+    asked: "Light / Dark",
+    item: "Teak",
+    reason: "value_not_accepted",
+  },
+  {
+    key: "upholstery",
+    label: "Upholstery",
+    asked: "Foam / Synthetic",
+    item: "—",
+    reason: "missing_on_item",
+  },
+  {
+    key: "wood_type",
+    label: "Wood type",
+    asked: "Light",
+    item: "No known group: Teak",
+    reason: "no_group_for_value",
+  },
+  {
+    key: "finish",
+    label: "Finish",
+    asked: "Invalid criterion",
+    item: "—",
+    reason: "criterion_not_understood",
   },
 ];

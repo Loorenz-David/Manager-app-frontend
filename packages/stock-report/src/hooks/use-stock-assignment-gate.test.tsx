@@ -45,7 +45,12 @@ describe("useStockAssignmentGate", () => {
         override_required: true,
         refusal_reason: null,
         property_failures: [
-          { key: "wood_group", reason: "value_not_accepted" },
+          {
+            key: "wood_group",
+            reason: "value_not_accepted",
+            accepted_values: ["light"],
+            item_values: ["teak"],
+          },
         ],
         values_source: "supplied",
       })
@@ -166,5 +171,72 @@ describe("useStockAssignmentGate", () => {
     );
 
     await expect(result.current.check(candidate)).resolves.toBe(true);
+  });
+
+  it("hands the sheet the preview's own values to compare, not a sentence about them", async () => {
+    previewCheck.mockResolvedValue({
+      can_proceed: true,
+      override_required: true,
+      refusal_reason: null,
+      property_failures: [
+        {
+          key: "upholstery",
+          reason: "value_not_accepted",
+          accepted_values: ["foam", "synthetic"],
+          item_values: ["down"],
+        },
+      ],
+      values_source: "supplied",
+    });
+    const openWarning = vi.fn();
+    const { result } = renderHook(() =>
+      useStockAssignmentGate("sri-1", openWarning),
+    );
+
+    act(() => {
+      void result.current.check(candidate);
+    });
+    await waitFor(() => expect(openWarning).toHaveBeenCalledTimes(1));
+
+    expect(openWarning.mock.calls[0]?.[0].failures).toEqual([
+      {
+        key: "upholstery",
+        label: "Upholstery",
+        asked: "Foam / Synthetic",
+        item: "Down",
+        reason: "value_not_accepted",
+      },
+    ]);
+  });
+
+  it("compares the same way on the 409 retry as it did on the preview", async () => {
+    const openWarning = vi.fn();
+    const { result } = renderHook(() =>
+      useStockAssignmentGate("sri-1", openWarning),
+    );
+
+    act(() => {
+      void result.current.requestOverride([
+        {
+          key: "upholstery",
+          reason: "value_not_accepted",
+          accepted_values: ["foam", "synthetic"],
+          item_values: ["down"],
+        },
+      ]);
+    });
+    await waitFor(() => expect(openWarning).toHaveBeenCalledTimes(1));
+
+    // One renderer, one mapper: the sheet a user reaches by being refused must
+    // read exactly like the one the preview would have shown.
+    expect(openWarning.mock.calls[0]?.[0].failures).toEqual([
+      {
+        key: "upholstery",
+        label: "Upholstery",
+        asked: "Foam / Synthetic",
+        item: "Down",
+        reason: "value_not_accepted",
+      },
+    ]);
   });
 });

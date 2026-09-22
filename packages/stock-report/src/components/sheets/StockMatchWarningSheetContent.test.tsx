@@ -8,6 +8,7 @@ import {
   stockMatchBlockedReasonFixture,
   stockMatchFailuresFixture,
 } from "../../fixtures/stock-report-fixtures";
+import { MATCH_WARNING_BANNER_CLASS } from "../../lib/stock-report-theme";
 import { StockMatchWarningSheetContent } from "./StockMatchWarningSheetContent";
 
 afterEach(cleanup);
@@ -49,7 +50,7 @@ describe("StockMatchWarningSheetContent — blocked", () => {
 });
 
 describe("StockMatchWarningSheetContent — soft warning", () => {
-  it("lists every failure it was handed, with both its lines", () => {
+  function renderWarning() {
     render(
       <StockMatchWarningSheetContent
         failures={stockMatchFailuresFixture}
@@ -58,16 +59,73 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
         onContinue={vi.fn()}
       />,
     );
+    return screen.getByTestId("stock-match-warning-failures");
+  }
 
-    const list = screen.getByTestId("stock-match-warning-failures");
-    expect(within(list).getAllByRole("listitem")).toHaveLength(
+  it("names the three columns it is comparing", () => {
+    const block = renderWarning();
+
+    for (const heading of ["Property", "Asked", "Item"]) {
+      expect(within(block).getByText(heading)).toBeInTheDocument();
+    }
+  });
+
+  it("gives every failure one row, and nothing for criteria that matched", () => {
+    const block = renderWarning();
+
+    expect(within(block).getAllByRole("listitem")).toHaveLength(
       stockMatchFailuresFixture.length,
     );
+  });
 
-    for (const failure of stockMatchFailuresFixture) {
-      expect(within(list).getByText(failure.label)).toBeInTheDocument();
-      expect(within(list).getByText(failure.explanation)).toBeInTheDocument();
+  it("shows what was asked beside what the item has, per criterion", () => {
+    renderWarning();
+
+    for (const row of stockMatchFailuresFixture) {
+      expect(
+        screen.getByTestId(`stock-match-failure-row-${row.key}`),
+      ).toHaveTextContent(row.label);
+      expect(
+        screen.getByTestId(`stock-match-failure-asked-${row.key}`),
+      ).toHaveTextContent(row.asked);
+      expect(
+        screen.getByTestId(`stock-match-failure-item-${row.key}`),
+      ).toHaveTextContent(row.item);
     }
+  });
+
+  it("reads an em dash out as an absent value, not as an unlabelled cell", () => {
+    renderWarning();
+
+    expect(
+      screen.getByTestId("stock-match-failure-item-upholstery"),
+    ).toHaveAccessibleName("No value");
+    expect(
+      screen.getByTestId("stock-match-failure-asked-wood_group"),
+    ).not.toHaveAccessibleName("No value");
+  });
+
+  it("banners the headline in amber — the mismatch is overridable, not fatal", () => {
+    renderWarning();
+
+    const banner = screen.getByTestId("stock-match-warning-banner");
+    for (const className of [
+      ...MATCH_WARNING_BANNER_CLASS.split(" "),
+      "rounded-xl",
+      "border",
+    ]) {
+      expect(banner).toHaveClass(className);
+    }
+  });
+
+  it("does not dress a malformed criterion up as one that accepts nothing", () => {
+    renderWarning();
+
+    const asked = screen.getByTestId("stock-match-failure-asked-finish");
+    expect(asked).toHaveTextContent("Invalid criterion");
+    expect(
+      screen.getByTestId("stock-match-failure-item-wood_type"),
+    ).toHaveTextContent("No known group: Teak");
   });
 
   it("offers both ways out and never overrides on its own", async () => {

@@ -21,6 +21,7 @@ describe("ReassignedStepItemSchema", () => {
     expect(parsed.acknowledgment.client_id).toBe("tsa_31f7");
     expect(parsed.acknowledgment.acknowledged_at).toBeNull();
     expect(parsed.updated_at).toBeNull();
+    expect(parsed.task.is_stock_assignment).toBe(false);
     // The four upholstery_group_* keys are always null on this endpoint.
     expect(parsed.upholstery_group_key).toBeNull();
     expect(parsed.upholstery_group_inventory).toBeNull();

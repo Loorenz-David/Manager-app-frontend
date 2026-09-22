@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@beyo/lib";
-import type { StockNeedBucket, StockReportAssignment, StockReportItem, StockReportPriority } from "../stock-report.types";
+import type { StockNeedBucket, StockReportAssignment, StockReportItem, StockReportListFilter, StockReportPriority } from "../stock-report.types";
 import { createStockAssignment, removeStockAssignment, reorderStockReportItem, setStockReportPriority } from "../api/stock-report-api";
 import { stockReportKeys } from "../api/stock-report-keys";
 import { stockReportRequestFailureMessage } from "../lib/stock-report-request-failure";
@@ -20,8 +20,12 @@ export function useSetStockReportPriority() {
       const previous = queryClient.getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.lists() });
       for (const [key, rows] of previous) queryClient.setQueryData<StockReportItem[]>(key, (rows ?? []).filter((row) => row.client_id !== stockNeedId));
       const destination: StockNeedBucket = priority ?? "unset";
-      const destinationKey = stockReportKeys.list(destination);
-      if (queryClient.getQueryState(destinationKey)) queryClient.setQueryData<StockReportItem[]>(destinationKey, (rows = []) => [...rows.filter((row) => row.client_id !== stockNeedId), { ...(previous.flatMap(([, rows]) => rows ?? []).find((row) => row.client_id === stockNeedId) ?? { client_id: stockNeedId }), priority } as StockReportItem]);
+      const moved = { ...(previous.flatMap(([, rows]) => rows ?? []).find((row) => row.client_id === stockNeedId) ?? { client_id: stockNeedId }), priority } as StockReportItem;
+      // Every cached list of the destination bucket, whatever its category
+      // filter: the settle-time invalidation refetches the active one anyway.
+      for (const [key] of queryClient.getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.bucketLists(destination) })) {
+        queryClient.setQueryData<StockReportItem[]>(key, (rows = []) => [...rows.filter((row) => row.client_id !== stockNeedId), moved]);
+      }
       return { previous };
     },
     // The rollback alone would snap the card back with no explanation (W-3).
@@ -33,22 +37,22 @@ export function useSetStockReportPriority() {
   });
 }
 
-export function useReorderStockReportItem(bucket: StockNeedBucket) {
+export function useReorderStockReportItem(bucket: StockNeedBucket, filter: StockReportListFilter) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ stockNeedId, toIndex }: { stockNeedId: string; toIndex: number }) => reorderStockReportItem(stockNeedId, toIndex + 1),
     onMutate: async ({ stockNeedId, toIndex }) => {
-      const key = stockReportKeys.list(bucket);
+      const key = stockReportKeys.list(bucket, filter);
       const previous = queryClient.getQueryData<StockReportItem[]>(key);
       const from = previous?.findIndex((row) => row.client_id === stockNeedId) ?? -1;
       if (previous && from >= 0) queryClient.setQueryData(key, move(previous, from, toIndex));
       return { key, previous };
     },
     onError: (error, _input, context) => {
-      queryClient.setQueryData(context?.key ?? stockReportKeys.list(bucket), context?.previous);
+      queryClient.setQueryData(context?.key ?? stockReportKeys.list(bucket, filter), context?.previous);
       notify.error("Order not changed", stockReportRequestFailureMessage(error));
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: stockReportKeys.list(bucket), refetchType: "active" }),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: stockReportKeys.list(bucket, filter), refetchType: "active" }),
   });
 }
 

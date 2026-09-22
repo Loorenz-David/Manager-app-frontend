@@ -22,6 +22,8 @@ export type StockReportBoardViewProps = {
 
   searchValue: string;
   onSearchChange: (value: string) => void;
+  activeFilterCount: number;
+  onFilterPress: () => void;
 
   cards: readonly StockNeedCardData[];
   status: StockReportLoadStatus;
@@ -51,6 +53,8 @@ export function StockReportBoardView({
   onBucketChange,
   searchValue,
   onSearchChange,
+  activeFilterCount,
+  onFilterPress,
   cards,
   status,
   errorMessage,
@@ -96,8 +100,10 @@ export function StockReportBoardView({
               onChange={onBucketChange}
             />
             <StockReportSearchRow
+              activeFilterCount={activeFilterCount}
               value={searchValue}
               onChange={onSearchChange}
+              onFilterPress={onFilterPress}
             />
           </div>
 

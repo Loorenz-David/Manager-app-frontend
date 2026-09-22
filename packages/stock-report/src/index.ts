@@ -18,6 +18,8 @@ export {
   STOCK_REPORT_PRIORITY,
   StockReportItemSchema,
   StockReportAssignmentSchema,
+  formatStockPropertyValues,
+  titleCase,
   toStockReportItemViewModel,
   toStockReportPropertyTags,
 } from "./stock-report.types";
@@ -80,13 +82,17 @@ export type { StockReportDetailViewProps } from "./components/detail/StockReport
 // --- sheet content ---------------------------------------------------------
 export { StockReportPrioritySheetContent } from "./components/sheets/StockReportPrioritySheetContent";
 export type { StockReportPrioritySheetContentProps } from "./components/sheets/StockReportPrioritySheetContent";
+export { StockReportFilterSheetContent } from "./components/sheets/StockReportFilterSheetContent";
+export type { StockReportFilterSheetContentProps } from "./components/sheets/StockReportFilterSheetContent";
 export { StockReportActionsSheetContent } from "./components/sheets/StockReportActionsSheetContent";
 export type { StockReportActionsSheetContentProps } from "./components/sheets/StockReportActionsSheetContent";
 export { StockMatchWarningSheetContent } from "./components/sheets/StockMatchWarningSheetContent";
-export type {
-  StockMatchPropertyFailure,
-  StockMatchWarningSheetContentProps,
-} from "./components/sheets/StockMatchWarningSheetContent";
+export type { StockMatchWarningSheetContentProps } from "./components/sheets/StockMatchWarningSheetContent";
+export {
+  STOCK_MATCH_NO_VALUE,
+  toStockMatchFailureRows,
+} from "./lib/stock-match-failure-rows";
+export type { StockMatchFailureRow } from "./lib/stock-match-failure-rows";
 export { StockMatchStatusRow } from "./components/sheets/StockMatchStatusRow";
 export type {
   StockMatchStatusRowProps,
@@ -111,12 +117,13 @@ export {
   stockReportSurfaces,
   STOCK_REPORT_DETAIL_SURFACE_ID,
   STOCK_REPORT_PRIORITY_SURFACE_ID,
+  STOCK_REPORT_FILTER_SURFACE_ID,
   STOCK_REPORT_ACTIONS_SURFACE_ID,
   STOCK_MATCH_WARNING_SURFACE_ID,
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
 } from "./surface-ids";
-export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportActionsSurfaceProps, StockMatchWarningSurfaceProps } from "./surface-ids";
+export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportFilterSurfaceProps, StockReportActionsSurfaceProps, StockMatchWarningSurfaceProps } from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------
 export * from "./fixtures/stock-report-fixtures";

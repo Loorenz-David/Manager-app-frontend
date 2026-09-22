@@ -118,6 +118,9 @@ export const TaskSnapshotSchema = z.object({
   scheduled_start_at: z.string().nullable(),
   scheduled_end_at: z.string().nullable(),
   return_method: z.string().nullable(),
+  // True while the task feeds at least one stock-report assignment. The steps
+  // listing ranks these directly after `ready_by_at`.
+  is_stock_assignment: z.boolean().default(false),
 });
 export type TaskSnapshot = z.infer<typeof TaskSnapshotSchema>;
 export type TaskType = TaskSnapshot["task_type"];

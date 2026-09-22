@@ -646,3 +646,73 @@ NOT PINNED items 1–3 close with the backend's final handoff (the design tolera
     priority drops the row, unknown assignment state is a neutral pill) stand.
   - The board search row stays inert for now (owner, 2026-09-22: a later fix).
 - Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — board major-category filter; role default.**
+- `GET /items` gained repeated query params `item_major_categories` (values `wood` | `seat`,
+  unknown → 422) and `item_category_ids`, independent of `priority` (AND between them), plus
+  `include_zero_requested` (default `false`: rows with `quantity_requested = 0` are hidden — a
+  backend default the frontend does not override). The backend recorded these by editing
+  `HANDOFF_TO_FRONTEND_stock_report_api_20260922.md` §5.1 in place this once; the frontend copy
+  was refreshed to match. `item_category_ids` is not sent yet (owner: later).
+- §6.1's "filter button hidden" is superseded: the search row's filter button is live and opens a
+  **bottom sheet** (`STOCK_REPORT_FILTER_SURFACE_ID`) holding the same Wood / Seat picker the
+  creation forms use — extracted from `@beyo/item-categories` as `ItemMajorCategoryPicker` so
+  there is one source for its options. Single-select; tapping the selected category again clears
+  it (= all). The sheet commits on **Apply**; **Clear** returns the draft to the role default
+  below, not to "all". The sheet closes on Apply only.
+- Role default (owner): workers with `workspace_specialization = wood_worker` open on Wood; every
+  other worker (upholstery, quality control, none) on Seat; admin/manager/seller open unfiltered.
+  The search bar's filter badge marks a departure from that opening view, not a narrowed list: a
+  worker on their default category shows no badge; a different category, or "all" for a worker,
+  shows `1`; a manager shows `1` once any category is applied. The filter persists across bucket
+  switches and reorganise mode.
+- Cache: the list key is `[…lists, bucket, majorCategory | "all"]`; consumers read the bucket by
+  position (`stockReportKeys.bucketOfListKey`), never as the last segment. `@beyo/api-client`
+  serialises an array param as a repeated key.
+- Free-text search remains inert (owner: a later fix).
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — the match warning shows a comparison.**
+- The failure element on both mismatch paths grew two fields. `property_failures[]` from
+  `POST …/match-preview` and `details[].failures[]` from the create endpoint's 409
+  `stock_assignment_property_mismatch` now carry `accepted_values` and `item_values` beside
+  `key` and `reason` — always present, holding the normalised lowercase tokens the matcher
+  actually compared. Recorded in
+  `docs/handoff/from_backend/HANDOFF_TO_FRONTEND_stock_match_property_evaluations_20260922.md`
+  (SHIPPED, additive), which answers the frontend's request of the same date and supersedes the
+  failure-element shape of the match-preview v2 handoff of 2026-09-21. Everything else about the
+  two endpoints is unchanged.
+- §8.5 and §12A A2 are amended in one respect: the locked warning no longer explains a mismatch
+  in prose. It renders, per failed criterion, **Property · Asked · Item** — what the stock need
+  accepts beside what the item holds — and leaves the judgement to the reader. The chrome is
+  untouched: warning icon, "This item does not fully match", the stored-item note, *Change item*
+  and *Continue*. The blocked view is untouched.
+- **Only failures are returned and only failures are shown.** No rows for criteria that matched,
+  no "N of M matched" (owner, 2026-09-22).
+- **The grouping rule:** both columns speak the criterion's own vocabulary, because the backend
+  maps the item's value into it before reporting. A `wood_group` criterion asking for `light`
+  against a stored `wood_type: "Teak"` reports `item_values: ["teak"]` — the group tokens are
+  `dark`, `teak`, `light`, and there is no `light teak` group name. The frontend formats a value
+  and never improves one.
+- `quantity` stays a set-style equality criterion, not a range rule, so it renders through the
+  ordinary row (`accepted_values: ["4"]`, `item_values: ["7"]`).
+- One mapper (`toStockMatchFailureRows`) and one schema (`MatchFailureElement`) serve the preview
+  and the 409, so the sheet a user reaches by being refused reads exactly like the one the
+  preview would have shown.
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — the amber mismatch banner.**
+- The match warning's top row (icon, "This item does not fully match", the stored-item note) is
+  now a banner on a light amber field with a rounded border: `@beyo/ui`'s `StatePill` `warning`
+  trio taken whole — `#fff4d6` behind `#8a5a00` ink inside a `#f0c36a` border, 5.4:1. The ink is
+  `--color-warning` itself, so `text-warning` carries it and the icon inherits it as
+  `currentColor`. It lives in `lib/stock-report-theme.ts` as `MATCH_WARNING_BANNER_CLASS`.
+- Amber and not red because this mismatch is overridable. The **blocked** view keeps its
+  destructive red and its plain background — that one has no way through, and the two must not
+  look alike.
+- The same banner is worn by `StockMatchStatusRow`'s `mismatch-accepted` state, the line the
+  task-creation form shows under the item identity (§12A A4). **§12A A6a's "quiet line" is
+  superseded** (owner, 2026-09-22): the row and the sheet are the same fact in two places, and a
+  form the user has overridden should look overridden. The `checking` state stays neutral — a
+  check in flight is progress, not a warning.
+- Status remains RATIFIED.

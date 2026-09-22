@@ -102,7 +102,6 @@ export function SettingsView(): React.JSX.Element {
           <LogOut aria-hidden="true" className="size-4 shrink-0" />
           {isSigningOut ? "Signing out..." : "Log out"}
         </button>
-        <div className="h-[1000px] w-full bg-black" />
       </div>
     </div>
   );

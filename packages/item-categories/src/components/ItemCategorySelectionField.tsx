@@ -2,10 +2,9 @@ import { ChevronRight } from "lucide-react";
 import { useEffect } from "react";
 import { useController, useFormContext } from "react-hook-form";
 
-import { cn, type MajorCategory } from "@beyo/lib";
+import { cn, isMajorCategory } from "@beyo/lib";
 import {
   BackendImage,
-  BoxPicker,
   FieldErrorPill,
   ImagePlaceholder,
   useSurfaceStore,
@@ -15,48 +14,11 @@ import { usePreloadSurface } from "@beyo/hooks";
 import { useItemCategoryPickerFlow } from "../flows/use-item-category-picker.flow";
 import { ITEM_CATEGORY_PICKER_SURFACE_ID } from "../surface-ids";
 import { preloadItemCategoryPickerSurface } from "../surfaces";
+import { ItemMajorCategoryPicker } from "./ItemMajorCategoryPicker";
 
-/** Fails to compile if a category has no option — see the assertion below. */
-type AssertNever<T extends never> = T;
-
-/**
- * Tied to the domain so adding a category to `MajorCategorySchema` fails to
- * compile until the picker gains its option — otherwise a category exists that
- * nobody can choose, and the pricing card silently never renders for it (N13).
- */
-const MAJOR_CATEGORY_OPTIONS = [
-  {
-    value: "wood",
-    label: "Wood",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/wood_category.webp",
-    imageClassName: "size-[2.4rem]",
-    testId: "item-major-category-wood-option",
-  },
-  {
-    value: "seat",
-    label: "Seat",
-    image:
-      "https://test-bootstrap-local.s3.eu-north-1.amazonaws.com/images/ws_workspace_test/item_categories/seating_category.webp",
-    imageClassName: "size-[2.4rem]",
-    testId: "item-major-category-seat-option",
-  },
-] as const satisfies ReadonlyArray<{
-  value: MajorCategory;
-  label: string;
-  image: string;
-  imageClassName: string;
-  testId: string;
-}>;
-
-/**
- * Compile-time exhaustiveness: this alias resolves only while every category in
- * `MajorCategorySchema` has an option above. Add one to the enum without adding
- * it here and the type error lands on this line — see the comment above.
- */
-export type EveryMajorCategoryHasAnOption = AssertNever<
-  Exclude<MajorCategory, (typeof MAJOR_CATEGORY_OPTIONS)[number]["value"]>
->;
+// The Wood / Seat options and their exhaustiveness guard live in
+// `ItemMajorCategoryPicker` so the stock-report filter can share them.
+export type { EveryMajorCategoryHasAnOption } from "./ItemMajorCategoryPicker";
 
 export function ItemCategorySelectionField(): React.JSX.Element {
   const { control } = useFormContext();
@@ -139,14 +101,11 @@ export function ItemCategorySelectionField(): React.JSX.Element {
           message={errorMessage}
         />
       </div>
-      <BoxPicker
-        mode="single"
-        value={majorField.value ?? null}
-        options={MAJOR_CATEGORY_OPTIONS.map((option) => ({ ...option }))}
+      <ItemMajorCategoryPicker
+        // The form field is read-side (`z.string()`), so a value the picker
+        // cannot render simply shows as no selection.
+        value={isMajorCategory(majorField.value) ? majorField.value : null}
         onValueChange={handleMajorCategoryChange}
-        layout="grid"
-        visualVariant="default"
-        columns={2}
         data-testid="item-major-category-picker"
       />
 

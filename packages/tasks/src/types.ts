@@ -265,6 +265,9 @@ export const TaskDetailRawSchema = z.object({
     updated_at: z.string().datetime({ offset: true }).nullable(),
     closed_at: z.string().datetime({ offset: true }).nullable(),
     is_deleted: z.boolean(),
+    // True while the task feeds at least one stock-report assignment. Defaulted so payloads
+    // recorded before the backend surfaced it (2026-09-22) still parse.
+    is_stock_assignment: z.boolean().default(false),
     deleted_at: z.string().datetime({ offset: true }).nullable(),
     post_handling: z.array(TaskPostHandlingSchema),
   }),
@@ -333,6 +336,9 @@ export const TaskListItemRawSchema = z.object({
     // closure, and a `failed`/`cancelled` task has a closure but no completion.
     completed_at: z.string().nullable(),
     is_deleted: z.boolean(),
+    // True while the task feeds at least one stock-report assignment. The default
+    // ordering ranks these directly after `ready_by_at`, above priority.
+    is_stock_assignment: z.boolean().default(false),
     deleted_at: z.string().nullable(),
     post_handling: z.array(TaskPostHandlingSchema).nullable(),
   }),

@@ -28,6 +28,8 @@ export { useItemCategoryPickerFlow } from "./flows/use-item-category-picker.flow
 export type { ItemCategoryByIdResult } from "./flows/use-item-category-by-id";
 export { ItemCategoryDetailLabel } from "./components/ItemCategoryDetailLabel";
 export { ItemCategorySelectionField } from "./components/ItemCategorySelectionField";
+export { ItemMajorCategoryPicker } from "./components/ItemMajorCategoryPicker";
+export type { ItemMajorCategoryPickerProps } from "./components/ItemMajorCategoryPicker";
 export { ITEM_CATEGORY_PICKER_SURFACE_ID } from "./surface-ids";
 export type { ItemCategoryPickerSurfaceProps } from "./surface-ids";
 export {

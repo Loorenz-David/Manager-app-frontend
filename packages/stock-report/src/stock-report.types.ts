@@ -7,6 +7,7 @@ import {
   type TaskType,
 } from "@beyo/tasks";
 
+import type { MajorCategory } from "@beyo/lib";
 import type { FulfilmentQuantities } from "./lib/fulfilment-bar";
 import { z } from "zod";
 
@@ -27,6 +28,18 @@ export const STOCK_NEED_BUCKET_LABEL: Record<StockNeedBucket, string> = {
   high: "High",
   medium: "Medium",
   low: "Low",
+};
+
+/**
+ * What the filter sheet narrows the board by, on top of the bucket. `null`
+ * means every major category — the request then omits `item_major_categories`.
+ * Workers start with their role's category (owner, 2026-09-22); managers and
+ * sellers start with none.
+ */
+export type StockReportListFilter = { majorCategory: MajorCategory | null };
+
+export const EMPTY_STOCK_REPORT_FILTER: StockReportListFilter = {
+  majorCategory: null,
 };
 
 /**
@@ -153,10 +166,22 @@ export type StockReportItemViewModel = StockReportItem & {
   bucket: StockNeedBucket;
 };
 
-function titleCase(value: string): string {
+export function titleCase(value: string): string {
   return value
     .replace(/[_-]+/g, " ")
     .replace(/\b([a-z])/g, (letter: string) => letter.toUpperCase());
+}
+
+/**
+ * The one way this feature turns a criterion's normalised value tokens into
+ * display text. The board's property tags and the match warning's comparison
+ * both read it, so `Light / Dark` on a card and `Light / Dark` in the sheet are
+ * the same string by construction rather than by two authors agreeing.
+ */
+export function formatStockPropertyValues(
+  values: readonly string[],
+): string {
+  return values.map(titleCase).join(" / ");
 }
 
 function isStringList(value: unknown): value is string[] {
@@ -175,7 +200,7 @@ export function toStockReportPropertyTags(
 ): readonly string[] {
   return Object.entries(properties).flatMap(([key, values]) =>
     isStringList(values) && values.length > 0
-      ? [`${titleCase(key)}: ${values.map(titleCase).join(" / ")}`]
+      ? [`${titleCase(key)}: ${formatStockPropertyValues(values)}`]
       : [],
   );
 }

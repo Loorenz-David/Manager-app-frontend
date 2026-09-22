@@ -114,6 +114,7 @@ const LIST_TASK: TaskListItemRaw["task"] = {
   closed_at: null,
   completed_at: null,
   is_deleted: false,
+  is_stock_assignment: false,
   deleted_at: null,
   post_handling: null,
 };
@@ -163,6 +164,21 @@ describe("TaskListItemRawSchema completion fields", () => {
     delete row.last_interacted_at;
 
     expect(TaskListItemRawSchema.safeParse(row).success).toBe(false);
+  });
+});
+
+describe("TaskListItemRawSchema is_stock_assignment", () => {
+  it("carries the flag the backend surfaces", () => {
+    const row = TaskListItemRawSchema.parse(listRow({ is_stock_assignment: true }));
+
+    expect(row.task.is_stock_assignment).toBe(true);
+  });
+
+  it("defaults to false for payloads recorded before the flag was surfaced", () => {
+    const row = listRow() as { task: Record<string, unknown> };
+    delete row.task.is_stock_assignment;
+
+    expect(TaskListItemRawSchema.parse(row).task.is_stock_assignment).toBe(false);
   });
 });
 

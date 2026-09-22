@@ -100,3 +100,19 @@ export const LEGEND_SWATCH_CLASS = {
   ...SEGMENT_FILL_CLASS,
   remaining: "bg-muted",
 } as const;
+
+/**
+ * The banner at the top of the match warning — icon, headline and the
+ * stored-item note on a light amber field (owner, 2026-09-22).
+ *
+ * The trio is `@beyo/ui`'s `StatePill` `warning` variant, taken whole rather
+ * than mixed fresh: `#fff4d6` behind `#8a5a00` ink inside a `#f0c36a` border.
+ * That ink is `--color-warning` itself, so `text-warning` carries it and the
+ * icon inherits it as `currentColor` — one colour to change, not three. It
+ * reaches 5.4:1 on the fill, comfortably past AA at this size.
+ *
+ * Amber and not red on purpose: a mismatch here is overridable. The blocked
+ * view keeps its destructive red, because that one has no way through.
+ */
+export const MATCH_WARNING_BANNER_CLASS =
+  "border-[#f0c36a] bg-[#fff4d6] text-warning";

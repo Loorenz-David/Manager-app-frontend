@@ -66,6 +66,8 @@ function buildOptimisticListItem(
       closed_at: null,
       completed_at: null,
       is_deleted: false,
+      // A freshly created task has no stock assignment yet — those are attached later.
+      is_stock_assignment: false,
       deleted_at: null,
       post_handling: null,
     },

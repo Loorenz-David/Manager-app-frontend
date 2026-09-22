@@ -10,7 +10,8 @@ import {
 import { useStockMatchPreview } from "../actions/use-stock-match-preview";
 import { StockMatchStatusRow } from "../components/sheets/StockMatchStatusRow";
 import { stockAssignmentRefusalMessage } from "../lib/stock-assignment-messages";
-import type { StockMatchPropertyFailure } from "../components/sheets/StockMatchWarningSheetContent";
+import { toStockMatchFailureRows } from "../lib/stock-match-failure-rows";
+import type { StockMatchFailure } from "../api/stock-report-api";
 import {
   preloadStockMatchWarningSurface,
   type StockMatchWarningSurfaceProps,
@@ -19,27 +20,6 @@ import {
 export type StockAssignmentGateOpener = (
   props: StockMatchWarningSurfaceProps,
 ) => void;
-
-const FAILURE_EXPLANATION: Record<string, string> = {
-  missing_on_item: "The item has no value for this requirement.",
-  value_not_accepted: "The item's value is not accepted for this stock need.",
-  no_group_for_value: "The item's value could not be matched to a known group.",
-  criterion_not_understood:
-    "This stock need has an invalid matching criterion.",
-};
-
-function toFailures(
-  failures: readonly { key: string; reason: string }[],
-): StockMatchPropertyFailure[] {
-  return failures.map((failure) => ({
-    label: failure.key
-      .replaceAll("_", " ")
-      .replace(/\b\w/g, (letter) => letter.toUpperCase()),
-    explanation:
-      FAILURE_EXPLANATION[failure.reason] ??
-      "This value does not match the stock need.",
-  }));
-}
 
 function signature(candidate: TaskCreationCandidate): string {
   return JSON.stringify(candidate);
@@ -181,7 +161,7 @@ export function useStockAssignmentGate(
       };
       const warning: StockMatchWarningSurfaceProps = {
         kind: "warning",
-        failures: toFailures(result.property_failures),
+        failures: toStockMatchFailureRows(result.property_failures),
         checkedAgainstStoredItem: result.values_source === "stored",
         onChangeItem: () => {
           clear();
@@ -225,13 +205,11 @@ export function useStockAssignmentGate(
   }, [statusStore]);
 
   const requestOverride = useCallback(
-    (
-      failures: readonly { key: string; reason: string }[],
-    ): Promise<boolean> => {
+    (failures: readonly StockMatchFailure[]): Promise<boolean> => {
       return new Promise<boolean>((resolve) => {
         const warning: StockMatchWarningSurfaceProps = {
           kind: "warning",
-          failures: toFailures(failures),
+          failures: toStockMatchFailureRows(failures),
           onChangeItem: () => {
             clear();
             changeItemRef.current?.();

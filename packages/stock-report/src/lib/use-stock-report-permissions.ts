@@ -1,5 +1,5 @@
-import { useRole } from "@beyo/auth";
-import type { WorkspaceSpecialization } from "@beyo/auth";
+import { useRole, WorkspaceSpecialization } from "@beyo/auth";
+import type { MajorCategory } from "@beyo/lib";
 import type { StockNeedBucket } from "../stock-report.types";
 
 export type StockReportPermissions = {
@@ -10,17 +10,23 @@ export type StockReportPermissions = {
   seesUnset: boolean;
   buckets: readonly StockNeedBucket[];
   isWorker: boolean;
+  /**
+   * The major category the board opens on. Workers work one kind of item, so
+   * wood workers start on Wood and every other worker on Seat; the filter sheet
+   * can still change it. Managers and sellers start with no filter (owner,
+   * 2026-09-22).
+   */
+  defaultMajorCategory: MajorCategory | null;
 };
 
 export function useStockReportPermissions(): StockReportPermissions {
   const { role, workspaceSpecialization } = useRole();
   const isWorker = role === "worker";
+  const isWoodWorker =
+    isWorker && workspaceSpecialization === WorkspaceSpecialization.WoodWorker;
   const canPrioritise =
     role === "admin" || role === "manager" || role === "seller";
-  const canAssign =
-    role === "admin" ||
-    role === "manager" ||
-    (isWorker && workspaceSpecialization === "wood_worker");
+  const canAssign = role === "admin" || role === "manager" || isWoodWorker;
   return {
     role,
     workspaceSpecialization,
@@ -31,5 +37,6 @@ export function useStockReportPermissions(): StockReportPermissions {
       ? ["high", "medium", "low"]
       : ["unset", "high", "medium", "low"],
     isWorker,
+    defaultMajorCategory: isWorker ? (isWoodWorker ? "wood" : "seat") : null,
   };
 }

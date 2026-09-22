@@ -1,6 +1,6 @@
 import type { SocketEventHandlers } from "@beyo/realtime";
 import { z } from "zod";
-import { stockReportKeys } from "./api/stock-report-keys";
+import { STOCK_REPORT_FILTER_ALL, stockReportKeys } from "./api/stock-report-keys";
 import type { StockReportItem } from "./stock-report.types";
 
 const ItemIdSchema = z.object({ client_id: z.string() });
@@ -21,7 +21,9 @@ function bucket(priority: string | null | undefined): "unset" | "high" | "medium
 function updateCachedItem(queryClient: Parameters<NonNullable<SocketEventHandlers["stock_report_item:updated"]>>[1]["queryClient"], payload: z.infer<typeof ItemUpdatedSchema>): void {
   const destination = bucket(payload.priority);
   for (const [key, rows] of queryClient.getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.lists() })) {
-    const currentBucket = key.at(-1);
+    // The key carries the category filter after the bucket, so the bucket is
+    // read by position, never as the last segment.
+    const currentBucket = stockReportKeys.bucketOfListKey(key);
     const existing = rows?.find((row) => row.client_id === payload.client_id);
     if (!existing) continue;
     const patched = { ...existing, ...payload } as StockReportItem;
@@ -29,9 +31,15 @@ function updateCachedItem(queryClient: Parameters<NonNullable<SocketEventHandler
       queryClient.setQueryData(key, (list: StockReportItem[] | undefined) => (list ?? []).map((row) => row.client_id === payload.client_id ? patched : row).toSorted((a, b) => (a.priority_order ?? Number.MAX_SAFE_INTEGER) - (b.priority_order ?? Number.MAX_SAFE_INTEGER)));
     } else {
       queryClient.setQueryData(key, (list: StockReportItem[] | undefined) => (list ?? []).filter((row) => row.client_id !== payload.client_id));
-      const destinationKey = stockReportKeys.list(destination ?? "unset");
-      if (destination && queryClient.getQueryState(destinationKey)) queryClient.setQueryData(destinationKey, (list: StockReportItem[] | undefined) => [...(list ?? []), patched]);
-      if (destination) queryClient.invalidateQueries({ queryKey: destinationKey, refetchType: "active" });
+      if (!destination) continue;
+      // Only lists whose category filter the row satisfies gain it; the
+      // invalidation refetches whichever is on screen regardless.
+      for (const [destinationKey] of queryClient.getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.bucketLists(destination) })) {
+        const keyFilter = stockReportKeys.filterOfListKey(destinationKey);
+        if (keyFilter !== STOCK_REPORT_FILTER_ALL && keyFilter !== patched.item_category.major_category) continue;
+        queryClient.setQueryData(destinationKey, (list: StockReportItem[] | undefined) => [...(list ?? []).filter((row) => row.client_id !== payload.client_id), patched]);
+      }
+      queryClient.invalidateQueries({ queryKey: stockReportKeys.bucketLists(destination), refetchType: "active" });
     }
   }
 }
