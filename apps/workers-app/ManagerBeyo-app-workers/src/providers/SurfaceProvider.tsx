@@ -14,6 +14,7 @@ import {
   type StockReportSurfaceOpeners,
 } from "@beyo/stock-report";
 import { TASK_CREATION_WORKER_INTERNAL_SURFACE_ID } from "@beyo/task-creation";
+import { TASK_DETAIL_SURFACE_ID } from "@beyo/tasks";
 import { surfaceRegistry } from "@/app/surface-registry";
 
 export {
@@ -28,6 +29,9 @@ const stockReportOpeners: StockReportSurfaceOpeners = {
     useSurfaceStore
       .getState()
       .open(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID, { callbacks }),
+  // The shared task detail, read-only for this role (B8 executed 2026-09-22).
+  openTaskDetail: (taskId) =>
+    useSurfaceStore.getState().open(TASK_DETAIL_SURFACE_ID, { taskId }),
   openImageViewer: (taskId, itemId, images) => {
     const viewModels: ImageViewModel[] = images.map((image, displayOrder) => ({
       clientId: image.clientId,

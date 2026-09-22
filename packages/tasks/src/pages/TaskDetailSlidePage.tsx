@@ -44,6 +44,7 @@ import {
 } from "../components/detail";
 import { TaskFlowTimeline } from "../components/TaskFlowTimeline";
 import { useItemUpholsteryPermissions } from "../lib/use-item-upholstery-permissions";
+import { useTaskDetailPermissions } from "../lib/use-task-detail-permissions";
 import {
   TaskDetailProvider,
   useTaskDetailContext,
@@ -114,6 +115,14 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     controller.taskDetail?.item?.can_have_upholstery ?? null;
   const { canEditUpholsteryFlag, canEditUpholsteryLink } =
     useItemUpholsteryPermissions();
+  const permissions = useTaskDetailPermissions();
+
+  // Every inline editor goes through here: a read-only role hands the
+  // sub-components `undefined`, and each renders as plain text. Nothing is
+  // gated by the sub-component's own judgement.
+  function edit<T>(opener: T): T | undefined {
+    return permissions.canEdit ? opener : undefined;
+  }
 
   function handleCanHaveUpholsteryChange(next: boolean | null): void {
     if (!itemId) {
@@ -136,7 +145,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const workingSectionsCounts = useTaskWorkingSectionsCountsFlow(
     controller.taskId,
   );
+  // One value feeds both the footer and the scroll padding below it.
   const shouldRenderAssignStages =
+    permissions.canEdit &&
     !workingSectionsCounts.isPending &&
     controller.taskDetail?.task.state === "pending" &&
     workingSectionsCounts.assignedCount === 0;
@@ -183,33 +194,36 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       >
         <TaskDetailHeader
           onBack={() => header?.requestClose()}
-          onOpenMenu={controller.openMenu}
-          onOpenReadyByAt={controller.openReadyByAtSheet}
+          onOpenMenu={permissions.showMenu ? controller.openMenu : undefined}
+          onOpenReadyByAt={edit(controller.openReadyByAtSheet)}
           taskDetail={controller.taskDetail}
         />
         <ContentCard>
           <TaskBodyCategoryRow
-            onOpenPositionField={controller.openPositionSheet}
-            onOpenQuantity={controller.openQuantitySheet}
+            onOpenPositionField={edit(controller.openPositionSheet)}
+            onOpenQuantity={edit(controller.openQuantitySheet)}
             taskDetail={controller.taskDetail}
           />
           <DashedInfoGroup>
             <TaskCustomerSection
-              onPress={controller.openCustomerDetailsSheet}
+              onPress={edit(controller.openCustomerDetailsSheet)}
               taskDetail={controller.taskDetail}
             />
             <TaskWorkingSectionsField
-              onOpenWorkingSections={controller.openWorkingSectionsSlide}
+              onOpenWorkingSections={edit(controller.openWorkingSectionsSlide)}
               taskId={controller.taskId}
             />
             <TaskScheduledDeliverySection
-              onOpenDeliveryDate={controller.openDeliveryDateSheet}
-              onOpenAssortment={controller.openAssortmentSheet}
-              onOpenFulfillmentMethod={controller.openFulfillmentMethodSheet}
+              onOpenDeliveryDate={edit(controller.openDeliveryDateSheet)}
+              onOpenAssortment={edit(controller.openAssortmentSheet)}
+              onOpenFulfillmentMethod={edit(
+                controller.openFulfillmentMethodSheet,
+              )}
               taskDetail={controller.taskDetail}
             />
           </DashedInfoGroup>
           <TaskImagesSection
+            canEdit={permissions.canEdit}
             itemId={itemId}
             onImagesChanged={handleImagesChanged}
           />
@@ -220,7 +234,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               createPending={controller.createItemUpholstery.isPending}
               itemId={itemId}
               onCanHaveUpholsteryChange={
-                canEditUpholsteryFlag ? handleCanHaveUpholsteryChange : undefined
+                canEditUpholsteryFlag && permissions.canEdit
+                  ? handleCanHaveUpholsteryChange
+                  : undefined
               }
               onCreate={(newUpholsteryId) => {
                 if (!itemId) {
@@ -235,7 +251,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                 });
                 markItemAsUpholsteryCapable();
               }}
-              onEditAmount={controller.openUpholsteryAmountSheet}
+              onEditAmount={edit(controller.openUpholsteryAmountSheet)}
               onRemove={(itemUpholsteryId) => {
                 controller.deleteItemUpholstery.mutate(itemUpholsteryId);
               }}
@@ -258,7 +274,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                 <ItemUpholsteryField
                   canHaveUpholstery={fieldCanHaveUpholstery}
                   disabled={disabled}
-                  selectionDisabled={!canEditUpholsteryLink}
+                  selectionDisabled={
+                    !canEditUpholsteryLink || !permissions.canEdit
+                  }
                   onCanHaveUpholsteryChange={onCanHaveUpholsteryChange}
                   onChange={onChange}
                   requirementState={toRequirementState(requirementState)}
@@ -272,10 +290,12 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               }
             />
           )}
-          <ProductionTimeSection
-            surfaceOpeners={surfaceOpeners}
-            taskId={controller.taskId}
-          />
+          {permissions.showProductionTime ? (
+            <ProductionTimeSection
+              surfaceOpeners={surfaceOpeners}
+              taskId={controller.taskId}
+            />
+          ) : null}
           <TaskFlowTimeline
             taskId={controller.taskId}
             onRecordPress={controller.openFlowRecord}

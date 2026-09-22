@@ -197,9 +197,11 @@ flip a non-nullable to nullable, delete a table row — and all three redden it.
 
 ## W-7. Assumptions that hold today and are undefended
 
-- **`priority_order` must be a true integer.** `use-stock-report-actions.ts:33` sends `toIndex + 1`
-  from a dnd-kit array index, which satisfies `StrictInt`. The string `"2"` is a **422**, not coerced.
-  A future fractional drop position becomes a silent 422 (see W-3).
+- **`priority_order` must be a true integer.** Since 2026-09-22 the client sends the **target
+  row's own `priority_order`**, read straight from the parsed list, which satisfies `StrictInt`.
+  (It used to send a dnd-kit array index plus one; that was wrong wherever the board's filtered
+  list is not the whole priority group — see the intention's reorder amendment.) The string `"2"`
+  is a **422**, not coerced.
 - **`priority` must always be sent.** The key has **no default** — omitting it is a 422; `null` is
   legal and means "clear". `stock-report-api.ts:53-63` always sends it explicitly and
   `StockReportPrioritySheetPage.tsx:11-12` converts `"unset"` → `null` rather than omitting. Correct

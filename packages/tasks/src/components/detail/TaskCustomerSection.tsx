@@ -23,16 +23,19 @@ export function TaskCustomerSection({
   }
 
   const customerName = task.customer_name_snapshot ?? null;
+  // A read-only role gets the same block as static text — no button that
+  // does nothing.
+  const Trigger = onPress ? "button" : "div";
 
   return (
     <DashedInfoSection data-testid="task-detail-customer-section">
       {/* The whole section is the tap target for the customer detail sheet, so
           the phone number renders as plain text here — the sheet owns the
           `tel:` link. */}
-      <button
+      <Trigger
         className="flex w-full flex-col gap-2.5 text-left"
         data-testid="task-detail-customer-section-trigger"
-        type="button"
+        type={onPress ? "button" : undefined}
         onClick={onPress}
       >
         <EyebrowLabel>Customer Detail</EyebrowLabel>
@@ -58,7 +61,7 @@ export function TaskCustomerSection({
             </span>
           </span>
         ) : null}
-      </button>
+      </Trigger>
     </DashedInfoSection>
   );
 }

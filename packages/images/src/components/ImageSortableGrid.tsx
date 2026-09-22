@@ -22,7 +22,7 @@ type ImageSortableGridProps = {
   images: ImageViewModel[];
   isEditMode: boolean;
   onDelete: (imageClientId: string) => void;
-  onLongPress: (imageClientId: string) => void;
+  onLongPress?: (imageClientId: string) => void;
   onReorder: (orderedClientIds: string[]) => void;
   onTap: (imageClientId: string) => void;
   overflowCount?: number;
@@ -32,7 +32,7 @@ type SortableTileProps = {
   image: ImageViewModel;
   isEditMode: boolean;
   onDelete: (imageClientId: string) => void;
-  onLongPress: (imageClientId: string) => void;
+  onLongPress?: (imageClientId: string) => void;
   onTap: (imageClientId: string) => void;
 };
 

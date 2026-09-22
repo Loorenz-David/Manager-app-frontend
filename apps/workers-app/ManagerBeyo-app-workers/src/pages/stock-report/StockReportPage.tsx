@@ -3,6 +3,7 @@ import { loadStockReportRouteEntryPage, STOCK_MATCH_WARNING_SURFACE_ID, StockRep
 import { useSurface } from "@beyo/hooks";
 import { IMAGE_VIEWER_SURFACE_ID, type ImageLinkEntityType, type ImageViewModel } from "@beyo/images";
 import { TASK_CREATION_WORKER_INTERNAL_SURFACE_ID } from "@beyo/task-creation";
+import { TASK_DETAIL_SURFACE_ID } from "@beyo/tasks";
 import { PageSkeleton } from "@/components/ui/PageSkeleton";
 
 const StockReportRouteEntry = lazy(loadStockReportRouteEntryPage);
@@ -16,6 +17,7 @@ export function StockReportPage(): React.JSX.Element {
   };
   return <div className="flex h-full min-h-0 flex-col"><Suspense fallback={<PageSkeleton />}><StockReportOpenersProvider openers={{
     openTaskCreation: (_stockNeedId, callbacks) => open(TASK_CREATION_WORKER_INTERNAL_SURFACE_ID, { callbacks }),
+    openTaskDetail: (taskId) => open(TASK_DETAIL_SURFACE_ID, { taskId }),
     openImageViewer,
     openMatchWarning: (props) => open(STOCK_MATCH_WARNING_SURFACE_ID, props, { dismissible: false }),
   }}><StockReportRouteEntry /></StockReportOpenersProvider></Suspense></div>;

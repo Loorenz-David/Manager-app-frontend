@@ -37,8 +37,12 @@ import {
 
 const WOOD = { majorCategory: "wood" as const };
 
-function item(client_id: string, priority: "high" | "low" | null): StockReportItem {
-  return wireStockReportItem({ client_id, priority, priority_order: priority ? 1 : null });
+function item(
+  client_id: string,
+  priority: "high" | "low" | null,
+  priority_order: number | null = priority ? 1 : null,
+): StockReportItem {
+  return wireStockReportItem({ client_id, priority, priority_order });
 }
 
 function assignment(client_id: string): StockReportAssignment {
@@ -92,32 +96,58 @@ describe("stock-report mutations", () => {
 
   it("reorders the list of the bucket *and* filter being viewed, not the unfiltered one", async () => {
     const { queryClient, wrapper } = setup();
-    queryClient.setQueryData(stockReportKeys.list("high", WOOD), [item("sri-1", "high"), item("sri-2", "high")]);
-    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high"), item("sri-2", "high")]);
+    queryClient.setQueryData(stockReportKeys.list("high", WOOD), [item("sri-1", "high", 1), item("sri-2", "high", 2)]);
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1), item("sri-2", "high", 2)]);
     api.reorderStockReportItem.mockImplementation(() => new Promise(() => {}));
     const { result } = renderHook(() => useReorderStockReportItem("high", WOOD), { wrapper });
 
-    act(() => result.current.mutate({ stockNeedId: "sri-1", toIndex: 1 }));
+    act(() => result.current.mutate({ stockNeedId: "sri-1", targetOrder: 2 }));
     await waitFor(() => expect(api.reorderStockReportItem).toHaveBeenCalled());
 
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", WOOD))?.map((row) => row.client_id)).toEqual(["sri-2", "sri-1"]);
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.map((row) => row.client_id)).toEqual(["sri-1", "sri-2"]);
   });
 
-  it("converts a drop index to the one-based request and rolls back on refusal", async () => {
+  it("sends the target position verbatim and rolls back on refusal", async () => {
     const { queryClient, wrapper } = setup();
-    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high"), item("sri-2", "high")]);
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1), item("sri-2", "high", 2)]);
     // The backend's own sentence for STOCK_REPORT_TARGET_OUT_OF_RANGE, in the
     // `{ error, ok: false }` shape the api-client lifts into `message`.
     api.reorderStockReportItem.mockRejectedValueOnce(new ApiRequestError(422, "unprocessable", "Target position is out of range."));
     const { result } = renderHook(() => useReorderStockReportItem("high", ALL), { wrapper });
 
-    act(() => result.current.mutate({ stockNeedId: "sri-1", toIndex: 1 }));
+    act(() => result.current.mutate({ stockNeedId: "sri-1", targetOrder: 2 }));
+    // Verbatim: no index arithmetic stands between the drop and the request.
     await waitFor(() => expect(api.reorderStockReportItem).toHaveBeenCalledWith("sri-1", 2));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.map((row) => row.client_id)).toEqual(["sri-1", "sri-2"]);
     expect(notify.error).toHaveBeenCalledWith("Order not changed", "Target position is out of range.");
+  });
+
+  it("shifts the cached orders the way the server will, across a gap the board cannot see", async () => {
+    const { queryClient, wrapper } = setup();
+    // The owner's real High group: positions 1, 3, 4, 5. Position 2 belongs to
+    // a row the list query hides (`quantity_requested` of 0), so the board's
+    // indices and the group's positions do not line up.
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [
+      item("sri-a", "high", 1),
+      item("sri-b", "high", 3),
+      item("sri-c", "high", 4),
+      item("sri-d", "high", 5),
+    ]);
+    api.reorderStockReportItem.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useReorderStockReportItem("high", ALL), { wrapper });
+
+    // Drop B onto C: the target is C's own position, 4 — not its index plus one.
+    act(() => result.current.mutate({ stockNeedId: "sri-b", targetOrder: 4 }));
+    await waitFor(() => expect(api.reorderStockReportItem).toHaveBeenCalledWith("sri-b", 4));
+
+    const rows = queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL));
+    expect(rows?.map((row) => row.client_id)).toEqual(["sri-a", "sri-c", "sri-b", "sri-d"]);
+    // And the orders stay true, so the next drag reads live positions rather
+    // than the ones this move invalidated.
+    expect(rows?.map((row) => row.priority_order)).toEqual([1, 3, 4, 5]);
   });
 
   it("writes a successful created assignment straight to the detail cache", async () => {

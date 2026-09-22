@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiRequestError } from "@beyo/api-client";
 import { useSurface } from "@beyo/hooks";
 import { usePreloadSurface } from "@beyo/hooks";
-import type { MajorCategory } from "@beyo/lib";
+import { notify, type MajorCategory } from "@beyo/lib";
 import { toStockReportItemViewModel, type StockNeedBucket, type StockReportListFilter } from "../stock-report.types";
 import { useStockReportListQuery } from "../api/use-stock-report-queries";
 import { useReorderStockReportItem, useSetStockReportPriority } from "../actions/use-stock-report-actions";
@@ -79,6 +79,22 @@ export function useStockReportBoardController() {
       const current = (row?.priority ?? "unset") as StockNeedBucket;
       open(STOCK_REPORT_PRIORITY_SURFACE_ID, { current, onSelect: (priority: "high" | "medium" | "low" | null) => { if (priority !== row?.priority) setPriority.mutate({ stockNeedId, priority }); } });
     },
-    reorder: (stockNeedId: string, toIndex: number) => { if (reorderAvailable) reorder.mutate({ stockNeedId, toIndex }); },
+    // The board hands over the row that was dropped onto, and its own
+    // `priority_order` is the target. Never the visible index: the list the
+    // board shows is a filtered slice of the priority group the backend orders
+    // within, so the two agree only by luck (owner report, 2026-09-22).
+    reorder: (stockNeedId: string, targetStockNeedId: string) => {
+      if (!reorderAvailable) return;
+      const targetOrder = list.data?.find((item) => item.client_id === targetStockNeedId)?.priority_order;
+      if (targetOrder == null) {
+        // A prioritised row always carries an order; the backend pairs the two
+        // columns and its own consistency check flags any row that breaks the
+        // pairing. Sending a guess would move the wrong row.
+        console.error("[stock-report] reorder target has no priority_order", targetStockNeedId);
+        notify.error("Order not changed", "That position could not be read. Pull to refresh and try again.");
+        return;
+      }
+      reorder.mutate({ stockNeedId, targetOrder });
+    },
   };
 }

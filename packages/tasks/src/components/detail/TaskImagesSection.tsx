@@ -2,11 +2,17 @@ import { EntityImagesProvider, ImagePreviewGrid } from "@beyo/images";
 import { SectionLabel } from "@beyo/ui";
 
 type TaskImagesSectionProps = {
+  /**
+   * `false` for a read-only role: no add button, no long-press edit mode and
+   * a viewer without delete. Defaults to editable.
+   */
+  canEdit?: boolean;
   itemId: string | null;
   onImagesChanged: () => void;
 };
 
 export function TaskImagesSection({
+  canEdit = true,
   itemId,
   onImagesChanged,
 }: TaskImagesSectionProps): React.JSX.Element {
@@ -22,8 +28,9 @@ export function TaskImagesSection({
           deleteMode="hard-delete"
           entityType="item"
           onImagesChanged={onImagesChanged}
+          viewerMode={canEdit ? undefined : "preview-only"}
         >
-          <ImagePreviewGrid />
+          <ImagePreviewGrid readOnly={!canEdit} />
         </EntityImagesProvider>
       ) : (
         <p className="text-sm text-muted-foreground">

@@ -121,6 +121,19 @@ describe("TaskUpholsterySection", () => {
       expect(onUpdate).not.toHaveBeenCalled();
     });
 
+    it("offers Edit amount only when an opener is given", () => {
+      const onEditAmount = vi.fn();
+      renderSection({ onEditAmount });
+      screen.getByTestId("upholstery-edit-amount-iup_1").click();
+      expect(onEditAmount).toHaveBeenCalledWith("iup_1");
+      cleanup();
+
+      // A read-only role: the amount stays visible, the button is gone.
+      renderSection({ onEditAmount: undefined });
+      expect(screen.getByText(/Amount/)).toBeInTheDocument();
+      expect(screen.queryByTestId("upholstery-edit-amount-iup_1")).not.toBeInTheDocument();
+    });
+
     it("swaps on a different upholstery and ignores the same one", () => {
       const onUpdate = vi.fn();
       const captured = renderSection({ onUpdate });

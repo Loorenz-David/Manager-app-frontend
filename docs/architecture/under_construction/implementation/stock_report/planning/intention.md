@@ -716,3 +716,107 @@ NOT PINNED items 1–3 close with the backend's final handoff (the design tolera
   form the user has overridden should look overridden. The `checking` state stays neutral — a
   check in flight is progress, not a warning.
 - Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — the priority action becomes a tab.**
+- §6.1's card priority action was a full-width, `rounded-2xl`, `text-base` button sitting below
+  the card with a `gap-2` of air between them. On a phone it cost roughly a card's worth of list
+  per row, which is expensive for an action reached only in reorganise mode and only from the
+  Unset bucket's every row.
+- It is now a **tab off the card's bottom edge** (owner, 2026-09-22): square where it meets the
+  card, rounded where it leaves it, as wide as its own label. The row's `gap-2` is gone — the tab
+  has to touch the card to read as attached to it rather than as a detached button that happens
+  to be nearby.
+- **The tab starts at the card's own left edge and continues its outline** (owner, same day,
+  second pass — the first put it on an `ml-4` inset). The card therefore gives its bottom-left
+  corner away: `rounded-bl-none` on the card surface whenever a tab is rendered, and
+  `rounded-bl-2xl` on the tab. That pairing is load-bearing — the two radii must stay equal, or
+  the card's curve leaves a crescent of background above the tab's square top edge and the join
+  stops reading as one shape. The tab's inner corner is its own smaller `rounded-br-xl`.
+- Padding is `py-2.5`; `px-3`, `text-xs`.
+- Fill and label are unchanged (`bg-primary` / `text-card`, "Set priority" vs "Change priority",
+  the amber `PRIORITY_ACTION_MARKER_CLASS` diamond). The action itself, its testid and its
+  callback are untouched.
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — B8 executed: workers open the task detail.**
+- §12B **B8** deferred the workers' task-detail tap to "the owner's next project". That project
+  ran today (owner, 2026-09-22). A worker's tap on an assignment card body now opens the shared
+  `@beyo/tasks` task detail in all three apps: `StockReportDetailSlidePage` passes
+  `onTapCard={openers.openTaskDetail}` with no role ternary, and the workers app supplies the
+  opener in both `StockReportOpenersProvider` sites. `handoffs/UI_PHASE_HANDOFF.md` §"onTapCard"
+  row updated to match.
+- **§6.2 card 9 → A is superseded.** The recorded "narrow" view (customer, notes and money
+  hidden) gave way to the owner's ruling: every section stays visible, the page is **read-only
+  everywhere except notes** — the notes pill still opens `TASK_NOTES_SHEET` and a worker with a
+  specialization can create there; the flow-record sheet still opens. Hidden for a worker:
+  `ProductionTimeSection` (money), the ⋮ on the detail header **and** on the listing cards
+  (entirely — a dedicated worker menu page is a later project, so nothing half-built ships),
+  the "Assign Stages" footer, image add/delete (grid `readOnly`, viewer `preview-only`) and
+  every inline editor (ready-by, position/quantity, customer, stages, delivery/assortment/
+  fulfilment, upholstery flag/selection/amount).
+- **The rule fails closed, twice.** (1) `packages/tasks/src/lib/use-task-detail-permissions.ts`
+  is an explicit allow-list (`admin | manager | seller` → `canEdit`, `showMenu`,
+  `showProductionTime`); a worker, a signed-out session or an unknown role is read-only. The
+  page hands every editor `undefined` through one `edit()` helper and each sub-component
+  degrades to plain display when its callback is absent (existing testids kept). (2) The
+  workers registry (`apps/workers-app/.../src/features/tasks/surfaces.ts`) registers only
+  `TASK_DETAIL_SURFACE_ID`, `TASK_FILTER_SHEET_SURFACE_ID` and
+  `TASK_DETAIL_FLOW_RECORD_SHEET_SURFACE_ID`; the edit sheets and `TASK_ACTIONS_SHEET` are
+  deliberately absent, and `useSurfaceStore.open` on an unregistered id is a DEV-warn no-op.
+  §13 invariant (9) is therefore satisfied by construction on both layers.
+- **The workers "Tasks" tab** now renders the shared `TasksRouteEntry` with manager defaults
+  (all types, active states, search, filter sheet) and **no budget signals** —
+  `showBudgetOverrun` is not passed, so the signals query never fires. Cards carry no ⋮ for the
+  role (same hook).
+- A trimmed app-local `features/tasks/socket-events.ts` (`task:created/updated/deleted/
+  state-changed` → `taskKeys.lists()/detail()`) keeps the listing and detail live in the workers
+  app; the managers' handler was not shared because it carries manager-only caches.
+- Managers and sellers are unchanged (both sit in the allow-list). `@beyo/tasks` is modified —
+  the B8 promise that it would not be applied to *that* build only.
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — reorder targets a row, not a slot.**
+- **The bug.** Dragging a card *down* the board snapped it back; dragging up looked right. The
+  board handed `onReorder` the drop position's **0-based array index** and the controller sent
+  `toIndex + 1` as `priority_order` (§8.4). That holds only while the board shows every row of
+  the priority group — and it does not. `list_stock_report_items` applies
+  `quantity_requested > 0` unless `include_zero_requested` is set, and a major-category filter
+  narrows it further, while `priority_order` and the backend's range check `1..n` are over the
+  **whole** group.
+- **The owner's own data, from the console, 2026-09-22:** the High bucket showed four rows at
+  positions `1, 3, 4, 5` — position 2 is a hidden zero-requested row. Dragging the row at
+  position 3 onto the row at position 4 sent `toIndex + 1 = 3`, the position it already held.
+  `set_stock_report_item_priority_order` answers `target == position` with no write, no record
+  and no event, so the refetch returned the original order and the card sprang back. Upward
+  drags sent a target *below* the current position, so something always moved and the fault
+  stayed invisible.
+- **The fix, and why it is shaped this way.** `onReorder(activeId, overId)` now names the **row
+  dropped onto**, and the controller reads that row's own `priority_order` for the target. There
+  is no index arithmetic left to be wrong: dnd-kit already knows which row the finger was over,
+  and the backend already publishes each row's position. §8.4's 0-based-index contract and the
+  UI-phase handoff's note about it are **superseded**.
+- A prioritised row with a null `priority_order` is a broken pairing the backend's own
+  consistency check flags. The controller refuses to send anything and says so, rather than
+  guessing a position and moving the wrong row.
+- **The optimistic cache now reproduces the server's shift** instead of splicing the array: the
+  moved row takes `target` and everything it passed over moves by one. The cached
+  `priority_order` is what the *next* drag's target is read from, so a cache that merely looked
+  right would hand the following drag a stale position.
+- Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-22 — a card leaves the bucket by animating out.**
+- Giving a card a priority moves it out of the bucket being viewed, and §6.1 let it vanish on
+  the optimistic cache write. It now leaves through `@beyo/ui`'s `AnimatedRemoval` primitive —
+  slide right, collapse height, the rows below gliding up — so the change reads as something
+  the tap caused (owner, 2026-09-22). No new animation was written: the primitive is the one
+  already used by pending-upholstery, upholstery-ordering and task post-handling.
+- **Both lists are wrapped**, plain and sortable. A prioritised bucket can shed a card too, via
+  reorganise mode's "Change priority" tab. A drag and an exit never overlap, because the
+  priority sheet has to open first.
+- `LIST_GAP_PX = 10` must match `gap-2.5` on the list containers. `AnimatedRemovalItem` animates
+  that gap away as negative margin so the rows below do not jump by the difference when the
+  leaving row finally unmounts — change the constant and the class together.
+- **The list stays mounted at zero cards.** The last row's exit plays inside it, so unmounting
+  it on `cards.length === 0` would cut the animation off; the empty state now arrives beside
+  the leaving row rather than instead of it, which is how the pending-upholstery page does it.
+- Status remains RATIFIED.

@@ -5,11 +5,48 @@ import { createStockAssignment, removeStockAssignment, reorderStockReportItem, s
 import { stockReportKeys } from "../api/stock-report-keys";
 import { stockReportRequestFailureMessage } from "../lib/stock-report-request-failure";
 
-function move<T>(items: readonly T[], from: number, to: number): T[] {
-  const next = [...items];
-  const [item] = next.splice(from, 1);
-  if (item !== undefined) next.splice(to, 0, item);
-  return next;
+/**
+ * The server's own move, applied to the cache.
+ *
+ * `PATCH .../priority-order` sets the moved row's `priority_order` to `target`
+ * and shifts everything it passed over by one, then the board reads the group
+ * back sorted by that column. Reproducing the arithmetic rather than splicing
+ * the array keeps every cached row's `priority_order` true while the request is
+ * in flight — and that column is what the *next* drag's target is read from, so
+ * a cache that merely looked right would hand the following drag a stale
+ * position.
+ *
+ * Only the rows the board can see are shifted. Rows the list query hides (a
+ * `quantity_requested` of 0, or a major-category filter) shift server-side too;
+ * the refetch brings them back in step.
+ */
+function applyPriorityOrderMove(
+  rows: readonly StockReportItem[],
+  stockNeedId: string,
+  target: number,
+): StockReportItem[] {
+  const mover = rows.find((row) => row.client_id === stockNeedId);
+  const position = mover?.priority_order;
+  if (position == null || position === target) return [...rows];
+
+  return rows
+    .map((row) => {
+      if (row.client_id === stockNeedId) return { ...row, priority_order: target };
+      const order = row.priority_order;
+      if (order == null) return row;
+      if (target > position && order > position && order <= target) {
+        return { ...row, priority_order: order - 1 };
+      }
+      if (target < position && order >= target && order < position) {
+        return { ...row, priority_order: order + 1 };
+      }
+      return row;
+    })
+    .toSorted(
+      (a, b) =>
+        (a.priority_order ?? Number.MAX_SAFE_INTEGER) -
+        (b.priority_order ?? Number.MAX_SAFE_INTEGER),
+    );
 }
 
 export function useSetStockReportPriority() {
@@ -40,12 +77,11 @@ export function useSetStockReportPriority() {
 export function useReorderStockReportItem(bucket: StockNeedBucket, filter: StockReportListFilter) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ stockNeedId, toIndex }: { stockNeedId: string; toIndex: number }) => reorderStockReportItem(stockNeedId, toIndex + 1),
-    onMutate: async ({ stockNeedId, toIndex }) => {
+    mutationFn: ({ stockNeedId, targetOrder }: { stockNeedId: string; targetOrder: number }) => reorderStockReportItem(stockNeedId, targetOrder),
+    onMutate: async ({ stockNeedId, targetOrder }) => {
       const key = stockReportKeys.list(bucket, filter);
       const previous = queryClient.getQueryData<StockReportItem[]>(key);
-      const from = previous?.findIndex((row) => row.client_id === stockNeedId) ?? -1;
-      if (previous && from >= 0) queryClient.setQueryData(key, move(previous, from, toIndex));
+      if (previous) queryClient.setQueryData(key, applyPriorityOrderMove(previous, stockNeedId, targetOrder));
       return { key, previous };
     },
     onError: (error, _input, context) => {

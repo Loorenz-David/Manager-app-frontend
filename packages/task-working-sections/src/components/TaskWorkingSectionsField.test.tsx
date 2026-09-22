@@ -67,6 +67,26 @@ describe("TaskWorkingSectionsField", () => {
     ).toHaveTextContent("0m");
   });
 
+  it("renders the counts as plain text without an opener", () => {
+    useTaskWorkingSectionsCountsFlowMock.mockReturnValue({
+      assignedCount: 1,
+      completedCount: 0,
+      totalWorkingSeconds: 0,
+      isPending: false,
+      isError: false,
+    });
+
+    render(<TaskWorkingSectionsField taskId="task_3" />);
+
+    const field = screen.getByTestId("task-working-sections-field");
+    expect(field.tagName).toBe("DIV");
+    expect(screen.queryByRole("button")).toBeNull();
+    expect(field.querySelector("svg")).toBeNull();
+    expect(screen.getByTestId("working-sections-assigned-count")).toHaveTextContent(
+      "1 assigned",
+    );
+  });
+
   it("opens the slide when pressed", async () => {
     const user = userEvent.setup();
     const onOpenWorkingSections = vi.fn();

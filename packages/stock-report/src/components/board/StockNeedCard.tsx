@@ -46,17 +46,23 @@ export function StockNeedCard({
   const isPressable = Boolean(onPress);
 
   return (
-    // The row, not the card: the priority action is detached below the card
-    // rather than tucked inside it, so the whole row is what dims while it is
-    // being dragged.
+    // The row, not the card: the priority action hangs off the card's bottom
+    // edge rather than sitting inside it, so the whole row is what dims while
+    // it is being dragged. No gap — the tab has to touch the card to read as
+    // attached to it.
     <div
-      className={cn("flex flex-col gap-2", isDragging && "opacity-65")}
+      className={cn("flex flex-col", isDragging && "opacity-65")}
       data-dragging={isDragging ? "" : undefined}
       data-testid={`stock-need-card-${card.stockNeedId}`}
     >
       <div
         className={cn(
           "flex overflow-hidden rounded-2xl border border-border bg-card shadow-sm",
+          // The card gives up its bottom-left corner to the tab below, which
+          // carries the same radius. Without this the card's curve would leave
+          // a crescent of background above the tab's square top edge and the
+          // two would stop reading as one shape.
+          onSetPriority && "rounded-bl-none",
           isDragging && DRAG_ACCENT_BORDER_CLASS,
         )}
       >
@@ -123,8 +129,17 @@ export function StockNeedCard({
       </div>
 
       {onSetPriority ? (
+        // A browser tab, upside down: square where it meets the card, rounded
+        // where it leaves it, and only as wide as its own label (owner,
+        // 2026-09-22 — the full-width button ate a card's worth of list).
+        //
+        // It starts at the card's own left edge and continues its outline, so
+        // the outer corner wears the card's `rounded-2xl` while the inner one
+        // is the tab's own smaller `xl`. That pairing is what makes the two
+        // read as one shape rather than as a card with a chip beneath it —
+        // keep `rounded-bl-2xl` equal to the card's radius.
         <button
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3 text-base font-semibold text-card"
+          className="flex items-center gap-1.5 self-start rounded-bl-2xl rounded-br-xl bg-primary px-3 py-2.5 text-xs font-semibold text-card"
           data-testid={`stock-need-card-set-priority-${card.stockNeedId}`}
           type="button"
           onClick={() => onSetPriority(card.stockNeedId)}
@@ -132,7 +147,7 @@ export function StockNeedCard({
           <span
             aria-hidden="true"
             className={cn(
-              "size-2.5 shrink-0 rotate-45 rounded-[2px]",
+              "size-2 shrink-0 rotate-45 rounded-[1px]",
               PRIORITY_ACTION_MARKER_CLASS,
             )}
           />

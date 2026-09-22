@@ -51,17 +51,59 @@ describe("stock report board controller", () => {
     expect(result.current.bucket).toBe("high");
   });
 
+  it("targets the dropped-on row's own position, not its place in the visible list", () => {
+    mocks.permissions.mockReturnValue(managerPermissions);
+    // The owner's real High group, 2026-09-22: positions 1, 3, 4, 5. Position 2
+    // belongs to a row with `quantity_requested` of 0, which the list query
+    // hides — so the board shows four rows whose indices are not their
+    // positions.
+    mocks.list.mockReturnValue(ready([
+      wireStockReportItem({ client_id: "sri-a", priority: "high", priority_order: 1 }),
+      wireStockReportItem({ client_id: "sri-b", priority: "high", priority_order: 3 }),
+      wireStockReportItem({ client_id: "sri-c", priority: "high", priority_order: 4 }),
+      wireStockReportItem({ client_id: "sri-d", priority: "high", priority_order: 5 }),
+    ]));
+    const { result } = renderHook(useStockReportBoardController);
+
+    act(() => result.current.setBucket("high"));
+    act(() => result.current.toggleReorganise());
+    result.current.reorder("sri-b", "sri-c");
+
+    // 4, because that is where C is. Index-plus-one would have sent 3 — the
+    // position B already held, which the backend answers by doing nothing, and
+    // the card springs back on the refetch.
+    expect(mocks.reorder.mutate).toHaveBeenCalledWith({ stockNeedId: "sri-b", targetOrder: 4 });
+  });
+
+  it("refuses to guess when the dropped-on row carries no position", () => {
+    mocks.permissions.mockReturnValue(managerPermissions);
+    mocks.list.mockReturnValue(ready([
+      wireStockReportItem({ client_id: "sri-a", priority: "high", priority_order: 1 }),
+      wireStockReportItem({ client_id: "sri-b", priority: "high", priority_order: null }),
+    ]));
+    const { result } = renderHook(useStockReportBoardController);
+
+    act(() => result.current.setBucket("high"));
+    act(() => result.current.toggleReorganise());
+    result.current.reorder("sri-a", "sri-b");
+
+    expect(mocks.reorder.mutate).not.toHaveBeenCalled();
+  });
+
   it("permits reorder only for a complete non-Unset bucket and disables it while pending", () => {
     mocks.permissions.mockReturnValue(managerPermissions);
-    mocks.list.mockReturnValue(ready([wireStockReportItem({ client_id: "sri-1", priority: "high" })]));
+    mocks.list.mockReturnValue(ready([
+      wireStockReportItem({ client_id: "sri-1", priority: "high", priority_order: 1 }),
+      wireStockReportItem({ client_id: "sri-2", priority: "high", priority_order: 2 }),
+    ]));
     const { result } = renderHook(useStockReportBoardController);
 
     act(() => result.current.toggleReorganise());
-    result.current.reorder("sri-1", 0);
+    result.current.reorder("sri-1", "sri-2");
     expect(mocks.reorder.mutate).not.toHaveBeenCalled();
     act(() => result.current.setBucket("high"));
-    result.current.reorder("sri-1", 1);
-    expect(mocks.reorder.mutate).toHaveBeenCalledWith({ stockNeedId: "sri-1", toIndex: 1 });
+    result.current.reorder("sri-1", "sri-2");
+    expect(mocks.reorder.mutate).toHaveBeenCalledWith({ stockNeedId: "sri-1", targetOrder: 2 });
     result.current.openDetail("sri-1");
     expect(mocks.open).toHaveBeenCalledWith("stock-report-detail-slide", { stockNeedId: "sri-1" });
     expect(result.current.isReorganiseMode).toBe(true);

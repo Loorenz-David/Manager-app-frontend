@@ -16,7 +16,11 @@ vi.mock("@beyo/pause-reasons", () => ({ pauseReasonSocketEvents: {} }));
 vi.mock("@beyo/presentations", () => ({ presentationSocketEvents: {} }));
 vi.mock("@beyo/task-notes", () => ({ taskNoteSocketEvents: {} }));
 vi.mock("@beyo/shopify", () => ({ shopifyProductSyncSocketEvents: {} }));
+vi.mock("@beyo/stock-report", () => ({ stockReportSocketEvents: {} }));
 vi.mock("@beyo/worker-shifts", () => ({ workerShiftSocketEvents: {} }));
+vi.mock("@/features/tasks/socket-events", () => ({
+  taskSocketEvents: { "task:updated": vi.fn() },
+}));
 vi.mock("@/features/task_steps/socket-events", () => ({
   taskStepSocketEvents: {
     "task:step-state-changed": sourceHandlers.taskStep,
@@ -44,5 +48,9 @@ describe("socketRegistry", () => {
     expect(handler).toBeTypeOf("function");
     expect(handler).not.toBe(sourceHandlers.itemEconomics);
     expect(handler).not.toBe(sourceHandlers.taskStep);
+  });
+
+  it("carries the shared task list/detail handlers", () => {
+    expect(socketRegistry["task:updated"]).toBeTypeOf("function");
   });
 });

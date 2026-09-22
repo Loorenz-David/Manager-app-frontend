@@ -10,12 +10,18 @@ const DEFAULT_MAX_VISIBLE_IMAGES = 6;
 type ImagePreviewGridProps = {
   hideAddButton?: boolean;
   maxImages?: number;
+  /**
+   * View-only grid: no add button and long-press never enters edit mode, so
+   * delete and reorder are unreachable. Tap-to-view still works.
+   */
+  readOnly?: boolean;
   testId?: string;
 };
 
 export function ImagePreviewGrid({
   hideAddButton = false,
   maxImages = DEFAULT_MAX_VISIBLE_IMAGES,
+  readOnly = false,
   testId = 'image-preview-grid',
 }: ImagePreviewGridProps): React.JSX.Element {
   const { deleteImage, images, isPending, openViewer, reorderImages } = useEntityImagesContext();
@@ -24,7 +30,7 @@ export function ImagePreviewGrid({
   const visibleImages = images.slice(0, maxImages);
   const overflowCount = Math.max(images.length - visibleImages.length, 0);
   const showAddPictureButton =
-    !hideAddButton && !isEditMode && visibleImages.length < maxImages;
+    !readOnly && !hideAddButton && !isEditMode && visibleImages.length < maxImages;
 
   useEffect(() => {
     if (!isEditMode) {
@@ -65,7 +71,7 @@ export function ImagePreviewGrid({
           images={visibleImages}
           isEditMode={isEditMode}
           onDelete={deleteImage}
-          onLongPress={() => setIsEditMode(true)}
+          onLongPress={readOnly ? undefined : () => setIsEditMode(true)}
           onReorder={reorderImages}
           onTap={(imageClientId) => {
             if (isEditMode) {

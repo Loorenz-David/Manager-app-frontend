@@ -41,8 +41,8 @@ export type StockReportBoardViewProps = {
   isReorganiseMode: boolean;
   onToggleReorganise: () => void;
   onSetPriority: (stockNeedId: string) => void;
-  /** `toIndex` is a 0-based array index — see `StockNeedSortableList`. */
-  onReorder: (stockNeedId: string, toIndex: number) => void;
+  /** "Put this row where that one is" — see `StockNeedSortableList`. */
+  onReorder: (stockNeedId: string, targetStockNeedId: string) => void;
   /** Drag off while a reorder is in flight (§12B B16). */
   reorderDisabled?: boolean;
 };
@@ -117,11 +117,11 @@ export function StockReportBoardView({
               />
             ) : null}
 
-            {status === "ready" && cards.length === 0 ? (
-              <StockReportBoardEmptyState />
-            ) : null}
-
-            {status === "ready" && cards.length > 0 ? (
+            {/* The list stays mounted at zero cards. The last row's exit plays
+             * inside it, and unmounting the list would cut that animation off —
+             * the empty state arrives beside the leaving row, not instead of
+             * it. */}
+            {status === "ready" ? (
               <StockNeedSortableList
                 cards={cards}
                 disabled={reorderDisabled}
@@ -132,6 +132,10 @@ export function StockReportBoardView({
                 onReorder={onReorder}
                 onSetPriority={onSetPriority}
               />
+            ) : null}
+
+            {status === "ready" && cards.length === 0 ? (
+              <StockReportBoardEmptyState />
             ) : null}
           </div>
         </div>

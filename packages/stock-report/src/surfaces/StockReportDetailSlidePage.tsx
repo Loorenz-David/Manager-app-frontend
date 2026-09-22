@@ -191,7 +191,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
             }
           : undefined
       }
-      onTapCard={permissions.isWorker ? undefined : openers.openTaskDetail}
+      onTapCard={openers.openTaskDetail}
       onTapImage={(taskId) => {
         const assignment = (assignments.data ?? []).find(
           (entry) => entry.task_id === taskId,

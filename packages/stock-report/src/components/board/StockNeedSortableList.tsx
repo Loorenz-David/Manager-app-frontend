@@ -21,8 +21,20 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+import { AnimatedRemovalGroup, AnimatedRemovalItem } from "@beyo/ui";
+
 import type { StockNeedCardData } from "../../stock-report.types";
 import { StockNeedCard } from "./StockNeedCard";
+
+/**
+ * `gap-2.5` on both list containers, in px.
+ *
+ * `AnimatedRemovalItem` animates this away as negative margin while a row
+ * collapses, so the gap the leaving row leaves behind and the margin cancel
+ * out. A number that disagrees with the class makes the rows below jump by the
+ * difference at the end of the exit — change the two together.
+ */
+const LIST_GAP_PX = 10;
 
 export type StockNeedSortableListProps = {
   cards: readonly StockNeedCardData[];
@@ -44,11 +56,20 @@ export type StockNeedSortableListProps = {
   /** What the per-card priority button says — see `StockNeedCard`. */
   priorityActionLabel?: string;
   /**
-   * `toIndex` is the **0-based array index** of the drop position in the
-   * complete bucket list. The 1-based `priority_order` the endpoint wants is
-   * the logic session's conversion (intention §8.4).
+   * "Put `activeId` where `overId` is." A **row**, not a slot.
+   *
+   * It used to hand out the drop position's 0-based array index, which the
+   * logic session turned into `priority_order` by adding one. That only holds
+   * while the board shows every row of the priority group, and it does not: the
+   * list query hides rows with `quantity_requested` of 0, and hides more when a
+   * major-category filter is set. A hidden row above the drop point made every
+   * visible index smaller than the real position, so a downward drag asked for
+   * a position the row already held and the backend correctly did nothing
+   * (owner report, 2026-09-22). Naming the target row instead makes the
+   * translation impossible to get wrong — the controller reads that row's own
+   * `priority_order`.
    */
-  onReorder: (activeId: string, toIndex: number) => void;
+  onReorder: (activeId: string, overId: string) => void;
 };
 
 /**
@@ -190,8 +211,10 @@ export function StockNeedSortableList({
       return;
     }
 
+    // The local move is the immediate visual answer only; the cache's optimistic
+    // move follows and the refetch settles it.
     setOrder(arrayMove([...order], fromIndex, toIndex));
-    onReorder(String(active.id), toIndex);
+    onReorder(String(active.id), String(over.id));
   }
 
   return (
@@ -211,16 +234,24 @@ export function StockNeedSortableList({
           className="flex flex-col gap-2.5"
           data-testid="stock-report-board-list"
         >
-          {order.map((card) => (
-            <SortableStockNeedCard
-              key={card.stockNeedId}
-              card={card}
-              disabled={disabled}
-              onPress={onCardPress}
-              onSetPriority={onSetPriority}
-              priorityActionLabel={priorityActionLabel}
-            />
-          ))}
+          {/* A card can leave this list while reorganise mode is on — changing
+           * its priority moves it to another bucket. Removal animates here for
+           * the same reason it does in the plain list; a drag and an exit never
+           * overlap, because the sheet that changes the priority has to open
+           * first. */}
+          <AnimatedRemovalGroup>
+            {order.map((card) => (
+              <AnimatedRemovalItem key={card.stockNeedId} gapPx={LIST_GAP_PX}>
+                <SortableStockNeedCard
+                  card={card}
+                  disabled={disabled}
+                  onPress={onCardPress}
+                  onSetPriority={onSetPriority}
+                  priorityActionLabel={priorityActionLabel}
+                />
+              </AnimatedRemovalItem>
+            ))}
+          </AnimatedRemovalGroup>
         </div>
       </SortableContext>
     </DndContext>
@@ -244,15 +275,21 @@ function StockNeedPlainList({
 }: StockNeedPlainListProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-2.5" data-testid="stock-report-board-list">
-      {cards.map((card) => (
-        <StockNeedCard
-          key={card.stockNeedId}
-          card={card}
-          onPress={onCardPress}
-          onSetPriority={showPriorityAction ? onSetPriority : undefined}
-          priorityActionLabel={priorityActionLabel}
-        />
-      ))}
+      {/* Giving a card a priority moves it out of the bucket being viewed. The
+       * row earns its way out rather than blinking away, so the change reads as
+       * something the tap did. */}
+      <AnimatedRemovalGroup>
+        {cards.map((card) => (
+          <AnimatedRemovalItem key={card.stockNeedId} gapPx={LIST_GAP_PX}>
+            <StockNeedCard
+              card={card}
+              onPress={onCardPress}
+              onSetPriority={showPriorityAction ? onSetPriority : undefined}
+              priorityActionLabel={priorityActionLabel}
+            />
+          </AnimatedRemovalItem>
+        ))}
+      </AnimatedRemovalGroup>
     </div>
   );
 }

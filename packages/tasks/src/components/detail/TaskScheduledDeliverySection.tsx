@@ -8,7 +8,8 @@ import { TaskFulfillmentMethodPill } from "./TaskFulfillmentMethodPill";
 import { TaskScheduledDeliveryDatePill } from "./TaskScheduledDeliveryDatePill";
 
 type TaskScheduledDeliverySectionProps = {
-  onOpenDeliveryDate: () => void;
+  /** All three omitted for a read-only role; the pills render as text. */
+  onOpenDeliveryDate?: () => void;
   onOpenAssortment?: () => void;
   onOpenFulfillmentMethod?: () => void;
   taskDetail: TaskDetailRaw | null;

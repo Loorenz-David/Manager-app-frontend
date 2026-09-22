@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LazyMotion, domAnimation } from "framer-motion";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -362,5 +362,96 @@ describe("StockReportBoardView — reorganise mode", () => {
     );
 
     expect(props.onSetPriority).toHaveBeenCalledWith(first.stockNeedId);
+  });
+});
+
+describe("StockReportBoardView — a card leaving the bucket", () => {
+  function renderWithCards(
+    cards: readonly (typeof stockReportBoardCardsFixture)[number][],
+    overrides: Partial<StockReportBoardViewProps> = {},
+  ) {
+    const props = boardProps({ cards, ...overrides });
+    const { rerender } = render(
+      <LazyMotion features={domAnimation}>
+        <StockReportBoardView {...props} />
+      </LazyMotion>,
+    );
+    return (next: readonly (typeof stockReportBoardCardsFixture)[number][]) =>
+      rerender(
+        <LazyMotion features={domAnimation}>
+          <StockReportBoardView {...props} cards={next} />
+        </LazyMotion>,
+      );
+  }
+
+  const [first, second, third] = stockReportBoardCardsFixture;
+
+  it("lets a card that gained a priority animate out instead of blinking away", async () => {
+    const rerenderWith = renderWithCards([first!, second!, third!]);
+
+    rerenderWith([first!, third!]);
+
+    // Still mounted: this is the whole difference between a slide-out and a
+    // pop. Giving a card a priority moves it to another bucket, and the row has
+    // to earn its way out for the tap to read as the cause.
+    expect(
+      screen.queryByTestId(`stock-need-card-${second!.stockNeedId}`),
+    ).not.toBeNull();
+
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByTestId(`stock-need-card-${second!.stockNeedId}`),
+        ).toBeNull(),
+      { timeout: 3000 },
+    );
+
+    expect(
+      screen.getByTestId(`stock-need-card-${first!.stockNeedId}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`stock-need-card-${third!.stockNeedId}`),
+    ).toBeInTheDocument();
+  });
+
+  it("animates a card out of reorganise mode's sortable list too", async () => {
+    const rerenderWith = renderWithCards([first!, second!], {
+      bucket: "high",
+      isReorganiseMode: true,
+    });
+
+    rerenderWith([first!]);
+
+    expect(
+      screen.queryByTestId(`stock-need-card-${second!.stockNeedId}`),
+    ).not.toBeNull();
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByTestId(`stock-need-card-${second!.stockNeedId}`),
+        ).toBeNull(),
+      { timeout: 3000 },
+    );
+  });
+
+  it("keeps the list mounted for the last card's exit, beside the empty state", async () => {
+    const rerenderWith = renderWithCards([first!]);
+
+    rerenderWith([]);
+
+    // Unmounting the list at zero cards would cut the last exit off mid-slide.
+    expect(screen.getByTestId("stock-report-board-list")).toBeInTheDocument();
+    expect(screen.getByTestId("stock-report-empty")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId(`stock-need-card-${first!.stockNeedId}`),
+    ).not.toBeNull();
+
+    await waitFor(
+      () =>
+        expect(
+          screen.queryByTestId(`stock-need-card-${first!.stockNeedId}`),
+        ).toBeNull(),
+      { timeout: 3000 },
+    );
   });
 });

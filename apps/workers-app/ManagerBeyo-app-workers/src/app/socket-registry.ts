@@ -6,6 +6,7 @@ import { presentationSocketEvents } from "@beyo/presentations";
 import { composeSocketHandlers } from "@beyo/realtime";
 import { taskNoteSocketEvents } from "@beyo/task-notes";
 import { taskStepSocketEvents } from "@/features/task_steps/socket-events";
+import { taskSocketEvents } from "@/features/tasks/socket-events";
 import { upholsterySocketEvents } from "@/features/upholstery/socket-events";
 import { workerWorkingSectionSocketEvents } from "@/features/working_sections/socket-events";
 import { shopifyProductSyncSocketEvents } from "@beyo/shopify";
@@ -16,6 +17,7 @@ export const socketRegistry = composeSocketHandlers(
   workerShiftSocketEvents,
   caseSocketEvents,
   itemEconomicsSocketEvents,
+  taskSocketEvents,
   taskStepSocketEvents,
   taskNoteSocketEvents,
   workerWorkingSectionSocketEvents,

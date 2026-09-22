@@ -9,6 +9,7 @@ import {
 import { PullToRefresh } from "@beyo/ui";
 import { UpholsteryGroupHeaderCard } from "@beyo/upholstery";
 
+import { useTaskDetailPermissions } from "../lib/use-task-detail-permissions";
 import { useTasksViewContext } from "../providers/TasksViewProvider";
 import { TaskListCard } from "./TaskListCard";
 import { TasksHeader } from "./TasksHeader";
@@ -26,6 +27,8 @@ export function TasksView({
 }: TasksViewProps = {}): React.JSX.Element {
   const controller = useTasksViewContext();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // A role without the task menu gets cards without a ⋮ (owner, 2026-09-22).
+  const { showMenu } = useTaskDetailPermissions();
 
   const budgetTaskIds = useMemo(
     () =>
@@ -100,7 +103,7 @@ export function TasksView({
               ready_by_at: card.task.ready_by_at,
               is_overdue: card.task.is_overdue,
             }}
-            onTapActions={controller.openTaskActions}
+            onTapActions={showMenu ? controller.openTaskActions : undefined}
             onTapCard={controller.openTaskDetail}
             onTapImage={controller.openImageViewer}
           />
@@ -113,6 +116,7 @@ export function TasksView({
       controller.openTaskDetail,
       controller.toggleFold,
       showBudgetOverrun,
+      showMenu,
       budgetSignalByTaskId,
       budgetQuery.data?.receivedAtMs,
     ],

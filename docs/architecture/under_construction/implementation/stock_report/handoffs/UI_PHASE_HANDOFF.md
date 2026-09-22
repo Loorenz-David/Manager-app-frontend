@@ -122,13 +122,20 @@ the task palette carries over by itself.
 | `onSetPriority` | `(stockNeedId) => void` | open the priority sheet. In Unset the button is on **every card, always**; in an orderable bucket it appears with the drag handles in reorganise mode. Its label is `Set priority` in Unset and `Change priority` elsewhere — the `data-testid` stays `stock-need-card-set-priority-{id}` in both |
 | `isReorganiseMode` / `onToggleReorganise` | `boolean` / `() => void` | package client state |
 | `onSetPriority` | `(stockNeedId) => void` | open the priority sheet for that row |
-| `onReorder` | `(stockNeedId, toIndex) => void` | **see the warning below** |
+| `onReorder` | `(stockNeedId, overId) => void` | **see the warning below** |
 | `reorderDisabled` | `boolean?` | `true` while a reorder request is in flight (§12B B16) |
 
-> ### ⚠ `onReorder`'s `toIndex` is a **0-based array index**
-> It is the drop position in the list as rendered. The endpoint wants the **1-based**
-> `priority_order` (intention §8.4), so you send `toIndex + 1`. A drop in place never fires the
-> callback at all, so "one write per drop" holds without a guard on your side.
+> ### ⚠ `onReorder` names the **row dropped onto**, never an index
+> **Superseded 2026-09-22 — this used to hand out a 0-based array index and say to send
+> `toIndex + 1`. That was wrong and shipped a bug:** the board renders a *filtered slice* of a
+> priority group (`quantity_requested > 0`, plus any major-category filter) while
+> `priority_order` runs over the whole group, so a hidden row above the drop point made every
+> visible index too small and downward drags asked for a position the row already held. The
+> endpoint answers that with no write, and the card sprang back on the refetch.
+>
+> The second argument is now the **target row's id**. Read that row's own `priority_order` and
+> send it verbatim. A drop in place never fires the callback at all, so "one write per drop"
+> holds without a guard on your side.
 
 Behaviour already handled here, so you do not need to:
 - `<PullToRefresh>` with **no `scrollRef`** (§12B B10 — the only package-legal scroll registration),
@@ -157,7 +164,7 @@ Behaviour already handled here, so you do not need to:
 | `status`, `errorMessage`, `onRetry`, `onRefresh` | — | the **assignments** query only — see the note below |
 | `canAssign` | `boolean` | `false` hides the Add-item button entirely |
 | `onAddItem` | `() => void` | open task creation in stock-assignment mode |
-| `onTapCard` | `(taskId) => void?` | **omit for workers** (§12B B8 defers their task detail) |
+| `onTapCard` | `(taskId) => void?` | all three apps — workers open the shared task detail read-only (B8 executed 2026-09-22, §15) |
 | `onTapImage` | `(taskId) => void?` | the image viewer, all three apps |
 | `onTapActions` | `(taskId, itemId) => void?` | **omit for sellers** — no handler means no ⋮ is rendered |
 | `isMissing` | `boolean?` | the "this stock need no longer exists" notice |

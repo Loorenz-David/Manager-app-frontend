@@ -34,7 +34,8 @@ type TaskUpholsterySectionProps = {
   itemId: string | null;
   onCanHaveUpholsteryChange?: (next: boolean | null) => void;
   onCreate: (newUpholsteryId: string) => void;
-  onEditAmount: (itemUpholsteryId: string) => void;
+  /** Omitted for a read-only role — the "Edit amount" button is not rendered. */
+  onEditAmount?: (itemUpholsteryId: string) => void;
   /** Removes the link entirely — the way back to "no upholstery chosen". */
   onRemove?: (itemUpholsteryId: string) => void;
   onUpdate: (itemUpholsteryId: string, newUpholsteryId: string) => void;
@@ -148,14 +149,17 @@ export function TaskUpholsterySection({
                     "—"}{" "}
                   m
                 </span>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground"
-                  onClick={() => onEditAmount(entry.client_id)}
-                >
-                  <Pencil className="size-3.5" />
-                  Edit amount
-                </button>
+                {onEditAmount ? (
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium text-foreground"
+                    data-testid={`upholstery-edit-amount-${entry.client_id}`}
+                    onClick={() => onEditAmount(entry.client_id)}
+                  >
+                    <Pencil className="size-3.5" />
+                    Edit amount
+                  </button>
+                ) : null}
               </div>
             </div>
           ))}

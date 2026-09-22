@@ -48,7 +48,8 @@ function DaysLeftPill({ days }: { days: number }): React.JSX.Element | null {
 
 type TaskDetailHeaderProps = {
   onBack: () => void;
-  onOpenMenu: () => void;
+  /** Omitted for a role without a task menu — the ⋮ is not rendered. */
+  onOpenMenu?: () => void;
   onOpenReadyByAt?: () => void;
   taskDetail: TaskDetailRaw | null;
 };
@@ -108,18 +109,20 @@ export function TaskDetailHeader({
           label={humanizeSnakeCase(task.state) ?? task.state}
           variant={TASK_STATE_VARIANT[task.state]}
         />
-        <button
-          aria-label="Task actions"
-          className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
-          type="button"
-          onClick={onOpenMenu}
-        >
-          <span className="flex flex-col items-center gap-0.5">
-            {[0, 1, 2].map((index) => (
-              <span key={index} className="size-1 rounded-full bg-current" />
-            ))}
-          </span>
-        </button>
+        {onOpenMenu ? (
+          <button
+            aria-label="Task actions"
+            className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+            type="button"
+            onClick={onOpenMenu}
+          >
+            <span className="flex flex-col items-center gap-0.5">
+              {[0, 1, 2].map((index) => (
+                <span key={index} className="size-1 rounded-full bg-current" />
+              ))}
+            </span>
+          </button>
+        ) : null}
       </div>
       <div className="flex flex-col gap-1">
         {shouldRenderSkuRow && skuLabel ? (
