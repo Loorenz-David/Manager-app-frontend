@@ -124,7 +124,7 @@ export function ConfirmActionButton({
           <span
             aria-hidden="true"
             className={cn(
-              "absolute inset-0 z-10 flex items-center gap-3 text-sm font-medium",
+              "absolute inset-0 z-10 flex items-center gap-3",
               alignToJustify[align],
             )}
             style={{
