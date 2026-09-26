@@ -30,13 +30,15 @@ function makeCard(
   fulfilled: number,
   inProgress: number,
   inQueue = 0,
+  missing = 0,
 ): StockNeedCardData {
   return {
     stockNeedId,
     title,
     imageUrl: CATEGORY_PICTURE,
     propertyTags,
-    quantities: { requested, fulfilled, inProgress, inQueue },
+    quantities: { requested, fulfilled, inProgress, inQueue, missing },
+    hasPriority: true,
   };
 }
 

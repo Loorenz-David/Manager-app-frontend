@@ -3,11 +3,15 @@ import { z } from "zod";
 import {
   StockReportAssignmentSchema,
   StockReportItemSchema,
-  type StockNeedBucket,
+  StockReportMissingSummarySchema,
+  StockReportSnapshotVersionSchema,
   type StockReportAssignment,
+  type StockReportBoardBucket,
   type StockReportItem,
   type StockReportListFilter,
+  type StockReportMissingSummary,
   type StockReportPriority,
+  type StockReportSnapshotVersion,
 } from "../stock-report.types";
 
 const Envelope = <T extends z.ZodTypeAny>(data: T) =>
@@ -17,7 +21,14 @@ const Envelope = <T extends z.ZodTypeAny>(data: T) =>
     warnings: z.array(z.string()).optional(),
   });
 const ItemListResponse = Envelope(
-  z.object({ stock_report_items: z.array(StockReportItemSchema) }),
+  z.object({
+    stock_report_items: z.array(StockReportItemSchema),
+    stock_report_items_pagination: z.object({
+      has_more: z.boolean(),
+      limit: z.number(),
+      offset: z.number(),
+    }),
+  }),
 );
 const ItemResponse = Envelope(
   z.object({ stock_report_item: StockReportItemSchema }),
@@ -28,23 +39,138 @@ const AssignmentsResponse = Envelope(
 const AssignmentResponse = Envelope(
   z.object({ stock_task_assignments: z.array(StockReportAssignmentSchema) }),
 );
+const ActiveVersionResponse = Envelope(
+  z.object({ stock_report_snapshot_version: StockReportSnapshotVersionSchema.nullable() }),
+);
+const VersionListResponse = Envelope(
+  z.object({
+    stock_report_snapshot_versions: z.array(StockReportSnapshotVersionSchema),
+    stock_report_snapshot_versions_pagination: z.object({
+      has_more: z.boolean(),
+      limit: z.number(),
+      offset: z.number(),
+    }),
+  }),
+);
+const MissingSummaryResponse = Envelope(StockReportMissingSummarySchema);
+
+export type StockReportItemPage = {
+  items: StockReportItem[];
+  hasMore: boolean;
+  limit: number;
+  offset: number;
+};
 
 export async function fetchStockReportItems(
-  bucket: StockNeedBucket,
+  bucket: StockReportBoardBucket,
   filter: StockReportListFilter,
-): Promise<StockReportItem[]> {
+  pagination: { limit: number; offset: number },
+): Promise<StockReportItemPage> {
   const response = await apiClient.get(
     "/api/v1/stock-report/items",
     ItemListResponse,
     {
-      // Omitted `priority` is the null-priority bucket, not "all" (§5.1).
+      // Omitted `priority` is the null-priority bucket, not "all" (§5.1);
+      // `all` is its own token and passes through as-is (owner, 2026-09-26).
       priority: bucket === "unset" ? undefined : bucket,
       // A repeated key the backend reads as `list[ItemMajorCategoryEnum]`; one
       // element today because the sheet is single-select. Omitted = all.
       item_major_categories: filter.majorCategory ? [filter.majorCategory] : undefined,
+      // Only snapshots with `quantity_missing > 0` — the buyer's list (§5.1).
+      missing_only: filter.missingOnly ? true : undefined,
+      limit: pagination.limit,
+      offset: pagination.offset,
     },
   );
-  return response.data.stock_report_items;
+  const page = response.data.stock_report_items_pagination;
+  return {
+    items: response.data.stock_report_items,
+    hasMore: page.has_more,
+    limit: page.limit,
+    offset: page.offset,
+  };
+}
+
+/** §5.12 — `null` is the board's normal empty state before the first version. */
+export async function fetchActiveStockReportVersion(): Promise<StockReportSnapshotVersion | null> {
+  const response = await apiClient.get(
+    "/api/v1/stock-report/snapshots/versions/active",
+    ActiveVersionResponse,
+  );
+  return response.data.stock_report_snapshot_version;
+}
+
+export type StockReportVersionPage = {
+  versions: StockReportSnapshotVersion[];
+  hasMore: boolean;
+  limit: number;
+  offset: number;
+};
+
+/** §5.9 — newest first; `limit` is capped at 200 by the backend. */
+export async function fetchStockReportVersions(params: {
+  limit: number;
+  offset: number;
+}): Promise<StockReportVersionPage> {
+  const response = await apiClient.get(
+    "/api/v1/stock-report/snapshots/versions",
+    VersionListResponse,
+    params,
+  );
+  const pagination = response.data.stock_report_snapshot_versions_pagination;
+  return {
+    versions: response.data.stock_report_snapshot_versions,
+    hasMore: pagination.has_more,
+    limit: pagination.limit,
+    offset: pagination.offset,
+  };
+}
+
+/**
+ * §5.8 — opens a version, closing the active one in the same transaction. No
+ * body. The response carries the version row only (no `progress`), so callers
+ * refetch the active version rather than seeding it from here.
+ */
+export async function createStockReportVersion(): Promise<
+  Omit<StockReportSnapshotVersion, "progress">
+> {
+  const response = await apiClient.post(
+    "/api/v1/stock-report/snapshots/versions",
+    Envelope(
+      z.object({
+        stock_report_snapshot_version: StockReportSnapshotVersionSchema.omit({ progress: true }),
+      }),
+    ),
+    // `undefined` sends no body at all — the route takes none (§5.8).
+    undefined,
+  );
+  return response.data.stock_report_snapshot_version;
+}
+
+/** §5.11 — both counters over the workspace's active snapshots. */
+export async function fetchStockReportMissingSummary(): Promise<StockReportMissingSummary> {
+  const response = await apiClient.get(
+    "/api/v1/stock-report/snapshots/missing-summary",
+    MissingSummaryResponse,
+  );
+  return response.data;
+}
+
+/**
+ * §5.7 — an **absolute** value, never a delta; `0 <= value <= ceiling` or the
+ * backend answers 422 `STOCK_REPORT_MISSING_EXCEEDS_CEILING`. Roles: admin,
+ * manager, worker.
+ */
+export async function setStockReportMissingQuantity(
+  stockNeedId: string,
+  quantityMissing: number,
+): Promise<StockReportItem> {
+  const response = await apiClient.patch(
+    `/api/v1/stock-report/items/${stockNeedId}/missing-quantity`,
+    ItemResponse,
+    { quantity_missing: quantityMissing },
+  );
+  return response.data.stock_report_item;
 }
 
 export async function fetchStockReportAssignments(

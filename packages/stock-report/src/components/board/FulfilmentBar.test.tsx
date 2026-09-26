@@ -12,7 +12,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 0 }}
+        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 0, missing: 0 }}
       />,
     );
 
@@ -26,7 +26,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 6 }}
+        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 6, missing: 0 }}
       />,
     );
 
@@ -48,7 +48,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 16, fulfilled: 0, inProgress: 6, inQueue: 0 }}
+        quantities={{ requested: 16, fulfilled: 0, inProgress: 6, inQueue: 0, missing: 0 }}
       />,
     );
 
@@ -61,7 +61,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 30, inProgress: 0, inQueue: 0 }}
+        quantities={{ requested: 30, fulfilled: 30, inProgress: 0, inQueue: 0, missing: 0 }}
       />,
     );
 
@@ -73,7 +73,7 @@ describe("FulfilmentBar", () => {
     render(
       <FulfilmentBar
         data-testid="bar"
-        quantities={{ requested: 30, fulfilled: 28, inProgress: 1, inQueue: 0 }}
+        quantities={{ requested: 30, fulfilled: 28, inProgress: 1, inQueue: 0, missing: 0 }}
       />,
     );
 
@@ -85,5 +85,27 @@ describe("FulfilmentBar", () => {
 
     expect(widths[0] + widths[1]).toBeCloseTo(84, 4);
     expect(screen.getByTestId("bar-remaining")).toHaveTextContent("1");
+  });
+
+  it("draws missing in amber after the queue and before the grey remainder", () => {
+    render(
+      <FulfilmentBar
+        data-testid="bar"
+        quantities={{ requested: 30, fulfilled: 8, inProgress: 4, inQueue: 6, missing: 5 }}
+      />,
+    );
+
+    expect(screen.getByTestId("bar-missing")).toHaveTextContent("5");
+    expect(screen.getByTestId("bar-remaining")).toHaveTextContent("7");
+    const order = Array.from(
+      screen.getByTestId("bar").querySelectorAll("[data-testid]"),
+    ).map((node) => node.getAttribute("data-testid"));
+    expect(order).toEqual([
+      "bar-fulfilled",
+      "bar-in-progress",
+      "bar-in-queue",
+      "bar-missing",
+      "bar-remaining",
+    ]);
   });
 });

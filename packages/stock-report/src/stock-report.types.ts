@@ -9,6 +9,7 @@ import {
 
 import type { MajorCategory } from "@beyo/lib";
 import type { FulfilmentQuantities } from "./lib/fulfilment-bar";
+import { formatVersionAge } from "./lib/version-age";
 import { z } from "zod";
 
 /**
@@ -23,24 +24,48 @@ export const STOCK_NEED_BUCKETS = ["unset", "high", "medium", "low"] as const;
 
 export type StockNeedBucket = (typeof STOCK_NEED_BUCKETS)[number];
 
-export const STOCK_NEED_BUCKET_LABEL: Record<StockNeedBucket, string> = {
+/**
+ * What the board's picker can show. The four priority buckets plus `all` —
+ * every active snapshot, prioritised or not, which the backend serves for
+ * `priority=all` (owner request, 2026-09-26). `all` is a *board* bucket only:
+ * the priority sheet still offers the four `STOCK_NEED_BUCKETS`, because a row
+ * cannot be given "all" as a priority. Today only the missing-stock mode
+ * offers it (owner, 2026-09-26: the missing page shows All instead of Unset).
+ */
+export type StockReportBoardBucket = StockNeedBucket | "all";
+
+export const STOCK_NEED_BUCKET_LABEL: Record<StockReportBoardBucket, string> = {
   unset: "Unset",
+  all: "All",
   high: "High",
   medium: "Medium",
   low: "Low",
 };
 
 /**
- * What the filter sheet narrows the board by, on top of the bucket. `null`
- * means every major category — the request then omits `item_major_categories`.
- * Workers start with their role's category (owner, 2026-09-22); managers and
- * sellers start with none.
+ * What narrows the board on top of the bucket.
+ *
+ * `majorCategory: null` means every major category — the request then omits
+ * `item_major_categories`. Workers start with their role's category (owner,
+ * 2026-09-22); managers and sellers start with none.
+ *
+ * `missingOnly` is the missing-stock mode (owner, 2026-09-26): the request
+ * sends `missing_only=true` and the backend returns only snapshots with
+ * `quantity_missing > 0`. It is part of the filter so the two modes never share
+ * a cache entry.
  */
-export type StockReportListFilter = { majorCategory: MajorCategory | null };
+export type StockReportListFilter = {
+  majorCategory: MajorCategory | null;
+  missingOnly: boolean;
+};
 
 export const EMPTY_STOCK_REPORT_FILTER: StockReportListFilter = {
   majorCategory: null,
+  missingOnly: false,
 };
+
+/** Which board a controller drives: the priority board or the missing list. */
+export type StockReportBoardMode = "board" | "missing";
 
 /**
  * Everything one board row needs to render. The logic session builds these from
@@ -60,6 +85,12 @@ export type StockNeedCardData = {
    */
   propertyTags: readonly string[];
   quantities: FulfilmentQuantities;
+  /**
+   * Whether the row sits in a priority group. The card's bottom button reads
+   * "Change priority" for one that does and "Set priority" for one that does
+   * not — per card, because the `all` bucket mixes the two.
+   */
+  hasPriority: boolean;
 };
 
 /**
@@ -83,12 +114,41 @@ export type StockReportPriority = (typeof STOCK_REPORT_PRIORITY)[number];
 
 /*
  * Nullability follows the field tables of
- * `backend_handoff/HANDOFF_TO_FRONTEND_stock_report_api_20260922.md` §6, which
- * a backend test keeps in step with the serializers. A field is `.nullable()`
- * only where that table says so; a required field arriving null is a backend
- * regression and should fail loudly here rather than render a fallback.
+ * `stock_report_improvments/HANDOFF_TO_FRONTEND_stock_report_snapshots_20260926.md`
+ * §6, which a backend test keeps in step with the serializers. A field is
+ * `.nullable()` only where that table says so; a required field arriving null
+ * is a backend regression and should fail loudly here rather than render a
+ * fallback.
  */
 const NullableString = z.string().nullable();
+
+/**
+ * The row's active snapshot (§6.6). `priority` / `priority_order` live here
+ * now, not on the row: every version starts unprioritised. `quantity_requested`
+ * is frozen at version open; `quantity_awaiting` includes `quantity_resolved`
+ * and never goes down because Scanner processed a shelf.
+ */
+export const StockReportItemSnapshotSchema = z.object({
+  client_id: z.string(),
+  version_id: z.string(),
+  stock_report_item_id: z.string(),
+  quantity_requested: z.number(),
+  quantity_in_queue: z.number(),
+  quantity_in_progress: z.number(),
+  quantity_awaiting: z.number(),
+  quantity_missing: z.number(),
+  quantity_resolved: z.number(),
+  // Preserve unknown strings long enough for the mapper to drop only that row
+  // instead of rejecting the complete response (B18).
+  priority: z.string().nullable(),
+  priority_order: z.number().nullable(),
+  active_at: z.string(),
+  closed_at: NullableString,
+  created_at: z.string(),
+  updated_at: NullableString,
+  updated_by_id: NullableString,
+});
+export type StockReportItemSnapshot = z.infer<typeof StockReportItemSnapshotSchema>;
 
 export const StockReportItemSchema = z.object({
   client_id: z.string(),
@@ -109,12 +169,64 @@ export const StockReportItemSchema = z.object({
   quantity_in_queue: z.number(),
   quantity_in_progress: z.number(),
   quantity_awaiting: z.number(),
-  // Preserve unknown strings long enough for the mapper to drop only that row
-  // instead of rejecting the complete response (B18).
-  priority: z.string().nullable(),
-  priority_order: z.number().nullable(),
+  properties_signature: z.string(),
+  created_at: z.string(),
+  updated_at: NullableString,
+  created_by_id: NullableString,
+  updated_by_id: NullableString,
+  // Null only on a `live_stock=true` read of a row with no active snapshot;
+  // this client never sends that flag, so a null here is a row the board
+  // cannot place and the mapper drops it (§6.1).
+  snapshot: StockReportItemSnapshotSchema.nullable(),
 });
 export type StockReportItem = z.infer<typeof StockReportItemSchema>;
+
+/** The ten counters of §6.8, over one priority group or the whole version. */
+const VersionProgressCountersSchema = z.object({
+  items_total: z.number(),
+  items_completed: z.number(),
+  quantity_requested: z.number(),
+  quantity_missing: z.number(),
+  quantity_target: z.number(),
+  quantity_in_queue: z.number(),
+  quantity_in_progress: z.number(),
+  quantity_awaiting: z.number(),
+  quantity_resolved: z.number(),
+  quantity_completed: z.number(),
+});
+export type StockReportVersionProgressCounters = z.infer<
+  typeof VersionProgressCountersSchema
+>;
+
+/** §6.8 — computed over the version's prioritised snapshots; always present. */
+export const StockReportVersionProgressSchema = VersionProgressCountersSchema.extend({
+  by_priority: z.object({
+    high: VersionProgressCountersSchema,
+    medium: VersionProgressCountersSchema,
+    low: VersionProgressCountersSchema,
+  }),
+});
+export type StockReportVersionProgress = z.infer<typeof StockReportVersionProgressSchema>;
+
+/** §6.7 plus the `progress` the two version reads add beside it. */
+export const StockReportSnapshotVersionSchema = z.object({
+  client_id: z.string(),
+  active_at: z.string(),
+  closed_at: NullableString,
+  snapshot_count: z.number(),
+  created_at: z.string(),
+  created_by_id: NullableString,
+  closed_by_id: NullableString,
+  progress: StockReportVersionProgressSchema,
+});
+export type StockReportSnapshotVersion = z.infer<typeof StockReportSnapshotVersionSchema>;
+
+/** §5.11 — both counters over the workspace's active snapshots. */
+export const StockReportMissingSummarySchema = z.object({
+  quantity_missing_total: z.number(),
+  items_with_missing: z.number(),
+});
+export type StockReportMissingSummary = z.infer<typeof StockReportMissingSummarySchema>;
 
 const StockReportAssignmentItemSchema = z.object({
   client_id: z.string(),
@@ -205,15 +317,29 @@ export function toStockReportPropertyTags(
   );
 }
 
+/**
+ * The board works against the **snapshot**, never the row's live numbers: the
+ * frozen `quantity_requested` is the goal the version set out to meet, and the
+ * snapshot's `quantity_awaiting` keeps counting units Scanner has already
+ * processed (§6.6), so completion never goes backwards on the card.
+ *
+ * A row without an active snapshot has no place on the board — it was created
+ * after the current version opened — and is dropped like an unknown priority.
+ */
 export function toStockReportItemViewModel(
   item: StockReportItem,
 ): StockReportItemViewModel | null {
-  const priority = item.priority;
-  if (priority !== undefined && priority !== null && !STOCK_REPORT_PRIORITY.includes(priority as StockReportPriority)) {
+  const snapshot = item.snapshot;
+  if (!snapshot) {
+    console.warn("[stock-report] dropped row without an active snapshot", item.client_id);
+    return null;
+  }
+  const priority = snapshot.priority;
+  if (priority !== null && !STOCK_REPORT_PRIORITY.includes(priority as StockReportPriority)) {
     console.warn("[stock-report] dropped row with unknown priority", item.client_id, priority);
     return null;
   }
-  const bucket: StockNeedBucket = (priority as StockReportPriority | null | undefined) ?? "unset";
+  const bucket: StockNeedBucket = (priority as StockReportPriority | null) ?? "unset";
   return {
     ...item,
     bucket,
@@ -223,14 +349,67 @@ export function toStockReportItemViewModel(
       imageUrl: item.item_category.image_url,
       propertyTags: toStockReportPropertyTags(item.properties),
       quantities: {
-        requested: item.quantity_requested,
-        fulfilled: item.quantity_awaiting,
+        requested: snapshot.quantity_requested,
+        fulfilled: snapshot.quantity_awaiting,
         // Owner, 2026-09-22: queued work is its own bar segment. This used to
         // be `in_queue + in_progress` per intention §4.3, which overstated how
         // much was actually moving.
-        inProgress: item.quantity_in_progress,
-        inQueue: item.quantity_in_queue,
+        inProgress: snapshot.quantity_in_progress,
+        inQueue: snapshot.quantity_in_queue,
+        missing: snapshot.quantity_missing,
       },
+      hasPriority: bucket !== "unset",
+    },
+  };
+}
+
+/** One group's share of a version, ready for a progress bar. */
+export type StockReportVersionGroupProgress = {
+  completed: number;
+  target: number;
+  /** `completed / target` in percent, or `null` when nothing is prioritised. */
+  percent: number | null;
+  itemsCompleted: number;
+  itemsTotal: number;
+};
+
+export type StockReportVersionViewModel = StockReportSnapshotVersion & {
+  isActive: boolean;
+  /** "Started today" / "3 days running" / "Ran 5 days" — see `formatVersionAge`. */
+  ageLabel: string;
+  totalProgress: StockReportVersionGroupProgress;
+  byPriority: Record<StockReportPriority, StockReportVersionGroupProgress>;
+};
+
+function toGroupProgress(
+  counters: StockReportVersionProgressCounters,
+): StockReportVersionGroupProgress {
+  const target = Math.max(0, counters.quantity_target);
+  const completed = Math.max(0, counters.quantity_completed);
+  return {
+    completed,
+    target,
+    // §6.8: the bar is completed / target; a zero target means nothing has
+    // been prioritised yet, which is a state to render, not a division.
+    percent: target > 0 ? Math.min(100, (completed / target) * 100) : null,
+    itemsCompleted: counters.items_completed,
+    itemsTotal: counters.items_total,
+  };
+}
+
+export function toStockReportVersionViewModel(
+  version: StockReportSnapshotVersion,
+  now: number = Date.now(),
+): StockReportVersionViewModel {
+  return {
+    ...version,
+    isActive: version.closed_at === null,
+    ageLabel: formatVersionAge(version.active_at, version.closed_at, now),
+    totalProgress: toGroupProgress(version.progress),
+    byPriority: {
+      high: toGroupProgress(version.progress.by_priority.high),
+      medium: toGroupProgress(version.progress.by_priority.medium),
+      low: toGroupProgress(version.progress.by_priority.low),
     },
   };
 }
@@ -254,9 +433,11 @@ function toTaskState(value: string): TaskState {
  *     read one way here and another on the task page — and a later change to
  *     the task palette carries over by itself. `awaiting` counts as completed
  *     and rides with the two resolved states.
- *  2. The rest match the fulfilment bar sitting directly above the list, so a
+ *  2. The rest follow the fulfilment bar sitting directly above the list, so a
  *     green segment is backed by green pills. `in_queue` has no task-state
- *     counterpart, so it takes the bar's amber directly.
+ *     counterpart and the bar's teal has no pill (owner, 2026-09-26: amber now
+ *     means *missing*), so it wears `standby` — the pill for "waiting its
+ *     turn", which is what queued means.
  *
  * Anything unrecognised stays neutral — the deliberate degrade from intention
  * §8.1, which keeps an unknown state from blanking the list.
@@ -289,8 +470,8 @@ function assignmentStatePill(state: string): NonNullable<TaskListCardProps["stat
     return { label, variant: TASK_STATE_VARIANT.ready };
   }
   if (state === "in_progress") return { label, variant: TASK_STATE_VARIANT.working };
-  // Matches the bar's in-queue segment; no task state means "queued".
-  if (state === "in_queue") return { label, variant: "warning" };
+  // No task state means "queued"; standby is the waiting pill.
+  if (state === "in_queue") return { label, variant: "standby" };
   return { label, variant: "neutral" };
 }
 

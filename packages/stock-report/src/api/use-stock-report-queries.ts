@@ -1,12 +1,38 @@
-import { useQuery, type QueryClient } from "@tanstack/react-query";
-import type { StockNeedBucket, StockReportListFilter } from "../stock-report.types";
-import { fetchStockReportAssignments, fetchStockReportItems } from "./stock-report-api";
+import { useCallback } from "react";
+import { useInfiniteQuery, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import type { StockReportBoardBucket, StockReportListFilter } from "../stock-report.types";
+import {
+  fetchActiveStockReportVersion,
+  fetchStockReportAssignments,
+  fetchStockReportItems,
+  fetchStockReportMissingSummary,
+  fetchStockReportVersions,
+} from "./stock-report-api";
 import { stockReportKeys } from "./stock-report-keys";
+import { trimStockReportListQueriesToFirstPage } from "./stock-report-list-cache";
 
 export const STOCK_REPORT_STALE_TIME = 60_000;
+/** The board endpoint's default page; explicit on every request (§5.1). */
+export const STOCK_REPORT_ITEM_PAGE_SIZE = 20;
+/** The backend default page (§5.9); the history page loads more on demand. */
+export const STOCK_REPORT_VERSION_PAGE_SIZE = 20;
 
-export function useStockReportListQuery(bucket: StockNeedBucket, filter: StockReportListFilter) {
-  return useQuery({ queryKey: stockReportKeys.list(bucket, filter), queryFn: () => fetchStockReportItems(bucket, filter), staleTime: STOCK_REPORT_STALE_TIME });
+export function useStockReportListQuery(bucket: StockReportBoardBucket, filter: StockReportListFilter) {
+  const queryClient = useQueryClient();
+  const queryKey = stockReportKeys.list(bucket, filter);
+  const query = useInfiniteQuery({
+    queryKey,
+    queryFn: ({ pageParam }) => fetchStockReportItems(bucket, filter, { limit: STOCK_REPORT_ITEM_PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined,
+    staleTime: STOCK_REPORT_STALE_TIME,
+  });
+  const refetchFromStart = useCallback(async (): Promise<void> => {
+    trimStockReportListQueriesToFirstPage(queryClient, queryKey);
+    await query.refetch();
+  }, [queryClient, query.refetch, queryKey]);
+
+  return { ...query, refetchFromStart };
 }
 
 export function useStockReportAssignmentsQuery(stockNeedId: string) {
@@ -15,4 +41,23 @@ export function useStockReportAssignmentsQuery(stockNeedId: string) {
 
 export function prefetchStockReportAssignmentsData(queryClient: QueryClient, stockNeedId: string): Promise<void> {
   return queryClient.prefetchQuery({ queryKey: stockReportKeys.assignmentList(stockNeedId), queryFn: () => fetchStockReportAssignments(stockNeedId), staleTime: STOCK_REPORT_STALE_TIME });
+}
+
+export function useStockReportActiveVersionQuery() {
+  return useQuery({ queryKey: stockReportKeys.activeVersion(), queryFn: fetchActiveStockReportVersion, staleTime: STOCK_REPORT_STALE_TIME });
+}
+
+export function useStockReportMissingSummaryQuery() {
+  return useQuery({ queryKey: stockReportKeys.missingSummary(), queryFn: fetchStockReportMissingSummary, staleTime: STOCK_REPORT_STALE_TIME });
+}
+
+/** Offset pagination: the next page starts where the last one's `offset + limit` ends. */
+export function useStockReportVersionsQuery() {
+  return useInfiniteQuery({
+    queryKey: stockReportKeys.versionList(),
+    queryFn: ({ pageParam }) => fetchStockReportVersions({ limit: STOCK_REPORT_VERSION_PAGE_SIZE, offset: pageParam }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined),
+    staleTime: STOCK_REPORT_STALE_TIME,
+  });
 }

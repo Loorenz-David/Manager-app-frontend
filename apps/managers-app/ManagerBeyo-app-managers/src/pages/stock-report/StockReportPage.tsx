@@ -4,7 +4,7 @@ import { IMAGE_VIEWER_SURFACE_ID, type ImageLinkEntityType, type ImageViewModel 
 import { TASK_CREATION_INTERNAL_SURFACE_ID } from "@beyo/task-creation";
 import { TASK_DETAIL_SURFACE_ID } from "@beyo/tasks";
 
-import { StockReportManagerStack } from "@/features/stock-report/components/StockReportManagerStack";
+import { StockReportHub } from "@/features/stock-report/components/StockReportHub";
 
 export function StockReportPage(): React.JSX.Element {
   const { open } = useSurface();
@@ -21,7 +21,7 @@ export function StockReportPage(): React.JSX.Element {
         openImageViewer,
         openMatchWarning: (props) => open(STOCK_MATCH_WARNING_SURFACE_ID, props, { dismissible: false }),
       }}>
-        <StockReportManagerStack />
+        <StockReportHub />
       </StockReportOpenersProvider>
     </div>
   );

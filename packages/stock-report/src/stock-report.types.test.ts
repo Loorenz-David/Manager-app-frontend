@@ -36,15 +36,40 @@ describe("stock-report view-model mapping", () => {
       title: "Dining chair",
       imageUrl: null,
       propertyTags: ["Wood Type: Dark / Teak"],
-      quantities: { requested: 6, fulfilled: 1, inProgress: 3, inQueue: 2 },
+      quantities: { requested: 6, fulfilled: 1, inProgress: 3, inQueue: 2, missing: 0 },
+      hasPriority: true,
     });
+  });
+
+  it("reads the goal and the bar from the snapshot, not the row's live numbers", () => {
+    // §6.6: the snapshot's requested is frozen and its awaiting keeps the units
+    // Scanner already resolved, so the card never goes backwards.
+    const mapped = toStockReportItemViewModel(
+      row({ snapshot: { ...wireRow().snapshot, quantity_requested: 9, quantity_awaiting: 4, quantity_resolved: 3, quantity_missing: 2, priority: null, priority_order: null } }),
+    );
+    expect(mapped?.card.quantities).toEqual({ requested: 9, fulfilled: 4, inProgress: 3, inQueue: 2, missing: 2 });
+    expect(mapped?.bucket).toBe("unset");
+    expect(mapped?.card.hasPriority).toBe(false);
   });
 
   it("drops an unknown priority without rejecting the rest of the response", () => {
     const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(toStockReportItemViewModel(row({ priority: "urgent" }))).toBeNull();
+    expect(toStockReportItemViewModel(row({ snapshot: { ...wireRow().snapshot, priority: "urgent" } }))).toBeNull();
     expect(warning).toHaveBeenCalled();
     warning.mockRestore();
+  });
+
+  it("drops a row with no active snapshot rather than placing it in a bucket", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => {});
+    expect(StockReportItemSchema.safeParse(wireRow({ snapshot: null })).success).toBe(true);
+    expect(toStockReportItemViewModel(row({ snapshot: null }))).toBeNull();
+    expect(warning).toHaveBeenCalled();
+    warning.mockRestore();
+  });
+
+  it("rejects the old row-level priority shape: the keys live on the snapshot now", () => {
+    const { snapshot: _snapshot, ...legacy } = wireRow();
+    expect(StockReportItemSchema.safeParse({ ...legacy, priority: "high", priority_order: 1 }).success).toBe(false);
   });
 
   /**
@@ -151,10 +176,10 @@ describe("assignment state pill", () => {
     }
   });
 
-  it("gives queued work the same amber the bar gives it", () => {
+  it("gives queued work the waiting pill, not the amber that now means missing", () => {
     expect(
       toStockReportAssignmentCardData(assignment("in_queue")).statePill,
-    ).toEqual({ label: "In queue", variant: "warning" });
+    ).toEqual({ label: "In queue", variant: "standby" });
   });
 
   it("keeps failure distinct from every other state", () => {

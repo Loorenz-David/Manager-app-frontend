@@ -6,6 +6,7 @@ const ENTRIES = [
   { key: "fulfilled", label: "Fulfilled" },
   { key: "inProgress", label: "In progress" },
   { key: "inQueue", label: "In queue" },
+  { key: "missing", label: "Missing" },
 ] as const;
 
 export type FulfilmentLegendProps = {
@@ -13,7 +14,7 @@ export type FulfilmentLegendProps = {
 };
 
 /**
- * Names the bar's four colours once, on the screen where the bar is the
+ * Names the bar's five colours once, on the screen where the bar is the
  * primary data display. List cards deliberately go without it.
  */
 export function FulfilmentLegend({

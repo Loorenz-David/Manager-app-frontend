@@ -3,7 +3,7 @@ import type { BoxSlidePickerOptionType } from "@beyo/ui";
 
 import {
   STOCK_NEED_BUCKET_LABEL,
-  type StockNeedBucket,
+  type StockReportBoardBucket,
 } from "../../stock-report.types";
 
 export type StockReportBucketPickerProps = {
@@ -11,9 +11,9 @@ export type StockReportBucketPickerProps = {
    * Which buckets this role is offered. Workers do not triage, so they are
    * given High · Medium · Low and never see Unset (intention §5).
    */
-  buckets: readonly StockNeedBucket[];
-  value: StockNeedBucket;
-  onChange: (bucket: StockNeedBucket) => void;
+  buckets: readonly StockReportBoardBucket[];
+  value: StockReportBoardBucket;
+  onChange: (bucket: StockReportBoardBucket) => void;
 };
 
 export function StockReportBucketPicker({
@@ -26,7 +26,7 @@ export function StockReportBucketPicker({
   // that it is a resting state rather than a chosen one; in use that read as
   // "nothing is selected" rather than "Unset is selected", which is wrong —
   // it is a bucket like any other, and the list below it is its contents.
-  const options: BoxSlidePickerOptionType<StockNeedBucket>[] = buckets.map(
+  const options: BoxSlidePickerOptionType<StockReportBoardBucket>[] = buckets.map(
     (bucket) => ({
       value: bucket,
       label: STOCK_NEED_BUCKET_LABEL[bucket],

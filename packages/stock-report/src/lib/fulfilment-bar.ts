@@ -8,12 +8,12 @@
  * decorative — a segment too narrow to hold two digits is a lying bar.
  *
  * Segments read left to right from most advanced to least:
- * **fulfilled → in progress → in queue → remaining**.
+ * **fulfilled → in progress → in queue → missing → remaining**.
  *
  * The rules come from the design's own bar logic (`03-component-specification`
  * → FulfilmentBar, and the A1–A7 matrix in `05-ui-states.md`):
  *
- *  - `remaining = max(0, requested − fulfilled − inProgress − inQueue)`.
+ *  - `remaining = max(0, requested − fulfilled − inProgress − inQueue − missing)`.
  *  - A zero segment renders nothing and takes no width.
  *  - Each non-zero coloured segment keeps a **14 %** minimum so a single digit
  *    stays legible.
@@ -24,15 +24,23 @@
  *    proportionally — the numbers stay in the right order even when they no
  *    longer stay legible, which is the design's own trade. Three coloured
  *    segments at their floor come to 42 %, well inside the 84 % budget, so the
- *    scaling only ever bites on genuinely lopsided numbers.
+ *    scaling only ever bites on genuinely lopsided numbers. Four (with
+ *    missing) come to 56 %, still inside it.
  *  - Over-fulfilment clamps at 100 %: the surplus is simply invisible
  *    (state A7 / intention §6.3).
  *
  * **In queue is its own segment (owner, 2026-09-22).** Intention §4.3 originally
  * folded it into in progress (`inProgress = quantity_in_queue +
  * quantity_in_progress`); the owner split them so queued work reads as waiting
- * rather than as under way. The mapping from backend quantities is still the
- * logic session's — this function takes the four numbers and nothing else.
+ * rather than as under way.
+ *
+ * **Missing is the fourth coloured segment (owner, 2026-09-26).** It is the
+ * snapshot's `quantity_missing`: units the buyer still has to find. It sits
+ * after the work segments and before the grey remainder, so the bar reads
+ * "done → moving → queued → cannot be covered → still open". Amber, because it
+ * is a warning to the manager, and it counts against the remainder like the
+ * others. The mapping from backend quantities is still the logic layer's —
+ * this function takes the five numbers and nothing else.
  */
 
 export type FulfilmentQuantities = {
@@ -40,6 +48,7 @@ export type FulfilmentQuantities = {
   fulfilled: number;
   inProgress: number;
   inQueue: number;
+  missing: number;
 };
 
 export type FulfilmentSegment = {
@@ -51,6 +60,7 @@ export type FulfilmentSegments = {
   fulfilled: FulfilmentSegment | null;
   inProgress: FulfilmentSegment | null;
   inQueue: FulfilmentSegment | null;
+  missing: FulfilmentSegment | null;
   /** The flexible remainder — it takes whatever the coloured set leaves. */
   remaining: { value: number } | null;
 };
@@ -70,13 +80,16 @@ export function computeFulfilmentSegments({
   fulfilled,
   inProgress,
   inQueue,
+  missing,
 }: FulfilmentQuantities): FulfilmentSegments {
   const safeRequested = atLeastZero(requested);
   const safeFulfilled = atLeastZero(fulfilled);
   const safeInProgress = atLeastZero(inProgress);
   const safeInQueue = atLeastZero(inQueue);
+  const safeMissing = atLeastZero(missing);
 
-  const colouredTotal = safeFulfilled + safeInProgress + safeInQueue;
+  const colouredTotal =
+    safeFulfilled + safeInProgress + safeInQueue + safeMissing;
   const remaining = Math.max(0, safeRequested - colouredTotal);
 
   // With no requested quantity the goal itself is the coloured work, so the
@@ -88,6 +101,7 @@ export function computeFulfilmentSegments({
       fulfilled: null,
       inProgress: null,
       inQueue: null,
+      missing: null,
       remaining: null,
     };
   }
@@ -96,13 +110,13 @@ export function computeFulfilmentSegments({
 
   // Floor first, scale second: a slice of one piece is widened to its minimum
   // before the set is squeezed, so it never disappears behind a rounding error.
-  const widths = [safeFulfilled, safeInProgress, safeInQueue].map((value) =>
+  const widths = [safeFulfilled, safeInProgress, safeInQueue, safeMissing].map((value) =>
     value > 0
       ? Math.max((value / denominator) * 100, SEGMENT_MIN_PERCENT)
       : 0,
   );
 
-  const widthTotal = widths[0] + widths[1] + widths[2];
+  const widthTotal = widths[0] + widths[1] + widths[2] + widths[3];
   const scale = widthTotal > budget ? budget / widthTotal : 1;
 
   function segment(value: number, width: number): FulfilmentSegment | null {
@@ -113,6 +127,7 @@ export function computeFulfilmentSegments({
     fulfilled: segment(safeFulfilled, widths[0]),
     inProgress: segment(safeInProgress, widths[1]),
     inQueue: segment(safeInQueue, widths[2]),
+    missing: segment(safeMissing, widths[3]),
     remaining: remaining > 0 ? { value: remaining } : null,
   };
 }

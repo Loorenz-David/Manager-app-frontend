@@ -80,6 +80,16 @@ export function FulfilmentBar({
         </span>
       ) : null}
 
+      {segments.missing ? (
+        <span
+          className={cn(SEGMENT_CLASS, SEGMENT_FILL_CLASS.missing, SEGMENT_INK_CLASS.missing)}
+          data-testid={testId ? `${testId}-missing` : undefined}
+          style={{ width: `${segments.missing.widthPercent}%` }}
+        >
+          {segments.missing.value}
+        </span>
+      ) : null}
+
       {segments.remaining ? (
         <span
           className={cn(

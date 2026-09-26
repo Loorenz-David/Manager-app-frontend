@@ -1,21 +1,27 @@
 /**
- * The bar's three meaning-carrying colours, in one place.
+ * The bar's four meaning-carrying colours, in one place.
  *
  * **Owner revision, 2026-09-22.** The first pass followed the mockup's hue
  * assignment — a deep blue for fulfilled and the system's amber for in
  * progress. On a device the blue read too dark and the amber read as an alarm,
- * which is wrong for work that is simply under way. The hues are now:
+ * which is wrong for work that is simply under way.
  *
- *   - **fulfilled → light green.** Done is done; green says so without shouting.
- *   - **in progress → light blue.** Active, calm, and plainly not a warning.
- *   - **in queue → light amber.** Owner, 2026-09-22: queued work was being
- *     folded into in progress, which overstated how much was actually moving.
- *     Amber reads as "waiting its turn" without reading as a fault.
+ * **Owner revision, 2026-09-26.** The snapshot layer added `quantity_missing`
+ * — units the buyer still has to find — and that *is* an alarm, so the bright
+ * amber moved from the queue to the new missing segment and the queue took a
+ * teal, one step before in-progress blue. The hues are now:
+ *
+ *   - **fulfilled → green.** Done is done; green says so without shouting.
+ *   - **in progress → blue.** Active, calm, and plainly not a warning.
+ *   - **in queue → teal.** Waiting its turn: next to blue on the wheel because
+ *     it is the step before it, and not amber because nothing is wrong.
+ *   - **missing → amber.** A warning to the manager: this much cannot be
+ *     covered from stock and someone has to go and find it.
  *   - **remaining → grey.** Unchanged: grey is always "not yet".
  *
- * The fills take their hues from `@beyo/ui`'s `StatePill` variants so the
- * feature stays inside the app's palette, darkened to carry a white numeral —
- * see `SEGMENT_FILL_CLASS` for the contrast ceiling that sets how dark.
+ * The fills stay inside the app's palette where one exists (the amber trio is
+ * `@beyo/ui`'s `StatePill` warning), darkened to carry a white numeral — see
+ * `SEGMENT_FILL_CLASS` for the contrast ceiling that sets how dark.
  *
  * Complete class strings, never assembled — Tailwind's scanner reads this file
  * (it is registered with `@source`) and would miss anything interpolated.
@@ -38,34 +44,35 @@
  *
  *   - `fulfilled`  `#1a8048` — 5.0:1 with white
  *   - `inProgress` `#1b6ec2` — 5.2:1
- *   - `inQueue`    `#d99e0b` — 2.4:1 with white, **below AA by the owner's
- *     decision, 2026-09-22**: the amber was wanted bright and the numeral
- *     white, and the two cannot both hold. Raised twice with the numbers; this
- *     is the trade the owner chose, not an oversight. Darkening this fill is
- *     what buys the contrast back.
+ *   - `inQueue`    `#11827a` — 4.6:1; the brightest teal that still clears AA
+ *   - `missing`    `#d99e0b` — 2.4:1 with white, **below AA by the owner's
+ *     decision, 2026-09-22** (it was the queue's amber then): the amber was
+ *     wanted bright and the numeral white, and the two cannot both hold.
+ *     Raised twice with the numbers; this is the trade the owner chose, not an
+ *     oversight. Darkening this fill is what buys the contrast back.
  *
  * Saturating further is mostly free; lightening is not. Green and amber are the
  * ones to watch — green weighs heaviest in the luminance formula, and amber is
- * bright by nature, so both run out of contrast well before blue does.
+ * bright by nature, so both run out of contrast well before blue or teal do.
  *
  * Amber is the awkward one, and it is worth knowing why. Its *hue* wants to sit
  * near 45°, where there is real yellow in it; drift down toward 35° and it
  * reads orange, almost red. But holding 45° while staying dark enough for a
  * white numeral forces it toward mustard — the darker an amber gets, the more
- * it browns. Owner, 2026-09-22: the colour won twice over, so `inQueue` is a
- * genuinely bright amber *and* keeps a white numeral, at the cost of that
- * numeral's contrast. Green and blue have room to move; amber does not.
+ * it browns. The owner chose the colour over the contrast, twice.
  */
 export const SEGMENT_FILL_CLASS = {
   fulfilled: "bg-[#1a8048]",
   inProgress: "bg-[#1b6ec2]",
-  inQueue: "bg-[#d99e0b]",
+  inQueue: "bg-[#11827a]",
+  missing: "bg-[#d99e0b]",
 } as const;
 
 export const SEGMENT_INK_CLASS = {
   fulfilled: "text-white",
   inProgress: "text-white",
   inQueue: "text-white",
+  missing: "text-white",
   remaining: "text-muted-foreground",
 } as const;
 
@@ -87,8 +94,8 @@ export const DRAG_ACCENT_BORDER_CLASS = "border-primary";
 
 /**
  * The diamond on the priority button. Amber because priority is the thing the
- * row is waiting on, which is the same idea the bar's in-queue segment carries
- * — decorative here, so it is the only place this colour is not a data value.
+ * row is waiting on — decorative here, so it is the only place this hue is not
+ * a data value (the bar's amber means "missing").
  */
 export const PRIORITY_ACTION_MARKER_CLASS = "bg-[#f0c36a]";
 

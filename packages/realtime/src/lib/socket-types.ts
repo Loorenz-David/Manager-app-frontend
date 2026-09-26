@@ -25,16 +25,34 @@ type ShopifyProductSyncInventoryResult =
 
 export type ServerToClientEvents = {
   "stock_report_item:created": (payload: { client_id: string }) => void;
+  // §7 of the snapshot handoff (2026-09-26): no priority keys any more —
+  // position changes arrive on the snapshot event below.
   "stock_report_item:updated": (payload: {
     client_id: string;
     quantity_requested: number | null;
     quantity_in_queue: number | null;
     quantity_in_progress: number | null;
     quantity_awaiting: number | null;
-    priority: "high" | "medium" | "low" | null;
-    priority_order: number | null;
   }) => void;
   "stock_report_item:deleted": (payload: { client_id: string }) => void;
+  /** `client_id` is the snapshot's id; `stock_report_item_id` names the row. */
+  "stock_report_item_snapshot:updated": (payload: {
+    client_id: string;
+    stock_report_item_id: string;
+    version_id: string;
+    priority: "high" | "medium" | "low" | null;
+    priority_order: number | null;
+    quantity_missing: number;
+    quantity_resolved: number;
+  }) => void;
+  "stock_report_snapshot_version:created": (payload: {
+    client_id: string;
+    snapshot_count: number;
+  }) => void;
+  "stock_report_snapshot_version:closed": (payload: {
+    client_id: string;
+    snapshot_count: number;
+  }) => void;
   "stock_task_assignment:created": (payload: {
     client_id: string;
     stock_report_item_id: string;

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@beyo/lib";
 import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 
@@ -12,15 +12,18 @@ import { useStockReportAssignmentsQuery } from "../api/use-stock-report-queries"
 import {
   useCreateStockAssignment,
   useRemoveStockAssignment,
+  useSetStockReportMissingQuantity,
 } from "../actions/use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
 import { StockReportDetailView } from "../components/detail/StockReportDetailView";
 import { useStockAssignmentGate } from "../hooks/use-stock-assignment-gate";
+import { missingQuantityBounds } from "../lib/missing-quantity";
 import { useStockReportPermissions } from "../lib/use-stock-report-permissions";
 import { stockAssignmentRefusalMessage } from "../lib/stock-assignment-messages";
 import { useStockReportOpeners } from "../openers";
 import {
   STOCK_REPORT_ACTIONS_SURFACE_ID,
+  STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
   STOCK_REPORT_DETAIL_SURFACE_ID,
   type StockReportDetailSurfaceProps,
 } from "../surface-ids";
@@ -42,10 +45,33 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   );
   const createAssignment = useCreateStockAssignment();
   const removeAssignment = useRemoveStockAssignment(stockNeedId);
-  const row = queryClient
+  const setMissing = useSetStockReportMissingQuantity();
+  // There is no single-row endpoint, so the page's own entry is seeded from
+  // whichever list opened it and never fetched (`skipToken`); the mutations
+  // and socket handlers keep it true. That is what keeps the page reactive
+  // after its row leaves every list — marking all of it missing drops it from
+  // the board's default read, clearing the count drops it from the missing
+  // list. A deleted row still exits through the assignments 404 below.
+  // `skipToken` alone disables fetching; `gcTime: Infinity` keeps the entry
+  // alive for as long as the page is open, even while the surface is hidden.
+  const detail = useQuery<StockReportItem>({
+    queryKey: stockReportKeys.item(stockNeedId),
+    queryFn: skipToken,
+    gcTime: Number.POSITIVE_INFINITY,
+  });
+  const listRow = queryClient
     .getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.lists() })
     .flatMap(([, rows]) => rows ?? [])
     .find((item) => item.client_id === stockNeedId);
+  const row = detail.data ?? listRow;
+  useEffect(() => {
+    // Seed once, judged by the cache itself: the observer reports the write a
+    // tick later, and writing again in that window would loop.
+    const key = stockReportKeys.item(stockNeedId);
+    if (listRow && queryClient.getQueryData(key) === undefined) {
+      queryClient.setQueryData(key, listRow);
+    }
+  }, [listRow, queryClient, stockNeedId]);
   const viewModel = row ? toStockReportItemViewModel(row) : null;
   const assignments = useStockReportAssignmentsQuery(stockNeedId);
   const canAddItem = permissions.canAssign && Boolean(openers.openTaskCreation);
@@ -57,6 +83,47 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   useEffect(() => {
     if (viewModel) header?.setTitle(viewModel.card.title);
   }, [header, viewModel]);
+
+  // The ⋮ lives in the slide surface's own header. Its handler reads the row
+  // at tap time through a ref, so the button is registered once and never
+  // holds a stale ceiling.
+  const openMenuRef = useRef<() => void>(() => {});
+  openMenuRef.current = () => {
+    if (!row?.snapshot) return;
+    const bounds = missingQuantityBounds(row.snapshot);
+    open(STOCK_REPORT_DETAIL_MENU_SURFACE_ID, {
+      markable: bounds.markable,
+      missing: bounds.missing,
+      disabled: setMissing.isPending,
+      onMarkMissing: () =>
+        setMissing.mutate({ stockNeedId, quantityMissing: bounds.ceiling }),
+      onUnmarkMissing: () => setMissing.mutate({ stockNeedId, quantityMissing: 0 }),
+    });
+  };
+  const showMenu = permissions.canMarkMissing && Boolean(viewModel);
+  useEffect(() => {
+    if (!header) return;
+    if (!showMenu) {
+      header.setActions(null);
+      return;
+    }
+    header.setActions(
+      <button
+        aria-label="Stock need actions"
+        className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+        data-testid="stock-report-detail-menu-button"
+        type="button"
+        onClick={() => openMenuRef.current()}
+      >
+        <span className="flex flex-col items-center gap-0.5">
+          {[0, 1, 2].map((index) => (
+            <span key={index} className="size-1 rounded-full bg-current" />
+          ))}
+        </span>
+      </button>,
+    );
+    return () => header.setActions(null);
+  }, [header, showMenu]);
   useEffect(() => {
     if (isMissing) close(STOCK_REPORT_DETAIL_SURFACE_ID);
   }, [close, isMissing]);

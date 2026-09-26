@@ -1,8 +1,9 @@
+import type { ReactNode } from "react";
 import { PullToRefresh } from "@beyo/ui";
 
 import type {
-  StockNeedBucket,
   StockNeedCardData,
+  StockReportBoardBucket,
   StockReportLoadStatus,
 } from "../../stock-report.types";
 import { StockNeedSortableList } from "./StockNeedSortableList";
@@ -16,9 +17,15 @@ import { StockReportBucketPicker } from "./StockReportBucketPicker";
 import { StockReportSearchRow } from "./StockReportSearchRow";
 
 export type StockReportBoardViewProps = {
-  buckets: readonly StockNeedBucket[];
-  bucket: StockNeedBucket;
-  onBucketChange: (bucket: StockNeedBucket) => void;
+  /**
+   * Rendered at the top of the scroll content, above the picker, so a back
+   * row scrolls away with the board instead of sitting over it (owner,
+   * 2026-09-26).
+   */
+  header?: ReactNode;
+  buckets: readonly StockReportBoardBucket[];
+  bucket: StockReportBoardBucket;
+  onBucketChange: (bucket: StockReportBoardBucket) => void;
 
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -30,6 +37,9 @@ export type StockReportBoardViewProps = {
   errorMessage?: string;
   onRetry?: () => void;
   onRefresh: () => Promise<void> | void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onShowMore?: () => Promise<void> | void;
 
   onCardPress: (stockNeedId: string) => void;
 
@@ -48,6 +58,7 @@ export type StockReportBoardViewProps = {
 };
 
 export function StockReportBoardView({
+  header,
   buckets,
   bucket,
   onBucketChange,
@@ -60,6 +71,9 @@ export function StockReportBoardView({
   errorMessage,
   onRetry,
   onRefresh,
+  hasMore = false,
+  isLoadingMore = false,
+  onShowMore,
   onCardPress,
   canReorganise,
   isReorganiseMode,
@@ -71,12 +85,10 @@ export function StockReportBoardView({
   // Unprioritised rows have no order to express: there is nothing to drag and
   // so nothing to enter a mode for. Their one action — giving the row a
   // priority — is offered on every card outright, and the FAB is not rendered
-  // at all (owner, 2026-09-22).
-  const isUnsetBucket = bucket === "unset";
-  const showFab = canReorganise && !isUnsetBucket;
-  // A row with no priority is having one set; a row already in a bucket is
-  // having it changed.
-  const priorityActionLabel = isUnsetBucket ? "Set priority" : "Change priority";
+  // at all (owner, 2026-09-22). The All bucket mixes every group, so a drop
+  // there names no position either.
+  const isSortableBucket = bucket !== "unset" && bucket !== "all";
+  const showFab = canReorganise && isSortableBucket;
 
   return (
     <div className="relative min-h-0 flex-1" data-testid="stock-report-board">
@@ -93,6 +105,7 @@ export function StockReportBoardView({
         onRefresh={onRefresh}
       >
         <div>
+          {header}
           <div className="flex flex-col gap-3.5 px-4 pt-4.5">
             <StockReportBucketPicker
               buckets={buckets}
@@ -126,12 +139,26 @@ export function StockReportBoardView({
                 cards={cards}
                 disabled={reorderDisabled}
                 isReorganiseMode={isReorganiseMode}
-                priorityActionLabel={priorityActionLabel}
-                sortable={!isUnsetBucket}
+                sortable={isSortableBucket}
                 onCardPress={onCardPress}
                 onReorder={onReorder}
                 onSetPriority={onSetPriority}
               />
+            ) : null}
+
+            {/* This control deliberately sits outside StockNeedSortableList's
+             * DndContext. It cannot become a drop target or participate in the
+             * sortable item geometry while a row is being dragged. */}
+            {status === "ready" && hasMore ? (
+              <button
+                className="mt-4 w-full rounded-xl border border-border bg-card py-3 text-sm font-semibold text-foreground disabled:opacity-50"
+                data-testid="stock-report-board-show-more"
+                disabled={isLoadingMore}
+                type="button"
+                onClick={() => void onShowMore?.()}
+              >
+                {isLoadingMore ? "Loading…" : "Show more"}
+              </button>
             ) : null}
 
             {status === "ready" && cards.length === 0 ? (

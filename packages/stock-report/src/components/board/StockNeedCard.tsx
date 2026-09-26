@@ -27,8 +27,9 @@ export type StockNeedCardProps = {
   /** Renders the card's priority bottom button. Omit it to render none. */
   onSetPriority?: (stockNeedId: string) => void;
   /**
-   * What that button says. A row with no priority is having one *set*; a row
-   * already in a bucket is having it *changed*.
+   * What that button says. Left out, the card decides from its own data: a row
+   * with no priority is having one *set*; a row already in a bucket is having
+   * it *changed*. Per card, because the All bucket mixes the two.
    */
   priorityActionLabel?: string;
 };
@@ -41,9 +42,11 @@ export function StockNeedCard({
   showDragHandle = false,
   isDragging = false,
   onSetPriority,
-  priorityActionLabel = "Set priority",
+  priorityActionLabel,
 }: StockNeedCardProps): React.JSX.Element {
   const isPressable = Boolean(onPress);
+  const priorityLabel =
+    priorityActionLabel ?? (card.hasPriority ? "Change priority" : "Set priority");
 
   return (
     // The row, not the card: the priority action hangs off the card's bottom
@@ -151,7 +154,7 @@ export function StockNeedCard({
               PRIORITY_ACTION_MARKER_CLASS,
             )}
           />
-          {priorityActionLabel}
+          {priorityLabel}
         </button>
       ) : null}
     </div>

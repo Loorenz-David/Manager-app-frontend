@@ -154,6 +154,30 @@ describe("StockReportBoardView — list states", () => {
 
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  it("shows the next-page control at the bottom and keeps it outside the sortable drag context", () => {
+    const onShowMore = vi.fn();
+    renderBoard({
+      bucket: "high",
+      hasMore: true,
+      isReorganiseMode: true,
+      onShowMore,
+    });
+
+    const button = screen.getByTestId("stock-report-board-show-more");
+    expect(button).toHaveTextContent("Show more");
+    expect(screen.getByTestId("stock-report-board-list")).not.toContainElement(button);
+
+    tapInsidePullContainer(button);
+    expect(onShowMore).toHaveBeenCalledTimes(1);
+  });
+
+  it("prevents duplicate next-page requests while one is loading", () => {
+    renderBoard({ hasMore: true, isLoadingMore: true });
+
+    expect(screen.getByTestId("stock-report-board-show-more")).toBeDisabled();
+    expect(screen.getByTestId("stock-report-board-show-more")).toHaveTextContent("Loading…");
+  });
 });
 
 describe("StockReportBoardView — reorganise mode", () => {
@@ -252,12 +276,15 @@ describe("StockReportBoardView — reorganise mode", () => {
     expect(screen.queryByTestId("stock-report-fab")).not.toBeInTheDocument();
   });
 
-  it("asks to set a priority in Unset and to change it everywhere else", () => {
+  it("asks to set a priority on a row without one and to change it on a row with one", () => {
     const [first] = stockReportBoardCardsFixture;
 
+    // The label is per card now (owner, 2026-09-26): the All bucket mixes
+    // rows with and without a priority, so the list cannot decide for them.
+    const unprioritised = stockReportBoardCardsFixture.map((card) => ({ ...card, hasPriority: false }));
     const { unmount } = render(
       <LazyMotion features={domAnimation}>
-        <StockReportBoardView {...boardProps({ bucket: "unset" })} />
+        <StockReportBoardView {...boardProps({ bucket: "unset", cards: unprioritised })} />
       </LazyMotion>,
     );
     expect(

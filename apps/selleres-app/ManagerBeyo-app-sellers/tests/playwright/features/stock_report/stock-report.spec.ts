@@ -18,7 +18,10 @@ async function mockBoard(page: Page): Promise<void> {
       body: JSON.stringify({
         ok: true,
         warnings: [],
-        data: { stock_report_items: [] },
+        data: {
+          stock_report_items: [],
+          stock_report_items_pagination: { has_more: false, limit: 20, offset: 0 },
+        },
       }),
     }),
   );

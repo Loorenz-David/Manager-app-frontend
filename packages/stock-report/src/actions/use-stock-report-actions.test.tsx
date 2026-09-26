@@ -5,8 +5,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({
   createStockAssignment: vi.fn(),
+  createStockReportVersion: vi.fn(),
   removeStockAssignment: vi.fn(),
   reorderStockReportItem: vi.fn(),
+  setStockReportMissingQuantity: vi.fn(),
   setStockReportPriority: vi.fn(),
 }));
 const notify = vi.hoisted(() => ({ error: vi.fn() }));
@@ -20,14 +22,17 @@ vi.mock("@beyo/lib", async (importOriginal) => ({
 import { ApiRequestError } from "@beyo/api-client";
 import {
   useCreateStockAssignment,
+  useCreateStockReportVersion,
   useRemoveStockAssignment,
   useReorderStockReportItem,
+  useSetStockReportMissingQuantity,
   useSetStockReportPriority,
 } from "./use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
 import {
+  wirePrioritisedStockReportItem,
   wireStockReportAssignment,
-  wireStockReportItem,
+  wireStockReportSnapshotVersion,
 } from "../fixtures/stock-report-wire-fixtures";
 import {
   EMPTY_STOCK_REPORT_FILTER as ALL,
@@ -35,15 +40,22 @@ import {
   type StockReportItem,
 } from "../stock-report.types";
 
-const WOOD = { majorCategory: "wood" as const };
+const WOOD = { majorCategory: "wood" as const, missingOnly: false };
+const MISSING = { majorCategory: null, missingOnly: true };
 
 function item(
   client_id: string,
   priority: "high" | "low" | null,
   priority_order: number | null = priority ? 1 : null,
+  missing = 0,
 ): StockReportItem {
-  return wireStockReportItem({ client_id, priority, priority_order });
+  return wirePrioritisedStockReportItem(client_id, priority, priority_order, {
+    snapshot: { ...wirePrioritisedStockReportItem(client_id, priority).snapshot!, quantity_missing: missing },
+  });
 }
+
+const orders = (rows: StockReportItem[] | undefined) => rows?.map((row) => row.snapshot?.priority_order);
+const ids = (rows: StockReportItem[] | undefined) => rows?.map((row) => row.client_id);
 
 function assignment(client_id: string): StockReportAssignment {
   return wireStockReportAssignment({ client_id });
@@ -147,7 +159,156 @@ describe("stock-report mutations", () => {
     expect(rows?.map((row) => row.client_id)).toEqual(["sri-a", "sri-c", "sri-b", "sri-d"]);
     // And the orders stay true, so the next drag reads live positions rather
     // than the ones this move invalidated.
-    expect(rows?.map((row) => row.priority_order)).toEqual([1, 3, 4, 5]);
+    expect(orders(rows)).toEqual([1, 3, 4, 5]);
+  });
+
+  it("drops loaded offsets and restarts at page zero after a reorder settles", async () => {
+    const { queryClient, wrapper } = setup();
+    const key = stockReportKeys.list("high", ALL);
+    queryClient.setQueryData(key, {
+      pages: [
+        { items: [item("sri-1", "high", 1)], hasMore: true, limit: 20, offset: 0 },
+        { items: [item("sri-2", "high", 21)], hasMore: false, limit: 20, offset: 20 },
+      ],
+      pageParams: [0, 20],
+    });
+    api.reorderStockReportItem.mockResolvedValueOnce(item("sri-1", "high", 21));
+    const { result } = renderHook(() => useReorderStockReportItem("high", ALL), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ stockNeedId: "sri-1", targetOrder: 21 });
+    });
+
+    const data = queryClient.getQueryData<{ pages: unknown[]; pageParams: unknown[] }>(key);
+    expect(data?.pages).toHaveLength(1);
+    expect(data?.pageParams).toEqual([0]);
+  });
+
+  it("keeps a moved row inside an All list, re-labelled, instead of stripping it", async () => {
+    // The missing page's All bucket holds every priority at once: a priority
+    // change must not make the card vanish from it.
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.list("all", MISSING), [item("sri-1", "high", 1, 2), item("sri-2", "low", 1, 1)]);
+    queryClient.setQueryData(stockReportKeys.list("low", MISSING), [item("sri-2", "low", 1, 1)]);
+    api.setStockReportPriority.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useSetStockReportPriority(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", priority: "low" }));
+    await waitFor(() => expect(api.setStockReportPriority).toHaveBeenCalled());
+
+    const all = queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("all", MISSING));
+    expect(ids(all)).toEqual(["sri-1", "sri-2"]);
+    expect(all?.[0]?.snapshot?.priority).toBe("low");
+    expect(ids(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("low", MISSING)))).toEqual(["sri-2", "sri-1"]);
+  });
+
+  it("never lands a row with nothing missing in a missing-mode list", async () => {
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1, 0)]);
+    queryClient.setQueryData(stockReportKeys.list("low", MISSING), [item("sri-2", "low", 1, 3)]);
+    api.setStockReportPriority.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useSetStockReportPriority(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", priority: "low" }));
+    await waitFor(() => expect(api.setStockReportPriority).toHaveBeenCalled());
+
+    expect(ids(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("low", MISSING)))).toEqual(["sri-2"]);
+  });
+
+  it("marks missing optimistically on every list, drops a cleared row from the missing lists, and rolls back", async () => {
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1, 2)]);
+    queryClient.setQueryData(stockReportKeys.list("all", MISSING), [item("sri-1", "high", 1, 2), item("sri-2", "low", 1, 1)]);
+    api.setStockReportMissingQuantity.mockImplementation(() => new Promise(() => {}));
+    const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 0 }));
+    await waitFor(() => expect(api.setStockReportMissingQuantity).toHaveBeenCalledWith("sri-1", 0));
+
+    expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.[0]?.snapshot?.quantity_missing).toBe(0);
+    expect(ids(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("all", MISSING)))).toEqual(["sri-2"]);
+  });
+
+  it("keeps the open detail page's own entry true when a cleared row leaves every list", async () => {
+    // The owner's report (2026-09-26): opened from the missing page, marking
+    // updated the detail but unmarking did not — the row left the missing
+    // list and the page had nothing left to read. The detail entry is what
+    // it reads now, through the optimistic write and the server's row alike.
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.list("all", MISSING), [item("sri-1", "high", 1, 3)]);
+    queryClient.setQueryData(stockReportKeys.item("sri-1"), item("sri-1", "high", 1, 3));
+    api.setStockReportMissingQuantity.mockResolvedValueOnce(item("sri-1", "high", 1, 0));
+    const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 0 }));
+    await waitFor(() => expect(api.setStockReportMissingQuantity).toHaveBeenCalled());
+    expect(ids(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("all", MISSING)))).toEqual([]);
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(0);
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(0);
+  });
+
+  it("restores the detail entry with the lists when the backend refuses", async () => {
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.item("sri-1"), item("sri-1", "high", 1, 2));
+    api.setStockReportMissingQuantity.mockRejectedValueOnce(new Error("offline"));
+    const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 0 }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(2);
+  });
+
+  it("restores the exact lists and explains when the backend refuses the missing quantity", async () => {
+    const { queryClient, wrapper } = setup();
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1, 0)]);
+    api.setStockReportMissingQuantity.mockRejectedValueOnce(new ApiRequestError(422, "unprocessable", "STOCK_REPORT_MISSING_EXCEEDS_CEILING: at most 3 can be missing."));
+    const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
+
+    act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 5 }));
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.[0]?.snapshot?.quantity_missing).toBe(0);
+    expect(notify.error).toHaveBeenCalledWith("Missing quantity not changed", "STOCK_REPORT_MISSING_EXCEEDS_CEILING: at most 3 can be missing.");
+  });
+
+  it("seeds the authoritative row on success and refreshes the summary and version", async () => {
+    const { queryClient, wrapper } = setup();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high", 1, 0)]);
+    // The backend clamps: asked 5, it kept 3.
+    api.setStockReportMissingQuantity.mockResolvedValueOnce(item("sri-1", "high", 1, 3));
+    const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync({ stockNeedId: "sri-1", quantityMissing: 5 });
+    });
+
+    expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.[0]?.snapshot?.quantity_missing).toBe(3);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: stockReportKeys.missingSummary(), refetchType: "active" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: stockReportKeys.activeVersion(), refetchType: "active" });
+  });
+
+  it("drops every cached board list when a version is opened, so the board never shows the old priorities", async () => {
+    const { queryClient, wrapper } = setup();
+    const invalidate = vi.spyOn(queryClient, "invalidateQueries");
+    queryClient.setQueryData(stockReportKeys.list("high", ALL), [item("sri-1", "high")]);
+    const { progress: _progress, ...version } = wireStockReportSnapshotVersion({ client_id: "srv-2" });
+    api.createStockReportVersion.mockResolvedValueOnce(version);
+    const { result } = renderHook(() => useCreateStockReportVersion(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync();
+    });
+
+    expect(queryClient.getQueryData(stockReportKeys.list("high", ALL))).toBeUndefined();
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: stockReportKeys.activeVersion(), refetchType: "active" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: stockReportKeys.versionList(), refetchType: "active" });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: stockReportKeys.missingSummary(), refetchType: "active" });
+    // No toast: the hub's overlay is the failure surface, and success needs none.
+    expect(notify.error).not.toHaveBeenCalled();
   });
 
   it("writes a successful created assignment straight to the detail cache", async () => {

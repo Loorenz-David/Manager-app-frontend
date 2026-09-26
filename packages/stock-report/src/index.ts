@@ -8,21 +8,40 @@ export type {
   StockNeedBucket,
   StockNeedCardData,
   StockReportAssignmentCardData,
+  StockReportBoardBucket,
+  StockReportBoardMode,
+  StockReportListFilter,
   StockReportLoadStatus,
   StockReportItem,
+  StockReportItemSnapshot,
   StockReportItemViewModel,
+  StockReportMissingSummary,
   StockReportPriority,
   StockReportAssignment,
+  StockReportSnapshotVersion,
+  StockReportVersionGroupProgress,
+  StockReportVersionProgress,
+  StockReportVersionProgressCounters,
+  StockReportVersionViewModel,
 } from "./stock-report.types";
 export {
+  EMPTY_STOCK_REPORT_FILTER,
   STOCK_REPORT_PRIORITY,
   StockReportItemSchema,
+  StockReportItemSnapshotSchema,
   StockReportAssignmentSchema,
+  StockReportMissingSummarySchema,
+  StockReportSnapshotVersionSchema,
+  StockReportVersionProgressSchema,
   formatStockPropertyValues,
   titleCase,
   toStockReportItemViewModel,
   toStockReportPropertyTags,
+  toStockReportVersionViewModel,
 } from "./stock-report.types";
+export { missingQuantityBounds } from "./lib/missing-quantity";
+export type { MissingQuantityBounds } from "./lib/missing-quantity";
+export { formatVersionAge, versionDaysRunning } from "./lib/version-age";
 
 export {
   COLOURED_BUDGET_PERCENT,
@@ -79,6 +98,20 @@ export type { StockReportDetailErrorStateProps } from "./components/detail/Stock
 export { StockReportDetailView } from "./components/detail/StockReportDetailView";
 export type { StockReportDetailViewProps } from "./components/detail/StockReportDetailView";
 
+export { StockReportSlideHeader } from "./components/StockReportSlideHeader";
+export type { StockReportSlideHeaderProps } from "./components/StockReportSlideHeader";
+
+// --- versions --------------------------------------------------------------
+export { StockVersionProgressBar } from "./components/versions/StockVersionProgressBar";
+export type { StockVersionProgressBarProps } from "./components/versions/StockVersionProgressBar";
+export { StockVersionCard } from "./components/versions/StockVersionCard";
+export type { StockVersionCardProps } from "./components/versions/StockVersionCard";
+export {
+  StockVersionListEmptyState,
+  StockVersionListErrorState,
+  StockVersionListSkeleton,
+} from "./components/versions/StockVersionListStates";
+
 // --- sheet content ---------------------------------------------------------
 export { StockReportPrioritySheetContent } from "./components/sheets/StockReportPrioritySheetContent";
 export type { StockReportPrioritySheetContentProps } from "./components/sheets/StockReportPrioritySheetContent";
@@ -86,6 +119,8 @@ export { StockReportFilterSheetContent } from "./components/sheets/StockReportFi
 export type { StockReportFilterSheetContentProps } from "./components/sheets/StockReportFilterSheetContent";
 export { StockReportActionsSheetContent } from "./components/sheets/StockReportActionsSheetContent";
 export type { StockReportActionsSheetContentProps } from "./components/sheets/StockReportActionsSheetContent";
+export { StockReportDetailMenuSheetContent } from "./components/sheets/StockReportDetailMenuSheetContent";
+export type { StockReportDetailMenuSheetContentProps } from "./components/sheets/StockReportDetailMenuSheetContent";
 export { StockMatchWarningSheetContent } from "./components/sheets/StockMatchWarningSheetContent";
 export type { StockMatchWarningSheetContentProps } from "./components/sheets/StockMatchWarningSheetContent";
 export {
@@ -104,7 +139,19 @@ export function loadStockReportRouteEntryPage() {
   return import("./route-entry").then((module) => ({ default: module.StockReportRouteEntryPage }));
 }
 export { stockReportKeys } from "./api/stock-report-keys";
-export { useStockReportListQuery, useStockReportAssignmentsQuery, prefetchStockReportAssignmentsData } from "./api/use-stock-report-queries";
+export {
+  useStockReportListQuery,
+  useStockReportAssignmentsQuery,
+  useStockReportActiveVersionQuery,
+  useStockReportMissingSummaryQuery,
+  useStockReportVersionsQuery,
+  prefetchStockReportAssignmentsData,
+} from "./api/use-stock-report-queries";
+export {
+  useCreateStockReportVersion,
+  useSetStockReportMissingQuantity,
+} from "./actions/use-stock-report-actions";
+export { stockReportRequestFailureMessage } from "./lib/stock-report-request-failure";
 export { stockReportSocketEvents } from "./socket-events";
 export { useStockMatchPreview } from "./actions/use-stock-match-preview";
 export { useStockAssignmentGate } from "./hooks/use-stock-assignment-gate";
@@ -120,10 +167,28 @@ export {
   STOCK_REPORT_FILTER_SURFACE_ID,
   STOCK_REPORT_ACTIONS_SURFACE_ID,
   STOCK_MATCH_WARNING_SURFACE_ID,
+  STOCK_REPORT_BOARD_SURFACE_ID,
+  STOCK_REPORT_MISSING_SURFACE_ID,
+  STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
+  STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
+  preloadStockReportBoardSurface,
+  preloadStockReportMissingSurface,
+  preloadStockReportVersionHistorySurface,
+  preloadStockReportDetailMenuSurface,
 } from "./surface-ids";
-export type { StockReportDetailSurfaceProps, StockReportPrioritySurfaceProps, StockReportFilterSurfaceProps, StockReportActionsSurfaceProps, StockMatchWarningSurfaceProps } from "./surface-ids";
+export type {
+  StockReportDetailSurfaceProps,
+  StockReportPrioritySurfaceProps,
+  StockReportFilterSurfaceProps,
+  StockReportActionsSurfaceProps,
+  StockMatchWarningSurfaceProps,
+  StockReportBoardSurfaceProps,
+  StockReportMissingSurfaceProps,
+  StockReportVersionHistorySurfaceProps,
+  StockReportDetailMenuSurfaceProps,
+} from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------
 export * from "./fixtures/stock-report-fixtures";

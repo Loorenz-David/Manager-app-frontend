@@ -16,7 +16,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 0,
       inProgress: 0,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.fulfilled).toBeNull();
@@ -29,7 +29,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 8,
       inProgress: 4,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.fulfilled?.value).toBe(8);
@@ -46,7 +46,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 16,
       fulfilled: 0,
       inProgress: 6,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.fulfilled).toBeNull();
@@ -60,7 +60,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 28,
       inProgress: 1,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     const colouredTotal =
@@ -82,7 +82,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 29,
       inProgress: 0,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.remaining).toEqual({ value: 1 });
@@ -97,7 +97,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 20,
       inProgress: 10,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.remaining).toBeNull();
@@ -112,7 +112,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 30,
       inProgress: 0,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.fulfilled).toEqual({ value: 30, widthPercent: 100 });
@@ -125,7 +125,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 10,
       fulfilled: 12,
       inProgress: 0,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.fulfilled).toEqual({ value: 12, widthPercent: 100 });
@@ -137,7 +137,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 10,
       fulfilled: 9,
       inProgress: 6,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.remaining).toBeNull();
@@ -152,7 +152,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 8,
       inProgress: 4,
-      inQueue: 6,
+      inQueue: 6, missing: 0
     });
 
     expect(segments.fulfilled?.value).toBe(8);
@@ -166,13 +166,13 @@ describe("computeFulfilmentSegments", () => {
       requested: 10,
       fulfilled: 2,
       inProgress: 0,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
     const withQueue = computeFulfilmentSegments({
       requested: 10,
       fulfilled: 2,
       inProgress: 0,
-      inQueue: 3,
+      inQueue: 3, missing: 0
     });
 
     expect(withoutQueue.remaining).toEqual({ value: 8 });
@@ -184,7 +184,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 8,
       inProgress: 4,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.inQueue).toBeNull();
@@ -195,7 +195,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 12,
       fulfilled: 0,
       inProgress: 0,
-      inQueue: 5,
+      inQueue: 5, missing: 0
     });
 
     expect(segments.fulfilled).toBeNull();
@@ -209,7 +209,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 100,
       fulfilled: 1,
       inProgress: 1,
-      inQueue: 1,
+      inQueue: 1, missing: 0
     });
 
     const widths = [
@@ -231,7 +231,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 30,
       fulfilled: 26,
       inProgress: 1,
-      inQueue: 1,
+      inQueue: 1, missing: 0
     });
 
     const total =
@@ -252,7 +252,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 4,
       fulfilled: 3,
       inProgress: 5,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.remaining).toBeNull();
@@ -260,11 +260,12 @@ describe("computeFulfilmentSegments", () => {
 
   it("renders nothing at all when there is no quantity anywhere", () => {
     expect(
-      computeFulfilmentSegments({ requested: 0, fulfilled: 0, inProgress: 0, inQueue: 0 }),
+      computeFulfilmentSegments({ requested: 0, fulfilled: 0, inProgress: 0, inQueue: 0, missing: 0 }),
     ).toEqual({
       fulfilled: null,
       inProgress: null,
       inQueue: null,
+      missing: null,
       remaining: null,
     });
   });
@@ -274,7 +275,7 @@ describe("computeFulfilmentSegments", () => {
       requested: 0,
       fulfilled: 2,
       inProgress: 2,
-      inQueue: 0,
+      inQueue: 0, missing: 0
     });
 
     expect(segments.remaining).toBeNull();
@@ -287,12 +288,66 @@ describe("computeFulfilmentSegments", () => {
       requested: 10,
       fulfilled: -4,
       inProgress: Number.NaN,
-      inQueue: -1,
+      inQueue: -1, missing: 0
     });
 
     expect(segments.fulfilled).toBeNull();
     expect(segments.inProgress).toBeNull();
     expect(segments.inQueue).toBeNull();
     expect(segments.remaining).toEqual({ value: 10 });
+  });
+});
+
+/**
+ * Missing is the fourth coloured segment (owner, 2026-09-26): units the buyer
+ * still has to find, drawn after the work and before the grey remainder.
+ */
+describe("computeFulfilmentSegments — missing", () => {
+  it("renders missing as its own segment and counts it against the remainder", () => {
+    const segments = computeFulfilmentSegments({
+      requested: 30,
+      fulfilled: 8,
+      inProgress: 4,
+      inQueue: 6,
+      missing: 5,
+    });
+
+    expect(segments.missing?.value).toBe(5);
+    expect(segments.remaining).toEqual({ value: 7 });
+  });
+
+  it("renders no missing segment at zero", () => {
+    expect(
+      computeFulfilmentSegments({ requested: 30, fulfilled: 8, inProgress: 0, inQueue: 0, missing: 0 }).missing,
+    ).toBeNull();
+  });
+
+  it("keeps four coloured segments inside the budget, each above its floor", () => {
+    const segments = computeFulfilmentSegments({
+      requested: 100,
+      fulfilled: 1,
+      inProgress: 1,
+      inQueue: 1,
+      missing: 1,
+    });
+
+    // Four floors come to 56 %, still inside the 84 % budget.
+    for (const segment of [segments.fulfilled, segments.inProgress, segments.inQueue, segments.missing]) {
+      expect(segment?.widthPercent).toBeCloseTo(SEGMENT_MIN_PERCENT, 6);
+    }
+    expect(segments.remaining).toEqual({ value: 96 });
+  });
+
+  it("fills the track when everything not done is missing", () => {
+    const segments = computeFulfilmentSegments({
+      requested: 10,
+      fulfilled: 6,
+      inProgress: 0,
+      inQueue: 0,
+      missing: 4,
+    });
+
+    expect(segments.remaining).toBeNull();
+    expect((segments.fulfilled?.widthPercent ?? 0) + (segments.missing?.widthPercent ?? 0)).toBeCloseTo(100, 6);
   });
 });

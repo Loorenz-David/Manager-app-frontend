@@ -7,6 +7,10 @@ export type StockReportPermissions = {
   workspaceSpecialization: WorkspaceSpecialization | null;
   canPrioritise: boolean;
   canAssign: boolean;
+  /** `PATCH …/missing-quantity` admits admin, manager and worker (§5.7). */
+  canMarkMissing: boolean;
+  /** Opening a version (§5.8) is admin and manager only. */
+  canManageVersions: boolean;
   seesUnset: boolean;
   buckets: readonly StockNeedBucket[];
   isWorker: boolean;
@@ -27,11 +31,14 @@ export function useStockReportPermissions(): StockReportPermissions {
   const canPrioritise =
     role === "admin" || role === "manager" || role === "seller";
   const canAssign = role === "admin" || role === "manager" || isWoodWorker;
+  const canManageVersions = role === "admin" || role === "manager";
   return {
     role,
     workspaceSpecialization,
     canPrioritise,
     canAssign,
+    canMarkMissing: canManageVersions || isWorker,
+    canManageVersions,
     seesUnset: !isWorker,
     buckets: isWorker
       ? ["high", "medium", "low"]
