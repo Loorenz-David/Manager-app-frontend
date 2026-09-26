@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@beyo/hooks", () => ({
   useSurface: () => ({ close: vi.fn(), open: mocks.open }),
+  usePreloadSurface: vi.fn(),
   useSurfaceHeader: () => ({ setTitle: vi.fn(), setActions: mocks.setActions }),
   useSurfaceProps: () => ({ stockNeedId: "sri-1" }),
 }));
@@ -74,9 +75,18 @@ const workerPermissions = {
 const sellerPermissions = { ...workerPermissions, role: "seller", canAssign: false, canMarkMissing: false, isWorker: false, defaultMajorCategory: null };
 const BOARD = { majorCategory: null, missingOnly: false };
 
+// Lists are paged (`useInfiniteQuery`), so the seed is the shape the app
+// writes — a flat array here once hid a page that never found its row.
+function pagedList(items: ReturnType<typeof wireStockReportItem>[]) {
+  return {
+    pages: [{ items, hasMore: false, limit: 20, offset: 0 }],
+    pageParams: [0],
+  };
+}
+
 function renderPage(openTaskDetail?: (taskId: string) => void, row = wireStockReportItem({ client_id: "sri-1" })) {
   const queryClient = new QueryClient();
-  queryClient.setQueryData(stockReportKeys.list("high", BOARD), [row]);
+  queryClient.setQueryData(stockReportKeys.list("high", BOARD), pagedList([row]));
   const view = render(
     <QueryClientProvider client={queryClient}>
       <StockReportOpenersProvider openers={{ openTaskDetail }}>
@@ -164,7 +174,7 @@ describe("StockReportDetailSlidePage — missing-quantity menu", () => {
 
     // The unmark path: the row is dropped from its list and the entry cleared.
     act(() => {
-      queryClient.setQueryData(stockReportKeys.list("high", BOARD), []);
+      queryClient.setQueryData(stockReportKeys.list("high", BOARD), pagedList([]));
       queryClient.setQueryData(stockReportKeys.item("sri-1"), { ...row, snapshot: { ...row.snapshot!, quantity_missing: 0 } });
     });
 

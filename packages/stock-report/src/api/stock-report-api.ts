@@ -1,6 +1,7 @@
 import { apiClient, ApiRequestError } from "@beyo/api-client";
 import { z } from "zod";
 import {
+  STOCK_REPORT_PRIORITY,
   StockReportAssignmentSchema,
   StockReportItemSchema,
   StockReportMissingSummarySchema,
@@ -91,11 +92,29 @@ export async function fetchStockReportItems(
   };
 }
 
+/**
+ * Which snapshots a version's `progress` sums. The two version reads take the
+ * board's own `priority` parameter (backend `_priority_filter.py`, owner
+ * request 2026-09-26): a comma list of priorities, or `all` alone. Omitting it
+ * counts the **null-priority** snapshots only — never what the hub wants — so
+ * every caller sends a filter, and the default is the three priorities.
+ */
+export type StockReportProgressPriorityFilter = readonly StockReportPriority[] | "all";
+export const STOCK_REPORT_PROGRESS_PRIORITIES: StockReportProgressPriorityFilter = STOCK_REPORT_PRIORITY;
+
+/** The wire form of a progress filter: `high,medium,low` or `all`. */
+export function progressPriorityParam(filter: StockReportProgressPriorityFilter): string {
+  return filter === "all" ? "all" : filter.join(",");
+}
+
 /** §5.12 — `null` is the board's normal empty state before the first version. */
-export async function fetchActiveStockReportVersion(): Promise<StockReportSnapshotVersion | null> {
+export async function fetchActiveStockReportVersion(
+  priorities: StockReportProgressPriorityFilter = STOCK_REPORT_PROGRESS_PRIORITIES,
+): Promise<StockReportSnapshotVersion | null> {
   const response = await apiClient.get(
     "/api/v1/stock-report/snapshots/versions/active",
     ActiveVersionResponse,
+    { priority: progressPriorityParam(priorities) },
   );
   return response.data.stock_report_snapshot_version;
 }
@@ -107,15 +126,24 @@ export type StockReportVersionPage = {
   offset: number;
 };
 
-/** §5.9 — newest first; `limit` is capped at 200 by the backend. */
-export async function fetchStockReportVersions(params: {
+/**
+ * §5.9 — newest first; `limit` is capped at 200 by the backend. `priorities`
+ * selects the snapshots each row's `progress` sums; the rows themselves are
+ * never filtered.
+ */
+export async function fetchStockReportVersions({
+  limit,
+  offset,
+  priorities = STOCK_REPORT_PROGRESS_PRIORITIES,
+}: {
   limit: number;
   offset: number;
+  priorities?: StockReportProgressPriorityFilter;
 }): Promise<StockReportVersionPage> {
   const response = await apiClient.get(
     "/api/v1/stock-report/snapshots/versions",
     VersionListResponse,
-    params,
+    { limit, offset, priority: progressPriorityParam(priorities) },
   );
   const pagination = response.data.stock_report_snapshot_versions_pagination;
   return {
@@ -132,13 +160,13 @@ export async function fetchStockReportVersions(params: {
  * refetch the active version rather than seeding it from here.
  */
 export async function createStockReportVersion(): Promise<
-  Omit<StockReportSnapshotVersion, "progress">
+  Omit<StockReportSnapshotVersion, "progress" | "filtered_snapshot_count">
 > {
   const response = await apiClient.post(
     "/api/v1/stock-report/snapshots/versions",
     Envelope(
       z.object({
-        stock_report_snapshot_version: StockReportSnapshotVersionSchema.omit({ progress: true }),
+        stock_report_snapshot_version: StockReportSnapshotVersionSchema.omit({ progress: true, filtered_snapshot_count: true }),
       }),
     ),
     // `undefined` sends no body at all — the route takes none (§5.8).

@@ -90,14 +90,28 @@ describe("stock-report API adapters", () => {
     await expect(fetchStockReportMissingSummary()).resolves.toEqual({ quantity_missing_total: 7, items_with_missing: 3 });
     await expect(createStockReportVersion()).resolves.toEqual({ client_id: "srv-2" });
 
+    // Both version reads carry the progress filter; omitted, the backend would
+    // sum the null-priority snapshots only. Three priorities by default.
     expect(client.get.mock.calls.map((call) => [call[0], call[2]])).toEqual([
-      ["/api/v1/stock-report/snapshots/versions/active", undefined],
-      ["/api/v1/stock-report/snapshots/versions", { limit: 20, offset: 40 }],
+      ["/api/v1/stock-report/snapshots/versions/active", { priority: "high,medium,low" }],
+      ["/api/v1/stock-report/snapshots/versions", { limit: 20, offset: 40, priority: "high,medium,low" }],
       ["/api/v1/stock-report/snapshots/missing-summary", undefined],
     ]);
     // §5.8: no body at all.
     expect(client.post.mock.calls[0]?.[0]).toBe("/api/v1/stock-report/snapshots/versions");
     expect(client.post.mock.calls[0]?.[2]).toBeUndefined();
+  });
+
+  it("sends an explicit progress filter as a comma list, and `all` alone", async () => {
+    client.get
+      .mockResolvedValueOnce({ data: { stock_report_snapshot_version: null } })
+      .mockResolvedValueOnce({ data: { stock_report_snapshot_versions: [], stock_report_snapshot_versions_pagination: { has_more: false, limit: 20, offset: 0 } } });
+
+    await fetchActiveStockReportVersion(["high"]);
+    await fetchStockReportVersions({ limit: 20, offset: 0, priorities: "all" });
+
+    expect(client.get.mock.calls[0]?.[2]).toEqual({ priority: "high" });
+    expect(client.get.mock.calls[1]?.[2]).toEqual({ limit: 20, offset: 0, priority: "all" });
   });
 
   it("sends the missing quantity as an absolute strict integer", async () => {

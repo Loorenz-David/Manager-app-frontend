@@ -61,17 +61,25 @@ describe("StockReportDetailView — header", () => {
     );
   });
 
-  it("shows the goal, the criteria, the bar and the legend", () => {
-    renderDetail();
+  it("shows the goal, the criteria and the bar, with the legend behind a button", () => {
+    const onOpenLegend = vi.fn();
+    renderDetail({ onOpenLegend });
 
     expect(
       screen.getByTestId("stock-report-summary-panel-quantity"),
     ).toHaveTextContent("30");
     expect(screen.getByText("Oak")).toBeInTheDocument();
     expect(screen.getByTestId("stock-report-summary-bar")).toBeInTheDocument();
-    expect(screen.getByText("Fulfilled")).toBeInTheDocument();
-    expect(screen.getByText("In progress")).toBeInTheDocument();
-    expect(screen.getByText("In queue")).toBeInTheDocument();
+    // The legend moved to its own sheet (owner, 2026-09-26): nothing inline.
+    expect(screen.queryByText("Fulfilled")).toBeNull();
+    fireEvent.click(screen.getByTestId("stock-report-summary-legend-button"));
+    expect(onOpenLegend).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows no legend control when the page supplies no opener", () => {
+    renderDetail();
+
+    expect(screen.queryByTestId("stock-report-summary-legend-button")).toBeNull();
   });
 });
 

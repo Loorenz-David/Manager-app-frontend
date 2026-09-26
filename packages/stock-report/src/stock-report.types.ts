@@ -214,6 +214,13 @@ export const StockReportSnapshotVersionSchema = z.object({
   active_at: z.string(),
   closed_at: NullableString,
   snapshot_count: z.number(),
+  /**
+   * `snapshot_count` under the read's `priority` filter (backend
+   * `_version_progress.py`, owner 2026-09-26): the snapshots whose progress
+   * this payload sums, deleted rows included. It is what every card shows as
+   * the version's size; the unfiltered `snapshot_count` is kept but unread.
+   */
+  filtered_snapshot_count: z.number(),
   created_at: z.string(),
   created_by_id: NullableString,
   closed_by_id: NullableString,
@@ -367,10 +374,16 @@ export function toStockReportItemViewModel(
 export type StockReportVersionGroupProgress = {
   completed: number;
   target: number;
-  /** `completed / target` in percent, or `null` when nothing is prioritised. */
+  /** `completed / target` in percent, or `null` when the group has no snapshot. */
   percent: number | null;
   itemsCompleted: number;
   itemsTotal: number;
+  /**
+   * The same five numbers a stock-need card draws, so a version bar shows
+   * work under way and queued, not only what is done (owner, 2026-09-26: a
+   * unit in progress must be visible on the hub card).
+   */
+  quantities: FulfilmentQuantities;
 };
 
 export type StockReportVersionViewModel = StockReportSnapshotVersion & {
@@ -389,11 +402,24 @@ function toGroupProgress(
   return {
     completed,
     target,
-    // §6.8: the bar is completed / target; a zero target means nothing has
-    // been prioritised yet, which is a state to render, not a division.
-    percent: target > 0 ? Math.min(100, (completed / target) * 100) : null,
+    // §6.8: the count is completed / target. A group without a snapshot has
+    // nothing prioritised — a state to render, not a division. A group whose
+    // whole target is missing is 0 of 0, with an amber bar to say why.
+    percent:
+      target > 0
+        ? Math.min(100, (completed / target) * 100)
+        : counters.items_total > 0
+          ? 0
+          : null,
     itemsCompleted: counters.items_completed,
     itemsTotal: counters.items_total,
+    quantities: {
+      requested: Math.max(0, counters.quantity_requested),
+      fulfilled: completed,
+      inProgress: Math.max(0, counters.quantity_in_progress),
+      inQueue: Math.max(0, counters.quantity_in_queue),
+      missing: Math.max(0, counters.quantity_missing),
+    },
   };
 }
 
@@ -435,9 +461,8 @@ function toTaskState(value: string): TaskState {
  *     and rides with the two resolved states.
  *  2. The rest follow the fulfilment bar sitting directly above the list, so a
  *     green segment is backed by green pills. `in_queue` has no task-state
- *     counterpart and the bar's teal has no pill (owner, 2026-09-26: amber now
- *     means *missing*), so it wears `standby` — the pill for "waiting its
- *     turn", which is what queued means.
+ *     counterpart and is deliberately neutral: it is allocated but static,
+ *     not active or accomplished.
  *
  * Anything unrecognised stays neutral — the deliberate degrade from intention
  * §8.1, which keeps an unknown state from blanking the list.
@@ -470,8 +495,8 @@ function assignmentStatePill(state: string): NonNullable<TaskListCardProps["stat
     return { label, variant: TASK_STATE_VARIANT.ready };
   }
   if (state === "in_progress") return { label, variant: TASK_STATE_VARIANT.working };
-  // No task state means "queued"; standby is the waiting pill.
-  if (state === "in_queue") return { label, variant: "standby" };
+  // Queued work is static, so keep it neutral rather than implying progress.
+  if (state === "in_queue") return { label, variant: "neutral" };
   return { label, variant: "neutral" };
 }
 

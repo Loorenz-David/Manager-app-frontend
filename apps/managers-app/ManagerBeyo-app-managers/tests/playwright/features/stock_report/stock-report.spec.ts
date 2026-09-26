@@ -39,6 +39,7 @@ function version(clientId: string, activeAt: Date, closedAt: Date | null) {
     active_at: activeAt.toISOString(),
     closed_at: closedAt ? closedAt.toISOString() : null,
     snapshot_count: 2,
+    filtered_snapshot_count: 1,
     created_at: activeAt.toISOString(),
     created_by_id: "usr_1",
     closed_by_id: null,
@@ -104,8 +105,11 @@ async function mockStockReport(page: Page, missingTotal: number): Promise<Scenar
   await page.route("**/api/v1/stock-report/snapshots/missing-summary", (route) =>
     route.fulfill(envelope({ quantity_missing_total: scenario.missingTotal, items_with_missing: scenario.missingTotal > 0 ? 1 : 0 })),
   );
-  await page.route("**/api/v1/stock-report/snapshots/versions/active", (route) =>
-    route.fulfill(envelope({ stock_report_snapshot_version: active })),
+  // Both version reads carry `?priority=high,medium,low`, so they match on the
+  // pathname rather than a glob that would have to end at the query string.
+  await page.route(
+    (url) => url.pathname.endsWith("/api/v1/stock-report/snapshots/versions/active"),
+    (route) => route.fulfill(envelope({ stock_report_snapshot_version: active })),
   );
   // `?` is a glob wildcard in Playwright, so the paginated list and the POST
   // share one predicate route and branch on the method.
@@ -114,7 +118,9 @@ async function mockStockReport(page: Page, missingTotal: number): Promise<Scenar
     (route) => {
       if (route.request().method() === "POST") {
         scenario.createCalls += 1;
-        const { progress: _progress, ...bare } = version("srv_2", new Date(), null);
+        // §5.8: the created row carries no `progress`; `undefined` is dropped
+        // by JSON serialisation, so the wire body omits the key.
+        const bare = { ...version("srv_2", new Date(), null), progress: undefined };
         return route.fulfill(envelope({ stock_report_snapshot_version: bare }));
       }
       return route.fulfill(
@@ -141,9 +147,15 @@ test.describe("Stock report — manager hub", () => {
 
   test("shows the active version's progress by priority and hides the missing row at zero", async ({ auth, page }) => {
     await mockStockReport(page, 0);
+    const activeVersionRequest = page.waitForRequest((request) =>
+      new URL(request.url()).pathname.endsWith("/api/v1/stock-report/snapshots/versions/active"),
+    );
     await auth.signIn();
     await openHub(page);
 
+    // The hub's progress sums the three prioritised groups; omitted, the
+    // backend would count the null-priority snapshots instead.
+    expect(new URL((await activeVersionRequest).url()).searchParams.get("priority")).toBe("high,medium,low");
     await expect(page.getByTestId("stock-version-age")).toContainText("2 days running");
     await expect(page.getByTestId("stock-version-progress-high-count")).toHaveText("2/5");
     await expect(page.getByTestId("stock-report-hub-open-missing")).toHaveCount(0);

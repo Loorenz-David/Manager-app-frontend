@@ -171,6 +171,8 @@ export function wireStockReportSnapshotVersion(
     active_at: "2026-09-24T08:00:00+00:00",
     closed_at: null,
     snapshot_count: 12,
+    // 3 under the default `high,medium,low` filter — the progress's rows.
+    filtered_snapshot_count: 3,
     created_at: "2026-09-24T08:00:00+00:00",
     created_by_id: "usr-1",
     closed_by_id: null,

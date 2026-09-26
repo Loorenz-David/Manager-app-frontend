@@ -44,3 +44,14 @@ export function formatVersionAge(
   if (days === 0) return "Closed the same day";
   return days === 1 ? "Ran 1 day" : `Ran ${days} days`;
 }
+
+/**
+ * A version card's size line: the units its selected snapshots asked for
+ * (`progress.quantity_requested`, under the read's `priority` filter). The
+ * owner chose this over the snapshot count on 2026-09-26 — a version is
+ * measured by what it set out to produce, not by how many rows it froze.
+ */
+export function formatVersionRequested(quantityRequested: number): string {
+  const units = Math.max(0, quantityRequested);
+  return `${units} ${units === 1 ? "unit" : "units"} requested`;
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatVersionAge, versionDaysRunning } from "./version-age";
+import { formatVersionAge, formatVersionRequested, versionDaysRunning } from "./version-age";
 
 const NOON_26 = new Date(2026, 8, 26, 12, 0, 0).getTime();
 const local = (day: number, hour = 9) => new Date(2026, 8, day, hour, 0, 0).toISOString();
@@ -39,5 +39,14 @@ describe("formatVersionAge", () => {
   it("degrades to a bare word rather than 'NaN days' on a bad date", () => {
     expect(formatVersionAge("nope", null, NOON_26)).toBe("Running");
     expect(formatVersionAge("nope", local(23), NOON_26)).toBe("Closed");
+  });
+});
+
+describe("formatVersionRequested", () => {
+  it("counts the units a version asked for, singular at one, never negative", () => {
+    expect(formatVersionRequested(19)).toBe("19 units requested");
+    expect(formatVersionRequested(1)).toBe("1 unit requested");
+    expect(formatVersionRequested(0)).toBe("0 units requested");
+    expect(formatVersionRequested(-3)).toBe("0 units requested");
   });
 });

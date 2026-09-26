@@ -41,7 +41,7 @@ export {
 } from "./stock-report.types";
 export { missingQuantityBounds } from "./lib/missing-quantity";
 export type { MissingQuantityBounds } from "./lib/missing-quantity";
-export { formatVersionAge, versionDaysRunning } from "./lib/version-age";
+export { formatVersionAge, formatVersionRequested, versionDaysRunning } from "./lib/version-age";
 
 export {
   COLOURED_BUDGET_PERCENT,
@@ -121,6 +121,8 @@ export { StockReportActionsSheetContent } from "./components/sheets/StockReportA
 export type { StockReportActionsSheetContentProps } from "./components/sheets/StockReportActionsSheetContent";
 export { StockReportDetailMenuSheetContent } from "./components/sheets/StockReportDetailMenuSheetContent";
 export type { StockReportDetailMenuSheetContentProps } from "./components/sheets/StockReportDetailMenuSheetContent";
+export { StockReportLegendSheetContent } from "./components/sheets/StockReportLegendSheetContent";
+export type { StockReportLegendSheetContentProps } from "./components/sheets/StockReportLegendSheetContent";
 export { StockMatchWarningSheetContent } from "./components/sheets/StockMatchWarningSheetContent";
 export type { StockMatchWarningSheetContentProps } from "./components/sheets/StockMatchWarningSheetContent";
 export {
@@ -139,6 +141,11 @@ export function loadStockReportRouteEntryPage() {
   return import("./route-entry").then((module) => ({ default: module.StockReportRouteEntryPage }));
 }
 export { stockReportKeys } from "./api/stock-report-keys";
+export {
+  STOCK_REPORT_PROGRESS_PRIORITIES,
+  progressPriorityParam,
+} from "./api/stock-report-api";
+export type { StockReportProgressPriorityFilter } from "./api/stock-report-api";
 export {
   useStockReportListQuery,
   useStockReportAssignmentsQuery,
@@ -171,12 +178,14 @@ export {
   STOCK_REPORT_MISSING_SURFACE_ID,
   STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
   STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
+  STOCK_REPORT_LEGEND_SURFACE_ID,
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
   preloadStockReportBoardSurface,
   preloadStockReportMissingSurface,
   preloadStockReportVersionHistorySurface,
   preloadStockReportDetailMenuSurface,
+  preloadStockReportLegendSurface,
 } from "./surface-ids";
 export type {
   StockReportDetailSurfaceProps,
@@ -188,6 +197,7 @@ export type {
   StockReportMissingSurfaceProps,
   StockReportVersionHistorySurfaceProps,
   StockReportDetailMenuSurfaceProps,
+  StockReportLegendSurfaceProps,
 } from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------

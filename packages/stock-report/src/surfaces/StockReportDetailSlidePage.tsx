@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { skipToken, useQuery, useQueryClient } from "@tanstack/react-query";
 import { notify } from "@beyo/lib";
-import { useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
+import { usePreloadSurface, useSurface, useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
 
 import {
   stockAssignmentMismatchFailures,
@@ -15,6 +15,10 @@ import {
   useSetStockReportMissingQuantity,
 } from "../actions/use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
+import {
+  stockReportListItems,
+  type StockReportItemListData,
+} from "../api/stock-report-list-cache";
 import { StockReportDetailView } from "../components/detail/StockReportDetailView";
 import { useStockAssignmentGate } from "../hooks/use-stock-assignment-gate";
 import { missingQuantityBounds } from "../lib/missing-quantity";
@@ -25,6 +29,8 @@ import {
   STOCK_REPORT_ACTIONS_SURFACE_ID,
   STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
   STOCK_REPORT_DETAIL_SURFACE_ID,
+  STOCK_REPORT_LEGEND_SURFACE_ID,
+  preloadStockReportLegendSurface,
   type StockReportDetailSurfaceProps,
 } from "../surface-ids";
 import {
@@ -46,6 +52,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   const createAssignment = useCreateStockAssignment();
   const removeAssignment = useRemoveStockAssignment(stockNeedId);
   const setMissing = useSetStockReportMissingQuantity();
+  usePreloadSurface(preloadStockReportLegendSurface);
   // There is no single-row endpoint, so the page's own entry is seeded from
   // whichever list opened it and never fetched (`skipToken`); the mutations
   // and socket handlers keep it true. That is what keeps the page reactive
@@ -60,8 +67,8 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
     gcTime: Number.POSITIVE_INFINITY,
   });
   const listRow = queryClient
-    .getQueriesData<StockReportItem[]>({ queryKey: stockReportKeys.lists() })
-    .flatMap(([, rows]) => rows ?? [])
+    .getQueriesData<StockReportItemListData>({ queryKey: stockReportKeys.lists() })
+    .flatMap(([, data]) => stockReportListItems(data))
     .find((item) => item.client_id === stockNeedId);
   const row = detail.data ?? listRow;
   useEffect(() => {
@@ -257,6 +264,9 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
                 });
             }
           : undefined
+      }
+      onOpenLegend={() =>
+        open(STOCK_REPORT_LEGEND_SURFACE_ID, { quantities: viewModel.card.quantities })
       }
       onTapCard={openers.openTaskDetail}
       onTapImage={(taskId) => {

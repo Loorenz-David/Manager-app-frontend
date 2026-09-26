@@ -7,6 +7,9 @@ import {
   fetchStockReportItems,
   fetchStockReportMissingSummary,
   fetchStockReportVersions,
+  progressPriorityParam,
+  STOCK_REPORT_PROGRESS_PRIORITIES,
+  type StockReportProgressPriorityFilter,
 } from "./stock-report-api";
 import { stockReportKeys } from "./stock-report-keys";
 import { trimStockReportListQueriesToFirstPage } from "./stock-report-list-cache";
@@ -43,19 +46,29 @@ export function prefetchStockReportAssignmentsData(queryClient: QueryClient, sto
   return queryClient.prefetchQuery({ queryKey: stockReportKeys.assignmentList(stockNeedId), queryFn: () => fetchStockReportAssignments(stockNeedId), staleTime: STOCK_REPORT_STALE_TIME });
 }
 
-export function useStockReportActiveVersionQuery() {
-  return useQuery({ queryKey: stockReportKeys.activeVersion(), queryFn: fetchActiveStockReportVersion, staleTime: STOCK_REPORT_STALE_TIME });
+/** `priorities` selects the snapshots `progress` sums; the three priorities by default (owner, 2026-09-26). */
+export function useStockReportActiveVersionQuery(priorities: StockReportProgressPriorityFilter = STOCK_REPORT_PROGRESS_PRIORITIES) {
+  const progressPriority = progressPriorityParam(priorities);
+  return useQuery({
+    queryKey: stockReportKeys.activeVersion(progressPriority),
+    queryFn: () => fetchActiveStockReportVersion(priorities),
+    staleTime: STOCK_REPORT_STALE_TIME,
+  });
 }
 
 export function useStockReportMissingSummaryQuery() {
   return useQuery({ queryKey: stockReportKeys.missingSummary(), queryFn: fetchStockReportMissingSummary, staleTime: STOCK_REPORT_STALE_TIME });
 }
 
-/** Offset pagination: the next page starts where the last one's `offset + limit` ends. */
-export function useStockReportVersionsQuery() {
+/**
+ * Offset pagination: the next page starts where the last one's `offset + limit`
+ * ends. `priorities` selects the snapshots each row's `progress` sums.
+ */
+export function useStockReportVersionsQuery(priorities: StockReportProgressPriorityFilter = STOCK_REPORT_PROGRESS_PRIORITIES) {
+  const progressPriority = progressPriorityParam(priorities);
   return useInfiniteQuery({
-    queryKey: stockReportKeys.versionList(),
-    queryFn: ({ pageParam }) => fetchStockReportVersions({ limit: STOCK_REPORT_VERSION_PAGE_SIZE, offset: pageParam }),
+    queryKey: stockReportKeys.versionList(progressPriority),
+    queryFn: ({ pageParam }) => fetchStockReportVersions({ limit: STOCK_REPORT_VERSION_PAGE_SIZE, offset: pageParam, priorities }),
     initialPageParam: 0,
     getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.offset + lastPage.limit : undefined),
     staleTime: STOCK_REPORT_STALE_TIME,

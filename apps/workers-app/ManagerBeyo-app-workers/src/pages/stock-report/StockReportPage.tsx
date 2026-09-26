@@ -20,5 +20,5 @@ export function StockReportPage(): React.JSX.Element {
     openTaskDetail: (taskId) => open(TASK_DETAIL_SURFACE_ID, { taskId }),
     openImageViewer,
     openMatchWarning: (props) => open(STOCK_MATCH_WARNING_SURFACE_ID, props, { dismissible: false }),
-  }}><StockReportRouteEntry /></StockReportOpenersProvider></Suspense></div>;
+  }}><StockReportRouteEntry controlsClassName="pt-4.5" /></StockReportOpenersProvider></Suspense></div>;
 }

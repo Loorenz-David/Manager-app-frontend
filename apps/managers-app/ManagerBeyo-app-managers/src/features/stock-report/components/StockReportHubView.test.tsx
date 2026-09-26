@@ -35,11 +35,12 @@ const activeVersion: StockReportSnapshotVersion = {
   active_at: new Date(2026, 8, 24, 9).toISOString(),
   closed_at: null,
   snapshot_count: 12,
+  filtered_snapshot_count: 3,
   created_at: new Date(2026, 8, 24, 9).toISOString(),
   created_by_id: "usr-1",
   closed_by_id: null,
   progress: {
-    ...counters({ items_total: 3, items_completed: 1, quantity_target: 19, quantity_completed: 9 }),
+    ...counters({ items_total: 3, items_completed: 1, quantity_requested: 19, quantity_target: 19, quantity_completed: 9 }),
     by_priority: {
       high: counters({ items_total: 2, quantity_target: 12, quantity_completed: 8 }),
       medium: counters({ items_total: 1, quantity_target: 7, quantity_completed: 1 }),
@@ -72,7 +73,8 @@ describe("StockReportHubView", () => {
   it("shows the active version's age and its progress per priority, and opens the board on tap", () => {
     const handlers = renderHub();
 
-    expect(screen.getByTestId("stock-version-age")).toHaveTextContent("2 days running · 12 stock needs");
+    // The size is the filtered requested total, not either snapshot count.
+    expect(screen.getByTestId("stock-version-age")).toHaveTextContent("2 days running · 19 units requested");
     expect(screen.getByTestId("stock-version-progress-high-count")).toHaveTextContent("8/12");
     expect(screen.getByTestId("stock-version-progress-medium-count")).toHaveTextContent("1/7");
     // A group with nothing prioritised shows no fraction at all.

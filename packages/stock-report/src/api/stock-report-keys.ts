@@ -38,9 +38,19 @@ export const stockReportKeys = {
   assignments: () => [...stockReportKeys.all, "assignments"] as const,
   assignmentList: (stockNeedId: string) => [...stockReportKeys.assignments(), stockNeedId] as const,
   versions: () => [...stockReportKeys.all, "versions"] as const,
-  /** The paginated history (§5.9), newest first. */
-  versionList: () => [...stockReportKeys.versions(), "list"] as const,
+  /**
+   * The paginated history (§5.9), newest first. `progressPriority` is the wire
+   * form of the progress filter (`high,medium,low` / `all`); omitted, the key
+   * is the prefix every invalidation targets.
+   */
+  versionList: (progressPriority?: string) =>
+    progressPriority === undefined
+      ? ([...stockReportKeys.versions(), "list"] as const)
+      : ([...stockReportKeys.versions(), "list", progressPriority] as const),
   /** The active version with its live progress (§5.12); `null` before the first one. */
-  activeVersion: () => [...stockReportKeys.versions(), "active"] as const,
+  activeVersion: (progressPriority?: string) =>
+    progressPriority === undefined
+      ? ([...stockReportKeys.versions(), "active"] as const)
+      : ([...stockReportKeys.versions(), "active", progressPriority] as const),
   missingSummary: () => [...stockReportKeys.all, "missing-summary"] as const,
 };

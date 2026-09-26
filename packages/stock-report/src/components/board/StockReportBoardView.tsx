@@ -1,3 +1,4 @@
+import { cn } from "@beyo/lib";
 import type { ReactNode } from "react";
 import { PullToRefresh } from "@beyo/ui";
 
@@ -23,6 +24,12 @@ export type StockReportBoardViewProps = {
    * 2026-09-26).
    */
   header?: ReactNode;
+  /**
+   * Classes for the bucket-picker / search block, e.g. a top inset. The
+   * shared view carries none: a tab page adds its own (owner, 2026-09-26),
+   * and the slide pages' in-scroll header row already spaces it.
+   */
+  controlsClassName?: string;
   buckets: readonly StockReportBoardBucket[];
   bucket: StockReportBoardBucket;
   onBucketChange: (bucket: StockReportBoardBucket) => void;
@@ -59,6 +66,7 @@ export type StockReportBoardViewProps = {
 
 export function StockReportBoardView({
   header,
+  controlsClassName,
   buckets,
   bucket,
   onBucketChange,
@@ -106,7 +114,7 @@ export function StockReportBoardView({
       >
         <div>
           {header}
-          <div className="flex flex-col gap-3.5 px-4 pt-4.5">
+          <div className={cn("flex flex-col gap-3.5 px-4", controlsClassName)}>
             <StockReportBucketPicker
               buckets={buckets}
               value={bucket}

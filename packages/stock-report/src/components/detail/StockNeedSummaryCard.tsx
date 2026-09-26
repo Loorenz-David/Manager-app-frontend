@@ -1,5 +1,6 @@
+import { Info } from "lucide-react";
+
 import { FulfilmentBar } from "../board/FulfilmentBar";
-import { FulfilmentLegend } from "../board/FulfilmentLegend";
 import { StockNeedPropertyTags } from "../board/StockNeedPropertyTags";
 import { StockNeedQuantityPanel } from "../board/StockNeedQuantityPanel";
 import type { FulfilmentQuantities } from "../../stock-report.types";
@@ -10,11 +11,16 @@ export type StockNeedSummaryCardProps = {
   imageUrl: string | null;
   propertyTags: readonly string[];
   quantities: FulfilmentQuantities;
+  /** Opens the bar's legend sheet; without it the card shows no legend control. */
+  onOpenLegend?: () => void;
 };
 
 /**
  * The detail page's header card: the list card's anatomy promoted to summary
- * scale — 82 px quantity panel, tags, a taller bar, and the legend.
+ * scale — 82 px quantity panel, tags, a taller bar — and, right-aligned under
+ * the bar in its own column, a small control that opens the legend as a sheet
+ * (owner, 2026-09-26). The legend used to sit here inline; it wrapped beside
+ * the panel, and the sheet can show the bar above its rows instead.
  *
  * It deliberately does **not** repeat the category name: the slide surface's
  * own header carries it (intention §6.2), which is also why this page has no
@@ -25,6 +31,7 @@ export function StockNeedSummaryCard({
   imageUrl,
   propertyTags,
   quantities,
+  onOpenLegend,
 }: StockNeedSummaryCardProps): React.JSX.Element {
   return (
     <div
@@ -51,7 +58,19 @@ export function StockNeedSummaryCard({
           quantities={quantities}
           size="summary"
         />
-        <FulfilmentLegend />
+        {onOpenLegend ? (
+          <div className="flex justify-end">
+            <button
+              className="flex min-h-8 items-center gap-1.5 rounded-full px-2 text-[11px] font-semibold tracking-wide text-muted-foreground hover:bg-muted"
+              data-testid="stock-report-summary-legend-button"
+              type="button"
+              onClick={onOpenLegend}
+            >
+              <Info aria-hidden="true" className="size-3.5 shrink-0" />
+              Legend
+            </button>
+          </div>
+        ) : null}
       </div>
     </div>
   );

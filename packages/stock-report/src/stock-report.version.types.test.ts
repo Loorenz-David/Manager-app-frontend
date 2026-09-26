@@ -22,6 +22,19 @@ describe("version view model", () => {
     expect(model.totalProgress.percent).toBeCloseTo((9 / 19) * 100, 6);
     expect(model.byPriority.high).toMatchObject({ completed: 8, target: 12 });
     expect(model.byPriority.medium.percent).toBeCloseTo((1 / 7) * 100, 6);
+    // The bar's five numbers: done is the completed count, the rest are the
+    // group's live counters, so in-progress work shows before completion.
+    expect(model.byPriority.medium.quantities).toEqual({ requested: 7, fulfilled: 1, inProgress: 0, inQueue: 0, missing: 0 });
+  });
+
+  it("counts a fully-missing group as 0 of 0, not as nothing prioritised", () => {
+    const allMissing = wireStockReportVersionCounters({ items_total: 1, quantity_requested: 4, quantity_missing: 4, quantity_target: 0 });
+    const version = StockReportSnapshotVersionSchema.parse(wireStockReportSnapshotVersion({ progress: wireStockReportVersionProgress({ ...allMissing, by_priority: { high: allMissing, medium: wireStockReportVersionCounters(), low: wireStockReportVersionCounters() } }) }));
+    const model = toStockReportVersionViewModel(version, NOW);
+
+    expect(model.byPriority.high.percent).toBe(0);
+    expect(model.byPriority.high.quantities.missing).toBe(4);
+    expect(model.byPriority.medium.percent).toBeNull();
   });
 
   it("renders a zero target as 'nothing prioritised', never as a division", () => {

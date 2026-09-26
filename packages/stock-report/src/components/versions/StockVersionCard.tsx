@@ -1,6 +1,7 @@
 import { formatShortDate } from "@beyo/lib";
 import { StatePill } from "@beyo/ui";
 
+import { formatVersionRequested } from "../../lib/version-age";
 import type { StockReportVersionViewModel } from "../../stock-report.types";
 import { StockVersionProgressBar } from "./StockVersionProgressBar";
 
@@ -9,14 +10,15 @@ export type StockVersionCardProps = {
 };
 
 /**
- * One history entry: when the version ran, how long, how many rows it froze,
+ * One history entry: when the version ran, how long, how many units it asked for,
  * and its **total** progress — the history deliberately does not split by
  * priority (owner, 2026-09-26); the hub card does that for the active one.
  */
 export function StockVersionCard({ version }: StockVersionCardProps): React.JSX.Element {
   const { totalProgress } = version;
   const dateRange = formatShortDate(version.active_at, version.closed_at) ?? "";
-  const snapshotCount = `${version.snapshot_count} stock ${version.snapshot_count === 1 ? "need" : "needs"}`;
+  // The size under the read's priority filter — what this progress is over.
+  const requested = formatVersionRequested(version.progress.quantity_requested);
 
   return (
     <article
@@ -28,7 +30,7 @@ export function StockVersionCard({ version }: StockVersionCardProps): React.JSX.
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">{dateRange}</p>
           <p className="text-sm text-muted-foreground">
-            {version.ageLabel} · {snapshotCount}
+            {version.ageLabel} · {requested}
           </p>
         </div>
         {version.isActive ? <StatePill label="Active" variant="active" /> : null}

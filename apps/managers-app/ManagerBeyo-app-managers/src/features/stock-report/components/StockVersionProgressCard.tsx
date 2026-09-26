@@ -2,6 +2,7 @@ import {
   STOCK_REPORT_PRIORITY,
   STOCK_NEED_BUCKET_LABEL,
   StockVersionProgressBar,
+  formatVersionRequested,
   type StockReportLoadStatus,
   type StockReportVersionViewModel,
 } from "@beyo/stock-report";
@@ -56,7 +57,7 @@ export function StockVersionProgressCard({
               {status === "error"
                 ? "Version could not be loaded"
                 : version
-                  ? `${version.ageLabel} · ${version.snapshot_count} stock ${version.snapshot_count === 1 ? "need" : "needs"}`
+                  ? `${version.ageLabel} · ${formatVersionRequested(version.progress.quantity_requested)}`
                   : "No version yet — open the first one to start"}
             </p>
           </div>

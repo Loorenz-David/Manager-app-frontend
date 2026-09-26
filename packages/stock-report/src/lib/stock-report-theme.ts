@@ -8,20 +8,21 @@
  *
  * **Owner revision, 2026-09-26.** The snapshot layer added `quantity_missing`
  * — units the buyer still has to find — and that *is* an alarm, so the bright
- * amber moved from the queue to the new missing segment and the queue took a
- * teal, one step before in-progress blue. The hues are now:
+ * amber moved from the queue to the new missing segment. The queue originally
+ * took a teal, but that read too much like a positive/confirmed state for work
+ * that has not started. It is now neutral grey. The hues are:
  *
- *   - **fulfilled → green.** Done is done; green says so without shouting.
+ *   - **fulfilled → bright green.** Done is done; the lighter, cleaner green
+ *     reads as accomplished without looking muddy.
  *   - **in progress → blue.** Active, calm, and plainly not a warning.
- *   - **in queue → teal.** Waiting its turn: next to blue on the wheel because
- *     it is the step before it, and not amber because nothing is wrong.
+ *   - **in queue → grey.** Allocated but static: distinct from both the blue
+ *     active state and the green accomplished state.
  *   - **missing → amber.** A warning to the manager: this much cannot be
  *     covered from stock and someone has to go and find it.
  *   - **remaining → grey.** Unchanged: grey is always "not yet".
  *
  * The fills stay inside the app's palette where one exists (the amber trio is
- * `@beyo/ui`'s `StatePill` warning), darkened to carry a white numeral — see
- * `SEGMENT_FILL_CLASS` for the contrast ceiling that sets how dark.
+ * `@beyo/ui`'s `StatePill` warning), and all carry a white numeral.
  *
  * Complete class strings, never assembled — Tailwind's scanner reads this file
  * (it is registered with `@source`) and would miss anything interpolated.
@@ -33,27 +34,29 @@
  * **Tune the intensity here.** Saturated mid-tones, not tinted or shaded ones:
  * the colour is carried by chroma rather than by darkness (owner, 2026-09-22).
  * An earlier pass darkened the pastels by mixing them toward grey, which hit
- * the contrast target but drained the hue and read as a dark overlay. These sit
- * in the same luminance band — the white numeral needs that much — but with the
- * chroma pushed up instead of the lightness pulled down.
+ * the contrast target but drained the hue and read as a dark overlay. The
+ * darker segments sit in the same luminance band. Fulfilled and missing are
+ * deliberately brighter exceptions so their hues stay clean rather than muddy.
  *
  * The limit is legibility, and with a white numeral it works the opposite way
  * round from a dark one: white needs the fill to be **dark enough**. At 11 px
  * bold the number counts as ordinary text, so it needs 4.5:1, which puts a
  * *ceiling* on the fill's relative luminance of about **0.18**:
  *
- *   - `fulfilled`  `#1a8048` — 5.0:1 with white
+ *   - `fulfilled`  `#16a34a` — 3.3:1 with white, **below AA by the owner's
+ *     decision, 2026-09-26**: the brighter green and white numeral are kept
+ *     together for visual consistency with the other segments.
  *   - `inProgress` `#1b6ec2` — 5.2:1
- *   - `inQueue`    `#11827a` — 4.6:1; the brightest teal that still clears AA
+ *   - `inQueue`    `#6b7280` — 4.8:1; neutral grey, because queued is static
  *   - `missing`    `#d99e0b` — 2.4:1 with white, **below AA by the owner's
  *     decision, 2026-09-22** (it was the queue's amber then): the amber was
  *     wanted bright and the numeral white, and the two cannot both hold.
  *     Raised twice with the numbers; this is the trade the owner chose, not an
  *     oversight. Darkening this fill is what buys the contrast back.
  *
- * Saturating further is mostly free; lightening is not. Green and amber are the
- * ones to watch — green weighs heaviest in the luminance formula, and amber is
- * bright by nature, so both run out of contrast well before blue or teal do.
+ * Saturating further is mostly free; lightening a white-ink segment is not.
+ * Amber is the one to watch: it is bright by nature and runs out of contrast
+ * well before blue does.
  *
  * Amber is the awkward one, and it is worth knowing why. Its *hue* wants to sit
  * near 45°, where there is real yellow in it; drift down toward 35° and it
@@ -62,9 +65,9 @@
  * it browns. The owner chose the colour over the contrast, twice.
  */
 export const SEGMENT_FILL_CLASS = {
-  fulfilled: "bg-[#1a8048]",
+  fulfilled: "bg-[#16a34a]",
   inProgress: "bg-[#1b6ec2]",
-  inQueue: "bg-[#11827a]",
+  inQueue: "bg-[#6b7280]",
   missing: "bg-[#d99e0b]",
 } as const;
 

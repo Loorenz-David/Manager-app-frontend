@@ -38,6 +38,9 @@ export type StockReportDetailViewProps = {
 
   /** The stock need disappeared while this page was open (intention §6.2). */
   isMissing?: boolean;
+
+  /** Opens the fulfilment bar's legend sheet from the summary card. */
+  onOpenLegend?: () => void;
 };
 
 /**
@@ -64,6 +67,7 @@ export function StockReportDetailView({
   onTapImage,
   onTapActions,
   isMissing = false,
+  onOpenLegend,
 }: StockReportDetailViewProps): React.JSX.Element {
   if (isMissing) {
     return (
@@ -93,6 +97,7 @@ export function StockReportDetailView({
               propertyTags={propertyTags}
               quantities={quantities}
               title={title}
+              onOpenLegend={onOpenLegend}
             />
 
             {canAssign ? (

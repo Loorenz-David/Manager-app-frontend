@@ -120,11 +120,10 @@ const assignment = (state: string) =>
  * the task page.
  */
 describe("assignment state pill", () => {
-  it("colours every state the backend can send, none of them neutral", () => {
-    // The six states of intention §4.2. Neutral is reserved for the degrade
-    // path, so a known state falling through to grey is the bug this catches.
+  it("colours every non-queue state the backend can send", () => {
+    // Queued is intentionally neutral because it is static. Every state that
+    // conveys activity, completion, or failure must still carry that meaning.
     for (const state of [
-      "in_queue",
       "in_progress",
       "awaiting",
       "resolved",
@@ -176,10 +175,10 @@ describe("assignment state pill", () => {
     }
   });
 
-  it("gives queued work the waiting pill, not the amber that now means missing", () => {
+  it("gives queued work a neutral pill because it is static", () => {
     expect(
       toStockReportAssignmentCardData(assignment("in_queue")).statePill,
-    ).toEqual({ label: "In queue", variant: "standby" });
+    ).toEqual({ label: "In queue", variant: "neutral" });
   });
 
   it("keeps failure distinct from every other state", () => {

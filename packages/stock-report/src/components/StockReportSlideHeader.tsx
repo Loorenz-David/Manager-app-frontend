@@ -23,7 +23,7 @@ export function StockReportSlideHeader({
   "data-testid": testId = "stock-report-slide-back",
 }: StockReportSlideHeaderProps): React.JSX.Element {
   return (
-    <header className="flex min-h-14 shrink-0 items-center gap-3 px-4 py-3">
+    <header className="flex min-h-14 shrink-0 items-center gap-3 px-4 ">
       <button
         aria-label="Go back"
         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-muted"
@@ -33,8 +33,12 @@ export function StockReportSlideHeader({
       >
         ‹
       </button>
-      <h1 className="min-w-0 flex-1 truncate text-base font-semibold">{title}</h1>
-      {actions ? <div className="flex items-center gap-1">{actions}</div> : null}
+      <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
+        {title}
+      </h1>
+      {actions ? (
+        <div className="flex items-center gap-1">{actions}</div>
+      ) : null}
     </header>
   );
 }

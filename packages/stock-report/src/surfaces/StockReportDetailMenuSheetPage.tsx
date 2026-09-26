@@ -7,9 +7,13 @@ export function StockReportDetailMenuSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const props = useSurfaceProps<StockReportDetailMenuSurfaceProps>();
 
+  // Two self-explanatory rows need no heading (owner, 2026-09-26): the title
+  // still names the surface, but the sheet's header is not drawn.
   useEffect(() => {
     header?.setTitle("Stock need actions");
     header?.setActions(null);
+    header?.setHeaderHidden(true);
+    return () => header?.setHeaderHidden(false);
   }, [header]);
 
   return (
