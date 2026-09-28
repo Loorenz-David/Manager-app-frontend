@@ -76,6 +76,8 @@ backend, every board parse fails. There is no transition shim.
     only (R14).
   - Saving a scheduled draft, or promoting one, opens the activation sheet. The request goes out only
     after the choice there (OC-16, OC-17).
+  - The activation sheet is the confirmation: a blue info note (light blue, dark-blue text and border)
+    with one line about the choice, the keep/start-at-0 choice, then a plain one-tap button (owner, 2026-09-28).
   - While a request is pending, the back row and the swipe are locked (R13).
 - **Schedule sheet.** It shows `DayCalendar` and a native time input defaulting to 06:00, with **Clear** and
   **Confirm** at the bottom (owner, 2026-09-28).
@@ -89,7 +91,7 @@ backend, every board parse fails. There is no transition shim.
 - **Sheets.**
   - Version actions: rows by state, and they open the next surface then dismiss themselves (R19).
   - Requested quantity: saving a Scanner value pins it (v9 §5.22).
-  - Refresh confirmation: Keep typed values, or Replace typed values too (tap-again).
+  - Refresh confirmation: Keep typed values, or Replace typed values too (tap-again), under the same blue `StockInfoNote` as the activation sheet.
   - Activation, in two modes:
     - Direct, from the actions sheet: it pre-fills from the stored flag and never writes it.
     - Relay, from the form: it hands the choice back and sends nothing itself.
@@ -131,7 +133,7 @@ It covers 11 flows, each on mobile and desktop:
 - **Draft board:** `version_id` on the items request, and the ⋮.
 - **Scheduling:** Edit → next month's 15th → activation sheet → Keep the board's counts → `PATCH` with
   exactly the two schedule keys, landing at 06:00 in the browser's time zone.
-- **Activate:** Start at 0 → tap again → `POST …/activate { keep_active_missing: false }`, with no PATCH
+- **Activate:** Start at 0 → one tap on Activate now → `POST …/activate { keep_active_missing: false }`, with no PATCH
   of the stored flag, then the board closes.
 - **Delete:** tap again → `DELETE`, then the board closes.
 - **Draft detail:** Follow the live version → `{ quantity_missing: null }` on the versioned route.

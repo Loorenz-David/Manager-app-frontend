@@ -31,7 +31,7 @@ describe("StockReportRefreshSheetPage", () => {
   /** #22: the page cannot tell whether a row was typed by hand, so all three lines always show. */
   it("explains what a refresh does in three lines", () => {
     render(<StockReportRefreshSheetPage />);
-    expect(screen.getByTestId("stock-report-refresh-note").children).toHaveLength(3);
+    expect(screen.getByTestId("stock-report-refresh-note").querySelectorAll("p")).toHaveLength(3);
   });
 
   it("keeps typed values on one tap, and closes once the refresh is done", () => {

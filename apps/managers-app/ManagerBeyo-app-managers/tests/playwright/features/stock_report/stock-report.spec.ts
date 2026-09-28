@@ -477,7 +477,7 @@ test.describe("Stock report — draft versions", () => {
     await expect(page.getByTestId("stock-report-version-form-page")).toHaveCount(0);
   });
 
-  test("activates a draft now with Start at 0, behind a second tap, and closes its board", async ({ auth, page }) => {
+  test("activates a draft now with Start at 0 on one tap, and closes its board", async ({ auth, page }) => {
     const scenario = await mockStockReport(page);
     await auth.signIn();
     await openDraftActions(page);
@@ -489,9 +489,7 @@ test.describe("Stock report — draft versions", () => {
     await press(page, page.getByTestId("stock-keep-missing-reset"));
 
     const confirm = page.getByTestId("stock-report-activate-confirm");
-    await press(page, confirm);
-    await expect(confirm).toContainText("Tap again to activate");
-    expect(scenario.last("POST", "/snapshots/versions/srv_draft/activate")).toBeUndefined();
+    await expect(confirm).toHaveText("Activate now");
     await press(page, confirm);
 
     await expect.poll(() => scenario.last("POST", "/snapshots/versions/srv_draft/activate")?.body).toEqual({ keep_active_missing: false });

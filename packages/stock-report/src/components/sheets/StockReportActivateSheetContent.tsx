@@ -1,6 +1,5 @@
-import { ConfirmActionButton } from "@beyo/ui";
-
 import { StockKeepMissingPicker } from "../versions/StockKeepMissingPicker";
+import { StockInfoNote } from "./StockInfoNote";
 
 export type StockReportActivateSheetContentProps = {
   /** `activate` = now; `schedule` = when the stored schedule fires. */
@@ -15,10 +14,11 @@ export type StockReportActivateSheetContentProps = {
 };
 
 /**
- * The activation sheet's body (plan §G.10, OC-15, OC-16): a title line, a
- * note that says in plain words what activating does and what the choice
- * means, the choice, and the button. Activating now closes the live version,
- * so it asks twice; a schedule is reversible, so it asks once.
+ * The activation sheet's body (plan §G.10, OC-15, OC-16): a title line (with
+ * the date when scheduling), an info note about the one choice, the choice,
+ * and the button. The note leaves out that the live version closes, and the
+ * sheet itself is the confirmation, so the button acts on one tap in both
+ * modes (owner, 2026-09-28).
  */
 export function StockReportActivateSheetContent({
   mode,
@@ -30,7 +30,6 @@ export function StockReportActivateSheetContent({
   disabled = false,
 }: StockReportActivateSheetContentProps): React.JSX.Element {
   const scheduling = mode === "schedule";
-  const when = scheduleLabel ?? "the scheduled time";
 
   return (
     <div className="flex flex-col gap-3 px-4 pb-4" data-testid="stock-report-activate-sheet">
@@ -41,55 +40,25 @@ export function StockReportActivateSheetContent({
         {scheduling && scheduleLabel ? <p className="text-sm text-muted-foreground">{scheduleLabel}</p> : null}
       </div>
 
-      <div className="flex flex-col gap-1 rounded-lg bg-muted p-3 text-sm text-foreground" data-testid="stock-report-activate-note">
-        {scheduling ? (
-          <>
-            <p>On {when} the live version closes, this draft takes its place and its quantities freeze.</p>
-            <p>Rows where you typed a missing count keep it.</p>
-            <p>
-              For the other rows, choose what happens <strong>when it activates</strong> to the missing counts the
-              live version has then: keep them, or start at 0. You can change this until then.
-            </p>
-          </>
-        ) : (
-          <>
-            <p>The live version closes. This draft takes its place and its quantities freeze.</p>
-            <p>Rows where you typed a missing count keep it.</p>
-            <p>
-              For the other rows, choose what happens to the missing counts the live version has today: keep them,
-              or start at 0.
-            </p>
-          </>
-        )}
-      </div>
+      <StockInfoNote data-testid="stock-report-activate-note">
+        <p>
+          {scheduling
+            ? "Missing counts you typed stay. For the rest, choose what happens when it activates. You can change this until then."
+            : "Missing counts you typed stay. For the rest, choose:"}
+        </p>
+      </StockInfoNote>
 
       <StockKeepMissingPicker disabled={disabled} value={keepActiveMissing} onChange={onKeepChange} />
 
-      {scheduling ? (
-        <button
-          className="min-h-12 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-card disabled:opacity-50"
-          data-testid="stock-report-activate-confirm"
-          disabled={disabled}
-          type="button"
-          onClick={onConfirm}
-        >
-          Schedule activation
-        </button>
-      ) : (
-        <ConfirmActionButton
-          align="center"
-          backgroundColor="var(--color-primary)"
-          className="min-h-12 w-full px-4 text-sm font-semibold"
-          confirmLabel="Tap again to activate"
-          confirmTextColor="white"
-          data-testid="stock-report-activate-confirm"
-          disabled={disabled}
-          fillColor="var(--color-dark-pearl-green)"
-          label="Activate now"
-          textColor="var(--color-card)"
-          onConfirm={onConfirm}
-        />
-      )}
+      <button
+        className="mt-4 min-h-12 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-card disabled:opacity-50"
+        data-testid="stock-report-activate-confirm"
+        disabled={disabled}
+        type="button"
+        onClick={onConfirm}
+      >
+        {scheduling ? "Schedule activation" : "Activate now"}
+      </button>
     </div>
   );
 }

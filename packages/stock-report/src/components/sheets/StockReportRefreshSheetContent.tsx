@@ -2,6 +2,8 @@ import { RefreshCw, Undo2 } from "lucide-react";
 
 import { ConfirmActionButton } from "@beyo/ui";
 
+import { StockInfoNote } from "./StockInfoNote";
+
 export type StockReportRefreshSheetContentProps = {
   disabled?: boolean;
   /** `keep_manual_requested: true` — only rows without a typed value take Scanner's number. */
@@ -23,11 +25,11 @@ export function StockReportRefreshSheetContent({
 }: StockReportRefreshSheetContentProps): React.JSX.Element {
   return (
     <div className="flex flex-col gap-3 px-4 pb-4" data-testid="stock-report-refresh-sheet">
-      <div className="flex flex-col gap-1 rounded-lg bg-muted p-3 text-sm text-foreground" data-testid="stock-report-refresh-note">
+      <StockInfoNote data-testid="stock-report-refresh-note">
         <p>The live version keeps the quantities it was frozen with.</p>
         <p>This takes today&apos;s Scanner quantities instead.</p>
         <p>Rows with a quantity typed by hand — choose what happens to them.</p>
-      </div>
+      </StockInfoNote>
 
       <button
         className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-card disabled:opacity-50"
@@ -42,7 +44,9 @@ export function StockReportRefreshSheetContent({
 
       <ConfirmActionButton
         align="center"
-        className="flex min-h-12 w-full items-center gap-2 px-4 text-sm font-semibold text-foreground"
+        // No `flex` here: the primitive centres its own label span, and a flex
+        // button shrinks that span to its text, pinning the label left.
+        className="min-h-12 w-full px-4 text-sm font-semibold text-foreground"
         confirmLabel="Tap again to replace"
         data-testid="stock-report-refresh-replace"
         disabled={disabled}

@@ -65,20 +65,21 @@ export function StockReportVersionActionsSheetContent({
       ) : null}
 
       {isDraft ? (
-        // The primitive has no destructive variant: the colours say it; the fill
-        // is `--color-destructive` (#c0392b) at 70 % towards black.
+        // Passive: red border and red text on the card (owner, 2026-09-28). The
+        // first tap fills it red left to right, and the primitive clips a white
+        // label to the fill.
         <ConfirmActionButton
-          backgroundColor="var(--color-destructive)"
+          backgroundColor="var(--color-card)"
           borderColor="var(--color-destructive)"
           className="flex min-h-12 w-full items-center gap-3 px-4 py-3.5 text-sm font-semibold"
           confirmLabel="Tap again to delete"
           confirmTextColor="white"
           data-testid="stock-report-version-delete"
           disabled={disabled}
-          fillColor="#86281e"
+          fillColor="var(--color-destructive)"
           icon={<Trash2 aria-hidden="true" className="size-4 shrink-0" />}
           label="Delete draft"
-          textColor="white"
+          textColor="var(--color-destructive)"
           onConfirm={onDelete}
         />
       ) : null}

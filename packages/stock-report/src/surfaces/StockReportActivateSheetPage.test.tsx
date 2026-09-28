@@ -42,15 +42,14 @@ describe("StockReportActivateSheetPage — activate now (from the version action
     expect(screen.getByTestId("stock-report-activate-title")).toHaveTextContent("Activate Autumn");
     expect(pressed("stock-keep-missing-keep")).toBe("true");
     expect(pressed("stock-keep-missing-reset")).toBe("false");
-    expect(screen.getByTestId("stock-report-activate-note")).toHaveTextContent("The live version closes.");
+    expect(screen.getByTestId("stock-report-activate-note")).toHaveTextContent("Missing counts you typed stay. For the rest, choose:");
   });
 
-  it("activates on the second tap with the chosen flag, and never writes the stored flag", () => {
+  it("activates on one tap with the chosen flag, and never writes the stored flag", () => {
     mocks.version.mockReturnValue(ready(wireDraftStockReportSnapshotVersion({ scheduled_activation_keeps_active_missing: true })));
     render(<StockReportActivateSheetPage />);
     fireEvent.click(screen.getByTestId("stock-keep-missing-reset"));
-    fireEvent.click(screen.getByTestId("stock-report-activate-confirm"));
-    expect(mocks.activate.mutate).not.toHaveBeenCalled();
+    expect(screen.getByTestId("stock-report-activate-confirm")).toHaveTextContent("Activate now");
     fireEvent.click(screen.getByTestId("stock-report-activate-confirm"));
 
     expect(mocks.activate.mutate).toHaveBeenCalledWith({ keepActiveMissing: false }, expect.anything());
@@ -81,7 +80,8 @@ describe("StockReportActivateSheetPage — relay (from the version form)", () =>
     render(<StockReportActivateSheetPage />);
 
     expect(screen.getByTestId("stock-report-activate-title")).toHaveTextContent("Schedule Autumn");
-    expect(screen.getByTestId("stock-report-activate-note")).toHaveTextContent("On Wed, 7th Oct · 06:00 the live version closes");
+    expect(screen.getByTestId("stock-report-activate-title").nextElementSibling).toHaveTextContent("Wed, 7th Oct · 06:00");
+    expect(screen.getByTestId("stock-report-activate-note")).toHaveTextContent("choose what happens when it activates");
     expect(screen.getByTestId("stock-report-activate-note")).toHaveTextContent("You can change this until then.");
     expect(pressed("stock-keep-missing-reset")).toBe("true");
 
@@ -92,7 +92,7 @@ describe("StockReportActivateSheetPage — relay (from the version form)", () =>
     expect(mocks.activate.mutate).not.toHaveBeenCalled();
   });
 
-  it("words a promote as activate now, and asks twice before relaying", () => {
+  it("words a promote as activate now, and relays on one tap", () => {
     const onConfirm = vi.fn();
     mocks.props = { mode: "activate", title: "Autumn", scheduledAt: null, initialKeep: true, onConfirm };
     render(<StockReportActivateSheetPage />);
@@ -100,9 +100,8 @@ describe("StockReportActivateSheetPage — relay (from the version form)", () =>
     expect(screen.getByTestId("stock-report-activate-title")).toHaveTextContent("Activate Autumn");
     expect(pressed("stock-keep-missing-keep")).toBe("true");
     fireEvent.click(screen.getByTestId("stock-report-activate-confirm"));
-    expect(onConfirm).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByTestId("stock-report-activate-confirm"));
     expect(onConfirm).toHaveBeenCalledWith(true);
+    expect(mocks.requestClose).toHaveBeenCalled();
     expect(mocks.activate.mutate).not.toHaveBeenCalled();
   });
 });
