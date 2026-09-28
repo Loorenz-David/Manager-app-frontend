@@ -112,14 +112,20 @@ also controls the calendar's month, so it opens on the schedule's month, or on t
 `test:stock-report` now includes it: the `ScheduleSheet` filter was added.
 
 ## Managers app (`src/features/stock-report/`, checkpoint 4, Phase H)
-- **Hub layout:** version card, then the missing row, then `[Drafts · n] [History]`, then a full-width
-  primary **New version**.
-  - Drafts and New version show only for `canManageVersions`.
-  - New version is a plain button that opens the form (OC-2).
-  - The drafts label reads "Drafts · n" once loaded. It reads plain "Drafts" while loading, on error and
+- **Hub layout:** version card, then the missing row, then `[Drafts (n)] [History]`, then a full-width
+  primary **+ New Draft**.
+  - Drafts and + New Draft show only for `canManageVersions`.
+  - **+ New Draft creates in one tap** (owner, 2026-09-28, superseding OC-2's "opens the form"): it sends
+    `newStockDraftBody(now)` — `{ draft: true, title: <day placeholder> }`, exactly what an untouched
+    create form sends — then opens the new draft's board. While the request runs the button is disabled
+    and reads "Creating draft…"; a failure toasts "Draft not created". A draft closes nothing, so there
+    is no confirmation.
+  - The version form is now reached only through **Edit version**. Its create mode is kept, tested and
+    unreachable.
+  - The drafts label reads "Drafts (n)" once loaded. It reads plain "Drafts" while loading, on error and
     at 0 (OC-8, ledger #20).
-- **Controller.** The create mutation and its phases are gone. It adds `draftCount` (`undefined` until
-  loaded), `openDrafts` and `openCreateForm`, and preloads the drafts and form surfaces.
+- **Controller.** It adds `draftCount` (`undefined` until loaded), `openDrafts`, `createDraft` and
+  `isCreatingDraft`, and preloads the drafts and draft-board surfaces.
 - **Removed:** `StockVersionCreateOverlay` and its tests. The hub has no overlay.
 - **Card heading:** `StockVersionProgressCard` is headed by `displayTitle`, not "Current version".
 
@@ -128,8 +134,8 @@ Rewritten around one stateful mock of the stock-report API. It matches by pathna
 call with its body.
 
 It covers 11 flows, each on mobile and desktop:
-- **Hub:** titles and counts; the missing list; New version → form → Draft → `POST { draft: true, title:
-  <placeholder> }` → drafts page; history (`state=active,closed`).
+- **Hub:** titles and counts; the missing list; + New Draft → `POST { draft: true, title: <placeholder> }`
+  in one tap → the new draft's board (`version_id=srv_new`), no form; history (`state=active,closed`).
 - **Draft board:** `version_id` on the items request, and the ⋮.
 - **Scheduling:** Edit → next month's 15th → activation sheet → Keep the board's counts → `PATCH` with
   exactly the two schedule keys, landing at 06:00 in the browser's time zone.

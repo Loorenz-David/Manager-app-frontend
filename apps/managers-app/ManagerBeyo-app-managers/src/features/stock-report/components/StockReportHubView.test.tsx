@@ -59,11 +59,12 @@ function renderHub(overrides: Partial<Parameters<typeof StockReportHubView>[0]> 
     onOpenMissing: vi.fn(),
     onOpenDrafts: vi.fn(),
     onOpenHistory: vi.fn(),
-    onCreateVersion: vi.fn(),
+    onCreateDraft: vi.fn(),
   };
   render(
     <StockReportHubView
       canManageVersions
+      creatingDraft={false}
       draftCount={2}
       missingSummary={{ quantity_missing_total: 0, items_with_missing: 0 }}
       version={toStockReportVersionViewModel(activeVersion, NOW)}
@@ -100,7 +101,7 @@ describe("StockReportHubView", () => {
     const row = screen.getByTestId("stock-report-hub-open-missing");
     expect(row).toHaveTextContent("7 missing");
     expect(row).toHaveTextContent("across 3 stock needs");
-    // Owner layout: card, then the missing row, then [Drafts] [History], then New version.
+    // Owner layout: card, then the missing row, then [Drafts] [History], then + New Draft.
     const order = Array.from(screen.getByTestId("stock-report-hub").querySelectorAll("button[data-testid^='stock-report-hub-']")).map((node) => node.getAttribute("data-testid"));
     expect(order).toEqual([
       "stock-report-hub-open-board",
@@ -113,14 +114,14 @@ describe("StockReportHubView", () => {
     expect(handlers.onOpenMissing).toHaveBeenCalledTimes(1);
   });
 
-  /** OC-2: the form asks before anything that closes the live version, so the hub does not. */
-  it("opens the form on one tap of New version, and the drafts and the history on one tap each", () => {
+  /** Owner, 2026-09-28: a draft closes nothing, so one tap creates it. */
+  it("creates a draft on one tap of New Draft, and opens the drafts and the history on one tap each", () => {
     const handlers = renderHub();
 
-    expect(screen.getByTestId("stock-report-hub-open-drafts")).toHaveTextContent("Drafts · 2");
+    expect(screen.getByTestId("stock-report-hub-open-drafts")).toHaveTextContent("Drafts (2)");
+    expect(screen.getByTestId("stock-report-hub-create-version")).toHaveTextContent("New Draft");
     fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
-    expect(handlers.onCreateVersion).toHaveBeenCalledTimes(1);
-    expect(screen.getByTestId("stock-report-hub-create-version")).toHaveTextContent("New version");
+    expect(handlers.onCreateDraft).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId("stock-report-hub-open-drafts"));
     expect(handlers.onOpenDrafts).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId("stock-report-hub-open-history"));
@@ -129,14 +130,24 @@ describe("StockReportHubView", () => {
 
   /** Ledger #20: no dot at 0, none before the count has loaded. */
   it("reads plain Drafts while loading, on error and at zero", () => {
-    for (const [draftCount, label] of [[undefined, "Drafts"], [0, "Drafts"], [1, "Drafts · 1"]] as const) {
+    for (const [draftCount, label] of [[undefined, "Drafts"], [0, "Drafts"], [1, "Drafts (1)"]] as const) {
       renderHub({ draftCount });
       expect(screen.getByTestId("stock-report-hub-open-drafts").textContent).toBe(label);
       cleanup();
     }
   });
 
-  it("offers neither drafts nor New version to a role that cannot manage versions", () => {
+  it("waits while the draft is being created, so a second tap sends nothing", () => {
+    const handlers = renderHub({ creatingDraft: true });
+
+    const button = screen.getByTestId("stock-report-hub-create-version");
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent("Creating draft…");
+    fireEvent.click(button);
+    expect(handlers.onCreateDraft).not.toHaveBeenCalled();
+  });
+
+  it("offers neither drafts nor New Draft to a role that cannot manage versions", () => {
     renderHub({ canManageVersions: false });
     expect(screen.queryByTestId("stock-report-hub-create-version")).not.toBeInTheDocument();
     expect(screen.queryByTestId("stock-report-hub-open-drafts")).not.toBeInTheDocument();

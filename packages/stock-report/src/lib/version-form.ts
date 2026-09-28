@@ -5,7 +5,7 @@ import type {
   UpdateStockReportVersionInput,
 } from "../api/stock-report-api";
 import type { StockReportSnapshotVersionRow, StockReportVersionState } from "../stock-report.types";
-import { sameInstant } from "./version-format";
+import { formatVersionDayTitle, sameInstant } from "./version-format";
 
 /**
  * The version form's model (plan §F.2): its values, its validation and the
@@ -149,6 +149,19 @@ export function toCreateStockVersionBody(
     ...(values.scheduledAt !== null ? { scheduledAt: values.scheduledAt } : {}),
     ...(keepActiveMissing !== undefined ? { keepActiveMissing } : {}),
   };
+}
+
+/**
+ * The body an untouched create form sends: a draft, titled with the day's
+ * placeholder, no schedule. The hub's **+ New Draft** sends it in one tap
+ * (owner, 2026-09-28), so it is built from the form's own pieces and the two
+ * cannot drift.
+ */
+export function newStockDraftBody(now: number = Date.now()): CreateStockReportVersionInput {
+  return toCreateStockVersionBody(
+    initialStockVersionFormValues(null),
+    formatVersionDayTitle(new Date(now).toISOString(), now),
+  );
 }
 
 /**

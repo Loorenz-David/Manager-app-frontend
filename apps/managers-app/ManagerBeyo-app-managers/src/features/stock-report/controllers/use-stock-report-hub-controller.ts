@@ -1,16 +1,20 @@
 import { useState } from "react";
+import { notify } from "@beyo/lib";
 import {
   STOCK_REPORT_BOARD_SURFACE_ID,
+  STOCK_REPORT_DRAFT_BOARD_SURFACE_ID,
   STOCK_REPORT_DRAFTS_SURFACE_ID,
   STOCK_REPORT_MISSING_SURFACE_ID,
-  STOCK_REPORT_VERSION_FORM_SURFACE_ID,
   STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
+  newStockDraftBody,
   preloadStockReportBoardSurface,
+  preloadStockReportDraftBoardSurface,
   preloadStockReportDraftsSurface,
   preloadStockReportMissingSurface,
-  preloadStockReportVersionFormSurface,
   preloadStockReportVersionHistorySurface,
+  stockReportRequestFailureMessage,
   toStockReportVersionViewModel,
+  useCreateStockReportVersion,
   useStockReportActiveVersionQuery,
   useStockReportDraftCountQuery,
   useStockReportMissingSummaryQuery,
@@ -29,8 +33,12 @@ import { useSurface } from "@/hooks/use-surface";
  * them — the drafts, the history and a new version. Every one opens as a
  * surface on top of the hub.
  *
- * Creating a version is the form's job now (plan OC-2): the hub only opens it,
- * and the form decides where the user lands once the backend has answered.
+ * **+ New Draft** creates in one tap (owner, 2026-09-28): the body an
+ * untouched create form would send — a draft under the day's placeholder
+ * title, no schedule — then the new draft's board opens. A draft closes
+ * nothing, so there is nothing to confirm. The version form is reached only
+ * through Edit now. A failure toasts here: the create action leaves its
+ * failure surface to the caller.
  */
 export function useStockReportHubController() {
   const permissions = useStockReportPermissions();
@@ -39,10 +47,11 @@ export function useStockReportHubController() {
   usePreloadSurface(preloadStockReportMissingSurface);
   usePreloadSurface(preloadStockReportVersionHistorySurface);
   usePreloadSurface(preloadStockReportDraftsSurface);
-  usePreloadSurface(preloadStockReportVersionFormSurface);
+  usePreloadSurface(preloadStockReportDraftBoardSurface);
   const activeVersion = useStockReportActiveVersionQuery();
   const missingSummary = useStockReportMissingSummaryQuery();
   const draftCount = useStockReportDraftCountQuery();
+  const create = useCreateStockReportVersion();
   // Read once per mount: the hub remounts on every tab visit, and a day
   // boundary crossing while it is open is not worth an impure render.
   const [now] = useState(() => Date.now());
@@ -68,7 +77,15 @@ export function useStockReportHubController() {
     openMissing: () => surface.open(STOCK_REPORT_MISSING_SURFACE_ID, {}),
     openHistory: () => surface.open(STOCK_REPORT_VERSION_HISTORY_SURFACE_ID, {}),
     openDrafts: () => surface.open(STOCK_REPORT_DRAFTS_SURFACE_ID, {}),
-    openCreateForm: () => surface.open(STOCK_REPORT_VERSION_FORM_SURFACE_ID, {}),
+    isCreatingDraft: create.isPending,
+    createDraft: () => {
+      if (create.isPending) return;
+      // Read at tap time, so the title is the day the draft was made.
+      create.mutate(newStockDraftBody(Date.now()), {
+        onSuccess: (row) => surface.open(STOCK_REPORT_DRAFT_BOARD_SURFACE_ID, { versionId: row.client_id }),
+        onError: (error) => notify.error("Draft not created", stockReportRequestFailureMessage(error)),
+      });
+    },
     refetch: () =>
       Promise.all([activeVersion.refetch(), missingSummary.refetch(), draftCount.refetch()]).then(
         () => undefined,

@@ -3,7 +3,7 @@ import type {
   StockReportMissingSummary,
   StockReportVersionViewModel,
 } from "@beyo/stock-report";
-import { FileClock, History, Plus } from "lucide-react";
+import { FileClock, History, Loader2, Plus } from "lucide-react";
 
 import { StockMissingRow } from "./StockMissingRow";
 import { StockVersionProgressCard } from "./StockVersionProgressCard";
@@ -12,7 +12,7 @@ type StockReportHubViewProps = {
   version: StockReportVersionViewModel | null;
   versionStatus: StockReportLoadStatus;
   missingSummary: StockReportMissingSummary | null;
-  /** Drafts and new versions are admin and manager only (§5.8). */
+  /** Drafts and new drafts are admin and manager only (§5.8). */
   canManageVersions: boolean;
   /** `undefined` while loading or on error. */
   draftCount: number | undefined;
@@ -20,7 +20,9 @@ type StockReportHubViewProps = {
   onOpenMissing: () => void;
   onOpenDrafts: () => void;
   onOpenHistory: () => void;
-  onCreateVersion: () => void;
+  onCreateDraft: () => void;
+  /** The create request is in flight: the button waits, so a second tap sends nothing. */
+  creatingDraft: boolean;
 };
 
 const SECONDARY_BUTTON_CLASS =
@@ -34,7 +36,7 @@ function draftsButtonLabel(count: number | undefined): string {
 /**
  * The manager's stock report landing pane (owner layout, 2026-09-26, drafts
  * added 2026-09-28): the version card, the missing row under it, then
- * `[Drafts · n] [History]` and a full-width New version. Workers and sellers
+ * `[Drafts (n)] [History]` and a full-width + New Draft. Workers and sellers
  * never see this — their tab is the board itself.
  */
 export function StockReportHubView({
@@ -47,7 +49,8 @@ export function StockReportHubView({
   onOpenMissing,
   onOpenDrafts,
   onOpenHistory,
-  onCreateVersion,
+  onCreateDraft,
+  creatingDraft,
 }: StockReportHubViewProps): React.JSX.Element {
   const showMissing = (missingSummary?.quantity_missing_total ?? 0) > 0;
 
@@ -99,16 +102,26 @@ export function StockReportHubView({
         </div>
 
         {canManageVersions ? (
-          // A plain button: it only opens the form, which asks before
-          // anything that closes the live version (OC-2).
+          // A plain button: a draft closes nothing, so one tap creates it
+          // (owner, 2026-09-28) and its board opens.
           <button
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-md font-semibold text-card"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-md font-semibold text-card disabled:opacity-70"
             data-testid="stock-report-hub-create-version"
+            disabled={creatingDraft}
             type="button"
-            onClick={onCreateVersion}
+            onClick={onCreateDraft}
           >
-            <Plus aria-hidden="true" className="size-4 shrink-0" />
-            New version
+            {creatingDraft ? (
+              <>
+                <Loader2 aria-hidden="true" className="size-4 shrink-0 animate-spin" />
+                Creating draft…
+              </>
+            ) : (
+              <>
+                <Plus aria-hidden="true" className="size-4 shrink-0" />
+                New Draft
+              </>
+            )}
           </button>
         ) : null}
       </div>

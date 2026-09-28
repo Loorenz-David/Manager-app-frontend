@@ -5,6 +5,7 @@ import {
   hasStockVersionUpdate,
   initialStockVersionFormValues,
   needsActivationChoice,
+  newStockDraftBody,
   stockVersionFormPlan,
   toCreateStockVersionBody,
   toStockVersionFormOriginal,
@@ -94,6 +95,14 @@ describe("toCreateStockVersionBody (v9 §5.8)", () => {
   it("never sends a schedule key with draft: false — either one is a 422", () => {
     const body = toCreateStockVersionBody(values({ state: "active", scheduledAt: LATER }), "P", false);
     expect(body).toEqual({ draft: false, title: "P" });
+  });
+});
+
+/** Owner, 2026-09-28: the hub's + New Draft sends what an untouched create form would. */
+describe("newStockDraftBody", () => {
+  it("is a draft titled with the day's placeholder, with no schedule keys", () => {
+    const now = new Date(2026, 8, 28, 10).getTime();
+    expect(newStockDraftBody(now)).toEqual({ draft: true, title: "Mon, 28th September" });
   });
 });
 

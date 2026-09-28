@@ -12,7 +12,8 @@ const hub = vi.hoisted(() => ({
     openMissing: vi.fn(),
     openHistory: vi.fn(),
     openDrafts: vi.fn(),
-    openCreateForm: vi.fn(),
+    createDraft: vi.fn(),
+    isCreatingDraft: false,
     refetch: vi.fn(),
   },
 }));
@@ -37,12 +38,12 @@ describe("StockReportHub", () => {
     expect(hub.controller.openBoard).toHaveBeenCalledTimes(1);
   });
 
-  /** OC-2: the hub no longer creates anything — it opens the form, and has no overlay. */
-  it("opens the version form from New version, with no overlay of its own", () => {
+  /** Owner, 2026-09-28: + New Draft creates directly; the form is Edit-only. */
+  it("creates a draft from New Draft, with no overlay of its own", () => {
     render(<StockReportHub />);
 
     fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
-    expect(hub.controller.openCreateForm).toHaveBeenCalledTimes(1);
+    expect(hub.controller.createDraft).toHaveBeenCalledTimes(1);
     expect(hub.controller.openBoard).not.toHaveBeenCalled();
     expect(screen.queryByTestId("stock-version-create-overlay")).toBeNull();
   });
@@ -51,7 +52,7 @@ describe("StockReportHub", () => {
     render(<StockReportHub />);
 
     const drafts = screen.getByTestId("stock-report-hub-open-drafts");
-    expect(drafts.textContent).toContain("Drafts · 3");
+    expect(drafts.textContent).toContain("Drafts (3)");
     fireEvent.click(drafts);
     expect(hub.controller.openDrafts).toHaveBeenCalledTimes(1);
   });

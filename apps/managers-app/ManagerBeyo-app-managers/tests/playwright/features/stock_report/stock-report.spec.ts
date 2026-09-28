@@ -341,9 +341,9 @@ test.describe("Stock report — manager hub", () => {
     await expect(page.getByTestId("stock-version-age")).toContainText("2 days running");
     await expect(page.getByTestId("stock-version-progress-high-count")).toHaveText("2/5");
     await expect(page.getByTestId("stock-report-hub-open-missing")).toHaveCount(0);
-    await expect(page.getByTestId("stock-report-hub-open-drafts")).toHaveText("Drafts · 1");
+    await expect(page.getByTestId("stock-report-hub-open-drafts")).toHaveText("Drafts (1)");
     await expect(page.getByTestId("stock-report-hub-open-history")).toBeVisible();
-    await expect(page.getByTestId("stock-report-hub-create-version")).toHaveText("New version");
+    await expect(page.getByTestId("stock-report-hub-create-version")).toHaveText("New Draft");
 
     // The card is the way into the board, which opens as a slide page whose
     // back row scrolls with it.
@@ -374,27 +374,26 @@ test.describe("Stock report — manager hub", () => {
       .toBe(true);
   });
 
-  test("creates a draft through the form, titled with its placeholder, and lands on the drafts page", async ({ auth, page }) => {
+  test("creates a draft in one tap under today's placeholder title, and opens its board", async ({ auth, page }) => {
     const scenario = await mockStockReport(page);
     await auth.signIn();
     await openHub(page);
 
-    // OC-2: one tap opens the form; nothing is sent yet.
+    // Owner, 2026-09-28: no form, no confirmation — the tap sends the create.
     await press(page, page.getByTestId("stock-report-hub-create-version"));
-    await expect(page.getByTestId("stock-report-version-form-page")).toBeVisible();
-    expect(scenario.last("POST", "/snapshots/versions")).toBeUndefined();
-    await expect(page.getByTestId("stock-version-form-state-draft")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(() => scenario.last("POST", "/snapshots/versions")?.body).toBeTruthy();
+    const body = scenario.last("POST", "/snapshots/versions")!.body as Record<string, unknown>;
+    // A draft, no schedule keys, titled with the day ("Mon, 28th September").
+    expect(Object.keys(body).sort()).toEqual(["draft", "title"]);
+    expect(body.draft).toBe(true);
+    expect(body.title).toMatch(/^[A-Z][a-z]{2}, \d{1,2}(st|nd|rd|th) [A-Z][a-z]+( \d{4})?$/);
 
-    const placeholder = await page.getByTestId("stock-version-form-title").getAttribute("placeholder");
-    expect(placeholder).toBeTruthy();
-    const submit = page.getByTestId("stock-version-form-submit");
-    await expect(submit).toHaveText("Create draft");
-    await press(page, submit);
-
-    // OC-7: a blank title stores the placeholder the user saw.
-    await expect.poll(() => scenario.last("POST", "/snapshots/versions")?.body).toEqual({ draft: true, title: placeholder });
-    await expect(page.getByTestId("stock-report-drafts")).toBeVisible();
-    await expect(page.getByTestId("stock-draft-card-title-srv_new")).toHaveText(placeholder!);
+    // The new draft's own board opens, reading its rows by version id.
+    await expect(page.getByTestId("stock-report-draft-board-page")).toBeVisible();
+    await expect(page.getByTestId("stock-report-draft-board-back")).toContainText(body.title as string);
+    await expect
+      .poll(() => scenario.calls.some((call) => call.path === "/items" && call.search.get("version_id") === "srv_new"))
+      .toBe(true);
     await expect(page.getByTestId("stock-report-version-form-page")).toHaveCount(0);
   });
 

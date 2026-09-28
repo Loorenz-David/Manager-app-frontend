@@ -65,16 +65,17 @@ export function TasksHeader({
       <div className="bg-background">
         <HorizontalScrollArea className="pb-1">
           <BoxPicker
-            className="flex flex-nowrap flex-row gap-1.5 px-4"
+            className="flex flex-nowrap flex-row gap-1.5 px-4 "
             data-testid="tasks-state-filter"
             layout="stack"
             mode="multiple"
             options={[...TASK_STATE_FILTER_OPTIONS]}
-            size="sm"
+            size="xs"
             showDescription={false}
             showIcon={false}
             value={taskStates}
             visualVariant="pill"
+            optionClassName="rounded-lg py-1.5"
             selectedOptionClassName="bg-blue-100 border-blue-400 text-blue-500"
             unselectedOptionClassName="bg-white border-slate-300 text-slate-700"
             onValueChange={onTaskStatesChange}

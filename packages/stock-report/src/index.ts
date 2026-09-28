@@ -67,6 +67,7 @@ export {
   hasStockVersionUpdate,
   initialStockVersionFormValues,
   needsActivationChoice,
+  newStockDraftBody,
   stockVersionFormPlan,
   toCreateStockVersionBody,
   toStockVersionFormOriginal,
