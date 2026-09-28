@@ -10,13 +10,14 @@ export type StockVersionCardProps = {
 };
 
 /**
- * One history entry: when the version ran, how long, how many units it asked for,
+ * One history entry: its title, when the version ran, how long, how many units it asked for,
  * and its **total** progress — the history deliberately does not split by
  * priority (owner, 2026-09-26); the hub card does that for the active one.
  */
 export function StockVersionCard({ version }: StockVersionCardProps): React.JSX.Element {
   const { totalProgress } = version;
-  const dateRange = formatShortDate(version.active_at, version.closed_at) ?? "";
+  // A draft never reaches the history, but `active_at` is nullable on the wire.
+  const dateRange = version.active_at === null ? "" : (formatShortDate(version.active_at, version.closed_at) ?? "");
   // The size under the read's priority filter — what this progress is over.
   const requested = formatVersionRequested(version.progress.quantity_requested);
 
@@ -28,7 +29,11 @@ export function StockVersionCard({ version }: StockVersionCardProps): React.JSX.
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-foreground">{dateRange}</p>
+          {/* The title heads the card, so a retitle shows here too (OC-18). */}
+          <p className="truncate text-sm font-semibold text-foreground" data-testid={`stock-version-card-title-${version.client_id}`}>
+            {version.displayTitle}
+          </p>
+          {dateRange ? <p className="text-sm text-muted-foreground">{dateRange}</p> : null}
           <p className="text-sm text-muted-foreground">
             {version.ageLabel} · {requested}
           </p>

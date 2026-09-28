@@ -59,6 +59,31 @@ export {
   versionScheduleState,
 } from "./lib/version-format";
 export type { StockReportScheduleState } from "./lib/version-format";
+export {
+  SCHEDULE_IN_THE_PAST_MESSAGE,
+  STOCK_VERSION_TITLE_MAX,
+  StockVersionFormSchema,
+  buildStockVersionFormSchema,
+  hasStockVersionUpdate,
+  initialStockVersionFormValues,
+  needsActivationChoice,
+  stockVersionFormPlan,
+  toCreateStockVersionBody,
+  toStockVersionFormOriginal,
+  toUpdateStockVersionBody,
+} from "./lib/version-form";
+export type {
+  StockVersionFormOriginal,
+  StockVersionFormPlan,
+  StockVersionFormValues,
+} from "./lib/version-form";
+export {
+  DEFAULT_SCHEDULE_TIME,
+  composeScheduleInstant,
+  isFutureInstant,
+  scheduleDayOf,
+  scheduleTimeOf,
+} from "./lib/schedule-sheet";
 
 export {
   COLOURED_BUDGET_PERCENT,
@@ -130,6 +155,14 @@ export {
   StockVersionListErrorState,
   StockVersionListSkeleton,
 } from "./components/versions/StockVersionListStates";
+export { StockVersionPriorityProgress } from "./components/versions/StockVersionPriorityProgress";
+export type { StockVersionPriorityProgressProps } from "./components/versions/StockVersionPriorityProgress";
+export { StockDraftVersionCard } from "./components/versions/StockDraftVersionCard";
+export type { StockDraftVersionCardProps } from "./components/versions/StockDraftVersionCard";
+export { StockKeepMissingPicker } from "./components/versions/StockKeepMissingPicker";
+export type { StockKeepMissingPickerProps } from "./components/versions/StockKeepMissingPicker";
+export { StockVersionForm } from "./components/versions/StockVersionForm";
+export type { StockVersionFormProps } from "./components/versions/StockVersionForm";
 
 // --- sheet content ---------------------------------------------------------
 export { StockReportPrioritySheetContent } from "./components/sheets/StockReportPrioritySheetContent";
@@ -144,6 +177,16 @@ export { StockReportLegendSheetContent } from "./components/sheets/StockReportLe
 export type { StockReportLegendSheetContentProps } from "./components/sheets/StockReportLegendSheetContent";
 export { StockMatchWarningSheetContent } from "./components/sheets/StockMatchWarningSheetContent";
 export type { StockMatchWarningSheetContentProps } from "./components/sheets/StockMatchWarningSheetContent";
+export { StockReportVersionActionsSheetContent } from "./components/sheets/StockReportVersionActionsSheetContent";
+export type { StockReportVersionActionsSheetContentProps } from "./components/sheets/StockReportVersionActionsSheetContent";
+export { StockReportRequestedSheetContent, StockRequestedQuantitySchema } from "./components/sheets/StockReportRequestedSheetContent";
+export type { StockReportRequestedSheetContentProps } from "./components/sheets/StockReportRequestedSheetContent";
+export { StockReportRefreshSheetContent } from "./components/sheets/StockReportRefreshSheetContent";
+export type { StockReportRefreshSheetContentProps } from "./components/sheets/StockReportRefreshSheetContent";
+export { StockReportActivateSheetContent } from "./components/sheets/StockReportActivateSheetContent";
+export type { StockReportActivateSheetContentProps } from "./components/sheets/StockReportActivateSheetContent";
+export { StockReportScheduleSheetContent } from "./components/sheets/StockReportScheduleSheetContent";
+export type { StockReportScheduleSheetContentProps } from "./components/sheets/StockReportScheduleSheetContent";
 export {
   STOCK_MATCH_NO_VALUE,
   toStockMatchFailureRows,
@@ -220,7 +263,19 @@ export {
   STOCK_REPORT_DRAFT_BOARD_SURFACE_ID,
   STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID,
   STOCK_REPORT_REQUESTED_SURFACE_ID,
+  STOCK_REPORT_VERSION_FORM_SURFACE_ID,
+  STOCK_REPORT_SCHEDULE_SURFACE_ID,
+  STOCK_REPORT_DRAFTS_SURFACE_ID,
+  STOCK_REPORT_REFRESH_SURFACE_ID,
+  STOCK_REPORT_ACTIVATE_SURFACE_ID,
   preloadStockReportDraftBoardSurface,
+  preloadStockReportVersionActionsSurface,
+  preloadStockReportRequestedSurface,
+  preloadStockReportVersionFormSurface,
+  preloadStockReportScheduleSurface,
+  preloadStockReportDraftsSurface,
+  preloadStockReportRefreshSurface,
+  preloadStockReportActivateSurface,
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
   preloadStockReportBoardSurface,
@@ -243,6 +298,11 @@ export type {
   StockReportDraftBoardSurfaceProps,
   StockReportVersionActionsSurfaceProps,
   StockReportRequestedSurfaceProps,
+  StockReportVersionFormSurfaceProps,
+  StockReportScheduleSurfaceProps,
+  StockReportDraftsSurfaceProps,
+  StockReportRefreshSurfaceProps,
+  StockReportActivateSurfaceProps,
 } from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------

@@ -11,24 +11,29 @@ export function StockVersionListSkeleton(): React.JSX.Element {
   );
 }
 
-export function StockVersionListEmptyState(): React.JSX.Element {
+export function StockVersionListEmptyState({
+  message = "No versions yet. Open the first one from the stock report.",
+}: { message?: string } = {}): React.JSX.Element {
   return (
     <p
       className="px-5 py-12 text-center text-sm font-medium text-muted-foreground"
       data-testid="stock-version-list-empty"
     >
-      No versions yet. Open the first one from the stock report.
+      {message}
     </p>
   );
 }
 
 export type StockVersionListErrorStateProps = {
   message?: string;
+  /** Shown when the error carries no message of its own. */
+  fallback?: string;
   onRetry?: () => void;
 };
 
 export function StockVersionListErrorState({
   message,
+  fallback = "Version history could not be loaded.",
   onRetry,
 }: StockVersionListErrorStateProps): React.JSX.Element {
   return (
@@ -37,7 +42,7 @@ export function StockVersionListErrorState({
       data-testid="stock-version-list-error"
     >
       <p className="text-sm font-medium text-muted-foreground">
-        {message ?? "Version history could not be loaded."}
+        {message ?? fallback}
       </p>
       {onRetry ? (
         <button

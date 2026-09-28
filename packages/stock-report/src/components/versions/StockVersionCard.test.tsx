@@ -48,6 +48,18 @@ describe("StockVersionCard", () => {
     expect(screen.getByTestId("stock-version-card-bar-srv-3-in-queue")).toHaveAttribute("data-value", "2");
   });
 
+  /** OC-18: the title heads the card, the creation day when there is none. */
+  it("heads the card with the version's title, above its dates", () => {
+    const titled = toStockReportVersionViewModel(wireStockReportSnapshotVersion({ client_id: "srv-1", title: "Autumn run" }), NOW);
+    render(<StockVersionCard version={titled} />);
+    expect(screen.getByTestId("stock-version-card-title-srv-1")).toHaveTextContent("Autumn run");
+    cleanup();
+
+    const untitled = toStockReportVersionViewModel(wireStockReportSnapshotVersion({ client_id: "srv-1", title: null, created_at: new Date(2026, 8, 24, 9).toISOString() }), NOW);
+    render(<StockVersionCard version={untitled} />);
+    expect(screen.getByTestId("stock-version-card-title-srv-1")).toHaveTextContent("Thu, 24th September");
+  });
+
   it("says nothing was prioritised instead of drawing 0 %", () => {
     const empty = wireStockReportVersionProgress({ items_total: 0, quantity_requested: 0, quantity_target: 0, quantity_in_progress: 0, quantity_in_queue: 0, quantity_awaiting: 0, quantity_completed: 0 });
     const version = toStockReportVersionViewModel(wireStockReportSnapshotVersion({ client_id: "srv-2", state: "closed", closed_at: new Date(2026, 8, 25, 9).toISOString(), progress: empty }), NOW);

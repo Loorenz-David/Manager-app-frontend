@@ -5,6 +5,12 @@ export type StockReportSlideHeaderProps = {
   onBack: () => void;
   /** Right-hand slot, e.g. a ⋮ button. */
   actions?: ReactNode;
+  /**
+   * While a request must not be abandoned half-way (projection R13): the back
+   * row calls `requestClose`, which is the surface's `onClose` and bypasses
+   * the close interceptor, so the row itself is disabled.
+   */
+  backDisabled?: boolean;
   "data-testid"?: string;
 };
 
@@ -20,14 +26,16 @@ export function StockReportSlideHeader({
   title,
   onBack,
   actions,
+  backDisabled = false,
   "data-testid": testId = "stock-report-slide-back",
 }: StockReportSlideHeaderProps): React.JSX.Element {
   return (
     <header className="flex min-h-14 shrink-0 items-center gap-3 px-4 ">
       <button
         aria-label="Go back"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-muted"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-muted disabled:opacity-40"
         data-testid={testId}
+        disabled={backDisabled}
         type="button"
         onClick={onBack}
       >

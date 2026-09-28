@@ -1,7 +1,5 @@
 import {
-  STOCK_REPORT_PRIORITY,
-  STOCK_NEED_BUCKET_LABEL,
-  StockVersionProgressBar,
+  StockVersionPriorityProgress,
   formatVersionRequested,
   type StockReportLoadStatus,
   type StockReportVersionViewModel,
@@ -65,34 +63,7 @@ export function StockVersionProgressCard({
         <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
       </div>
 
-      {version ? (
-        <div className="flex flex-col gap-2" data-testid="stock-version-progress-by-priority">
-          {STOCK_REPORT_PRIORITY.map((priority) => {
-            const group = version.byPriority[priority];
-            return (
-              <div key={priority} className="flex items-center gap-3">
-                <span className="w-14 shrink-0 text-xs font-semibold text-muted-foreground">
-                  {STOCK_NEED_BUCKET_LABEL[priority]}
-                </span>
-                <StockVersionProgressBar
-                  className="flex-1"
-                  data-testid={`stock-version-progress-${priority}`}
-                  progress={group}
-                />
-                <span
-                  className="w-14 shrink-0 text-right text-xs font-semibold tabular-nums text-foreground"
-                  data-testid={`stock-version-progress-${priority}-count`}
-                >
-                  {group.percent === null ? "—" : `${group.completed}/${group.target}`}
-                </span>
-              </div>
-            );
-          })}
-          {version.totalProgress.percent === null ? (
-            <p className="text-xs text-muted-foreground">Nothing prioritised yet</p>
-          ) : null}
-        </div>
-      ) : null}
+      {version ? <StockVersionPriorityProgress version={version} /> : null}
     </button>
   );
 }

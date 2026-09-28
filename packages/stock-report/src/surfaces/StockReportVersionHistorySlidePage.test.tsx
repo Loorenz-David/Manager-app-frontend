@@ -47,6 +47,8 @@ describe("StockReportVersionHistorySlidePage", () => {
     }));
     render(<StockReportVersionHistorySlidePage />);
 
+    // One request for the active version and the closed ones (v10 §5.9, OC-6); drafts have their own page.
+    expect(mocks.versions).toHaveBeenCalledWith({ states: ["active", "closed"] });
     expect(mocks.setTitle).toHaveBeenCalledWith("Version history");
     // The surface's fixed header is muted; the page's own back row sits
     // inside the scroll content and closes through the animated path.

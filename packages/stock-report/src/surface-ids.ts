@@ -26,6 +26,16 @@ export const STOCK_REPORT_DRAFT_BOARD_SURFACE_ID = "stock-report-draft-board-sli
 export const STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID = "stock-report-version-actions-sheet";
 /** The requested-quantity sheet, from the detail page's ⋮ (plan §G.7, OC-10). */
 export const STOCK_REPORT_REQUESTED_SURFACE_ID = "stock-report-requested-sheet";
+/** Create a version or edit one (plan §F.1). */
+export const STOCK_REPORT_VERSION_FORM_SURFACE_ID = "stock-report-version-form-slide";
+/** The version form's schedule picker (plan §F.5, OC-9). */
+export const STOCK_REPORT_SCHEDULE_SURFACE_ID = "stock-report-schedule-sheet";
+/** Every draft, each opening its own board (plan §G.3). */
+export const STOCK_REPORT_DRAFTS_SURFACE_ID = "stock-report-drafts-slide";
+/** Refresh the live version from Scanner, after a plain-words choice (plan §G.9, OC-12). */
+export const STOCK_REPORT_REFRESH_SURFACE_ID = "stock-report-refresh-sheet";
+/** Activate a draft now, or choose what its scheduled activation does (plan §G.10, OC-15, OC-16). */
+export const STOCK_REPORT_ACTIVATE_SURFACE_ID = "stock-report-activate-sheet";
 
 /** `versionId` absent = the board (the active version); an id = that version's row (plan §3.1). */
 export type StockReportDetailSurfaceProps = { stockNeedId: string; versionId?: string };
@@ -73,6 +83,27 @@ export type StockReportRequestedSurfaceProps = {
   scanner: number;
 };
 
+/** `versionId` absent = create (plan §F.1). */
+export type StockReportVersionFormSurfaceProps = { versionId?: string };
+export type StockReportScheduleSurfaceProps = { current: string | null; onSelect: (iso: string | null) => void };
+export type StockReportDraftsSurfaceProps = Record<string, never>;
+export type StockReportRefreshSurfaceProps = { versionId: string };
+/**
+ * One sheet, two callers (plan §G.10). The version actions sheet passes the
+ * version and the page activates it itself; the version form passes what it
+ * is about to store and an `onConfirm` — the page then only relays the choice
+ * and the form sends the request (§3.3).
+ */
+export type StockReportActivateSurfaceProps =
+  | { mode: "activate"; versionId: string }
+  | {
+      mode: "schedule" | "activate";
+      title: string;
+      scheduledAt?: string | null;
+      initialKeep: boolean;
+      onConfirm: (keepActiveMissing: boolean) => void;
+    };
+
 function lazyPage<T extends ComponentType<Record<string, never>>>(loader: () => Promise<{ default: T }>) { return lazyWithPreload(loader); }
 const detail = lazyPage(() => import("./surfaces/StockReportDetailSlidePage").then((m) => ({ default: m.StockReportDetailSlidePage })));
 const priority = lazyPage(() => import("./surfaces/StockReportPrioritySheetPage").then((m) => ({ default: m.StockReportPrioritySheetPage })));
@@ -85,6 +116,13 @@ const history = lazyPage(() => import("./surfaces/StockReportVersionHistorySlide
 const detailMenu = lazyPage(() => import("./surfaces/StockReportDetailMenuSheetPage").then((m) => ({ default: m.StockReportDetailMenuSheetPage })));
 const legend = lazyPage(() => import("./surfaces/StockReportLegendSheetPage").then((m) => ({ default: m.StockReportLegendSheetPage })));
 const draftBoard = lazyPage(() => import("./surfaces/StockReportDraftBoardSlidePage").then((m) => ({ default: m.StockReportDraftBoardSlidePage })));
+const versionActions = lazyPage(() => import("./surfaces/StockReportVersionActionsSheetPage").then((m) => ({ default: m.StockReportVersionActionsSheetPage })));
+const requested = lazyPage(() => import("./surfaces/StockReportRequestedSheetPage").then((m) => ({ default: m.StockReportRequestedSheetPage })));
+const versionForm = lazyPage(() => import("./surfaces/StockReportVersionFormSlidePage").then((m) => ({ default: m.StockReportVersionFormSlidePage })));
+const schedule = lazyPage(() => import("./surfaces/StockReportScheduleSheetPage").then((m) => ({ default: m.StockReportScheduleSheetPage })));
+const drafts = lazyPage(() => import("./surfaces/StockReportDraftsSlidePage").then((m) => ({ default: m.StockReportDraftsSlidePage })));
+const refresh = lazyPage(() => import("./surfaces/StockReportRefreshSheetPage").then((m) => ({ default: m.StockReportRefreshSheetPage })));
+const activate = lazyPage(() => import("./surfaces/StockReportActivateSheetPage").then((m) => ({ default: m.StockReportActivateSheetPage })));
 
 export const preloadStockReportDetailSurface = detail.preload;
 export const preloadStockMatchWarningSurface = match.preload;
@@ -94,6 +132,13 @@ export const preloadStockReportVersionHistorySurface = history.preload;
 export const preloadStockReportDetailMenuSurface = detailMenu.preload;
 export const preloadStockReportLegendSurface = legend.preload;
 export const preloadStockReportDraftBoardSurface = draftBoard.preload;
+export const preloadStockReportVersionActionsSurface = versionActions.preload;
+export const preloadStockReportRequestedSurface = requested.preload;
+export const preloadStockReportVersionFormSurface = versionForm.preload;
+export const preloadStockReportScheduleSurface = schedule.preload;
+export const preloadStockReportDraftsSurface = drafts.preload;
+export const preloadStockReportRefreshSurface = refresh.preload;
+export const preloadStockReportActivateSurface = activate.preload;
 export const stockReportSurfaces: SurfaceRegistrations = {
   [STOCK_REPORT_DETAIL_SURFACE_ID]: { surface: "slide", component: detail.Component },
   [STOCK_REPORT_PRIORITY_SURFACE_ID]: { surface: "sheet", component: priority.Component },
@@ -106,4 +151,11 @@ export const stockReportSurfaces: SurfaceRegistrations = {
   [STOCK_REPORT_DETAIL_MENU_SURFACE_ID]: { surface: "sheet", component: detailMenu.Component },
   [STOCK_REPORT_LEGEND_SURFACE_ID]: { surface: "sheet", component: legend.Component },
   [STOCK_REPORT_DRAFT_BOARD_SURFACE_ID]: { surface: "slide", component: draftBoard.Component },
+  [STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID]: { surface: "sheet", component: versionActions.Component },
+  [STOCK_REPORT_REQUESTED_SURFACE_ID]: { surface: "sheet", component: requested.Component },
+  [STOCK_REPORT_VERSION_FORM_SURFACE_ID]: { surface: "slide", component: versionForm.Component },
+  [STOCK_REPORT_SCHEDULE_SURFACE_ID]: { surface: "sheet", component: schedule.Component },
+  [STOCK_REPORT_DRAFTS_SURFACE_ID]: { surface: "slide", component: drafts.Component },
+  [STOCK_REPORT_REFRESH_SURFACE_ID]: { surface: "sheet", component: refresh.Component },
+  [STOCK_REPORT_ACTIVATE_SURFACE_ID]: { surface: "sheet", component: activate.Component },
 };

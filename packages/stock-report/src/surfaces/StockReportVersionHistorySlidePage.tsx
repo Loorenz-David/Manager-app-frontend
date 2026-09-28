@@ -19,10 +19,12 @@ import { toStockReportVersionViewModel } from "../stock-report.types";
  * The back row scrolls with the list; the surface header is muted.
  */
 const TITLE = "Version history";
+/** One request, the active version first by the backend's order (v10 §5.9, OC-6). Drafts have their own page. */
+const HISTORY_STATES = ["active", "closed"] as const;
 
 export function StockReportVersionHistorySlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const versions = useStockReportVersionsQuery();
+  const versions = useStockReportVersionsQuery({ states: HISTORY_STATES });
 
   // The surface's fixed header cannot scroll with the body, so it is muted
   // outright and the page draws its own (owner, 2026-09-26).
