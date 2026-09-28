@@ -1,17 +1,18 @@
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ activeVersion: vi.fn(), setTitle: vi.fn(), setHeaderHidden: vi.fn() }));
+const mocks = vi.hoisted(() => ({ activeVersion: vi.fn(), open: vi.fn(), setTitle: vi.fn(), setHeaderHidden: vi.fn(), canManageVersions: false }));
 
 vi.mock("@beyo/hooks", () => ({
+  useSurface: () => ({ open: mocks.open }),
   useSurfaceHeader: () => ({ setTitle: mocks.setTitle, setActions: vi.fn(), requestClose: vi.fn(), setHeaderHidden: mocks.setHeaderHidden }),
 }));
 vi.mock("../api/use-stock-report-queries", () => ({ useStockReportActiveVersionQuery: mocks.activeVersion }));
 vi.mock("../controllers/use-stock-report-board-controller", () => ({
   useStockReportBoardController: () => ({
-    permissions: { canPrioritise: false },
+    permissions: { canPrioritise: false, canManageVersions: mocks.canManageVersions },
     bucket: "high",
     buckets: ["high", "medium", "low"],
     cards: [],
@@ -30,20 +31,28 @@ vi.mock("../components/board/StockReportBoardView", () => ({
 }));
 
 import { wireStockReportSnapshotVersion } from "../fixtures/stock-report-wire-fixtures";
+import { formatVersionDayTitle } from "../lib/version-format";
 import { StockReportBoardSlidePage, stockReportBoardTitle } from "./StockReportBoardSlidePage";
 
 describe("StockReportBoardSlidePage", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.canManageVersions = false;
+  });
   afterEach(cleanup);
 
-  it("titles the board by the day its version opened, in both the surface and the in-scroll row", () => {
-    const activeAt = new Date(new Date().getFullYear(), 8, 24, 9).toISOString();
-    mocks.activeVersion.mockReturnValue({ data: wireStockReportSnapshotVersion({ active_at: activeAt }) });
+  /** OC-18: the version's own title, else the day it was created. */
+  it("titles the board by its version — the title when it has one, else the creation day — in both the surface and the in-scroll row", () => {
+    const createdAt = new Date(new Date().getFullYear(), 8, 24, 9).toISOString();
+    mocks.activeVersion.mockReturnValue({ data: wireStockReportSnapshotVersion({ created_at: createdAt, title: null }) });
     render(<StockReportBoardSlidePage />);
 
-    expect(mocks.setTitle).toHaveBeenCalledWith("Stock requested 09-24");
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Stock requested 09-24");
+    const dayTitle = formatVersionDayTitle(createdAt);
+    expect(mocks.setTitle).toHaveBeenCalledWith(dayTitle);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(dayTitle);
     expect(mocks.setHeaderHidden).toHaveBeenCalledWith(true);
+
+    expect(stockReportBoardTitle(wireStockReportSnapshotVersion({ title: "Autumn run" }))).toBe("Autumn run");
   });
 
   it("stands the title alone while the version is unknown", () => {
@@ -52,6 +61,25 @@ describe("StockReportBoardSlidePage", () => {
 
     expect(mocks.setTitle).toHaveBeenCalledWith("Stock requested");
     expect(stockReportBoardTitle(null)).toBe("Stock requested");
-    expect(stockReportBoardTitle("not a date")).toBe("Stock requested");
+    expect(stockReportBoardTitle(undefined)).toBe("Stock requested");
+  });
+
+  /** OC-3: the active version's ⋮, for the roles that manage versions, once the version is known. */
+  it("offers the version's ⋮ to managers once the active version is known, and to nobody else", () => {
+    mocks.canManageVersions = true;
+    mocks.activeVersion.mockReturnValue({ data: undefined });
+    render(<StockReportBoardSlidePage />);
+    expect(screen.queryByTestId("stock-report-board-menu")).not.toBeInTheDocument();
+
+    cleanup();
+    mocks.activeVersion.mockReturnValue({ data: wireStockReportSnapshotVersion({ client_id: "srv-1" }) });
+    render(<StockReportBoardSlidePage />);
+    fireEvent.click(screen.getByTestId("stock-report-board-menu"));
+    expect(mocks.open).toHaveBeenCalledWith("stock-report-version-actions-sheet", { versionId: "srv-1" });
+
+    cleanup();
+    mocks.canManageVersions = false;
+    render(<StockReportBoardSlidePage />);
+    expect(screen.queryByTestId("stock-report-board-menu")).not.toBeInTheDocument();
   });
 });

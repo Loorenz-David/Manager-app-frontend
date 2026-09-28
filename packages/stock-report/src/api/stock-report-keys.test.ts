@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { stockReportKeys } from "./stock-report-keys";
+import { stockReportKeys, stockReportMutationKeys } from "./stock-report-keys";
 
 const BOARD = { majorCategory: null, missingOnly: false, versionId: null };
 
@@ -45,5 +45,10 @@ describe("stockReportKeys", () => {
     for (const key of [history, stockReportKeys.activeVersion(), stockReportKeys.version("srv-1"), stockReportKeys.draftCount()]) {
       expect(key.slice(0, stockReportKeys.versions().length)).toEqual([...stockReportKeys.versions()]);
     }
+  });
+
+  it("keys a version's commands by its id, so a page can find its own command in the mutation cache (projection R11)", () => {
+    expect(stockReportMutationKeys.versionCommand("srv-draft")).toEqual([...stockReportKeys.all, "version-command", "srv-draft"]);
+    expect(stockReportMutationKeys.versionCommand("srv-draft")).not.toEqual(stockReportMutationKeys.versionCommand("srv-other"));
   });
 });

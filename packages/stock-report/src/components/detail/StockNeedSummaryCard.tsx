@@ -3,7 +3,11 @@ import { Info } from "lucide-react";
 import { FulfilmentBar } from "../board/FulfilmentBar";
 import { StockNeedPropertyTags } from "../board/StockNeedPropertyTags";
 import { StockNeedQuantityPanel } from "../board/StockNeedQuantityPanel";
-import type { FulfilmentQuantities } from "../../stock-report.types";
+import type {
+  FulfilmentQuantities,
+  StockReportMissingSource,
+  StockReportRequestedSource,
+} from "../../stock-report.types";
 
 export type StockNeedSummaryCardProps = {
   /** Used as the picture's alternative text; never rendered as a title. */
@@ -13,7 +17,32 @@ export type StockNeedSummaryCardProps = {
   quantities: FulfilmentQuantities;
   /** Opens the bar's legend sheet; without it the card shows no legend control. */
   onOpenLegend?: () => void;
+  /** Which requested value is in force (v8 §6.6); a manual one names Scanner's beside it. */
+  requestedSource?: StockReportRequestedSource;
+  /** What Scanner says (a draft) or said when it froze (active). */
+  requestedScanner?: number;
+  /** Where a draft row's missing count comes from (v9 §6.6); ignored on the board. */
+  missingSource?: StockReportMissingSource;
+  /** The same row's missing count on the live version; `null` when it has none there. */
+  activeMissing?: number | null;
+  /** Whether the page shows a draft's row — the missing-source line is a draft's only. */
+  isDraft?: boolean;
 };
+
+/**
+ * The line under the missing count on a draft (v9 §0.1 item 10): where the
+ * count comes from, and — under a typed value — what the board says.
+ */
+export function missingSourceLine(
+  missingSource: StockReportMissingSource,
+  activeMissing: number | null,
+): string | null {
+  if (missingSource === "active") return "missing on the live version";
+  if (missingSource === "own") {
+    return activeMissing === null ? "missing in this draft" : `missing in this draft · board says ${activeMissing}`;
+  }
+  return null;
+}
 
 /**
  * The detail page's header card: the list card's anatomy promoted to summary
@@ -32,7 +61,16 @@ export function StockNeedSummaryCard({
   propertyTags,
   quantities,
   onOpenLegend,
+  requestedSource = "scanner",
+  requestedScanner,
+  missingSource = "own",
+  activeMissing = null,
+  isDraft = false,
 }: StockNeedSummaryCardProps): React.JSX.Element {
+  const requestedLine =
+    requestedSource === "manual" ? `requested by hand · Scanner says ${requestedScanner ?? quantities.requested}` : null;
+  const missingLine = isDraft ? missingSourceLine(missingSource, activeMissing) : null;
+
   return (
     <div
       // 1.125rem is the design's 18px summary radius, one step above the 16px
@@ -58,6 +96,12 @@ export function StockNeedSummaryCard({
           quantities={quantities}
           size="summary"
         />
+        {requestedLine || missingLine ? (
+          <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-muted-foreground">
+            {requestedLine ? <p data-testid="stock-report-summary-requested-source">{requestedLine}</p> : null}
+            {missingLine ? <p data-testid="stock-report-summary-missing-source">{`${quantities.missing} ${missingLine}`}</p> : null}
+          </div>
+        ) : null}
         {onOpenLegend ? (
           <div className="flex justify-end">
             <button

@@ -35,24 +35,55 @@ export type ServerToClientEvents = {
     quantity_awaiting: number | null;
   }) => void;
   "stock_report_item:deleted": (payload: { client_id: string }) => void;
-  /** `client_id` is the snapshot's id; `stock_report_item_id` names the row. */
+  /**
+   * `client_id` is the snapshot's id; `stock_report_item_id` names the row.
+   * Every key is present on every emission, `null` where there is no value
+   * (stock report handoff v10 §7): the stored missing count is `null` on a
+   * draft row that borrows the board's (v9 §7).
+   */
   "stock_report_item_snapshot:updated": (payload: {
     client_id: string;
     stock_report_item_id: string;
     version_id: string;
     priority: "high" | "medium" | "low" | null;
     priority_order: number | null;
-    quantity_missing: number;
-    quantity_resolved: number;
+    quantity_requested_scanner: number | null;
+    quantity_requested_manual: number | null;
+    quantity_missing: number | null;
+    quantity_resolved: number | null;
   }) => void;
   "stock_report_snapshot_version:created": (payload: {
     client_id: string;
     snapshot_count: number;
+    state: "draft" | "active";
+    title: string | null;
   }) => void;
   "stock_report_snapshot_version:closed": (payload: {
     client_id: string;
     snapshot_count: number;
   }) => void;
+  /** v8 §7, v9 §7: a draft became the live version, by hand or on schedule. */
+  "stock_report_snapshot_version:activated": (payload: {
+    client_id: string;
+    snapshot_count: number;
+    title: string | null;
+    scheduled: boolean;
+    keep_active_missing: boolean;
+  }) => void;
+  /** v8 §7: the live version took today's Scanner quantities. */
+  "stock_report_snapshot_version:refreshed": (payload: {
+    client_id: string;
+    snapshot_count: number;
+    keep_manual_requested: boolean;
+  }) => void;
+  /** v8 §7, v9 §7: title or schedule changed — also a superseded or skipped schedule. */
+  "stock_report_snapshot_version:updated": (payload: {
+    client_id: string;
+    title: string | null;
+    scheduled_activation_at: string | null;
+    scheduled_activation_keeps_active_missing: boolean;
+  }) => void;
+  "stock_report_snapshot_version:deleted": (payload: { client_id: string }) => void;
   "stock_task_assignment:created": (payload: {
     client_id: string;
     stock_report_item_id: string;

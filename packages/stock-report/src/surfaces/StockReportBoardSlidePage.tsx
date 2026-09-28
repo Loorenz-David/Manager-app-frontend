@@ -1,22 +1,24 @@
 import { useEffect } from "react";
-import { formatShortDate } from "@beyo/lib";
-import { useSurfaceHeader } from "@beyo/hooks";
+import { useSurface, useSurfaceHeader } from "@beyo/hooks";
 
 import { useStockReportActiveVersionQuery } from "../api/use-stock-report-queries";
 import { StockReportBoardView } from "../components/board/StockReportBoardView";
+import { StockReportMenuButton } from "../components/StockReportMenuButton";
 import { StockReportSlideHeader } from "../components/StockReportSlideHeader";
 import { useStockReportBoardController } from "../controllers/use-stock-report-board-controller";
+import { STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID } from "../surface-ids";
+import { toStockReportVersionViewModel, type StockReportSnapshotVersion } from "../stock-report.types";
 
 const TITLE = "Stock requested";
 
 /**
- * "Stock requested 09-24" — the board lists one version's snapshots, so its
- * title names the day that version opened (owner, 2026-09-26). Before the
- * version has loaded, or when there is none yet, the title stands alone.
+ * The board lists one version's snapshots, so its title is that version's
+ * (OC-18): its own title when it has one, else the day it was created — "Thu,
+ * 7th July". Before the version has loaded, or when there is none yet, the
+ * board's plain name stands alone.
  */
-export function stockReportBoardTitle(activeAt: string | null | undefined): string {
-  const date = formatShortDate(activeAt);
-  return date ? `${TITLE} ${date}` : TITLE;
+export function stockReportBoardTitle(version: StockReportSnapshotVersion | null | undefined, now?: number): string {
+  return version ? toStockReportVersionViewModel(version, now).displayTitle : TITLE;
 }
 
 /**
@@ -27,11 +29,14 @@ export function stockReportBoardTitle(activeAt: string | null | undefined): stri
  */
 export function StockReportBoardSlidePage(): React.JSX.Element {
   const header = useSurfaceHeader();
+  const { open } = useSurface();
   const controller = useStockReportBoardController();
   // Served from the cache the hub already filled; the same default progress
   // filter keeps the two reads on one key.
   const activeVersion = useStockReportActiveVersionQuery();
-  const title = stockReportBoardTitle(activeVersion.data?.active_at);
+  const title = stockReportBoardTitle(activeVersion.data);
+  // The ⋮ names the active version (OC-3), so it waits for the read.
+  const activeVersionId = activeVersion.data?.client_id;
 
   // The surface's fixed header cannot scroll with the body, so it is muted
   // outright and the page draws its own (owner, 2026-09-26). The title still
@@ -48,6 +53,15 @@ export function StockReportBoardSlidePage(): React.JSX.Element {
       <StockReportBoardView
         header={
           <StockReportSlideHeader
+            actions={
+              controller.permissions.canManageVersions && activeVersionId ? (
+                <StockReportMenuButton
+                  data-testid="stock-report-board-menu"
+                  label="Version actions"
+                  onPress={() => open(STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID, { versionId: activeVersionId })}
+                />
+              ) : null
+            }
             data-testid="stock-report-board-back"
             title={title}
             onBack={() => header?.requestClose()}

@@ -1,6 +1,10 @@
 import type { InfiniteData, QueryClient, QueryKey } from "@tanstack/react-query";
 
-import type { StockReportItem } from "../stock-report.types";
+import {
+  STOCK_REPORT_ACTIVE_SCOPE,
+  type StockReportItem,
+  type StockReportVersionScope,
+} from "../stock-report.types";
 import type { StockReportItemPage } from "./stock-report-api";
 import { stockReportKeys } from "./stock-report-keys";
 
@@ -74,4 +78,43 @@ export function restartStockReportListQueries(
 ): void {
   trimStockReportListQueriesToFirstPage(queryClient, queryKey);
   void queryClient.invalidateQueries({ queryKey, refetchType: "active" });
+}
+
+/**
+ * One version's lists — and, for a draft, its own version entry — are dropped
+ * after the version was activated or deleted (plan §D.2, §E.5, §E.7;
+ * projection R11). Nobody observes most of them, so they are simply removed.
+ * An observed one belongs to a mounted page:
+ *
+ * - a draft's page closes itself once its version query stops saying
+ *   `draft` (§C.4), so its in-flight reads are cancelled and **not** refetched
+ *   — no skeleton flash, no request against a deleted version;
+ * - the active board has no exit rule: its observed lists are reset so the
+ *   page fetches the new version's rows instead of painting the closed
+ *   version's priorities first.
+ */
+export function dropStockReportVersionQueries(
+  queryClient: QueryClient,
+  scope: StockReportVersionScope,
+): void {
+  const prefixes: QueryKey[] = [stockReportKeys.versionLists(scope)];
+  if (scope !== STOCK_REPORT_ACTIVE_SCOPE) prefixes.push(stockReportKeys.version(scope));
+  for (const queryKey of prefixes) {
+    for (const query of queryClient.getQueryCache().findAll({ queryKey })) {
+      const exact = { queryKey: query.queryKey, exact: true } as const;
+      if (query.getObserversCount() === 0) queryClient.removeQueries(exact);
+      else if (scope === STOCK_REPORT_ACTIVE_SCOPE) void queryClient.resetQueries(exact);
+      else void queryClient.cancelQueries(exact);
+    }
+  }
+}
+
+/** The draft scopes of every cached list — the versions someone opened besides the board. */
+export function cachedStockReportDraftScopes(queryClient: QueryClient): StockReportVersionScope[] {
+  const scopes = new Set<StockReportVersionScope>();
+  for (const query of queryClient.getQueryCache().findAll({ queryKey: stockReportKeys.lists() })) {
+    const scope = stockReportKeys.versionScopeOfListKey(query.queryKey);
+    if (scope !== undefined && scope !== STOCK_REPORT_ACTIVE_SCOPE) scopes.add(scope);
+  }
+  return [...scopes];
 }

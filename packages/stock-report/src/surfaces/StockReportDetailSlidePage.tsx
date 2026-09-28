@@ -15,12 +15,12 @@ import {
   useSetStockReportMissingQuantity,
 } from "../actions/use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
-import { STOCK_REPORT_ACTIVE_SCOPE } from "../stock-report.types";
 import {
   stockReportListItems,
   type StockReportItemListData,
 } from "../api/stock-report-list-cache";
 import { StockReportDetailView } from "../components/detail/StockReportDetailView";
+import { StockReportMenuButton } from "../components/StockReportMenuButton";
 import { useStockAssignmentGate } from "../hooks/use-stock-assignment-gate";
 import { missingQuantityBounds } from "../lib/missing-quantity";
 import { useStockReportPermissions } from "../lib/use-stock-report-permissions";
@@ -31,17 +31,27 @@ import {
   STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
   STOCK_REPORT_DETAIL_SURFACE_ID,
   STOCK_REPORT_LEGEND_SURFACE_ID,
+  STOCK_REPORT_REQUESTED_SURFACE_ID,
   preloadStockReportLegendSurface,
+  type StockReportDetailMenuSurfaceProps,
   type StockReportDetailSurfaceProps,
+  type StockReportRequestedSurfaceProps,
 } from "../surface-ids";
 import {
+  STOCK_REPORT_ACTIVE_SCOPE,
+  stockReportVersionScope,
   toStockReportAssignmentCardData,
   toStockReportItemViewModel,
   type StockReportItem,
 } from "../stock-report.types";
 
 export function StockReportDetailSlidePage(): React.JSX.Element {
-  const { stockNeedId = "" } = useSurfaceProps<StockReportDetailSurfaceProps>();
+  const { stockNeedId = "", versionId } = useSurfaceProps<StockReportDetailSurfaceProps>();
+  // The page reads one version's row (plan §3.1): the board's when opened
+  // from the board, a draft's when opened from a draft board. Every cache
+  // read and every edit below carries this scope.
+  const scope = stockReportVersionScope(versionId);
+  const isDraft = scope !== STOCK_REPORT_ACTIVE_SCOPE;
   const queryClient = useQueryClient();
   const header = useSurfaceHeader();
   const { close, open } = useSurface();
@@ -52,34 +62,36 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   );
   const createAssignment = useCreateStockAssignment();
   const removeAssignment = useRemoveStockAssignment(stockNeedId);
-  const setMissing = useSetStockReportMissingQuantity();
+  const setMissing = useSetStockReportMissingQuantity({ versionId });
   usePreloadSurface(preloadStockReportLegendSurface);
   // There is no single-row endpoint, so the page's own entry is seeded from
-  // whichever list opened it and never fetched (`skipToken`); the mutations
-  // and socket handlers keep it true. That is what keeps the page reactive
-  // after its row leaves every list — marking all of it missing drops it from
-  // the board's default read, clearing the count drops it from the missing
-  // list. A deleted row still exits through the assignments 404 below.
-  // `skipToken` alone disables fetching; `gcTime: Infinity` keeps the entry
-  // alive for as long as the page is open, even while the surface is hidden.
+  // whichever list of its scope opened it and never fetched (`skipToken`);
+  // the mutations and socket handlers keep it true. That is what keeps the
+  // page reactive after its row leaves every list — marking all of it
+  // missing drops it from the board's default read, clearing the count drops
+  // it from the missing list. A deleted row still exits through the
+  // assignments 404 below. `skipToken` alone disables fetching;
+  // `gcTime: Infinity` keeps the entry alive for as long as the page is open,
+  // even while the surface is hidden.
   const detail = useQuery<StockReportItem>({
-    queryKey: stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE),
+    queryKey: stockReportKeys.item(stockNeedId, scope),
     queryFn: skipToken,
     gcTime: Number.POSITIVE_INFINITY,
   });
+  // The scope's lists only: another version's row is not this row.
   const listRow = queryClient
-    .getQueriesData<StockReportItemListData>({ queryKey: stockReportKeys.lists() })
+    .getQueriesData<StockReportItemListData>({ queryKey: stockReportKeys.versionLists(scope) })
     .flatMap(([, data]) => stockReportListItems(data))
     .find((item) => item.client_id === stockNeedId);
   const row = detail.data ?? listRow;
   useEffect(() => {
     // Seed once, judged by the cache itself: the observer reports the write a
     // tick later, and writing again in that window would loop.
-    const key = stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE);
+    const key = stockReportKeys.item(stockNeedId, scope);
     if (listRow && queryClient.getQueryData(key) === undefined) {
       queryClient.setQueryData(key, listRow);
     }
-  }, [listRow, queryClient, stockNeedId]);
+  }, [listRow, queryClient, scope, stockNeedId]);
   const viewModel = row ? toStockReportItemViewModel(row) : null;
   const assignments = useStockReportAssignmentsQuery(stockNeedId);
   const canAddItem = permissions.canAssign && Boolean(openers.openTaskCreation);
@@ -98,17 +110,40 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   const openMenuRef = useRef<() => void>(() => {});
   openMenuRef.current = () => {
     if (!row?.snapshot) return;
-    const bounds = missingQuantityBounds(row.snapshot);
-    open(STOCK_REPORT_DETAIL_MENU_SURFACE_ID, {
+    const snapshot = row.snapshot;
+    const bounds = missingQuantityBounds(snapshot);
+    const props: StockReportDetailMenuSurfaceProps = {
       markable: bounds.markable,
       missing: bounds.missing,
+      canMarkMissing: permissions.canMarkMissing,
       disabled: setMissing.isPending,
       onMarkMissing: () =>
         setMissing.mutate({ stockNeedId, quantityMissing: bounds.ceiling }),
       onUnmarkMissing: () => setMissing.mutate({ stockNeedId, quantityMissing: 0 }),
-    });
+    };
+    if (permissions.canPrioritise) {
+      // On the board the request names the active version — the row's own
+      // snapshot carries its id (v7 §6.6), so no active-version read is
+      // waited on (projection R4).
+      const requested: StockReportRequestedSurfaceProps = {
+        stockNeedId,
+        versionId: versionId ?? snapshot.version_id,
+        scope,
+        current: snapshot.quantity_requested,
+        source: snapshot.quantity_requested_source,
+        scanner: snapshot.quantity_requested_scanner,
+      };
+      props.onSetRequested = () => open(STOCK_REPORT_REQUESTED_SURFACE_ID, requested);
+    }
+    if (isDraft && snapshot.quantity_missing_source === "own") {
+      // OC-14, v9 §5.16: `null` drops the draft's own number.
+      props.onFollowLive = () => setMissing.mutate({ stockNeedId, quantityMissing: null });
+    }
+    open(STOCK_REPORT_DETAIL_MENU_SURFACE_ID, props);
   };
-  const showMenu = permissions.canMarkMissing && Boolean(viewModel);
+  // Whoever has a row in the sheet (projection R3): the missing switch or the
+  // requested quantity — sellers reach it for the latter alone.
+  const showMenu = (permissions.canMarkMissing || permissions.canPrioritise) && Boolean(viewModel);
   useEffect(() => {
     if (!header) return;
     if (!showMenu) {
@@ -116,19 +151,11 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
       return;
     }
     header.setActions(
-      <button
-        aria-label="Stock need actions"
-        className="flex size-9 shrink-0 items-center justify-center rounded-full text-muted-foreground"
+      <StockReportMenuButton
         data-testid="stock-report-detail-menu-button"
-        type="button"
-        onClick={() => openMenuRef.current()}
-      >
-        <span className="flex flex-col items-center gap-0.5">
-          {[0, 1, 2].map((index) => (
-            <span key={index} className="size-1 rounded-full bg-current" />
-          ))}
-        </span>
-      </button>,
+        label="Stock need actions"
+        onPress={() => openMenuRef.current()}
+      />,
     );
     return () => header.setActions(null);
   }, [header, showMenu]);
@@ -145,6 +172,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
         : null;
     console.info("[stock-report] detail capabilities", {
       stockNeedId,
+      scope,
       role: permissions.role,
       workspaceSpecialization: permissions.workspaceSpecialization,
       canAssign: permissions.canAssign,
@@ -167,6 +195,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
     permissions.role,
     permissions.workspaceSpecialization,
     row,
+    scope,
     stockNeedId,
   ]);
 
@@ -238,6 +267,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
 
   return (
     <StockReportDetailView
+      activeMissing={viewModel.card.activeMissing}
       assignments={(assignments.data ?? []).map(
         toStockReportAssignmentCardData,
       )}
@@ -248,7 +278,9 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
           : undefined
       }
       imageUrl={viewModel.card.imageUrl}
+      isDraft={isDraft}
       isMissing={isMissing}
+      missingSource={viewModel.card.missingSource}
       onAddItem={() => openers.openTaskCreation?.(stockNeedId, createCallbacks)}
       onRefresh={() => assignments.refetch().then(() => undefined)}
       onRetry={() => void assignments.refetch()}
@@ -285,6 +317,8 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
       }}
       propertyTags={viewModel.card.propertyTags}
       quantities={viewModel.card.quantities}
+      requestedScanner={viewModel.card.requestedScanner}
+      requestedSource={viewModel.card.requestedSource}
       status={
         assignments.isPending
           ? "loading"

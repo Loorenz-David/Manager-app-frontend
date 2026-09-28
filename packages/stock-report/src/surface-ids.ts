@@ -3,6 +3,7 @@ import type { MajorCategory } from "@beyo/lib";
 import type { ComponentType } from "react";
 import type { StockMatchWarningSheetContentProps } from "./components/sheets/StockMatchWarningSheetContent";
 import type { StockReportLegendSheetContentProps } from "./components/sheets/StockReportLegendSheetContent";
+import type { StockReportRequestedSource, StockReportVersionScope } from "./stock-report.types";
 
 export const STOCK_REPORT_DETAIL_SURFACE_ID = "stock-report-detail-slide";
 export const STOCK_REPORT_PRIORITY_SURFACE_ID = "stock-report-priority-sheet";
@@ -19,8 +20,15 @@ export const STOCK_REPORT_VERSION_HISTORY_SURFACE_ID = "stock-report-version-his
 export const STOCK_REPORT_DETAIL_MENU_SURFACE_ID = "stock-report-detail-menu-sheet";
 /** The fulfilment bar's legend, opened from the detail summary card (owner, 2026-09-26). */
 export const STOCK_REPORT_LEGEND_SURFACE_ID = "stock-report-legend-sheet";
+/** One draft's board (plan §C.4). */
+export const STOCK_REPORT_DRAFT_BOARD_SURFACE_ID = "stock-report-draft-board-slide";
+/** The version's ⋮ menu — edit, refresh, activate, delete (plan §G.5). */
+export const STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID = "stock-report-version-actions-sheet";
+/** The requested-quantity sheet, from the detail page's ⋮ (plan §G.7, OC-10). */
+export const STOCK_REPORT_REQUESTED_SURFACE_ID = "stock-report-requested-sheet";
 
-export type StockReportDetailSurfaceProps = { stockNeedId: string };
+/** `versionId` absent = the board (the active version); an id = that version's row (plan §3.1). */
+export type StockReportDetailSurfaceProps = { stockNeedId: string; versionId?: string };
 export type StockReportPrioritySurfaceProps = { current: "unset" | "high" | "medium" | "low"; onSelect: (priority: "high" | "medium" | "low" | null) => void };
 /** `initial` is what Clear returns to — the role default, not "no filter". */
 export type StockReportFilterSurfaceProps = { current: MajorCategory | null; initial: MajorCategory | null; onApply: (majorCategory: MajorCategory | null) => void };
@@ -39,10 +47,31 @@ export type StockReportDetailMenuSurfaceProps = {
   missing: number;
   onMarkMissing: () => void;
   onUnmarkMissing: () => void;
+  /** Whether the missing rows render at all (projection R3); sellers get the requested row alone. */
+  canMarkMissing?: boolean;
+  /** "Set requested quantity" (OC-10) — present for the roles that prioritise. */
+  onSetRequested?: () => void;
+  /** "Follow the live version" (OC-14) — present on a draft row with its own missing count. */
+  onFollowLive?: () => void;
   disabled?: boolean;
 };
 /** The summary card's five numbers, so the sheet draws the same bar it explains. */
 export type StockReportLegendSurfaceProps = StockReportLegendSheetContentProps;
+export type StockReportDraftBoardSurfaceProps = { versionId: string };
+export type StockReportVersionActionsSurfaceProps = { versionId: string };
+/**
+ * `versionId` is what the request names — on the board the active version's
+ * id, read from the row's own snapshot (projection R4); `scope` is the cache
+ * the page reads (`"active"` on the board, the version id on a draft).
+ */
+export type StockReportRequestedSurfaceProps = {
+  stockNeedId: string;
+  versionId: string;
+  scope: StockReportVersionScope;
+  current: number;
+  source: StockReportRequestedSource;
+  scanner: number;
+};
 
 function lazyPage<T extends ComponentType<Record<string, never>>>(loader: () => Promise<{ default: T }>) { return lazyWithPreload(loader); }
 const detail = lazyPage(() => import("./surfaces/StockReportDetailSlidePage").then((m) => ({ default: m.StockReportDetailSlidePage })));
@@ -55,6 +84,7 @@ const missing = lazyPage(() => import("./surfaces/StockReportMissingSlidePage").
 const history = lazyPage(() => import("./surfaces/StockReportVersionHistorySlidePage").then((m) => ({ default: m.StockReportVersionHistorySlidePage })));
 const detailMenu = lazyPage(() => import("./surfaces/StockReportDetailMenuSheetPage").then((m) => ({ default: m.StockReportDetailMenuSheetPage })));
 const legend = lazyPage(() => import("./surfaces/StockReportLegendSheetPage").then((m) => ({ default: m.StockReportLegendSheetPage })));
+const draftBoard = lazyPage(() => import("./surfaces/StockReportDraftBoardSlidePage").then((m) => ({ default: m.StockReportDraftBoardSlidePage })));
 
 export const preloadStockReportDetailSurface = detail.preload;
 export const preloadStockMatchWarningSurface = match.preload;
@@ -63,6 +93,7 @@ export const preloadStockReportMissingSurface = missing.preload;
 export const preloadStockReportVersionHistorySurface = history.preload;
 export const preloadStockReportDetailMenuSurface = detailMenu.preload;
 export const preloadStockReportLegendSurface = legend.preload;
+export const preloadStockReportDraftBoardSurface = draftBoard.preload;
 export const stockReportSurfaces: SurfaceRegistrations = {
   [STOCK_REPORT_DETAIL_SURFACE_ID]: { surface: "slide", component: detail.Component },
   [STOCK_REPORT_PRIORITY_SURFACE_ID]: { surface: "sheet", component: priority.Component },
@@ -74,4 +105,5 @@ export const stockReportSurfaces: SurfaceRegistrations = {
   [STOCK_REPORT_VERSION_HISTORY_SURFACE_ID]: { surface: "slide", component: history.Component },
   [STOCK_REPORT_DETAIL_MENU_SURFACE_ID]: { surface: "sheet", component: detailMenu.Component },
   [STOCK_REPORT_LEGEND_SURFACE_ID]: { surface: "sheet", component: legend.Component },
+  [STOCK_REPORT_DRAFT_BOARD_SURFACE_ID]: { surface: "slide", component: draftBoard.Component },
 };

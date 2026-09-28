@@ -18,13 +18,32 @@ export function StockReportDetailMenuSheetPage(): React.JSX.Element {
 
   return (
     <StockReportDetailMenuSheetContent
+      canMarkMissing={props.canMarkMissing ?? true}
       disabled={props.disabled}
       markable={props.markable ?? 0}
       missing={props.missing ?? 0}
+      onFollowLive={
+        props.onFollowLive
+          ? () => {
+              props.onFollowLive?.();
+              header?.requestClose();
+            }
+          : undefined
+      }
       onMarkMissing={() => {
         props.onMarkMissing?.();
         header?.requestClose();
       }}
+      // The house order (projection R19): the destination opens first, on
+      // top, and this menu dismisses beneath it.
+      onSetRequested={
+        props.onSetRequested
+          ? () => {
+              props.onSetRequested?.();
+              header?.requestClose();
+            }
+          : undefined
+      }
       onUnmarkMissing={() => {
         props.onUnmarkMissing?.();
         header?.requestClose();

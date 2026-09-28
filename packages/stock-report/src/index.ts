@@ -99,7 +99,7 @@ export { StockReportBoardView } from "./components/board/StockReportBoardView";
 export type { StockReportBoardViewProps } from "./components/board/StockReportBoardView";
 
 // --- detail ----------------------------------------------------------------
-export { StockNeedSummaryCard } from "./components/detail/StockNeedSummaryCard";
+export { StockNeedSummaryCard, missingSourceLine } from "./components/detail/StockNeedSummaryCard";
 export type { StockNeedSummaryCardProps } from "./components/detail/StockNeedSummaryCard";
 export { StockReportAddItemButton } from "./components/detail/StockReportAddItemButton";
 export type { StockReportAddItemButtonProps } from "./components/detail/StockReportAddItemButton";
@@ -117,6 +117,8 @@ export type { StockReportDetailViewProps } from "./components/detail/StockReport
 
 export { StockReportSlideHeader } from "./components/StockReportSlideHeader";
 export type { StockReportSlideHeaderProps } from "./components/StockReportSlideHeader";
+export { StockReportMenuButton } from "./components/StockReportMenuButton";
+export type { StockReportMenuButtonProps } from "./components/StockReportMenuButton";
 
 // --- versions --------------------------------------------------------------
 export { StockVersionProgressBar } from "./components/versions/StockVersionProgressBar";
@@ -136,7 +138,7 @@ export { StockReportFilterSheetContent } from "./components/sheets/StockReportFi
 export type { StockReportFilterSheetContentProps } from "./components/sheets/StockReportFilterSheetContent";
 export { StockReportActionsSheetContent } from "./components/sheets/StockReportActionsSheetContent";
 export type { StockReportActionsSheetContentProps } from "./components/sheets/StockReportActionsSheetContent";
-export { StockReportDetailMenuSheetContent } from "./components/sheets/StockReportDetailMenuSheetContent";
+export { ROW_CLASS as STOCK_REPORT_SHEET_ROW_CLASS, StockReportDetailMenuSheetContent } from "./components/sheets/StockReportDetailMenuSheetContent";
 export type { StockReportDetailMenuSheetContentProps } from "./components/sheets/StockReportDetailMenuSheetContent";
 export { StockReportLegendSheetContent } from "./components/sheets/StockReportLegendSheetContent";
 export type { StockReportLegendSheetContentProps } from "./components/sheets/StockReportLegendSheetContent";
@@ -157,7 +159,12 @@ export type {
 export function loadStockReportRouteEntryPage() {
   return import("./route-entry").then((module) => ({ default: module.StockReportRouteEntryPage }));
 }
-export { stockReportKeys } from "./api/stock-report-keys";
+export { stockReportKeys, stockReportMutationKeys } from "./api/stock-report-keys";
+export {
+  cachedStockReportDraftScopes,
+  dropStockReportVersionQueries,
+  restartStockReportListQueries,
+} from "./api/stock-report-list-cache";
 export {
   STOCK_REPORT_PROGRESS_PRIORITIES,
   progressPriorityParam,
@@ -179,9 +186,16 @@ export {
   prefetchStockReportAssignmentsData,
 } from "./api/use-stock-report-queries";
 export {
+  useActivateStockReportVersion,
   useCreateStockReportVersion,
+  useDeleteStockReportVersion,
+  useRefreshStockReportVersionRequested,
   useSetStockReportMissingQuantity,
+  useSetStockReportPriority,
+  useSetStockReportRequestedQuantity,
+  useUpdateStockReportVersion,
 } from "./actions/use-stock-report-actions";
+export type { StockReportRowEditScope } from "./actions/use-stock-report-actions";
 export { stockReportFailureIdentity, stockReportRequestFailureMessage } from "./lib/stock-report-request-failure";
 export { stockReportSocketEvents } from "./socket-events";
 export { useStockMatchPreview } from "./actions/use-stock-match-preview";
@@ -203,6 +217,10 @@ export {
   STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
   STOCK_REPORT_DETAIL_MENU_SURFACE_ID,
   STOCK_REPORT_LEGEND_SURFACE_ID,
+  STOCK_REPORT_DRAFT_BOARD_SURFACE_ID,
+  STOCK_REPORT_VERSION_ACTIONS_SURFACE_ID,
+  STOCK_REPORT_REQUESTED_SURFACE_ID,
+  preloadStockReportDraftBoardSurface,
   preloadStockReportDetailSurface,
   preloadStockMatchWarningSurface,
   preloadStockReportBoardSurface,
@@ -222,6 +240,9 @@ export type {
   StockReportVersionHistorySurfaceProps,
   StockReportDetailMenuSurfaceProps,
   StockReportLegendSurfaceProps,
+  StockReportDraftBoardSurfaceProps,
+  StockReportVersionActionsSurfaceProps,
+  StockReportRequestedSurfaceProps,
 } from "./surface-ids";
 
 // --- fixtures --------------------------------------------------------------

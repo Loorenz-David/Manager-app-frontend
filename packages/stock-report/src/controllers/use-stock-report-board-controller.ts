@@ -35,15 +35,21 @@ export type StockReportBoardControllerOptions = {
    * reorganise inside a priority bucket — works as on the board.
    */
   mode?: StockReportBoardMode;
+  /**
+   * A version's rows instead of the board's (plan §3.1): `version_id` on the
+   * wire, the scope in every cache key, the versioned routes for every edit.
+   * Buckets, the Unset auto-switch, reorganise rules and cards are the same.
+   */
+  versionId?: string;
 };
 
-export function useStockReportBoardController({ mode = "board" }: StockReportBoardControllerOptions = {}) {
+export function useStockReportBoardController({ mode = "board", versionId }: StockReportBoardControllerOptions = {}) {
   const permissions = useStockReportPermissions();
   const isMissingMode = mode === "missing";
   const [bucket, setBucket] = useState<StockReportBoardBucket>(isMissingMode ? "all" : permissions.seesUnset ? "unset" : "high");
   // The role default is the opening value only; the sheet's Clear returns to
   // it, and switching bucket or mode leaves it alone.
-  const [filter, setFilter] = useState<StockReportListFilter>({ majorCategory: permissions.defaultMajorCategory, missingOnly: isMissingMode, versionId: null });
+  const [filter, setFilter] = useState<StockReportListFilter>({ majorCategory: permissions.defaultMajorCategory, missingOnly: isMissingMode, versionId: versionId ?? null });
   const [searchValue, setSearchValue] = useState("");
   const [isReorganiseMode, setReorganiseMode] = useState(false);
   const openingResolved = useRef(isMissingMode || !permissions.seesUnset);
@@ -51,7 +57,7 @@ export function useStockReportBoardController({ mode = "board" }: StockReportBoa
   usePreloadSurface(preloadStockReportDetailSurface);
   const list = useStockReportListQuery(bucket, filter);
   const rows = stockReportListItems(list.data);
-  const setPriority = useSetStockReportPriority();
+  const setPriority = useSetStockReportPriority({ versionId });
   const reorder = useReorderStockReportItem(bucket, filter);
 
   useEffect(() => {
@@ -98,7 +104,8 @@ export function useStockReportBoardController({ mode = "board" }: StockReportBoa
     // as the request settles.
     reorderDisabled: reorder.isPending || list.isFetchingNextPage || !reorderAvailable,
     setBucket,
-    openDetail: (stockNeedId: string) => open(STOCK_REPORT_DETAIL_SURFACE_ID, { stockNeedId }),
+    openDetail: (stockNeedId: string) =>
+      open(STOCK_REPORT_DETAIL_SURFACE_ID, versionId === undefined ? { stockNeedId } : { stockNeedId, versionId }),
     openFilter: () =>
       open(STOCK_REPORT_FILTER_SURFACE_ID, {
         current: filter.majorCategory,

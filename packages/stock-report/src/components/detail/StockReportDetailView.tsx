@@ -4,6 +4,8 @@ import type {
   FulfilmentQuantities,
   StockReportAssignmentCardData,
   StockReportLoadStatus,
+  StockReportMissingSource,
+  StockReportRequestedSource,
 } from "../../stock-report.types";
 import { StockReportAddItemButton } from "./StockReportAddItemButton";
 import { StockReportAssignmentList } from "./StockReportAssignmentList";
@@ -41,6 +43,13 @@ export type StockReportDetailViewProps = {
 
   /** Opens the fulfilment bar's legend sheet from the summary card. */
   onOpenLegend?: () => void;
+
+  /** The summary card's source lines (v8 §6.6, v9 §6.6) — threaded through, never computed here. */
+  requestedSource?: StockReportRequestedSource;
+  requestedScanner?: number;
+  missingSource?: StockReportMissingSource;
+  activeMissing?: number | null;
+  isDraft?: boolean;
 };
 
 /**
@@ -68,6 +77,11 @@ export function StockReportDetailView({
   onTapActions,
   isMissing = false,
   onOpenLegend,
+  requestedSource,
+  requestedScanner,
+  missingSource,
+  activeMissing,
+  isDraft,
 }: StockReportDetailViewProps): React.JSX.Element {
   if (isMissing) {
     return (
@@ -93,9 +107,14 @@ export function StockReportDetailView({
         <div className="pb-[calc(var(--safe-bottom,0px)+1.5rem)]">
           <div className="px-4 ">
             <StockNeedSummaryCard
+              activeMissing={activeMissing}
               imageUrl={imageUrl}
+              isDraft={isDraft}
+              missingSource={missingSource}
               propertyTags={propertyTags}
               quantities={quantities}
+              requestedScanner={requestedScanner}
+              requestedSource={requestedSource}
               title={title}
               onOpenLegend={onOpenLegend}
             />

@@ -7,11 +7,12 @@ const mocks = vi.hoisted(() => ({
   permissions: vi.fn(),
   reorder: { mutate: vi.fn(), isPending: false },
   setPriority: { mutate: vi.fn() },
+  useSetPriority: vi.fn(),
 }));
 
 vi.mock("@beyo/hooks", () => ({ useSurface: () => ({ open: mocks.open }), usePreloadSurface: vi.fn() }));
 vi.mock("../api/use-stock-report-queries", () => ({ useStockReportListQuery: mocks.list }));
-vi.mock("../actions/use-stock-report-actions", () => ({ useReorderStockReportItem: () => mocks.reorder, useSetStockReportPriority: () => mocks.setPriority }));
+vi.mock("../actions/use-stock-report-actions", () => ({ useReorderStockReportItem: () => mocks.reorder, useSetStockReportPriority: (options: unknown) => { mocks.useSetPriority(options); return mocks.setPriority; } }));
 vi.mock("../lib/use-stock-report-permissions", () => ({ useStockReportPermissions: mocks.permissions }));
 vi.mock("../surface-ids", () => ({ preloadStockReportDetailSurface: vi.fn(), STOCK_REPORT_DETAIL_SURFACE_ID: "stock-report-detail-slide", STOCK_REPORT_PRIORITY_SURFACE_ID: "stock-report-priority-sheet", STOCK_REPORT_FILTER_SURFACE_ID: "stock-report-filter-sheet" }));
 
@@ -271,6 +272,48 @@ describe("stock report board controller", () => {
       const { onApply } = mocks.open.mock.calls[0]?.[1] as { onApply: (value: "wood" | "seat" | null) => void };
       act(() => onApply("wood"));
       expect(mocks.list).toHaveBeenLastCalledWith("all", { majorCategory: "wood", missingOnly: true, versionId: null });
+    });
+  });
+
+  /**
+   * Plan §3.1 / §C.1: a draft's board is the same controller with the version
+   * in the filter — on the wire, in every key, and on every edit.
+   */
+  describe("version scope", () => {
+    it("reads a draft's rows, scopes the edits and hands the scope to the detail page", () => {
+      mocks.permissions.mockReturnValue(managerPermissions);
+      mocks.list.mockReturnValue(ready([wirePrioritisedStockReportItem("sri-a", "high", 1)]));
+      const { result } = renderHook(() => useStockReportBoardController({ versionId: "srv-draft" }));
+
+      expect(mocks.list).toHaveBeenCalledWith("unset", { majorCategory: null, missingOnly: false, versionId: "srv-draft" });
+      expect(mocks.useSetPriority).toHaveBeenCalledWith({ versionId: "srv-draft" });
+      result.current.openDetail("sri-a");
+      expect(mocks.open).toHaveBeenCalledWith("stock-report-detail-slide", { stockNeedId: "sri-a", versionId: "srv-draft" });
+    });
+
+    it("keeps the scope when the category filter or the bucket changes", () => {
+      mocks.permissions.mockReturnValue(managerPermissions);
+      // A row in Unset, so the opening fallback to High stays out of the way.
+      mocks.list.mockReturnValue(ready([wirePrioritisedStockReportItem("sri-u", null, null)]));
+      const { result } = renderHook(() => useStockReportBoardController({ versionId: "srv-draft" }));
+
+      result.current.openFilter();
+      const { onApply } = mocks.open.mock.calls[0]?.[1] as { onApply: (value: "wood" | "seat" | null) => void };
+      act(() => onApply("wood"));
+      expect(mocks.list).toHaveBeenLastCalledWith("unset", { majorCategory: "wood", missingOnly: false, versionId: "srv-draft" });
+      act(() => result.current.setBucket("low"));
+      expect(mocks.list).toHaveBeenLastCalledWith("low", { majorCategory: "wood", missingOnly: false, versionId: "srv-draft" });
+    });
+
+    it("hands the board's detail page no version, so it reads the active scope", () => {
+      mocks.permissions.mockReturnValue(managerPermissions);
+      mocks.list.mockReturnValue(ready());
+      const { result } = renderHook(useStockReportBoardController);
+
+      expect(mocks.useSetPriority).toHaveBeenCalledWith({ versionId: undefined });
+      result.current.openDetail("sri-a");
+      expect(mocks.open).toHaveBeenCalledWith("stock-report-detail-slide", { stockNeedId: "sri-a" });
+      expect(mocks.open.mock.calls[0]?.[1]).not.toHaveProperty("versionId");
     });
   });
 

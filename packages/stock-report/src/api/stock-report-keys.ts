@@ -91,3 +91,12 @@ export const stockReportKeys = {
   draftCount: () => [...stockReportKeys.versions(), "draft-count"] as const,
   missingSummary: () => [...stockReportKeys.all, "missing-summary"] as const,
 };
+
+/**
+ * Mutation keys for the version commands (edit, activate, refresh, delete).
+ * A page that shows one version reads the mutation cache under this key to
+ * tell its own command from a remote change (plan §C.4, projection R11).
+ */
+export const stockReportMutationKeys = {
+  versionCommand: (versionId: string) => [...stockReportKeys.all, "version-command", versionId] as const,
+};
