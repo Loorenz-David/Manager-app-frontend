@@ -18,10 +18,10 @@ import {
 import { StockNeedSummaryCard } from "./StockNeedSummaryCard";
 
 export type StockReportDetailViewProps = {
-  /** The category name. Used for the picture's alt text, never as a title. */
+  /** The category name: the summary headline's eyebrow and the picture's alt text. */
   title: string;
   imageUrl: string | null;
-  propertyTags: readonly string[];
+  propertyHeadline: string | null;
   quantities: FulfilmentQuantities;
 
   assignments: readonly StockReportAssignmentCardData[];
@@ -63,7 +63,7 @@ export type StockReportDetailViewProps = {
 export function StockReportDetailView({
   title,
   imageUrl,
-  propertyTags,
+  propertyHeadline,
   quantities,
   assignments,
   status,
@@ -111,7 +111,7 @@ export function StockReportDetailView({
               imageUrl={imageUrl}
               isDraft={isDraft}
               missingSource={missingSource}
-              propertyTags={propertyTags}
+              propertyHeadline={propertyHeadline}
               quantities={quantities}
               requestedScanner={requestedScanner}
               requestedSource={requestedSource}

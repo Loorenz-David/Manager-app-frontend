@@ -4,7 +4,10 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { stockNeedPartiallyFulfilledFixture } from "../../fixtures/stock-report-fixtures";
+import {
+  stockNeedPartiallyFulfilledFixture,
+  stockNeedWithoutTagsFixture,
+} from "../../fixtures/stock-report-fixtures";
 import { StockNeedCard } from "./StockNeedCard";
 
 afterEach(cleanup);
@@ -13,17 +16,31 @@ const CARD = stockNeedPartiallyFulfilledFixture;
 const ID = CARD.stockNeedId;
 
 describe("StockNeedCard", () => {
-  it("shows the goal quantity, the title and the criteria, and no priority", () => {
+  it("shows the goal quantity, the category over the criteria, and no priority", () => {
     render(<StockNeedCard card={CARD} />);
 
     expect(screen.getByTestId(`stock-need-card-panel-${ID}-quantity`)).toHaveTextContent(
       "30",
     );
-    expect(screen.getByText("Dining chair")).toBeInTheDocument();
-    expect(screen.getByText("Oak")).toBeInTheDocument();
-    expect(screen.getByText("Spindle back")).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`stock-need-card-headline-${ID}-category`),
+    ).toHaveTextContent("Dining chair");
+    expect(
+      screen.getByTestId(`stock-need-card-headline-${ID}-text`),
+    ).toHaveTextContent("Oak · Spindle back");
     expect(screen.getByTestId(`stock-need-card-${ID}`)).not.toHaveTextContent(
       "High",
+    );
+  });
+
+  it("puts the category in the headline slot when the row asks for nothing", () => {
+    const bare = stockNeedWithoutTagsFixture;
+    render(<StockNeedCard card={bare} />);
+
+    const headline = `stock-need-card-headline-${bare.stockNeedId}`;
+    expect(screen.queryByTestId(`${headline}-category`)).not.toBeInTheDocument();
+    expect(screen.getByTestId(`${headline}-text`)).toHaveTextContent(
+      "Workshop bench",
     );
   });
 

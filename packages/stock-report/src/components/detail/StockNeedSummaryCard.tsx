@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 
 import { FulfilmentBar } from "../board/FulfilmentBar";
-import { StockNeedPropertyTags } from "../board/StockNeedPropertyTags";
+import { StockNeedHeadline } from "../board/StockNeedHeadline";
 import { StockNeedQuantityPanel } from "../board/StockNeedQuantityPanel";
 import type {
   FulfilmentQuantities,
@@ -10,10 +10,11 @@ import type {
 } from "../../stock-report.types";
 
 export type StockNeedSummaryCardProps = {
-  /** Used as the picture's alternative text; never rendered as a title. */
+  /** The category name: the headline's eyebrow and the picture's alternative text. */
   title: string;
   imageUrl: string | null;
-  propertyTags: readonly string[];
+  /** The criteria line; `null` puts the category name in its place. */
+  propertyHeadline: string | null;
   quantities: FulfilmentQuantities;
   /** Opens the bar's legend sheet; without it the card shows no legend control. */
   onOpenLegend?: () => void;
@@ -46,19 +47,19 @@ export function missingSourceLine(
 
 /**
  * The detail page's header card: the list card's anatomy promoted to summary
- * scale — 82 px quantity panel, tags, a taller bar — and, right-aligned under
+ * scale — 82 px quantity panel, the same headline, a taller bar — and, right-aligned under
  * the bar in its own column, a small control that opens the legend as a sheet
  * (owner, 2026-09-26). The legend used to sit here inline; it wrapped beside
  * the panel, and the sheet can show the bar above its rows instead.
  *
- * It deliberately does **not** repeat the category name: the slide surface's
- * own header carries it (intention §6.2), which is also why this page has no
- * back-arrow bar of its own.
+ * The headline block is the list card's own, eyebrow included (owner,
+ * 2026-09-28), so a row reads the same on the board and here even though the
+ * slide surface's header also names the category (intention §6.2).
  */
 export function StockNeedSummaryCard({
   title,
   imageUrl,
-  propertyTags,
+  propertyHeadline,
   quantities,
   onOpenLegend,
   requestedSource = "scanner",
@@ -87,9 +88,10 @@ export function StockNeedSummaryCard({
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-2.5 pr-4 py-4">
-        <StockNeedPropertyTags
-          data-testid="stock-report-summary-tags"
-          tags={propertyTags}
+        <StockNeedHeadline
+          category={title}
+          data-testid="stock-report-summary-headline"
+          headline={propertyHeadline}
         />
         <FulfilmentBar
           data-testid="stock-report-summary-bar"

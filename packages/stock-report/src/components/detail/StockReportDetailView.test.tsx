@@ -25,7 +25,7 @@ function renderDetail(overrides: Partial<StockReportDetailViewProps> = {}) {
   const props: StockReportDetailViewProps = {
     title: NEED.title,
     imageUrl: NEED.imageUrl,
-    propertyTags: NEED.propertyTags,
+    propertyHeadline: NEED.propertyHeadline,
     quantities: NEED.quantities,
     assignments: stockReportAssignmentsFixture,
     status: "ready",
@@ -53,12 +53,17 @@ describe("StockReportDetailView — header", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not repeat the category name inside the summary card", () => {
+  it("heads the summary card the way the list card is headed", () => {
     renderDetail();
 
-    expect(screen.getByTestId("stock-report-summary-card")).not.toHaveTextContent(
-      NEED.title,
-    );
+    // The eyebrow repeats the slide header's category on purpose (owner,
+    // 2026-09-28): the row reads the same on the board and here.
+    expect(
+      screen.getByTestId("stock-report-summary-headline-category"),
+    ).toHaveTextContent(NEED.title);
+    expect(
+      screen.getByTestId("stock-report-summary-headline-text"),
+    ).toHaveTextContent("Oak · Spindle back");
   });
 
   it("shows the goal, the criteria and the bar, with the legend behind a button", () => {
@@ -68,7 +73,7 @@ describe("StockReportDetailView — header", () => {
     expect(
       screen.getByTestId("stock-report-summary-panel-quantity"),
     ).toHaveTextContent("30");
-    expect(screen.getByText("Oak")).toBeInTheDocument();
+    expect(screen.getByText("Oak · Spindle back")).toBeInTheDocument();
     expect(screen.getByTestId("stock-report-summary-bar")).toBeInTheDocument();
     // The legend moved to its own sheet (owner, 2026-09-26): nothing inline.
     expect(screen.queryByText("Fulfilled")).toBeNull();

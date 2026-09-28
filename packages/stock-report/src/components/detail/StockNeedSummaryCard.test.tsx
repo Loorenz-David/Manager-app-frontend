@@ -8,7 +8,21 @@ import { StockNeedSummaryCard, missingSourceLine } from "./StockNeedSummaryCard"
 afterEach(cleanup);
 
 const quantities = { requested: 10, fulfilled: 2, inProgress: 1, inQueue: 1, missing: 3 };
-const base = { title: "Dining chair", imageUrl: null, propertyTags: [], quantities };
+const base = { title: "Dining chair", imageUrl: null, propertyHeadline: null, quantities };
+
+describe("StockNeedSummaryCard headline", () => {
+  it("reads like the list card: the category above, the criteria under it", () => {
+    render(<StockNeedSummaryCard {...base} propertyHeadline="Set of 6 · Up & Down · Teak" />);
+    expect(screen.getByTestId("stock-report-summary-headline-category")).toHaveTextContent("Dining chair");
+    expect(screen.getByTestId("stock-report-summary-headline-text")).toHaveTextContent("Set of 6 · Up & Down · Teak");
+  });
+
+  it("promotes the category into the headline when the row asks for nothing", () => {
+    render(<StockNeedSummaryCard {...base} />);
+    expect(screen.queryByTestId("stock-report-summary-headline-category")).not.toBeInTheDocument();
+    expect(screen.getByTestId("stock-report-summary-headline-text")).toHaveTextContent("Dining chair");
+  });
+});
 
 describe("StockNeedSummaryCard source lines", () => {
   it("shows nothing extra for a board row on Scanner's value", () => {

@@ -9,7 +9,7 @@ import {
 } from "../../lib/stock-report-theme";
 import type { StockNeedCardData } from "../../stock-report.types";
 import { FulfilmentBar } from "./FulfilmentBar";
-import { StockNeedPropertyTags } from "./StockNeedPropertyTags";
+import { StockNeedHeadline } from "./StockNeedHeadline";
 import { StockNeedQuantityPanel } from "./StockNeedQuantityPanel";
 
 export type StockNeedCardProps = {
@@ -97,14 +97,18 @@ export function StockNeedCard({
           }}
         >
           <div className="flex items-start gap-2">
-            <span className="min-w-0 flex-1 text-base font-bold leading-tight tracking-tight text-foreground">
-              {card.title}
-            </span>
+            <StockNeedHeadline
+              category={card.title}
+              className="flex-1"
+              data-testid={`stock-need-card-headline-${card.stockNeedId}`}
+              headline={card.propertyHeadline}
+            />
 
             {showDragHandle ? (
               <button
                 ref={dragHandleRef}
-                aria-label={`Reorder ${card.title}`}
+                // Rows of one category differ only by their criteria.
+                aria-label={`Reorder ${card.propertyHeadline ? `${card.title} ${card.propertyHeadline}` : card.title}`}
                 // size-11 is the 44px touch target the design asks for; the
                 // negative margins keep the glyph optically at the card's
                 // top-right corner while the target stays generous.
@@ -118,11 +122,6 @@ export function StockNeedCard({
               </button>
             ) : null}
           </div>
-
-          <StockNeedPropertyTags
-            data-testid={`stock-need-card-tags-${card.stockNeedId}`}
-            tags={card.propertyTags}
-          />
 
           <FulfilmentBar
             data-testid={`stock-need-card-bar-${card.stockNeedId}`}

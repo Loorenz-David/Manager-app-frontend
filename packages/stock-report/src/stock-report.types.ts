@@ -110,11 +110,12 @@ export type StockNeedCardData = {
   /** The item category's own picture. `null` renders the placeholder. */
   imageUrl: string | null;
   /**
-   * Already-formatted criteria labels, in the order they should read. This
-   * package never formats criteria — the mapping from `properties` to tag text
-   * is the logic session's (intention §4.1).
+   * The criteria as one line — `Set of 6 · Up & Down · Teak` — or `null` when
+   * the row asks for nothing, in which case the category name takes its place.
+   * Built by `toStockReportPropertyHeadline`; components never format criteria
+   * (intention §4.1).
    */
-  propertyTags: readonly string[];
+  propertyHeadline: string | null;
   quantities: FulfilmentQuantities;
   /**
    * Whether the row sits in a priority group. The card's bottom button reads
@@ -219,8 +220,8 @@ export const StockReportItemSchema = z.object({
   // Scanner controls the criteria values and the backend normaliser passes
   // through anything it does not recognise (wiring guide W-1). Validating the
   // values here would let one odd criterion fail the whole list parse and
-  // blank the board, so each value is checked in `toStockReportPropertyTags`
-  // and an odd one costs only its tag — the same rule B18 applies to `priority`.
+  // blank the board, so each value is checked in `toStockReportPropertyHeadline`
+  // and an odd one costs only its part of the line — the same rule B18 applies to `priority`.
   properties: z.record(z.string(), z.unknown()),
   quantity_requested: z.number(),
   quantity_in_queue: z.number(),
@@ -371,7 +372,7 @@ export function titleCase(value: string): string {
 
 /**
  * The one way this feature turns a criterion's normalised value tokens into
- * display text. The board's property tags and the match warning's comparison
+ * display text. The board's headline and the match warning's comparison
  * both read it, so `Light / Dark` on a card and `Light / Dark` in the sheet are
  * the same string by construction rather than by two authors agreeing.
  */
@@ -387,19 +388,53 @@ function isStringList(value: unknown): value is string[] {
   );
 }
 
+/** Scanner's set size — for seating, how many chairs the row asks for together. */
+const SET_SIZE_KEY = "quantity";
+/** Counts of drawers read as nothing without their unit, so they carry one. */
+const DRAWER_KEYS: ReadonlySet<string> = new Set(["drawers_qty", "drawers_range"]);
+
+/** `3-5` → `3–5 drawers`; the backend's range labels use a plain hyphen. */
+function formatDrawerValues(values: readonly string[]): string {
+  const text = values
+    .map((value) => value.replace(/(\d)-(\d)/g, "$1–$2"))
+    .join(" / ");
+  return `${text} ${values.length === 1 && values[0] === "1" ? "drawer" : "drawers"}`;
+}
+
 /**
- * Converts Scanner criteria into the exact display tags owned by this feature.
- * The normalised form is `string[]` per key; any other value is Scanner noise
- * the backend let through and is skipped, never thrown on (wiring guide W-1).
+ * Converts Scanner criteria into the card's headline: the values without
+ * their keys, joined with ` · ` (owner, 2026-09-28 — this replaced one pill
+ * per criterion). The set size always leads as `Set of 6`, whatever order the
+ * keys arrive in, and a drawer count keeps its unit. The normalised form is
+ * `string[]` per key; any other value is Scanner noise the backend let through
+ * and is skipped, never thrown on (wiring guide W-1).
  */
-export function toStockReportPropertyTags(
+export function toStockReportPropertyHeadline(
   properties: StockReportItem["properties"],
-): readonly string[] {
-  return Object.entries(properties).flatMap(([key, values]) =>
-    isStringList(values) && values.length > 0
-      ? [`${titleCase(key)}: ${formatStockPropertyValues(values)}`]
-      : [],
-  );
+): string | null {
+  let setSize: string | null = null;
+  const parts: string[] = [];
+
+  for (const [key, values] of Object.entries(properties)) {
+    if (!isStringList(values) || values.length === 0) continue;
+
+    if (key === SET_SIZE_KEY) {
+      // A set of one is just the piece; saying so is noise.
+      if (!(values.length === 1 && values[0] === "1")) {
+        setSize = `Set of ${values.join(" / ")}`;
+      }
+      continue;
+    }
+
+    parts.push(
+      DRAWER_KEYS.has(key)
+        ? formatDrawerValues(values)
+        : formatStockPropertyValues(values),
+    );
+  }
+
+  if (setSize) parts.unshift(setSize);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 /**
@@ -435,7 +470,7 @@ export function toStockReportItemViewModel(
       stockNeedId: item.client_id,
       title: item.item_category.name,
       imageUrl: item.item_category.image_url,
-      propertyTags: toStockReportPropertyTags(item.properties),
+      propertyHeadline: toStockReportPropertyHeadline(item.properties),
       quantities: {
         requested: snapshot.quantity_requested,
         fulfilled: snapshot.quantity_awaiting,

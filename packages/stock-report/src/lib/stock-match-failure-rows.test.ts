@@ -4,7 +4,7 @@ import {
   stockMatchFailureElementsFixture,
   stockMatchFailuresFixture,
 } from "../fixtures/stock-report-fixtures";
-import { toStockReportPropertyTags } from "../stock-report.types";
+import { toStockReportPropertyHeadline } from "../stock-report.types";
 import {
   STOCK_MATCH_NO_VALUE,
   toStockMatchFailureRows,
@@ -85,12 +85,12 @@ describe("toStockMatchFailureRows — the edges", () => {
 
 describe("toStockMatchFailureRows — one formatter with the board", () => {
   it("formats the asked values exactly as the board formats the same criterion", () => {
-    const tag = toStockReportPropertyTags({ wood_group: ["light", "dark"] })[0];
+    const headline = toStockReportPropertyHeadline({ wood_group: ["light", "dark"] });
     const row = rowFor("value_not_accepted", ["light", "dark"], ["teak"]);
 
-    // The board writes `Wood Group: Light / Dark`; the sheet must not invent a
-    // second spelling of the values behind the colon.
-    expect(tag).toBe("Wood Group: Light / Dark");
-    expect(tag!.endsWith(row.asked)).toBe(true);
+    // The board writes `Light / Dark`; the sheet must not invent a second
+    // spelling of the same values.
+    expect(headline).toBe("Light / Dark");
+    expect(row.asked).toBe(headline);
   });
 });

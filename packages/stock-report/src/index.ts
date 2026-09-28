@@ -45,7 +45,7 @@ export {
   formatStockPropertyValues,
   titleCase,
   toStockReportItemViewModel,
-  toStockReportPropertyTags,
+  toStockReportPropertyHeadline,
   toStockReportVersionViewModel,
 } from "./stock-report.types";
 export { missingQuantityBounds } from "./lib/missing-quantity";
@@ -100,8 +100,8 @@ export type {
   FulfilmentBarSize,
 } from "./components/board/FulfilmentBar";
 export { FulfilmentLegend } from "./components/board/FulfilmentLegend";
-export { StockNeedPropertyTags } from "./components/board/StockNeedPropertyTags";
-export type { StockNeedPropertyTagsProps } from "./components/board/StockNeedPropertyTags";
+export { StockNeedHeadline } from "./components/board/StockNeedHeadline";
+export type { StockNeedHeadlineProps } from "./components/board/StockNeedHeadline";
 export { StockNeedQuantityPanel } from "./components/board/StockNeedQuantityPanel";
 export type { StockNeedQuantityPanelProps } from "./components/board/StockNeedQuantityPanel";
 export { StockNeedCard } from "./components/board/StockNeedCard";

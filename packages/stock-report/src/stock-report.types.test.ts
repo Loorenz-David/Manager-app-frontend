@@ -12,6 +12,7 @@ import {
   StockReportItemSchema,
   toStockReportAssignmentCardData,
   toStockReportItemViewModel,
+  toStockReportPropertyHeadline,
 } from "./stock-report.types";
 
 const wireRow = (overrides: Record<string, unknown> = {}) => ({
@@ -30,14 +31,14 @@ const row = (overrides: Record<string, unknown> = {}) =>
   StockReportItemSchema.parse(wireRow(overrides));
 
 describe("stock-report view-model mapping", () => {
-  it("maps the pinned fields straight through and formats ordered tags", () => {
+  it("maps the pinned fields straight through and formats the criteria headline", () => {
     const mapped = toStockReportItemViewModel(row());
     // in_queue is its own bar segment, not folded into in_progress
     // (owner, 2026-09-22 — supersedes intention §4.3).
     expect(mapped?.card).toMatchObject({
       title: "Dining chair",
       imageUrl: null,
-      propertyTags: ["Wood Type: Dark / Teak"],
+      propertyHeadline: "Dark / Teak",
       quantities: { requested: 6, fulfilled: 1, inProgress: 3, inQueue: 2, missing: 0 },
       hasPriority: true,
     });
@@ -117,7 +118,7 @@ describe("stock-report view-model mapping", () => {
   /**
    * Scanner controls the criteria values and the backend normaliser passes
    * unrecognised ones through untouched (wiring guide W-1). One odd value must
-   * cost one tag, never the whole list.
+   * cost its part of the headline, never the whole list.
    */
   it("keeps the list parse alive when one row carries an odd criterion value", () => {
     const odd = wireRow({
@@ -135,9 +136,9 @@ describe("stock-report view-model mapping", () => {
     if (!parsed.success) return;
 
     const cards = parsed.data.map((item) => toStockReportItemViewModel(item)?.card);
-    expect(cards[0]?.propertyTags).toEqual(["Wood Type: Dark / Teak"]);
+    expect(cards[0]?.propertyHeadline).toBe("Dark / Teak");
     // Only the well-formed criterion renders; the others are skipped silently.
-    expect(cards[1]?.propertyTags).toEqual(["Colour: Oak / Walnut"]);
+    expect(cards[1]?.propertyHeadline).toBe("Oak / Walnut");
   });
 
   it("fails loudly when a field the contract pins as required is missing", () => {
@@ -149,6 +150,42 @@ describe("stock-report view-model mapping", () => {
     expect(
       StockReportItemSchema.safeParse(wireRow({ item_category: null })).success,
     ).toBe(false);
+  });
+});
+
+/**
+ * The card's headline (owner, 2026-09-28): values without their keys, joined
+ * with ` · `, the set size leading as `Set of #`, a drawer count with its unit.
+ */
+describe("criteria headline", () => {
+  it("joins the values in the order they arrive, each criterion's own with ` / `", () => {
+    expect(toStockReportPropertyHeadline({ model: ["up & down"], wood_type: ["dark", "teak"] })).toBe(
+      "Up & Down · Dark / Teak",
+    );
+  });
+
+  it("leads with the set size as `Set of #`, wherever the key arrives", () => {
+    expect(toStockReportPropertyHeadline({ model: ["up & down"], quantity: ["6"], wood_group: ["teak"] })).toBe(
+      "Set of 6 · Up & Down · Teak",
+    );
+    expect(toStockReportPropertyHeadline({ quantity: ["4", "6"] })).toBe("Set of 4 / 6");
+  });
+
+  it("says nothing about a set of one", () => {
+    expect(toStockReportPropertyHeadline({ quantity: ["1"], shape: ["square"] })).toBe("Square");
+    expect(toStockReportPropertyHeadline({ quantity: ["1"] })).toBeNull();
+  });
+
+  it("gives a drawer count its unit and a range its en dash", () => {
+    expect(toStockReportPropertyHeadline({ drawers_range: ["3-5"] })).toBe("3–5 drawers");
+    expect(toStockReportPropertyHeadline({ drawers_range: ["1-2", "6+"] })).toBe("1–2 / 6+ drawers");
+    expect(toStockReportPropertyHeadline({ drawers_qty: ["4"] })).toBe("4 drawers");
+    expect(toStockReportPropertyHeadline({ drawers_qty: ["1"] })).toBe("1 drawer");
+  });
+
+  it("is null when the row asks for nothing", () => {
+    expect(toStockReportPropertyHeadline({})).toBeNull();
+    expect(toStockReportPropertyHeadline({ legs: [], finish: "matte" })).toBeNull();
   });
 });
 

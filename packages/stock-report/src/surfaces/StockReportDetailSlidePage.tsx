@@ -315,7 +315,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
         if (images.length > 0)
           openers.openImageViewer?.(taskId, assignment.item.client_id, images);
       }}
-      propertyTags={viewModel.card.propertyTags}
+      propertyHeadline={viewModel.card.propertyHeadline}
       quantities={viewModel.card.quantities}
       requestedScanner={viewModel.card.requestedScanner}
       requestedSource={viewModel.card.requestedSource}

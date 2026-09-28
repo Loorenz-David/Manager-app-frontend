@@ -25,7 +25,7 @@ const CATEGORY_PICTURE = null;
 function makeCard(
   stockNeedId: string,
   title: string,
-  propertyTags: readonly string[],
+  propertyHeadline: string | null,
   requested: number,
   fulfilled: number,
   inProgress: number,
@@ -36,7 +36,7 @@ function makeCard(
     stockNeedId,
     title,
     imageUrl: CATEGORY_PICTURE,
-    propertyTags,
+    propertyHeadline,
     quantities: { requested, fulfilled, inProgress, inQueue, missing },
     hasPriority: true,
     requestedSource: "scanner",
@@ -54,7 +54,7 @@ function makeCard(
 export const stockNeedNoProgressFixture = makeCard(
   "need-a1",
   "Low sideboard",
-  ["Oak", "Three-door"],
+  "Oak · Three-door",
   30,
   0,
   0,
@@ -64,7 +64,7 @@ export const stockNeedNoProgressFixture = makeCard(
 export const stockNeedPartiallyFulfilledFixture = makeCard(
   "need-a2",
   "Dining chair",
-  ["Oak", "Spindle back"],
+  "Oak · Spindle back",
   30,
   8,
   4,
@@ -74,7 +74,7 @@ export const stockNeedPartiallyFulfilledFixture = makeCard(
 export const stockNeedWithQueueFixture = makeCard(
   "need-queue",
   "Dining chair",
-  ["Oak", "Spindle back"],
+  "Oak · Spindle back",
   30,
   8,
   4,
@@ -85,7 +85,7 @@ export const stockNeedWithQueueFixture = makeCard(
 export const stockNeedQueuedOnlyFixture = makeCard(
   "need-queued-only",
   "Café table",
-  ["Beech", "Round"],
+  "Beech · Round",
   12,
   0,
   0,
@@ -96,7 +96,7 @@ export const stockNeedQueuedOnlyFixture = makeCard(
 export const stockNeedWorkStartedFixture = makeCard(
   "need-a3",
   "Dining chair",
-  ["Walnut", "Ladder back"],
+  "Walnut · Ladder back",
   16,
   0,
   6,
@@ -106,7 +106,7 @@ export const stockNeedWorkStartedFixture = makeCard(
 export const stockNeedThinSliceFixture = makeCard(
   "need-a4",
   "Café table",
-  ["Beech", "Round"],
+  "Beech · Round",
   30,
   28,
   1,
@@ -116,7 +116,7 @@ export const stockNeedThinSliceFixture = makeCard(
 export const stockNeedFullyAccountedFixture = makeCard(
   "need-a5",
   "Armchair",
-  ["Walnut", "Curved arm"],
+  "Walnut · Curved arm",
   30,
   20,
   10,
@@ -126,7 +126,7 @@ export const stockNeedFullyAccountedFixture = makeCard(
 export const stockNeedCompleteFixture = makeCard(
   "need-a6",
   "Bar stool",
-  ["Ash"],
+  "Ash",
   12,
   12,
   0,
@@ -136,33 +136,27 @@ export const stockNeedCompleteFixture = makeCard(
 export const stockNeedOverFulfilledFixture = makeCard(
   "need-a7",
   "Side table",
-  ["Teak", "Square"],
+  "Teak · Square",
   10,
   12,
   0,
 );
 
-/** A stock need with no criteria at all — the tag row disappears entirely. */
+/** A stock need with no criteria at all — the category name becomes the headline. */
 export const stockNeedWithoutTagsFixture = makeCard(
   "need-no-tags",
   "Workshop bench",
-  [],
+  null,
   4,
   1,
   0,
 );
 
-/** Many long criteria, to prove the tag row wraps rather than truncating. */
+/** Many long criteria, to prove the headline wraps rather than truncating. */
 export const stockNeedManyTagsFixture = makeCard(
   "need-many-tags",
   "Three-seat sofa with a chaise on the left",
-  [
-    "Dark / Teak",
-    "Curved arm",
-    "Buttoned back",
-    "Brushed brass feet",
-    "Removable cushions",
-  ],
+  "Set of 2 · Dark / Teak · Curved arm · Buttoned back · Brushed brass feet · Removable cushions",
   6,
   2,
   1,
