@@ -18,13 +18,16 @@ const NOW = new Date(2026, 9, 1, 12, 0).getTime();
  * sides of UTC.
  */
 describe("StockReportScheduleSheetContent — with the real calendar", () => {
-  it("schedules the tapped day at 06:00 local", () => {
+  it("schedules the tapped day at 06:00 local once confirmed", () => {
     const onSelect = vi.fn();
-    const { container } = render(
+    const { container, getByTestId } = render(
       <StockReportScheduleSheetContent current={null} now={NOW} onDone={vi.fn()} onSelect={onSelect} />,
     );
 
     fireEvent.click(container.querySelector('[data-day="2026-10-15"] button')!);
+    // The real calendar highlights the tapped cell, not its neighbour.
+    expect(container.querySelector("[data-selected]")?.getAttribute("data-day")).toBe("2026-10-15");
+    fireEvent.click(getByTestId("stock-report-schedule-confirm"));
     expect(onSelect).toHaveBeenCalledWith(new Date(2026, 9, 15, 6, 0).toISOString());
   });
 

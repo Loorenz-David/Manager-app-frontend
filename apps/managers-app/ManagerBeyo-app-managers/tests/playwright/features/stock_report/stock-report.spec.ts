@@ -19,12 +19,18 @@ function envelope(data: unknown): Parameters<Route["fulfill"]>[0] {
   };
 }
 
-function notFound(message: string): Parameters<Route["fulfill"]>[0] {
+/** v11 Part A: the backend's own 404 for an absent version id. */
+function versionNotFound(): Parameters<Route["fulfill"]>[0] {
   return {
     status: 404,
     contentType: "application/json",
-    body: JSON.stringify({ ok: false, error: `STOCK_REPORT_VERSION_NOT_FOUND: ${message}` }),
+    body: JSON.stringify({ ok: false, error: "Stock report snapshot version not found." }),
   };
+}
+
+/** v11 §6: every ISO string is echoed in UTC with an explicit `+00:00`, never `Z`. */
+function utc(value: Date | string): string {
+  return new Date(value).toISOString().replace("Z", "+00:00");
 }
 
 const COUNTERS = {
@@ -55,10 +61,10 @@ type MockVersion = {
   created_at: string;
   created_by_id: string | null;
   closed_by_id: string | null;
-  progress: typeof COUNTERS & { by_priority: Record<"high" | "medium" | "low", typeof COUNTERS> };
+  progress: typeof COUNTERS & { by_priority: Record<"high" | "medium" | "low" | "unset", typeof COUNTERS> };
 };
 
-/** v10 §6.7 + §6.8: a version with one prioritised group, 2 of 5 units done. */
+/** v11 §6.7 + §6.8: a version with one prioritised group, 2 of 5 units done. */
 function version(clientId: string, fields: Partial<MockVersion> & { createdAt: Date }): MockVersion {
   const group = { ...COUNTERS, items_total: 1, quantity_requested: 5, quantity_target: 5, quantity_awaiting: 2, quantity_completed: 2 };
   const { createdAt, ...rest } = fields;
@@ -66,16 +72,17 @@ function version(clientId: string, fields: Partial<MockVersion> & { createdAt: D
     client_id: clientId,
     state: "active",
     title: null,
-    active_at: createdAt.toISOString(),
+    active_at: utc(createdAt),
     closed_at: null,
     scheduled_activation_at: null,
     scheduled_activation_keeps_active_missing: false,
     snapshot_count: 2,
     filtered_snapshot_count: 1,
-    created_at: createdAt.toISOString(),
+    created_at: utc(createdAt),
     created_by_id: "usr_1",
     closed_by_id: null,
-    progress: { ...group, by_priority: { high: group, medium: COUNTERS, low: COUNTERS } },
+    // v11 §6.8 also sends the null-priority group; the client reads only the three.
+    progress: { ...group, by_priority: { high: group, medium: COUNTERS, low: COUNTERS, unset: COUNTERS } },
     ...rest,
   };
 }
@@ -139,6 +146,14 @@ function daysAgo(days: number): Date {
 
 const API = "/api/v1/stock-report";
 
+/** v11 §6.7: command responses carry the version without its read-only `progress` and `filtered_snapshot_count`. */
+function commandRow(target: MockVersion) {
+  const row: Partial<MockVersion> = { ...target };
+  delete row.progress;
+  delete row.filtered_snapshot_count;
+  return row;
+}
+
 /**
  * One stateful stand-in for the stock-report API: versions are created,
  * edited, activated and deleted in `scenario.versions`, and every request is
@@ -151,7 +166,7 @@ async function mockStockReport(page: Page, { missingTotal = 0 }: { missingTotal?
     missingTotal,
     versions: [
       version("srv_1", { createdAt: daysAgo(2), title: "Spring board" }),
-      version("srv_0", { createdAt: daysAgo(9), state: "closed", closed_at: daysAgo(2).toISOString() }),
+      version("srv_0", { createdAt: daysAgo(9), state: "closed", closed_at: utc(daysAgo(2)) }),
       // The stored keep choice is "keep", so a manual "Start at 0" is visibly a choice.
       version("srv_draft", {
         createdAt: daysAgo(1),
@@ -228,11 +243,11 @@ async function mockStockReport(page: Page, { missingTotal = 0 }: { missingTotal?
             createdAt: new Date(),
             state: body?.draft ? "draft" : "active",
             title: (body?.title as string | null) ?? null,
-            active_at: body?.draft ? null : new Date().toISOString(),
-            scheduled_activation_at: (body?.scheduled_activation_at as string | undefined) ?? null,
+            active_at: body?.draft ? null : utc(new Date()),
+            scheduled_activation_at: body?.scheduled_activation_at ? utc(body.scheduled_activation_at as string) : null,
           });
           scenario.versions.push(created);
-          return route.fulfill(envelope({ stock_report_snapshot_version: created }));
+          return route.fulfill(envelope({ stock_report_snapshot_version: commandRow(created) }));
         }
         // v10 §5.9: a comma list of states; drafts first, then newest first.
         const states = url.searchParams.get("state")?.split(",") ?? [];
@@ -247,27 +262,30 @@ async function mockStockReport(page: Page, { missingTotal = 0 }: { missingTotal?
       if ((match = path.match(/^\/snapshots\/versions\/([^/]+)(?:\/(activate|refresh-requested))?$/))) {
         const [, versionId, command] = match;
         const target = find(versionId);
-        if (!target) return route.fulfill(notFound(versionId));
+        if (!target) return route.fulfill(versionNotFound());
         if (method === "GET" && !command) return route.fulfill(envelope({ stock_report_snapshot_version: target }));
         if (method === "PATCH" && !command) {
           if (body && "title" in body) target.title = body.title as string | null;
-          if (body && "scheduled_activation_at" in body) target.scheduled_activation_at = body.scheduled_activation_at as string | null;
+          // Stored and echoed in UTC whatever offset was sent — the form must still see "unchanged" (R1).
+          if (body && "scheduled_activation_at" in body) {
+            target.scheduled_activation_at = body.scheduled_activation_at ? utc(body.scheduled_activation_at as string) : null;
+          }
           if (body && "scheduled_activation_keeps_active_missing" in body) {
             target.scheduled_activation_keeps_active_missing = body.scheduled_activation_keeps_active_missing as boolean;
           }
-          return route.fulfill(envelope({ stock_report_snapshot_version: target }));
+          return route.fulfill(envelope({ stock_report_snapshot_version: commandRow(target) }));
         }
         if (method === "DELETE" && !command) {
           scenario.versions = scenario.versions.filter((candidate) => candidate !== target);
           return route.fulfill(envelope({ client_id: versionId }));
         }
         if (method === "POST" && command === "activate") {
-          if (active) Object.assign(active, { state: "closed", closed_at: new Date().toISOString() });
-          Object.assign(target, { state: "active", active_at: new Date().toISOString(), scheduled_activation_at: null });
-          return route.fulfill(envelope({ stock_report_snapshot_version: target }));
+          if (active) Object.assign(active, { state: "closed", closed_at: utc(new Date()) });
+          Object.assign(target, { state: "active", active_at: utc(new Date()), scheduled_activation_at: null });
+          return route.fulfill(envelope({ stock_report_snapshot_version: commandRow(target) }));
         }
         if (method === "POST" && command === "refresh-requested") {
-          return route.fulfill(envelope({ stock_report_snapshot_version: target, changed: 1, added: 0 }));
+          return route.fulfill(envelope({ stock_report_snapshot_version: commandRow(target), changed: 1, added: 0 }));
         }
       }
       return route.fallback();
@@ -432,6 +450,9 @@ test.describe("Stock report — draft versions", () => {
     await expect(page.getByTestId("stock-report-schedule-sheet")).toBeVisible();
     await press(page, page.getByRole("button", { name: "Go to the Next Month" }));
     await press(page, page.locator(`[data-day="${isoDay}"] button`));
+    // A tap only picks; Confirm applies it and closes the sheet.
+    await expect(page.getByTestId("stock-report-schedule-sheet")).toBeVisible();
+    await press(page, page.getByTestId("stock-report-schedule-confirm"));
     await expect(page.getByTestId("stock-report-schedule-sheet")).toHaveCount(0);
 
     await press(page, page.getByTestId("stock-version-form-submit"));

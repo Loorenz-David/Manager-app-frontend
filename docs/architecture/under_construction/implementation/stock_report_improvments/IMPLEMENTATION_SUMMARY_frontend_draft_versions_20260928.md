@@ -3,7 +3,7 @@ audience: frontend / owner
 subject: Stock report — draft versions, as implemented on the frontend
 date: 2026-09-28
 plan: PLAN_frontend_draft_versions_20260927.md, amended by PROJECTION_frontend_draft_versions_20260928.md (R1–R20)
-contract: HANDOFF_TO_FRONTEND_stock_report_snapshots_v10_20260928.md (v7–v10; v11 is the consolidated release, adds nothing)
+contract: built on v7–v10; reconciled 2026-09-28 against the shipped backend and its consolidated v11 (backend repo, `docs/architecture/under_construction/implementation/stock_report/handoffs/to_frontend/HANDOFF_TO_FRONTEND_stock_report_snapshots_v11_20260928.md`)
 commits: 8681a776 (1/4), b20c9eaa (2/4), dc18462a (3/4), checkpoint 4/4 — all "CHECKPOINT (not approved)"
 ---
 
@@ -77,8 +77,12 @@ backend, every board parse fails. There is no transition shim.
   - Saving a scheduled draft, or promoting one, opens the activation sheet. The request goes out only
     after the choice there (OC-16, OC-17).
   - While a request is pending, the back row and the swipe are locked (R13).
-- **Schedule sheet.** It shows Remove schedule, `DayCalendar` and a native time input defaulting to
-  06:00. A past instant is refused inline.
+- **Schedule sheet.** It shows `DayCalendar` and a native time input defaulting to 06:00, with **Clear** and
+  **Confirm** at the bottom (owner, 2026-09-28).
+  - Taps only change the pending pick.
+  - Confirm applies it and closes. It is disabled until a day is picked, and while the pick is in the past,
+    which is shown inline.
+  - Clear removes the schedule and closes. It replaces the earlier "Remove schedule" row.
 - **Drafts page and draft card.** The card shows the title, the requested units, the schedule (with an
   Overdue pill) and progress by priority. The card opens the draft board; its ⋮ opens the actions.
 - **History.** It reads `state=active,closed` and puts a title line on each card (OC-18).
@@ -136,6 +140,35 @@ It covers 11 flows, each on mobile and desktop:
 - **Refresh:** Keep typed values → `POST …/refresh-requested` with no body.
 
 The workers and sellers specs mock empty lists and need no change.
+
+# Reconciled with the shipped backend (v11)
+
+Checked against v11 and the backend source (backend `362e28d`, "step 5: v11 contract"):
+- `routers/api_v1/stock_report.py`: every path, query parameter and request body model. The bodies are
+  `extra="forbid"` with strict booleans, and every body the frontend sends is accepted.
+- `domain/stock_report/serializers.py`: every row, snapshot and version key.
+- The command and query services: every response envelope key.
+- `_events.py` and `_versions.py`: every event name and `extra` key. The socket handler sends
+  `{ client_id, **extra }`, which is the flat shape the frontend schemas parse.
+- Error text: `"IDENTITY: sentence"`, which is what the R16 parser expects.
+
+**No change to the app was needed.** v11 §0.0 lists four points where the backend differs from the deltas,
+and none of them reaches the client:
+1. An active create is accepted with the schedule keys at their defaults. The client never sends them.
+2. Neighbours shifting after a row is deleted inside a draft emit snapshot events, which are handled like
+   any other.
+3. An empty PATCH is accepted and does nothing. The client never sends one.
+4. `STOCK_REPORT_SCHEDULE_SUPERSEDED` only appears in logs.
+
+`progress.by_priority` also carries `unset`. The schema drops it, and nothing reads it. The app meets
+§0.1 rules 1–12, which include the two rules the production gate depends on: version-filtered snapshot
+events, and the refetch set on `:activated`.
+
+**The Playwright mock was aligned with the wire:**
+- dates are echoed in UTC `+00:00`, including the schedule sent as `…Z`, so the e2e run exercises R1;
+- command responses carry no `progress` or `filtered_snapshot_count`;
+- `by_priority.unset` is present;
+- the 404 uses the backend's own text.
 
 # Verified
 

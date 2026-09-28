@@ -28,7 +28,7 @@ const SECONDARY_BUTTON_CLASS =
 
 /** "Drafts · n" once loaded; plain "Drafts" while loading, on error and at 0 (OC-8). */
 function draftsButtonLabel(count: number | undefined): string {
-  return count === undefined || count === 0 ? "Drafts" : `Drafts · ${count}`;
+  return count === undefined || count === 0 ? "Drafts" : `Drafts (${count})`;
 }
 
 /**
