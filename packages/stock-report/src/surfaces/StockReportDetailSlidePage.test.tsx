@@ -41,8 +41,7 @@ vi.mock("../hooks/use-stock-assignment-gate", () => ({
     clear: vi.fn(),
     isPending: false,
     statusSlot: null,
-    getAcceptedOverride: () => false,
-    requestOverride: vi.fn(),
+    reportMismatch: vi.fn(),
   }),
 }));
 vi.mock("../lib/use-stock-report-permissions", () => ({

@@ -1,11 +1,6 @@
-import {
-  act,
-  fireEvent,
-  render,
-  renderHook,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import "@testing-library/jest-dom/vitest";
+
+import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const previewCheck = vi.fn();
@@ -32,35 +27,36 @@ const candidate = {
   quantity: 1,
 };
 
+const propertyFailure = {
+  key: "upholstery",
+  reason: "value_not_accepted",
+  accepted_values: ["foam", "synthetic"],
+  item_values: ["down"],
+};
+
+const expectedRow = {
+  key: "upholstery",
+  label: "Upholstery",
+  asked: "Foam / Synthetic",
+  item: "Down",
+  reason: "value_not_accepted",
+};
+
 describe("useStockAssignmentGate", () => {
   beforeEach(() => {
     previewCheck.mockReset();
     previewClear.mockReset();
   });
 
-  it("waits for a locked warning decision and sends no stale accepted override after a change", async () => {
-    previewCheck
-      .mockResolvedValueOnce({
-        can_proceed: true,
-        override_required: true,
-        refusal_reason: null,
-        property_failures: [
-          {
-            key: "wood_group",
-            reason: "value_not_accepted",
-            accepted_values: ["light"],
-            item_values: ["teak"],
-          },
-        ],
-        values_source: "supplied",
-      })
-      .mockResolvedValueOnce({
-        can_proceed: true,
-        override_required: false,
-        refusal_reason: null,
-        property_failures: [],
-        values_source: "supplied",
-      });
+  /** Owner, 2026-09-28: a property mismatch blocks like a category mismatch. */
+  it("refuses a property mismatch outright — no override is offered or armed", async () => {
+    previewCheck.mockResolvedValue({
+      can_proceed: true,
+      override_required: true,
+      refusal_reason: null,
+      property_failures: [propertyFailure],
+      values_source: "supplied",
+    });
     const openWarning = vi.fn();
     const { result } = renderHook(() =>
       useStockAssignmentGate("sri-1", openWarning),
@@ -71,24 +67,17 @@ describe("useStockAssignmentGate", () => {
       decision = result.current.check(candidate);
     });
     await waitFor(() => expect(openWarning).toHaveBeenCalledTimes(1));
-    expect(result.current.acceptedOverride).toBe(false);
 
-    await act(async () => {
-      openWarning.mock.calls[0]?.[0].onContinue?.();
-      await decision;
-    });
-    expect(await decision).toBe(true);
-    expect(result.current.acceptedOverride).toBe(true);
-    expect(result.current.getAcceptedOverride()).toBe(true);
-    const StatusSlot = result.current.statusSlot;
-    render(<StatusSlot />);
-    fireEvent.click(screen.getByTestId("stock-match-status-row"));
-    expect(openWarning).toHaveBeenCalledTimes(2);
+    expect(await decision).toBe(false);
+    const warning = openWarning.mock.calls[0]?.[0];
+    expect(warning).toMatchObject({ kind: "mismatch", failures: [expectedRow] });
+    expect(warning).not.toHaveProperty("onContinue");
+    expect(result.current).not.toHaveProperty("getAcceptedOverride");
 
+    // Nothing was accepted, so the same candidate is checked afresh.
     await act(async () => {
-      await result.current.check({ ...candidate, quantity: 2 });
+      await expect(result.current.check(candidate)).resolves.toBe(false);
     });
-    expect(result.current.acceptedOverride).toBe(false);
     expect(previewCheck).toHaveBeenCalledTimes(2);
   });
 
@@ -117,6 +106,46 @@ describe("useStockAssignmentGate", () => {
     act(() => warning.onChangeItem());
     expect(onChangeItem).toHaveBeenCalledOnce();
     expect(previewClear).toHaveBeenCalledOnce();
+  });
+
+  it("shows the spinner row only while a check is in flight", async () => {
+    let resolveCheck!: (value: unknown) => void;
+    previewCheck.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveCheck = resolve;
+        }),
+    );
+    const { result } = renderHook(() =>
+      useStockAssignmentGate("sri-1", vi.fn()),
+    );
+    const StatusSlot = result.current.statusSlot;
+    render(<StatusSlot />);
+    expect(screen.queryByTestId("stock-match-status-row")).toBeNull();
+
+    let decision!: Promise<boolean>;
+    act(() => {
+      decision = result.current.check(candidate);
+    });
+    await waitFor(() =>
+      expect(screen.getByTestId("stock-match-status-row")).toHaveAttribute(
+        "data-state",
+        "checking",
+      ),
+    );
+
+    await act(async () => {
+      resolveCheck({
+        can_proceed: true,
+        override_required: false,
+        refusal_reason: null,
+        property_failures: [],
+        values_source: "supplied",
+      });
+      await decision;
+    });
+    expect(await decision).toBe(true);
+    expect(screen.queryByTestId("stock-match-status-row")).toBeNull();
   });
 
   it("never lets a stale preview decide", async () => {
@@ -178,14 +207,7 @@ describe("useStockAssignmentGate", () => {
       can_proceed: true,
       override_required: true,
       refusal_reason: null,
-      property_failures: [
-        {
-          key: "upholstery",
-          reason: "value_not_accepted",
-          accepted_values: ["foam", "synthetic"],
-          item_values: ["down"],
-        },
-      ],
+      property_failures: [propertyFailure],
       values_source: "supplied",
     });
     const openWarning = vi.fn();
@@ -198,45 +220,38 @@ describe("useStockAssignmentGate", () => {
     });
     await waitFor(() => expect(openWarning).toHaveBeenCalledTimes(1));
 
-    expect(openWarning.mock.calls[0]?.[0].failures).toEqual([
-      {
-        key: "upholstery",
-        label: "Upholstery",
-        asked: "Foam / Synthetic",
-        item: "Down",
-        reason: "value_not_accepted",
-      },
-    ]);
+    expect(openWarning.mock.calls[0]?.[0].failures).toEqual([expectedRow]);
   });
 
-  it("compares the same way on the 409 retry as it did on the preview", async () => {
+  it("compares the same way on a create-time refusal as it did on the preview", async () => {
     const openWarning = vi.fn();
+    const onChangeItem = vi.fn();
     const { result } = renderHook(() =>
       useStockAssignmentGate("sri-1", openWarning),
     );
+    previewCheck.mockResolvedValue({
+      can_proceed: true,
+      override_required: false,
+      refusal_reason: null,
+      property_failures: [],
+      values_source: "supplied",
+    });
+    await act(async () => {
+      await result.current.check(candidate, { onChangeItem });
+    });
 
     act(() => {
-      void result.current.requestOverride([
-        {
-          key: "upholstery",
-          reason: "value_not_accepted",
-          accepted_values: ["foam", "synthetic"],
-          item_values: ["down"],
-        },
-      ]);
+      result.current.reportMismatch([propertyFailure]);
     });
     await waitFor(() => expect(openWarning).toHaveBeenCalledTimes(1));
 
     // One renderer, one mapper: the sheet a user reaches by being refused must
-    // read exactly like the one the preview would have shown.
-    expect(openWarning.mock.calls[0]?.[0].failures).toEqual([
-      {
-        key: "upholstery",
-        label: "Upholstery",
-        asked: "Foam / Synthetic",
-        item: "Down",
-        reason: "value_not_accepted",
-      },
-    ]);
+    // read exactly like the one the preview would have shown, with the same
+    // single way out.
+    const warning = openWarning.mock.calls[0]?.[0];
+    expect(warning).toMatchObject({ kind: "mismatch", failures: [expectedRow] });
+    act(() => warning.onChangeItem());
+    expect(onChangeItem).toHaveBeenCalledOnce();
+    expect(previewClear).toHaveBeenCalledOnce();
   });
 });

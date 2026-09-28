@@ -1,10 +1,9 @@
-import { AlertTriangle, Ban } from "lucide-react";
+import { Ban } from "lucide-react";
 
 import {
   STOCK_MATCH_NO_VALUE,
   type StockMatchFailureRow,
 } from "../../lib/stock-match-failure-rows";
-import { MATCH_WARNING_BANNER_CLASS } from "../../lib/stock-report-theme";
 
 type StockMatchWarningSheetCommonProps = {
   /**
@@ -25,10 +24,8 @@ export type StockMatchWarningSheetContentProps =
       reasonText: string;
     })
   | (StockMatchWarningSheetCommonProps & {
-      kind: "warning";
+      kind: "mismatch";
       failures: readonly StockMatchFailureRow[];
-      /** The user's explicit override, armed for the first create call. */
-      onContinue: () => void;
     });
 
 const BUTTON_BASE =
@@ -69,31 +66,43 @@ function ValueCell({
 /**
  * What the compatibility check has to say about the item being added.
  *
- * Two views, one component: a **block**, whose only way out is changing the
- * item, and a **soft warning**, which lists what does not match and asks for an
- * explicit *Continue*.
+ * Two views, one component, and both are blocks: a **refusal**, which gives
+ * its reason in a sentence, and a **property mismatch**, which lists what does
+ * not match. Neither offers a way through (owner, 2026-09-28 — the earlier
+ * soft warning with *Continue* is withdrawn): an item's properties are set in
+ * the purchase app, so the fix happens there and the item is added again.
  *
- * The warning does not explain a mismatch in prose. It shows, per failed
+ * The mismatch view does not explain itself in prose. It shows, per failed
  * criterion, what the stock need asked for beside what the item actually has,
- * and leaves the judgement to the person who can see both.
+ * so the person who goes to correct it knows exactly what to change.
  *
  * It renders no close affordance on purpose — the sheet is opened locked and
- * the user must choose (§12A A6); its buttons are the visible way out that
+ * the user must choose (§12A A6); *Change item* is the visible way out that
  * `33_vaul_drawer.md` requires. All copy arrives ready-made: refusal reasons
  * come mapped, and the rows come from `toStockMatchFailureRows`.
  */
 export function StockMatchWarningSheetContent(
   props: StockMatchWarningSheetContentProps,
 ): React.JSX.Element {
-  const storedNote = (inkClass: string) =>
-    props.checkedAgainstStoredItem ? (
-      <p
-        className={`text-xs font-medium ${inkClass}`}
-        data-testid="stock-match-stored-note"
-      >
-        Checked against the item already registered.
-      </p>
-    ) : null;
+  const storedNote = props.checkedAgainstStoredItem ? (
+    <p
+      className="text-xs font-medium text-muted-foreground"
+      data-testid="stock-match-stored-note"
+    >
+      Checked against the item already registered.
+    </p>
+  ) : null;
+
+  const changeItem = (
+    <button
+      className={`${BUTTON_BASE} bg-primary text-card`}
+      data-testid="stock-match-change-item"
+      type="button"
+      onClick={props.onChangeItem}
+    >
+      Change item
+    </button>
+  );
 
   if (props.kind === "blocked") {
     return (
@@ -111,18 +120,11 @@ export function StockMatchWarningSheetContent(
               This item cannot be added
             </p>
             <p className="text-sm text-muted-foreground">{props.reasonText}</p>
-            {storedNote("text-muted-foreground")}
+            {storedNote}
           </div>
         </div>
 
-        <button
-          className={`${BUTTON_BASE} bg-primary text-card`}
-          data-testid="stock-match-change-item"
-          type="button"
-          onClick={props.onChangeItem}
-        >
-          Change item
-        </button>
+        {changeItem}
       </div>
     );
   }
@@ -130,17 +132,22 @@ export function StockMatchWarningSheetContent(
   return (
     <div
       className="flex flex-col gap-4 px-4 pb-2"
-      data-testid="stock-match-warning-warning"
+      data-testid="stock-match-warning-mismatch"
     >
-      <div
-        className={`flex items-start gap-3 rounded-xl border px-3.5 py-3 ${MATCH_WARNING_BANNER_CLASS}`}
-        data-testid="stock-match-warning-banner"
-      >
-        {/* No colour of its own — it inherits the banner's amber ink. */}
-        <AlertTriangle aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+      <div className="flex items-start gap-3">
+        <Ban
+          aria-hidden="true"
+          className="mt-0.5 size-5 shrink-0 text-destructive"
+        />
         <div className="flex min-w-0 flex-col gap-1.5">
-          <p className="text-sm font-semibold">This item does not fully match</p>
-          {storedNote("text-warning")}
+          <p className="text-sm font-semibold text-foreground">
+            This item cannot be added
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Its properties do not match this stock need. Update them in the
+            purchase app, then add the item again.
+          </p>
+          {storedNote}
         </div>
       </div>
 
@@ -181,24 +188,7 @@ export function StockMatchWarningSheetContent(
         </ul>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <button
-          className={`${BUTTON_BASE} border border-border bg-card text-foreground`}
-          data-testid="stock-match-change-item"
-          type="button"
-          onClick={props.onChangeItem}
-        >
-          Change item
-        </button>
-        <button
-          className={`${BUTTON_BASE} bg-primary text-card`}
-          data-testid="stock-match-continue"
-          type="button"
-          onClick={props.onContinue}
-        >
-          Continue
-        </button>
-      </div>
+      {changeItem}
     </div>
   );
 }

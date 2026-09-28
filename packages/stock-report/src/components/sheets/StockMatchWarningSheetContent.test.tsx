@@ -8,7 +8,6 @@ import {
   stockMatchBlockedReasonFixture,
   stockMatchFailuresFixture,
 } from "../../fixtures/stock-report-fixtures";
-import { MATCH_WARNING_BANNER_CLASS } from "../../lib/stock-report-theme";
 import { StockMatchWarningSheetContent } from "./StockMatchWarningSheetContent";
 
 afterEach(cleanup);
@@ -49,21 +48,20 @@ describe("StockMatchWarningSheetContent — blocked", () => {
   });
 });
 
-describe("StockMatchWarningSheetContent — soft warning", () => {
-  function renderWarning() {
+describe("StockMatchWarningSheetContent — property mismatch", () => {
+  function renderMismatch(onChangeItem = vi.fn()) {
     render(
       <StockMatchWarningSheetContent
         failures={stockMatchFailuresFixture}
-        kind="warning"
-        onChangeItem={vi.fn()}
-        onContinue={vi.fn()}
+        kind="mismatch"
+        onChangeItem={onChangeItem}
       />,
     );
     return screen.getByTestId("stock-match-warning-failures");
   }
 
   it("names the three columns it is comparing", () => {
-    const block = renderWarning();
+    const block = renderMismatch();
 
     for (const heading of ["Property", "Asked", "Item"]) {
       expect(within(block).getByText(heading)).toBeInTheDocument();
@@ -71,7 +69,7 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
   });
 
   it("gives every failure one row, and nothing for criteria that matched", () => {
-    const block = renderWarning();
+    const block = renderMismatch();
 
     expect(within(block).getAllByRole("listitem")).toHaveLength(
       stockMatchFailuresFixture.length,
@@ -79,7 +77,7 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
   });
 
   it("shows what was asked beside what the item has, per criterion", () => {
-    renderWarning();
+    renderMismatch();
 
     for (const row of stockMatchFailuresFixture) {
       expect(
@@ -95,7 +93,7 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
   });
 
   it("reads an em dash out as an absent value, not as an unlabelled cell", () => {
-    renderWarning();
+    renderMismatch();
 
     expect(
       screen.getByTestId("stock-match-failure-item-upholstery"),
@@ -105,21 +103,8 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
     ).not.toHaveAccessibleName("No value");
   });
 
-  it("banners the headline in amber — the mismatch is overridable, not fatal", () => {
-    renderWarning();
-
-    const banner = screen.getByTestId("stock-match-warning-banner");
-    for (const className of [
-      ...MATCH_WARNING_BANNER_CLASS.split(" "),
-      "rounded-xl",
-      "border",
-    ]) {
-      expect(banner).toHaveClass(className);
-    }
-  });
-
   it("does not dress a malformed criterion up as one that accepts nothing", () => {
-    renderWarning();
+    renderMismatch();
 
     const asked = screen.getByTestId("stock-match-failure-asked-finish");
     expect(asked).toHaveTextContent("Invalid criterion");
@@ -128,24 +113,20 @@ describe("StockMatchWarningSheetContent — soft warning", () => {
     ).toHaveTextContent("No known group: Teak");
   });
 
-  it("offers both ways out and never overrides on its own", async () => {
-    const onContinue = vi.fn();
+  /** Owner, 2026-09-28: the mismatch is a block, corrected in the purchase app. */
+  it("is a block: it says where to fix the properties and offers no Continue", async () => {
     const onChangeItem = vi.fn();
-    render(
-      <StockMatchWarningSheetContent
-        failures={stockMatchFailuresFixture}
-        kind="warning"
-        onChangeItem={onChangeItem}
-        onContinue={onContinue}
-      />,
-    );
+    renderMismatch(onChangeItem);
 
-    expect(onContinue).not.toHaveBeenCalled();
+    const sheet = screen.getByTestId("stock-match-warning-mismatch");
+    expect(sheet).toHaveTextContent("This item cannot be added");
+    expect(sheet).toHaveTextContent("purchase app");
+    expect(screen.queryByTestId("stock-match-continue")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("stock-match-warning-banner")).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId("stock-match-continue"));
+    await userEvent.click(screen.getByTestId("stock-match-change-item"));
 
-    expect(onContinue).toHaveBeenCalledTimes(1);
-    expect(onChangeItem).not.toHaveBeenCalled();
+    expect(onChangeItem).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -820,3 +820,17 @@ NOT PINNED items 1–3 close with the backend's final handoff (the design tolera
   it on `cards.length === 0` would cut the animation off; the empty state now arrives beside
   the leaving row rather than instead of it, which is how the pending-upholstery page does it.
 - Status remains RATIFIED.
+
+**Post-ratification amendment — 2026-09-28 — a property mismatch is a block.**
+- §12A A2/A6/A6a's soft warning is withdrawn (owner, 2026-09-28): a property mismatch now refuses
+  the candidate exactly as a category mismatch does. The sheet keeps the Property · Asked · Item
+  table — it is what tells the user what to correct — under the blocked view's red headline and a
+  line saying the properties are set in the **purchase app** and the item is added again once
+  fixed. Its only button is *Change item*; there is no *Continue*.
+- Consequently the client never sends `override_property_mismatch: true`. The gate arms nothing,
+  `StockMatchStatusRow` has only `idle` and `checking` (the amber "mismatch accepted" row and
+  `MATCH_WARNING_BANNER_CLASS` are gone), and a create-time `stock_assignment_property_mismatch`
+  opens the same sheet, reports the retained task, and resets the form to stay.
+- The backend still offers the override (`override_property_mismatch`, the preview's
+  `override_required`); this is a client decision and needs no backend change.
+- Status remains RATIFIED.

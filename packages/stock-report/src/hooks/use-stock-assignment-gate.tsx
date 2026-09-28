@@ -1,11 +1,5 @@
 import type { TaskCreationCandidate } from "@beyo/task-creation";
-import {
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useCallback, useMemo, useRef, useSyncExternalStore } from "react";
 
 import { useStockMatchPreview } from "../actions/use-stock-match-preview";
 import { StockMatchStatusRow } from "../components/sheets/StockMatchStatusRow";
@@ -21,11 +15,7 @@ export type StockAssignmentGateOpener = (
   props: StockMatchWarningSurfaceProps,
 ) => void;
 
-function signature(candidate: TaskCreationCandidate): string {
-  return JSON.stringify(candidate);
-}
-
-type GateStatus = "idle" | "checking" | "mismatch-accepted";
+type GateStatus = "idle" | "checking";
 
 type GateStatusStore = {
   getSnapshot: () => GateStatus;
@@ -52,45 +42,31 @@ function createGateStatusStore(): GateStatusStore {
 
 /**
  * Owns the stock-specific preview lifecycle while exposing task-creation's
- * generic candidate gate. A decision is intentionally a promise: submit does
- * not race ahead of the locked sheet, and repeated calls for the same warning
- * join that one pending choice.
+ * generic candidate gate. Every failed check is a block (owner, 2026-09-28):
+ * a category mismatch and a property mismatch both open the locked sheet and
+ * refuse the candidate, and the only way out is *Change item*. No override is
+ * ever armed, so nothing here outlives a check.
  */
 export function useStockAssignmentGate(
   stockNeedId: string,
   openWarning: StockAssignmentGateOpener,
 ) {
   const preview = useStockMatchPreview(stockNeedId);
-  const [acceptedOverride, setAcceptedOverride] = useState(false);
-  const acceptedOverrideRef = useRef(false);
   const statusStoreRef = useRef<GateStatusStore | null>(null);
   if (!statusStoreRef.current) statusStoreRef.current = createGateStatusStore();
   const statusStore = statusStoreRef.current;
   const setStatus = statusStore.set;
-  const acceptedSignatureRef = useRef<string | null>(null);
-  const latestCandidateSignatureRef = useRef<string | null>(null);
-  const latestWarningRef = useRef<StockMatchWarningSurfaceProps | null>(null);
   const changeItemRef = useRef<(() => void) | undefined>(undefined);
-  const pendingDecisionRef = useRef<{
-    signature: string;
-    promise: Promise<boolean>;
-    resolve: (value: boolean) => void;
-  } | null>(null);
 
   const clear = useCallback(() => {
-    acceptedSignatureRef.current = null;
-    latestWarningRef.current = null;
-    pendingDecisionRef.current = null;
-    acceptedOverrideRef.current = false;
-    setAcceptedOverride(false);
     setStatus("idle");
     preview.clear();
-  }, [preview]);
+  }, [preview, setStatus]);
 
-  const reopenWarning = useCallback(() => {
-    const warning = latestWarningRef.current;
-    if (warning) openWarning(warning);
-  }, [openWarning]);
+  const changeItem = useCallback(() => {
+    clear();
+    changeItemRef.current?.();
+  }, [clear]);
 
   const check = useCallback(
     async (
@@ -103,90 +79,46 @@ export function useStockAssignmentGate(
         return true;
       }
 
-      const candidateSignature = signature(candidate);
-      latestCandidateSignatureRef.current = candidateSignature;
-      if (acceptedSignatureRef.current === candidateSignature) return true;
-
-      // A field changed after accepting a mismatch. The override never leaks
-      // to a different item/category/quantity snapshot.
-      if (acceptedSignatureRef.current !== null) clear();
-      const pending = pendingDecisionRef.current;
-      if (pending?.signature === candidateSignature) return pending.promise;
-
       setStatus("checking");
       const result = await preview.check(candidate);
+      setStatus("idle");
       if (result === null) {
-        setStatus("idle");
         // A stale reply is never permission to create. A later settled field
         // effect or another submit starts the current check.
         return false;
       }
       if (result === undefined) {
-        setStatus("idle");
         // Network/5xx preview failures are advisory. The create endpoint
         // remains the authoritative validation path.
         return true;
       }
 
       if (!result.can_proceed) {
-        const warning: StockMatchWarningSurfaceProps = {
+        openWarning({
           kind: "blocked",
           reasonText: stockAssignmentRefusalMessage(result.refusal_reason),
           checkedAgainstStoredItem: result.values_source === "stored",
-          onChangeItem: () => {
-            clear();
-            changeItemRef.current?.();
-          },
-        };
-        latestWarningRef.current = warning;
-        setStatus("idle");
-        openWarning(warning);
+          onChangeItem: changeItem,
+        });
         return false;
       }
 
-      if (!result.override_required) {
-        latestWarningRef.current = null;
-        setStatus("idle");
-        return true;
+      if (result.override_required) {
+        // The backend still calls this overridable; this client never does.
+        openWarning({
+          kind: "mismatch",
+          failures: toStockMatchFailureRows(result.property_failures),
+          checkedAgainstStoredItem: result.values_source === "stored",
+          onChangeItem: changeItem,
+        });
+        return false;
       }
 
-      let resolve!: (value: boolean) => void;
-      const decision = new Promise<boolean>((nextResolve) => {
-        resolve = nextResolve;
-      });
-      pendingDecisionRef.current = {
-        signature: candidateSignature,
-        promise: decision,
-        resolve,
-      };
-      const warning: StockMatchWarningSurfaceProps = {
-        kind: "warning",
-        failures: toStockMatchFailureRows(result.property_failures),
-        checkedAgainstStoredItem: result.values_source === "stored",
-        onChangeItem: () => {
-          clear();
-          changeItemRef.current?.();
-          resolve(false);
-        },
-        onContinue: () => {
-          acceptedSignatureRef.current = candidateSignature;
-          pendingDecisionRef.current = null;
-          acceptedOverrideRef.current = true;
-          setAcceptedOverride(true);
-          setStatus("mismatch-accepted");
-          resolve(true);
-        },
-      };
-      latestWarningRef.current = warning;
-      setStatus("idle");
-      openWarning(warning);
-      return decision;
+      return true;
     },
-    [clear, openWarning, preview],
+    [changeItem, clear, openWarning, preview, setStatus],
   );
 
-  const reopenWarningRef = useRef(reopenWarning);
-  reopenWarningRef.current = reopenWarning;
   const StatusSlot = useMemo(() => {
     function LiveStatusSlot(): React.JSX.Element | null {
       const status = useSyncExternalStore(
@@ -194,50 +126,33 @@ export function useStockAssignmentGate(
         statusStore.getSnapshot,
         statusStore.getSnapshot,
       );
-      return (
-        <StockMatchStatusRow
-          state={status}
-          onPress={() => reopenWarningRef.current()}
-        />
-      );
+      return <StockMatchStatusRow state={status} />;
     }
     return LiveStatusSlot;
   }, [statusStore]);
 
-  const requestOverride = useCallback(
-    (failures: readonly StockMatchFailure[]): Promise<boolean> => {
-      return new Promise<boolean>((resolve) => {
-        const warning: StockMatchWarningSurfaceProps = {
-          kind: "warning",
-          failures: toStockMatchFailureRows(failures),
-          onChangeItem: () => {
-            clear();
-            changeItemRef.current?.();
-            resolve(false);
-          },
-          onContinue: () => {
-            acceptedSignatureRef.current = latestCandidateSignatureRef.current;
-            acceptedOverrideRef.current = true;
-            setAcceptedOverride(true);
-            setStatus("mismatch-accepted");
-            resolve(true);
-          },
-        };
-        latestWarningRef.current = warning;
-        openWarning(warning);
+  /**
+   * The create call refused the assignment for its properties after the
+   * preview let it through (the item changed underneath, or the preview
+   * failed and was advisory). Same sheet, same rows, same one way out.
+   */
+  const reportMismatch = useCallback(
+    (failures: readonly StockMatchFailure[]): void => {
+      openWarning({
+        kind: "mismatch",
+        failures: toStockMatchFailureRows(failures),
+        onChangeItem: changeItem,
       });
     },
-    [clear, openWarning],
+    [changeItem, openWarning],
   );
 
   return {
     check,
     preload: preloadStockMatchWarningSurface,
-    acceptedOverride,
     clear,
     isPending: preview.isPending,
     statusSlot: StatusSlot,
-    requestOverride,
-    getAcceptedOverride: () => acceptedOverrideRef.current,
+    reportMismatch,
   };
 }

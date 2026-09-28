@@ -226,27 +226,27 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
         );
         return "reset-stay" as const;
       }
-      const input = {
-        stockReportItemId: stockNeedId,
-        taskId: result.client_id,
-        itemId: result.item_id,
-        overridePropertyMismatch: gate.getAcceptedOverride(),
-      };
       try {
-        await createAssignment.mutateAsync(input);
+        await createAssignment.mutateAsync({
+          stockReportItemId: stockNeedId,
+          taskId: result.client_id,
+          itemId: result.item_id,
+          // Never: a property mismatch is a block on this client (owner,
+          // 2026-09-28); the properties are corrected in the purchase app.
+          overridePropertyMismatch: false,
+        });
         return "close" as const;
       } catch (error) {
         const failures = stockAssignmentMismatchFailures(error);
-        if (failures && (await gate.requestOverride(failures))) {
-          try {
-            await createAssignment.mutateAsync({
-              ...input,
-              overridePropertyMismatch: true,
-            });
-            return "close" as const;
-          } catch {
-            // The task is intentionally retained; a retry loop would conceal a real refusal.
-          }
+        if (failures) {
+          // The task is intentionally retained. The sheet shows what to
+          // correct; the item is added again once it is.
+          gate.reportMismatch(failures);
+          notify.error(
+            "Task created, but not attached to this stock need",
+            "The item's properties do not match. Update them in the purchase app, then add the item again.",
+          );
+          return "reset-stay" as const;
         }
         const refusalReasons = stockAssignmentRefusalReasons(error);
         if (refusalReasons) {
