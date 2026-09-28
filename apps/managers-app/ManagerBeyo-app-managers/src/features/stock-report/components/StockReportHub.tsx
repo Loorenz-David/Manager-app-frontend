@@ -1,13 +1,10 @@
 import { useStockReportHubController } from "../controllers/use-stock-report-hub-controller";
 import { StockReportHubView } from "./StockReportHubView";
-import { StockVersionCreateOverlay } from "./StockVersionCreateOverlay";
 
 /**
  * The manager's stock report tab (owner, 2026-09-26): the hub view over its
- * controller. The board, the missing list and the history open as slide page
- * surfaces on top of it. Opening a version blocks the tab with an overlay and,
- * once the backend has answered, opens the board — whose query was dropped by
- * the action, so it fetches the new version's snapshots.
+ * controller. The board, the missing list, the drafts, the history and the
+ * new-version form all open as surfaces on top of it.
  */
 export function StockReportHub(): React.JSX.Element {
   const hub = useStockReportHubController();
@@ -16,22 +13,16 @@ export function StockReportHub(): React.JSX.Element {
     <div className="relative h-full overflow-y-auto" data-testid="stock-report-manager-hub">
       <StockReportHubView
         canManageVersions={hub.permissions.canManageVersions}
+        draftCount={hub.draftCount}
         missingSummary={hub.missingSummary}
         version={hub.version}
         versionStatus={hub.versionStatus}
-        onCreateVersion={() => hub.createVersion(hub.openBoard)}
+        onCreateVersion={hub.openCreateForm}
         onOpenBoard={hub.openBoard}
+        onOpenDrafts={hub.openDrafts}
         onOpenHistory={hub.openHistory}
         onOpenMissing={hub.openMissing}
       />
-
-      {hub.createPhase !== "idle" ? (
-        <StockVersionCreateOverlay
-          errorMessage={hub.createErrorMessage}
-          phase={hub.createPhase}
-          onDismiss={hub.dismissCreateFailure}
-        />
-      ) : null}
     </div>
   );
 }

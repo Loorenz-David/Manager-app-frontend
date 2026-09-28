@@ -1,15 +1,18 @@
 import { useState } from "react";
 import {
   STOCK_REPORT_BOARD_SURFACE_ID,
+  STOCK_REPORT_DRAFTS_SURFACE_ID,
   STOCK_REPORT_MISSING_SURFACE_ID,
+  STOCK_REPORT_VERSION_FORM_SURFACE_ID,
   STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
   preloadStockReportBoardSurface,
+  preloadStockReportDraftsSurface,
   preloadStockReportMissingSurface,
+  preloadStockReportVersionFormSurface,
   preloadStockReportVersionHistorySurface,
-  stockReportRequestFailureMessage,
   toStockReportVersionViewModel,
-  useCreateStockReportVersion,
   useStockReportActiveVersionQuery,
+  useStockReportDraftCountQuery,
   useStockReportMissingSummaryQuery,
   useStockReportPermissions,
   type StockReportLoadStatus,
@@ -20,17 +23,14 @@ import {
 import { usePreloadSurface } from "@/hooks/use-preload-surface";
 import { useSurface } from "@/hooks/use-surface";
 
-export type StockVersionCreatePhase = "idle" | "creating" | "failed";
-
 /**
  * The manager's stock report hub (owner, 2026-09-26): the active version's
- * progress by priority, the missing-stock total, and the two capabilities
- * beside them — opening a new version and reading the history. The board,
- * the missing list and the history each open as a slide page surface (the
- * owner dropped the earlier hub → board slide stack).
+ * progress by priority, the missing-stock total, and the capabilities beside
+ * them — the drafts, the history and a new version. Every one opens as a
+ * surface on top of the hub.
  *
- * Navigation after a successful create is the caller's, not the action's:
- * `createVersion` takes what to do once the backend has answered.
+ * Creating a version is the form's job now (plan OC-2): the hub only opens it,
+ * and the form decides where the user lands once the backend has answered.
  */
 export function useStockReportHubController() {
   const permissions = useStockReportPermissions();
@@ -38,9 +38,11 @@ export function useStockReportHubController() {
   usePreloadSurface(preloadStockReportBoardSurface);
   usePreloadSurface(preloadStockReportMissingSurface);
   usePreloadSurface(preloadStockReportVersionHistorySurface);
+  usePreloadSurface(preloadStockReportDraftsSurface);
+  usePreloadSurface(preloadStockReportVersionFormSurface);
   const activeVersion = useStockReportActiveVersionQuery();
   const missingSummary = useStockReportMissingSummaryQuery();
-  const createVersion = useCreateStockReportVersion();
+  const draftCount = useStockReportDraftCountQuery();
   // Read once per mount: the hub remounts on every tab visit, and a day
   // boundary crossing while it is open is not worth an impure render.
   const [now] = useState(() => Date.now());
@@ -53,11 +55,6 @@ export function useStockReportHubController() {
     : activeVersion.isError
       ? "error"
       : "ready";
-  const createPhase: StockVersionCreatePhase = createVersion.isPending
-    ? "creating"
-    : createVersion.isError
-      ? "failed"
-      : "idle";
   const summary: StockReportMissingSummary | null = missingSummary.data ?? null;
 
   return {
@@ -65,18 +62,17 @@ export function useStockReportHubController() {
     version,
     versionStatus,
     missingSummary: summary,
-    createPhase,
-    createErrorMessage: createVersion.isError
-      ? stockReportRequestFailureMessage(createVersion.error)
-      : undefined,
-    createVersion: (onCreated: () => void) =>
-      createVersion.mutate(undefined, { onSuccess: onCreated }),
-    dismissCreateFailure: () => createVersion.reset(),
+    /** `undefined` until loaded (and on error): the button then reads "Drafts". */
+    draftCount: draftCount.data,
     openBoard: () => surface.open(STOCK_REPORT_BOARD_SURFACE_ID, {}),
     openMissing: () => surface.open(STOCK_REPORT_MISSING_SURFACE_ID, {}),
     openHistory: () => surface.open(STOCK_REPORT_VERSION_HISTORY_SURFACE_ID, {}),
+    openDrafts: () => surface.open(STOCK_REPORT_DRAFTS_SURFACE_ID, {}),
+    openCreateForm: () => surface.open(STOCK_REPORT_VERSION_FORM_SURFACE_ID, {}),
     refetch: () =>
-      Promise.all([activeVersion.refetch(), missingSummary.refetch()]).then(() => undefined),
+      Promise.all([activeVersion.refetch(), missingSummary.refetch(), draftCount.refetch()]).then(
+        () => undefined,
+      ),
   };
 }
 

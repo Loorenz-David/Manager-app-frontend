@@ -19,8 +19,10 @@ import { StockReportScheduleSheetContent } from "./StockReportScheduleSheetConte
 
 afterEach(cleanup);
 
-// Projection R18: local constructors only.
+// Projection R18: local constructors for instants; calendar days are UTC
+// midnights, as `DayCalendar` hands them over.
 const NOW = new Date(2026, 9, 1, 12, 0).getTime();
+const day = (date: number) => new Date(Date.UTC(2026, 9, date));
 
 function renderSheet(current: string | null = null) {
   const onSelect = vi.fn();
@@ -43,10 +45,10 @@ describe("StockReportScheduleSheetContent", () => {
 
   it("disables the days before today and emits a picked day at 06:00 local, then closes", () => {
     const { onSelect, onDone } = renderSheet();
-    expect(calendar.props?.disabled).toEqual({ before: new Date(2026, 9, 1) });
+    expect(calendar.props?.disabled).toEqual({ before: day(1) });
     expect(screen.getByTestId("stock-report-schedule-time")).toHaveValue("06:00");
 
-    act(() => calendar.props?.onSelect(new Date(2026, 9, 7)));
+    act(() => calendar.props?.onSelect(day(7)));
     expect(onSelect).toHaveBeenCalledWith(new Date(2026, 9, 7, 6, 0).toISOString());
     expect(onDone).toHaveBeenCalledTimes(1);
   });
@@ -54,7 +56,7 @@ describe("StockReportScheduleSheetContent", () => {
   it("composes the chosen time, and re-emits a time change once a day is chosen without closing", () => {
     const { onSelect, onDone } = renderSheet(new Date(2026, 9, 7, 9, 30).toISOString());
     expect(screen.getByTestId("stock-report-schedule-time")).toHaveValue("09:30");
-    expect(calendar.props?.selected).toEqual(new Date(2026, 9, 7));
+    expect(calendar.props?.selected).toEqual(day(7));
 
     fireEvent.change(screen.getByTestId("stock-report-schedule-time"), { target: { value: "18:05" } });
     expect(onSelect).toHaveBeenLastCalledWith(new Date(2026, 9, 7, 18, 5).toISOString());
@@ -64,7 +66,7 @@ describe("StockReportScheduleSheetContent", () => {
   it("refuses an instant in the past inline and emits nothing", () => {
     const { onSelect, onDone } = renderSheet();
     // Today at 06:00 is already past at noon.
-    act(() => calendar.props?.onSelect(new Date(2026, 9, 1)));
+    act(() => calendar.props?.onSelect(day(1)));
     expect(onSelect).not.toHaveBeenCalled();
     expect(onDone).not.toHaveBeenCalled();
     expect(screen.getByTestId("stock-report-schedule-error")).toHaveTextContent("Pick a time in the future.");

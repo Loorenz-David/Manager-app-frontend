@@ -1,8 +1,15 @@
 /**
- * The schedule sheet's arithmetic (plan §F.5, OC-1): a local day plus a local
- * "HH:MM" become one instant, sent as `toISOString()` (UTC `Z`, which v7 §5.8
- * accepts). Everything is local time — the user schedules "Thursday at six"
+ * The schedule sheet's arithmetic (plan §F.5, OC-1): a calendar day plus a
+ * local "HH:MM" become one instant, sent as `toISOString()` (UTC `Z`, which v7
+ * §5.8 accepts). The time is local — the user schedules "Thursday at six"
  * where they stand.
+ *
+ * A **calendar day** is `@beyo/ui`'s `DayCalendar` convention: the UTC
+ * midnight of that date (the calendar renders in UTC, like
+ * `parseISOToDate`/`serializeDateToISO`). It is read and written with the UTC
+ * getters only; mixing in local midnight moves the day by one on either side
+ * of UTC (a picked 15th becomes the 14th west of Greenwich, and the highlight
+ * lands a day early east of it).
  */
 
 /** The time a new schedule starts at (OC-1). */
@@ -26,17 +33,28 @@ export function scheduleTimeOf(iso: string | null): string {
   return date ? `${pad(date.getHours())}:${pad(date.getMinutes())}` : DEFAULT_SCHEDULE_TIME;
 }
 
-/** The schedule's local calendar day (midnight), for the calendar's selection. */
-export function scheduleDayOf(iso: string | null): Date | undefined {
-  const date = parse(iso);
-  return date ? new Date(date.getFullYear(), date.getMonth(), date.getDate()) : undefined;
+/** The calendar day of a local date: the UTC midnight of its local year, month and day. */
+function toCalendarDay(date: Date): Date {
+  return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
 }
 
-/** The local day and time as one ISO instant; `null` when the time is not "HH:MM". */
+/** The calendar day a stored schedule falls on, where the user stands. */
+export function scheduleDayOf(iso: string | null): Date | undefined {
+  const date = parse(iso);
+  return date ? toCalendarDay(date) : undefined;
+}
+
+/** A calendar day and a local time as one ISO instant; `null` when the time is not "HH:MM". */
 export function composeScheduleInstant(day: Date, time: string): string | null {
   const match = TIME_PATTERN.exec(time);
   if (!match) return null;
-  return new Date(day.getFullYear(), day.getMonth(), day.getDate(), Number(match[1]), Number(match[2])).toISOString();
+  return new Date(
+    day.getUTCFullYear(),
+    day.getUTCMonth(),
+    day.getUTCDate(),
+    Number(match[1]),
+    Number(match[2]),
+  ).toISOString();
 }
 
 /** The same rule as v7 `STOCK_REPORT_SCHEDULE_IN_THE_PAST`: strictly after now. */
@@ -44,8 +62,7 @@ export function isFutureInstant(iso: string, now: number): boolean {
   return Date.parse(iso) > now;
 }
 
-/** Local midnight of `now` — the calendar disables every day before it. */
-export function startOfLocalDay(now: number): Date {
-  const date = new Date(now);
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+/** Today as a calendar day — the calendar disables every day before it. */
+export function calendarToday(now: number): Date {
+  return toCalendarDay(new Date(now));
 }

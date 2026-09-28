@@ -17,7 +17,8 @@ const CARD_CLASS =
   "flex w-full flex-col gap-3 rounded-2xl border border-border bg-card px-4 py-3.5 text-left shadow-sm";
 
 /**
- * The active version's progress **by priority** (owner, 2026-09-26) — three
+ * The active version — headed by its title, or its creation day when it has
+ * none (OC-18) — and its progress **by priority** (owner, 2026-09-26) — three
  * bars, one per group, over `quantity_completed / quantity_target` (§6.8) —
  * with the version's age counted forward ("2 days running"). Tapping it opens
  * the board. Before the first version it still opens the (empty) board, and
@@ -48,8 +49,11 @@ export function StockVersionProgressCard({
         <div className="flex min-w-0 items-center gap-3">
           <Layers aria-hidden="true" className="size-4 shrink-0 text-primary" />
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              {version ? "Current version" : "Stock needs"}
+            <p
+              className="truncate text-sm font-semibold text-foreground"
+              data-testid="stock-version-title"
+            >
+              {version ? version.displayTitle : "Stock needs"}
             </p>
             <p className="text-sm text-muted-foreground" data-testid="stock-version-age">
               {status === "error"

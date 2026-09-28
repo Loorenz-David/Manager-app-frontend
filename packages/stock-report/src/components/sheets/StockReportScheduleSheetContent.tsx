@@ -5,11 +5,11 @@ import { cn } from "@beyo/lib";
 import { DayCalendar, FieldErrorPill } from "@beyo/ui";
 
 import {
+  calendarToday,
   composeScheduleInstant,
   isFutureInstant,
   scheduleDayOf,
   scheduleTimeOf,
-  startOfLocalDay,
 } from "../../lib/schedule-sheet";
 import { SCHEDULE_IN_THE_PAST_MESSAGE } from "../../lib/version-form";
 import { ROW_CLASS } from "./StockReportDetailMenuSheetContent";
@@ -26,7 +26,7 @@ export type StockReportScheduleSheetContentProps = {
 /**
  * The schedule sheet (plan §F.5, OC-1, OC-9): a "Remove schedule" row while
  * there is one, the calendar, and a native time row under it. A day pick
- * composes the local day and time, emits and closes; a time change with a
+ * composes the calendar day and the local time, emits and closes; a time change with a
  * day already chosen emits and stays. A past instant is refused inline — the
  * same rule the backend answers with `STOCK_REPORT_SCHEDULE_IN_THE_PAST`.
  */
@@ -37,6 +37,9 @@ export function StockReportScheduleSheetContent({
   onDone,
 }: StockReportScheduleSheetContentProps): React.JSX.Element {
   const [day, setDay] = useState<Date | undefined>(() => scheduleDayOf(current));
+  // Opens on the schedule's month, else today's — never the device clock's
+  // month when the sheet was handed another `now`.
+  const [month, setMonth] = useState<Date>(() => day ?? calendarToday(now));
   const [time, setTime] = useState(() => scheduleTimeOf(current));
   const [refused, setRefused] = useState(false);
 
@@ -73,9 +76,11 @@ export function StockReportScheduleSheetContent({
       ) : null}
 
       <DayCalendar
-        disabled={{ before: startOfLocalDay(now) }}
+        disabled={{ before: calendarToday(now) }}
         mode="single"
+        month={month}
         selected={day}
+        onMonthChange={setMonth}
         onSelect={(picked: Date | undefined) => {
           if (!picked) return;
           setDay(picked);

@@ -57,12 +57,14 @@ function renderHub(overrides: Partial<Parameters<typeof StockReportHubView>[0]> 
   const handlers = {
     onOpenBoard: vi.fn(),
     onOpenMissing: vi.fn(),
+    onOpenDrafts: vi.fn(),
     onOpenHistory: vi.fn(),
     onCreateVersion: vi.fn(),
   };
   render(
     <StockReportHubView
       canManageVersions
+      draftCount={2}
       missingSummary={{ quantity_missing_total: 0, items_with_missing: 0 }}
       version={toStockReportVersionViewModel(activeVersion, NOW)}
       versionStatus="ready"
@@ -98,35 +100,58 @@ describe("StockReportHubView", () => {
     const row = screen.getByTestId("stock-report-hub-open-missing");
     expect(row).toHaveTextContent("7 missing");
     expect(row).toHaveTextContent("across 3 stock needs");
-    // Owner layout: card, then the missing row, then the two buttons.
+    // Owner layout: card, then the missing row, then [Drafts] [History], then New version.
     const order = Array.from(screen.getByTestId("stock-report-hub").querySelectorAll("button[data-testid^='stock-report-hub-']")).map((node) => node.getAttribute("data-testid"));
     expect(order).toEqual([
       "stock-report-hub-open-board",
       "stock-report-hub-open-missing",
-      "stock-report-hub-create-version",
+      "stock-report-hub-open-drafts",
       "stock-report-hub-open-history",
+      "stock-report-hub-create-version",
     ]);
     fireEvent.click(row);
     expect(handlers.onOpenMissing).toHaveBeenCalledTimes(1);
   });
 
-  it("needs a second tap to create a version, and opens the history on one", () => {
+  /** OC-2: the form asks before anything that closes the live version, so the hub does not. */
+  it("opens the form on one tap of New version, and the drafts and the history on one tap each", () => {
     const handlers = renderHub();
 
-    fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
-    expect(handlers.onCreateVersion).not.toHaveBeenCalled();
-    expect(screen.getByTestId("stock-report-hub-create-version")).toHaveTextContent("Confirm Tap");
+    expect(screen.getByTestId("stock-report-hub-open-drafts")).toHaveTextContent("Drafts · 2");
     fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
     expect(handlers.onCreateVersion).toHaveBeenCalledTimes(1);
-
+    expect(screen.getByTestId("stock-report-hub-create-version")).toHaveTextContent("New version");
+    fireEvent.click(screen.getByTestId("stock-report-hub-open-drafts"));
+    expect(handlers.onOpenDrafts).toHaveBeenCalledTimes(1);
     fireEvent.click(screen.getByTestId("stock-report-hub-open-history"));
     expect(handlers.onOpenHistory).toHaveBeenCalledTimes(1);
   });
 
-  it("offers no New version to a role that cannot open one", () => {
+  /** Ledger #20: no dot at 0, none before the count has loaded. */
+  it("reads plain Drafts while loading, on error and at zero", () => {
+    for (const [draftCount, label] of [[undefined, "Drafts"], [0, "Drafts"], [1, "Drafts · 1"]] as const) {
+      renderHub({ draftCount });
+      expect(screen.getByTestId("stock-report-hub-open-drafts").textContent).toBe(label);
+      cleanup();
+    }
+  });
+
+  it("offers neither drafts nor New version to a role that cannot manage versions", () => {
     renderHub({ canManageVersions: false });
     expect(screen.queryByTestId("stock-report-hub-create-version")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("stock-report-hub-open-drafts")).not.toBeInTheDocument();
     expect(screen.getByTestId("stock-report-hub-open-history")).toBeInTheDocument();
+  });
+
+  /** OC-18: the heading is the version's title, else its creation day. */
+  it("heads the card with the version's title, falling back to its creation day", () => {
+    renderHub({ version: toStockReportVersionViewModel({ ...activeVersion, title: "Autumn restock" }, NOW) });
+    expect(screen.getByTestId("stock-version-title")).toHaveTextContent("Autumn restock");
+    cleanup();
+
+    renderHub();
+    expect(screen.getByTestId("stock-version-title")).toHaveTextContent("Thu, 24th September");
+    expect(screen.getByTestId("stock-version-title")).not.toHaveTextContent("Current version");
   });
 
   it("explains the empty board before the first version and still opens it", () => {

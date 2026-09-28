@@ -7,13 +7,12 @@ const hub = vi.hoisted(() => ({
     version: null,
     versionStatus: "ready",
     missingSummary: null,
-    createPhase: "idle" as "idle" | "creating" | "failed",
-    createErrorMessage: undefined as string | undefined,
-    createVersion: vi.fn(),
-    dismissCreateFailure: vi.fn(),
+    draftCount: 3 as number | undefined,
     openBoard: vi.fn(),
     openMissing: vi.fn(),
     openHistory: vi.fn(),
+    openDrafts: vi.fn(),
+    openCreateForm: vi.fn(),
     refetch: vi.fn(),
   },
 }));
@@ -27,8 +26,6 @@ import { StockReportHub } from "./StockReportHub";
 describe("StockReportHub", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hub.controller.createPhase = "idle";
-    hub.controller.createErrorMessage = undefined;
   });
 
   afterEach(cleanup);
@@ -38,31 +35,24 @@ describe("StockReportHub", () => {
 
     fireEvent.click(screen.getByTestId("stock-report-hub-open-board"));
     expect(hub.controller.openBoard).toHaveBeenCalledTimes(1);
+  });
+
+  /** OC-2: the hub no longer creates anything — it opens the form, and has no overlay. */
+  it("opens the version form from New version, with no overlay of its own", () => {
+    render(<StockReportHub />);
+
+    fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
+    expect(hub.controller.openCreateForm).toHaveBeenCalledTimes(1);
+    expect(hub.controller.openBoard).not.toHaveBeenCalled();
     expect(screen.queryByTestId("stock-version-create-overlay")).toBeNull();
   });
 
-  it("creates a version behind the tap-again confirm and opens the board once the backend has answered", () => {
+  it("opens the drafts page, labelled with the controller's count", () => {
     render(<StockReportHub />);
 
-    fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
-    fireEvent.click(screen.getByTestId("stock-report-hub-create-version"));
-    expect(hub.controller.createVersion).toHaveBeenCalledTimes(1);
-    // The success callback is the board opener — navigation never lives in
-    // the action itself.
-    expect(hub.controller.createVersion).toHaveBeenCalledWith(hub.controller.openBoard);
-  });
-
-  it("blocks the tab with the overlay while creating and lets a failure be dismissed", () => {
-    hub.controller.createPhase = "creating";
-    render(<StockReportHub />);
-    expect(screen.getByTestId("stock-version-create-overlay").getAttribute("data-phase")).toBe("creating");
-    cleanup();
-
-    hub.controller.createPhase = "failed";
-    hub.controller.createErrorMessage = "Stock report is temporarily unavailable.";
-    render(<StockReportHub />);
-    expect(screen.getByTestId("stock-version-create-overlay")).toHaveTextContent("Stock report is temporarily unavailable.");
-    fireEvent.click(screen.getByTestId("stock-version-create-overlay-back"));
-    expect(hub.controller.dismissCreateFailure).toHaveBeenCalledTimes(1);
+    const drafts = screen.getByTestId("stock-report-hub-open-drafts");
+    expect(drafts.textContent).toContain("Drafts · 3");
+    fireEvent.click(drafts);
+    expect(hub.controller.openDrafts).toHaveBeenCalledTimes(1);
   });
 });

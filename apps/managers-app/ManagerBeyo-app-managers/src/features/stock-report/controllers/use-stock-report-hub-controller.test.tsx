@@ -6,7 +6,8 @@ const mocks = vi.hoisted(() => ({
   preload: vi.fn(),
   activeVersion: vi.fn(),
   missingSummary: vi.fn(),
-  create: { mutate: vi.fn(), reset: vi.fn(), isPending: false, isError: false, error: null as unknown },
+  draftCount: vi.fn(),
+  create: vi.fn(),
 }));
 
 vi.mock("@/hooks/use-surface", () => ({ useSurface: () => ({ open: mocks.open }) }));
@@ -16,70 +17,79 @@ vi.mock("@beyo/stock-report", async (importOriginal) => ({
   useStockReportPermissions: () => ({ canManageVersions: true }),
   useStockReportActiveVersionQuery: mocks.activeVersion,
   useStockReportMissingSummaryQuery: mocks.missingSummary,
-  useCreateStockReportVersion: () => mocks.create,
+  useStockReportDraftCountQuery: mocks.draftCount,
+  useCreateStockReportVersion: mocks.create,
 }));
 
-import { ApiRequestError } from "@beyo/api-client";
 import {
   STOCK_REPORT_BOARD_SURFACE_ID,
+  STOCK_REPORT_DRAFTS_SURFACE_ID,
   STOCK_REPORT_MISSING_SURFACE_ID,
+  STOCK_REPORT_VERSION_FORM_SURFACE_ID,
   STOCK_REPORT_VERSION_HISTORY_SURFACE_ID,
   preloadStockReportBoardSurface,
+  preloadStockReportDraftsSurface,
   preloadStockReportMissingSurface,
+  preloadStockReportVersionFormSurface,
   preloadStockReportVersionHistorySurface,
 } from "@beyo/stock-report";
 
 import { useStockReportHubController } from "./use-stock-report-hub-controller";
 
 const ready = (data: unknown) => ({ data, isPending: false, isError: false, error: null, refetch: vi.fn().mockResolvedValue(undefined) });
+const pending = () => ({ data: undefined, isPending: true, isError: false, error: null, refetch: vi.fn().mockResolvedValue(undefined) });
 
 describe("useStockReportHubController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.create.isPending = false;
-    mocks.create.isError = false;
-    mocks.create.error = null;
     mocks.activeVersion.mockReturnValue(ready(null));
     mocks.missingSummary.mockReturnValue(ready({ quantity_missing_total: 2, items_with_missing: 1 }));
+    mocks.draftCount.mockReturnValue(ready(4));
   });
 
-  it("preloads the three slides and opens them by their package ids", () => {
+  it("preloads the five surfaces and opens each by its package id", () => {
     const { result } = renderHook(useStockReportHubController);
 
-    expect(mocks.preload).toHaveBeenCalledWith(preloadStockReportBoardSurface);
-    expect(mocks.preload).toHaveBeenCalledWith(preloadStockReportMissingSurface);
-    expect(mocks.preload).toHaveBeenCalledWith(preloadStockReportVersionHistorySurface);
+    for (const preload of [
+      preloadStockReportBoardSurface,
+      preloadStockReportMissingSurface,
+      preloadStockReportVersionHistorySurface,
+      preloadStockReportDraftsSurface,
+      preloadStockReportVersionFormSurface,
+    ]) {
+      expect(mocks.preload).toHaveBeenCalledWith(preload);
+    }
     result.current.openBoard();
     result.current.openMissing();
     result.current.openHistory();
+    result.current.openDrafts();
+    result.current.openCreateForm();
     expect(mocks.open).toHaveBeenNthCalledWith(1, STOCK_REPORT_BOARD_SURFACE_ID, {});
     expect(mocks.open).toHaveBeenNthCalledWith(2, STOCK_REPORT_MISSING_SURFACE_ID, {});
     expect(mocks.open).toHaveBeenNthCalledWith(3, STOCK_REPORT_VERSION_HISTORY_SURFACE_ID, {});
+    expect(mocks.open).toHaveBeenNthCalledWith(4, STOCK_REPORT_DRAFTS_SURFACE_ID, {});
+    // A create form: no version id.
+    expect(mocks.open).toHaveBeenNthCalledWith(5, STOCK_REPORT_VERSION_FORM_SURFACE_ID, {});
     expect(result.current.missingSummary).toEqual({ quantity_missing_total: 2, items_with_missing: 1 });
     // §5.12: no version yet is a ready null, not an error.
     expect(result.current.version).toBeNull();
     expect(result.current.versionStatus).toBe("ready");
   });
 
-  it("hands the success callback to the mutation and derives the overlay phase from it", () => {
+  it("passes the draft count through, undefined until it has loaded", () => {
     const { result, rerender } = renderHook(useStockReportHubController);
-    const onCreated = vi.fn();
+    expect(result.current.draftCount).toBe(4);
 
-    result.current.createVersion(onCreated);
-    expect(mocks.create.mutate).toHaveBeenCalledWith(undefined, { onSuccess: onCreated });
-    expect(result.current.createPhase).toBe("idle");
-
-    mocks.create.isPending = true;
+    mocks.draftCount.mockReturnValue(pending());
     rerender();
-    expect(result.current.createPhase).toBe("creating");
+    expect(result.current.draftCount).toBeUndefined();
+  });
 
-    mocks.create.isPending = false;
-    mocks.create.isError = true;
-    mocks.create.error = new ApiRequestError(503, "service_unavailable", "Stock report is temporarily unavailable.");
-    rerender();
-    expect(result.current.createPhase).toBe("failed");
-    expect(result.current.createErrorMessage).toBe("Stock report is temporarily unavailable.");
-    result.current.dismissCreateFailure();
-    expect(mocks.create.reset).toHaveBeenCalled();
+  /** OC-2: creating is the form's; the hub holds no create mutation. */
+  it("creates nothing itself", () => {
+    const { result } = renderHook(useStockReportHubController);
+    expect(mocks.create).not.toHaveBeenCalled();
+    expect(result.current).not.toHaveProperty("createVersion");
+    expect(result.current).not.toHaveProperty("createPhase");
   });
 });
