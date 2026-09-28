@@ -18,6 +18,7 @@ import {
   setStockReportPriority,
 } from "../api/stock-report-api";
 import { stockReportKeys } from "../api/stock-report-keys";
+import { STOCK_REPORT_ACTIVE_SCOPE } from "../stock-report.types";
 import {
   restartStockReportListQueries,
   stockReportListItems,
@@ -40,7 +41,8 @@ function patchDetailEntry(
   stockNeedId: string,
   update: (row: StockReportItem) => StockReportItem,
 ): StockReportItem | undefined {
-  const key = stockReportKeys.item(stockNeedId);
+  // Checkpoint 1: the board only; checkpoint 2 threads the real scope.
+  const key = stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE);
   const previous = queryClient.getQueryData<StockReportItem>(key);
   if (previous) queryClient.setQueryData<StockReportItem>(key, update(previous));
   return previous;
@@ -116,7 +118,7 @@ export function useSetStockReportPriority() {
         // destination bucket, whatever its category filter, gains it — the
         // settle-time invalidation refetches the active one anyway.
         const moved = withSnapshot(source, { priority, priority_order: null });
-        for (const [key, data] of queryClient.getQueriesData<StockReportItemListData>({ queryKey: stockReportKeys.bucketLists(destination) })) {
+        for (const [key, data] of queryClient.getQueriesData<StockReportItemListData>({ queryKey: stockReportKeys.bucketLists(STOCK_REPORT_ACTIVE_SCOPE, destination) })) {
           if (stockReportKeys.isMissingListKey(key) && !(moved.snapshot && moved.snapshot.quantity_missing > 0)) continue;
           queryClient.setQueryData<StockReportItemListData>(key, updateStockReportListItems(data, (rows) => [...rows.filter((row) => row.client_id !== stockNeedId), moved]));
         }
@@ -127,7 +129,7 @@ export function useSetStockReportPriority() {
     // The rollback alone would snap the card back with no explanation (W-3).
     onError: (error, { stockNeedId }, context) => {
       context?.previous.forEach(([key, rows]) => queryClient.setQueryData(key, rows));
-      if (context?.previousDetail) queryClient.setQueryData(stockReportKeys.item(stockNeedId), context.previousDetail);
+      if (context?.previousDetail) queryClient.setQueryData(stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE), context.previousDetail);
       notify.error("Priority not changed", stockReportRequestFailureMessage(error));
     },
     onSuccess: (row) => patchDetailEntry(queryClient, row.client_id, () => row),
@@ -182,7 +184,7 @@ export function useSetStockReportMissingQuantity() {
     },
     onError: (error, { stockNeedId }, context) => {
       context?.previous.forEach(([key, rows]) => queryClient.setQueryData(key, rows));
-      if (context?.previousDetail) queryClient.setQueryData(stockReportKeys.item(stockNeedId), context.previousDetail);
+      if (context?.previousDetail) queryClient.setQueryData(stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE), context.previousDetail);
       notify.error("Missing quantity not changed", stockReportRequestFailureMessage(error));
     },
     // The response row is authoritative (the backend may have clamped); seed

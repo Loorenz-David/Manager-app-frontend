@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import { TASK_STATE_VARIANT } from "@beyo/tasks";
 import { z } from "zod";
 import {
+  wireBorrowingDraftSnapshot,
+  wireManualRequestedSnapshot,
   wireStockReportAssignment,
   wireStockReportItem,
 } from "./fixtures/stock-report-wire-fixtures";
@@ -65,6 +67,46 @@ describe("stock-report view-model mapping", () => {
     expect(toStockReportItemViewModel(row({ snapshot: null }))).toBeNull();
     expect(warning).toHaveBeenCalled();
     warning.mockRestore();
+  });
+
+  it("carries the requested source and Scanner's value beside the value in force (v8 §6.6)", () => {
+    const scanner = toStockReportItemViewModel(row());
+    expect(scanner?.card).toMatchObject({ requestedSource: "scanner", requestedScanner: 6 });
+
+    const manual = toStockReportItemViewModel(
+      row({ snapshot: wireManualRequestedSnapshot(9, { stock_report_item_id: "sri_1", quantity_requested_scanner: 6 }) }),
+    );
+    expect(manual?.card.quantities.requested).toBe(9);
+    expect(manual?.card).toMatchObject({ requestedSource: "manual", requestedScanner: 6 });
+  });
+
+  it("reads a draft row's missing count as it comes — the borrowed value is the backend's (v9 §6.6)", () => {
+    const borrowing = toStockReportItemViewModel(
+      row({ snapshot: wireBorrowingDraftSnapshot({ stock_report_item_id: "sri_1", active_quantity_missing: 3 }) }),
+    );
+    expect(borrowing?.card.quantities.missing).toBe(3);
+    expect(borrowing?.card).toMatchObject({ missingSource: "active", activeMissing: 3 });
+
+    // A typed 0 is the draft's own and stays 0 — no client-side fallback to the board.
+    const typedZero = toStockReportItemViewModel(
+      row({ snapshot: wireBorrowingDraftSnapshot({ stock_report_item_id: "sri_1", quantity_missing: 0, quantity_missing_source: "own", active_quantity_missing: 3 }) }),
+    );
+    expect(typedZero?.card.quantities.missing).toBe(0);
+    expect(typedZero?.card).toMatchObject({ missingSource: "own", activeMissing: 3 });
+
+    const none = toStockReportItemViewModel(
+      row({ snapshot: wireBorrowingDraftSnapshot({ stock_report_item_id: "sri_1", active_quantity_missing: null }) }),
+    );
+    expect(none?.card).toMatchObject({ missingSource: "none", activeMissing: null });
+    expect(none?.card.quantities.missing).toBe(0);
+  });
+
+  it("accepts a draft snapshot's null active_at and refuses a snapshot without the computed fields", () => {
+    expect(StockReportItemSchema.safeParse(wireRow({ snapshot: wireBorrowingDraftSnapshot() })).success).toBe(true);
+    const { quantity_requested_source: _s, ...withoutSource } = wireRow().snapshot!;
+    expect(StockReportItemSchema.safeParse(wireRow({ snapshot: withoutSource })).success).toBe(false);
+    const { quantity_missing_source: _m, ...withoutMissingSource } = wireRow().snapshot!;
+    expect(StockReportItemSchema.safeParse(wireRow({ snapshot: withoutMissingSource })).success).toBe(false);
   });
 
   it("rejects the old row-level priority shape: the keys live on the snapshot now", () => {

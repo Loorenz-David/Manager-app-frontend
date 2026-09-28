@@ -8,7 +8,7 @@ import {
   updateStockReportListItems,
   type StockReportItemListData,
 } from "./api/stock-report-list-cache";
-import type { StockReportItem, StockReportItemSnapshot } from "./stock-report.types";
+import { STOCK_REPORT_ACTIVE_SCOPE, type StockReportItem, type StockReportItemSnapshot } from "./stock-report.types";
 
 const ItemIdSchema = z.object({ client_id: z.string() });
 // §7: the row's four live counters and nothing else — the priority keys moved
@@ -59,7 +59,8 @@ function invalidate(queryClient: QueryClient, ...keys: readonly (readonly unknow
 
 /** The open detail page's own entry, patched when it exists and never created. */
 function patchDetailEntry(queryClient: QueryClient, stockNeedId: string, update: (row: StockReportItem) => StockReportItem): void {
-  const key = stockReportKeys.item(stockNeedId);
+  // Checkpoint 1: the board only; checkpoint 2 threads the real scope.
+  const key = stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE);
   const current = queryClient.getQueryData<StockReportItem>(key);
   if (current) queryClient.setQueryData<StockReportItem>(key, update(current));
 }
@@ -179,7 +180,8 @@ export const stockReportSocketEvents: SocketEventHandlers = {
       queryClient.setQueryData<StockReportItemListData>(key, updateStockReportListItems(data, (rows) => rows.filter((row) => row.client_id !== parsed.data.client_id)));
     }
     restartStockReportListQueries(queryClient);
-    queryClient.removeQueries({ queryKey: stockReportKeys.item(parsed.data.client_id) });
+    // Every scope's entry of the row (projection R5).
+    queryClient.removeQueries({ queryKey: stockReportKeys.itemAll(parsed.data.client_id) });
     // The detail page has no read endpoint of its own; its only exit is the
     // assignments query 404-ing. Refetch it so an open page closes instead of
     // hanging on "Loading" (wiring guide W-2).

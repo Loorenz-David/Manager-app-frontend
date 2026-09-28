@@ -10,6 +10,11 @@ import {
 import type { MajorCategory } from "@beyo/lib";
 import type { FulfilmentQuantities } from "./lib/fulfilment-bar";
 import { formatVersionAge } from "./lib/version-age";
+import {
+  formatScheduleLabel,
+  formatVersionDayTitle,
+  versionScheduleState,
+} from "./lib/version-format";
 import { z } from "zod";
 
 /**
@@ -43,6 +48,26 @@ export const STOCK_NEED_BUCKET_LABEL: Record<StockReportBoardBucket, string> = {
 };
 
 /**
+ * The three states a version moves through (v7 §6.7). A draft is live: its
+ * rows follow Scanner until someone types a value, and only activation
+ * freezes them (v8 §0.0).
+ */
+export const STOCK_REPORT_VERSION_STATES = ["draft", "active", "closed"] as const;
+export type StockReportVersionState = (typeof STOCK_REPORT_VERSION_STATES)[number];
+
+/**
+ * The version a list, a cache entry or a row mutation is scoped to: the board
+ * (`"active"`, the request omits `version_id`) or one version's id
+ * (`version_id=<srv…>`, v7 §5.1). It sits right after `lists()` in every list
+ * key so one version's lists can be restarted or removed as a prefix.
+ */
+export const STOCK_REPORT_ACTIVE_SCOPE = "active";
+export type StockReportVersionScope = string;
+export function stockReportVersionScope(versionId: string | null | undefined): StockReportVersionScope {
+  return versionId ?? STOCK_REPORT_ACTIVE_SCOPE;
+}
+
+/**
  * What narrows the board on top of the bucket.
  *
  * `majorCategory: null` means every major category — the request then omits
@@ -53,15 +78,21 @@ export const STOCK_NEED_BUCKET_LABEL: Record<StockReportBoardBucket, string> = {
  * sends `missing_only=true` and the backend returns only snapshots with
  * `quantity_missing > 0`. It is part of the filter so the two modes never share
  * a cache entry.
+ *
+ * `versionId: null` is the board (the active version); an id reads that
+ * version's rows (v7 §5.1). It lives in the filter so the scope flows wherever
+ * the filter already flows.
  */
 export type StockReportListFilter = {
   majorCategory: MajorCategory | null;
   missingOnly: boolean;
+  versionId: string | null;
 };
 
 export const EMPTY_STOCK_REPORT_FILTER: StockReportListFilter = {
   majorCategory: null,
   missingOnly: false,
+  versionId: null,
 };
 
 /** Which board a controller drives: the priority board or the missing list. */
@@ -91,7 +122,20 @@ export type StockNeedCardData = {
    * not — per card, because the `all` bucket mixes the two.
    */
   hasPriority: boolean;
+  /** Which requested value is in force: Scanner's or one typed by hand (v8 §6.6). */
+  requestedSource: StockReportRequestedSource;
+  /** What Scanner says (a draft) or said when it froze (active), under a manual value. */
+  requestedScanner: number;
+  /** Where the missing count comes from on a draft row (v9 §6.6); `own` on the board. */
+  missingSource: StockReportMissingSource;
+  /** The same row's missing count on the live version, `null` when it has none there. */
+  activeMissing: number | null;
 };
+
+/** v8 §6.6 — `quantity_requested_source`. */
+export type StockReportRequestedSource = "scanner" | "manual";
+/** v9 §6.6 — `quantity_missing_source`: typed on this version, borrowed from the board, or nothing. */
+export type StockReportMissingSource = "own" | "active" | "none";
 
 /**
  * One assignment row on the detail page. The shape is borrowed from
@@ -123,26 +167,39 @@ export type StockReportPriority = (typeof STOCK_REPORT_PRIORITY)[number];
 const NullableString = z.string().nullable();
 
 /**
- * The row's active snapshot (§6.6). `priority` / `priority_order` live here
- * now, not on the row: every version starts unprioritised. `quantity_requested`
- * is frozen at version open; `quantity_awaiting` includes `quantity_resolved`
- * and never goes down because Scanner processed a shelf.
+ * The row's snapshot in the version being read (§6.6). `priority` /
+ * `priority_order` live here, not on the row: every version starts
+ * unprioritised. `quantity_awaiting` includes `quantity_resolved` and never
+ * goes down because Scanner processed a shelf.
+ *
+ * Three computed fields since v8 §6.6 / v9 §6.6: `quantity_requested` is the
+ * value in force (a manual value, else Scanner's — live on a draft, frozen once
+ * active), `quantity_missing` is the count in force (on a draft the typed
+ * value, else the board's, else 0), and each carries its `_source`.
  */
 export const StockReportItemSnapshotSchema = z.object({
   client_id: z.string(),
   version_id: z.string(),
   stock_report_item_id: z.string(),
   quantity_requested: z.number(),
+  quantity_requested_scanner: z.number(),
+  quantity_requested_source: z.enum(["scanner", "manual"]),
   quantity_in_queue: z.number(),
   quantity_in_progress: z.number(),
   quantity_awaiting: z.number(),
   quantity_missing: z.number(),
+  quantity_missing_source: z.enum(["own", "active", "none"]),
+  // The raw board value (v8 §6.6): null when there is no active version or
+  // the row has no snapshot in it. On the active version's own row it equals
+  // `quantity_missing`.
+  active_quantity_missing: z.number().nullable(),
   quantity_resolved: z.number(),
   // Preserve unknown strings long enough for the mapper to drop only that row
   // instead of rejecting the complete response (B18).
   priority: z.string().nullable(),
   priority_order: z.number().nullable(),
-  active_at: z.string(),
+  // Null while the version is a draft (v7 §0.1 item 3).
+  active_at: NullableString,
   closed_at: NullableString,
   created_at: z.string(),
   updated_at: NullableString,
@@ -208,11 +265,21 @@ export const StockReportVersionProgressSchema = VersionProgressCountersSchema.ex
 });
 export type StockReportVersionProgress = z.infer<typeof StockReportVersionProgressSchema>;
 
-/** §6.7 plus the `progress` the two version reads add beside it. */
+/** §6.7 plus the `progress` the version reads add beside it (v7 §6.7, v9 §6.7). */
 export const StockReportSnapshotVersionSchema = z.object({
   client_id: z.string(),
-  active_at: z.string(),
+  // Computed, always present: the field to read, never derived from the dates.
+  state: z.enum(STOCK_REPORT_VERSION_STATES),
+  title: NullableString,
+  // Null while the version is a draft.
+  active_at: NullableString,
   closed_at: NullableString,
+  // Null without a pending schedule; always null once active or closed.
+  scheduled_activation_at: NullableString,
+  // What a *scheduled* activation does with the rows the draft typed no missing
+  // for: keep the board's counts or start at 0 (v9 §5.8, §5.21). Present in
+  // every state; only a scheduled draft reads it.
+  scheduled_activation_keeps_active_missing: z.boolean(),
   snapshot_count: z.number(),
   /**
    * `snapshot_count` under the read's `priority` filter (backend
@@ -227,6 +294,17 @@ export const StockReportSnapshotVersionSchema = z.object({
   progress: StockReportVersionProgressSchema,
 });
 export type StockReportSnapshotVersion = z.infer<typeof StockReportSnapshotVersionSchema>;
+
+/**
+ * What the version commands answer with (v7 §5.8, §5.17, §5.18, §5.19): the
+ * §6.7 fields without `progress` or `filtered_snapshot_count`. A caller that
+ * needs the numbers refetches a read (v7 §6.7, last paragraph).
+ */
+export const StockReportSnapshotVersionRowSchema = StockReportSnapshotVersionSchema.omit({
+  progress: true,
+  filtered_snapshot_count: true,
+});
+export type StockReportSnapshotVersionRow = z.infer<typeof StockReportSnapshotVersionRowSchema>;
 
 /** §5.11 — both counters over the workspace's active snapshots. */
 export const StockReportMissingSummarySchema = z.object({
@@ -326,12 +404,15 @@ export function toStockReportPropertyTags(
 
 /**
  * The board works against the **snapshot**, never the row's live numbers: the
- * frozen `quantity_requested` is the goal the version set out to meet, and the
- * snapshot's `quantity_awaiting` keeps counting units Scanner has already
- * processed (§6.6), so completion never goes backwards on the card.
+ * snapshot's `quantity_requested` is the goal in force (frozen once active,
+ * live on a draft, or typed by hand — v8 §6.6), and its `quantity_awaiting`
+ * keeps counting units Scanner has already processed (§6.6), so completion
+ * never goes backwards on the card. `quantity_missing` is read as it comes in
+ * every state: v9 §6.6 computes a draft's borrowed value server-side, so the
+ * card never reimplements that rule.
  *
- * A row without an active snapshot has no place on the board — it was created
- * after the current version opened — and is dropped like an unknown priority.
+ * A row without a snapshot in the version being read has no place on it and
+ * is dropped like an unknown priority.
  */
 export function toStockReportItemViewModel(
   item: StockReportItem,
@@ -366,6 +447,10 @@ export function toStockReportItemViewModel(
         missing: snapshot.quantity_missing,
       },
       hasPriority: bucket !== "unset",
+      requestedSource: snapshot.quantity_requested_source,
+      requestedScanner: snapshot.quantity_requested_scanner,
+      missingSource: snapshot.quantity_missing_source,
+      activeMissing: snapshot.active_quantity_missing,
     },
   };
 }
@@ -387,8 +472,17 @@ export type StockReportVersionGroupProgress = {
 };
 
 export type StockReportVersionViewModel = StockReportSnapshotVersion & {
+  /** `state === "draft"` — read from `state`, never derived from the dates (v7 §0.1 item 3). */
+  isDraft: boolean;
+  /** `state === "active"`. */
   isActive: boolean;
-  /** "Started today" / "3 days running" / "Ran 5 days" — see `formatVersionAge`. */
+  /** A draft whose schedule is in the past and has not fired yet (v7 §5.21). */
+  isOverdue: boolean;
+  /** The title, or the creation day ("Thu, 7th July") when there is none (OC-7). */
+  displayTitle: string;
+  /** "Activates Thu, 7th Oct · 06:00" / "Overdue · was due …" / `null` without a schedule. */
+  scheduleLabel: string | null;
+  /** "Draft" / "Started today" / "3 days running" / "Ran 5 days" — see `formatVersionAge`. */
   ageLabel: string;
   totalProgress: StockReportVersionGroupProgress;
   byPriority: Record<StockReportPriority, StockReportVersionGroupProgress>;
@@ -427,9 +521,20 @@ export function toStockReportVersionViewModel(
   version: StockReportSnapshotVersion,
   now: number = Date.now(),
 ): StockReportVersionViewModel {
+  const scheduleState = versionScheduleState(version, now);
+  const scheduleLabel =
+    version.scheduled_activation_at === null || scheduleState === "none"
+      ? null
+      : scheduleState === "overdue"
+        ? `Overdue · was due ${formatScheduleLabel(version.scheduled_activation_at, now)}`
+        : `Activates ${formatScheduleLabel(version.scheduled_activation_at, now)}`;
   return {
     ...version,
-    isActive: version.closed_at === null,
+    isDraft: version.state === "draft",
+    isActive: version.state === "active",
+    isOverdue: scheduleState === "overdue",
+    displayTitle: version.title ?? formatVersionDayTitle(version.created_at, now),
+    scheduleLabel,
     ageLabel: formatVersionAge(version.active_at, version.closed_at, now),
     totalProgress: toGroupProgress(version.progress),
     byPriority: {

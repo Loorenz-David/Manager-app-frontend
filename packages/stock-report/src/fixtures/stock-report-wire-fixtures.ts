@@ -25,10 +25,17 @@ export function wireStockReportItemSnapshot(
     version_id: "srv-1",
     stock_report_item_id: "sri-1",
     quantity_requested: 5,
+    // What Scanner said when it froze — the same number unless a test pins a
+    // manual value (v8 §6.6).
+    quantity_requested_scanner: overrides.quantity_requested ?? 5,
+    quantity_requested_source: "scanner",
     quantity_in_queue: 0,
     quantity_in_progress: 0,
     quantity_awaiting: 0,
     quantity_missing: 0,
+    quantity_missing_source: "own",
+    // On the active version's own row the two are the same number (v8 §6.6).
+    active_quantity_missing: overrides.quantity_missing ?? 0,
     quantity_resolved: 0,
     priority: "high",
     priority_order: 1,
@@ -39,6 +46,38 @@ export function wireStockReportItemSnapshot(
     updated_by_id: null,
     ...overrides,
   };
+}
+
+/** A snapshot whose requested value was typed by hand (v8 §6.6). */
+export function wireManualRequestedSnapshot(
+  manual: number,
+  overrides: Partial<StockReportItemSnapshot> = {},
+): StockReportItemSnapshot {
+  return wireStockReportItemSnapshot({
+    quantity_requested: manual,
+    quantity_requested_scanner: 5,
+    quantity_requested_source: "manual",
+    ...overrides,
+  });
+}
+
+/**
+ * A draft's snapshot that borrows the board's missing count (v9 §6.6):
+ * `active_at` null, `quantity_missing` equal to `active_quantity_missing`,
+ * source `active`.
+ */
+export function wireBorrowingDraftSnapshot(
+  overrides: Partial<StockReportItemSnapshot> = {},
+): StockReportItemSnapshot {
+  const activeMissing = "active_quantity_missing" in overrides ? (overrides.active_quantity_missing ?? null) : 2;
+  return wireStockReportItemSnapshot({
+    version_id: "srv-draft",
+    active_at: null,
+    quantity_missing: activeMissing ?? 0,
+    quantity_missing_source: activeMissing === null ? "none" : "active",
+    active_quantity_missing: activeMissing,
+    ...overrides,
+  });
 }
 
 /**
@@ -168,8 +207,12 @@ export function wireStockReportSnapshotVersion(
 ): StockReportSnapshotVersion {
   return {
     client_id: "srv-1",
+    state: "active",
+    title: null,
     active_at: "2026-09-24T08:00:00+00:00",
     closed_at: null,
+    scheduled_activation_at: null,
+    scheduled_activation_keeps_active_missing: false,
     snapshot_count: 12,
     // 3 under the default `high,medium,low` filter — the progress's rows.
     filtered_snapshot_count: 3,
@@ -179,6 +222,32 @@ export function wireStockReportSnapshotVersion(
     progress: wireStockReportVersionProgress(),
     ...overrides,
   };
+}
+
+/** A draft (v7 §6.7): no `active_at`, a schedule a week out, no title. */
+export function wireDraftStockReportSnapshotVersion(
+  overrides: Partial<StockReportSnapshotVersion> = {},
+): StockReportSnapshotVersion {
+  return wireStockReportSnapshotVersion({
+    client_id: "srv-draft",
+    state: "draft",
+    active_at: null,
+    closed_at: null,
+    scheduled_activation_at: "2026-10-05T04:00:00+00:00",
+    created_at: "2026-09-28T07:00:00+00:00",
+    ...overrides,
+  });
+}
+
+/** A draft whose schedule has passed without firing (v7 §5.21). */
+export function wireOverdueDraftStockReportSnapshotVersion(
+  overrides: Partial<StockReportSnapshotVersion> = {},
+): StockReportSnapshotVersion {
+  return wireDraftStockReportSnapshotVersion({
+    client_id: "srv-overdue",
+    scheduled_activation_at: "2026-09-27T04:00:00+00:00",
+    ...overrides,
+  });
 }
 
 export function wireStockReportMissingSummary(

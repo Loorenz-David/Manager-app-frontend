@@ -15,6 +15,7 @@ import {
   useSetStockReportMissingQuantity,
 } from "../actions/use-stock-report-actions";
 import { stockReportKeys } from "../api/stock-report-keys";
+import { STOCK_REPORT_ACTIVE_SCOPE } from "../stock-report.types";
 import {
   stockReportListItems,
   type StockReportItemListData,
@@ -62,7 +63,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   // `skipToken` alone disables fetching; `gcTime: Infinity` keeps the entry
   // alive for as long as the page is open, even while the surface is hidden.
   const detail = useQuery<StockReportItem>({
-    queryKey: stockReportKeys.item(stockNeedId),
+    queryKey: stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE),
     queryFn: skipToken,
     gcTime: Number.POSITIVE_INFINITY,
   });
@@ -74,7 +75,7 @@ export function StockReportDetailSlidePage(): React.JSX.Element {
   useEffect(() => {
     // Seed once, judged by the cache itself: the observer reports the write a
     // tick later, and writing again in that window would loop.
-    const key = stockReportKeys.item(stockNeedId);
+    const key = stockReportKeys.item(stockNeedId, STOCK_REPORT_ACTIVE_SCOPE);
     if (listRow && queryClient.getQueryData(key) === undefined) {
       queryClient.setQueryData(key, listRow);
     }

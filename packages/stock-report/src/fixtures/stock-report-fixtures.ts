@@ -39,6 +39,10 @@ function makeCard(
     propertyTags,
     quantities: { requested, fulfilled, inProgress, inQueue, missing },
     hasPriority: true,
+    requestedSource: "scanner",
+    requestedScanner: requested,
+    missingSource: "own",
+    activeMissing: missing,
   };
 }
 

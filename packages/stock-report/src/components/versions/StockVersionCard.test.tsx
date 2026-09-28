@@ -50,7 +50,7 @@ describe("StockVersionCard", () => {
 
   it("says nothing was prioritised instead of drawing 0 %", () => {
     const empty = wireStockReportVersionProgress({ items_total: 0, quantity_requested: 0, quantity_target: 0, quantity_in_progress: 0, quantity_in_queue: 0, quantity_awaiting: 0, quantity_completed: 0 });
-    const version = toStockReportVersionViewModel(wireStockReportSnapshotVersion({ client_id: "srv-2", closed_at: new Date(2026, 8, 25, 9).toISOString(), progress: empty }), NOW);
+    const version = toStockReportVersionViewModel(wireStockReportSnapshotVersion({ client_id: "srv-2", state: "closed", closed_at: new Date(2026, 8, 25, 9).toISOString(), progress: empty }), NOW);
     render(<StockVersionCard version={version} />);
 
     expect(screen.getByTestId("stock-version-card-srv-2")).toHaveTextContent("Nothing prioritised yet");

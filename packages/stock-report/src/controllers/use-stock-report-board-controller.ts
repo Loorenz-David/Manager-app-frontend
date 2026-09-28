@@ -43,7 +43,7 @@ export function useStockReportBoardController({ mode = "board" }: StockReportBoa
   const [bucket, setBucket] = useState<StockReportBoardBucket>(isMissingMode ? "all" : permissions.seesUnset ? "unset" : "high");
   // The role default is the opening value only; the sheet's Clear returns to
   // it, and switching bucket or mode leaves it alone.
-  const [filter, setFilter] = useState<StockReportListFilter>({ majorCategory: permissions.defaultMajorCategory, missingOnly: isMissingMode });
+  const [filter, setFilter] = useState<StockReportListFilter>({ majorCategory: permissions.defaultMajorCategory, missingOnly: isMissingMode, versionId: null });
   const [searchValue, setSearchValue] = useState("");
   const [isReorganiseMode, setReorganiseMode] = useState(false);
   const openingResolved = useRef(isMissingMode || !permissions.seesUnset);

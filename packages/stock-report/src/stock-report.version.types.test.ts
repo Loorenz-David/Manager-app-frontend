@@ -1,14 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  wireDraftStockReportSnapshotVersion,
+  wireOverdueDraftStockReportSnapshotVersion,
   wireStockReportSnapshotVersion,
   wireStockReportVersionCounters,
   wireStockReportVersionProgress,
 } from "./fixtures/stock-report-wire-fixtures";
 import {
+  StockReportSnapshotVersionRowSchema,
   StockReportSnapshotVersionSchema,
   toStockReportVersionViewModel,
 } from "./stock-report.types";
+import { formatScheduleLabel, formatVersionDayTitle } from "./lib/version-format";
 
 const NOW = new Date(2026, 8, 26, 12).getTime();
 
@@ -47,6 +51,7 @@ describe("version view model", () => {
 
   it("caps an over-fulfilled group at 100 % and labels a closed version by how long it ran", () => {
     const version = StockReportSnapshotVersionSchema.parse(wireStockReportSnapshotVersion({
+      state: "closed",
       active_at: new Date(2026, 8, 20, 9).toISOString(),
       closed_at: new Date(2026, 8, 23, 9).toISOString(),
       progress: wireStockReportVersionProgress({ quantity_target: 4, quantity_completed: 6 }),
@@ -56,6 +61,49 @@ describe("version view model", () => {
     expect(model.isActive).toBe(false);
     expect(model.totalProgress.percent).toBe(100);
     expect(model.ageLabel).toBe("Ran 3 days");
+  });
+
+  it("reads state from `state`, never from the dates (v7 §0.1 item 3)", () => {
+    const draft = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireDraftStockReportSnapshotVersion()), NOW);
+    expect(draft).toMatchObject({ isDraft: true, isActive: false, ageLabel: "Draft" });
+    expect(draft.active_at).toBeNull();
+
+    // A closed version with `closed_at` still null on the wire would be a
+    // backend slip; `state` wins either way.
+    const closed = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireStockReportSnapshotVersion({ state: "closed", closed_at: null })), NOW);
+    expect(closed.isActive).toBe(false);
+  });
+
+  it("falls back to the creation day as the title and labels the schedule (OC-7, v7 §5.21)", () => {
+    const created = new Date(2026, 6, 7, 9).toISOString();
+    const due = new Date(2026, 9, 5, 6).toISOString();
+    const untitled = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireDraftStockReportSnapshotVersion({ created_at: created, scheduled_activation_at: due })), NOW);
+    expect(untitled.displayTitle).toBe(formatVersionDayTitle(created, NOW));
+    expect(untitled.scheduleLabel).toBe(`Activates ${formatScheduleLabel(due, NOW)}`);
+    expect(untitled.isOverdue).toBe(false);
+
+    const titled = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireDraftStockReportSnapshotVersion({ title: "Autumn push", scheduled_activation_at: null })), NOW);
+    expect(titled.displayTitle).toBe("Autumn push");
+    expect(titled.scheduleLabel).toBeNull();
+  });
+
+  it("shows a draft whose schedule has passed as overdue, and never an active one", () => {
+    const past = new Date(NOW - 3_600_000).toISOString();
+    const overdue = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireOverdueDraftStockReportSnapshotVersion({ scheduled_activation_at: past })), NOW);
+    expect(overdue.isOverdue).toBe(true);
+    expect(overdue.scheduleLabel).toBe(`Overdue · was due ${formatScheduleLabel(past, NOW)}`);
+
+    const active = toStockReportVersionViewModel(StockReportSnapshotVersionSchema.parse(wireStockReportSnapshotVersion({ scheduled_activation_at: past })), NOW);
+    expect(active.isOverdue).toBe(false);
+    expect(active.scheduleLabel).toBeNull();
+  });
+
+  it("parses the command row without progress and refuses a version without `state` (v7 §6.7)", () => {
+    const { progress: _p, filtered_snapshot_count: _f, ...commandRow } = wireStockReportSnapshotVersion();
+    expect(StockReportSnapshotVersionRowSchema.safeParse(commandRow).success).toBe(true);
+    const { state: _s, ...stateless } = wireStockReportSnapshotVersion();
+    expect(StockReportSnapshotVersionSchema.safeParse(stateless).success).toBe(false);
+    expect(StockReportSnapshotVersionSchema.safeParse(wireStockReportSnapshotVersion({ state: "archived" as never })).success).toBe(false);
   });
 
   it("fails loudly when the progress object the contract promises is missing", () => {

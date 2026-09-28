@@ -1,6 +1,9 @@
 import { ApiRequestError } from "@beyo/api-client";
 import { describe, expect, it } from "vitest";
-import { stockReportRequestFailureMessage } from "./stock-report-request-failure";
+import {
+  stockReportFailureIdentity,
+  stockReportRequestFailureMessage,
+} from "./stock-report-request-failure";
 
 const GENERIC = "The change could not be saved. Pull to refresh and try again.";
 
@@ -11,12 +14,51 @@ const GENERIC = "The change could not be saved. Pull to refresh and try again.";
  * sentence in `message` with the same string under `details`.
  */
 describe("stockReportRequestFailureMessage", () => {
-  it("shows the backend's own sentence for a domain refusal", () => {
+  it("shows the backend's own sentence for a domain refusal without an identity token", () => {
     expect(
       stockReportRequestFailureMessage(
         new ApiRequestError(422, "unprocessable", "Row has no priority."),
       ),
     ).toBe("Row has no priority.");
+  });
+
+  it("reads a known identity token as this package's sentence (v7 §8, projection R16)", () => {
+    expect(
+      stockReportRequestFailureMessage(
+        new ApiRequestError(422, "unprocessable", "STOCK_REPORT_ROW_HAS_NO_PRIORITY: this stock report item has no priority"),
+      ),
+    ).toBe("This stock need has no priority yet.");
+    expect(
+      stockReportRequestFailureMessage(
+        new ApiRequestError(422, "unprocessable", "STOCK_REPORT_VERSION_NOT_ACTIVE: only the active version can be refreshed"),
+      ),
+    ).toBe("Only the live version can be refreshed.");
+    expect(
+      stockReportRequestFailureMessage(
+        new ApiRequestError(422, "unprocessable", "STOCK_REPORT_SCHEDULE_IN_THE_PAST: scheduled_activation_at must be in the future"),
+      ),
+    ).toBe("Pick a time in the future.");
+  });
+
+  it("reads an unknown identity token as the sentence after the colon", () => {
+    expect(
+      stockReportRequestFailureMessage(
+        new ApiRequestError(422, "unprocessable", "STOCK_REPORT_SOMETHING_NEW: the backend grew a refusal"),
+      ),
+    ).toBe("the backend grew a refusal");
+    // A bare token with nothing after it still reads as itself, never as "".
+    expect(
+      stockReportRequestFailureMessage(new ApiRequestError(422, "unprocessable", "STOCK_REPORT_SOMETHING_NEW:")),
+    ).toBe("STOCK_REPORT_SOMETHING_NEW:");
+  });
+
+  it("does not mistake a capitalised sentence for an identity", () => {
+    expect(stockReportFailureIdentity("Insufficient role permissions.")).toBeNull();
+    expect(stockReportFailureIdentity("Note: keep it")).toBeNull();
+    expect(stockReportFailureIdentity("STOCK_REPORT_VERSION_IS_CLOSED: closed")).toEqual({
+      identity: "STOCK_REPORT_VERSION_IS_CLOSED",
+      remainder: "closed",
+    });
   });
 
   it("shows the role refusal sentence", () => {

@@ -33,7 +33,7 @@ const ready = (items: unknown[] = [], hasMore = false) => ({
 const failed = (error: Error) => ({ data: undefined, isSuccess: false, isPending: false, isError: true, error, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), refetchFromStart: vi.fn() });
 const managerPermissions = { canPrioritise: true, canAssign: true, canMarkMissing: true, canManageVersions: true, seesUnset: true, buckets: ["unset", "high", "medium", "low"], isWorker: false, defaultMajorCategory: null };
 const workerPermissions = (defaultMajorCategory: "wood" | "seat") => ({ canPrioritise: false, canAssign: defaultMajorCategory === "wood", canMarkMissing: true, canManageVersions: false, seesUnset: false, buckets: ["high", "medium", "low"], isWorker: true, defaultMajorCategory });
-const BOARD = { missingOnly: false };
+const BOARD = { missingOnly: false, versionId: null };
 
 describe("stock report board controller", () => {
   beforeEach(() => {
@@ -236,7 +236,7 @@ describe("stock report board controller", () => {
 
       expect(result.current.bucket).toBe("all");
       expect(result.current.buckets).toEqual(["all", "high", "medium", "low"]);
-      expect(mocks.list).toHaveBeenCalledWith("all", { majorCategory: null, missingOnly: true });
+      expect(mocks.list).toHaveBeenCalledWith("all", { majorCategory: null, missingOnly: true, versionId: null });
       // No Unset-empty fallback: All stays All even when the reply is empty.
       expect(result.current.bucket).toBe("all");
     });
@@ -258,7 +258,7 @@ describe("stock report board controller", () => {
 
       // A priority bucket inside missing mode works like the board's.
       act(() => result.current.setBucket("high"));
-      expect(mocks.list).toHaveBeenLastCalledWith("high", { majorCategory: null, missingOnly: true });
+      expect(mocks.list).toHaveBeenLastCalledWith("high", { majorCategory: null, missingOnly: true, versionId: null });
       expect(result.current.cards.map((card) => card.stockNeedId)).toEqual(["sri-a"]);
     });
 
@@ -270,7 +270,7 @@ describe("stock report board controller", () => {
       result.current.openFilter();
       const { onApply } = mocks.open.mock.calls[0]?.[1] as { onApply: (value: "wood" | "seat" | null) => void };
       act(() => onApply("wood"));
-      expect(mocks.list).toHaveBeenLastCalledWith("all", { majorCategory: "wood", missingOnly: true });
+      expect(mocks.list).toHaveBeenLastCalledWith("all", { majorCategory: "wood", missingOnly: true, versionId: null });
     });
   });
 

@@ -31,10 +31,12 @@ export function versionDaysRunning(
  * it opened ("2 days running"), not a distance back from now.
  */
 export function formatVersionAge(
-  activeAt: string,
+  activeAt: string | null,
   closedAt: string | null,
   now: number,
 ): string {
+  // A draft has not gone live: nothing to count yet (v7 §0.1 item 3).
+  if (activeAt === null) return "Draft";
   const days = versionDaysRunning(activeAt, closedAt, now);
   if (days === null) return closedAt === null ? "Running" : "Closed";
   if (closedAt === null) {

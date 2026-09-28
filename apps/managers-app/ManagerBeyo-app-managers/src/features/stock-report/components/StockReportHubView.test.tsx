@@ -32,8 +32,12 @@ function counters(overrides: Partial<StockReportVersionProgressCounters> = {}): 
 
 const activeVersion: StockReportSnapshotVersion = {
   client_id: "srv-1",
+  state: "active",
+  title: null,
   active_at: new Date(2026, 8, 24, 9).toISOString(),
   closed_at: null,
+  scheduled_activation_at: null,
+  scheduled_activation_keeps_active_missing: false,
   snapshot_count: 12,
   filtered_snapshot_count: 3,
   created_at: new Date(2026, 8, 24, 9).toISOString(),

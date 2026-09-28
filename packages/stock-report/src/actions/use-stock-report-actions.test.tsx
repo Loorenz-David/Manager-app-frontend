@@ -40,8 +40,8 @@ import {
   type StockReportItem,
 } from "../stock-report.types";
 
-const WOOD = { majorCategory: "wood" as const, missingOnly: false };
-const MISSING = { majorCategory: null, missingOnly: true };
+const WOOD = { majorCategory: "wood" as const, missingOnly: false, versionId: null };
+const MISSING = { majorCategory: null, missingOnly: true, versionId: null };
 
 function item(
   client_id: string,
@@ -236,29 +236,29 @@ describe("stock-report mutations", () => {
     // it reads now, through the optimistic write and the server's row alike.
     const { queryClient, wrapper } = setup();
     queryClient.setQueryData(stockReportKeys.list("all", MISSING), [item("sri-1", "high", 1, 3)]);
-    queryClient.setQueryData(stockReportKeys.item("sri-1"), item("sri-1", "high", 1, 3));
+    queryClient.setQueryData(stockReportKeys.item("sri-1", "active"), item("sri-1", "high", 1, 3));
     api.setStockReportMissingQuantity.mockResolvedValueOnce(item("sri-1", "high", 1, 0));
     const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
 
     act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 0 }));
     await waitFor(() => expect(api.setStockReportMissingQuantity).toHaveBeenCalled());
     expect(ids(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("all", MISSING)))).toEqual([]);
-    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(0);
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1", "active"))?.snapshot?.quantity_missing).toBe(0);
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(0);
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1", "active"))?.snapshot?.quantity_missing).toBe(0);
   });
 
   it("restores the detail entry with the lists when the backend refuses", async () => {
     const { queryClient, wrapper } = setup();
-    queryClient.setQueryData(stockReportKeys.item("sri-1"), item("sri-1", "high", 1, 2));
+    queryClient.setQueryData(stockReportKeys.item("sri-1", "active"), item("sri-1", "high", 1, 2));
     api.setStockReportMissingQuantity.mockRejectedValueOnce(new Error("offline"));
     const { result } = renderHook(() => useSetStockReportMissingQuantity(), { wrapper });
 
     act(() => result.current.mutate({ stockNeedId: "sri-1", quantityMissing: 0 }));
     await waitFor(() => expect(result.current.isError).toBe(true));
 
-    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"))?.snapshot?.quantity_missing).toBe(2);
+    expect(queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1", "active"))?.snapshot?.quantity_missing).toBe(2);
   });
 
   it("restores the exact lists and explains when the backend refuses the missing quantity", async () => {
@@ -271,7 +271,7 @@ describe("stock-report mutations", () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(queryClient.getQueryData<StockReportItem[]>(stockReportKeys.list("high", ALL))?.[0]?.snapshot?.quantity_missing).toBe(0);
-    expect(notify.error).toHaveBeenCalledWith("Missing quantity not changed", "STOCK_REPORT_MISSING_EXCEEDS_CEILING: at most 3 can be missing.");
+    expect(notify.error).toHaveBeenCalledWith("Missing quantity not changed", "That is more than what is still uncovered.");
   });
 
   it("seeds the authoritative row on success and refreshes the summary and version", async () => {
@@ -300,7 +300,7 @@ describe("stock-report mutations", () => {
     const { result } = renderHook(() => useCreateStockReportVersion(), { wrapper });
 
     await act(async () => {
-      await result.current.mutateAsync();
+      await result.current.mutateAsync(undefined);
     });
 
     expect(queryClient.getQueryData(stockReportKeys.list("high", ALL))).toBeUndefined();

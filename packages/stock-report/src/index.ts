@@ -1,6 +1,9 @@
 export {
   STOCK_NEED_BUCKETS,
   STOCK_NEED_BUCKET_LABEL,
+  STOCK_REPORT_ACTIVE_SCOPE,
+  STOCK_REPORT_VERSION_STATES,
+  stockReportVersionScope,
 } from "./stock-report.types";
 export type {
   FulfilmentQuantities,
@@ -16,9 +19,14 @@ export type {
   StockReportItemSnapshot,
   StockReportItemViewModel,
   StockReportMissingSummary,
+  StockReportMissingSource,
   StockReportPriority,
+  StockReportRequestedSource,
   StockReportAssignment,
   StockReportSnapshotVersion,
+  StockReportSnapshotVersionRow,
+  StockReportVersionScope,
+  StockReportVersionState,
   StockReportVersionGroupProgress,
   StockReportVersionProgress,
   StockReportVersionProgressCounters,
@@ -31,6 +39,7 @@ export {
   StockReportItemSnapshotSchema,
   StockReportAssignmentSchema,
   StockReportMissingSummarySchema,
+  StockReportSnapshotVersionRowSchema,
   StockReportSnapshotVersionSchema,
   StockReportVersionProgressSchema,
   formatStockPropertyValues,
@@ -42,6 +51,14 @@ export {
 export { missingQuantityBounds } from "./lib/missing-quantity";
 export type { MissingQuantityBounds } from "./lib/missing-quantity";
 export { formatVersionAge, formatVersionRequested, versionDaysRunning } from "./lib/version-age";
+export {
+  formatScheduleLabel,
+  formatVersionDayTitle,
+  ordinalDay,
+  sameInstant,
+  versionScheduleState,
+} from "./lib/version-format";
+export type { StockReportScheduleState } from "./lib/version-format";
 
 export {
   COLOURED_BUDGET_PERCENT,
@@ -145,12 +162,19 @@ export {
   STOCK_REPORT_PROGRESS_PRIORITIES,
   progressPriorityParam,
 } from "./api/stock-report-api";
-export type { StockReportProgressPriorityFilter } from "./api/stock-report-api";
+export type {
+  CreateStockReportVersionInput,
+  RefreshStockReportVersionResult,
+  StockReportProgressPriorityFilter,
+  UpdateStockReportVersionInput,
+} from "./api/stock-report-api";
 export {
   useStockReportListQuery,
   useStockReportAssignmentsQuery,
   useStockReportActiveVersionQuery,
+  useStockReportDraftCountQuery,
   useStockReportMissingSummaryQuery,
+  useStockReportVersionQuery,
   useStockReportVersionsQuery,
   prefetchStockReportAssignmentsData,
 } from "./api/use-stock-report-queries";
@@ -158,7 +182,7 @@ export {
   useCreateStockReportVersion,
   useSetStockReportMissingQuantity,
 } from "./actions/use-stock-report-actions";
-export { stockReportRequestFailureMessage } from "./lib/stock-report-request-failure";
+export { stockReportFailureIdentity, stockReportRequestFailureMessage } from "./lib/stock-report-request-failure";
 export { stockReportSocketEvents } from "./socket-events";
 export { useStockMatchPreview } from "./actions/use-stock-match-preview";
 export { useStockAssignmentGate } from "./hooks/use-stock-assignment-gate";

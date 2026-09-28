@@ -9,9 +9,9 @@ import {
   type StockReportItem,
 } from "./stock-report.types";
 
-const WOOD = { majorCategory: "wood" as const, missingOnly: false };
-const SEAT = { majorCategory: "seat" as const, missingOnly: false };
-const MISSING = { majorCategory: null, missingOnly: true };
+const WOOD = { majorCategory: "wood" as const, missingOnly: false, versionId: null };
+const SEAT = { majorCategory: "seat" as const, missingOnly: false, versionId: null };
+const MISSING = { majorCategory: null, missingOnly: true, versionId: null };
 
 function row(client_id: string, priority: string | null, major_category = "wood", missing = 0): StockReportItem {
   const base = wirePrioritisedStockReportItem(client_id, priority, priority ? 1 : null);
@@ -107,16 +107,16 @@ describe("stock report socket cache handlers", () => {
 
   it("patches the open detail page's own entry, whether or not a list still holds the row", () => {
     const queryClient = new QueryClient();
-    queryClient.setQueryData(stockReportKeys.item("sri-1"), row("sri-1", "high", "wood", 3));
+    queryClient.setQueryData(stockReportKeys.item("sri-1", "active"), row("sri-1", "high", "wood", 3));
 
     stockReportSocketEvents["stock_report_item_snapshot:updated"]?.(snapshotEvent("sri-1", "low", 2, { quantity_missing: 0, quantity_resolved: 1 }), { queryClient } as never);
     stockReportSocketEvents["stock_report_item:updated"]?.({ client_id: "sri-1", quantity_requested: 5, quantity_in_queue: 2, quantity_in_progress: 0, quantity_awaiting: 1 }, { queryClient } as never);
 
-    const detail = queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1"));
+    const detail = queryClient.getQueryData<StockReportItem>(stockReportKeys.item("sri-1", "active"));
     expect(detail?.snapshot).toMatchObject({ priority: "low", priority_order: 2, quantity_missing: 0, quantity_resolved: 1, quantity_in_queue: 2, quantity_awaiting: 2 });
 
     stockReportSocketEvents["stock_report_item:deleted"]?.({ client_id: "sri-1" }, { queryClient } as never);
-    expect(queryClient.getQueryData(stockReportKeys.item("sri-1"))).toBeUndefined();
+    expect(queryClient.getQueryData(stockReportKeys.item("sri-1", "active"))).toBeUndefined();
   });
 
   it("restarts every board list, the summary and version for a snapshot it does not hold", () => {
@@ -181,7 +181,7 @@ describe("stock report socket cache handlers", () => {
     stockReportSocketEvents["stock_report_item_snapshot:updated"]?.(snapshotEvent("sri-1", "low", 0), { queryClient } as never);
 
     expect(ids(queryClient, "low", WOOD)).toEqual(["sri-1", "sri-2"]);
-    expect(invalidate).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: stockReportKeys.bucketLists("low") }));
+    expect(invalidate).not.toHaveBeenCalledWith(expect.objectContaining({ queryKey: stockReportKeys.bucketLists("active", "low") }));
   });
 
   /**

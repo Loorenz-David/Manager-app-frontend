@@ -73,7 +73,7 @@ const workerPermissions = {
   defaultMajorCategory: "wood",
 };
 const sellerPermissions = { ...workerPermissions, role: "seller", canAssign: false, canMarkMissing: false, isWorker: false, defaultMajorCategory: null };
-const BOARD = { majorCategory: null, missingOnly: false };
+const BOARD = { majorCategory: null, missingOnly: false, versionId: null };
 
 // Lists are paged (`useInfiniteQuery`), so the seed is the shape the app
 // writes — a flat array here once hid a page that never found its row.
@@ -170,12 +170,12 @@ describe("StockReportDetailSlidePage — missing-quantity menu", () => {
     row.snapshot = { ...row.snapshot!, quantity_missing: 4 };
     const { queryClient } = renderPage(undefined, row);
 
-    await waitFor(() => expect(queryClient.getQueryData(stockReportKeys.item("sri-1"))).toBeDefined());
+    await waitFor(() => expect(queryClient.getQueryData(stockReportKeys.item("sri-1", "active"))).toBeDefined());
 
     // The unmark path: the row is dropped from its list and the entry cleared.
     act(() => {
       queryClient.setQueryData(stockReportKeys.list("high", BOARD), pagedList([]));
-      queryClient.setQueryData(stockReportKeys.item("sri-1"), { ...row, snapshot: { ...row.snapshot!, quantity_missing: 0 } });
+      queryClient.setQueryData(stockReportKeys.item("sri-1", "active"), { ...row, snapshot: { ...row.snapshot!, quantity_missing: 0 } });
     });
 
     // The query observer notifies on the next tick, so the page's re-render

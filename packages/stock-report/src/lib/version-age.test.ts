@@ -36,6 +36,10 @@ describe("formatVersionAge", () => {
     expect(formatVersionAge(local(20), local(23), NOON_26)).toBe("Ran 3 days");
   });
 
+  it("reads 'Draft' before a version has gone live (v7 §0.1 item 3)", () => {
+    expect(formatVersionAge(null, null, NOON_26)).toBe("Draft");
+  });
+
   it("degrades to a bare word rather than 'NaN days' on a bad date", () => {
     expect(formatVersionAge("nope", null, NOON_26)).toBe("Running");
     expect(formatVersionAge("nope", local(23), NOON_26)).toBe("Closed");
