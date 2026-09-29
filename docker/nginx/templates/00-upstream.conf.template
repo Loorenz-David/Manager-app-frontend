@@ -1,0 +1,11 @@
+# Where the backend API is. Rendered at container start from the environment.
+#
+# The address is resolved per request through Docker's DNS (not once at start-up),
+# so the proxy starts even while the API is down, and follows the API container to
+# its new address after `docker compose up` recreates it. With a fixed upstream,
+# nginx would keep sending traffic to the old container's IP until reloaded.
+resolver ${NGINX_LOCAL_RESOLVERS} valid=10s ipv6=off;
+
+map $host $api_upstream {
+    default "http://${API_UPSTREAM}";
+}

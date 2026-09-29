@@ -1,0 +1,60 @@
+# One server block per hostname. The ${..._HOST} values are filled in from the
+# container's environment at start-up (nginx image templating), so one image serves
+# any set of hostnames. Each may list several names separated by spaces.
+
+# Backend API hostname: everything goes to the API, as on the legacy server. Webhooks
+# (Shopify, Connecteam, Scanner), the Shopify OAuth callback and clients built with
+# an absolute API URL depend on it.
+server {
+    listen 8080;
+    server_name ${API_HOST};
+
+    location / {
+        include /etc/nginx/snippets/proxy-headers.conf;
+        proxy_send_timeout 90s;
+        proxy_read_timeout 90s;
+        proxy_pass $api_upstream;
+    }
+
+    include /etc/nginx/snippets/socketio.conf;
+}
+
+server {
+    listen 8080;
+    server_name ${MANAGERS_HOST};
+    root /usr/share/nginx/apps/managers;
+    include /etc/nginx/snippets/api-proxy.conf;
+    include /etc/nginx/snippets/spa.conf;
+}
+
+server {
+    listen 8080;
+    server_name ${WORKERS_HOST};
+    root /usr/share/nginx/apps/workers;
+    include /etc/nginx/snippets/api-proxy.conf;
+    include /etc/nginx/snippets/spa.conf;
+}
+
+server {
+    listen 8080;
+    server_name ${SELLERS_HOST};
+    root /usr/share/nginx/apps/sellers;
+    include /etc/nginx/snippets/api-proxy.conf;
+    include /etc/nginx/snippets/spa.conf;
+}
+
+server {
+    listen 8080;
+    server_name ${FLOOR_HOST};
+    root /usr/share/nginx/apps/floor;
+    include /etc/nginx/snippets/api-proxy.conf;
+    include /etc/nginx/snippets/spa.conf;
+}
+
+server {
+    listen 8080;
+    server_name ${STUDIO_HOST};
+    root /usr/share/nginx/apps/studio;
+    include /etc/nginx/snippets/api-proxy.conf;
+    include /etc/nginx/snippets/spa.conf;
+}

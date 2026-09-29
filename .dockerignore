@@ -1,0 +1,24 @@
+# Allowlist. Everything is excluded unless re-included below, so a local file (an
+# .env with LAN addresses or test credentials, a log, a coverage report) can never
+# reach the build and be baked into a bundle.
+*
+
+!package.json
+!package-lock.json
+!apps
+!packages
+!docker
+
+# Never, even inside an allowed directory
+**/node_modules
+**/dist
+**/dist-ssr
+**/.env
+**/.env.*
+**/coverage
+**/test-results
+**/playwright-report
+**/blob-report
+**/*.tsbuildinfo
+**/*.log
+**/.DS_Store
