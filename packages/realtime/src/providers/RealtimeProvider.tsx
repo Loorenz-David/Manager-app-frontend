@@ -91,8 +91,10 @@ export function RealtimeProvider({
     s.on("connect_error", async (err) => {
       if (err.message !== "unauthorized") return;
 
-      const refreshed = await refreshAccessToken();
-      if (!refreshed) {
+      // Only a rejected session signs out; "unavailable" (backend or auth
+      // store unreachable) keeps the session.
+      const outcome = await refreshAccessToken();
+      if (outcome === "invalid") {
         window.dispatchEvent(new CustomEvent("auth:session-expired"));
       }
     });

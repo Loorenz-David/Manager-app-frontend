@@ -3,7 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { PageSkeleton } from "@beyo/ui";
-import { apiClient, decodeTokenClaims, initSession } from "@beyo/api-client";
+import {
+  apiClient,
+  decodeTokenClaims,
+  initSession,
+  type RefreshOutcome,
+} from "@beyo/api-client";
 import { useAuthStore } from "../store/auth.store";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import type { UserId, WorkspaceId } from "@beyo/lib";
@@ -18,6 +23,18 @@ const SelfProfileResponseSchema = ApiEnvelopeSchema(
     }),
   }),
 );
+
+/**
+ * While the session cannot be checked (`initSession` answered
+ * `'unavailable'`), the provider keeps its loading state — no sign-out, no
+ * redirect — and asks again after these delays (the last one repeats).
+ */
+const SESSION_RESTORE_RETRY_DELAYS_MS = [2_000, 5_000, 10_000, 30_000] as const;
+
+function sessionRestoreRetryDelay(attempt: number): number {
+  const delays = SESSION_RESTORE_RETRY_DELAYS_MS;
+  return delays[Math.min(attempt, delays.length - 1)];
+}
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -39,60 +56,94 @@ export function AuthProvider({
   const navigate = useNavigate();
 
   useEffect(() => {
-    initSession(appScope)
-      .then(async (ok) => {
-        if (!ok) return;
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
 
-        const claims = decodeTokenClaims();
-        if (!claims) return;
+    const loadSignedInUser = async (): Promise<void> => {
+      const claims = decodeTokenClaims();
+      if (!claims) return;
 
-        try {
-          const profile = await apiClient.get(
-            "/api/v1/users/me",
-            SelfProfileResponseSchema,
-          );
+      try {
+        const profile = await apiClient.get(
+          "/api/v1/users/me",
+          SelfProfileResponseSchema,
+        );
 
-          setUser(
-            {
-              id: profile.data.user.client_id,
-              email: profile.data.user.email,
-              username: profile.data.user.username,
-              role_name: claims.role_name,
-              role: claims.role_name,
-              workspaceRoleId: claims.workspace_role_id,
-              workspaceName: claims.workspace_name,
-              workspaceRoleName:
-                (claims.workspace_role_name as WorkspaceRoleName | undefined) ??
-                claims.role_name,
-              workspaceSpecialization:
-                (claims.workspace_specialization ??
-                  (claims.workspace_role_name === AuthRole.Admin ||
-                  claims.workspace_role_name === AuthRole.Manager ||
-                  claims.workspace_role_name === AuthRole.Worker ||
-                  claims.workspace_role_name === AuthRole.Seller
-                    ? null
-                    : claims.workspace_role_name)) ??
-                null,
-              appScope: claims.app_scope ?? (appScope as AuthAppScope),
-              timeZone: claims.time_zone ?? "UTC",
-              backend_permissions: claims.backend_permissions ?? [],
-              ui: claims.ui ?? {
-                apps: [],
-                pages: [],
-                buttons: [],
-                actions: [],
-                query_filters: [],
-              },
-              jti: claims.jti ?? "",
-              exp: claims.exp ?? 0,
+        setUser(
+          {
+            id: profile.data.user.client_id,
+            email: profile.data.user.email,
+            username: profile.data.user.username,
+            role_name: claims.role_name,
+            role: claims.role_name,
+            workspaceRoleId: claims.workspace_role_id,
+            workspaceName: claims.workspace_name,
+            workspaceRoleName:
+              (claims.workspace_role_name as WorkspaceRoleName | undefined) ??
+              claims.role_name,
+            workspaceSpecialization:
+              (claims.workspace_specialization ??
+                (claims.workspace_role_name === AuthRole.Admin ||
+                claims.workspace_role_name === AuthRole.Manager ||
+                claims.workspace_role_name === AuthRole.Worker ||
+                claims.workspace_role_name === AuthRole.Seller
+                  ? null
+                  : claims.workspace_role_name)) ??
+              null,
+            appScope: claims.app_scope ?? (appScope as AuthAppScope),
+            timeZone: claims.time_zone ?? "UTC",
+            backend_permissions: claims.backend_permissions ?? [],
+            ui: claims.ui ?? {
+              apps: [],
+              pages: [],
+              buttons: [],
+              actions: [],
+              query_filters: [],
             },
-            claims.workspace_id as WorkspaceId,
-          );
-        } catch {
-          // /me failed — session will not be restored; user will be redirected to sign-in
-        }
-      })
-      .finally(() => setReady(true));
+            jti: claims.jti ?? "",
+            exp: claims.exp ?? 0,
+          },
+          claims.workspace_id as WorkspaceId,
+        );
+      } catch {
+        // /me failed — session will not be restored; user will be redirected to sign-in
+      }
+    };
+
+    const restoreSession = async (): Promise<void> => {
+      let outcome: RefreshOutcome;
+      try {
+        outcome = await initSession(appScope);
+      } catch {
+        outcome = "invalid";
+      }
+      if (cancelled) return;
+
+      if (outcome === "unavailable") {
+        // The session could not be checked and may still be valid: keep the
+        // stored auth and stay in the loading state (finishing unauthenticated
+        // would redirect to sign-in), then ask again.
+        retryTimer = setTimeout(() => {
+          void restoreSession();
+        }, sessionRestoreRetryDelay(attempt));
+        attempt += 1;
+        return;
+      }
+
+      try {
+        if (outcome === "ok") await loadSignedInUser();
+      } finally {
+        if (!cancelled) setReady(true);
+      }
+    };
+
+    void restoreSession();
+
+    return () => {
+      cancelled = true;
+      if (retryTimer !== undefined) clearTimeout(retryTimer);
+    };
   }, [appScope]);
 
   useEffect(() => {

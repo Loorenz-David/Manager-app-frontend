@@ -63,6 +63,7 @@ export function resolveForceTaskReadyErrorMessage(
     case "conflict":
     case "unprocessable":
       return error.message;
+    case "unavailable":
     case "network_error":
       return "Check your connection and try again.";
     case "server_error":

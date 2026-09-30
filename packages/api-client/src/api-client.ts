@@ -10,6 +10,63 @@ import { ApiErrorSchema } from '@beyo/lib';
 /** Some backend failures deliberately do not use the project error envelope. */
 const DetailErrorSchema = z.object({ detail: z.unknown() });
 
+/**
+ * `ApiRequestError.code` when the backend could not be reached or could not
+ * answer: a network failure (status 0), or a 502, 503 or 504 response — which
+ * includes the backend's 503 `auth_unavailable` (it cannot validate a session
+ * right now; `serverCode` then carries `auth_unavailable`). Never a verdict on
+ * the credentials: callers must not sign the user out on it.
+ */
+export const UNAVAILABLE_ERROR_CODE = "unavailable";
+
+/**
+ * `ApiRequestError.code` (status 0) when a response arrived but its body is
+ * not what the caller's schema expects (or is not JSON). Distinct from
+ * "unavailable": retrying will not help.
+ */
+export const INVALID_RESPONSE_ERROR_CODE = "invalid_response";
+
+/** Window event dispatched for every "unavailable" request failure. */
+export const SYSTEM_UNAVAILABLE_EVENT = "system:unavailable";
+
+export type SystemUnavailableDetail = {
+  /** HTTP status (502, 503, 504), or 0 when no usable response arrived. */
+  status: number;
+  /** The request path as passed to the client, without query parameters. */
+  path: string;
+  /** Whether the failed request was a background request (poll, refetch). */
+  background: boolean;
+};
+
+/**
+ * Who a request is for. Only affects the `background` flag of
+ * `system:unavailable` today; callers do not set it yet, so every request is
+ * treated as `"user"` unless a later classifier supplies `"background"`.
+ */
+export type RequestActivity = "user" | "background";
+
+function dispatchSystemUnavailable(detail: SystemUnavailableDetail): void {
+  window.dispatchEvent(
+    new CustomEvent<SystemUnavailableDetail>(SYSTEM_UNAVAILABLE_EVENT, {
+      detail,
+    }),
+  );
+}
+
+/** Paths whose 401 is an answer about credentials, never an expired session. */
+const REFRESH_EXEMPT_PATHS: ReadonlySet<string> = new Set([
+  "/api/v1/auth/sign-in",
+  "/api/v1/auth/refresh",
+]);
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
+
 export class ApiRequestError extends Error {
   public readonly status: number;
   public readonly code: string;
@@ -51,7 +108,8 @@ function codeFromStatus(status: number): string {
       return "server_error";
     case 502:
     case 503:
-      return "network_error";
+    case 504:
+      return UNAVAILABLE_ERROR_CODE;
     default:
       return "unknown_error";
   }
@@ -81,12 +139,32 @@ function buildUrl(
   return url.toString();
 }
 
-async function handleErrorResponse(response: Response): Promise<never> {
+/** The backend's code for "cannot validate a session right now" (a 503). */
+const AUTH_UNAVAILABLE_SERVER_CODE = "auth_unavailable";
+
+function errorCode(status: number, serverCode: string | undefined): string {
+  // Robust to the carrier: whatever status a body naming `auth_unavailable`
+  // arrives with, it is an outage, never a credential verdict.
+  return serverCode === AUTH_UNAVAILABLE_SERVER_CODE
+    ? UNAVAILABLE_ERROR_CODE
+    : codeFromStatus(status);
+}
+
+/** A FastAPI `HTTPException(detail={"code": ...})` carries its code here. */
+function detailServerCode(detail: unknown): string | undefined {
+  if (typeof detail !== "object" || detail === null || Array.isArray(detail)) {
+    return undefined;
+  }
+  const code = (detail as { code?: unknown }).code;
+  return typeof code === "string" ? code : undefined;
+}
+
+async function errorFromResponse(response: Response): Promise<ApiRequestError> {
   let body: unknown;
   try {
     body = await response.json();
   } catch {
-    throw new ApiRequestError(
+    return new ApiRequestError(
       response.status,
       codeFromStatus(response.status),
       response.statusText,
@@ -95,9 +173,9 @@ async function handleErrorResponse(response: Response): Promise<never> {
 
   const parsed = ApiErrorSchema.safeParse(body);
   if (parsed.success) {
-    throw new ApiRequestError(
+    return new ApiRequestError(
       response.status,
-      codeFromStatus(response.status),
+      errorCode(response.status, parsed.data.code),
       parsed.data.error,
       { serverCode: parsed.data.code, details: parsed.data.details },
     );
@@ -110,15 +188,16 @@ async function handleErrorResponse(response: Response): Promise<never> {
   const detailParsed = DetailErrorSchema.safeParse(body);
   if (detailParsed.success) {
     const detail = detailParsed.data.detail;
-    throw new ApiRequestError(
+    const serverCode = detailServerCode(detail);
+    return new ApiRequestError(
       response.status,
-      codeFromStatus(response.status),
+      errorCode(response.status, serverCode),
       typeof detail === "string" ? detail : "Request failed.",
-      { details: detail },
+      { serverCode, details: detail },
     );
   }
 
-  throw new ApiRequestError(
+  return new ApiRequestError(
     response.status,
     codeFromStatus(response.status),
     "An unexpected error occurred.",
@@ -129,7 +208,23 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   params?: Record<string, QueryParamValue>;
+  /** Hook point for the activity classifier; unset means `"user"`. */
+  activity?: RequestActivity;
 };
+
+function unavailable(
+  status: number,
+  path: string,
+  options: RequestOptions,
+  error: ApiRequestError,
+): ApiRequestError {
+  dispatchSystemUnavailable({
+    status,
+    path,
+    background: options.activity === "background",
+  });
+  return error;
+}
 
 async function request<T>(
   path: string,
@@ -141,21 +236,64 @@ async function request<T>(
   const url = buildUrl(path, params);
   const token = getAccessToken();
 
-  const response = await fetch(url, {
-    method,
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch (error) {
+    // An abort is the caller's decision, not an outage: rethrow it untouched.
+    if (!isAbortError(error) && error instanceof TypeError) {
+      throw unavailable(
+        0,
+        path,
+        options,
+        new ApiRequestError(
+          0,
+          UNAVAILABLE_ERROR_CODE,
+          "The server could not be reached.",
+          { details: error.message },
+        ),
+      );
+    }
+    throw error;
+  }
 
-  if (response.status === 401 && !isRetry) {
-    const refreshed = await refreshAccessToken();
+  if (
+    response.status === 401 &&
+    !isRetry &&
+    !REFRESH_EXEMPT_PATHS.has(new URL(url).pathname)
+  ) {
+    const rejection = await errorFromResponse(response.clone());
+    if (rejection.code === UNAVAILABLE_ERROR_CODE) {
+      throw unavailable(response.status, path, options, rejection);
+    }
 
-    if (refreshed) {
+    const outcome = await refreshAccessToken();
+
+    if (outcome === "ok") {
       return request(path, schema, options, true);
+    }
+
+    if (outcome === "unavailable") {
+      // The session could not be checked; it may still be valid. Keep the
+      // token and report an outage instead of an expired session.
+      throw unavailable(
+        0,
+        path,
+        options,
+        new ApiRequestError(
+          0,
+          UNAVAILABLE_ERROR_CODE,
+          "The session could not be verified right now.",
+        ),
+      );
     }
 
     setAccessToken(null);
@@ -168,16 +306,30 @@ async function request<T>(
   }
 
   if (!response.ok) {
-    return handleErrorResponse(response);
+    const error = await errorFromResponse(response);
+    if (error.code === UNAVAILABLE_ERROR_CODE) {
+      throw unavailable(response.status, path, options, error);
+    }
+    throw error;
   }
 
-  const json: unknown = response.status === 204 ? {} : await response.json();
+  let json: unknown;
+  try {
+    json = response.status === 204 ? {} : await response.json();
+  } catch (error) {
+    throw new ApiRequestError(
+      0,
+      INVALID_RESPONSE_ERROR_CODE,
+      "API response was not valid JSON.",
+      { details: error instanceof Error ? error.message : undefined },
+    );
+  }
   const parsed = schema.safeParse(json);
 
   if (!parsed.success) {
     throw new ApiRequestError(
-      502,
-      "invalid_response",
+      0,
+      INVALID_RESPONSE_ERROR_CODE,
       `API response did not match expected schema: ${parsed.error.message}`,
     );
   }

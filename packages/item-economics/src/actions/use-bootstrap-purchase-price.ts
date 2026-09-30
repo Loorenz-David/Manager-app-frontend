@@ -129,6 +129,7 @@ function resolveBootstrapErrorMessage(error: unknown): string {
       return NOT_ON_PURCHASE_APP_MESSAGE;
     case "forbidden":
       return "You do not have permission to price this item.";
+    case "unavailable":
     case "network_error":
       return "Check your connection and try again.";
     case "server_error":

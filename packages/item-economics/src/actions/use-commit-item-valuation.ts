@@ -78,6 +78,7 @@ export function resolveCommitErrorMessage(error: unknown): string {
       return "This task no longer exists.";
     case "forbidden":
       return "You do not have permission to price this item.";
+    case "unavailable":
     case "network_error":
       return "Check your connection and try again.";
     case "server_error":
