@@ -9,6 +9,7 @@ const navigateMock = vi.fn();
 const openMock = vi.fn();
 const closeMock = vi.fn();
 const signOutMutateMock = vi.fn();
+const signOutStateMock = vi.fn(() => ({ isPending: false, isError: false }));
 const enablePushMock = vi.fn();
 const disablePushMock = vi.fn();
 const useShopifyIntegrationPermissionsMock = vi.fn();
@@ -24,9 +25,10 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("@beyo/auth", () => ({
+  SIGN_OUT_FAILED_MESSAGE: "Couldn't sign out — try again",
   useSignOutMutation: () => ({
     mutate: signOutMutateMock,
-    isPending: false,
+    ...signOutStateMock(),
   }),
 }));
 
@@ -57,6 +59,7 @@ vi.mock("@/hooks/use-surface", () => ({
 describe("useSettingsViewController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    signOutStateMock.mockReturnValue({ isPending: false, isError: false });
     useShopifyIntegrationPermissionsMock.mockReturnValue({
       canViewShopifyIntegrations: true,
     });
@@ -114,5 +117,31 @@ describe("useSettingsViewController", () => {
     });
 
     expect(result.current.canViewShopifyIntegrations).toBe(false);
+  });
+
+  it("navigates to sign-in only when the sign-out succeeded", () => {
+    const { result } = renderHook(() => useSettingsViewController(), {
+      wrapper: createTestWrapper(),
+    });
+
+    result.current.signOut();
+
+    const callbacks = signOutMutateMock.mock.calls[0]?.[1];
+    expect(callbacks).toEqual({ onSuccess: expect.any(Function) });
+    expect(navigateMock).not.toHaveBeenCalled();
+    callbacks.onSuccess();
+    expect(navigateMock).toHaveBeenCalledWith("/sign-in", { replace: true });
+  });
+
+  it("surfaces a failed sign-out as an error message", () => {
+    const { result, rerender } = renderHook(() => useSettingsViewController(), {
+      wrapper: createTestWrapper(),
+    });
+    expect(result.current.signOutError).toBeNull();
+
+    signOutStateMock.mockReturnValue({ isPending: false, isError: true });
+    rerender();
+
+    expect(result.current.signOutError).toBe("Couldn't sign out — try again");
   });
 });

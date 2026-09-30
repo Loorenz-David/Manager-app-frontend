@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { usePushSubscription } from "@beyo/notifications";
 
-import { useSignOutMutation } from "@/features/auth";
+import { SIGN_OUT_FAILED_MESSAGE, useSignOutMutation } from "@/features/auth";
 import { ROUTES } from "@/lib/routes";
 
 import type { SettingsState } from "../types";
@@ -10,7 +10,11 @@ export type SettingsViewController = SettingsState;
 
 export function useSettingsViewController(): SettingsViewController {
   const navigate = useNavigate();
-  const { mutate: signOutMutate, isPending } = useSignOutMutation();
+  const {
+    mutate: signOutMutate,
+    isPending,
+    isError: signOutFailed,
+  } = useSignOutMutation();
   const {
     status: pushStatus,
     enable: enablePush,
@@ -27,6 +31,7 @@ export function useSettingsViewController(): SettingsViewController {
   return {
     signOut,
     isSigningOut: isPending,
+    signOutError: signOutFailed ? SIGN_OUT_FAILED_MESSAGE : null,
     pushStatus,
     isPushLoading,
     enablePush,

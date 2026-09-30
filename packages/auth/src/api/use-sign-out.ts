@@ -34,19 +34,38 @@ async function signOutFloor() {
   }
 }
 
+/** What a settings screen shows when a sign-out did not go through. */
+export const SIGN_OUT_FAILED_MESSAGE = "Couldn't sign out — try again";
+
 type SignOutOptions = {
   appScope?: AuthAppScope;
   onSignedOut?: () => void;
 };
 
+/**
+ * Non-floor scopes: only a sign-out the backend confirmed signs the user out
+ * locally. When the logout request fails (an outage — the backend keeps the
+ * refresh cookie when it cannot revoke it — or any other error) the session
+ * is still alive server-side, so nothing pretends otherwise: the token, the
+ * auth store and the query cache are kept, `onSignedOut` is not called, and
+ * the mutation's error state (`isError`, `error`) tells the caller to show
+ * `SIGN_OUT_FAILED_MESSAGE`.
+ *
+ * Floor: the terminal is shared and its token is not refreshable, so it is
+ * always revoked locally (see `signOutFloor`), whatever the backend answered.
+ */
 export function useSignOutMutation(options?: SignOutOptions) {
   const queryClient = useQueryClient();
+  const isFloor = options?.appScope === AppScope.Floor;
+
+  const signedOut = (): void => {
+    queryClient.clear();
+    options?.onSignedOut?.();
+  };
 
   return useMutation({
-    mutationFn: options?.appScope === AppScope.Floor ? signOutFloor : signOut,
-    onSettled: () => {
-      queryClient.clear();
-      options?.onSignedOut?.();
-    },
+    mutationFn: isFloor ? signOutFloor : signOut,
+    onSuccess: isFloor ? undefined : signedOut,
+    onSettled: isFloor ? signedOut : undefined,
   });
 }

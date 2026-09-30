@@ -42,6 +42,7 @@
     "@beyo/scanner": "*",
     "@beyo/shopify": "*",
     "@beyo/styles": "*",
+    "@beyo/system-control": "*",
     "@beyo/task-creation": "*",
     "@beyo/task-customer-coordination": "*",
     "@beyo/task-notes": "*",

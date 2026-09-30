@@ -9,7 +9,7 @@ import {
   useShopifyIntegrationPermissions,
 } from "@beyo/shopify";
 
-import { useSignOutMutation } from "@beyo/auth";
+import { SIGN_OUT_FAILED_MESSAGE, useSignOutMutation } from "@beyo/auth";
 import { useSurface } from "@/hooks/use-surface";
 import { ROUTES } from "@/lib/routes";
 
@@ -20,7 +20,11 @@ export type SettingsViewController = SettingsState;
 export function useSettingsViewController(): SettingsViewController {
   const navigate = useNavigate();
   const surface = useSurface();
-  const { mutate: signOutMutate, isPending } = useSignOutMutation();
+  const {
+    mutate: signOutMutate,
+    isPending,
+    isError: signOutFailed,
+  } = useSignOutMutation();
   const {
     status: pushStatus,
     enable: enablePush,
@@ -52,6 +56,7 @@ export function useSettingsViewController(): SettingsViewController {
   return {
     signOut,
     isSigningOut: isPending,
+    signOutError: signOutFailed ? SIGN_OUT_FAILED_MESSAGE : null,
     pushStatus,
     isPushLoading,
     enablePush,

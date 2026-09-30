@@ -1,4 +1,10 @@
 import { test, expect } from "./fixtures/app-fixture";
+import {
+  FLOOR_TOKEN_STORAGE_KEY,
+  floorDeviceToken,
+  pairFloorDevice,
+  routeFloorBackend,
+} from "./fixtures/floor-kiosk";
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const header = Buffer.from(
@@ -79,4 +85,43 @@ test("floor-revoked: a stored floor device session is cleared and returns to sig
       ),
     )
     .toBeNull();
+});
+
+test("floor-revoked: a stored floor device session survives a 503 auth_unavailable at boot and recovers", async ({
+  page,
+}) => {
+  const token = floorDeviceToken("floor-auth-unavailable");
+  await pairFloorDevice(page, token);
+  const backend = await routeFloorBackend(page, { me: "auth_unavailable" });
+
+  await page.goto("/");
+
+  // The session cannot be checked: no sign-in redirect, no expiry note, the
+  // kiosk token stays, and the gate says it is reconnecting.
+  await expect.poll(() => backend.meRequests).toBeGreaterThanOrEqual(1);
+  await expect(page.getByTestId("system-gate-reconnecting")).toBeVisible();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByTestId("auth-email-input")).toHaveCount(0);
+  await expect(page.getByTestId("floor-session-expired-note")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      (key) => localStorage.getItem(key),
+      FLOOR_TOKEN_STORAGE_KEY,
+    ),
+  ).toBe(token);
+
+  // The backend can check sessions again: the retry (after the gate is READY
+  // again) restores the kiosk.
+  backend.me = "ok";
+  await expect(page.getByTestId("keypad-screen")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page).toHaveURL("/");
+  expect(backend.meRequests).toBeGreaterThanOrEqual(2);
+  expect(
+    await page.evaluate(
+      (key) => localStorage.getItem(key),
+      FLOOR_TOKEN_STORAGE_KEY,
+    ),
+  ).toBe(token);
 });

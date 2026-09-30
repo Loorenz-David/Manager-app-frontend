@@ -1,7 +1,11 @@
 import { Outlet } from "react-router-dom";
 import { PwaProvider, type PwaSurfaceOpeners } from "@beyo/pwa";
 import { RealtimeProvider } from "@beyo/realtime";
-import { AuthProvider } from "@/features/auth";
+import {
+  AuthProvider,
+  selectIsAuthenticated,
+  useAuthStore,
+} from "@/features/auth";
 import { NotificationDeepLinkMount } from "@/app/NotificationDeepLinkMount";
 import { NotificationRealtimeMount } from "@/app/NotificationRealtimeMount";
 import { PushMount } from "@/app/PushMount";
@@ -21,14 +25,30 @@ const pwaSurfaceOpeners: PwaSurfaceOpeners = {
     useSurfaceStore.getState().close(PWA_INSTALL_SURFACE_ID),
 };
 
+/**
+ * Notification toasts (realtime) and the push subscription talk to the
+ * backend as the signed-in user: they mount only once a session is restored,
+ * never on the sign-in page or while the session check waits for an outage
+ * to end.
+ */
+function SignedInMounts(): React.JSX.Element | null {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  if (!isAuthenticated) return null;
+  return (
+    <>
+      <NotificationRealtimeMount />
+      <PushMount />
+    </>
+  );
+}
+
 export function RootRoute(): React.JSX.Element {
   return (
     <RealtimeProvider registry={socketRegistry}>
       <SurfaceProvider>
         <PwaProvider surfaceOpeners={pwaSurfaceOpeners}>
           <AuthProvider>
-            <NotificationRealtimeMount />
-            <PushMount />
+            <SignedInMounts />
             <NotificationDeepLinkMount />
             <Outlet />
           </AuthProvider>

@@ -18,7 +18,7 @@ export {
   useRole,
 } from './hooks/use-role';
 export { useSignInMutation } from './api/use-sign-in';
-export { useSignOutMutation } from './api/use-sign-out';
+export { SIGN_OUT_FAILED_MESSAGE, useSignOutMutation } from './api/use-sign-out';
 export {
   useAuthStore,
   selectUser,

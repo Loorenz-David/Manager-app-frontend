@@ -5,6 +5,7 @@
 @source "../../../../packages/auth/src";
 @source "../../../../packages/lib/src";
 @source "../../../../packages/clock-kiosk/src";
+@source "../../../../packages/system-control/src";
 
 @font-face {
   font-family: "Instrument Sans";

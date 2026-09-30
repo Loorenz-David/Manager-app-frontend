@@ -1,5 +1,7 @@
 import { expect, test as base } from "@playwright/test";
 
+import { routeSystemReady } from "./system-control";
+
 export const test = base.extend({
   page: async ({ page }, runFixture) => {
     const errors: string[] = [];
@@ -15,6 +17,10 @@ export const test = base.extend({
     page.on("pageerror", (error) => {
       errors.push(`[pageerror] ${error.message}`);
     });
+
+    // Every page boots through the system gate: answer its control plane
+    // READY unless the test routes another state.
+    await routeSystemReady(page);
 
     await runFixture(page);
 

@@ -10,7 +10,19 @@ export function useAuth() {
   const user = useAuthStore(selectUser);
   const workspaceId = useAuthStore(selectWorkspaceId);
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
-  const { mutate: signOut, isPending: isSigningOut } = useSignOutMutation();
+  const {
+    mutate: signOut,
+    isPending: isSigningOut,
+    isError: signOutFailed,
+  } = useSignOutMutation();
 
-  return { user, workspaceId, isAuthenticated, signOut, isSigningOut };
+  return {
+    user,
+    workspaceId,
+    isAuthenticated,
+    signOut,
+    isSigningOut,
+    /** The last sign-out failed: the user is still signed in. */
+    signOutFailed,
+  };
 }

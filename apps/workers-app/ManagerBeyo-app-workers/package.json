@@ -40,6 +40,7 @@
     "@beyo/realtime": "*",
     "@beyo/scanner": "*",
     "@beyo/styles": "*",
+    "@beyo/system-control": "*",
     "@beyo/task-creation": "*",
     "@beyo/task-notes": "*",
     "@beyo/task-working-sections": "*",

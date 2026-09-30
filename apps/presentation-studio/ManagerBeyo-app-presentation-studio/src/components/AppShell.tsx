@@ -1,8 +1,8 @@
-import { useAuth } from "@beyo/auth";
+import { SIGN_OUT_FAILED_MESSAGE, useAuth } from "@beyo/auth";
 import { Outlet } from "react-router-dom";
 
 export function AppShell(): React.JSX.Element {
-  const { isSigningOut, signOut, user } = useAuth();
+  const { isSigningOut, signOut, signOutFailed, user } = useAuth();
 
   return (
     <div className="flex h-screen flex-col bg-muted">
@@ -12,6 +12,11 @@ export function AppShell(): React.JSX.Element {
           <span className="text-sm text-muted-foreground">Presentation Studio</span>
         </div>
         <div className="flex items-center gap-4">
+          {signOutFailed ? (
+            <span role="alert" className="text-sm text-destructive">
+              {SIGN_OUT_FAILED_MESSAGE}
+            </span>
+          ) : null}
           <span className="text-sm text-muted-foreground">{user?.username}</span>
           <button
             type="button"

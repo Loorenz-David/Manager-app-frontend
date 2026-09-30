@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
+import { systemControlDevServer } from "@beyo/system-control/vite";
 import path from "path";
 
 export default defineConfig({
@@ -10,6 +11,7 @@ export default defineConfig({
     tailwindcss() as PluginOption,
     svgr(),
     react(),
+    systemControlDevServer(),
     VitePWA({
       strategies: "injectManifest",
       srcDir: "src",

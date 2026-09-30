@@ -18,6 +18,7 @@
 @source "../../../../packages/upholstery/src";
 @source "../../../../packages/stats/src";
 @source "../../../../packages/stock-report/src";
+@source "../../../../packages/system-control/src";
 
 .test-colors {
   background: #d0d3d9;

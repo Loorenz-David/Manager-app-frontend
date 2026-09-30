@@ -17,6 +17,7 @@
     "@beyo/lib": "*",
     "@beyo/presentation-builder": "*",
     "@beyo/styles": "*",
+    "@beyo/system-control": "*",
     "@beyo/ui": "*",
     "@tanstack/react-query": "^5.100.11",
     "react": "^19.2.6",

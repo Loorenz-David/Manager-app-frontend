@@ -1,4 +1,10 @@
 import { test, expect } from "./fixtures/app-fixture";
+import {
+  FLOOR_TOKEN_STORAGE_KEY,
+  floorDeviceToken,
+  pairFloorDevice,
+  routeFloorBackend,
+} from "./fixtures/floor-kiosk";
 
 function encodeJwt(payload: Record<string, unknown>): string {
   const header = Buffer.from(
@@ -128,4 +134,38 @@ test("floor-bootstrap: sign-in inputs keep digits and issue no unauthenticated r
   await page.clock.fastForward(60_000);
 
   await expect(page.getByTestId("kiosk-header-time")).toHaveText("15:15");
+});
+
+test("floor-bootstrap: an unreachable backend at boot keeps the paired kiosk off the sign-in page and recovers", async ({
+  page,
+}) => {
+  const token = floorDeviceToken("floor-bootstrap-network");
+  await pairFloorDevice(page, token);
+  const backend = await routeFloorBackend(page, { me: "network" });
+
+  await page.goto("/");
+
+  await expect.poll(() => backend.meRequests).toBeGreaterThanOrEqual(1);
+  await expect(page.getByTestId("system-gate-reconnecting")).toBeVisible();
+  await expect(page).toHaveURL("/");
+  await expect(page.getByTestId("auth-email-input")).toHaveCount(0);
+  await expect(page.getByTestId("keypad-screen")).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      (key) => localStorage.getItem(key),
+      FLOOR_TOKEN_STORAGE_KEY,
+    ),
+  ).toBe(token);
+
+  backend.me = "ok";
+  await expect(page.getByTestId("keypad-screen")).toBeVisible({
+    timeout: 20_000,
+  });
+  await expect(page).toHaveURL("/");
+  expect(
+    await page.evaluate(
+      (key) => localStorage.getItem(key),
+      FLOOR_TOKEN_STORAGE_KEY,
+    ),
+  ).toBe(token);
 });

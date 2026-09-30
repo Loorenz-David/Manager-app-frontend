@@ -5,6 +5,7 @@
 @source "../../../../packages/presentation-builder/src";
 @source "../../../../packages/presentation-runtime/src";
 @source "../../../../packages/presentations/src";
+@source "../../../../packages/system-control/src";
 
 :root {
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;

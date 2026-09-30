@@ -2,13 +2,18 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { loadEnv, type Plugin, type ResolvedConfig } from "vite";
 
+// Relative imports in this folder carry the `.ts` extension: Vite's config
+// loader leaves workspace packages external, so Node itself loads this file
+// (with its built-in type stripping), and Node's ESM resolution needs the
+// full file name.
+
 import {
   createSystemSimulator,
   parseSimulationMode,
   parseWakeSeconds,
   type SimulationMode,
   type SystemSimulator,
-} from "./simulator";
+} from "./simulator.ts";
 
 export {
   createSystemSimulator,
@@ -16,13 +21,13 @@ export {
   parseWakeSeconds,
   DEFAULT_WAKE_SECONDS,
   SIMULATION_MODES,
-} from "./simulator";
+} from "./simulator.ts";
 export type {
   SimulatedResponse,
   SimulationMode,
   SystemSimulator,
   SystemSimulatorOptions,
-} from "./simulator";
+} from "./simulator.ts";
 
 export type SystemControlDevServerOptions = {
   /** Overrides SYSTEM_SIMULATE. */

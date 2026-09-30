@@ -2,13 +2,14 @@ import path from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
+import { systemControlDevServer } from "@beyo/system-control/vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
   const apiBaseUrl = env.VITE_API_BASE_URL;
 
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), systemControlDevServer()],
     define: {
       "import.meta.env.VITE_API_URL": JSON.stringify(apiBaseUrl),
     },

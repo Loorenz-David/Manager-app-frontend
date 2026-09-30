@@ -4,6 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { defineConfig, loadEnv } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 import svgr from "vite-plugin-svgr";
+import { systemControlDevServer } from "@beyo/system-control/vite";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "");
@@ -13,6 +14,7 @@ export default defineConfig(({ mode }) => {
       svgr(),
       react(),
       tailwindcss(),
+      systemControlDevServer(),
       VitePWA({
         strategies: "injectManifest",
         srcDir: "src",

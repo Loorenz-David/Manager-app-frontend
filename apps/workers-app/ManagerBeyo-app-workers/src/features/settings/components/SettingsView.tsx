@@ -31,6 +31,7 @@ export function SettingsView(): React.JSX.Element {
   const {
     signOut,
     isSigningOut,
+    signOutError,
     pushStatus,
     isPushLoading,
     enablePush,
@@ -102,6 +103,15 @@ export function SettingsView(): React.JSX.Element {
           <LogOut aria-hidden="true" className="size-4 shrink-0" />
           {isSigningOut ? "Signing out..." : "Log out"}
         </button>
+        {signOutError ? (
+          <p
+            role="alert"
+            className="text-sm text-destructive"
+            data-testid="settings-sign-out-error"
+          >
+            {signOutError}
+          </p>
+        ) : null}
       </div>
     </div>
   );

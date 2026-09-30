@@ -1,5 +1,6 @@
 import { test as base, expect } from '@playwright/test';
 import { AuthHelper } from './auth-fixture';
+import { routeSystemReady } from '../helpers/system-control';
 
 type AppFixtures = {
   auth: AuthHelper;
@@ -29,6 +30,10 @@ export const test = base.extend<AppFixtures>({
     page.on('pageerror', (err) => {
       errors.push(`[pageerror] ${err.message}`);
     });
+
+    // Every page boots through the system gate: answer its control plane
+    // READY unless the test routes another state.
+    await routeSystemReady(page);
 
     await use(page);
 
