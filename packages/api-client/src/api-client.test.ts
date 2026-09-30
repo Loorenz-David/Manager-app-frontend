@@ -313,3 +313,64 @@ describe('credential endpoints skip refresh-on-401', () => {
     ).toBe('floor-token');
   });
 });
+
+describe('system:available', () => {
+  it('fires once, on the first successful response after an unavailable failure', async () => {
+    let down = true;
+    server.use(
+      http.get(`${API_ORIGIN}/api/v1/flaky`, () =>
+        down ? new HttpResponse(null, { status: 503 }) : HttpResponse.json({ ok: true }),
+      ),
+    );
+    const { apiClient, SYSTEM_AVAILABLE_EVENT } = await import('./api-client');
+    const available = collectWindowEvents(SYSTEM_AVAILABLE_EVENT);
+    const schema = z.object({ ok: z.literal(true) });
+
+    try {
+      // A success before any outage is not a recovery.
+      await apiClient.get('/api/v1/things', schema);
+      expect(available.events).toHaveLength(0);
+
+      await expect(apiClient.get('/api/v1/flaky', schema)).rejects.toMatchObject({
+        code: 'unavailable',
+      });
+      await expect(apiClient.get('/api/v1/flaky', schema)).rejects.toMatchObject({
+        code: 'unavailable',
+      });
+      expect(available.events).toHaveLength(0);
+
+      down = false;
+      await apiClient.get('/api/v1/flaky', schema);
+      await apiClient.get('/api/v1/things', schema);
+    } finally {
+      available.stop();
+    }
+
+    expect(available.events).toHaveLength(1);
+  });
+
+  it('a non-unavailable error after an outage is not a recovery', async () => {
+    let status = 503;
+    server.use(
+      http.get(`${API_ORIGIN}/api/v1/flaky`, () =>
+        HttpResponse.json({ ok: false, error: 'x', code: 'x' }, { status }),
+      ),
+    );
+    const { apiClient, SYSTEM_AVAILABLE_EVENT } = await import('./api-client');
+    const available = collectWindowEvents(SYSTEM_AVAILABLE_EVENT);
+
+    try {
+      await expect(apiClient.get('/api/v1/flaky', z.object({}))).rejects.toMatchObject({
+        code: 'unavailable',
+      });
+      status = 404;
+      await expect(apiClient.get('/api/v1/flaky', z.object({}))).rejects.toMatchObject({
+        status: 404,
+      });
+    } finally {
+      available.stop();
+    }
+
+    expect(available.events).toHaveLength(0);
+  });
+});

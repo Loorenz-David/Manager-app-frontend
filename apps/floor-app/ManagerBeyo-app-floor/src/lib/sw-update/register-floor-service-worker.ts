@@ -1,3 +1,4 @@
+import { reloadAutomatically } from "@beyo/system-control";
 import { useSurfaceStore } from "@beyo/ui";
 
 import {
@@ -18,7 +19,9 @@ import {
  *    (`registration.update()` fetches the static `sw.js`, never the API).
  * 3. The takeover fires `controllerchange`; the page then reloads onto the new
  *    bundle the first time the kiosk is idle on a resting screen
- *    (`isSafeToReload`), once.
+ *    (`isSafeToReload`), once. The reload is marked automatic
+ *    (`reloadAutomatically` -> `markAutomaticReload`), so if the system sleeps
+ *    the reloaded page shows the DORMANT screen instead of waking it.
  *
  * Production builds only: the dev server has no floor worker (and the MSW mock
  * worker would otherwise trigger `controllerchange`).
@@ -40,7 +43,7 @@ export function registerFloorServiceWorker(): void {
         pathname: window.location.pathname,
         openSurfaceCount: useSurfaceStore.getState().stack.length,
       }),
-    reload: () => window.location.reload(),
+    reload: () => reloadAutomatically(),
   });
 
   container.addEventListener("controllerchange", reloadController.onControllerChange);

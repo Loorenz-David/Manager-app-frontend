@@ -23,6 +23,7 @@
     "@beyo/lib": "*",
     "@beyo/stats": "*",
     "@beyo/styles": "*",
+    "@beyo/system-control": "*",
     "@beyo/ui": "*",
     "@beyo/worker-shifts": "*",
     "@tanstack/react-query": "^5.100.11",

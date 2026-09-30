@@ -2,6 +2,7 @@ export {
   apiClient,
   ApiRequestError,
   INVALID_RESPONSE_ERROR_CODE,
+  SYSTEM_AVAILABLE_EVENT,
   SYSTEM_UNAVAILABLE_EVENT,
   UNAVAILABLE_ERROR_CODE,
 } from './api-client';

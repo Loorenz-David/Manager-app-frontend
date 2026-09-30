@@ -59,7 +59,25 @@ export type ApiCallOptions = {
   activity?: RequestActivity;
 };
 
+/**
+ * Window event dispatched once on the first successful (2xx) response after
+ * one or more "unavailable" failures: the backend answers again. No detail.
+ * The system gate (`@beyo/system-control`) clears its "reconnecting" state on
+ * it.
+ */
+export const SYSTEM_AVAILABLE_EVENT = "system:available";
+
+/** Whether an "unavailable" failure is still unanswered by a success. */
+let outageReported = false;
+
+function dispatchSystemAvailableIfRecovering(): void {
+  if (!outageReported) return;
+  outageReported = false;
+  window.dispatchEvent(new CustomEvent(SYSTEM_AVAILABLE_EVENT));
+}
+
 function dispatchSystemUnavailable(detail: SystemUnavailableDetail): void {
+  outageReported = true;
   window.dispatchEvent(
     new CustomEvent<SystemUnavailableDetail>(SYSTEM_UNAVAILABLE_EVENT, {
       detail,
@@ -330,6 +348,8 @@ async function request<T>(
     }
     throw error;
   }
+
+  dispatchSystemAvailableIfRecovering();
 
   let json: unknown;
   try {
