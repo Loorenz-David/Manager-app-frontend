@@ -307,6 +307,12 @@ export type ClientToServerEvents = {
   "view_entity": (payload: {
     entity_type: string;
     entity_client_id: string;
+    /**
+     * `true` when the view is re-announced on a new connection (after a
+     * reconnect) rather than opened by someone: the backend must not record
+     * it as human activity. `false` for a view opened on this page.
+     */
+    resumed: boolean;
   }) => void;
   "leave_entity": (payload: {
     entity_type: string;

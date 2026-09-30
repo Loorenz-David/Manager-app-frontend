@@ -9,6 +9,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { getAccessToken, refreshAccessToken } from "@beyo/api-client";
 import { notify } from "@beyo/lib";
+import { getSystemState, subscribeSystemState } from "@beyo/system-control";
 import {
   selectIsAuthenticated,
   selectUser,
@@ -19,6 +20,11 @@ import { io } from "socket.io-client";
 import { resolveSocketUrl } from "../env";
 import { dispatchEvent } from "../observability/dispatch-event";
 import { recordRealtimeEvent } from "../observability/realtime-log";
+import { superviseConnection } from "../lib/connection-supervisor";
+import {
+  createEntityViewRegistry,
+  type EntityViewRegistry,
+} from "../lib/entity-view-registry";
 import type {
   SocketEventHandlers,
   SocketHandlerContext,
@@ -50,6 +56,12 @@ export function useRealtimeSocketStatusContext(): SocketStatus {
   return useContext(SocketStatusContext);
 }
 
+const EntityViewRegistryContext = createContext<EntityViewRegistry | null>(null);
+
+export function useEntityViewRegistryContext(): EntityViewRegistry | null {
+  return useContext(EntityViewRegistryContext);
+}
+
 /**
  * Keep registry identity stable in apps; changing it tears down and recreates the socket.
  */
@@ -68,40 +80,37 @@ export function RealtimeProvider({
     reconnecting: false,
   });
 
+  // One registry for the provider's lifetime: views survive socket re-creation.
+  const [views] = useState(createEntityViewRegistry);
+
   useEffect(() => {
     if (!isAuthenticated) {
-      socketRef.current?.disconnect();
+      const previous = socketRef.current;
+      previous?.disconnect();
+      if (previous) views.detach(previous);
       socketRef.current = null;
       setSocket(null);
       setStatus({ connected: false, reconnecting: false });
       return;
     }
 
+    // Connected by the supervisor, not on creation: the system gate and
+    // server rejections decide (see connection-supervisor.ts). Automatic
+    // reconnection after a transport failure never gives up; its delay grows
+    // up to 30 s (long outages are the gate's: it disconnects the socket).
     const s = io(resolveSocketUrl(), {
       auth: (cb) => cb({ token: getAccessToken() }),
       transports: ["websocket"],
-      reconnectionAttempts: 10,
+      autoConnect: false,
+      reconnection: true,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1_000,
       reconnectionDelayMax: 30_000,
     }) as AppSocket;
 
     socketRef.current = s;
     setSocket(s);
-
-    s.on("connect_error", async (err) => {
-      if (err.message !== "unauthorized") return;
-
-      // Only a rejected session signs out; "unavailable" (backend or auth
-      // store unreachable) keeps the session.
-      // A socket reconnect is automatic: its refresh never counts as human
-      // activity.
-      const outcome = await refreshAccessToken(undefined, {
-        activity: "background",
-      });
-      if (outcome === "invalid") {
-        window.dispatchEvent(new CustomEvent("auth:session-expired"));
-      }
-    });
+    views.attach(s);
 
     s.on("connect", () => {
       setStatus({ connected: true, reconnecting: false });
@@ -111,6 +120,9 @@ export function RealtimeProvider({
         invalidated: [],
         status: "ok",
       });
+      // Every connection re-joins the rooms of the views still open
+      // (`resumed: true` after the first announcement).
+      views.announce();
       queryClient.invalidateQueries({ refetchType: "active" });
     });
 
@@ -123,19 +135,6 @@ export function RealtimeProvider({
         status: "ok",
       });
     });
-
-    const handleReconnectFailed = () => {
-      setStatus({ connected: false, reconnecting: false });
-      recordRealtimeEvent({
-        event: "system:reconnect-failed",
-        payload: null,
-        invalidated: [],
-        status: "error",
-        error: "all reconnection attempts exhausted",
-      });
-      notify.error("Connection lost", "Refresh the page to reconnect.");
-    };
-    s.io.on("reconnect_failed", handleReconnectFailed);
 
     const ctx: SocketHandlerContext = { queryClient, notify };
 
@@ -151,18 +150,47 @@ export function RealtimeProvider({
       });
     });
 
+    const stopSupervising = superviseConnection(s, {
+      getSystemState,
+      subscribeSystemState,
+      // A socket reconnect is automatic: its refresh never counts as human
+      // activity.
+      refresh: () => refreshAccessToken(undefined, { activity: "background" }),
+      // Only a rejected session signs out; "unavailable" keeps the session.
+      onSessionExpired: () => {
+        window.dispatchEvent(new CustomEvent("auth:session-expired"));
+      },
+      onWaiting: () => {
+        setStatus({ connected: false, reconnecting: true });
+      },
+      onRejected: (reason) => {
+        recordRealtimeEvent({
+          event: "system:connect-rejected",
+          payload: null,
+          invalidated: [],
+          status: "error",
+          error: reason,
+        });
+      },
+    });
+
     return () => {
-      s.io.off("reconnect_failed", handleReconnectFailed);
+      stopSupervising();
       s.disconnect();
+      views.detach(s);
       socketRef.current = null;
       setSocket(null);
       setStatus({ connected: false, reconnecting: false });
     };
-  }, [isAuthenticated, workspaceId, userId, queryClient, registry]);
+  }, [isAuthenticated, workspaceId, userId, queryClient, registry, views]);
 
   return (
     <SocketContext.Provider value={socket}>
-      <SocketStatusContext.Provider value={status}>{children}</SocketStatusContext.Provider>
+      <SocketStatusContext.Provider value={status}>
+        <EntityViewRegistryContext.Provider value={views}>
+          {children}
+        </EntityViewRegistryContext.Provider>
+      </SocketStatusContext.Provider>
     </SocketContext.Provider>
   );
 }

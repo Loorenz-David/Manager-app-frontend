@@ -1,31 +1,23 @@
 import { useEffect } from "react";
-import { useSocket } from "./use-socket";
+import { useEntityViewRegistryContext } from "../providers/RealtimeProvider";
 
+/**
+ * Holds the entity's view open while mounted: the provider announces it
+ * (`view_entity`) on the current connection and on every reconnection, and
+ * leaves it (`leave_entity`) once its last consumer unmounts. Several
+ * consumers of the same entity share one view.
+ */
 export function useEntityView(entityType: string, entityClientId: string | null): void {
-  const socket = useSocket();
+  const views = useEntityViewRegistryContext();
 
   useEffect(() => {
-    if (!entityClientId) {
-      console.debug(`[RT:view_entity] skipped — no entityClientId yet (type="${entityType}")`);
+    if (!entityClientId) return;
+    if (!views) {
+      console.warn(
+        `[RT:view_entity] skipped — no RealtimeProvider (type="${entityType}", id="${entityClientId}")`,
+      );
       return;
     }
-    if (!socket) {
-      console.warn(`[RT:view_entity] skipped — socket is null (type="${entityType}", id="${entityClientId}")`);
-      return;
-    }
-
-    console.info(`[RT:view_entity] joining room type="${entityType}" id="${entityClientId}"`);
-    socket.emit("view_entity", {
-      entity_type: entityType,
-      entity_client_id: entityClientId,
-    });
-
-    return () => {
-      console.info(`[RT:view_entity] leaving room type="${entityType}" id="${entityClientId}"`);
-      socket.emit("leave_entity", {
-        entity_type: entityType,
-        entity_client_id: entityClientId,
-      });
-    };
-  }, [socket, entityType, entityClientId]);
+    return views.register(entityType, entityClientId);
+  }, [views, entityType, entityClientId]);
 }
