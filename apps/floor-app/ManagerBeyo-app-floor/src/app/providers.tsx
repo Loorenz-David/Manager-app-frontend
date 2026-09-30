@@ -1,31 +1,18 @@
 import { useState, type ReactNode } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BreakpointProvider } from "@beyo/hooks";
 import { NotificationHostProvider } from "@beyo/lib";
 import { KeyboardInsetProvider } from "@beyo/ui";
 import { LazyMotion, MotionConfig, domAnimation } from "framer-motion";
+
+import { createQueryClient } from "@/app/query-client";
 
 export function AppProviders({
   children,
 }: {
   children: ReactNode;
 }): React.JSX.Element {
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 60_000,
-            gcTime: 300_000,
-            retry: 1,
-            refetchOnWindowFocus: true,
-          },
-          mutations: {
-            retry: 0,
-          },
-        },
-      }),
-  );
+  const [queryClient] = useState(createQueryClient);
 
   return (
     <MotionConfig reducedMotion="user">
