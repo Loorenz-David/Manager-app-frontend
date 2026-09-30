@@ -36,7 +36,10 @@ export default defineConfig(({ mode }) => {
         srcDir: "src",
         filename: "sw.ts",
         registerType: "autoUpdate",
-        injectRegister: "auto",
+        // Registered by src/lib/sw-update/register-floor-service-worker.ts,
+        // which reloads only at a safe (idle) kiosk moment. The plugin's
+        // generated registration must not also run.
+        injectRegister: false,
         includeAssets: [
           "floor-kiosk.svg",
           "fonts/InstrumentSans-Variable.ttf",

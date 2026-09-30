@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "@/app/App";
+import { registerFloorServiceWorker } from "@/lib/sw-update/register-floor-service-worker";
 import "@/index.css";
 
 // Kiosk gesture hardening: iOS Safari ignores both `user-scalable=no` and
@@ -43,3 +44,4 @@ async function startApp(): Promise<void> {
 }
 
 void startApp();
+registerFloorServiceWorker();
