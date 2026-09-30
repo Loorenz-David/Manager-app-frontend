@@ -50,7 +50,10 @@ RUN mkdir -p /out \
        -exec gzip -k -9 {} +
 
 
-FROM ${NGINX_IMAGE}
+# The nginx layer without the applications: configuration, entrypoint scripts and
+# settings. Built on its own by docker/nginx/test/app-host.test.sh, which checks the
+# routing without the Node build.
+FROM ${NGINX_IMAGE} AS runtime-base
 
 USER root
 RUN rm -f /etc/nginx/conf.d/default.conf
@@ -58,7 +61,8 @@ COPY docker/nginx/conf.d/ /etc/nginx/conf.d/
 COPY docker/nginx/snippets/ /etc/nginx/snippets/
 COPY docker/nginx/templates/ /etc/nginx/templates/
 COPY --chmod=0755 docker/nginx/entrypoint.d/25-real-ip.sh /docker-entrypoint.d/25-real-ip.sh
-COPY --from=build /out/ /usr/share/nginx/apps/
+COPY --chmod=0755 docker/nginx/entrypoint.d/26-app-host.sh /docker-entrypoint.d/26-app-host.sh
+RUN install -d -o nginx -g nginx /etc/nginx/generated
 
 # Rendered into the nginx configuration at container start. The defaults suit local
 # testing; deployments set their real hostnames.
@@ -66,6 +70,11 @@ COPY --from=build /out/ /usr/share/nginx/apps/
 #   API_UPSTREAM           the backend API service (host:port) on the internal network
 #   REAL_IP_TRUSTED_CIDRS  load balancers allowed to report the client address; empty
 #                          means this proxy is the edge (see 25-real-ip.sh)
+#   SYSTEM_CONTROL_STUB    ready: answer /system/status and /system/wake as READY
+#                          (staging, local); off: /system/* is a 404 (production,
+#                          where the infrastructure answers it). See 26-app-host.sh
+#   STATIC_APPS            on: serve the applications; off: application hostnames
+#                          answer only /api, /socket.io and /system (production origin)
 ENV API_HOST=api.localhost \
     MANAGERS_HOST=managers.localhost \
     WORKERS_HOST=workers.localhost \
@@ -74,8 +83,18 @@ ENV API_HOST=api.localhost \
     STUDIO_HOST=studio.localhost \
     API_UPSTREAM=api:8000 \
     REAL_IP_TRUSTED_CIDRS="" \
+    SYSTEM_CONTROL_STUB=off \
+    STATIC_APPS=on \
     NGINX_ENTRYPOINT_LOCAL_RESOLVERS=1 \
     NGINX_ENVSUBST_FILTER="^((API|MANAGERS|WORKERS|SELLERS|FLOOR|STUDIO)_HOST|API_UPSTREAM|NGINX_LOCAL_RESOLVERS)$"
+
+USER nginx
+EXPOSE 8080
+
+
+FROM runtime-base
+
+COPY --from=build /out/ /usr/share/nginx/apps/
 
 ARG GIT_COMMIT=unknown
 ARG BUILD_DATE=unknown
@@ -83,6 +102,3 @@ LABEL org.opencontainers.image.title="managerbeyo-frontend" \
       org.opencontainers.image.source="https://github.com/Loorenz-David/Manager-app-frontend" \
       org.opencontainers.image.revision="${GIT_COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}"
-
-USER nginx
-EXPOSE 8080

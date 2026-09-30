@@ -1,6 +1,10 @@
 # One server block per hostname. The ${..._HOST} values are filled in from the
 # container's environment at start-up (nginx image templating), so one image serves
 # any set of hostnames. Each may list several names separated by spaces.
+#
+# Application hostnames: /api and /socket.io go to the API (api-proxy.conf); /system
+# and the applications themselves come from generated/app-host.conf, written at
+# start-up by 26-app-host.sh from SYSTEM_CONTROL_STUB and STATIC_APPS.
 
 # Backend API hostname: everything goes to the API, as on the legacy server. Webhooks
 # (Shopify, Connecteam, Scanner), the Shopify OAuth callback and clients built with
@@ -24,7 +28,7 @@ server {
     server_name ${MANAGERS_HOST};
     root /usr/share/nginx/apps/managers;
     include /etc/nginx/snippets/api-proxy.conf;
-    include /etc/nginx/snippets/spa.conf;
+    include /etc/nginx/generated/app-host.conf;
 }
 
 server {
@@ -32,7 +36,7 @@ server {
     server_name ${WORKERS_HOST};
     root /usr/share/nginx/apps/workers;
     include /etc/nginx/snippets/api-proxy.conf;
-    include /etc/nginx/snippets/spa.conf;
+    include /etc/nginx/generated/app-host.conf;
 }
 
 server {
@@ -40,7 +44,7 @@ server {
     server_name ${SELLERS_HOST};
     root /usr/share/nginx/apps/sellers;
     include /etc/nginx/snippets/api-proxy.conf;
-    include /etc/nginx/snippets/spa.conf;
+    include /etc/nginx/generated/app-host.conf;
 }
 
 server {
@@ -48,7 +52,7 @@ server {
     server_name ${FLOOR_HOST};
     root /usr/share/nginx/apps/floor;
     include /etc/nginx/snippets/api-proxy.conf;
-    include /etc/nginx/snippets/spa.conf;
+    include /etc/nginx/generated/app-host.conf;
 }
 
 server {
@@ -56,5 +60,5 @@ server {
     server_name ${STUDIO_HOST};
     root /usr/share/nginx/apps/studio;
     include /etc/nginx/snippets/api-proxy.conf;
-    include /etc/nginx/snippets/spa.conf;
+    include /etc/nginx/generated/app-host.conf;
 }
