@@ -114,7 +114,12 @@ export function AuthProvider({
     const restoreSession = async (): Promise<void> => {
       let outcome: RefreshOutcome;
       try {
-        outcome = await initSession(appScope);
+        // The first attempt is the page opening (`user` while visible, the
+        // `initSession` default); a timed retry is nobody's doing.
+        outcome = await initSession(
+          appScope,
+          attempt === 0 ? {} : { activity: "background" },
+        );
       } catch {
         outcome = "invalid";
       }

@@ -14,6 +14,9 @@ import {
   SLIDE_PANEL_DRAWERS,
   TEXT_PANEL_DRAWERS,
 } from "../components/panels/PanelDrawer";
+// The API client's own tracker module (the same instance `@beyo/api-client`
+// uses): jsdom cannot produce trusted input, so tests record it directly.
+import { recordInputEvent } from "../../../api-client/src/activity";
 import { usePresentationEditorController } from "./use-presentation-editor.controller";
 
 const API_PATTERN = "*/api/v1/app-update-presentations";
@@ -366,9 +369,14 @@ describe("presentation editor controller", () => {
   it("auto-creates and selects the first slide when a draft hydrates empty", async () => {
     const emptyDraft = withSlides([]);
     const afterAutoAdd = withSlides([fullPresentationFixture.slides[0]]);
+    const activities: Array<string | null> = [];
     installDetail(emptyDraft as typeof fullPresentationFixture);
+    // Even right after a tap, the automatic first slide is background activity.
+    recordInputEvent({ isTrusted: true });
     server.use(
       http.post(`${API_PATTERN}/:id/slides`, async ({ request }) => {
+        activities.push(request.headers.get("x-beyo-activity"));
+        // The classification travels in the header, never in the body.
         expect(await request.json()).toEqual({
           duration_ms: 4_000,
           playback_mode: "timed",
@@ -391,20 +399,28 @@ describe("presentation editor controller", () => {
     expect(result.current.selectedSlideId).toBe(
       fullPresentationFixture.slides[0]!.client_id,
     );
+    expect(activities).toEqual(["background"]);
   });
 
   it("adds and selects the server-returned slide", async () => {
     const response = withSlides([fullPresentationFixture.slides[0], secondSlide]);
+    const activities: Array<string | null> = [];
     installDetail();
     server.use(
-      http.post(`${API_PATTERN}/:id/slides`, () => HttpResponse.json(envelope({ presentation: response }))),
+      http.post(`${API_PATTERN}/:id/slides`, ({ request }) => {
+        activities.push(request.headers.get("x-beyo-activity"));
+        return HttpResponse.json(envelope({ presentation: response }));
+      }),
     );
     const { Wrapper } = createTestContext();
     const { result } = renderHook(() => usePresentationEditorController(fullPresentationFixture.client_id), { wrapper: Wrapper });
 
     await waitFor(() => expect(result.current.hydrated).toBe(true));
+    // The explicit add is not forced: right after a tap it goes out as user.
+    recordInputEvent({ isTrusted: true });
     await act(async () => result.current.onAddSlide());
 
+    expect(activities).toEqual(["user"]);
     expect(result.current.selectedSlideId).toBe(secondSlide.client_id);
     expect(result.current.presentation?.slides).toHaveLength(2);
   });

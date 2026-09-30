@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiClient } from "@beyo/api-client";
+import { apiClient, type ApiCallOptions } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 
 const RegisterPushSubscriptionResponseSchema = ApiEnvelopeSchema(
@@ -15,11 +15,13 @@ export type RegisterPushSubscriptionInput = {
 
 export async function registerPushSubscription(
   input: RegisterPushSubscriptionInput,
+  options?: ApiCallOptions,
 ): Promise<string> {
   const response = await apiClient.post(
     "/api/v1/notifications/push-subscription",
     RegisterPushSubscriptionResponseSchema,
     input,
+    options,
   );
 
   return response.data.subscription.client_id;

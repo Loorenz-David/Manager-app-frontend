@@ -33,7 +33,9 @@ export function NotificationDeepLinkMount(): null {
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { markRead } = useMarkNotificationsRead();
+  // Fired from a URL-parameter effect, not from a click on this page: the
+  // mark-read is background activity.
+  const { markRead } = useMarkNotificationsRead({ activity: "background" });
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

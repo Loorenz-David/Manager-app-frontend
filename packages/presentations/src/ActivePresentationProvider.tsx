@@ -1,3 +1,4 @@
+import type { RequestActivity } from "@beyo/api-client";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { useRecordViewState } from "./actions/useRecordViewState";
@@ -36,12 +37,14 @@ export function ActivePresentationProvider({
       presentation: ConsumerPresentation,
       action: PresentationViewAction,
       lastSlideIndex?: number,
+      activity?: RequestActivity,
     ) => record({
       presentationClientId: presentation.client_id,
       version: presentation.version,
       action,
       lastSlideIndex,
       isDismissible: presentation.is_dismissible,
+      activity,
     }),
     [record],
   );
@@ -71,13 +74,17 @@ export function ActivePresentationProvider({
     terminalRecordedRef.current = false;
     closeHandledRef.current = false;
 
-    const progress = async (lastSlideIndex: number) => {
+    const progress = async (lastSlideIndex: number, activity?: RequestActivity) => {
       if (lastSlideIndex <= furthestSlideRef.current || terminalStartedRef.current) return;
       furthestSlideRef.current = lastSlideIndex;
-      await recordFor(presentation, "progressed", lastSlideIndex);
+      await recordFor(presentation, "progressed", lastSlideIndex, activity);
     };
 
-    const terminal = async (action: "dismissed" | "completed", lastSlideIndex: number) => {
+    const terminal = async (
+      action: "dismissed" | "completed",
+      lastSlideIndex: number,
+      activity?: RequestActivity,
+    ) => {
       if (terminalStartedRef.current) return;
       if (action === "dismissed" && !presentation.is_dismissible) return;
       terminalStartedRef.current = true;
@@ -86,6 +93,7 @@ export function ActivePresentationProvider({
         presentation,
         action,
         furthestSlideRef.current,
+        activity,
       )) !== null;
     };
 
@@ -108,12 +116,13 @@ export function ActivePresentationProvider({
       navigate,
       onProgress: progress,
       onDismiss: (index) => terminal("dismissed", index),
-      onComplete: (index) => terminal("completed", index),
+      onComplete: (index, activity) => terminal("completed", index, activity),
       onMediaExpired: async () => (await activeQuery.refetch()).data ?? null,
       onClosed,
     };
     opener(surfaceProps);
-    void recordFor(presentation, "shown", 0);
+    // The page opened the presentation by itself: never human activity.
+    void recordFor(presentation, "shown", 0, "background");
   }, [
     activeQuery.data,
     activeQuery.refetch,

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { RequestActivity } from "@beyo/api-client";
 import { notify } from "@beyo/lib";
 
 import { useAddSlide } from "../actions/use-add-slide";
@@ -320,7 +321,7 @@ export function usePresentationEditorController(presentationId: string) {
     [readOnly, store],
   );
 
-  const add = useCallback(async () => {
+  const addWithActivity = useCallback(async (activity?: RequestActivity) => {
     if (readOnly || !presentation) return;
     await flushAll();
     setNotice(null);
@@ -330,6 +331,7 @@ export function usePresentationEditorController(presentationId: string) {
         presentationId,
         duration_ms: 4_000,
         playback_mode: "timed",
+        ...(activity ? { activity } : {}),
       });
       const added = response.slides.find((slide) => !previousIds.has(slide.client_id));
       reconcile(response, added?.client_id ?? response.slides.at(-1)?.client_id ?? null);
@@ -337,6 +339,8 @@ export function usePresentationEditorController(presentationId: string) {
       setNotice(errorMessage(error));
     }
   }, [addSlide, flushAll, presentation, presentationId, readOnly, reconcile]);
+
+  const add = useCallback(() => addWithActivity(), [addWithActivity]);
 
   // A draft deck always has at least one slide (design invariant: the editor's
   // timeline/text tools are inert without one). Fresh presentations arrive with
@@ -351,8 +355,9 @@ export function usePresentationEditorController(presentationId: string) {
     )
       return;
     autoFirstSlideRef.current = true;
-    void add();
-  }, [add, presentation, readOnly]);
+    // Opening an empty draft creates the slide by itself: background activity.
+    void addWithActivity("background");
+  }, [addWithActivity, presentation, readOnly]);
 
   const remove = useCallback(
     async (slideId: string) => {

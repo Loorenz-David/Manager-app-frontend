@@ -4,6 +4,7 @@ import {
   PlaybackModeSchema,
   SlideMediaSchema,
 } from "@beyo/presentation-runtime";
+import type { RequestActivity } from "@beyo/api-client";
 import { z } from "zod";
 
 export const PresentationTypeSchema = z.enum(["modal", "full_screen", "slide_page"]);
@@ -106,4 +107,10 @@ export type RecordViewStateInput = {
   action: PresentationViewAction;
   lastSlideIndex?: number;
   isDismissible: boolean;
+  /**
+   * `X-Beyo-Activity` of the view-state POST. `background` for records the
+   * page makes on its own (auto-show, auto-advance); unset lets the API
+   * client classify it from recent input.
+   */
+  activity?: RequestActivity;
 };

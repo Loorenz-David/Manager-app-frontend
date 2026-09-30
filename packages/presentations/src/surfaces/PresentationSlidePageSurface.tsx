@@ -43,14 +43,14 @@ export function PresentationSlidePageSurface(props: PresentationSurfaceProps): R
     <PresentationPlayer
       {...props}
       surfaceType="slide_page"
-      onProgress={(index) => {
+      onProgress={(index, activity) => {
         furthestSlideRef.current = Math.max(furthestSlideRef.current, index);
-        return props.onProgress(index);
+        return props.onProgress(index, activity);
       }}
       onDismiss={(index) => closeAfter(() => props.onDismiss(index))}
-      onComplete={(index) => {
+      onComplete={(index, activity) => {
         setSeenFullDeck(true);
-        return props.onComplete(index);
+        return props.onComplete(index, activity);
       }}
       onClose={() => closeAfter(() => undefined)}
     />

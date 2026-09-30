@@ -201,4 +201,31 @@ describe("useBootstrapPurchasePrice (intention §4A M1)", () => {
 
     expect(scenarioInvalidations).toHaveLength(1);
   });
+
+  it("8. an automatic attempt sends the lookup and the PUT as background; a plain call forces nothing", async () => {
+    mocks.fetchItemLookup.mockResolvedValue({ items: [lookupResult(47499)] });
+
+    const view = renderBootstrap();
+    await act(async () => {
+      view.result.current.bootstrap(referenceScenario(), {
+        activity: "background",
+      });
+    });
+    await waitFor(() => expect(mocks.putItemValuation).toHaveBeenCalledTimes(1));
+
+    expect(mocks.fetchItemLookup.mock.calls[0]?.[1]).toEqual({
+      activity: "background",
+    });
+    expect(mocks.putItemValuation.mock.calls[0]?.[2]).toEqual({
+      activity: "background",
+    });
+
+    await act(async () => {
+      view.result.current.bootstrap(referenceScenario());
+    });
+    await waitFor(() => expect(mocks.putItemValuation).toHaveBeenCalledTimes(2));
+
+    expect(mocks.fetchItemLookup.mock.calls[1]?.[1]).toBeUndefined();
+    expect(mocks.putItemValuation.mock.calls[1]?.[2]).toBeUndefined();
+  });
 });

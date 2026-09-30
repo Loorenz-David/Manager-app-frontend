@@ -7,12 +7,14 @@ import type { ReassignmentStep } from "../types";
 // Passive read receipt. Idempotent server-side; on success we patch the cached
 // `first_seen_at` in place so the panel stops re-firing /seen after a refetch.
 // No optimistic rollback — a failed receipt is a no-op, never surfaced to the user.
+// It fires from a visibility effect, never from a click, so it is sent as
+// background activity: an idle worker tab must not keep production awake.
 export function useMarkAcknowledgmentsSeen() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (input: { step_ids: TaskStepId[] }) =>
-      markAcknowledgmentsSeen(input),
+      markAcknowledgmentsSeen(input, { activity: "background" }),
 
     onSuccess: ({ seen_step_ids }) => {
       if (seen_step_ids.length === 0) {

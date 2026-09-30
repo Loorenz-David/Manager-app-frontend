@@ -90,7 +90,8 @@ describe('unavailable is not unauthenticated', () => {
     expect(unavailable.events[0].detail).toEqual({
       status,
       path: '/api/v1/outage',
-      background: false,
+      // No human input in this test: the request is classified background.
+      background: true,
     });
     expect(expired.events).toHaveLength(0);
     expect(refreshCalls).toHaveLength(0);
@@ -180,7 +181,7 @@ describe('unavailable is not unauthenticated', () => {
     expect(caught).toBeInstanceOf(ApiRequestError);
     expect(caught).toMatchObject({ status: 0, code: 'unavailable' });
     expect(unavailable.events.map((event) => event.detail)).toEqual([
-      { status: 0, path: '/api/v1/outage', background: false },
+      { status: 0, path: '/api/v1/outage', background: true },
     ]);
   });
 

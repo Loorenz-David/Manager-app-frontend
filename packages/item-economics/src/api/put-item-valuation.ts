@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { apiClient } from "@beyo/api-client";
+import { apiClient, type ApiCallOptions } from "@beyo/api-client";
 import { ApiEnvelopeSchema, type ItemId } from "@beyo/lib";
 
 import {
@@ -44,11 +44,13 @@ const ItemValuationEnvelopeSchema = ApiEnvelopeSchema(
 export async function putItemValuation(
   itemId: ItemId,
   body: PutItemValuationBody,
+  options?: ApiCallOptions,
 ): Promise<PutItemValuationResult> {
   const response = await apiClient.put(
     `${ITEM_ECONOMICS_BASE_PATH}/items/${itemId}/valuation`,
     ItemValuationEnvelopeSchema,
     body,
+    options,
   );
 
   return response.data;

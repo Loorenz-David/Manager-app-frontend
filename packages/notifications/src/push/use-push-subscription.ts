@@ -135,7 +135,9 @@ export function usePushSubscription(): UsePushSubscriptionResult {
         pushLog(`reconcile: existing subscription endpoint = ${existing.endpoint.slice(0, 60)}…`);
 
         const input = buildRegistrationInput(existing);
-        await registerPushSubscription(input);
+        // Re-registration on mount is automatic: it must not count as human
+        // activity (an idle open tab would otherwise keep production awake).
+        await registerPushSubscription(input, { activity: "background" });
 
         if (!cancelled) {
           pushLog("reconcile: re-registered successfully → registered");
@@ -197,7 +199,10 @@ export function usePushSubscription(): UsePushSubscriptionResult {
       pushLog(`enable: SW ready — active state = ${reg.active?.state ?? "null"}`);
 
       pushLog("enable: fetching VAPID public key");
-      const vapidPublicKey = await fetchVapidPublicKey();
+      // `enable` is the user's click, but the permission prompt answered in
+      // between is browser UI, not page input: it can outlast the classifier's
+      // 10 s window, so these requests are marked `user` explicitly.
+      const vapidPublicKey = await fetchVapidPublicKey({ activity: "user" });
       pushLog(`enable: VAPID key fetched (length=${vapidPublicKey.length})`);
 
       pushLog("enable: calling pushManager.subscribe()");
@@ -209,7 +214,7 @@ export function usePushSubscription(): UsePushSubscriptionResult {
 
       const input = buildRegistrationInput(sub);
       pushLog("enable: registering subscription with backend");
-      await registerPushSubscription(input);
+      await registerPushSubscription(input, { activity: "user" });
       pushLog("enable: backend registration successful → registered");
       setStatus("registered");
     } catch (err) {

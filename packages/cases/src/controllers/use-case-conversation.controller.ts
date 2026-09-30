@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
-import type { ApiRequestError } from "@beyo/api-client";
+import type { ApiRequestError, RequestActivity } from "@beyo/api-client";
 import { generateClientId } from "@beyo/lib";
 import { useSurface } from "@beyo/hooks";
 import { selectUser, useAuthStore } from "@beyo/auth";
@@ -122,7 +122,10 @@ export type CaseConversationController = {
   startEditing: (message: CaseConversationMessageRaw) => void;
   cancelEditing: () => void;
   advanceState: () => Promise<void>;
-  requestMarkRead: (upToMessageSeq: number) => Promise<void>;
+  requestMarkRead: (
+    upToMessageSeq: number,
+    options?: { activity?: RequestActivity },
+  ) => Promise<void>;
   refetch: () => Promise<void>;
   sendDraft: () => Promise<void>;
   submitEdit: () => Promise<void>;
@@ -363,7 +366,10 @@ export function useCaseConversationController(
   const isTaskContextAvailable = Boolean(taskClientId);
   const isHardConversationError = caseQuery.isError;
 
-  const requestMarkRead = async (upToMessageSeq: number) => {
+  const requestMarkRead = async (
+    upToMessageSeq: number,
+    options: { activity?: RequestActivity } = {},
+  ) => {
     if (!currentParticipant || upToMessageSeq <= 0) {
       return;
     }
@@ -385,6 +391,7 @@ export function useCaseConversationController(
         caseClientId,
         caseParticipantClientId: currentParticipant.client_id,
         upToMessageSeq,
+        activity: options.activity,
       });
 
       lastAcknowledgedReadSeqRef.current = Math.max(

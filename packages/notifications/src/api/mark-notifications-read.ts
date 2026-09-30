@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiClient } from "@beyo/api-client";
+import { apiClient, type ApiCallOptions } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 import {
   MarkNotificationsReadInputSchema,
@@ -12,6 +12,7 @@ const MarkNotificationsReadEnvelopeSchema = ApiEnvelopeSchema(
 
 export async function markNotificationsRead(
   input: MarkNotificationsReadInput,
+  options?: ApiCallOptions,
 ): Promise<void> {
   const body = MarkNotificationsReadInputSchema.parse(input);
 
@@ -19,5 +20,6 @@ export async function markNotificationsRead(
     "/api/v1/notifications/mark-read",
     MarkNotificationsReadEnvelopeSchema,
     body,
+    options,
   );
 }

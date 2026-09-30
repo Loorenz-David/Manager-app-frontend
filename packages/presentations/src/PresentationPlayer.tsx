@@ -1,3 +1,4 @@
+import type { RequestActivity } from "@beyo/api-client";
 import { SlideCompositionRenderer } from "@beyo/presentation-runtime";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -10,7 +11,10 @@ import {
 } from "./components/player/PlayerAffordances";
 import { PlayerSegmentedProgress } from "./components/player/PlayerSegmentedProgress";
 import { PlayerViewport } from "./components/player/PlayerViewport";
-import { usePresentationPlayback } from "./playback/usePresentationPlayback";
+import {
+  usePresentationPlayback,
+  type PlayheadMoveSource,
+} from "./playback/usePresentationPlayback";
 import { usePlayerTextSelection } from "./playback/usePlayerTextSelection";
 import { LONG_PRESS_MOVE_TOLERANCE_PX, LONG_PRESS_MS } from "./playback/text-selection";
 import type { ConsumerPresentation, PresentationType } from "./types";
@@ -19,18 +23,30 @@ export type PresentationPlayerProps = {
   presentation: ConsumerPresentation;
   surfaceType?: PresentationType;
   navigate: (route: string) => void;
-  onProgress: (lastSlideIndex: number) => void | Promise<void>;
+  /**
+   * `activity` is `background` when auto-advance moved the deck, unset (the
+   * API client's input classifier) when a tap did.
+   */
+  onProgress: (lastSlideIndex: number, activity?: RequestActivity) => void | Promise<void>;
   /** Early exit, before the deck has played through once — records `dismissed` and closes. */
   onDismiss: (lastSlideIndex: number) => void | Promise<void>;
   /**
    * Fires once, the moment the first loop wraps — records `completed`.
    * It must NOT close the surface: the deck keeps looping until the user quits.
    */
-  onComplete: (lastSlideIndex: number) => void | Promise<void>;
+  onComplete: (lastSlideIndex: number, activity?: RequestActivity) => void | Promise<void>;
   /** Closes the surface without recording anything (the deck is already `completed`). */
   onClose: () => void | Promise<void>;
   onMediaExpired: () => Promise<ConsumerPresentation | null>;
 };
+
+/**
+ * Auto-advance records are the page's own doing and never human activity; a
+ * tap's records are left to the API client, which sees the tap as recent input.
+ */
+function moveActivity(source: PlayheadMoveSource): RequestActivity | undefined {
+  return source === "auto" ? "background" : undefined;
+}
 
 export function PresentationPlayer({
   presentation,
@@ -60,10 +76,10 @@ export function PresentationPlayer({
   }, [currentPresentation.client_id, currentPresentation.version, presentation]);
 
   /** Recorded in the background — completing must never block the still-running deck. */
-  const handleFirstLoopComplete = useCallback(() => {
+  const handleFirstLoopComplete = useCallback((source: PlayheadMoveSource) => {
     if (completeStartedRef.current) return;
     completeStartedRef.current = true;
-    void onComplete(furthestReportedRef.current);
+    void onComplete(furthestReportedRef.current, moveActivity(source));
   }, [onComplete]);
 
   const playback = usePresentationPlayback(
@@ -85,8 +101,8 @@ export function PresentationPlayer({
   useEffect(() => {
     if (playback.activeSlideIndex <= furthestReportedRef.current) return;
     furthestReportedRef.current = playback.activeSlideIndex;
-    void onProgress(playback.activeSlideIndex);
-  }, [onProgress, playback.activeSlideIndex]);
+    void onProgress(playback.activeSlideIndex, moveActivity(playback.moveSource));
+  }, [onProgress, playback.activeSlideIndex, playback.moveSource]);
 
   // A selection belongs to the slide it was made on.
   useEffect(() => selection.clear, [playback.activeSlideIndex, selection.clear]);

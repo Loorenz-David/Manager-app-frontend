@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { apiClient } from "@beyo/api-client";
+import { apiClient, type ApiCallOptions } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 
 import { ItemLookupResultSchema, type LookupItemsParams } from "../types";
@@ -13,6 +13,7 @@ const LookupItemsResponseSchema = ApiEnvelopeSchema(
 
 export async function fetchItemLookup(
   params: LookupItemsParams,
+  options?: ApiCallOptions,
 ): Promise<{ items: z.infer<typeof ItemLookupResultSchema>[] }> {
   const queryParams =
     "article_number" in params
@@ -23,6 +24,7 @@ export async function fetchItemLookup(
     "/api/v1/items/lookup",
     LookupItemsResponseSchema,
     queryParams,
+    options,
   );
 
   return {

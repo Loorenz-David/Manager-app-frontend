@@ -2,6 +2,9 @@ import { act, render, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it, vi } from "vitest";
 
+// The API client's own tracker module (the same instance `@beyo/api-client`
+// uses): jsdom cannot produce trusted input, so tests record it directly.
+import { recordInputEvent } from "../../api-client/src/activity";
 import { ActivePresentationProvider } from "./ActivePresentationProvider";
 import { activePresentationKeys } from "./api/active-presentation";
 import {
@@ -226,5 +229,56 @@ describe("ActivePresentationProvider", () => {
       queryKey: activePresentationKeys.active("worker"),
     })).toBe(0));
     expect(openPresentationModal).toHaveBeenCalledTimes(1);
+  });
+
+  it("sends the auto-show and auto-advance view-state as background; a tap's follows recent input", async () => {
+    const records: string[] = [];
+    server.use(
+      http.get(`${API_PATTERN}/active`, () =>
+        HttpResponse.json(envelope({ presentation: consumerPresentationFixture }))),
+      http.post(`${API_PATTERN}/:id/view-state`, async ({ params, request }) => {
+        const body = await request.json() as { action: string; last_slide_index?: number };
+        records.push(`${body.action}:${request.headers.get("x-beyo-activity")}`);
+        return HttpResponse.json(envelope({
+          view_state: {
+            client_id: "aupv_01JACTIVITY",
+            presentation_id: String(params.id),
+            status: body.action === "completed" ? "completed" : "shown",
+            last_slide_index: body.last_slide_index ?? 0,
+          },
+        }));
+      }),
+    );
+    const opened: PresentationSurfaceProps[] = [];
+    const openPresentationModal = vi.fn((props: PresentationSurfaceProps) => opened.push(props));
+    const { Wrapper } = createTestContext();
+    render(
+      <ActivePresentationProvider
+        appKey="worker"
+        canAutoShow
+        navigate={vi.fn()}
+        surfaceOpeners={{ openPresentationModal }}
+      >
+        <div>host app</div>
+      </ActivePresentationProvider>,
+      { wrapper: Wrapper },
+    );
+
+    // A recent tap must not turn the page's own "shown" record into user activity.
+    recordInputEvent({ isTrusted: true });
+    await waitFor(() => expect(records).toEqual(["shown:background"]));
+
+    await act(async () => {
+      await opened[0]!.onProgress(1, "background");
+      await opened[0]!.onProgress(2);
+      await opened[0]!.onComplete(2, "background");
+    });
+
+    expect(records).toEqual([
+      "shown:background",
+      "progressed:background",
+      "progressed:user",
+      "completed:background",
+    ]);
   });
 });

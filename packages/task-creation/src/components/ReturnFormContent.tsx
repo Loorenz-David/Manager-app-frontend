@@ -248,7 +248,7 @@ export function ReturnFormContent({
     });
     applyLookupPropertiesResult(form, selectedItem);
 
-    applyLookupImages(selectedItem.images);
+    applyLookupImages(selectedItem.images, { activity: "background" });
 
     lastAppliedLookupSignatureRef.current = signature;
     return true;

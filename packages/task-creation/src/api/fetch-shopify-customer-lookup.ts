@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { apiClient } from "@beyo/api-client";
+import { apiClient, type ApiCallOptions } from "@beyo/api-client";
 import { ApiEnvelopeSchema } from "@beyo/lib";
 
 import {
@@ -23,6 +23,7 @@ const ShopifyCustomerLookupResponseSchema = ApiEnvelopeSchema(
 
 export async function fetchShopifyCustomerLookup(
   params: ShopifyCustomerLookupParams,
+  options?: ApiCallOptions,
 ): Promise<{
   customer_matches: ShopifyCustomerLookupResult[];
   failed_shops: ShopifyLookupFailedShop[];
@@ -44,6 +45,7 @@ export async function fetchShopifyCustomerLookup(
     SHOPIFY_CUSTOMER_LOOKUP_ENDPOINT,
     ShopifyCustomerLookupResponseSchema,
     body,
+    options,
   );
 
   return {

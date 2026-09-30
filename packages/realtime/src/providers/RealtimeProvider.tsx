@@ -93,7 +93,11 @@ export function RealtimeProvider({
 
       // Only a rejected session signs out; "unavailable" (backend or auth
       // store unreachable) keeps the session.
-      const outcome = await refreshAccessToken();
+      // A socket reconnect is automatic: its refresh never counts as human
+      // activity.
+      const outcome = await refreshAccessToken(undefined, {
+        activity: "background",
+      });
       if (outcome === "invalid") {
         window.dispatchEvent(new CustomEvent("auth:session-expired"));
       }

@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { useLookupItemImages } from "./use-lookup-item-images";
 
 const createImagesFromUrlMock = vi.fn();
+const useCreateImagesFromUrlMock = vi.fn();
 const deleteImageMock = vi.fn();
 const invalidateQueriesMock = vi.fn();
 
@@ -13,7 +14,10 @@ vi.mock("@beyo/images", () => ({
   imageKeys: {
     list: (params: unknown) => ["images", "list", params],
   },
-  useCreateImagesFromUrl: () => ({ mutateAsync: createImagesFromUrlMock }),
+  useCreateImagesFromUrl: (options: unknown) => {
+    useCreateImagesFromUrlMock(options);
+    return { mutateAsync: createImagesFromUrlMock };
+  },
   useDeleteImage: () => ({ deleteImageWithOptionsAsync: deleteImageMock }),
 }));
 
@@ -153,6 +157,67 @@ describe("useLookupItemImages", () => {
         imageClientId: "img-a1",
         hardDelete: true,
       });
+    });
+  });
+
+  // X-Beyo-Activity: the lookup's own requests never count as human activity.
+  describe("request activity", () => {
+    function activityOf(imageClientId: string): unknown {
+      return deleteImageMock.mock.calls.find(
+        (call) => call[0].imageClientId === imageClientId,
+      )?.[0].activity;
+    }
+
+    it("creates the lookup's image copies as background", () => {
+      renderHook(() => useLookupItemImages("item-1"));
+
+      expect(useCreateImagesFromUrlMock).toHaveBeenCalledWith({
+        activity: "background",
+      });
+    });
+
+    it("discards the previous result's images with the caller's activity", async () => {
+      createImagesFromUrlMock
+        .mockResolvedValueOnce(createdImages("img-a1"))
+        .mockResolvedValueOnce(createdImages("img-b1"));
+
+      const { result } = renderHook(() => useLookupItemImages("item-1"));
+
+      await act(async () => {
+        result.current(["https://purchase.test/a1.jpg"], { activity: "background" });
+      });
+      await act(async () => {
+        result.current(["https://purchase.test/b1.jpg"], { activity: "background" });
+      });
+      await waitFor(() => expect(deletedIds()).toEqual(["img-a1"]));
+      expect(activityOf("img-a1")).toBe("background");
+
+      // A user-initiated clear passes nothing: the API client classifies it.
+      await act(async () => {
+        result.current([]);
+      });
+      await waitFor(() => expect(deletedIds()).toEqual(["img-a1", "img-b1"]));
+      expect(activityOf("img-b1")).toBeUndefined();
+    });
+
+    it("cleans up a superseded batch as background even after a user clear", async () => {
+      const slowBatch = deferred<ReturnType<typeof createdImages>>();
+      createImagesFromUrlMock.mockReturnValueOnce(slowBatch.promise);
+
+      const { result } = renderHook(() => useLookupItemImages("item-1"));
+
+      act(() => {
+        result.current(["https://purchase.test/stale.jpg"], { activity: "background" });
+      });
+      await act(async () => {
+        result.current([]);
+      });
+      await act(async () => {
+        slowBatch.release(createdImages("img-stale"));
+      });
+
+      await waitFor(() => expect(deletedIds()).toEqual(["img-stale"]));
+      expect(activityOf("img-stale")).toBe("background");
     });
   });
 });

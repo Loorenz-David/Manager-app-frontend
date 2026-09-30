@@ -292,7 +292,7 @@ export function InternalFormContent(): React.JSX.Element {
     applyPurchasePriceLookupResult(form, selectedItem);
     applyLookupPropertiesResult(form, selectedItem);
 
-    applyLookupImages(selectedItem.images);
+    applyLookupImages(selectedItem.images, { activity: "background" });
 
     lookupInjectedRef.current = {
       category: selectedItem.item_category_id ?? undefined,

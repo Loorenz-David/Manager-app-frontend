@@ -1,4 +1,10 @@
 import { env } from './env';
+import {
+  ACTIVITY_HEADER,
+  resolveRequestActivity,
+  visibleDocumentActivity,
+  type RequestActivity,
+} from './activity';
 
 export const FLOOR_ACCESS_TOKEN_STORAGE_KEY = 'beyo.floor.access_token';
 
@@ -96,7 +102,18 @@ export type RefreshOutcome = 'ok' | 'invalid' | 'unavailable';
 
 let _refreshPromise: Promise<RefreshOutcome> | null = null;
 
-export function refreshAccessToken(scope?: string): Promise<RefreshOutcome> {
+export type RefreshOptions = {
+  /**
+   * How the refresh request is classified (`X-Beyo-Activity`). Unset: the
+   * input-based classifier. A refresh already in flight is shared as is.
+   */
+  activity?: RequestActivity;
+};
+
+export function refreshAccessToken(
+  scope?: string,
+  options: RefreshOptions = {},
+): Promise<RefreshOutcome> {
   if (scope) {
     setAuthScope(scope);
   }
@@ -113,7 +130,10 @@ export function refreshAccessToken(scope?: string): Promise<RefreshOutcome> {
     return Promise.resolve('invalid');
   }
 
-  _refreshPromise = _executeRefresh(_authScope).finally(() => {
+  _refreshPromise = _executeRefresh(
+    _authScope,
+    resolveRequestActivity(options.activity),
+  ).finally(() => {
     _refreshPromise = null;
   });
 
@@ -161,7 +181,10 @@ function isCredentialRejection(
   return true;
 }
 
-async function _executeRefresh(scope: string): Promise<RefreshOutcome> {
+async function _executeRefresh(
+  scope: string,
+  activity: RequestActivity,
+): Promise<RefreshOutcome> {
   let response: Response;
   try {
     const base = env.VITE_API_URL || window.location.origin;
@@ -170,6 +193,7 @@ async function _executeRefresh(scope: string): Promise<RefreshOutcome> {
     response = await fetch(refreshUrl.toString(), {
       method: 'POST',
       credentials: 'include',
+      headers: { [ACTIVITY_HEADER]: activity },
     });
   } catch {
     return 'unavailable';
@@ -201,8 +225,15 @@ async function _executeRefresh(scope: string): Promise<RefreshOutcome> {
 /**
  * Restores the session at app boot. Floor restores the stored kiosk token
  * (`'ok'`) or has none (`'invalid'`); other scopes refresh.
+ *
+ * The refresh is classified `user` when the page is visible and `background`
+ * when it is not, unless `options.activity` says otherwise (a retry after an
+ * outage is `background`: no human asked for it).
  */
-export async function initSession(scope: string): Promise<RefreshOutcome> {
+export async function initSession(
+  scope: string,
+  options: RefreshOptions = {},
+): Promise<RefreshOutcome> {
   setAuthScope(scope);
 
   if (scope === 'floor') {
@@ -216,5 +247,7 @@ export async function initSession(scope: string): Promise<RefreshOutcome> {
     return _accessToken !== null ? 'ok' : 'invalid';
   }
 
-  return refreshAccessToken(scope);
+  return refreshAccessToken(scope, {
+    activity: options.activity ?? visibleDocumentActivity(),
+  });
 }

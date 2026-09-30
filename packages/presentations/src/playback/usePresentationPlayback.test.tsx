@@ -11,7 +11,7 @@ function PlaybackHarness({
   onFirstLoop,
 }: {
   slides: ConsumerPresentationSlide[];
-  onFirstLoop: () => void;
+  onFirstLoop: (source: "auto" | "manual") => void;
 }) {
   const playback = usePresentationPlayback(slides, onFirstLoop);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -22,6 +22,7 @@ function PlaybackHarness({
       <output data-testid="time">{playback.slideTimeMs}</output>
       <output data-testid="fraction">{playback.activeFraction}</output>
       <output data-testid="paused">{String(playback.isPaused)}</output>
+      <output data-testid="source">{playback.moveSource}</output>
       <button type="button" onClick={playback.next}>next</button>
       <button type="button" onClick={playback.previous}>previous</button>
       <button type="button" onClick={playback.togglePause}>toggle</button>
@@ -59,6 +60,28 @@ describe("presentation playback modes", () => {
     expect(onFirstLoop).not.toHaveBeenCalled();
     act(() => vi.advanceTimersByTime(240));
     expect(onFirstLoop).toHaveBeenCalledTimes(1);
+  });
+
+  // X-Beyo-Activity: a move the clock made is reported as background, a tap is not.
+  it("reports whether the clock or a tap moved the playhead, including for the first loop", () => {
+    const autoLoop = vi.fn();
+    render(<PlaybackHarness slides={[makeConsumerSlide("timed", 200), makeConsumerSlide("timed", 200, 2)]} onFirstLoop={autoLoop} />);
+    expect(screen.getByTestId("source")).toHaveTextContent("auto");
+    act(() => vi.advanceTimersByTime(260));
+    expect(screen.getByTestId("index")).toHaveTextContent("1");
+    expect(screen.getByTestId("source")).toHaveTextContent("auto");
+    act(() => vi.advanceTimersByTime(240));
+    expect(autoLoop).toHaveBeenCalledWith("auto");
+    cleanup();
+
+    const manualLoop = vi.fn();
+    render(<PlaybackHarness slides={[makeConsumerSlide("timed", 10_000), makeConsumerSlide("timed", 10_000, 2)]} onFirstLoop={manualLoop} />);
+    fireEvent.click(screen.getByText("next"));
+    expect(screen.getByTestId("index")).toHaveTextContent("1");
+    expect(screen.getByTestId("source")).toHaveTextContent("manual");
+    fireEvent.click(screen.getByText("next"));
+    expect(screen.getByTestId("loop")).toHaveTextContent("1");
+    expect(manualLoop).toHaveBeenCalledWith("manual");
   });
 
   it("loops back to the first slide instead of ending, reporting the first loop once", () => {

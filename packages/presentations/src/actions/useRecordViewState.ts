@@ -24,6 +24,7 @@ export async function recordPresentationViewState(
         ? {}
         : { last_slide_index: input.lastSlideIndex }),
     },
+    input.activity ? { activity: input.activity } : undefined,
   );
   return response.data.view_state;
 }

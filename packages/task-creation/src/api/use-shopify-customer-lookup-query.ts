@@ -10,7 +10,10 @@ export function useShopifyCustomerLookupQuery(
 ) {
   return useQuery({
     queryKey: shopifyCustomerLookupKeys.lookup(params),
-    queryFn: () => fetchShopifyCustomerLookup(params),
+    // A read sent as POST and run by the query cache (mount, key change,
+    // focus refetch), never by a click of its own: background activity.
+    queryFn: () =>
+      fetchShopifyCustomerLookup(params, { activity: "background" }),
     enabled: options.enabled ?? true,
     staleTime: 30_000,
     retry: false,

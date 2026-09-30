@@ -1,12 +1,27 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
+import type { RequestActivity } from "@beyo/api-client";
 import { imageKeys, useCreateImagesFromUrl, useDeleteImage } from "@beyo/images";
 
 import { buildCreateImagesFromUrlBatch } from "../lib/item-lookup-prefill";
 import type { ItemLookupResult } from "../types";
 
 type LookupImages = ItemLookupResult["images"];
+
+export type ApplyLookupImagesOptions = {
+  /**
+   * Classifies the removal of the previous lookup's images. The forms pass
+   * `"background"` when applying a lookup result (it lands on its own, after
+   * the query resolves); a user-initiated clear leaves it unset.
+   */
+  activity?: RequestActivity;
+};
+
+export type ApplyLookupImages = (
+  images: LookupImages,
+  options?: ApplyLookupImagesOptions,
+) => void;
 
 type OwnedLookupImages = {
   itemClientId: string;
@@ -26,12 +41,13 @@ type OwnedLookupImages = {
  * Only images this hook created are ever removed; pictures the user took
  * themselves are untouched, as are images left on an item the form has already
  * submitted.
+ *
+ * The image copies and the cleanup of a superseded batch are always sent as
+ * background activity: they follow a lookup result, not a user action.
  */
-export function useLookupItemImages(
-  itemClientId: string,
-): (images: LookupImages) => void {
+export function useLookupItemImages(itemClientId: string): ApplyLookupImages {
   const queryClient = useQueryClient();
-  const createImagesFromUrl = useCreateImagesFromUrl();
+  const createImagesFromUrl = useCreateImagesFromUrl({ activity: "background" });
   const { deleteImageWithOptionsAsync } = useDeleteImage();
   const ownedRef = useRef<OwnedLookupImages | null>(null);
   const latestApplyIdRef = useRef(0);
@@ -43,23 +59,30 @@ export function useLookupItemImages(
     itemClientIdRef.current = itemClientId;
   }, [itemClientId]);
 
-  function discard(imageClientIds: string[]): void {
+  function discard(
+    imageClientIds: string[],
+    activity: RequestActivity | undefined,
+  ): void {
     for (const imageClientId of imageClientIds) {
       void deleteImageWithOptionsAsync({
         imageClientId,
         hardDelete: true,
+        ...(activity ? { activity } : {}),
       }).catch(() => {});
     }
   }
 
-  return function applyLookupImages(images: LookupImages): void {
+  return function applyLookupImages(
+    images: LookupImages,
+    options: ApplyLookupImagesOptions = {},
+  ): void {
     const applyId = ++latestApplyIdRef.current;
     const targetItemClientId = itemClientId;
     const owned = ownedRef.current;
 
     ownedRef.current = null;
     if (owned && owned.itemClientId === targetItemClientId) {
-      discard(owned.imageClientIds);
+      discard(owned.imageClientIds, options.activity);
     }
 
     if (images.length === 0) {
@@ -78,7 +101,7 @@ export function useLookupItemImages(
         }
 
         if (latestApplyIdRef.current !== applyId) {
-          discard(createdImageClientIds);
+          discard(createdImageClientIds, "background");
           return;
         }
 

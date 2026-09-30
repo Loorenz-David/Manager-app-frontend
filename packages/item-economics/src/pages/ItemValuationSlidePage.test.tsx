@@ -147,9 +147,12 @@ describe("ItemValuationSlidePage — state to rendered blocks", () => {
     expect(
       screen.getByTestId("item-valuation-bootstrap-message"),
     ).toBeInTheDocument();
-    expect(mocks.fetchItemLookup).toHaveBeenCalledWith({
-      article_number: "0000608",
-    });
+    // The automatic attempt is the screen's doing, not the user's: its
+    // requests are marked background (X-Beyo-Activity).
+    expect(mocks.fetchItemLookup).toHaveBeenCalledWith(
+      { article_number: "0000608" },
+      { activity: "background" },
+    );
     // The CTA holds its pending look for the automatic first attempt.
     expect(screen.getByTestId("item-valuation-fetch-purchase")).toBeDisabled();
 
@@ -160,6 +163,14 @@ describe("ItemValuationSlidePage — state to rendered blocks", () => {
         ).toBeEnabled(),
       { timeout: 2000 },
     );
+
+    // A press on the CTA is left to the input classifier (no forced activity).
+    fireEvent.click(screen.getByTestId("item-valuation-fetch-purchase"));
+    await waitFor(() => expect(mocks.fetchItemLookup).toHaveBeenCalledTimes(2));
+    expect(mocks.fetchItemLookup.mock.calls[1]).toEqual([
+      { article_number: "0000608" },
+      undefined,
+    ]);
   });
 
   it("22a-b. purchase_required with no article number disables the CTA", async () => {

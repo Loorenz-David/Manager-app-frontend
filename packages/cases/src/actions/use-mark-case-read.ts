@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-import type { ApiRequestError } from '@beyo/api-client';
+import type { ApiRequestError, RequestActivity } from '@beyo/api-client';
 import type { CaseId, CaseParticipantId } from '@beyo/lib';
 
 import { caseKeys } from '../api/case-keys';
@@ -11,6 +11,8 @@ type MarkCaseReadVariables = {
   caseClientId: CaseId;
   caseParticipantClientId: CaseParticipantId;
   upToMessageSeq: number;
+  /** `background` when the read receipt was not caused by a user action. */
+  activity?: RequestActivity;
 };
 
 export function useMarkCaseRead() {
@@ -20,11 +22,15 @@ export function useMarkCaseRead() {
     mutationFn: ({
       caseParticipantClientId,
       upToMessageSeq,
+      activity,
     }: MarkCaseReadVariables) =>
-      markRead({
-        case_participant_client_id: caseParticipantClientId,
-        up_to_message_seq: upToMessageSeq,
-      }),
+      markRead(
+        {
+          case_participant_client_id: caseParticipantClientId,
+          up_to_message_seq: upToMessageSeq,
+        },
+        activity ? { activity } : undefined,
+      ),
     onSuccess: (lastReadMessageSeq, { caseClientId, caseParticipantClientId }) => {
       queryClient.setQueryData<CaseParticipant[]>(
         caseKeys.participantsList(caseClientId),

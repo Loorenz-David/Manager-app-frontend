@@ -23,13 +23,22 @@ const mediaDuration = (slide: ConsumerPresentationSlide | undefined): number => 
     : slideDuration(slide);
 };
 
+/**
+ * What moved the playhead last: the slide clock or media end (`auto`), or a tap
+ * on the player (`manual`). Consumers use it to report auto-advance as
+ * background activity.
+ */
+export type PlayheadMoveSource = "auto" | "manual";
+
 /** `seq` increments on every playhead move so a one-slide deck still re-arms its clock. */
-type Playhead = { index: number; loop: number; seq: number };
+type Playhead = { index: number; loop: number; seq: number; source: PlayheadMoveSource };
 
 export type PresentationPlayback = {
   activeSlideIndex: number;
   /** Completed passes over the whole deck. `> 0` unlocks the exit affordances. */
   loopCount: number;
+  /** What moved the playhead to `activeSlideIndex` (`auto` before any move). */
+  moveSource: PlayheadMoveSource;
   slideTimeMs: number;
   activeFraction: number;
   isPlaying: boolean;
@@ -42,9 +51,14 @@ export type PresentationPlayback = {
 
 export function usePresentationPlayback(
   slides: readonly ConsumerPresentationSlide[],
-  onFirstLoopComplete: () => void,
+  onFirstLoopComplete: (source: PlayheadMoveSource) => void,
 ): PresentationPlayback {
-  const [playhead, setPlayhead] = useState<Playhead>({ index: 0, loop: 0, seq: 0 });
+  const [playhead, setPlayhead] = useState<Playhead>({
+    index: 0,
+    loop: 0,
+    seq: 0,
+    source: "auto",
+  });
   const [isPaused, setIsPaused] = useState(false);
   const [mediaElement, setMediaElement] = useState<HTMLVideoElement | null>(null);
   const [mediaTimeMs, setMediaTimeMs] = useState(0);
@@ -63,13 +77,15 @@ export function usePresentationPlayback(
   const { timeMs, isPlaying, play, pause, seek } = clock;
 
   /** The last slide wraps back to the first and counts a loop — the deck never ends by itself. */
-  const advance = useCallback(() => {
+  const advance = useCallback((source: PlayheadMoveSource) => {
     if (advanceGuardRef.current || slides.length === 0) return;
     advanceGuardRef.current = true;
     setPlayhead(({ index, loop, seq }) => index >= slides.length - 1
-      ? { index: 0, loop: loop + 1, seq: seq + 1 }
-      : { index: index + 1, loop, seq: seq + 1 });
+      ? { index: 0, loop: loop + 1, seq: seq + 1, source }
+      : { index: index + 1, loop, seq: seq + 1, source });
   }, [slides.length]);
+
+  const next = useCallback(() => advance("manual"), [advance]);
 
   /** Story convention: on the first slide, back restarts it rather than leaving the deck. */
   const previous = useCallback(() => {
@@ -79,6 +95,7 @@ export function usePresentationPlayback(
       index: Math.max(0, index - 1),
       loop,
       seq: seq + 1,
+      source: "manual",
     }));
   }, [slides.length]);
 
@@ -96,8 +113,8 @@ export function usePresentationPlayback(
   useEffect(() => {
     if (playhead.loop === 0 || firstLoopReportedRef.current) return;
     firstLoopReportedRef.current = true;
-    firstLoopCallbackRef.current();
-  }, [playhead.loop]);
+    firstLoopCallbackRef.current(playhead.source);
+  }, [playhead.loop, playhead.source]);
 
   useEffect(() => {
     if (isMediaDriven || isPaused) pause();
@@ -113,7 +130,7 @@ export function usePresentationPlayback(
       durationMs > 0
       && clockResetPendingSeqRef.current === null
       && timeMs >= durationMs
-    ) advance();
+    ) advance("auto");
   }, [advance, durationMs, isMediaDriven, isPaused, playhead.seq, timeMs]);
 
   useEffect(() => {
@@ -127,7 +144,7 @@ export function usePresentationPlayback(
     const handleEnded = () => {
       updateTime();
       setMediaPlaying(false);
-      advance();
+      advance("auto");
     };
     mediaElement.addEventListener("loadedmetadata", updateTime);
     mediaElement.addEventListener("timeupdate", updateTime);
@@ -175,12 +192,13 @@ export function usePresentationPlayback(
   return {
     activeSlideIndex: playhead.index,
     loopCount: playhead.loop,
+    moveSource: playhead.source,
     slideTimeMs,
     activeFraction,
     isPlaying: isPaused ? false : isMediaDriven ? mediaPlaying : isPlaying,
     isPaused,
     previous,
-    next: advance,
+    next,
     togglePause,
     attachMediaContainer,
   };

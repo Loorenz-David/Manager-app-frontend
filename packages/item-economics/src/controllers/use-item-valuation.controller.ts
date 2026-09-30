@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 
+import type { RequestActivity } from "@beyo/api-client";
 import { useAuth } from "@beyo/auth";
 import { notify, type TaskId } from "@beyo/lib";
 import { useQueryClient } from "@tanstack/react-query";
@@ -345,9 +346,9 @@ export function useItemValuationController(
   const { bootstrap: bootstrapPurchasePrice } = bootstrapAction;
 
   const beginBootstrapAttempt = useCallback(
-    (scenario: PriceScenario): void => {
+    (scenario: PriceScenario, activity?: RequestActivity): void => {
       bootstrapAttemptStartRef.current = Date.now();
-      bootstrapPurchasePrice(scenario);
+      bootstrapPurchasePrice(scenario, activity ? { activity } : {});
 
       if (bootstrapDisplayTimeoutRef.current !== null) {
         clearTimeout(bootstrapDisplayTimeoutRef.current);
@@ -520,7 +521,8 @@ export function useItemValuationController(
     }
 
     autoBootstrapTriggeredRef.current = true;
-    beginBootstrapAttempt(scenario);
+    // Started by the screen, not by a press: background activity.
+    beginBootstrapAttempt(scenario, "background");
   }, [rawScreenState, scenario, beginBootstrapAttempt]);
 
   /**

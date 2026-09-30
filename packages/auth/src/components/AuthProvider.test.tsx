@@ -80,4 +80,28 @@ describe("AuthProvider session restore", () => {
     expect(initSession).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId("app")).toBeTruthy();
   });
+
+  it("classifies only the first boot attempt by visibility; timed retries are background", async () => {
+    vi.mocked(initSession)
+      .mockReset()
+      .mockResolvedValueOnce("unavailable")
+      .mockResolvedValueOnce("unavailable")
+      .mockResolvedValueOnce("invalid");
+
+    renderProvider();
+    await act(async () => {});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000);
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5_000);
+    });
+
+    expect(vi.mocked(initSession).mock.calls).toEqual([
+      // No explicit activity: initSession applies its visible → user rule.
+      ["manager", {}],
+      ["manager", { activity: "background" }],
+      ["manager", { activity: "background" }],
+    ]);
+  });
 });

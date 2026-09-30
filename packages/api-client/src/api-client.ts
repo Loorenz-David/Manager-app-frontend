@@ -6,6 +6,11 @@ import {
   setAccessToken,
 } from './auth-token';
 import { ApiErrorSchema } from '@beyo/lib';
+import {
+  ACTIVITY_HEADER,
+  resolveRequestActivity,
+  type RequestActivity,
+} from './activity';
 
 /** Some backend failures deliberately do not use the project error envelope. */
 const DetailErrorSchema = z.object({ detail: z.unknown() });
@@ -34,16 +39,25 @@ export type SystemUnavailableDetail = {
   status: number;
   /** The request path as passed to the client, without query parameters. */
   path: string;
-  /** Whether the failed request was a background request (poll, refetch). */
+  /**
+   * Whether the failed request was classified `background` (the value its
+   * `X-Beyo-Activity` header carried).
+   */
   background: boolean;
 };
 
-/**
- * Who a request is for. Only affects the `background` flag of
- * `system:unavailable` today; callers do not set it yet, so every request is
- * treated as `"user"` unless a later classifier supplies `"background"`.
- */
-export type RequestActivity = "user" | "background";
+export type { RequestActivity };
+
+/** Per-call options of the public `apiClient` helpers. */
+export type ApiCallOptions = {
+  /**
+   * Classifies the request for the backend's human-activity tracking
+   * (`X-Beyo-Activity`). Unset: `user` iff a trusted input happened in the
+   * last 10 s, else `background`. Pass `"background"` from automatic paths
+   * (effects, timers, polls) whatever the method.
+   */
+  activity?: RequestActivity;
+};
 
 function dispatchSystemUnavailable(detail: SystemUnavailableDetail): void {
   window.dispatchEvent(
@@ -208,20 +222,20 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   params?: Record<string, QueryParamValue>;
-  /** Hook point for the activity classifier; unset means `"user"`. */
+  /** Explicit classification; unset means the input-based classifier. */
   activity?: RequestActivity;
 };
 
 function unavailable(
   status: number,
   path: string,
-  options: RequestOptions,
+  activity: RequestActivity,
   error: ApiRequestError,
 ): ApiRequestError {
   dispatchSystemUnavailable({
     status,
     path,
-    background: options.activity === "background",
+    background: activity === "background",
   });
   return error;
 }
@@ -233,6 +247,9 @@ async function request<T>(
   isRetry = false,
 ): Promise<T> {
   const { method = "GET", body, params } = options;
+  // Resolved once: the refresh a 401 triggers and the replay after it carry
+  // the classification of the request that started them.
+  const activity = resolveRequestActivity(options.activity);
   const url = buildUrl(path, params);
   const token = getAccessToken();
 
@@ -243,6 +260,7 @@ async function request<T>(
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
+        [ACTIVITY_HEADER]: activity,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -253,7 +271,7 @@ async function request<T>(
       throw unavailable(
         0,
         path,
-        options,
+        activity,
         new ApiRequestError(
           0,
           UNAVAILABLE_ERROR_CODE,
@@ -272,13 +290,13 @@ async function request<T>(
   ) {
     const rejection = await errorFromResponse(response.clone());
     if (rejection.code === UNAVAILABLE_ERROR_CODE) {
-      throw unavailable(response.status, path, options, rejection);
+      throw unavailable(response.status, path, activity, rejection);
     }
 
-    const outcome = await refreshAccessToken();
+    const outcome = await refreshAccessToken(undefined, { activity });
 
     if (outcome === "ok") {
-      return request(path, schema, options, true);
+      return request(path, schema, { ...options, activity }, true);
     }
 
     if (outcome === "unavailable") {
@@ -287,7 +305,7 @@ async function request<T>(
       throw unavailable(
         0,
         path,
-        options,
+        activity,
         new ApiRequestError(
           0,
           UNAVAILABLE_ERROR_CODE,
@@ -308,7 +326,7 @@ async function request<T>(
   if (!response.ok) {
     const error = await errorFromResponse(response);
     if (error.code === UNAVAILABLE_ERROR_CODE) {
-      throw unavailable(response.status, path, options, error);
+      throw unavailable(response.status, path, activity, error);
     }
     throw error;
   }
@@ -337,26 +355,70 @@ async function request<T>(
   return parsed.data;
 }
 
+/**
+ * Every request carries `X-Beyo-Activity`. The trailing `options.activity`
+ * overrides the input-based classifier; see `ApiCallOptions`.
+ */
 export const apiClient = {
   get: <T>(
     path: string,
     schema: z.ZodType<T>,
     params?: RequestOptions["params"],
-  ) => request(path, schema, { method: "GET", params }),
+    options?: ApiCallOptions,
+  ) =>
+    request(path, schema, {
+      method: "GET",
+      params,
+      activity: options?.activity,
+    }),
 
-  post: <T>(path: string, schema: z.ZodType<T>, body: unknown) =>
-    request(path, schema, { method: "POST", body }),
+  post: <T>(
+    path: string,
+    schema: z.ZodType<T>,
+    body: unknown,
+    options?: ApiCallOptions,
+  ) =>
+    request(path, schema, {
+      method: "POST",
+      body,
+      activity: options?.activity,
+    }),
 
-  put: <T>(path: string, schema: z.ZodType<T>, body: unknown) =>
-    request(path, schema, { method: "PUT", body }),
+  put: <T>(
+    path: string,
+    schema: z.ZodType<T>,
+    body: unknown,
+    options?: ApiCallOptions,
+  ) =>
+    request(path, schema, {
+      method: "PUT",
+      body,
+      activity: options?.activity,
+    }),
 
-  patch: <T>(path: string, schema: z.ZodType<T>, body: unknown) =>
-    request(path, schema, { method: "PATCH", body }),
+  patch: <T>(
+    path: string,
+    schema: z.ZodType<T>,
+    body: unknown,
+    options?: ApiCallOptions,
+  ) =>
+    request(path, schema, {
+      method: "PATCH",
+      body,
+      activity: options?.activity,
+    }),
 
   delete: <T>(
     path: string,
     schema: z.ZodType<T>,
     body?: unknown,
     params?: RequestOptions["params"],
-  ) => request(path, schema, { method: "DELETE", body, params }),
+    options?: ApiCallOptions,
+  ) =>
+    request(path, schema, {
+      method: "DELETE",
+      body,
+      params,
+      activity: options?.activity,
+    }),
 };

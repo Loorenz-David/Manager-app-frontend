@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import type { RequestActivity } from "@beyo/api-client";
 import { selectUser, useAuthStore } from "@beyo/auth";
 import type { CaseId } from "@beyo/lib";
 
@@ -42,7 +43,10 @@ export type CaseConversationMessagesController = {
 type UseCaseConversationMessagesControllerArgs = {
   caseClientId: CaseId;
   lastReadMessageSeq?: number | null;
-  requestMarkRead?: (upToMessageSeq: number) => Promise<void>;
+  requestMarkRead?: (
+    upToMessageSeq: number,
+    options?: { activity?: RequestActivity },
+  ) => Promise<void>;
 };
 
 function getLocalDateKey(date: Date): string {
@@ -262,7 +266,11 @@ export function useCaseConversationMessagesController({
       return;
     }
 
-    void requestMarkRead(latestMessageItem.messageSeq);
+    // Seeing the latest message is not a click: an open, untouched conversation
+    // receiving messages must not keep production awake.
+    void requestMarkRead(latestMessageItem.messageSeq, {
+      activity: "background",
+    });
   }, [
     isLatestMessageVisible,
     lastReadMessageSeq,

@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 
-import { ApiRequestError } from "@beyo/api-client";
+import { ApiRequestError, type RequestActivity } from "@beyo/api-client";
 import { fetchItemLookup, type ItemLookupResult } from "@beyo/items";
 import type { ItemId, TaskId } from "@beyo/lib";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -156,10 +156,15 @@ export function useBootstrapPurchasePrice(taskId: TaskId) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const mutation = useMutation({
-    mutationFn: async (
-      scenario: PriceScenario,
-    ): Promise<PurchaseBootstrapOutcome> => {
+    mutationFn: async ({
+      scenario,
+      activity,
+    }: {
+      scenario: PriceScenario;
+      activity?: RequestActivity;
+    }): Promise<PurchaseBootstrapOutcome> => {
       const item = scenario.item;
+      const requestOptions = activity ? { activity } : undefined;
 
       // The CTA is disabled in this branch, so this is a guard rather than a
       // path — and it keeps the lookup from firing on an empty article number.
@@ -167,9 +172,10 @@ export function useBootstrapPurchasePrice(taskId: TaskId) {
         return { kind: "no-article-number" };
       }
 
-      const lookup = await fetchItemLookup({
-        article_number: item.article_number,
-      });
+      const lookup = await fetchItemLookup(
+        { article_number: item.article_number },
+        requestOptions,
+      );
       const purchaseResult = selectPurchaseApiResult(lookup.items);
 
       if (purchaseResult === null) {
@@ -186,6 +192,7 @@ export function useBootstrapPurchasePrice(taskId: TaskId) {
           scenario,
           fromMinorUnits(purchaseResult.purchase_price_minor),
         ),
+        requestOptions,
       );
 
       return { kind: "saved" };
@@ -221,10 +228,17 @@ export function useBootstrapPurchasePrice(taskId: TaskId) {
 
   const { mutate } = mutation;
 
+  /**
+   * `options.activity: "background"` marks an attempt the screen started on
+   * its own (the auto-bootstrap on entering S4); the CTA leaves it unset.
+   */
   const bootstrap = useCallback(
-    (scenario: PriceScenario): void => {
+    (
+      scenario: PriceScenario,
+      options: { activity?: RequestActivity } = {},
+    ): void => {
       setErrorMessage(null);
-      mutate(scenario);
+      mutate({ scenario, activity: options.activity });
     },
     [mutate],
   );

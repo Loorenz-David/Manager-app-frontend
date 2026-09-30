@@ -210,7 +210,8 @@ describe('tri-state refresh: unavailable keeps the session', () => {
       expect(unavailable.events[0].detail).toEqual({
         status: 0,
         path: '/api/v1/protected',
-        background: false,
+        // No human input in this test: the request is classified background.
+        background: true,
       });
     },
   );

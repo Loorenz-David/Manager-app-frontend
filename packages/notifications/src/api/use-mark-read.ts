@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type { ApiCallOptions } from "@beyo/api-client";
 import { markNotificationsRead } from "./mark-notifications-read";
 import { notificationKeys } from "./notification-keys";
 import type {
@@ -7,11 +8,18 @@ import type {
   UnreadCountResponse,
 } from "../types";
 
-export function useMarkNotificationsRead() {
+/**
+ * `options.activity` classifies every mark-read this instance sends; pass
+ * `"background"` when the instance serves an automatic path (for example a
+ * mark-read fired from a URL-parameter effect).
+ */
+export function useMarkNotificationsRead(options: ApiCallOptions = {}) {
   const queryClient = useQueryClient();
+  const { activity } = options;
 
   const mutation = useMutation({
-    mutationFn: markNotificationsRead,
+    mutationFn: (input: MarkNotificationsReadInput) =>
+      markNotificationsRead(input, activity ? { activity } : undefined),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: notificationKeys.lists() });
       await queryClient.cancelQueries({

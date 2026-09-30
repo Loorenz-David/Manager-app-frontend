@@ -321,7 +321,7 @@ export function WorkerInternalFormContent(): React.JSX.Element {
       });
     }
 
-    applyLookupImages(selectedItem.images);
+    applyLookupImages(selectedItem.images, { activity: "background" });
 
     lookupInjectedRef.current = {
       articleNumber: selectedItem.article_number,
