@@ -1,0 +1,62 @@
+# build-images.yml for Loorenz-David/Manager-app-frontend (P1). Copy unchanged to .github/workflows/build-images.yml
+# in that repository: the AWS role mb-ci-build-frontend trusts ONLY this file, on refs/heads/main, of this repository
+# (immutable repository/owner IDs). A run on any other branch is refused by AWS by design.
+name: build-images
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: build-images-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-north-1
+  REGISTRY: 307946675015.dkr.ecr.eu-north-1.amazonaws.com
+  IMAGE: managerbeyo-frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::307946675015:role/mb-ci-build-frontend
+          role-session-name: gh-build-frontend-${{ github.run_id }}
+          aws-region: eu-north-1
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+      - name: Build and push (linux/amd64, tag = commit SHA, never latest)
+        run: |
+          set -euo pipefail
+          REF="$REGISTRY/$IMAGE:$GITHUB_SHA"
+          if aws ecr describe-images --repository-name "$IMAGE" --image-ids imageTag="$GITHUB_SHA" >/dev/null 2>&1; then
+            echo "$REF already exists (tags are immutable); not rebuilding."
+          else
+            docker build --platform linux/amd64 \
+              --build-arg GIT_COMMIT="$GITHUB_SHA" --build-arg BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              -t "$REF" .
+            docker push "$REF"
+          fi
+          DIGEST=$(aws ecr describe-images --repository-name "$IMAGE" --image-ids imageTag="$GITHUB_SHA" --query 'imageDetails[0].imageDigest' --output text)
+          echo "DIGEST=$DIGEST" >> "$GITHUB_ENV"
+          { echo "### $IMAGE"; echo "- tag: \`$GITHUB_SHA\`"; echo "- digest: \`$DIGEST\`"; } >> "$GITHUB_STEP_SUMMARY"
+      - name: Export the static bundle from the pushed image, by digest (D40)
+        run: |
+          set -euo pipefail
+          SRC="$REGISTRY/$IMAGE@$DIGEST"
+          docker pull "$SRC"
+          docker/export-static-bundle.sh export "$SRC" bundle
+          docker/export-static-bundle.sh verify "$SRC" bundle
+          echo "- bundle: exported and verified from \`$SRC\` ($(wc -l < bundle/SHA256SUMS) files)" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-bundle-${{ github.sha }}
+          path: bundle
+          retention-days: 90
