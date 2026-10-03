@@ -16,6 +16,11 @@ import {
   normalizeUnavailableMetafieldDefinitions,
 } from "../lib/normalize-shopify-metafield-fields";
 import { createMetafieldFieldIdentity } from "../lib/shopify-metafield-identity";
+import {
+  belongsToMetafieldStep,
+  fullSequenceOrderForStepDrop,
+  type ShopifyMetafieldStep,
+} from "../lib/shopify-metafield-step";
 import { toShopifyMetafieldFormValue } from "../lib/shopify-metafield-value";
 import type {
   ShopifyMetafieldField,
@@ -66,11 +71,13 @@ export function useShopifyMetafieldPickerController({
   itemCategoryId,
   value,
   onChange,
+  step,
 }: {
   shopIntegrationIds: string[];
   itemCategoryId: string | null;
   value: ShopifyProductSyncMetafieldValue[];
   onChange: (value: ShopifyProductSyncMetafieldValue[]) => void;
+  step: ShopifyMetafieldStep;
 }) {
   const normalizedShopIds = useMemo(
     () => Array.from(new Set(shopIntegrationIds.filter(Boolean))),
@@ -97,22 +104,27 @@ export function useShopifyMetafieldPickerController({
   }, [searchQuery]);
 
   const hasValidSearch = debouncedQuery.trim().length > 0;
+  const effectiveSearchQuery = hasValidSearch
+    ? debouncedQuery
+    : step === "report"
+      ? "condition"
+      : "";
   const categoryQuery = useShopifyMetafieldPreferencesCategoryQuery({
     shopIntegrationIds: normalizedShopIds,
     itemCategoryId,
-    enabled: isEditMode || !hasValidSearch,
+    enabled: step === "report" || isEditMode || !hasValidSearch,
   });
   const searchQueryResult = useShopifyMetafieldPreferencesSearchInfiniteQuery({
     shopIntegrationIds: normalizedShopIds,
-    q: debouncedQuery,
-    enabled: hasValidSearch && !isEditMode,
+    q: effectiveSearchQuery,
+    enabled: (hasValidSearch || step === "report") && !isEditMode,
   });
   const integrations = shopsQuery.data?.shops ?? EMPTY_INTEGRATIONS;
   const mergedCategoryData = useMemo(
     () => mergeShopifyMetafieldPreferencePages(categoryQuery.data?.pages),
     [categoryQuery.data],
   );
-  const savedFields = useMemo(
+  const allSavedFields = useMemo(
     () =>
       normalizeShopifyMetafieldFields(
         mergedCategoryData,
@@ -123,6 +135,13 @@ export function useShopifyMetafieldPickerController({
         normalizedShopIds.includes(shopIntegrationId),
       ),
     [mergedCategoryData, integrations, itemCategoryId, selectedShopKey],
+  );
+  const savedFields = useMemo(
+    () =>
+      allSavedFields.filter((field) =>
+        belongsToMetafieldStep(field.name, step),
+      ),
+    [allSavedFields, step],
   );
   // Filters saved preferences by the live search text — applies in both
   // edit and non-edit mode, so the search bar narrows the whole picker
@@ -147,8 +166,8 @@ export function useShopifyMetafieldPickerController({
         "search_result",
       ).filter(({ shopIntegrationId }) =>
         normalizedShopIds.includes(shopIntegrationId),
-      ),
-    [mergedCategoryData, integrations, selectedShopKey],
+      ).filter((field) => belongsToMetafieldStep(field.name, step)),
+    [mergedCategoryData, integrations, selectedShopKey, step],
   );
   const mergedSearchData = useMemo(
     () => mergeShopifyMetafieldPreferencePages(searchQueryResult.data?.pages),
@@ -162,8 +181,8 @@ export function useShopifyMetafieldPickerController({
         "search_result",
       ).filter(({ shopIntegrationId }) =>
         normalizedShopIds.includes(shopIntegrationId),
-      ),
-    [mergedSearchData, integrations, selectedShopKey],
+      ).filter((field) => belongsToMetafieldStep(field.name, step)),
+    [mergedSearchData, integrations, selectedShopKey, step],
   );
   const unavailableDefinitions = useMemo(
     () =>
@@ -196,7 +215,7 @@ export function useShopifyMetafieldPickerController({
         }
       };
 
-      if (hasValidSearch) {
+      if (hasValidSearch || step === "report") {
         searchResults.forEach(addUnique);
       } else {
         categorySearchResults.forEach(addUnique);
@@ -205,6 +224,7 @@ export function useShopifyMetafieldPickerController({
       current.forEach((field) => {
         if (
           field.source === "search_result" &&
+          belongsToMetafieldStep(field.name, step) &&
           normalizedShopIds.includes(field.shopIntegrationId) &&
           Object.prototype.hasOwnProperty.call(draftValues, field.identity)
         ) {
@@ -221,6 +241,7 @@ export function useShopifyMetafieldPickerController({
     isEditMode,
     normalizedShopIds,
     searchResults,
+    step,
     visibleSavedFields,
   ]);
 
@@ -272,9 +293,14 @@ export function useShopifyMetafieldPickerController({
       if (savedFields.some((saved) => saved.identity === field.identity)) {
         return;
       }
-      const sequenceOrder = savedFields.filter(
-        (saved) => saved.shopIntegrationId === field.shopIntegrationId,
-      ).length;
+      const sequenceOrder =
+        allSavedFields.reduce(
+          (highest, saved) =>
+            saved.shopIntegrationId === field.shopIntegrationId
+              ? Math.max(highest, saved.sequenceOrder)
+              : highest,
+          -1,
+        ) + 1;
       const clientId = generateClientId("ShopifyMetafieldPreference");
       const preference = toOptimisticPreference(
         { ...field, sequenceOrder },
@@ -290,7 +316,7 @@ export function useShopifyMetafieldPickerController({
       );
       createAction.createPreference({ itemCategoryId, preference });
     },
-    [createAction, isEditMode, itemCategoryId, savedFields],
+    [allSavedFields, createAction, isEditMode, itemCategoryId, savedFields],
   );
 
   const removePreference = useCallback(
@@ -319,14 +345,26 @@ export function useShopifyMetafieldPickerController({
   );
 
   const reorderPreference = useCallback(
-    (field: ShopifyMetafieldField, newIndex: number) => {
+    (
+      field: ShopifyMetafieldField,
+      group: ShopifyMetafieldField[],
+      oldIndex: number,
+      newIndex: number,
+    ) => {
       if (!isEditMode || !field.preferenceClientId) return;
+      const sequenceOrder = fullSequenceOrderForStepDrop(
+        allSavedFields,
+        group,
+        oldIndex,
+        newIndex,
+      );
+      if (sequenceOrder === null) return;
       reorderAction.reorderPreference({
         preferenceClientId: field.preferenceClientId,
-        sequenceOrder: newIndex,
+        sequenceOrder,
       });
     },
-    [isEditMode, reorderAction],
+    [allSavedFields, isEditMode, reorderAction],
   );
 
   const updateFieldValue = useCallback(
@@ -384,7 +422,7 @@ export function useShopifyMetafieldPickerController({
   return {
     activeFields,
     searchResults,
-    unavailableDefinitions,
+    unavailableDefinitions: step === "metafields" ? unavailableDefinitions : [],
     searchQuery,
     setSearchQuery,
     hasValidSearch,
@@ -398,14 +436,14 @@ export function useShopifyMetafieldPickerController({
     // Whichever query is currently driving unsaved "search_result" fields —
     // the real q-driven search, or the implicit empty-category browse — is
     // the one that can have more pages.
-    hasMoreSearchResults: hasValidSearch
+    hasMoreSearchResults: hasValidSearch || step === "report"
       ? searchQueryResult.hasNextPage
       : categoryQuery.hasNextPage,
-    isLoadingMoreSearchResults: hasValidSearch
+    isLoadingMoreSearchResults: hasValidSearch || step === "report"
       ? searchQueryResult.isFetchingNextPage
       : categoryQuery.isFetchingNextPage,
     loadMoreSearchResults: () => {
-      if (hasValidSearch) {
+      if (hasValidSearch || step === "report") {
         void searchQueryResult.fetchNextPage();
       } else {
         void categoryQuery.fetchNextPage();

@@ -120,6 +120,7 @@ export type ListWorkingSectionStepsParams = {
   major_category?: string;
   readiness_statuses?: string;
   task_types?: string;
+  item_categories?: string[];
   item_position?: string;
   group_by_upholstery?: boolean;
 };

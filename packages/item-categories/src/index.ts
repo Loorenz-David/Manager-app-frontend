@@ -25,6 +25,8 @@ export { useItemCategoriesPickerQuery } from "./api/use-item-categories-picker-q
 export { useItemCategorySelectionStore } from "./store/item-category-selection.store";
 export { useItemCategoryByIdFlow } from "./flows/use-item-category-by-id";
 export { useItemCategoryPickerFlow } from "./flows/use-item-category-picker.flow";
+export { useAllItemCategoryPickerOptionsQuery } from "./api/use-all-item-category-picker-options-query";
+export { ItemCategoryOptionsPicker } from "./components/ItemCategoryOptionsPicker";
 export type { ItemCategoryByIdResult } from "./flows/use-item-category-by-id";
 export { ItemCategoryDetailLabel } from "./components/ItemCategoryDetailLabel";
 export { ItemCategorySelectionField } from "./components/ItemCategorySelectionField";

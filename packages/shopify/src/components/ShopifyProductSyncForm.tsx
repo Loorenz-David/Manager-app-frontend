@@ -110,6 +110,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
     steps: [
       { id: "target", title: "Target" },
       { id: "metafields", title: "Metafields" },
+      { id: "report", title: "Report" },
       { id: "content", title: "Content" },
     ],
     mode: "free",
@@ -165,6 +166,20 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
           <div className="flex flex-col gap-4">
             <ContentCard gapClassName="gap-3 ">
               <ShopifyMetafieldPickerForm
+                step="metafields"
+                shopIntegrationIds={values.shopIntegrationIds}
+                itemCategoryId={ctx.itemCategoryId}
+                value={metafieldsField.value}
+                onChange={metafieldsField.onChange}
+              />
+            </ContentCard>
+          </div>
+        </StagedFormStep>
+        <StagedFormStep id="report" className="px-0">
+          <div className="flex flex-col gap-4">
+            <ContentCard gapClassName="gap-3">
+              <ShopifyMetafieldPickerForm
+                step="report"
                 shopIntegrationIds={values.shopIntegrationIds}
                 itemCategoryId={ctx.itemCategoryId}
                 value={metafieldsField.value}

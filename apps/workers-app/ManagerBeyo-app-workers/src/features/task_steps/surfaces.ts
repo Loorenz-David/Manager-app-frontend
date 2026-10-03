@@ -27,6 +27,7 @@ import {
   PIN_TASK_STEP_STATES_SHEET_SURFACE_ID,
   STEP_DEPENDENCY_WARNING_SHEET_SURFACE_ID,
   STEP_STATE_FILTER_SHEET_SURFACE_ID,
+  STEP_CATEGORY_FILTER_SHEET_SURFACE_ID,
   TASK_STEP_ACTIONS_SHEET_SURFACE_ID,
   TASK_STEP_DETAIL_SURFACE_ID,
   UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID,
@@ -93,6 +94,12 @@ function loadStepStateFilterSheetPage() {
   );
 }
 
+function loadStepCategoryFilterSheetPage() {
+  return import("@/pages/task_steps/StepCategoryFilterSheetPage").then((module) => ({
+    default: module.StepCategoryFilterSheetPage,
+  }));
+}
+
 function loadPinNotificationsSlidePage() {
   return import("@/pages/task_steps/PinNotificationsSlidePage").then(
     (module) => ({
@@ -153,6 +160,7 @@ const upholsterySelectionMissingSheet = lazyWithPreload(
   loadUpholsterySelectionMissingSheetPage,
 );
 const stepStateFilterSheet = lazyWithPreload(loadStepStateFilterSheetPage);
+const stepCategoryFilterSheet = lazyWithPreload(loadStepCategoryFilterSheetPage);
 const pinNotificationsSlide = lazyWithPreload(loadPinNotificationsSlidePage);
 const pinTaskStepStatesSheet = lazyWithPreload(
   loadPinTaskStepStatesSheetPage,
@@ -190,6 +198,8 @@ export const preloadUpholsterySelectionMissingSheetSurface =
   upholsterySelectionMissingSheet.preload;
 export const preloadStepStateFilterSheetSurface =
   stepStateFilterSheet.preload;
+export const preloadStepCategoryFilterSheetSurface =
+  stepCategoryFilterSheet.preload;
 export const preloadPinNotificationsSlideSurface =
   pinNotificationsSlide.preload;
 export const preloadPinTaskStepStatesSheetSurface =
@@ -245,6 +255,10 @@ export const taskStepSurfaces: SurfaceRegistrations = {
   [STEP_STATE_FILTER_SHEET_SURFACE_ID]: {
     surface: "sheet",
     component: stepStateFilterSheet.Component,
+  },
+  [STEP_CATEGORY_FILTER_SHEET_SURFACE_ID]: {
+    surface: "sheet",
+    component: stepCategoryFilterSheet.Component,
   },
   [PIN_NOTIFICATIONS_SLIDE_SURFACE_ID]: {
     surface: "slide",

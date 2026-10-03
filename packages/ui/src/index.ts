@@ -45,6 +45,7 @@ export * from "./components/primitives/amount-quick-action";
 export * from "./components/primitives/animated-removal";
 export * from "./components/primitives/box-picker";
 export * from "./components/primitives/box-slide-picker";
+export * from "./components/primitives/collapsible-drawer";
 export * from "./components/primitives/avatar";
 export * from "./components/primitives/backend-image";
 export * from "./components/primitives/confirm-action-button";

@@ -1,5 +1,5 @@
 import { useSurfaceHeader, useSurfaceProps } from "@beyo/hooks";
-import { BoxPicker } from "@beyo/ui";
+import { ItemCategoryOptionsPicker } from "../components/ItemCategoryOptionsPicker";
 
 import type { ItemCategoryPickerSurfaceProps } from "../surface-ids";
 
@@ -8,14 +8,9 @@ export function ItemCategoryPickerSheetPage(): React.JSX.Element {
     useSurfaceProps<ItemCategoryPickerSurfaceProps>();
   const header = useSurfaceHeader();
 
-  const options = (categories ?? [])
-    .filter((category) => category.major_category === majorCategory)
-    .map((category) => ({
-      value: category.client_id,
-      label: category.name,
-      image: category.image_url,
-      testId: `item-category-${category.client_id}-option`,
-    }));
+  const options = (categories ?? []).filter(
+    (category) => category.major_category === majorCategory,
+  );
 
   function handleSelect(categoryId: string) {
     onSelect?.(categoryId);
@@ -25,14 +20,11 @@ export function ItemCategoryPickerSheetPage(): React.JSX.Element {
   return (
     <div className="flex flex-col gap-4 p-4" data-testid="item-category-picker-sheet">
       <p className="text-base font-semibold text-foreground">Select category</p>
-      <BoxPicker
+      <ItemCategoryOptionsPicker
         mode="single"
         value={currentCategoryId ?? null}
-        options={options}
+        categories={options}
         onValueChange={handleSelect}
-        layout="grid"
-        visualVariant="default"
-        columns={2}
       />
     </div>
   );

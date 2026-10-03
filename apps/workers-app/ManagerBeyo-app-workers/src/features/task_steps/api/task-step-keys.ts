@@ -16,6 +16,7 @@ export const taskStepKeys = {
         major_category: params.major_category,
         readiness_statuses: params.readiness_statuses,
         task_types: params.task_types,
+        item_categories: params.item_categories,
         item_position: params.item_position,
         group_by_upholstery: params.group_by_upholstery,
       },

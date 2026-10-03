@@ -19,6 +19,11 @@ import {
   readWorkingSectionStepsGroupByUpholstery,
   writeWorkingSectionStepsGroupByUpholstery,
 } from "../lib/grouping-preference-storage";
+import { countWorkingSectionStepFilters } from "../lib/filter-counts";
+import {
+  DEFAULT_READINESS_STATUS_FILTERS,
+  DEFAULT_STATE_FILTERS,
+} from "../lib/filter-defaults";
 import type { WorkerWorkingSection } from "../../working_sections/types";
 import { workerWorkingSectionKeys } from "../../working_sections/api/working-section-keys";
 import {
@@ -112,14 +117,7 @@ function useDelayedTrue(value: boolean, delayMs: number): boolean {
   return delayed;
 }
 
-export const DEFAULT_STATE_FILTERS: StepState[] = [
-  "pending",
-  "working",
-  "paused",
-  "ended_shift",
-];
-
-export const DEFAULT_READINESS_STATUS_FILTERS: ReadinessStatus[] = ["ready"];
+export { DEFAULT_READINESS_STATUS_FILTERS, DEFAULT_STATE_FILTERS } from "../lib/filter-defaults";
 
 export type StepRenderRow = UpholsteryGroupedRow<TaskStepCardViewModel>;
 
@@ -146,6 +144,7 @@ export type WorkingSectionStepsController = {
   stateFilters: StepState[];
   readinessStatusFilters: ReadinessStatus[];
   taskTypeFilters: TaskType[];
+  categoryFilters: string[];
   itemPositionFilter: string;
   groupByUpholstery: boolean;
   activeFilterCount: number;
@@ -184,6 +183,7 @@ export function useWorkingSectionStepsController(
     ReadinessStatus[]
   >(DEFAULT_READINESS_STATUS_FILTERS);
   const [taskTypeFilters, setTaskTypeFilters] = useState<TaskType[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [itemPositionFilter, setItemPositionFilter] = useState<string>("");
   const [groupByUpholstery, setGroupByUpholsteryState] = useState<boolean>(
     readWorkingSectionStepsGroupByUpholstery,
@@ -213,6 +213,7 @@ export function useWorkingSectionStepsController(
       readiness_statuses: readinessStatusFilters.join(","),
       task_types:
         taskTypeFilters.length > 0 ? taskTypeFilters.join(",") : undefined,
+      item_categories: categoryFilters.length > 0 ? categoryFilters : undefined,
       item_position: itemPositionFilter || undefined,
       group_by_upholstery: groupByUpholstery || undefined,
       limit: WORKING_SECTION_STEPS_PAGE_SIZE,
@@ -226,6 +227,7 @@ export function useWorkingSectionStepsController(
       sectionId,
       stateFilters,
       taskTypeFilters,
+      categoryFilters,
     ],
   );
 
@@ -292,31 +294,14 @@ export function useWorkingSectionStepsController(
     () => computeNonTerminalCounts(query.data?.items ?? []),
     [query.data?.items],
   );
-  const activeFilterCount = useMemo(() => {
-    const isDefaultStateFilter =
-      stateFilters.length === DEFAULT_STATE_FILTERS.length &&
-      DEFAULT_STATE_FILTERS.every((state) => stateFilters.includes(state));
-    const stateCount = isDefaultStateFilter ? 0 : stateFilters.length;
-
-    const isDefaultReadinessFilter =
-      readinessStatusFilters.length === DEFAULT_READINESS_STATUS_FILTERS.length &&
-      DEFAULT_READINESS_STATUS_FILTERS.every((s) =>
-        readinessStatusFilters.includes(s),
-      );
-    const readinessCount = isDefaultReadinessFilter ? 0 : readinessStatusFilters.length;
-
-    return (
-      stateCount +
-      readinessCount +
-      taskTypeFilters.length +
-      (itemPositionFilter ? 1 : 0)
-    );
-  }, [
-    itemPositionFilter,
-    readinessStatusFilters,
-    stateFilters,
-    taskTypeFilters,
-  ]);
+  const activeFilterCount = countWorkingSectionStepFilters({
+    states: stateFilters,
+    readinessStatuses: readinessStatusFilters,
+    taskTypes: taskTypeFilters,
+    categoryIds: categoryFilters,
+    itemPosition: itemPositionFilter,
+    groupByUpholstery,
+  }).total;
 
   const handleTransition = useCallback(
     (stepId: TaskStepId, taskId: TaskId, nextState: StepState) => {
@@ -415,30 +400,29 @@ export function useWorkingSectionStepsController(
       selectedStates: stateFilters,
       selectedReadinessStatuses: readinessStatusFilters,
       selectedTaskTypes: taskTypeFilters,
+      selectedCategoryIds: categoryFilters,
+      workingSectionId: sectionId,
       selectedItemPosition: itemPositionFilter,
       selectedGroupByUpholstery: groupByUpholstery,
-      onApply: (
-        newFilters: StepState[],
-        newReadinessStatuses: ReadinessStatus[],
-        newTaskTypes: TaskType[],
-        newItemPosition: string,
-        newGroupByUpholstery: boolean,
-      ) => {
-        setStateFilters(newFilters);
-        setReadinessStatusFilters(newReadinessStatuses);
-        setTaskTypeFilters(newTaskTypes);
-        setItemPositionFilter(newItemPosition);
-        setGroupByUpholstery(newGroupByUpholstery);
+      onChange: (patch) => {
+        if (patch.states) setStateFilters(patch.states);
+        if (patch.readinessStatuses) setReadinessStatusFilters(patch.readinessStatuses);
+        if (patch.taskTypes) setTaskTypeFilters(patch.taskTypes);
+        if (patch.categoryIds) setCategoryFilters(patch.categoryIds);
+        if (patch.itemPosition !== undefined) setItemPositionFilter(patch.itemPosition);
+        if (patch.groupByUpholstery !== undefined) setGroupByUpholstery(patch.groupByUpholstery);
       },
     } as StepStateFilterSheetSurfaceProps);
   }, [
     groupByUpholstery,
+    categoryFilters,
     itemPositionFilter,
     openSurface,
     readinessStatusFilters,
     setGroupByUpholstery,
     stateFilters,
     taskTypeFilters,
+    sectionId,
   ]);
 
   const handleOpenTaskActions = useCallback(
@@ -550,6 +534,7 @@ export function useWorkingSectionStepsController(
     stateFilters,
     readinessStatusFilters,
     taskTypeFilters,
+    categoryFilters,
     itemPositionFilter,
     groupByUpholstery,
     activeFilterCount,

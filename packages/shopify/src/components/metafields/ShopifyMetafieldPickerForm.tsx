@@ -1,4 +1,5 @@
 import type { ShopifyProductSyncMetafieldValue } from "../../types";
+import type { ShopifyMetafieldStep } from "../../lib/shopify-metafield-step";
 import { useShopifyMetafieldPickerController } from "../../controllers/use-shopify-metafield-picker.controller";
 import { ShopifyMetafieldFields } from "./ShopifyMetafieldFields";
 import { ShopifyMetafieldSearch } from "./ShopifyMetafieldSearch";
@@ -8,17 +9,20 @@ export function ShopifyMetafieldPickerForm({
   itemCategoryId,
   value,
   onChange,
+  step,
 }: {
   shopIntegrationIds: string[];
   itemCategoryId: string | null;
   value: ShopifyProductSyncMetafieldValue[];
   onChange: (value: ShopifyProductSyncMetafieldValue[]) => void;
+  step: ShopifyMetafieldStep;
 }): React.JSX.Element {
   const controller = useShopifyMetafieldPickerController({
     shopIntegrationIds,
     itemCategoryId,
     value,
     onChange,
+    step,
   });
   return (
     <section

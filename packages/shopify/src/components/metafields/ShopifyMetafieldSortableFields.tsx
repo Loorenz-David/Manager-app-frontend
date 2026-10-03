@@ -120,7 +120,7 @@ export function ShopifyMetafieldSortableFields({
       return [...rest, ...reordered];
     });
     const activeField = group[oldIndex];
-    controller.reorderPreference(activeField, newIndex);
+    controller.reorderPreference(activeField, group, oldIndex, newIndex);
   }
 
   if (!controller.isEditMode) {

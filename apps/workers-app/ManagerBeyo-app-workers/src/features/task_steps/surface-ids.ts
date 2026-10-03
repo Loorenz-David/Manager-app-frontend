@@ -22,6 +22,8 @@ export const UPHOLSTERY_SELECTION_MISSING_SHEET_SURFACE_ID =
   "task-step-upholstery-selection-missing-sheet";
 export const STEP_STATE_FILTER_SHEET_SURFACE_ID =
   "task-step-state-filter-sheet";
+export const STEP_CATEGORY_FILTER_SHEET_SURFACE_ID =
+  "task-step-category-filter-sheet";
 export const PIN_NOTIFICATIONS_SLIDE_SURFACE_ID =
   "task-step-pin-notifications-slide";
 export const PIN_TASK_STEP_STATES_SHEET_SURFACE_ID =
@@ -97,18 +99,27 @@ export type UpholsterySelectionMissingSheetSurfaceProps = {
 };
 
 export type StepStateFilterSheetSurfaceProps = {
+  workingSectionId: WorkingSectionId;
   selectedStates: StepState[];
   selectedReadinessStatuses: ReadinessStatus[];
   selectedTaskTypes: TaskType[];
+  selectedCategoryIds: string[];
   selectedItemPosition: string;
   selectedGroupByUpholstery: boolean;
-  onApply: (
-    states: StepState[],
-    readinessStatuses: ReadinessStatus[],
-    taskTypes: TaskType[],
-    itemPosition: string,
-    groupByUpholstery: boolean,
-  ) => void;
+  onChange: (patch: Partial<{
+    states: StepState[];
+    readinessStatuses: ReadinessStatus[];
+    taskTypes: TaskType[];
+    categoryIds: string[];
+    itemPosition: string;
+    groupByUpholstery: boolean;
+  }>) => void;
+};
+
+export type StepCategoryFilterSheetSurfaceProps = {
+  workingSectionId: WorkingSectionId;
+  selectedCategoryIds: string[];
+  onSave: (categoryIds: string[]) => void;
 };
 
 export type PinNotificationsSlideSurfaceProps = {
