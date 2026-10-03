@@ -1,0 +1,81 @@
+# publish-static.yml for Loorenz-David/Manager-app-frontend (P8b). Copy unchanged to
+# .github/workflows/publish-static.yml in that repository, together with docker/publish-static-bundle.py
+# (managerbeyo-infrastructure ci/frontend/publish-static-bundle.py). The AWS role mb-ci-publish-frontend trusts ONLY
+# this file, on refs/heads/main, of this repository.
+#
+# Manual only. It never builds: it exports the bundle from the EXISTING image of the given commit (by digest, D40),
+# uploads it to the production static bucket, verifies every object, and — only when "switch" is ticked — points the
+# five applications at that release (CloudFront KeyValueStore). Rollback = run again with the previous SHA.
+name: publish-static
+
+on:
+  workflow_dispatch:
+    inputs:
+      frontend_sha:
+        description: "Frontend commit SHA (40 hex) whose image was built by build-images"
+        required: true
+        type: string
+      switch:
+        description: "Also switch the release pointer to this SHA (makes it the served release)"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-static
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-north-1
+  REGISTRY: 307946675015.dkr.ecr.eu-north-1.amazonaws.com
+  IMAGE: managerbeyo-frontend
+  BUCKET: mb-prod-static-307946675015
+  KVS_ARN: arn:aws:cloudfront::307946675015:key-value-store/985575e2-06ea-46b8-928d-f5c08cd3952c
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the input
+        env:
+          SHA: ${{ inputs.frontend_sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "frontend_sha must be 40 hex characters"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::307946675015:role/mb-ci-publish-frontend
+          role-session-name: gh-publish-static-${{ github.run_id }}
+          aws-region: eu-north-1
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+      - name: Export the bundle from the image, by digest
+        env:
+          SHA: ${{ inputs.frontend_sha }}
+        run: |
+          set -euo pipefail
+          DIGEST=$(aws ecr describe-images --repository-name "$IMAGE" --image-ids imageTag="$SHA" --query 'imageDetails[0].imageDigest' --output text)
+          SRC="$REGISTRY/$IMAGE@$DIGEST"
+          docker pull -q "$SRC"
+          docker/export-static-bundle.sh export "$SRC" bundle
+          docker/export-static-bundle.sh verify "$SRC" bundle
+          echo "SRC=$SRC" >> "$GITHUB_ENV"
+      - name: Upload and verify
+        env:
+          SHA: ${{ inputs.frontend_sha }}
+        run: |
+          set -euo pipefail
+          python3 -m pip install --quiet 'boto3[crt]==1.40.*'
+          python3 docker/publish-static-bundle.py upload bundle "$SHA" "$SRC" --bucket "$BUCKET" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Switch the release pointer
+        if: ${{ inputs.switch }}
+        env:
+          SHA: ${{ inputs.frontend_sha }}
+        run: |
+          set -euo pipefail
+          python3 docker/publish-static-bundle.py switch "$SHA" --bucket "$BUCKET" --kvs-arn "$KVS_ARN" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Current release pointers
+        run: python3 docker/publish-static-bundle.py show --kvs-arn "$KVS_ARN" | tee -a "$GITHUB_STEP_SUMMARY"
