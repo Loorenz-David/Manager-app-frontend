@@ -85,6 +85,50 @@ function dispatchSystemUnavailable(detail: SystemUnavailableDetail): void {
   );
 }
 
+/**
+ * Window event dispatched when a request has had no response for
+ * `SLOW_REQUEST_MS`. It is a hint, not a failure: the request goes on. The
+ * system gate (`@beyo/system-control`) answers it by reading
+ * `GET /system/status`, which is served apart from the application and stays
+ * fast while the application is stopped, so a sleeping system shows within
+ * seconds instead of after the edge gives up on the origin (10 s or more).
+ */
+export const SYSTEM_SLOW_REQUEST_EVENT = "system:slow-request";
+
+export type SystemSlowRequestDetail = {
+  /** The request path as passed to the client, without query parameters. */
+  path: string;
+  /** Whether the pending request was classified `background`. */
+  background: boolean;
+};
+
+/** How long a request may be pending before the hint is dispatched. */
+export const SLOW_REQUEST_MS = 2_000;
+/** At most one hint per classification in this window: a slow page is not a storm of checks. */
+export const SLOW_REQUEST_THROTTLE_MS = 5_000;
+
+const lastSlowHintAt: Record<RequestActivity, number> = {
+  user: Number.NEGATIVE_INFINITY,
+  background: Number.NEGATIVE_INFINITY,
+};
+
+function dispatchSystemSlowRequest(path: string, activity: RequestActivity): void {
+  const now = Date.now();
+  if (now - lastSlowHintAt[activity] < SLOW_REQUEST_THROTTLE_MS) return;
+  lastSlowHintAt[activity] = now;
+  window.dispatchEvent(
+    new CustomEvent<SystemSlowRequestDetail>(SYSTEM_SLOW_REQUEST_EVENT, {
+      detail: { path, background: activity === "background" },
+    }),
+  );
+}
+
+/** Test hook: forgets the throttle, so each test starts with a clean slate. */
+export function resetSlowRequestHintsForTests(): void {
+  lastSlowHintAt.user = Number.NEGATIVE_INFINITY;
+  lastSlowHintAt.background = Number.NEGATIVE_INFINITY;
+}
+
 /** Paths whose 401 is an answer about credentials, never an expired session. */
 const REFRESH_EXEMPT_PATHS: ReadonlySet<string> = new Set([
   "/api/v1/auth/sign-in",
@@ -272,6 +316,10 @@ async function request<T>(
   const token = getAccessToken();
 
   let response: Response;
+  const slowHint = setTimeout(
+    () => dispatchSystemSlowRequest(path, activity),
+    SLOW_REQUEST_MS,
+  );
   try {
     response = await fetch(url, {
       method,
@@ -283,7 +331,9 @@ async function request<T>(
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
+    clearTimeout(slowHint);
   } catch (error) {
+    clearTimeout(slowHint);
     // An abort is the caller's decision, not an outage: rethrow it untouched.
     if (!isAbortError(error) && error instanceof TypeError) {
       throw unavailable(

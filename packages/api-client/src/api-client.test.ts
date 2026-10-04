@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { z } from 'zod';
 
@@ -373,4 +373,63 @@ describe('system:available', () => {
 
     expect(available.events).toHaveLength(0);
   });
+});
+
+describe('system:slow-request', () => {
+  it('fires once a request has been pending for SLOW_REQUEST_MS, with its classification; a fast one never does', async () => {
+    server.use(
+      http.get(`${API_ORIGIN}/api/v1/slow`, async () => {
+        await delay(2_400);
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const { apiClient, SYSTEM_SLOW_REQUEST_EVENT, SLOW_REQUEST_MS } = await import('./api-client');
+    const slow = collectWindowEvents(SYSTEM_SLOW_REQUEST_EVENT);
+    const schema = z.object({ ok: z.literal(true) });
+
+    try {
+      await apiClient.get('/api/v1/things', schema);
+      expect(slow.events).toHaveLength(0);
+
+      const started = Date.now();
+      // The request itself is not failed or aborted by the hint.
+      await expect(
+        apiClient.get('/api/v1/slow', schema, undefined, { activity: 'user' }),
+      ).resolves.toEqual({ ok: true });
+      expect(Date.now() - started).toBeGreaterThanOrEqual(SLOW_REQUEST_MS);
+    } finally {
+      slow.stop();
+    }
+
+    expect(slow.events).toHaveLength(1);
+    expect((slow.events[0] as CustomEvent).detail).toEqual({
+      path: '/api/v1/slow',
+      background: false,
+    });
+  }, 10_000);
+
+  it('several slow requests of one classification give one hint', async () => {
+    server.use(
+      http.get(`${API_ORIGIN}/api/v1/slow`, async () => {
+        await delay(2_400);
+        return HttpResponse.json({ ok: true });
+      }),
+    );
+    const { apiClient, SYSTEM_SLOW_REQUEST_EVENT } = await import('./api-client');
+    const slow = collectWindowEvents(SYSTEM_SLOW_REQUEST_EVENT);
+    const schema = z.object({ ok: z.literal(true) });
+
+    try {
+      await Promise.all([
+        apiClient.get('/api/v1/slow', schema, undefined, { activity: 'background' }),
+        apiClient.get('/api/v1/slow', schema, undefined, { activity: 'background' }),
+        apiClient.get('/api/v1/slow', schema, undefined, { activity: 'background' }),
+      ]);
+    } finally {
+      slow.stop();
+    }
+
+    expect(slow.events).toHaveLength(1);
+    expect((slow.events[0] as CustomEvent).detail.background).toBe(true);
+  }, 10_000);
 });

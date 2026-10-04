@@ -61,6 +61,11 @@ export type MachineContext = {
   recovered: boolean;
   /** A status request is in flight (at most one). */
   checking: boolean;
+  /**
+   * The check in flight was started by a slow request, not by a failure: an
+   * answer of READY (or no answer) means "merely slow" and changes nothing.
+   */
+  peek: boolean;
   /** UNAVAILABLE: react-query is released for one reconnect wave. */
   probing: boolean;
   /** Consecutive failed checks, for the exponential backoff. */
@@ -78,6 +83,8 @@ export type MachineEvent =
   /** A trusted pointerdown/keydown/touchstart on a visible page. */
   | { type: "trusted-input" }
   | { type: "unavailable"; background: boolean }
+  /** A request has been pending for a while (api-client's slow-request hint). */
+  | { type: "slow-request"; background: boolean }
   | { type: "available" }
   /** The FAILED screen's "Try again": re-polls the status, never wakes. */
   | { type: "retry" };
@@ -129,6 +136,7 @@ export function initialContext(visible = true): MachineContext {
     userDemand: false,
     recovered: false,
     checking: false,
+    peek: false,
     probing: false,
     attempt: 0,
   };
@@ -328,6 +336,7 @@ export function transition(
         ...context,
         visible: event.visible,
         checking: false,
+        peek: false,
         probing: false,
         // A wake aborted by the stop may or may not have arrived.
         wake: context.wake === "in_flight" ? "unacknowledged" : context.wake,
@@ -336,7 +345,20 @@ export function transition(
       break;
     }
     case "status-result": {
-      next = applyOutcome({ ...context, checking: false }, event.outcome, effects);
+      const settled = { ...context, checking: false, peek: false };
+      if (context.peek && context.state === "READY") {
+        // A slow request asked. No answer, or READY: the application is only
+        // slow, which is not an outage. Anything else is handled as usual.
+        if (!event.outcome.ok) {
+          next = { ...settled, userDemand: false };
+          break;
+        }
+        if (event.outcome.status.state === "READY") {
+          next = { ...settled, userDemand: false, recovered: false };
+          break;
+        }
+      }
+      next = applyOutcome(settled, event.outcome, effects);
       break;
     }
     case "wake-result": {
@@ -379,7 +401,11 @@ export function transition(
       const userDemand = context.userDemand || !event.background;
       switch (context.state) {
         case "READY":
-          next = requestCheck({ ...context, userDemand, recovered: false }, effects);
+          // A real failure outranks a slow-request peek that may be in flight.
+          next = requestCheck(
+            { ...context, userDemand, recovered: false, peek: false },
+            effects,
+          );
           break;
         case "UNAVAILABLE":
           next = { ...context, userDemand };
@@ -400,6 +426,15 @@ export function transition(
         case "DORMANT":
           break;
       }
+      break;
+    }
+    case "slow-request": {
+      // Only a running application asks: every other state already knows.
+      if (context.state !== "READY") break;
+      const userDemand = context.userDemand || !event.background;
+      next = context.checking
+        ? { ...context, userDemand }
+        : requestCheck({ ...context, userDemand, peek: true }, effects);
       break;
     }
     case "available": {

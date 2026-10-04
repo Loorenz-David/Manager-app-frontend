@@ -2,13 +2,16 @@ export {
   apiClient,
   ApiRequestError,
   INVALID_RESPONSE_ERROR_CODE,
+  SLOW_REQUEST_MS,
   SYSTEM_AVAILABLE_EVENT,
+  SYSTEM_SLOW_REQUEST_EVENT,
   SYSTEM_UNAVAILABLE_EVENT,
   UNAVAILABLE_ERROR_CODE,
 } from './api-client';
 export type {
   ApiCallOptions,
   RequestActivity,
+  SystemSlowRequestDetail,
   SystemUnavailableDetail,
 } from './api-client';
 export {

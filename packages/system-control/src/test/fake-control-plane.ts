@@ -112,6 +112,15 @@ export function dispatchUnavailable(background: boolean): void {
   );
 }
 
+/** api-client's hint that a request has been pending for a while. */
+export function dispatchSlowRequest(background: boolean): void {
+  window.dispatchEvent(
+    new CustomEvent("system:slow-request", {
+      detail: { path: "/api/v1/slow", background },
+    }),
+  );
+}
+
 export function dispatchAvailable(): void {
   window.dispatchEvent(new CustomEvent("system:available"));
 }

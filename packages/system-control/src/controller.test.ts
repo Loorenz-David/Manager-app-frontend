@@ -15,6 +15,7 @@ import {
 import {
   createFakeControlPlane,
   dispatchAvailable,
+  dispatchSlowRequest,
   dispatchUnavailable,
   installVisibility,
   setVisibility,
@@ -533,5 +534,90 @@ describe("unavailable while running", () => {
     await advance(BACKOFF_CAP_MS);
     expect(state()).toBe("READY");
     expect(plane.wakeCalls()).toBe(0);
+  });
+});
+
+describe("slow request while running", () => {
+  it("user request pending + SLEEPING: wakes at once, without waiting for the failure", async () => {
+    const plane = createFakeControlPlane("ready");
+    await startReady(plane);
+    plane.sleep();
+
+    dispatchSlowRequest(false);
+    await flush();
+
+    expect(plane.wakeCalls()).toBe(1);
+    expect(state()).toBe("STARTING");
+    // The failure that arrives later changes nothing and sends no second wake.
+    dispatchUnavailable(false);
+    await advance(10_000);
+    expect(state()).toBe("READY");
+    expect(plane.wakeCalls()).toBe(1);
+  });
+
+  it("background request pending + SLEEPING: DORMANT, no wake", async () => {
+    const plane = createFakeControlPlane("ready");
+    await startReady(plane);
+    plane.sleep();
+
+    dispatchSlowRequest(true);
+    await flush();
+
+    expect(state()).toBe("DORMANT");
+    expect(plane.wakeCalls()).toBe(0);
+  });
+
+  it("the application is only slow (control plane READY): nothing changes", async () => {
+    const plane = createFakeControlPlane("ready");
+    const gate = await startReady(plane);
+    const before = plane.statusCalls();
+
+    dispatchSlowRequest(false);
+    await flush();
+
+    expect(gate.getSnapshot()).toMatchObject({ state: "READY", online: true });
+    expect(plane.statusCalls()).toBe(before + 1);
+    await advance(BACKOFF_CAP_MS);
+    expect(state()).toBe("READY");
+    expect(plane.statusCalls()).toBe(before + 1); // no polling started
+  });
+
+  it("the status cannot be read (slow network): stays READY, no failure screen", async () => {
+    const plane = createFakeControlPlane("ready");
+    await startReady(plane);
+    plane.override("GET", { kind: "network" });
+
+    dispatchSlowRequest(false);
+    await flush();
+
+    expect(state()).toBe("READY");
+  });
+
+  it("a real failure during the peek is handled as a failure (UNAVAILABLE)", async () => {
+    const plane = createFakeControlPlane("ready");
+    const gate = await startReady(plane);
+
+    dispatchSlowRequest(true);
+    dispatchUnavailable(true);
+    await flush();
+
+    expect(gate.getSnapshot()).toMatchObject({ state: "UNAVAILABLE", online: false });
+  });
+
+  it("is ignored outside READY (DORMANT stays asleep until a trusted input)", async () => {
+    const plane = createFakeControlPlane("ready");
+    await startReady(plane);
+    plane.sleep();
+    dispatchUnavailable(true);
+    await flush();
+    expect(state()).toBe("DORMANT");
+    const before = plane.statusCalls();
+
+    dispatchSlowRequest(false);
+    await flush();
+
+    expect(state()).toBe("DORMANT");
+    expect(plane.wakeCalls()).toBe(0);
+    expect(plane.statusCalls()).toBe(before);
   });
 });

@@ -1,6 +1,8 @@
 import {
   SYSTEM_AVAILABLE_EVENT,
+  SYSTEM_SLOW_REQUEST_EVENT,
   SYSTEM_UNAVAILABLE_EVENT,
+  type SystemSlowRequestDetail,
   type SystemUnavailableDetail,
 } from "@beyo/api-client";
 
@@ -206,6 +208,12 @@ export function createSystemController(
       // never wake.
       dispatch({ type: "unavailable", background: detail?.background !== false });
     };
+    const onSlowRequest = (event: Event): void => {
+      const detail = (event as CustomEvent<SystemSlowRequestDetail | undefined>)
+        .detail;
+      // As above: without the flag it is background, and never wakes.
+      dispatch({ type: "slow-request", background: detail?.background !== false });
+    };
     const onAvailable = (): void => dispatch({ type: "available" });
     const inputOptions: AddEventListenerOptions = { capture: true, passive: true };
 
@@ -214,6 +222,7 @@ export function createSystemController(
       window.addEventListener(type, onInput, inputOptions);
     }
     window.addEventListener(SYSTEM_UNAVAILABLE_EVENT, onUnavailable);
+    window.addEventListener(SYSTEM_SLOW_REQUEST_EVENT, onSlowRequest);
     window.addEventListener(SYSTEM_AVAILABLE_EVENT, onAvailable);
 
     return () => {
@@ -222,6 +231,7 @@ export function createSystemController(
         window.removeEventListener(type, onInput, inputOptions);
       }
       window.removeEventListener(SYSTEM_UNAVAILABLE_EVENT, onUnavailable);
+      window.removeEventListener(SYSTEM_SLOW_REQUEST_EVENT, onSlowRequest);
       window.removeEventListener(SYSTEM_AVAILABLE_EVENT, onAvailable);
     };
   }

@@ -109,6 +109,85 @@ function etaLabel(seconds: number | null): string | null {
   return `About ${rounded} seconds left`;
 }
 
+/** Where the bar stands when only the step is known (no time estimate). */
+const PHASE_PROGRESS: Record<SystemPhase, number> = {
+  DATABASE: 0.1,
+  SERVER: 0.4,
+  APPLICATION: 0.65,
+  HEALTH_CHECK: 0.9,
+};
+const PROGRESS_MIN = 0.04;
+/** Never full before READY: the last step is the system's to confirm. */
+const PROGRESS_MAX = 0.97;
+
+/**
+ * How far the start is, 0..1, or null when nothing is known (an indeterminate
+ * bar). `total` is the first estimate of this start: the bar is the share of
+ * it that has gone by. Without an estimate the step gives a fixed position.
+ */
+export function startProgress(
+  remainingSeconds: number | null,
+  totalSeconds: number | null,
+  phase: SystemPhase | null,
+): number | null {
+  if (remainingSeconds !== null && totalSeconds !== null && totalSeconds > 0) {
+    const done = 1 - remainingSeconds / totalSeconds;
+    return Math.min(Math.max(done, PROGRESS_MIN), PROGRESS_MAX);
+  }
+  if (phase) return PHASE_PROGRESS[phase];
+  return null;
+}
+
+type StartProgressBarProps = {
+  remainingSeconds: number | null;
+  phase: SystemPhase | null;
+};
+
+/**
+ * The start as a progress bar. It only moves forward: an estimate that grows
+ * (a step took longer than usual) holds the bar where it is instead of
+ * pulling it back.
+ */
+function StartProgressBar({
+  remainingSeconds,
+  phase,
+}: StartProgressBarProps): React.JSX.Element {
+  const [total, setTotal] = useState<number | null>(null);
+  const [reached, setReached] = useState(0);
+  const computed = startProgress(remainingSeconds, total ?? remainingSeconds, phase);
+
+  useEffect(() => {
+    if (remainingSeconds !== null) {
+      setTotal((current) => current ?? Math.max(remainingSeconds, 1));
+    }
+  }, [remainingSeconds]);
+  useEffect(() => {
+    if (computed !== null) setReached((current) => Math.max(current, computed));
+  }, [computed]);
+
+  const value = computed === null ? null : Math.max(reached, computed);
+  return (
+    <div
+      role="progressbar"
+      aria-label="Starting ManagerBeyo"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={value === null ? undefined : Math.round(value * 100)}
+      data-testid="system-gate-progress"
+      className="h-2 w-64 max-w-full overflow-hidden rounded-full bg-muted"
+    >
+      {value === null ? (
+        <div className="h-full w-1/3 animate-pulse rounded-full bg-foreground motion-reduce:animate-none" />
+      ) : (
+        <div
+          className="h-full rounded-full bg-foreground transition-[width] duration-[3000ms] ease-linear motion-reduce:transition-none"
+          style={{ width: `${(value * 100).toFixed(1)}%` }}
+        />
+      )}
+    </div>
+  );
+}
+
 function Spinner(): React.JSX.Element {
   return (
     <span
@@ -172,8 +251,8 @@ export function SystemGateScreen({
     case "SLEEPING":
       return (
         <Panel testId="system-gate-sleeping" overlay={overlay} role="status" busy>
-          <Spinner />
           <p className="text-base font-medium">Waking ManagerBeyo…</p>
+          <StartProgressBar remainingSeconds={null} phase={null} />
           <p className="text-sm text-muted-foreground">This can take a moment.</p>
         </Panel>
       );
@@ -182,8 +261,11 @@ export function SystemGateScreen({
       const eta = etaLabel(snapshot.estimatedRemainingSeconds);
       return (
         <Panel testId="system-gate-starting" overlay={overlay} role="status" busy>
-          <Spinner />
           <p className="text-base font-medium">Starting ManagerBeyo…</p>
+          <StartProgressBar
+            remainingSeconds={snapshot.estimatedRemainingSeconds}
+            phase={snapshot.phase}
+          />
           {snapshot.phase ? (
             <p className="text-sm text-muted-foreground" data-testid="system-gate-phase">
               {PHASE_LABELS[snapshot.phase]}

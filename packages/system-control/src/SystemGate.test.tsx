@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSystemController } from "./controller";
 import { resetAutomaticReloadMarkerForTests } from "./reload-marker";
 import { getActiveSystemController, getSystemState, subscribeSystemState } from "./store";
-import { SystemGate } from "./SystemGate";
+import { startProgress, SystemGate } from "./SystemGate";
 import {
   createFakeControlPlane,
   dispatchAvailable,
@@ -103,6 +103,40 @@ describe("<SystemGate>", () => {
     expect(mounts).toBe(1);
     expect(plane.wakeCalls()).toBe(1);
     expect(onlineManager.isOnline()).toBe(true);
+  });
+
+  it("STARTING shows a progress bar that follows the estimate and never goes back", async () => {
+    const plane = createFakeControlPlane("sleep", 8);
+    renderGate(plane);
+
+    await advance(0);
+    const bar = () => screen.getByTestId("system-gate-progress");
+    expect(bar().getAttribute("role")).toBe("progressbar");
+    const first = Number(bar().getAttribute("aria-valuenow"));
+    expect(first).toBeGreaterThanOrEqual(4);
+    expect(first).toBeLessThan(20);
+
+    await advance(3_000);
+    const second = Number(bar().getAttribute("aria-valuenow"));
+    expect(second).toBeGreaterThan(first);
+    await advance(3_000);
+    const third = Number(bar().getAttribute("aria-valuenow"));
+    expect(third).toBeGreaterThanOrEqual(second);
+    expect(third).toBeLessThanOrEqual(97);
+
+    await advance(10_000);
+    expect(screen.queryByTestId("system-gate-progress")).toBeNull();
+    expect(screen.getByTestId("app-input")).toBeTruthy();
+  });
+
+  it("startProgress: share of the first estimate, a fixed place per step without one, null when nothing is known", () => {
+    expect(startProgress(100, 100, "SERVER")).toBe(0.04);
+    expect(startProgress(50, 100, "APPLICATION")).toBe(0.5);
+    expect(startProgress(0, 100, "HEALTH_CHECK")).toBe(0.97);
+    expect(startProgress(150, 100, null)).toBe(0.04); // an estimate that grew
+    expect(startProgress(null, null, "SERVER")).toBe(0.4);
+    expect(startProgress(null, 100, "HEALTH_CHECK")).toBe(0.9);
+    expect(startProgress(null, null, null)).toBeNull();
   });
 
   it("shows the waking screen while the wake is in flight", async () => {
