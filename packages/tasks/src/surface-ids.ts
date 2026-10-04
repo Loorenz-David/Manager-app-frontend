@@ -1,4 +1,5 @@
 import type { ItemEconomicsSurfaceOpeners } from "@beyo/item-economics";
+import type { TaskTypeFilter } from "./types";
 
 type CalendarRangeOpenerProps = {
   currentFrom: string | null;
@@ -63,9 +64,14 @@ export type TaskPostHandlingPendingWarningSheetSurfaceProps = {
 };
 
 export type TaskFilterSheetSurfaceProps = {
+  selectedTaskType: TaskTypeFilter;
   selectedItemPosition: string;
   groupByUpholstery: boolean;
-  onApply: (itemPosition: string, groupByUpholstery: boolean) => void;
+  onChange: (patch: Partial<{
+    taskType: TaskTypeFilter;
+    itemPosition: string;
+    groupByUpholstery: boolean;
+  }>) => void;
 };
 
 export type TaskDetailSurfaceProps = {

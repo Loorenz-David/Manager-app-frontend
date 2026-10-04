@@ -9,6 +9,7 @@ import {
   type TasksPageFlow,
 } from "../flows/use-tasks-page.flow";
 import { useTasksPageStore } from "../store/tasks-page.store";
+import { countTaskSheetFilters } from "../lib/task-filter-counts";
 import {
   TASK_ACTIONS_SHEET_SURFACE_ID,
   TASK_DETAIL_SURFACE_ID,
@@ -52,13 +53,11 @@ export function useTasksViewController(): TasksViewController {
     setItemPosition,
     setGroupByUpholstery,
   } = useTasksPageStore();
-  // Grouping is a view mode, not a filter — it does not reduce results, so it is
-  // deliberately excluded from the "filters active" badge count. The completion
-  // sort implied by the ready/resolved pills is excluded for the same reason:
-  // the pills themselves are already counted, the ordering they imply is not a
-  // second filter.
-  const activeFilterCount =
-    taskStates.length + (taskType !== "all" ? 1 : 0) + (itemPosition ? 1 : 0);
+  const activeFilterCount = taskStates.length + countTaskSheetFilters({
+    taskType,
+    itemPosition,
+    groupByUpholstery,
+  }).total;
 
   function openTaskDetail(taskId: string): void {
     useSurfaceStore.getState().open(TASK_DETAIL_SURFACE_ID, {
@@ -75,11 +74,13 @@ export function useTasksViewController(): TasksViewController {
 
   function openFilterSheet(): void {
     useSurfaceStore.getState().open(TASK_FILTER_SHEET_SURFACE_ID, {
+      selectedTaskType: taskType,
       selectedItemPosition: itemPosition,
       groupByUpholstery,
-      onApply: (nextItemPosition: string, nextGroupByUpholstery: boolean) => {
-        setItemPosition(nextItemPosition);
-        setGroupByUpholstery(nextGroupByUpholstery);
+      onChange: (patch) => {
+        if (patch.taskType !== undefined) setTaskType(patch.taskType);
+        if (patch.itemPosition !== undefined) setItemPosition(patch.itemPosition);
+        if (patch.groupByUpholstery !== undefined) setGroupByUpholstery(patch.groupByUpholstery);
       },
     } satisfies TaskFilterSheetSurfaceProps);
   }
