@@ -54,6 +54,7 @@ type ActiveSurface = SurfaceRegistration & {
 type SurfaceState = {
   registry: SurfaceRegistrations;
   stack: ActiveSurface[];
+  closingManyIds: string[];
   navigate?: NavigateFunction;
   init: (registry: SurfaceRegistrations, navigate: NavigateFunction) => void;
   open: (
@@ -64,6 +65,7 @@ type SurfaceState = {
   hydrate: (id: string, props?: Record<string, unknown>) => void;
   close: (id: string) => void;
   closeMany: (ids: string[]) => void;
+  requestCloseMany: (ids: string[]) => void;
   closeTop: () => void;
   closeAll: () => void;
   /**
@@ -163,6 +165,7 @@ export const SurfaceHeaderContext = createContext<SurfaceHeaderValue | null>(
 export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   registry: {},
   stack: [],
+  closingManyIds: [],
   navigate: undefined,
 
   init: (registry, navigate) => set({ registry, navigate }),
@@ -242,10 +245,10 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
   },
 
   close: (id) => {
-    const { stack } = get();
+    const { stack, closingManyIds } = get();
     const nextStack = stack.filter((surface) => surface.id !== id);
     if (nextStack.length === stack.length) return;
-    set({ stack: nextStack });
+    set({ stack: nextStack, closingManyIds: closingManyIds.filter((closingId) => closingId !== id) });
     popSurfaceHistory(stack.length - nextStack.length);
   },
 
@@ -255,36 +258,55 @@ export const useSurfaceStore = create<SurfaceState>((set, get) => ({
     }
 
     const idsToClose = new Set(ids);
-    const { stack } = get();
+    const { stack, closingManyIds } = get();
     const nextStack = stack.filter((surface) => !idsToClose.has(surface.id));
     const removed = stack.length - nextStack.length;
-    if (removed === 0) return;
-    set({ stack: nextStack });
-    popSurfaceHistory(removed);
+    set({
+      stack: nextStack,
+      closingManyIds: closingManyIds.filter((id) => !idsToClose.has(id)),
+    });
+    if (removed > 0) popSurfaceHistory(removed);
+  },
+
+  requestCloseMany: (ids) => {
+    const { stack, closingManyIds } = get();
+    const openIds = ids.filter((id) => stack.some((surface) => surface.id === id));
+    if (openIds.length === 0 || openIds.every((id) => closingManyIds.includes(id))) return;
+    if (openIds.some((id) => stack.find((surface) => surface.id === id)?.surface !== "sheet")) {
+      get().closeMany(openIds);
+      return;
+    }
+    set({ closingManyIds: [...new Set([...closingManyIds, ...openIds])] });
+    window.setTimeout(() => get().closeMany(openIds), 380);
   },
 
   closeTop: () => {
     const { stack } = get();
     if (stack.length === 0) return;
-    set({ stack: stack.slice(0, -1) });
+    const nextStack = stack.slice(0, -1);
+    set({ stack: nextStack, closingManyIds: get().closingManyIds.filter((id) => nextStack.some((surface) => surface.id === id)) });
     popSurfaceHistory(1);
   },
 
   closeAll: () => {
     const { stack } = get();
     if (stack.length === 0) return;
-    set({ stack: [] });
+    set({ stack: [], closingManyIds: [] });
     popSurfaceHistory(stack.length);
   },
 
   // Back navigation already moved history; only reconcile the stack (drop the
   // topmost overlays down to the recorded depth).
   syncToDepth: (depth) =>
-    set((state) =>
-      state.stack.length > depth
-        ? { stack: state.stack.slice(0, Math.max(0, depth)) }
-        : state,
-    ),
+    set((state) => {
+      if (state.stack.length <= depth) return state;
+      const nextStack = state.stack.slice(0, Math.max(0, depth));
+      const activeIds = new Set(nextStack.map((surface) => surface.id));
+      return {
+        stack: nextStack,
+        closingManyIds: state.closingManyIds.filter((id) => activeIds.has(id)),
+      };
+    }),
 }));
 
 type SurfaceShellProps = {
@@ -296,6 +318,7 @@ type SurfaceShellProps = {
   stackIndex?: number;
   showBackdrop?: boolean;
   dismissible?: boolean;
+  closeRequested?: boolean;
   children: ReactNode;
 };
 
@@ -309,13 +332,14 @@ const SURFACE_SHELLS: Record<SurfaceType, ComponentType<SurfaceShellProps>> = {
 
 function SurfaceRenderer(): React.JSX.Element {
   const stack = useSurfaceStore((state) => state.stack);
+  const closingManyIds = useSurfaceStore((state) => state.closingManyIds);
   const close = useSurfaceStore((state) => state.close);
   const [closingSurfaceIds, setClosingSurfaceIds] = useState<Set<string>>(
     new Set(),
   );
   const stateOverlays = stack.filter((surface) => surface.surface !== "page");
   const interactiveOverlays = stateOverlays.filter(
-    (surface) => !closingSurfaceIds.has(surface.id),
+    (surface) => !closingSurfaceIds.has(surface.id) && !closingManyIds.includes(surface.id),
   );
   const topOverlay = interactiveOverlays.at(-1);
   const topSheet = [...stateOverlays]
@@ -326,7 +350,7 @@ function SurfaceRenderer(): React.JSX.Element {
     : -1;
   const topSheetZIndex = 50 + topSheetIndex * 10;
   const isTopSheetClosing = topSheet
-    ? closingSurfaceIds.has(topSheet.id)
+    ? closingSurfaceIds.has(topSheet.id) || closingManyIds.includes(topSheet.id)
     : false;
 
   useEffect(() => {
@@ -348,6 +372,7 @@ function SurfaceRenderer(): React.JSX.Element {
           key="surface-shared-sheet-backdrop"
           animate={{ opacity: isTopSheetClosing ? 0 : 1 }}
           aria-hidden="true"
+          data-testid="surface-shared-sheet-backdrop"
           className="pointer-events-none fixed inset-0 bg-black/30 backdrop-blur-[2px]"
           exit={{ opacity: 0 }}
           initial={{ opacity: 0 }}
@@ -370,7 +395,10 @@ function SurfaceRenderer(): React.JSX.Element {
             <Shell
               isTopmost={isTopmost}
               stackIndex={index}
-              onClose={() => close(entry.id)}
+              onClose={() => {
+                if (useSurfaceStore.getState().closingManyIds.includes(entry.id)) return;
+                close(entry.id);
+              }}
               onStartClose={() => {
                 setClosingSurfaceIds((current) => {
                   if (current.has(entry.id)) {
@@ -384,6 +412,7 @@ function SurfaceRenderer(): React.JSX.Element {
               }}
               showBackdrop={entry.surface === "sheet" ? false : undefined}
               dismissible={entry.dismissible}
+              closeRequested={closingManyIds.includes(entry.id)}
               zIndex={50 + index * 10}
             >
               <SurfacePropsContext.Provider value={entry.props}>

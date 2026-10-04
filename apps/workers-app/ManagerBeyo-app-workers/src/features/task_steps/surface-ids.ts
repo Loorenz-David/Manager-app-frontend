@@ -106,11 +106,11 @@ export type StepStateFilterSheetSurfaceProps = {
   selectedCategoryIds: string[];
   selectedItemPosition: string;
   selectedGroupByUpholstery: boolean;
+  onSaveCategories: (categoryIds: string[]) => Promise<void>;
   onChange: (patch: Partial<{
     states: StepState[];
     readinessStatuses: ReadinessStatus[];
     taskTypes: TaskType[];
-    categoryIds: string[];
     itemPosition: string;
     groupByUpholstery: boolean;
   }>) => void;
@@ -119,7 +119,7 @@ export type StepStateFilterSheetSurfaceProps = {
 export type StepCategoryFilterSheetSurfaceProps = {
   workingSectionId: WorkingSectionId;
   selectedCategoryIds: string[];
-  onSave: (categoryIds: string[]) => void;
+  onSave: (categoryIds: string[]) => Promise<void>;
 };
 
 export type PinNotificationsSlideSurfaceProps = {

@@ -1,12 +1,12 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { StepCategoryFilterSheetPage } from "./StepCategoryFilterSheetPage";
 
 const mocks = vi.hoisted(() => ({
   props: vi.fn(),
-  closeMany: vi.fn(),
+  requestCloseMany: vi.fn(),
   onSave: vi.fn(),
   sectionQuery: vi.fn(),
   categoriesQuery: vi.fn(),
@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@beyo/hooks", () => ({
-  useSurface: () => ({ closeMany: mocks.closeMany }),
+  useSurface: () => ({ requestCloseMany: mocks.requestCloseMany }),
   useSurfaceHeader: () => ({ setTitle: mocks.setTitle, setActions: mocks.setActions }),
   useSurfaceProps: () => mocks.props(),
 }));
@@ -37,6 +37,7 @@ vi.mock("@beyo/item-categories", () => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.onSave.mockResolvedValue(undefined);
   mocks.props.mockReturnValue({
     workingSectionId: "section-1",
     selectedCategoryIds: ["wood-1"],
@@ -75,8 +76,8 @@ describe("StepCategoryFilterSheetPage", () => {
     expect(mocks.onSave).not.toHaveBeenCalled();
     await user.click(screen.getByRole("button", { name: "Save" }));
     expect(mocks.onSave).toHaveBeenCalledWith(["wood-1", "seat-1"]);
-    expect(mocks.closeMany).toHaveBeenCalledOnce();
-    expect(mocks.closeMany).toHaveBeenCalledWith([
+    await waitFor(() => expect(mocks.requestCloseMany).toHaveBeenCalledOnce());
+    expect(mocks.requestCloseMany).toHaveBeenCalledWith([
       "task-step-category-filter-sheet", "task-step-state-filter-sheet",
     ]);
   });
@@ -87,7 +88,7 @@ describe("StepCategoryFilterSheetPage", () => {
     await user.click(screen.getByRole("button", { name: "Seat one" }));
     view.unmount();
     expect(mocks.onSave).not.toHaveBeenCalled();
-    expect(mocks.closeMany).not.toHaveBeenCalled();
+    expect(mocks.requestCloseMany).not.toHaveBeenCalled();
   });
 
   it("clears the filter when the saved selection is empty", async () => {
@@ -126,5 +127,27 @@ describe("StepCategoryFilterSheetPage", () => {
     expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
     await user.click(screen.getByRole("button", { name: "Retry" }));
     expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it("shows progress and waits for the list to be ready before animated close", async () => {
+    let finishSave: (() => void) | undefined;
+    mocks.onSave.mockReturnValue(new Promise<void>((resolve) => { finishSave = resolve; }));
+    const user = userEvent.setup();
+    render(<StepCategoryFilterSheetPage />);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+    expect(mocks.requestCloseMany).not.toHaveBeenCalled();
+    finishSave?.();
+    await waitFor(() => expect(mocks.requestCloseMany).toHaveBeenCalledOnce());
+  });
+
+  it("keeps the picker open and allows retry when applying fails", async () => {
+    mocks.onSave.mockRejectedValueOnce(new Error("Network unavailable"));
+    const user = userEvent.setup();
+    render(<StepCategoryFilterSheetPage />);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not apply the category filter.");
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+    expect(mocks.requestCloseMany).not.toHaveBeenCalled();
   });
 });

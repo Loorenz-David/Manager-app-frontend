@@ -104,6 +104,7 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
     selectedCategoryIds,
     selectedItemPosition,
     selectedGroupByUpholstery,
+    onSaveCategories,
     onChange,
   } = useSurfaceProps<StepStateFilterSheetSurfaceProps>();
   const [localFilters, setLocalFilters] = useState<StepState[]>(
@@ -155,9 +156,10 @@ export function StepStateFilterSheetPage(): React.JSX.Element {
     open(STEP_CATEGORY_FILTER_SHEET_SURFACE_ID, {
       workingSectionId,
       selectedCategoryIds: localCategoryIds,
-      onSave: (ids: string[]) => {
+      onSave: async (ids: string[]) => {
+        if (!onSaveCategories) throw new Error("Category save callback is unavailable");
+        await onSaveCategories(ids);
         setLocalCategoryIds(ids);
-        onChange?.({ categoryIds: ids });
       },
     } satisfies StepCategoryFilterSheetSurfaceProps);
   }

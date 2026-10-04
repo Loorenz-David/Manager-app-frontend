@@ -41,8 +41,10 @@ import {
 } from "@beyo/item-economics";
 import { useTransitionStepState } from "../actions/use-transition-step-state";
 import type { StepBudget } from "../domain/step-budget";
-import { WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
+import { fetchWorkingSectionSteps, WORKING_SECTION_STEPS_PAGE_SIZE } from "../api/fetch-working-section-steps";
+import { taskStepKeys } from "../api/task-step-keys";
 import { usePaginatedWorkingSectionStepsQuery } from "../api/use-working-section-steps";
+import { seedTaskStepDetails } from "../lib/task-step-detail-cache";
 import { buildProceedToStart } from "../lib/build-proceed-to-start";
 import { preloadPinNotificationsSlideSurface } from "../surfaces";
 import {
@@ -230,6 +232,10 @@ export function useWorkingSectionStepsController(
       categoryFilters,
     ],
   );
+  const latestQueryParamsRef = useRef(queryParams);
+  useEffect(() => {
+    latestQueryParamsRef.current = queryParams;
+  }, [queryParams]);
 
   const query = usePaginatedWorkingSectionStepsQuery(queryParams);
 
@@ -404,11 +410,25 @@ export function useWorkingSectionStepsController(
       workingSectionId: sectionId,
       selectedItemPosition: itemPositionFilter,
       selectedGroupByUpholstery: groupByUpholstery,
+      onSaveCategories: async (ids) => {
+        const nextParams = {
+          ...latestQueryParamsRef.current,
+          item_categories: ids.length > 0 ? ids : undefined,
+        };
+        await queryClient.fetchQuery({
+          queryKey: taskStepKeys.sectionList(nextParams),
+          queryFn: async () => {
+            const page = await fetchWorkingSectionSteps(nextParams);
+            seedTaskStepDetails(queryClient, page.items);
+            return page;
+          },
+        });
+        setCategoryFilters(ids);
+      },
       onChange: (patch) => {
         if (patch.states) setStateFilters(patch.states);
         if (patch.readinessStatuses) setReadinessStatusFilters(patch.readinessStatuses);
         if (patch.taskTypes) setTaskTypeFilters(patch.taskTypes);
-        if (patch.categoryIds) setCategoryFilters(patch.categoryIds);
         if (patch.itemPosition !== undefined) setItemPositionFilter(patch.itemPosition);
         if (patch.groupByUpholstery !== undefined) setGroupByUpholstery(patch.groupByUpholstery);
       },
@@ -418,6 +438,7 @@ export function useWorkingSectionStepsController(
     categoryFilters,
     itemPositionFilter,
     openSurface,
+    queryClient,
     readinessStatusFilters,
     setGroupByUpholstery,
     stateFilters,

@@ -8,6 +8,7 @@ import {
   useAllItemCategoryPickerOptionsQuery,
 } from "@beyo/item-categories";
 import { WorkingSectionPickerOptionSchema } from "@beyo/working-sections";
+import { LoaderCircle } from "lucide-react";
 import { z } from "zod";
 import {
   STEP_CATEGORY_FILTER_SHEET_SURFACE_ID,
@@ -21,12 +22,14 @@ const SectionEnvelope = ApiEnvelopeSchema(
 
 export function StepCategoryFilterSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
-  const { closeMany } = useSurface();
+  const { requestCloseMany } = useSurface();
   const { workingSectionId, selectedCategoryIds, onSave } =
     useSurfaceProps<StepCategoryFilterSheetSurfaceProps>();
   const [selectedIds, setSelectedIds] = useState<string[]>(
     selectedCategoryIds ?? [],
   );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   const sectionQuery = useQuery({
     queryKey: ["worker-step-category-filter", "section", workingSectionId],
@@ -60,13 +63,22 @@ export function StepCategoryFilterSheetPage(): React.JSX.Element {
     header?.setActions(null);
   }, [header]);
 
-  function handleSave(): void {
+  async function handleSave(): Promise<void> {
+    if (isSaving) return;
     const allowedIds = new Set(options.map((category) => category.client_id));
-    onSave?.(selectedIds.filter((id) => allowedIds.has(id)));
-    closeMany([
-      STEP_CATEGORY_FILTER_SHEET_SURFACE_ID,
-      STEP_STATE_FILTER_SHEET_SURFACE_ID,
-    ]);
+    setIsSaving(true);
+    setSaveError(false);
+    try {
+      if (!onSave) throw new Error("Category save callback is unavailable");
+      await onSave(selectedIds.filter((id) => allowedIds.has(id)));
+      requestCloseMany([
+        STEP_CATEGORY_FILTER_SHEET_SURFACE_ID,
+        STEP_STATE_FILTER_SHEET_SURFACE_ID,
+      ]);
+    } catch {
+      setSaveError(true);
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -87,21 +99,32 @@ export function StepCategoryFilterSheetPage(): React.JSX.Element {
       ) : options.length === 0 ? (
         <p className="py-6 text-center text-sm text-muted-foreground">No categories are available for this section’s major categories.</p>
       ) : (
-        <ItemCategoryOptionsPicker
-          mode="multiple"
-          categories={options}
-          value={selectedIds}
-          onValueChange={setSelectedIds}
-        />
+        <div inert={isSaving}>
+          <ItemCategoryOptionsPicker
+            mode="multiple"
+            categories={options}
+            value={selectedIds}
+            onValueChange={setSelectedIds}
+          />
+        </div>
       )}
+      {saveError ? (
+        <p role="alert" className="text-sm text-destructive">Could not apply the category filter. Try again.</p>
+      ) : null}
       <button
         type="button"
         className="w-full rounded-xl bg-primary py-3.5 text-md font-semibold text-card disabled:opacity-50"
-        disabled={isLoading || isError}
-        onClick={handleSave}
+        disabled={isLoading || isError || isSaving}
+        onClick={() => { void handleSave(); }}
         data-testid="step-category-filter-save"
+        aria-busy={isSaving}
       >
-        Save
+        {isSaving ? (
+          <span className="inline-flex items-center justify-center gap-2">
+            <LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />
+            Saving...
+          </span>
+        ) : "Save"}
       </button>
     </div>
   );

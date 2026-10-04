@@ -5,6 +5,7 @@ export function useSurface() {
   const hydrate = useSurfaceStore((state) => state.hydrate);
   const close = useSurfaceStore((state) => state.close);
   const closeMany = useSurfaceStore((state) => state.closeMany);
+  const requestCloseMany = useSurfaceStore((state) => state.requestCloseMany);
   const closeTop = useSurfaceStore((state) => state.closeTop);
   const closeAll = useSurfaceStore((state) => state.closeAll);
   const stack = useSurfaceStore((state) => state.stack);
@@ -14,6 +15,7 @@ export function useSurface() {
     hydrate,
     close,
     closeMany,
+    requestCloseMany,
     closeTop,
     closeAll,
     isOpen: (id: string) => stack.some((surface) => surface.id === id),

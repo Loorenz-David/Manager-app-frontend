@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   props: vi.fn(),
   open: vi.fn(),
   onChange: vi.fn(),
+  onSaveCategories: vi.fn(),
   setTitle: vi.fn(),
   setActions: vi.fn(),
 }));
@@ -34,6 +35,7 @@ beforeEach(() => {
     selectedItemPosition: "",
     selectedGroupByUpholstery: false,
     onChange: mocks.onChange,
+    onSaveCategories: mocks.onSaveCategories,
   });
 });
 afterEach(cleanup);
@@ -68,8 +70,8 @@ describe("StepStateFilterSheetPage", () => {
     expect(mocks.onChange).toHaveBeenLastCalledWith({ taskTypes: ["return", "internal"] });
     await user.click(screen.getByTestId("step-category-filter-trigger"));
     const openedProps = mocks.open.mock.calls.at(-1)?.[1] as { onSave: (ids: string[]) => void };
-    act(() => openedProps.onSave(["category-1", "category-2"]));
-    expect(mocks.onChange).toHaveBeenLastCalledWith({ categoryIds: ["category-1", "category-2"] });
+    await act(async () => openedProps.onSave(["category-1", "category-2"]));
+    expect(mocks.onSaveCategories).toHaveBeenCalledWith(["category-1", "category-2"]);
     expect(screen.getByTestId("step-filter-task-drawer-count")).toHaveTextContent("4");
     expect(screen.getByTestId("step-category-filter-trigger")).toHaveClass("bg-card");
 

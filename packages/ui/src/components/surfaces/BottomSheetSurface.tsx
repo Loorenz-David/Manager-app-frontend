@@ -13,6 +13,7 @@ type Props = {
   isTopmost: boolean;
   showBackdrop?: boolean;
   dismissible?: boolean;
+  closeRequested?: boolean;
   children: ReactNode;
 };
 
@@ -38,6 +39,7 @@ export function BottomSheetSurface({
   isTopmost,
   showBackdrop = true,
   dismissible = true,
+  closeRequested = false,
   children,
 }: Props): React.JSX.Element {
   const [isOpen, setIsOpen] = useState(true);
@@ -48,7 +50,7 @@ export function BottomSheetSurface({
 
   // Hold the transition gate while the sheet slides down, so list work queued
   // with `runWhenUiSettled` runs on the settled list rather than mid-close.
-  useUiTransitionToken(!isOpen);
+  useUiTransitionToken(!isOpen || closeRequested);
 
   // The animated close: fade the shared backdrop, let Vaul slide the sheet
   // down, then remove the surface from the stack once the motion has ended.
@@ -75,7 +77,7 @@ export function BottomSheetSurface({
   // only these — the page itself can still close through `requestClose`, and
   // that close animates like any other.
   function handleClose(): void {
-    if (!dismissible) return;
+    if (!dismissible || closeRequested) return;
     closeAnimated();
   }
 
@@ -98,20 +100,20 @@ export function BottomSheetSurface({
         modal={false}
         repositionInputs={false}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !closeRequested) {
             handleClose();
           }
         }}
-        open={isOpen}
+        open={isOpen && !closeRequested}
       >
         <Drawer.Portal>
           {showBackdrop ? (
             <m.button
-              animate={isOpen && isTopmost ? { opacity: 1 } : { opacity: 0 }}
+              animate={isOpen && !closeRequested && isTopmost ? { opacity: 1 } : { opacity: 0 }}
               aria-label="Close sheet"
               className={cn(
                 "fixed inset-0 bg-black/30 backdrop-blur-[2px]",
-                isOpen && isTopmost
+                isOpen && !closeRequested && isTopmost
                   ? "pointer-events-auto"
                   : "pointer-events-none",
               )}
@@ -126,7 +128,7 @@ export function BottomSheetSurface({
               aria-label="Close sheet"
               className={cn(
                 "fixed inset-0 bg-transparent",
-                isOpen && isTopmost
+                isOpen && !closeRequested && isTopmost
                   ? "pointer-events-auto"
                   : "pointer-events-none",
               )}
