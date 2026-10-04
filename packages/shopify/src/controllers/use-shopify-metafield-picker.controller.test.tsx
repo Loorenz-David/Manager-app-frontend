@@ -89,7 +89,12 @@ describe("useShopifyMetafieldPickerController step filtering", () => {
     });
   });
 
-  it("shows condition fields only in Report and searches Shopify for them on entry", async () => {
+  it("shows saved Report fields on entry and searches for additional condition fields only after typing", async () => {
+    mocks.categoryQuery.mockReturnValue({
+      data: { pages: [page(saved, [definition("Implicit condition", "implicit")])] },
+      isPending: false,
+      fetchStatus: "idle",
+    });
     const onChange = vi.fn();
     const value = [{ shopIntegrationId: "shop-1", shopifyMetafieldDefinitionId: "material", namespace: "custom", key: "material", type: "single_line_text_field", value: "Cotton" }];
     const { result } = renderHook(() => useShopifyMetafieldPickerController({
@@ -101,15 +106,35 @@ describe("useShopifyMetafieldPickerController step filtering", () => {
     }));
 
     await waitFor(() => expect(result.current.activeFields.map((field) => field.name)).toEqual([
-      "First condition", "Second CONDITION", "Third condition",
+      "First condition", "Second CONDITION",
     ]));
-    expect(mocks.searchQuery).toHaveBeenCalledWith(expect.objectContaining({ q: "condition", enabled: true }));
+    expect(mocks.searchQuery).toHaveBeenCalledWith(expect.objectContaining({ q: "", enabled: false }));
+    expect(result.current.hasMoreSearchResults).toBe(false);
+    act(() => result.current.loadMoreSearchResults());
+    expect(mocks.fetchNextPage).not.toHaveBeenCalled();
+
+    act(() => result.current.setSearchQuery("Third"));
+    await waitFor(() => expect(mocks.searchQuery).toHaveBeenCalledWith(
+      expect.objectContaining({ q: "Third", enabled: true }),
+    ));
+    await waitFor(() => expect(result.current.activeFields.map((field) => field.name)).toEqual([
+      "Third condition",
+    ]));
+    expect(result.current.hasMoreSearchResults).toBe(true);
     act(() => result.current.loadMoreSearchResults());
     expect(mocks.fetchNextPage).toHaveBeenCalledOnce();
+    act(() => result.current.setSearchQuery(""));
+    await waitFor(() => expect(result.current.activeFields.map((field) => field.name)).toEqual([
+      "First condition", "Second CONDITION",
+    ]));
     act(() => result.current.updateFieldValue(result.current.activeFields[0], "Good"));
     expect(onChange).toHaveBeenCalledWith(expect.arrayContaining([
       expect.objectContaining({ key: "material", value: "Cotton" }),
       expect.objectContaining({ key: "first", value: "Good" }),
+    ]));
+    act(() => result.current.setSearchQuery("Third"));
+    await waitFor(() => expect(result.current.activeFields.map((field) => field.name)).toEqual([
+      "Third condition",
     ]));
     const searchedField = result.current.activeFields.find((field) => field.name === "Third condition");
     expect(searchedField).toBeDefined();

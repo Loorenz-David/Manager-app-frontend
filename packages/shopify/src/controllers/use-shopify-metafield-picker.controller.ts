@@ -104,11 +104,6 @@ export function useShopifyMetafieldPickerController({
   }, [searchQuery]);
 
   const hasValidSearch = debouncedQuery.trim().length > 0;
-  const effectiveSearchQuery = hasValidSearch
-    ? debouncedQuery
-    : step === "report"
-      ? "condition"
-      : "";
   const categoryQuery = useShopifyMetafieldPreferencesCategoryQuery({
     shopIntegrationIds: normalizedShopIds,
     itemCategoryId,
@@ -116,8 +111,8 @@ export function useShopifyMetafieldPickerController({
   });
   const searchQueryResult = useShopifyMetafieldPreferencesSearchInfiniteQuery({
     shopIntegrationIds: normalizedShopIds,
-    q: effectiveSearchQuery,
-    enabled: (hasValidSearch || step === "report") && !isEditMode,
+    q: debouncedQuery,
+    enabled: hasValidSearch && !isEditMode,
   });
   const integrations = shopsQuery.data?.shops ?? EMPTY_INTEGRATIONS;
   const mergedCategoryData = useMemo(
@@ -196,8 +191,9 @@ export function useShopifyMetafieldPickerController({
   // Single derivation for the non-edit-mode field list: saved preferences
   // that match the live search (or all of them, with no active search),
   // plus whichever unsaved "search_result" set is currently live — the
-  // implicit empty-category browse when there's no search text, or the
-  // real q-driven matches while actively searching. Recomputing the whole
+  // implicit empty-category browse on Metafields when there's no search
+  // text, or the real q-driven matches while actively searching. Report
+  // waits for a search before showing unsaved definitions. Recomputing the whole
   // list here (rather than only ever appending) is what lets stale matches
   // from an earlier, now-superseded query text drop out. A field the user
   // has already typed a value into is always kept regardless, so
@@ -215,9 +211,9 @@ export function useShopifyMetafieldPickerController({
         }
       };
 
-      if (hasValidSearch || step === "report") {
+      if (hasValidSearch) {
         searchResults.forEach(addUnique);
-      } else {
+      } else if (step === "metafields") {
         categorySearchResults.forEach(addUnique);
       }
 
@@ -433,19 +429,17 @@ export function useShopifyMetafieldPickerController({
       searchQueryResult.isFetching && !searchQueryResult.isFetchingNextPage,
     categoryError: categoryQuery.error,
     searchError: searchQueryResult.error,
-    // Whichever query is currently driving unsaved "search_result" fields —
-    // the real q-driven search, or the implicit empty-category browse — is
-    // the one that can have more pages.
-    hasMoreSearchResults: hasValidSearch || step === "report"
+    // Report has no implicit browse, so pagination starts after a search.
+    hasMoreSearchResults: hasValidSearch
       ? searchQueryResult.hasNextPage
-      : categoryQuery.hasNextPage,
-    isLoadingMoreSearchResults: hasValidSearch || step === "report"
+      : step === "metafields" && categoryQuery.hasNextPage,
+    isLoadingMoreSearchResults: hasValidSearch
       ? searchQueryResult.isFetchingNextPage
-      : categoryQuery.isFetchingNextPage,
+      : step === "metafields" && categoryQuery.isFetchingNextPage,
     loadMoreSearchResults: () => {
-      if (hasValidSearch || step === "report") {
+      if (hasValidSearch) {
         void searchQueryResult.fetchNextPage();
-      } else {
+      } else if (step === "metafields") {
         void categoryQuery.fetchNextPage();
       }
     },
