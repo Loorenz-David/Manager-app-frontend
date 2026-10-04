@@ -187,6 +187,30 @@ describe("<SystemGate>", () => {
     expect(screen.getByTestId("app-input")).toBeTruthy();
   });
 
+  it("'Try again' shows that it was pressed and cannot be pressed twice in a row", async () => {
+    const plane = createFakeControlPlane("ready");
+    plane.override("GET", { kind: "network" });
+    renderGate(plane);
+    await advance(0);
+
+    const button = () => screen.getByTestId("system-gate-retry") as HTMLButtonElement;
+    expect(button().textContent).toBe("Try again");
+    expect(button().disabled).toBe(false);
+
+    const before = plane.statusCalls();
+    fireEvent.click(button());
+    await advance(0);
+    expect(button().textContent).toBe("Checking…");
+    expect(button().disabled).toBe(true);
+    fireEvent.click(button()); // a disabled button takes no click
+    await advance(0);
+    expect(plane.statusCalls()).toBe(before + 1);
+
+    await advance(1_500);
+    expect(button().textContent).toBe("Try again");
+    expect(button().disabled).toBe(false);
+  });
+
   it("READY then API failing: a non-blocking reconnecting overlay over the same children", async () => {
     const plane = createFakeControlPlane("ready");
     renderGate(plane);

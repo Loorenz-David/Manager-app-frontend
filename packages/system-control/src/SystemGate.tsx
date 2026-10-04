@@ -224,6 +224,40 @@ function Panel({ testId, overlay, role, children, busy }: PanelProps): React.JSX
   );
 }
 
+/** How long "Try again" shows that it was pressed (a check itself often answers in milliseconds). */
+export const RETRY_FEEDBACK_MS = 1_500;
+
+/**
+ * "Try again" re-reads the status now instead of waiting for the next automatic
+ * retry. A press must be seen: the button says "Checking…" and cannot be
+ * pressed again until the feedback time has passed.
+ */
+function RetryButton({ onRetry }: { onRetry: () => void }): React.JSX.Element {
+  const [checking, setChecking] = useState(false);
+
+  useEffect(() => {
+    if (!checking) return;
+    const timer = setTimeout(() => setChecking(false), RETRY_FEEDBACK_MS);
+    return () => clearTimeout(timer);
+  }, [checking]);
+
+  return (
+    <button
+      type="button"
+      data-testid="system-gate-retry"
+      disabled={checking}
+      aria-busy={checking || undefined}
+      onClick={() => {
+        setChecking(true);
+        onRetry();
+      }}
+      className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground disabled:opacity-60"
+    >
+      {checking ? "Checking…" : "Try again"}
+    </button>
+  );
+}
+
 type SystemGateScreenProps = {
   snapshot: SystemSnapshot;
   onRetry: () => void;
@@ -285,14 +319,7 @@ export function SystemGateScreen({
         <Panel testId="system-gate-failed" overlay={overlay} role="alert">
           <p className="text-base font-medium">{failureMessage(snapshot.failure)}</p>
           <p className="text-sm text-muted-foreground">Retrying automatically…</p>
-          <button
-            type="button"
-            data-testid="system-gate-retry"
-            onClick={onRetry}
-            className="rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground"
-          >
-            Try again
-          </button>
+          <RetryButton onRetry={onRetry} />
         </Panel>
       );
 
