@@ -20,6 +20,16 @@ on:
         required: true
         type: boolean
         default: false
+  # Called by release-production.yml (the "Release to production" button) after the server deploy.
+  workflow_call:
+    inputs:
+      frontend_sha:
+        required: true
+        type: string
+      switch:
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
