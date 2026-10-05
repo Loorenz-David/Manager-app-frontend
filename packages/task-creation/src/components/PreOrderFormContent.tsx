@@ -161,6 +161,7 @@ export function PreOrderFormContent({
   const [positionErrorRevealNonce, setPositionErrorRevealNonce] = useState(0);
   const [submitOverlayPhase, setSubmitOverlayPhase] =
     useState<TaskCreationSubmitOverlayPhase | null>(null);
+  const [submittedWithShopify, setSubmittedWithShopify] = useState(false);
   const { submittedSku, beginSubmission, resolveFinal, clear: clearSubmittedSku } =
     useProvisionalSkuDisplay();
   const [missingItemSkuWarning, setMissingItemSkuWarning] = useState(false);
@@ -405,6 +406,7 @@ export function PreOrderFormContent({
         // the preview — which a concurrent submit can still take.
         beginSubmission(values.item.sku?.trim(), skuPreview);
         setMissingItemSkuWarning(false);
+        setSubmittedWithShopify(Boolean(shopifyPreorderSection));
         setSubmitOverlayPhase("creating");
 
         try {
@@ -418,6 +420,12 @@ export function PreOrderFormContent({
             // An existing item matched by article number can carry no SKU at
             // all, and the queued Shopify product then inherits that gap.
             setMissingItemSkuWarning(true);
+          }
+
+          // Without a Shopify request, the API response completes creation;
+          // there will be no shopify.preorder.processed event to wait for.
+          if (!shopifyPreorderSection) {
+            setSubmitOverlayPhase("succeeded");
           }
 
           callbacks.onTaskCreated?.({
@@ -497,7 +505,8 @@ export function PreOrderFormContent({
       );
     },
   );
-  const isAwaitingShopifyOrder = submitOverlayPhase === "creating";
+  const isAwaitingShopifyOrder =
+    submittedWithShopify && submitOverlayPhase === "creating";
 
   useEffect(() => {
     if (!isAwaitingShopifyOrder) {
@@ -544,11 +553,15 @@ export function PreOrderFormContent({
       ? null
       : {
           creating: {
-            title: "Creating pre-order and Shopify order…",
+            title: submittedWithShopify
+              ? "Creating pre-order and Shopify order…"
+              : "Creating pre-order…",
             description: undefined as string | undefined,
           },
           succeeded: {
-            title: "Pre-order and Shopify order created",
+            title: submittedWithShopify
+              ? "Pre-order and Shopify order created"
+              : "Pre-order created",
             description: missingItemSkuWarning
               ? "The item has no SKU, so the Shopify product was created without one."
               : undefined,
