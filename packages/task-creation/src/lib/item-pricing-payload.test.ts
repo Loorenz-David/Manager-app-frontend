@@ -109,6 +109,55 @@ describe("inline item pricing schemas", () => {
     );
   });
 
+  it("allows a complete Pre-order without Shopify when there are no shops", () => {
+    const values = buildPreOrderValues({
+      has_shopify_shops: false,
+      shopIntegrationIds: [],
+      inventoryQuantities: [],
+    });
+
+    expect(PreOrderFormSchema.safeParse(values).success).toBe(true);
+    expect(buildShopifyPreorderSection(values)).toBeUndefined();
+  });
+
+  it.each([true, undefined])(
+    "requires a shop unless availability is confirmed empty (%s)",
+    (has_shopify_shops) => {
+      const result = PreOrderFormSchema.safeParse(
+        buildPreOrderValues({
+          has_shopify_shops,
+          shopIntegrationIds: [],
+          inventoryQuantities: [],
+        }),
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues).toContainEqual(
+        expect.objectContaining({
+          path: ["shopIntegrationIds"],
+          message: "Select a Shopify shop.",
+        }),
+      );
+    },
+  );
+
+  it("still requires inventory for a selected shop", () => {
+    const result = PreOrderFormSchema.safeParse(
+      buildPreOrderValues({
+        has_shopify_shops: false,
+        inventoryQuantities: [],
+      }),
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toContainEqual(
+      expect.objectContaining({
+        path: ["inventoryQuantities"],
+        message: "Select at least one inventory location.",
+      }),
+    );
+  });
+
   it.each([
     [
       "category type",

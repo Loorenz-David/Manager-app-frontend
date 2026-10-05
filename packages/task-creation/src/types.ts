@@ -240,6 +240,8 @@ export const PreOrderFormSchema = z
     note_content: z.custom<TaskNoteComposerValue>().nullable().optional(),
     shopIntegrationIds: z.array(z.string()),
     inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema),
+    /** False only after the shop list confirms there are no Shopify options. */
+    has_shopify_shops: z.boolean().optional(),
     /**
      * Mirrors whether the workspace has a SKU template for pre-orders, kept in
      * the form so validation stays a single static schema. When it does, a
@@ -283,13 +285,14 @@ export const PreOrderFormSchema = z
     // allocation_20260804 §4, §8.5).
 
     const shopIntegrationId = data.shopIntegrationIds[0];
-    if (!shopIntegrationId) {
+    if (!shopIntegrationId && data.has_shopify_shops !== false) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: "Select a Shopify shop.",
         path: ["shopIntegrationIds"],
       });
     } else if (
+      shopIntegrationId &&
       !data.inventoryQuantities.some(
         (entry) => entry.shopIntegrationId === shopIntegrationId,
       )

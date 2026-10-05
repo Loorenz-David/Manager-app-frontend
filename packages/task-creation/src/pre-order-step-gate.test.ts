@@ -73,6 +73,18 @@ describe("PRE_ORDER_STEP_FIELDS_MAP", () => {
     ).resolves.toBe(false);
   });
 
+  it("releases the details step when no Shopify shops are available", async () => {
+    await expect(
+      triggerStep(
+        buildValues({
+          customer: shopifyPrefilledCustomer,
+          has_shopify_shops: false,
+        }),
+        "details",
+      ),
+    ).resolves.toBe(true);
+  });
+
   it("releases the details step once shop and inventory are selected", async () => {
     await expect(
       triggerStep(

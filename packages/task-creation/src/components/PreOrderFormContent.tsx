@@ -20,6 +20,7 @@ import { usePreloadSurface, useStagedForm, useSurface } from "@beyo/hooks";
 import { ItemCategorySelectionField } from "@beyo/item-categories";
 import { ItemPricingFieldGroup } from "@beyo/item-economics";
 import { useSocket } from "@beyo/realtime";
+import { useListShopifyShopsQuery } from "@beyo/shopify";
 import {
   ContentCard,
   StagedForm,
@@ -200,6 +201,11 @@ export function PreOrderFormContent({
     entity_client_id: itemClientId,
   });
   const productImage = selectPreorderProductImage(itemImagesQuery.data);
+  // Shares the shop picker's query cache. Loading or failed requests must not
+  // be treated as confirmation that Shopify is unavailable.
+  const shopsQuery = useListShopifyShopsQuery();
+  const hasNoShopifyShops =
+    shopsQuery.isSuccess && shopsQuery.data.shops.length === 0;
   const surface = useSurface();
   const form = useForm<PreOrderFormValues>({
     resolver: zodResolver(PreOrderFormSchema),
@@ -207,6 +213,16 @@ export function PreOrderFormContent({
     reValidateMode: "onChange",
     defaultValues: buildPreOrderFormDefaultValues(hasSkuTemplate),
   });
+
+  useEffect(() => {
+    form.setValue("has_shopify_shops", !hasNoShopifyShops);
+    if (hasNoShopifyShops) {
+      // Drop stale selections so submission also omits the Shopify payload.
+      form.setValue("shopIntegrationIds", []);
+      form.setValue("inventoryQuantities", []);
+      form.clearErrors(["shopIntegrationIds", "inventoryQuantities"]);
+    }
+  }, [form, hasNoShopifyShops]);
 
   // The template lookup usually resolves after mount, so the flag the schema
   // validates against is kept in sync rather than only seeded. Without a

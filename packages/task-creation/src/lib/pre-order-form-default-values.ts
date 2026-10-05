@@ -10,6 +10,7 @@ export function buildPreOrderFormDefaultValues(
 ): PreOrderFormValues {
   return {
     has_sku_template: hasSkuTemplate,
+    has_shopify_shops: true,
     assortment: undefined,
     item: {
       designer: "",
