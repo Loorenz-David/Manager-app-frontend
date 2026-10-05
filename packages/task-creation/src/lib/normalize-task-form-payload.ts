@@ -294,7 +294,11 @@ export function buildShopifyPreorderSection(
     values.item.quantity,
   );
 
-  if (!shopIntegrationId) {
+  if (
+    !shopIntegrationId ||
+    values.has_shopify_shops === false ||
+    values.shopify_inventory_unavailable_for === shopIntegrationId
+  ) {
     return undefined;
   }
 

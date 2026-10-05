@@ -99,4 +99,17 @@ describe("PRE_ORDER_STEP_FIELDS_MAP", () => {
       ),
     ).resolves.toBe(true);
   });
+
+  it("releases the details step when the selected shop's inventory is unavailable", async () => {
+    await expect(
+      triggerStep(
+        buildValues({
+          customer: shopifyPrefilledCustomer,
+          shopIntegrationIds: ["shpint_1"],
+          shopify_inventory_unavailable_for: "shpint_1",
+        }),
+        "details",
+      ),
+    ).resolves.toBe(true);
+  });
 });

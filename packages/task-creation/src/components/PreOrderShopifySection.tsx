@@ -31,6 +31,10 @@ export function PreOrderShopifySection(): React.JSX.Element {
   const shopIntegrationIds =
     useWatch({ control, name: "shopIntegrationIds" }) ?? [];
   const selectedShopIntegrationId = shopIntegrationIds[0];
+  const inventoryUnavailableFor = useWatch({
+    control,
+    name: "shopify_inventory_unavailable_for",
+  });
 
   useEffect(() => {
     if (shopIntegrationIds.length > 1) {
@@ -67,6 +71,13 @@ export function PreOrderShopifySection(): React.JSX.Element {
           shopIntegrationId={selectedShopIntegrationId}
           shopIntegrationIds={shopIntegrationIds}
         />
+      ) : null}
+      {selectedShopIntegrationId &&
+      inventoryUnavailableFor === selectedShopIntegrationId ? (
+        <p className="text-sm text-muted-foreground">
+          Shopify creation is unavailable. You can continue creating this
+          pre-order without a Shopify product or order.
+        </p>
       ) : null}
       {inventoryError ? (
         <FieldErrorPill

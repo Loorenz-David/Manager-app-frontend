@@ -242,6 +242,8 @@ export const PreOrderFormSchema = z
     inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema),
     /** False only after the shop list confirms there are no Shopify options. */
     has_shopify_shops: z.boolean().optional(),
+    /** Shop whose inventory lookup has completed without selectable locations. */
+    shopify_inventory_unavailable_for: z.string().optional(),
     /**
      * Mirrors whether the workspace has a SKU template for pre-orders, kept in
      * the form so validation stays a single static schema. When it does, a
@@ -293,6 +295,7 @@ export const PreOrderFormSchema = z
       });
     } else if (
       shopIntegrationId &&
+      data.shopify_inventory_unavailable_for !== shopIntegrationId &&
       !data.inventoryQuantities.some(
         (entry) => entry.shopIntegrationId === shopIntegrationId,
       )
