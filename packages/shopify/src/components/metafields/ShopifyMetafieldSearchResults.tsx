@@ -1,4 +1,5 @@
 import type { ShopifyMetafieldField } from "../../types";
+import { shopifyMetafieldDisplayName } from "../../lib/shopify-metafield-step";
 
 export function ShopifyMetafieldSearchResults({
   fields,
@@ -21,7 +22,7 @@ export function ShopifyMetafieldSearchResults({
           data-testid={`shopify-metafield-search-result-${field.identity}`}
         >
           <span>
-            <span className="block text-sm font-medium">{field.name}</span>
+            <span className="block text-sm font-medium">{shopifyMetafieldDisplayName(field.name)}</span>
             <span className="block text-xs text-muted-foreground">
               {field.namespace}.{field.key} · {field.type}
             </span>

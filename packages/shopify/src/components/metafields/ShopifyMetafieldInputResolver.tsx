@@ -3,6 +3,7 @@ import { GripVertical, Plus, X } from "lucide-react";
 
 import { parseMetafieldChoices } from "../../lib/parse-metafield-choices";
 import { resolveMetafieldInputKind } from "../../lib/resolve-shopify-metafield-input";
+import { shopifyMetafieldDisplayName } from "../../lib/shopify-metafield-step";
 import type { ShopifyMetafieldField } from "../../types";
 import { ShopifyMetafieldUnsupportedField } from "./ShopifyMetafieldUnsupportedField";
 import { ShopifyMetafieldChoiceInput } from "./inputs/ShopifyMetafieldChoiceInput";
@@ -36,10 +37,11 @@ export function ShopifyMetafieldInputResolver({
 }): React.JSX.Element {
   const inputId = `shopify-metafield-${encodeURIComponent(field.identity)}`;
   const kind = resolveMetafieldInputKind(field);
+  const displayName = shopifyMetafieldDisplayName(field.name);
   return (
     <div className="flex flex-col gap-2">
       <FieldLabelRow
-        label={field.name}
+        label={displayName}
         htmlFor={kind === "unsupported" ? undefined : inputId}
       >
         {kind === "dimension" ? (
@@ -98,7 +100,7 @@ export function ShopifyMetafieldInputResolver({
                 className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-2 text-sm text-card shadow-sm disabled:opacity-50"
                 onClick={onAdd}
                 disabled={disabled || isMutating}
-                aria-label={`Add ${field.name}`}
+                aria-label={`Add ${displayName}`}
                 data-testid={`shopify-metafield-add-${field.identity}`}
               >
                 <Plus aria-hidden="true" className="size-4" />
@@ -128,7 +130,7 @@ export function ShopifyMetafieldInputResolver({
             type="button"
             className="inline-flex size-12 shrink-0 touch-none items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-50"
             disabled={disabled || isMutating}
-            aria-label={`Reorder ${field.name}`}
+            aria-label={`Reorder ${displayName}`}
             data-testid={`shopify-metafield-drag-handle-${field.identity}`}
             {...dragHandleProps}
           >

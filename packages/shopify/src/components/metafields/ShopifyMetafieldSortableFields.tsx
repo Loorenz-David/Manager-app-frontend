@@ -19,6 +19,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import type { ShopifyMetafieldField } from "../../types";
+import { shopifyMetafieldDisplayName } from "../../lib/shopify-metafield-step";
 import type { ShopifyMetafieldPickerController } from "../../controllers/use-shopify-metafield-picker.controller";
 import { ShopifyMetafieldField as ShopifyMetafieldFieldComponent } from "./ShopifyMetafieldField";
 
@@ -173,7 +174,7 @@ export function ShopifyMetafieldSortableFields({
             {activeField &&
             group.some((field) => field.identity === activeId) ? (
               <div className="rounded-md bg-card border border-light-border p-3 shadow-xl">
-                <p className="text-sm font-medium">{activeField.name}</p>
+                <p className="text-sm font-medium">{shopifyMetafieldDisplayName(activeField.name)}</p>
               </div>
             ) : null}
           </DragOverlay>

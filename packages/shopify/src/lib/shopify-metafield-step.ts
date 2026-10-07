@@ -4,6 +4,11 @@ export type ShopifyMetafieldStep = "metafields" | "report";
 
 const CONDITION_WORD = /(^|[^\p{L}\p{N}])condition(?=$|[^\p{L}\p{N}])/iu;
 
+/** Hide the Report naming prefix in labels without changing Shopify identity. */
+export function shopifyMetafieldDisplayName(name: string): string {
+  return name.replace(/^\s*condition\s*\.\s*/iu, "").trim() || name;
+}
+
 export function isReportMetafieldName(name: string): boolean {
   return CONDITION_WORD.test(name);
 }
