@@ -13,22 +13,25 @@ type TasksPageStoreState = {
   q: string;
   itemPosition: string;
   groupByUpholstery: boolean;
+  showDeleted: boolean;
   setTaskType: (value: TaskTypeFilter) => void;
   setTaskStates: (value: TaskState[]) => void;
   setQ: (value: string) => void;
   setItemPosition: (value: string) => void;
   setGroupByUpholstery: (value: boolean) => void;
+  setShowDeleted: (value: boolean) => void;
   reset: () => void;
 };
 
 const INITIAL_STATE: Pick<
   TasksPageStoreState,
-  "taskType" | "taskStates" | "q" | "itemPosition"
+  "taskType" | "taskStates" | "q" | "itemPosition" | "showDeleted"
 > = {
   taskType: "all",
   taskStates: [],
   q: "",
   itemPosition: "",
+  showDeleted: false,
 };
 
 export const useTasksPageStore = create<TasksPageStoreState>((set, get) => ({
@@ -46,6 +49,7 @@ export const useTasksPageStore = create<TasksPageStoreState>((set, get) => ({
     writeTasksListGroupByUpholstery(value);
     set({ groupByUpholstery: value });
   },
+  setShowDeleted: (value) => set({ showDeleted: value }),
   // reset() intentionally leaves `groupByUpholstery` untouched: it is a
   // persisted view mode, not a per-session filter.
   reset: () => set(INITIAL_STATE),

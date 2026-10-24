@@ -3,11 +3,12 @@ import { createContext, useContext, type ReactNode } from "react";
 import {
   useTasksViewController,
   type TasksViewController,
+  type TasksViewControllerOptions,
 } from "../controllers/use-tasks-view.controller";
 
 const TasksViewContext = createContext<TasksViewController | null>(null);
 
-type Props = { children: ReactNode };
+type Props = TasksViewControllerOptions & { children: ReactNode };
 
 export function useTasksViewContext(): TasksViewController {
   const context = useContext(TasksViewContext);
@@ -17,8 +18,11 @@ export function useTasksViewContext(): TasksViewController {
   return context;
 }
 
-export function TasksViewProvider({ children }: Props): React.JSX.Element {
-  const controller = useTasksViewController();
+export function TasksViewProvider({
+  children,
+  showDeletedFilter,
+}: Props): React.JSX.Element {
+  const controller = useTasksViewController({ showDeletedFilter });
   return (
     <TasksViewContext.Provider value={controller}>
       {children}

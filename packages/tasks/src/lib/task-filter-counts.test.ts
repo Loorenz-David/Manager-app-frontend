@@ -7,5 +7,7 @@ describe("countTaskSheetFilters", () => {
       .toEqual({ task: 0, other: 0, total: 0 });
     expect(countTaskSheetFilters({ taskType: "return", itemPosition: " 3 ", groupByUpholstery: true }))
       .toEqual({ task: 1, other: 2, total: 3 });
+    expect(countTaskSheetFilters({ taskType: "all", itemPosition: "", groupByUpholstery: false, showDeleted: true }))
+      .toEqual({ task: 0, other: 1, total: 1 });
   });
 });

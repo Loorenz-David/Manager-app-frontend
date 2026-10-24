@@ -67,10 +67,14 @@ export type TaskFilterSheetSurfaceProps = {
   selectedTaskType: TaskTypeFilter;
   selectedItemPosition: string;
   groupByUpholstery: boolean;
+  /** Omitted (or false) hides the Show deleted toggle — managers app only. */
+  canShowDeleted?: boolean;
+  showDeleted?: boolean;
   onChange: (patch: Partial<{
     taskType: TaskTypeFilter;
     itemPosition: string;
     groupByUpholstery: boolean;
+    showDeleted: boolean;
   }>) => void;
 };
 

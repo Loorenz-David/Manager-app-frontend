@@ -67,6 +67,44 @@ describe("TaskDetailBottomActions", () => {
     expect(props.onOpenWorkingSections).toHaveBeenCalledTimes(1);
   });
 
+  it("shows Restore task instead of Assign Stages for a deleted task", () => {
+    const onRestore = vi.fn();
+    render(
+      <TaskDetailBottomActions
+        {...buildProps()}
+        shouldRenderRestore
+        onRestore={onRestore}
+      />,
+    );
+
+    expect(
+      screen.queryByTestId("task-detail-assign-stages-button"),
+    ).not.toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(240);
+    });
+    expect(screen.getByTestId("task-detail-restore-layer")).toHaveAttribute(
+      "data-visible",
+      "true",
+    );
+
+    screen.getByTestId("task-detail-restore-button").click();
+    expect(onRestore).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables Restore task while the restore is in flight", () => {
+    render(
+      <TaskDetailBottomActions
+        {...buildProps({ shouldRenderAssignStages: false })}
+        isRestorePending
+        shouldRenderRestore
+        onRestore={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("task-detail-restore-button")).toBeDisabled();
+  });
+
   it("no longer renders a Close & Back or Edit action", () => {
     render(<TaskDetailBottomActions {...buildProps()} />);
 

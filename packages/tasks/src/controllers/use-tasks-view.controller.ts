@@ -26,6 +26,7 @@ export type TasksViewController = TasksPageFlow & {
   q: string;
   itemPosition: string;
   groupByUpholstery: boolean;
+  showDeleted: boolean;
   activeFilterCount: number;
   setTaskType: (value: TaskTypeFilter) => void;
   setTaskStates: (value: TaskState[]) => void;
@@ -39,7 +40,14 @@ export type TasksViewController = TasksPageFlow & {
   openImageViewer: (taskId: string) => void;
 };
 
-export function useTasksViewController(): TasksViewController {
+export type TasksViewControllerOptions = {
+  /** Offers the Show deleted toggle in the filter sheet (managers app). */
+  showDeletedFilter?: boolean;
+};
+
+export function useTasksViewController({
+  showDeletedFilter = false,
+}: TasksViewControllerOptions = {}): TasksViewController {
   const flow = useTasksPageFlow();
   const {
     taskType,
@@ -47,16 +55,19 @@ export function useTasksViewController(): TasksViewController {
     q,
     itemPosition,
     groupByUpholstery,
+    showDeleted,
     setTaskType,
     setTaskStates,
     setQ,
     setItemPosition,
     setGroupByUpholstery,
+    setShowDeleted,
   } = useTasksPageStore();
   const activeFilterCount = taskStates.length + countTaskSheetFilters({
     taskType,
     itemPosition,
     groupByUpholstery,
+    showDeleted,
   }).total;
 
   function openTaskDetail(taskId: string): void {
@@ -77,10 +88,13 @@ export function useTasksViewController(): TasksViewController {
       selectedTaskType: taskType,
       selectedItemPosition: itemPosition,
       groupByUpholstery,
+      canShowDeleted: showDeletedFilter,
+      showDeleted,
       onChange: (patch) => {
         if (patch.taskType !== undefined) setTaskType(patch.taskType);
         if (patch.itemPosition !== undefined) setItemPosition(patch.itemPosition);
         if (patch.groupByUpholstery !== undefined) setGroupByUpholstery(patch.groupByUpholstery);
+        if (patch.showDeleted !== undefined) setShowDeleted(patch.showDeleted);
       },
     } satisfies TaskFilterSheetSurfaceProps);
   }
@@ -116,6 +130,7 @@ export function useTasksViewController(): TasksViewController {
     q,
     itemPosition,
     groupByUpholstery,
+    showDeleted,
     activeFilterCount,
     setTaskType,
     setTaskStates,

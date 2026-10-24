@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ListFilter } from "lucide-react";
+import { ListFilter, Trash2 } from "lucide-react";
 
 import { useSurfaceProps } from "@beyo/hooks";
 import { BoxPicker, CollapsibleDrawer, ContentCard, type BoxPickerOptionType } from "@beyo/ui";
@@ -25,18 +25,35 @@ const GROUP_BY_UPHOLSTERY_OPTIONS: BoxPickerOptionType<"on">[] = [
   },
 ];
 
+const SHOW_DELETED_OPTIONS: BoxPickerOptionType<"on">[] = [
+  {
+    value: "on",
+    label: "Show deleted",
+    icon: Trash2,
+    testId: "task-filter-show-deleted",
+  },
+];
+
 export function TaskFilterSheetPage(): React.JSX.Element {
-  const { selectedTaskType, selectedItemPosition, groupByUpholstery, onChange } =
-    useSurfaceProps<TaskFilterSheetSurfaceProps>();
+  const {
+    selectedTaskType,
+    selectedItemPosition,
+    groupByUpholstery,
+    canShowDeleted = false,
+    showDeleted,
+    onChange,
+  } = useSurfaceProps<TaskFilterSheetSurfaceProps>();
   const [localTaskType, setLocalTaskType] = useState<TaskTypeFilter>(selectedTaskType ?? "all");
   const [localItemPosition, setLocalItemPosition] = useState(selectedItemPosition ?? "");
   const [localGroupByUpholstery, setLocalGroupByUpholstery] =
     useState(groupByUpholstery ?? false);
+  const [localShowDeleted, setLocalShowDeleted] = useState(showDeleted ?? false);
   const [openDrawer, setOpenDrawer] = useState<"task" | "other" | null>(null);
   const counts = countTaskSheetFilters({
     taskType: localTaskType,
     itemPosition: localItemPosition,
     groupByUpholstery: localGroupByUpholstery,
+    showDeleted: canShowDeleted && localShowDeleted,
   });
 
   return (
@@ -96,6 +113,20 @@ export function TaskFilterSheetPage(): React.JSX.Element {
             options={GROUP_BY_UPHOLSTERY_OPTIONS}
             value={localGroupByUpholstery ? ["on"] : []}
           />
+          {canShowDeleted ? (
+            <BoxPicker
+              layout="stack"
+              data-testid="task-filter-show-deleted-picker"
+              mode="multiple"
+              onValueChange={(values) => {
+                const enabled = values.includes("on");
+                setLocalShowDeleted(enabled);
+                onChange?.({ showDeleted: enabled });
+              }}
+              options={SHOW_DELETED_OPTIONS}
+              value={localShowDeleted ? ["on"] : []}
+            />
+          ) : null}
         </ContentCard>
       </CollapsibleDrawer>
     </div>

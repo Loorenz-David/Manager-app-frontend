@@ -7,6 +7,8 @@ export type TaskDetailPermissions = {
   showMenu: boolean;
   /** The production-time / budget section. */
   showProductionTime: boolean;
+  /** Bringing a deleted task back — admin/manager, like deleting it. */
+  canRestore: boolean;
 };
 
 /**
@@ -27,5 +29,6 @@ export function useTaskDetailPermissions(): TaskDetailPermissions {
     canEdit: isPrivileged,
     showMenu: isPrivileged,
     showProductionTime: isPrivileged,
+    canRestore: hasRole(AuthRole.Admin) || hasRole(AuthRole.Manager),
   };
 }

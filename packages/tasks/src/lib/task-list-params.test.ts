@@ -12,6 +12,7 @@ function build(
     q: "",
     itemPosition: "",
     groupByUpholstery: false,
+    showDeleted: false,
     ...overrides,
   });
 }
@@ -64,6 +65,23 @@ describe("buildTaskListParams", () => {
     expect(params.q).toBe("sofa");
     expect(params.not_task_states).toBeUndefined();
     expect(params.order_by).toBeUndefined();
+  });
+
+  it("asks for deleted tasks only when Show deleted is on", () => {
+    expect(build().deleted).toBeUndefined();
+
+    const params = build({ showDeleted: true });
+
+    expect(params.deleted).toBe(true);
+    // A deleted task is wanted whatever state it was in when deleted.
+    expect(params.not_task_states).toBeUndefined();
+  });
+
+  it("keeps explicit state pills alongside Show deleted", () => {
+    const params = build({ showDeleted: true, taskStates: ["working"] });
+
+    expect(params.deleted).toBe(true);
+    expect(params.task_states).toBe("working");
   });
 
   it("passes through the remaining filters", () => {

@@ -6,7 +6,7 @@ import {
   useSurfaceProps,
 } from "@beyo/hooks";
 import { ProductionTimeSection } from "@beyo/item-economics";
-import { cn, generateClientId } from "@beyo/lib";
+import { cn, formatShortDate, generateClientId } from "@beyo/lib";
 import {
   TASK_NOTE_UNREAD_VIEWER_SURFACE_ID,
   useTaskNotesUnreadController,
@@ -26,12 +26,14 @@ import {
   useSurfaceStore,
 } from "@beyo/ui";
 import { useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 
 import {
   ItemUpholsteryField,
   isUpholsteryRequirementState,
 } from "@beyo/upholstery";
 
+import { useRestoreTask } from "../actions/use-restore-task";
 import { taskKeys } from "../api/task-keys";
 import {
   TaskBodyCategoryRow,
@@ -116,12 +118,16 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
   const { canEditUpholsteryFlag, canEditUpholsteryLink } =
     useItemUpholsteryPermissions();
   const permissions = useTaskDetailPermissions();
+  const restoreTask = useRestoreTask();
+  // A deleted task is read-only for everyone; restoring it is the one action.
+  const isDeleted = controller.taskDetail?.task.is_deleted ?? false;
+  const canEdit = permissions.canEdit && !isDeleted;
 
   // Every inline editor goes through here: a read-only role hands the
   // sub-components `undefined`, and each renders as plain text. Nothing is
   // gated by the sub-component's own judgement.
   function edit<T>(opener: T): T | undefined {
-    return permissions.canEdit ? opener : undefined;
+    return canEdit ? opener : undefined;
   }
 
   function handleCanHaveUpholsteryChange(next: boolean | null): void {
@@ -146,8 +152,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
     controller.taskId,
   );
   // One value feeds both the footer and the scroll padding below it.
+  const shouldRenderRestore = isDeleted && permissions.canRestore;
   const shouldRenderAssignStages =
-    permissions.canEdit &&
+    canEdit &&
     !workingSectionsCounts.isPending &&
     controller.taskDetail?.task.state === "pending" &&
     workingSectionsCounts.assignedCount === 0;
@@ -187,7 +194,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
       <div
         className={cn(
           "flex flex-col gap-4 pt-2",
-          shouldRenderAssignStages
+          shouldRenderAssignStages || shouldRenderRestore
             ? "pb-[calc(var(--safe-bottom,0px)+5.5rem)]"
             : "pb-[calc(var(--safe-bottom,0px)+1.5rem)]",
         )}
@@ -198,6 +205,17 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
           onOpenReadyByAt={edit(controller.openReadyByAtSheet)}
           taskDetail={controller.taskDetail}
         />
+        {isDeleted ? (
+          <div
+            className="mx-4 flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive"
+            data-testid="task-detail-deleted-banner"
+          >
+            <Trash2 className="size-4 shrink-0" />
+            {controller.taskDetail.task.deleted_at
+              ? `Deleted ${formatShortDate(controller.taskDetail.task.deleted_at)}`
+              : "Deleted"}
+          </div>
+        ) : null}
         <ContentCard>
           <TaskBodyCategoryRow
             onOpenPositionField={edit(controller.openPositionSheet)}
@@ -223,7 +241,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
             />
           </DashedInfoGroup>
           <TaskImagesSection
-            canEdit={permissions.canEdit}
+            canEdit={canEdit}
             itemId={itemId}
             onImagesChanged={handleImagesChanged}
           />
@@ -234,7 +252,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
               createPending={controller.createItemUpholstery.isPending}
               itemId={itemId}
               onCanHaveUpholsteryChange={
-                canEditUpholsteryFlag && permissions.canEdit
+                canEditUpholsteryFlag && canEdit
                   ? handleCanHaveUpholsteryChange
                   : undefined
               }
@@ -275,7 +293,7 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
                   canHaveUpholstery={fieldCanHaveUpholstery}
                   disabled={disabled}
                   selectionDisabled={
-                    !canEditUpholsteryLink || !permissions.canEdit
+                    !canEditUpholsteryLink || !canEdit
                   }
                   onCanHaveUpholsteryChange={onCanHaveUpholsteryChange}
                   onChange={onChange}
@@ -324,6 +342,9 @@ function TaskDetailSlidePageContent(): React.JSX.Element {
         isHidden={isFooterHidden}
         onOpenWorkingSections={controller.openWorkingSectionsSlide}
         shouldRenderAssignStages={shouldRenderAssignStages}
+        shouldRenderRestore={shouldRenderRestore}
+        isRestorePending={restoreTask.isPending}
+        onRestore={() => restoreTask.mutate(controller.taskId)}
       />
     </div>
   );

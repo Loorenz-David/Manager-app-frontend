@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { m } from "framer-motion";
+import { ArchiveRestore } from "lucide-react";
 
 import { cn, durations, easings } from "@beyo/lib";
 
@@ -7,35 +8,48 @@ type TaskDetailBottomActionsProps = {
   isHidden?: boolean;
   shouldRenderAssignStages?: boolean;
   onOpenWorkingSections: () => void;
+  /** A deleted task's only action; takes the place of Assign Stages. */
+  shouldRenderRestore?: boolean;
+  isRestorePending?: boolean;
+  onRestore?: () => void;
 };
 
 /**
- * Floating Assign Stages call to action. There is no Close & Back bar: the
- * page is dismissed with the surface's slide-to-close gesture (and the
- * surface header's back arrow on desktop).
+ * Floating call to action: Restore task for a deleted task, otherwise Assign
+ * Stages. There is no Close & Back bar: the page is dismissed with the
+ * surface's slide-to-close gesture (and the surface header's back arrow on
+ * desktop).
  */
 export function TaskDetailBottomActions({
   isHidden = false,
   shouldRenderAssignStages = false,
   onOpenWorkingSections,
+  shouldRenderRestore = false,
+  isRestorePending = false,
+  onRestore,
 }: TaskDetailBottomActionsProps): React.JSX.Element | null {
-  const [showAssignStagesCta, setShowAssignStagesCta] = useState(false);
+  const cta = shouldRenderRestore
+    ? "restore"
+    : shouldRenderAssignStages
+      ? "assign-stages"
+      : null;
+  const [showCta, setShowCta] = useState(false);
 
   useEffect(() => {
-    if (!shouldRenderAssignStages) {
-      setShowAssignStagesCta(false);
+    if (!cta) {
+      setShowCta(false);
       return;
     }
 
-    setShowAssignStagesCta(false);
+    setShowCta(false);
     const timeout = window.setTimeout(() => {
-      setShowAssignStagesCta(true);
+      setShowCta(true);
     }, durations.slide * 1000);
 
     return () => window.clearTimeout(timeout);
-  }, [shouldRenderAssignStages]);
+  }, [cta]);
 
-  if (!shouldRenderAssignStages) {
+  if (!cta) {
     return null;
   }
 
@@ -55,23 +69,34 @@ export function TaskDetailBottomActions({
     >
       <div className="pointer-events-none px-4 pb-[calc(var(--safe-bottom,0px)+0.75rem)]">
         <m.div
-          animate={
-            showAssignStagesCta ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }
-          }
+          animate={showCta ? { y: 0, opacity: 1 } : { y: 20, opacity: 0 }}
           className="pointer-events-auto"
-          data-visible={showAssignStagesCta ? "true" : "false"}
-          data-testid="task-detail-assign-stages-layer"
+          data-visible={showCta ? "true" : "false"}
+          data-testid={`task-detail-${cta}-layer`}
           initial={false}
           transition={{ duration: durations.slow, ease: easings.slideIn }}
         >
-          <button
-            className="w-full rounded-xl bg-(--color-primary) px-5 py-3.5 text-center text-md font-semibold text-card shadow-sm"
-            data-testid="task-detail-assign-stages-button"
-            type="button"
-            onClick={onOpenWorkingSections}
-          >
-            Assign Stages
-          </button>
+          {cta === "restore" ? (
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-(--color-primary) px-5 py-3.5 text-center text-md font-semibold text-card shadow-sm disabled:opacity-60"
+              data-testid="task-detail-restore-button"
+              disabled={isRestorePending}
+              type="button"
+              onClick={onRestore}
+            >
+              <ArchiveRestore className="size-5 shrink-0" />
+              {isRestorePending ? "Restoring..." : "Restore task"}
+            </button>
+          ) : (
+            <button
+              className="w-full rounded-xl bg-(--color-primary) px-5 py-3.5 text-center text-md font-semibold text-card shadow-sm"
+              data-testid="task-detail-assign-stages-button"
+              type="button"
+              onClick={onOpenWorkingSections}
+            >
+              Assign Stages
+            </button>
+          )}
         </m.div>
       </div>
     </div>

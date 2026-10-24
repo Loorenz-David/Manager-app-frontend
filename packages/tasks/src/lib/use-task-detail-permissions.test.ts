@@ -11,12 +11,18 @@ vi.mock("@beyo/auth", () => ({
 import { useTaskDetailPermissions } from "./use-task-detail-permissions";
 
 describe("useTaskDetailPermissions", () => {
-  it.each(["admin", "manager", "seller"])("lets a %s edit, see the menu and the money", (role) => {
+  it.each([
+    ["admin", true],
+    ["manager", true],
+    ["seller", false],
+  ])("lets a %s edit, see the menu and the money (restore: %s)", (role, canRestore) => {
     mocks.role = role;
     expect(renderHook(useTaskDetailPermissions).result.current).toEqual({
       canEdit: true,
       showMenu: true,
       showProductionTime: true,
+      // Restoring mirrors deleting: admin/manager only.
+      canRestore,
     });
   });
 
@@ -27,6 +33,7 @@ describe("useTaskDetailPermissions", () => {
       canEdit: false,
       showMenu: false,
       showProductionTime: false,
+      canRestore: false,
     });
   });
 });

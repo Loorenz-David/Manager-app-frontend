@@ -5,11 +5,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TaskDetailMenuSheetPage } from "./TaskDetailMenuSheetPage";
 import { ITEM_VALUATION_SLIDE_SURFACE_ID } from "@beyo/item-economics";
 
-import { FORCE_TASK_READY_SLIDE_SURFACE_ID } from "../surface-ids";
+import {
+  FORCE_TASK_READY_SLIDE_SURFACE_ID,
+  TASK_ACTIONS_SHEET_SURFACE_ID,
+} from "../surface-ids";
 
 const mocks = vi.hoisted(() => ({
   role: "manager" as string,
   taskState: "working" as string,
+  isDeleted: false,
+  restoreMutate: vi.fn(),
   open: vi.fn(),
   close: vi.fn(),
   requestClose: vi.fn(),
@@ -48,9 +53,19 @@ vi.mock("../actions/use-delete-task", () => ({
   useDeleteTask: () => ({ mutate: vi.fn(), isPending: false }),
 }));
 
+vi.mock("../actions/use-restore-task", () => ({
+  useRestoreTask: () => ({ mutate: mocks.restoreMutate, isPending: false }),
+}));
+
 vi.mock("../api/use-get-task-query", () => ({
   useGetTaskQuery: () => ({
-    data: { task: { client_id: "tsk_1", state: mocks.taskState } },
+    data: {
+      task: {
+        client_id: "tsk_1",
+        state: mocks.taskState,
+        is_deleted: mocks.isDeleted,
+      },
+    },
   }),
 }));
 
@@ -59,6 +74,7 @@ describe("TaskDetailMenuSheetPage — force ready action", () => {
     vi.clearAllMocks();
     mocks.role = "manager";
     mocks.taskState = "working";
+    mocks.isDeleted = false;
   });
 
   it.each(["manager", "admin"])("is offered to a %s", (role) => {
@@ -113,6 +129,7 @@ describe("TaskDetailMenuSheetPage — change retail price action", () => {
     vi.clearAllMocks();
     mocks.role = "manager";
     mocks.taskState = "working";
+    mocks.isDeleted = false;
   });
 
   // 19 — the price-scenario endpoint 403s every other role, so the row is
@@ -172,5 +189,49 @@ describe("TaskDetailMenuSheetPage — change retail price action", () => {
     expect(
       testIds.indexOf("task-actions-change-retail-price"),
     ).toBe(testIds.indexOf("task-actions-change-item-identity") + 1);
+  });
+});
+
+describe("TaskDetailMenuSheetPage — deleted task", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.role = "manager";
+    mocks.taskState = "working";
+    mocks.isDeleted = true;
+  });
+
+  it.each(["manager", "admin"])("offers only Restore to a %s", (role) => {
+    mocks.role = role;
+
+    render(<TaskDetailMenuSheetPage />);
+
+    const testIds = Array.from(
+      document.querySelectorAll("[data-testid^=\"task-\"]"),
+    ).map((node) => node.getAttribute("data-testid"));
+    expect(testIds).toEqual(["task-actions-restore"]);
+  });
+
+  it("restores the task and closes the menu", async () => {
+    const user = userEvent.setup();
+    render(<TaskDetailMenuSheetPage />);
+
+    await user.click(screen.getByTestId("task-actions-restore"));
+
+    expect(mocks.restoreMutate).toHaveBeenCalledWith(
+      "tsk_1",
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+    const { onSuccess } = mocks.restoreMutate.mock.calls[0][1];
+    onSuccess();
+    expect(mocks.close).toHaveBeenCalledWith(TASK_ACTIONS_SHEET_SURFACE_ID);
+  });
+
+  it.each(["seller", "worker"])("offers nothing to a %s", (role) => {
+    mocks.role = role;
+
+    render(<TaskDetailMenuSheetPage />);
+
+    expect(screen.queryByTestId("task-actions-restore")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("task-delete-button")).not.toBeInTheDocument();
   });
 });

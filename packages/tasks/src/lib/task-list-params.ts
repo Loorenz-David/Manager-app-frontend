@@ -9,6 +9,7 @@ export type TaskListParamsInput = {
   q: string;
   itemPosition: string;
   groupByUpholstery: boolean;
+  showDeleted: boolean;
 };
 
 /**
@@ -23,6 +24,7 @@ export function buildTaskListParams({
   q,
   itemPosition,
   groupByUpholstery,
+  showDeleted,
 }: TaskListParamsInput): Omit<ListTasksFullParams, "limit" | "offset"> {
   const orderBy = resolveTaskListOrderBy(taskStates);
 
@@ -33,9 +35,12 @@ export function buildTaskListParams({
     ...(itemPosition ? { item_position: itemPosition } : {}),
     ...(groupByUpholstery ? { group_by_upholstery: true } : {}),
     ...(orderBy ? { order_by: orderBy } : {}),
+    // The backend returns deleted tasks *instead of* live ones for this flag.
+    ...(showDeleted ? { deleted: true } : {}),
     // Unfiltered, unsearched list hides completed and closed-out work. Any
-    // explicit state pill or search term means the user asked for it.
-    ...(taskStates.length === 0 && !q
+    // explicit state pill or search term means the user asked for it — and so
+    // does Show deleted: a deleted task is wanted whatever state it died in.
+    ...(taskStates.length === 0 && !q && !showDeleted
       ? { not_task_states: TASK_DEFAULT_LIST_EXCLUDED_STATES.join(",") }
       : {}),
   };

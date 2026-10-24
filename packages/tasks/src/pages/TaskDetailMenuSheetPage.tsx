@@ -9,6 +9,7 @@ import {
 import type { TaskId } from "@beyo/lib";
 import { ConfirmActionButton, useSurfaceStore } from "@beyo/ui";
 import {
+  ArchiveRestore,
   Barcode,
   CheckCheck,
   CircleDollarSign,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 
 import { useDeleteTask } from "../actions/use-delete-task";
+import { useRestoreTask } from "../actions/use-restore-task";
 import { useGetTaskQuery } from "../api/use-get-task-query";
 import { canForceTaskReady } from "../lib/force-task-ready";
 import {
@@ -38,8 +40,10 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
   const header = useSurfaceHeader();
   const { taskId, itemId } = useSurfaceProps<TaskActionsSurfaceProps>();
   const deleteTask = useDeleteTask();
+  const restoreTask = useRestoreTask();
   const { hasRole } = useRole();
   const taskQuery = useGetTaskQuery(taskId);
+  const isDeleted = taskQuery.data?.task.is_deleted ?? false;
 
   // Forcing a task ready is a manager override: admin/manager only (stricter
   // than resolve), and only while the task can still move — the four states
@@ -67,6 +71,42 @@ export function TaskDetailMenuSheetPage(): React.JSX.Element {
   ): void {
     useSurfaceStore.getState().open(surfaceId, props);
     header?.requestClose();
+  }
+
+  // A deleted task offers nothing but its way back (admin/manager, like
+  // deleting it): every other row would edit a task that is not there.
+  if (isDeleted) {
+    const canRestore = hasRole(AuthRole.Admin) || hasRole(AuthRole.Manager);
+
+    return (
+      <div className="flex flex-col gap-4 p-6">
+        {canRestore ? (
+          <button
+            type="button"
+            className="flex min-h-12 w-full items-center justify-start gap-3 rounded-xl border border-border bg-card px-4 py-3.5 text-sm font-semibold text-foreground disabled:opacity-60"
+            data-testid="task-actions-restore"
+            disabled={!taskId || restoreTask.isPending}
+            onClick={() => {
+              if (!taskId) return;
+              restoreTask.mutate(taskId, {
+                onSuccess: () => {
+                  useSurfaceStore
+                    .getState()
+                    .close(TASK_ACTIONS_SHEET_SURFACE_ID);
+                },
+              });
+            }}
+          >
+            <ArchiveRestore className="size-4" />
+            {restoreTask.isPending ? "Restoring..." : "Restore task"}
+          </button>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            This task is deleted.
+          </p>
+        )}
+      </div>
+    );
   }
 
   return (

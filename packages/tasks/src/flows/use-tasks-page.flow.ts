@@ -106,8 +106,14 @@ function useDelayedTrue(value: boolean, delayMs: number): boolean {
 }
 
 export function useTasksPageFlow(): TasksPageFlow {
-  const { taskType, taskStates, q, itemPosition, groupByUpholstery } =
-    useTasksPageStore();
+  const {
+    taskType,
+    taskStates,
+    q,
+    itemPosition,
+    groupByUpholstery,
+    showDeleted,
+  } = useTasksPageStore();
   const [debouncedQ, setDebouncedQ] = useState(q);
 
   useEffect(() => {
@@ -123,8 +129,16 @@ export function useTasksPageFlow(): TasksPageFlow {
         q: debouncedQ,
         itemPosition,
         groupByUpholstery,
+        showDeleted,
       }),
-    [debouncedQ, groupByUpholstery, itemPosition, taskStates, taskType],
+    [
+      debouncedQ,
+      groupByUpholstery,
+      itemPosition,
+      showDeleted,
+      taskStates,
+      taskType,
+    ],
   );
 
   const { query, loadMore } = useListTasksQuery(params);

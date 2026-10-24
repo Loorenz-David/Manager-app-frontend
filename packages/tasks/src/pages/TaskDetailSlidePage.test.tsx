@@ -25,6 +25,8 @@ const mocks = vi.hoisted(() => ({
   openUpholsteryAmountSheet: vi.fn(),
   openFlowRecord: vi.fn(),
   taskState: "pending" as string,
+  isDeleted: false,
+  restoreMutate: vi.fn(),
 }));
 
 function probe(name: string) {
@@ -62,6 +64,10 @@ vi.mock("@beyo/ui", async (importOriginal) => {
 
 vi.mock("@tanstack/react-query", () => ({
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}));
+
+vi.mock("../actions/use-restore-task", () => ({
+  useRestoreTask: () => ({ mutate: mocks.restoreMutate, isPending: false }),
 }));
 
 vi.mock("@beyo/item-economics", () => ({
@@ -120,7 +126,13 @@ vi.mock("../providers/TaskDetailProvider", () => ({
   useTaskDetailContext: () => ({
     taskId: "tsk_1",
     taskDetail: {
-      task: { client_id: "tsk_1", state: mocks.taskState, task_type: "pre_order" },
+      task: {
+        client_id: "tsk_1",
+        state: mocks.taskState,
+        task_type: "pre_order",
+        is_deleted: mocks.isDeleted,
+        deleted_at: mocks.isDeleted ? "2026-10-20T10:00:00+00:00" : null,
+      },
       item: { client_id: "itm_1", item_major_category_snapshot: "seat", can_have_upholstery: null },
     } as unknown as TaskDetailRaw,
     isPending: false,
@@ -163,6 +175,7 @@ describe("TaskDetailSlidePage — role view", () => {
     vi.clearAllMocks();
     mocks.received = {};
     mocks.taskState = "pending";
+    mocks.isDeleted = false;
   });
 
   afterEach(() => {
@@ -212,5 +225,42 @@ describe("TaskDetailSlidePage — role view", () => {
 
     expect(mocks.received.bottomActions?.shouldRenderAssignStages).toBe(false);
     fireEvent.click(screen.getByTestId("probe-header"));
+  });
+
+  it("renders a deleted task read-only for a manager, with the ⋮ and Restore", () => {
+    mocks.role = "manager";
+    mocks.isDeleted = true;
+    render(<TaskDetailSlidePage />);
+
+    for (const [probeName, prop] of EDITOR_PROPS) {
+      expect(mocks.received[probeName]?.[prop], `${probeName}.${prop}`).toBeUndefined();
+    }
+    expect(mocks.received.images?.canEdit).toBe(false);
+    expect(mocks.received.upholsteryField?.selectionDisabled).toBe(true);
+    expect(screen.getByTestId("task-detail-deleted-banner")).toBeInTheDocument();
+    // The ⋮ stays: it carries the restore action too.
+    expect(mocks.received.header?.onOpenMenu).toBeTypeOf("function");
+    expect(mocks.received.bottomActions?.shouldRenderAssignStages).toBe(false);
+    expect(mocks.received.bottomActions?.shouldRenderRestore).toBe(true);
+
+    (mocks.received.bottomActions?.onRestore as () => void)();
+    expect(mocks.restoreMutate).toHaveBeenCalledWith("tsk_1");
+  });
+
+  it("does not offer Restore to a seller", () => {
+    mocks.role = "seller";
+    mocks.isDeleted = true;
+    render(<TaskDetailSlidePage />);
+
+    expect(mocks.received.bottomActions?.shouldRenderRestore).toBe(false);
+    expect(mocks.received.customer?.onPress).toBeUndefined();
+  });
+
+  it("shows no deleted banner on a live task", () => {
+    mocks.role = "manager";
+    render(<TaskDetailSlidePage />);
+
+    expect(screen.queryByTestId("task-detail-deleted-banner")).not.toBeInTheDocument();
+    expect(mocks.received.bottomActions?.shouldRenderRestore).toBe(false);
   });
 });

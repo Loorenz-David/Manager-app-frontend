@@ -46,5 +46,31 @@ describe("TaskFilterSheetPage", () => {
     await user.click(screen.getByTestId("task-filter-group-upholstery"));
     expect(mocks.onChange).toHaveBeenLastCalledWith({ groupByUpholstery: true });
     expect(screen.getByTestId("task-filter-other-drawer-count")).toHaveTextContent("2");
+    // Sellers and workers never get the deleted toggle.
+    expect(screen.queryByTestId("task-filter-show-deleted")).not.toBeInTheDocument();
+  });
+
+  it("offers Show deleted, with its icon, when the app allows it", async () => {
+    mocks.props.mockReturnValue({
+      selectedTaskType: "all",
+      selectedItemPosition: "",
+      groupByUpholstery: false,
+      canShowDeleted: true,
+      showDeleted: false,
+      onChange: mocks.onChange,
+    });
+    const user = userEvent.setup();
+    render(<TaskFilterSheetPage />);
+
+    await user.click(screen.getByRole("button", { name: "Other" }));
+    const toggle = screen.getByTestId("task-filter-show-deleted");
+    expect(toggle.querySelector("svg")).toBeInTheDocument();
+
+    await user.click(toggle);
+    expect(mocks.onChange).toHaveBeenLastCalledWith({ showDeleted: true });
+    expect(screen.getByTestId("task-filter-other-drawer-count")).toHaveTextContent("1");
+
+    await user.click(toggle);
+    expect(mocks.onChange).toHaveBeenLastCalledWith({ showDeleted: false });
   });
 });
