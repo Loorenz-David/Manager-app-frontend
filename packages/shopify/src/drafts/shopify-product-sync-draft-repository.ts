@@ -6,7 +6,22 @@ import {
 } from "./shopify-product-sync-draft-types";
 import type { ShopifyProductSyncFormValues } from "../types";
 
-const DRAFT_TTL_MS = 24 * 60 * 60 * 1000;
+const DRAFT_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
+// Drafts saved while the lifetime was 1 day carry a 1-day `expiresAt`. Expiry
+// is therefore measured from `updatedAt` with the current lifetime as well, so
+// raising the lifetime extends drafts that already exist instead of letting
+// them expire on their old date.
+function draftExpiresAt(
+  record: Pick<ShopifyProductSyncDraftRecord, "expiresAt" | "updatedAt">,
+): number {
+  const stored = new Date(record.expiresAt).getTime();
+  const fromUpdate = new Date(record.updatedAt).getTime() + DRAFT_TTL_MS;
+  return Math.max(
+    Number.isFinite(stored) ? stored : 0,
+    Number.isFinite(fromUpdate) ? fromUpdate : 0,
+  );
+}
 
 export type ShopifyProductSyncDraftErrorKind =
   | "unavailable"
@@ -53,7 +68,7 @@ export async function getShopifyProductSyncDraft(
   try {
     const record = await shopifyDraftsDb.productSyncDrafts.get(taskClientId);
     if (!record) return null;
-    if (new Date(record.expiresAt).getTime() <= Date.now()) {
+    if (draftExpiresAt(record) <= Date.now()) {
       await shopifyDraftsDb.productSyncDrafts.delete(taskClientId).catch(() => {});
       return null;
     }
@@ -108,6 +123,7 @@ export async function deleteExpiredShopifyProductSyncDrafts(
     const expiredKeys = await shopifyDraftsDb.productSyncDrafts
       .where("expiresAt")
       .below(now.toISOString())
+      .filter((record) => draftExpiresAt(record) <= now.getTime())
       .primaryKeys();
     if (!expiredKeys.length) return 0;
     await shopifyDraftsDb.productSyncDrafts.bulkDelete(expiredKeys);

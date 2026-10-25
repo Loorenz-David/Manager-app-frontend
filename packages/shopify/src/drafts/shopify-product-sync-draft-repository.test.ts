@@ -63,6 +63,7 @@ describe("shopify product sync draft repository", () => {
     await saveShopifyProductSyncDraft({ taskClientId: "task-1", values });
     await saveShopifyProductSyncDraft({ taskClientId: "task-2", values });
     await shopifyDraftsDb.productSyncDrafts.update("task-1", {
+      updatedAt: "2020-01-01T00:00:00.000Z",
       expiresAt: "2020-01-01T00:00:00.000Z",
     });
 
@@ -70,6 +71,39 @@ describe("shopify product sync draft repository", () => {
     expect(await getShopifyProductSyncDraft("task-2")).toBeNull();
     expect(await deleteExpiredShopifyProductSyncDrafts()).toBe(1);
     expect(await getShopifyProductSyncDraft("task-1")).toBeNull();
+  });
+
+  it("keeps drafts for two days after their last save", async () => {
+    await saveShopifyProductSyncDraft({ taskClientId: "task-1", values });
+    const record = await shopifyDraftsDb.productSyncDrafts.get("task-1");
+    const lifetime =
+      new Date(record!.expiresAt).getTime() -
+      new Date(record!.updatedAt).getTime();
+    expect(lifetime).toBe(2 * 24 * 60 * 60 * 1000);
+  });
+
+  it("extends drafts saved with the old one-day expiry", async () => {
+    const hour = 60 * 60 * 1000;
+    const now = Date.now();
+    const oldDraft = (taskClientId: string, savedHoursAgo: number) =>
+      ({
+        taskClientId,
+        schemaVersion: SHOPIFY_PRODUCT_SYNC_DRAFT_SCHEMA_VERSION,
+        values,
+        createdAt: new Date(now - savedHoursAgo * hour).toISOString(),
+        updatedAt: new Date(now - savedHoursAgo * hour).toISOString(),
+        expiresAt: new Date(now - (savedHoursAgo - 24) * hour).toISOString(),
+      }) satisfies ShopifyProductSyncDraftRecord;
+    // Saved 30h ago: past its stored 1-day expiry, within the 2-day lifetime.
+    await shopifyDraftsDb.productSyncDrafts.put(oldDraft("task-recent", 30));
+    // Saved 50h ago: past both.
+    await shopifyDraftsDb.productSyncDrafts.put(oldDraft("task-old", 50));
+
+    expect(await deleteExpiredShopifyProductSyncDrafts()).toBe(1);
+    await expect(getShopifyProductSyncDraft("task-recent")).resolves.toEqual(
+      values,
+    );
+    await expect(getShopifyProductSyncDraft("task-old")).resolves.toBeNull();
   });
 
   it("removes malformed records instead of restoring them", async () => {

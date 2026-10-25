@@ -51,6 +51,41 @@ describe("dimension text mirror", () => {
     expect(findDimensionTextMirrorFields(text, [text])).toEqual([]);
   });
 
+  it("pairs each measure with the text field of the same measure", () => {
+    const text = (measure: string) =>
+      field({
+        identity: `text-${measure}`,
+        name: `Dimensions ${measure}`,
+        key: `dimensions_${measure}`,
+      });
+    const candidates = [
+      text("height"),
+      text("width"),
+      text("depth"),
+      field({ identity: "text-all" }),
+    ];
+    const ids = (measure: string) =>
+      findDimensionTextMirrorFields(
+        field({
+          identity: `dim-${measure}`,
+          type: "dimension",
+          name: `Dimensions ${measure}`,
+          key: `dimension_${measure}`,
+        }),
+        candidates,
+      ).map(({ identity }) => identity);
+
+    expect(ids("height")).toEqual(["text-height"]);
+    expect(ids("width")).toEqual(["text-width"]);
+    expect(ids("depth")).toEqual(["text-depth"]);
+    expect(
+      findDimensionTextMirrorFields(
+        field({ identity: "dim-height", type: "dimension", name: "Height", key: "height" }),
+        [field({ identity: "text-height", name: "Height", key: "height_text" })],
+      ).map(({ identity }) => identity),
+    ).toEqual(["text-height"]);
+  });
+
   it("appends cm and clears with the source", () => {
     expect(toDimensionTextMirrorValue("120")).toBe("120 cm");
     expect(toDimensionTextMirrorValue("")).toBe("");
