@@ -50,6 +50,16 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
     name: "metafields",
   }).field;
   const values = form.watch();
+  // Completion flow: keep what was typed so going back from the next slide
+  // restores it. The caller discards the draft once the step is completed.
+  async function keepDraftForCompletion(): Promise<void> {
+    if (ctx.mode !== "submit" || !form.formState.isDirty) return;
+    await draft.save(form.getValues()).catch(() => {});
+  }
+  async function handleSkipped(): Promise<void> {
+    await keepDraftForCompletion();
+    ctx.onSkipped?.();
+  }
   async function handleSubmit(
     next: ShopifyProductSyncFormValues,
   ): Promise<void> {
@@ -60,7 +70,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
       productCategory: ctx.productCategory,
     });
     if (result.kind === "skip") {
-      ctx.onSkipped?.();
+      await handleSkipped();
       return;
     }
     if (result.kind === "blocked") {
@@ -70,7 +80,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
     }
     try {
       await mutation.mutateAsync(result.payload);
-      await draft.discard();
+      await keepDraftForCompletion();
       ctx.onCompleted?.();
     } catch (error) {
       form.setError("root", {
@@ -142,7 +152,7 @@ export function ShopifyProductSyncForm(): React.JSX.Element {
                   ? "Sync"
                   : "Skip"
             }
-            onClose={() => ctx.onSkipped?.()}
+            onClose={() => void handleSkipped()}
           />
         }
         data-testid="shopify-product-sync-slide"

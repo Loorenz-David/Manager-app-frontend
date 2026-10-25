@@ -110,6 +110,7 @@ export { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFAC
 export type { ShopifyProductSyncSlideSurfaceProps, ShopifyShopPickerSheetSurfaceProps, ShopifyProductSyncSurfaceOpeners } from "./surface-ids";
 export { readLastSelectedShopIntegrationIds, writeLastSelectedShopIntegrationIds, SHOPIFY_PRODUCT_SYNC_LAST_SHOPS_STORAGE_KEY } from "./lib/shopify-product-sync-storage";
 export { resolveShopifyProductSyncSubmit, isFormFilled } from "./lib/resolve-shopify-product-sync-submit";
+export { deleteShopifyProductSyncDraft } from "./drafts/shopify-product-sync-draft-repository";
 export { shopifyProductSyncSocketEvents } from "./socket-events";
 export { createShopifyInstallUrl } from "./api/create-shopify-install-url";
 export { createShopifyReauthorizeUrl } from "./api/create-shopify-reauthorize-url";

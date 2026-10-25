@@ -15,6 +15,10 @@ import {
   normalizeShopifyMetafieldFields,
   normalizeUnavailableMetafieldDefinitions,
 } from "../lib/normalize-shopify-metafield-fields";
+import {
+  findDimensionTextMirrorFields,
+  toDimensionTextMirrorValue,
+} from "../lib/shopify-dimension-text-mirror";
 import { createMetafieldFieldIdentity } from "../lib/shopify-metafield-identity";
 import {
   belongsToMetafieldStep,
@@ -365,21 +369,58 @@ export function useShopifyMetafieldPickerController({
 
   const updateFieldValue = useCallback(
     (field: ShopifyMetafieldField, nextValue: string) => {
+      // TEMPORARY: see shopify-dimension-text-mirror.ts.
+      const mirrorValue = toDimensionTextMirrorValue(nextValue);
+      const updates: Array<[ShopifyMetafieldField, string]> = [
+        [field, nextValue],
+        ...findDimensionTextMirrorFields(field, [
+          ...activeFields,
+          ...allSavedFields,
+          ...categorySearchResults,
+          ...searchResults,
+        ]).map((mirror): [ShopifyMetafieldField, string] => [
+          mirror,
+          mirrorValue,
+        ]),
+      ];
       setDraftValues((drafts) => ({
         ...drafts,
-        [field.identity]: nextValue,
+        ...Object.fromEntries(
+          updates.map(([updated, updatedValue]) => [
+            updated.identity,
+            updatedValue,
+          ]),
+        ),
       }));
-      const nextFormValue = toShopifyMetafieldFormValue(field, nextValue);
-      const withoutField = value.filter(
-        (entry) =>
-          createMetafieldFieldIdentity(
-            entry.shopIntegrationId,
-            entry.shopifyMetafieldDefinitionId,
-          ) !== field.identity,
+      const updatedIdentities = new Set(
+        updates.map(([updated]) => updated.identity),
       );
-      onChange(nextFormValue ? [...withoutField, nextFormValue] : withoutField);
+      const withoutFields = value.filter(
+        (entry) =>
+          !updatedIdentities.has(
+            createMetafieldFieldIdentity(
+              entry.shopIntegrationId,
+              entry.shopifyMetafieldDefinitionId,
+            ),
+          ),
+      );
+      const nextFormValues = updates
+        .map(([updated, updatedValue]) =>
+          toShopifyMetafieldFormValue(updated, updatedValue),
+        )
+        .filter((entry): entry is ShopifyProductSyncMetafieldValue =>
+          Boolean(entry),
+        );
+      onChange([...withoutFields, ...nextFormValues]);
     },
-    [onChange, value],
+    [
+      activeFields,
+      allSavedFields,
+      categorySearchResults,
+      onChange,
+      searchResults,
+      value,
+    ],
   );
 
   const valueForField = useCallback(

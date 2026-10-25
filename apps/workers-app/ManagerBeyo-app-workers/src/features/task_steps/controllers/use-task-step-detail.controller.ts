@@ -39,7 +39,7 @@ import {
   type CaseCreationSurfaceOpeners,
   type ParticipantPickerSlideSurfaceProps,
 } from "@beyo/cases";
-import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, type ShopifyProductSyncSurfaceOpeners } from "@beyo/shopify";
+import { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFACE_ID, deleteShopifyProductSyncDraft, type ShopifyProductSyncSurfaceOpeners } from "@beyo/shopify";
 import type { WorkerWorkingSection } from "../../working_sections/types";
 import {
   IMAGE_VIEWER_SURFACE_ID,
@@ -410,6 +410,9 @@ export function useTaskStepDetailController(): TaskStepDetailController {
             : {}),
         })
           .then((data) => {
+            // The Shopify form keeps its values while the worker can still
+            // go back to it; only a confirmed completion clears them.
+            void deleteShopifyProductSyncDraft(resolvedTaskId);
             if (data.kind !== "immediate" || !COMPLETION_FEEDBACK_ENABLED) {
               return;
             }
