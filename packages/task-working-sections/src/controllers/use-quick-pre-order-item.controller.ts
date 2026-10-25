@@ -124,10 +124,10 @@ export function useQuickPreOrderItemController({
         ...changes,
       });
       return true;
-    } catch {
+    } catch (error) {
       form.setError("item.article_number", {
         type: "server",
-        message: "Could not save the item. Try again.",
+        message: error instanceof Error ? error.message : "Could not save the item. Try again.",
       });
       return false;
     }

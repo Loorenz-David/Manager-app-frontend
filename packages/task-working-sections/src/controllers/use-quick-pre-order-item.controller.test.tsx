@@ -98,8 +98,29 @@ describe("useQuickPreOrderItemController", () => {
     expect(mutateAsyncMock).not.toHaveBeenCalled();
   });
 
+  it("shows the server's message as the field error when the patch rejects", async () => {
+    mutateAsyncMock.mockRejectedValueOnce(
+      new Error("Article number 'FAILED-789' is already used by another item."),
+    );
+    const { result } = renderHook(() =>
+      useQuickPreOrderItemController({ task: buildTask() }),
+    );
+
+    act(() => {
+      result.current.form.setValue("item.article_number", "FAILED-789");
+    });
+
+    await act(async () => {
+      await result.current.submitItemPatch();
+    });
+
+    expect(
+      result.current.form.getFieldState("item.article_number").error?.message,
+    ).toBe("Article number 'FAILED-789' is already used by another item.");
+  });
+
   it("preserves values and sets a field error when the patch rejects", async () => {
-    mutateAsyncMock.mockRejectedValueOnce(new Error("failed"));
+    mutateAsyncMock.mockRejectedValueOnce("failed");
     const { result } = renderHook(() =>
       useQuickPreOrderItemController({ task: buildTask() }),
     );
