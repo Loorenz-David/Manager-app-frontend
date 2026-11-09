@@ -14,6 +14,10 @@ import {
   type TaskWorkingSectionsReassignSlideSurfaceProps,
   type TaskWorkingSectionsSurfaceOpeners,
 } from "@beyo/task-working-sections";
+import {
+  useItemCategoryByIdFlow,
+  type ItemCategoryId,
+} from "@beyo/item-categories";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 import { taskStepKeys } from "@/features/task_steps/api/task-step-keys";
 import { workerWorkingSectionKeys } from "@/features/working_sections/api/working-section-keys";
@@ -37,6 +41,11 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
     allowsShopifyProductModifications,
   } =
     useSurfaceProps<TaskStepActionsSheetSurfaceProps>();
+  // Saving the form creates the Shopify product now, so it needs the product
+  // type the completion flow would have sent.
+  const { category: itemCategory } = useItemCategoryByIdFlow(
+    itemCategoryId ? (itemCategoryId as ItemCategoryId) : null,
+  );
   const shopifySurfaceOpeners = useMemo<ShopifyProductSyncSurfaceOpeners>(
     () => ({
       openShopPicker: (props) =>
@@ -92,9 +101,8 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
       itemArticleNumber: itemArticleNumber ?? null,
       itemSku: itemSku ?? null,
       itemCategoryId: itemCategoryId ?? null,
-      productCategory: null,
+      productCategory: itemCategory?.name ?? null,
       defaultTitle: null,
-      taskClientId: taskId,
       mode: "keep",
       surfaceOpeners: shopifySurfaceOpeners,
     } satisfies ShopifyProductSyncSlideSurfaceProps);
@@ -155,7 +163,7 @@ export function TaskStepActionsSheetPage(): React.JSX.Element {
           onClick={handleOpenShopifySync}
         >
           <ShoppingBag className="size-4" />
-          Fill shopify sync
+          Shopify product
         </button>
       ) : null}
     </div>

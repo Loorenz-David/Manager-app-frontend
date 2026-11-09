@@ -483,6 +483,10 @@ export const ProcessShopifyProductItemRequestSchema = z.object({
   sku: z.string().optional(),
   item_article_number: z.string().optional(),
   metafields: ShopifyProductSyncMetafieldsSchema.optional(),
+  // Keys (namespace "custom") to remove from an existing product.
+  metafields_to_delete: z.array(z.string()).optional(),
+  // ManagerBeyo item: links the Shopify product to the item and fills an empty item SKU.
+  item_client_id: z.string().optional(),
   inventory_quantities: z.array(InventoryQuantityRequestSchema).optional(),
 });
 export type ProcessShopifyProductItemRequest = z.infer<typeof ProcessShopifyProductItemRequestSchema>;
@@ -528,6 +532,61 @@ export type ShopifyProductSyncInventoryQuantity = z.infer<typeof ShopifyProductS
 export const ShopifyProductSyncFormSchema = z.object({ shopIntegrationIds: z.array(z.string()), sku: z.string().optional(), metafields: z.array(ShopifyProductSyncMetafieldValueSchema), inventoryQuantities: z.array(ShopifyProductSyncInventoryQuantitySchema), title: z.string().optional(), description: z.string().optional() });
 export type ShopifyProductSyncFormValues = z.infer<typeof ShopifyProductSyncFormSchema>;
 export type ShopifyProductSyncFormMode = "submit" | "keep";
+
+export const ShopifyItemProductSyncStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "succeeded",
+  "failed",
+]);
+export type ShopifyItemProductSyncStatus = z.infer<
+  typeof ShopifyItemProductSyncStatusSchema
+>;
+export const ShopifyItemProductSnapshotSchema = z.object({
+  shopify_product_id: z.string(),
+  title: z.string().nullable(),
+  description_html: z.string().nullable(),
+  status: z.string().nullable(),
+  sku: z.string().nullable(),
+  barcode: z.string().nullable(),
+  metafields: z.array(
+    z.object({
+      key: z.string(),
+      type: z.string().nullable(),
+      value: z.string().nullable(),
+      definition_id: z.string().nullable(),
+    }),
+  ),
+  inventory: z.array(
+    z.object({ location_id: z.string(), quantity: z.number().int() }),
+  ),
+});
+export type ShopifyItemProductSnapshot = z.infer<
+  typeof ShopifyItemProductSnapshotSchema
+>;
+export const ShopifyItemProductShopSchema = z.object({
+  shop_integration_id: z.string(),
+  shop_domain: z.string(),
+  sync: z
+    .object({
+      sync_item_client_id: z.string(),
+      status: ShopifyItemProductSyncStatusSchema,
+      error_code: z.string().nullable(),
+      error_message: z.string().nullable(),
+      updated_at: z.string().nullable(),
+    })
+    .nullable(),
+  product: ShopifyItemProductSnapshotSchema.nullable(),
+  fetch_error: z.string().nullable(),
+});
+export type ShopifyItemProductShop = z.infer<typeof ShopifyItemProductShopSchema>;
+export const ShopifyItemProductResponseSchema = z.object({
+  item_client_id: z.string(),
+  shops: z.array(ShopifyItemProductShopSchema),
+});
+export type ShopifyItemProductResponse = z.infer<
+  typeof ShopifyItemProductResponseSchema
+>;
 
 export type ShopifyOAuthResultParams = {
   success: boolean;

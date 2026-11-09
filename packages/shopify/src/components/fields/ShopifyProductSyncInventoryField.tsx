@@ -16,11 +16,14 @@ import type {
 type ShopifyProductSyncInventoryFieldProps = {
   shopIntegrationId: string;
   shopIntegrationIds: string[];
+  /** Pre-select the locations remembered from the last form (new products only). */
+  applyRememberedLocations?: boolean;
 };
 
 export function ShopifyProductSyncInventoryField({
   shopIntegrationId,
   shopIntegrationIds,
+  applyRememberedLocations = true,
 }: ShopifyProductSyncInventoryFieldProps): React.JSX.Element {
   const { control, getValues } = useFormContext<ShopifyProductSyncFormValues>();
   const { field } = useController({
@@ -39,6 +42,10 @@ export function ShopifyProductSyncInventoryField({
 
   useEffect(() => {
     if (hasAppliedStoredSelectionRef.current) return;
+    if (!applyRememberedLocations) {
+      hasAppliedStoredSelectionRef.current = true;
+      return;
+    }
 
     const currentQuantities = getValues("inventoryQuantities") ?? [];
     const hasExistingSelection = currentQuantities.some(
@@ -76,7 +83,15 @@ export function ShopifyProductSyncInventoryField({
       ),
     ];
     field.onChange(nextQuantities);
-  }, [field, getValues, query.isError, query.isLoading, shop, shopIntegrationId]);
+  }, [
+    applyRememberedLocations,
+    field,
+    getValues,
+    query.isError,
+    query.isLoading,
+    shop,
+    shopIntegrationId,
+  ]);
 
   function handleSelectionChange(nextLocationIds: string[]): void {
     const currentQuantities = getValues("inventoryQuantities") ?? [];

@@ -23,7 +23,6 @@ export function ShopifyProductSyncSlidePage(): React.JSX.Element {
       itemCategoryId={props.itemCategoryId ?? null}
       productCategory={props.productCategory ?? null}
       defaultTitle={props.defaultTitle ?? null}
-      taskClientId={props.taskClientId ?? ""}
       mode={props.mode ?? "submit"}
       surfaceOpeners={props.surfaceOpeners ?? {}}
       onCompleted={() => closeAndContinue(props.onCompleted)}

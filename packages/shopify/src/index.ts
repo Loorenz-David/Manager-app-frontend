@@ -93,6 +93,7 @@ export type {
   ShopifyMetafieldField,
   GetShopifyMetafieldPreferencesParams,
 } from "./types";
+export type { ShopifyItemProductResponse, ShopifyItemProductShop, ShopifyItemProductSnapshot } from "./types";
 export type { ProcessShopifyProductItemRequest, ProcessShopifyProductsRequest, ProcessShopifyProductsResponse, ShopifyProductsSyncedEvent, ShopifyProductSyncFormValues, ShopifyProductSyncFormMode, ShopifyProductSyncInventoryQuantity } from "./types";
 export { processShopifyProducts } from "./api/process-shopify-products";
 export { useProcessShopifyProducts } from "./actions/use-process-shopify-products";
@@ -110,7 +111,10 @@ export { SHOPIFY_PRODUCT_SYNC_SLIDE_SURFACE_ID, SHOPIFY_SHOP_PICKER_SHEET_SURFAC
 export type { ShopifyProductSyncSlideSurfaceProps, ShopifyShopPickerSheetSurfaceProps, ShopifyProductSyncSurfaceOpeners } from "./surface-ids";
 export { readLastSelectedShopIntegrationIds, writeLastSelectedShopIntegrationIds, SHOPIFY_PRODUCT_SYNC_LAST_SHOPS_STORAGE_KEY } from "./lib/shopify-product-sync-storage";
 export { resolveShopifyProductSyncSubmit, isFormFilled } from "./lib/resolve-shopify-product-sync-submit";
-export { deleteShopifyProductSyncDraft } from "./drafts/shopify-product-sync-draft-repository";
+export { getShopifyItemProduct } from "./api/get-shopify-item-product";
+export { deleteLegacyShopifyProductSyncDrafts } from "./lib/delete-legacy-shopify-product-sync-drafts";
+export { useShopifyItemProductQuery } from "./api/use-shopify-item-product-query";
+export { mapShopifyItemProductToFormValues, isShopifyItemProductSyncInFlight } from "./lib/map-shopify-item-product-to-form-values";
 export { shopifyProductSyncSocketEvents } from "./socket-events";
 export { createShopifyInstallUrl } from "./api/create-shopify-install-url";
 export { createShopifyReauthorizeUrl } from "./api/create-shopify-reauthorize-url";

@@ -1,6 +1,7 @@
 import type {
   ProcessShopifyProductsRequest,
   ShopifyProductSyncFormValues,
+  ShopifyProductSyncMetafieldValue,
 } from "../types";
 import {
   isSubmittableMetafieldEntry,
@@ -28,16 +29,51 @@ export function isFormFilled(values: ShopifyProductSyncFormValues): boolean {
   );
 }
 
+/**
+ * Keys present on the existing Shopify product (the form's prefilled
+ * baseline) that the worker has cleared, for one shop. Only baseline entries
+ * are candidates, so metafields the form never showed are never deleted.
+ */
+export function resolveClearedMetafieldKeys(
+  values: ShopifyProductSyncFormValues,
+  existingMetafields: ShopifyProductSyncMetafieldValue[],
+  shopIntegrationId: string,
+): string[] {
+  const keptKeys = new Set(
+    values.metafields
+      .filter(
+        (entry) =>
+          entry.shopIntegrationId === shopIntegrationId &&
+          isSubmittableMetafieldEntry(entry),
+      )
+      .map((entry) => entry.key),
+  );
+  return Array.from(
+    new Set(
+      existingMetafields
+        .filter(
+          (entry) =>
+            entry.shopIntegrationId === shopIntegrationId &&
+            !keptKeys.has(entry.key),
+        )
+        .map((entry) => entry.key),
+    ),
+  );
+}
+
 export function resolveShopifyProductSyncSubmit({
   values,
   itemClientId,
   itemArticleNumber,
   productCategory,
+  existingMetafields = [],
 }: {
   values: ShopifyProductSyncFormValues;
   itemClientId: string;
   itemArticleNumber: string | null;
   productCategory?: string | null;
+  /** Metafields prefilled from the existing Shopify product, if any. */
+  existingMetafields?: ShopifyProductSyncMetafieldValue[];
 }): ResolveShopifyProductSyncSubmitResult {
   if (!isFormFilled(values)) return { kind: "skip" };
 
@@ -72,6 +108,7 @@ export function resolveShopifyProductSyncSubmit({
 
   const baseItem = {
     client_id: itemClientId,
+    item_client_id: itemClientId,
     title,
     description: values.description?.trim() || undefined,
     product_category: productCategory?.trim() || undefined,
@@ -91,7 +128,16 @@ export function resolveShopifyProductSyncSubmit({
       }));
     return quantities.length ? quantities : undefined;
   }
-  const hasMetafields = values.metafields.length > 0;
+  const clearedKeysByShop = new Map(
+    values.shopIntegrationIds.map((shopIntegrationId) => [
+      shopIntegrationId,
+      resolveClearedMetafieldKeys(values, existingMetafields, shopIntegrationId),
+    ]),
+  );
+  const hasClearedMetafields = Array.from(clearedKeysByShop.values()).some(
+    (keys) => keys.length > 0,
+  );
+  const hasMetafields = values.metafields.length > 0 || hasClearedMetafields;
   const items = hasMetafields
     ? values.shopIntegrationIds.map((shopIntegrationId) => {
         const metafields = Object.fromEntries(
@@ -103,10 +149,12 @@ export function resolveShopifyProductSyncSubmit({
             )
             .map((entry) => [entry.key, toShopifyMetafieldWireValue(entry)]),
         );
+        const clearedKeys = clearedKeysByShop.get(shopIntegrationId) ?? [];
         return {
           ...baseItem,
           target_shop_integration_ids: [shopIntegrationId],
           metafields: Object.keys(metafields).length ? metafields : undefined,
+          metafields_to_delete: clearedKeys.length ? clearedKeys : undefined,
           inventory_quantities: inventoryQuantitiesForShop(shopIntegrationId),
         };
       })

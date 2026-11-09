@@ -56,5 +56,8 @@ export const shopifyKeys = {
     q: string;
   }) =>
     [...shopifyKeys.metafieldPreferencesSearch(params), "infinite"] as const,
+  itemProducts: () => [...shopifyKeys.all, "item-product"] as const,
+  itemProduct: (itemClientId: string) =>
+    [...shopifyKeys.itemProducts(), itemClientId] as const,
   missing: () => [...shopifyKeys.all, "missing"] as const,
 };

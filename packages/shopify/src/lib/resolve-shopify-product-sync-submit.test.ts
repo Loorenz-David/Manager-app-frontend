@@ -276,4 +276,79 @@ describe("resolveShopifyProductSyncSubmit", () => {
       },
     });
   });
+
+  it("links every request item to the ManagerBeyo item", () => {
+    const result = resolveShopifyProductSyncSubmit({
+      values: { ...base, shopIntegrationIds: ["shop_1"], sku: "SKU-1" },
+      itemClientId: "item_1",
+      itemArticleNumber: null,
+    });
+
+    expect(result).toMatchObject({
+      kind: "submit",
+      payload: { items: [{ client_id: "item_1", item_client_id: "item_1" }] },
+    });
+  });
+
+  it("deletes only cleared metafields that existed on the product, per shop", () => {
+    const material = {
+      shopIntegrationId: "shop_1",
+      shopifyMetafieldDefinitionId: "def_material",
+      namespace: "custom",
+      key: "material",
+      type: "single_line_text_field",
+      value: "Oak",
+    };
+    const color = { ...material, shopifyMetafieldDefinitionId: "def_color", key: "color", value: "Red" };
+    const result = resolveShopifyProductSyncSubmit({
+      values: {
+        ...base,
+        shopIntegrationIds: ["shop_1"],
+        sku: "SKU-1",
+        // material kept, color cleared (empty value is not submittable)
+        metafields: [material, { ...color, value: "" }],
+      },
+      itemClientId: "item_1",
+      itemArticleNumber: null,
+      existingMetafields: [material, color],
+    });
+
+    expect(result.kind).toBe("submit");
+    if (result.kind !== "submit") return;
+    expect(result.payload.items).toHaveLength(1);
+    expect(result.payload.items[0].metafields_to_delete).toEqual(["color"]);
+    expect(result.payload.items[0].metafields).toEqual({
+      material: { type: "single_line_text_field", value: "Oak" },
+    });
+    expect(ProcessShopifyProductsRequestSchema.safeParse(result.payload).success).toBe(true);
+  });
+
+  it("sends a per-shop item when the only change is clearing every metafield", () => {
+    const material = {
+      shopIntegrationId: "shop_1",
+      shopifyMetafieldDefinitionId: "def_material",
+      namespace: "custom",
+      key: "material",
+      type: "single_line_text_field",
+      value: "Oak",
+    };
+    const result = resolveShopifyProductSyncSubmit({
+      values: { ...base, shopIntegrationIds: ["shop_1"], sku: "SKU-1", metafields: [] },
+      itemClientId: "item_1",
+      itemArticleNumber: null,
+      existingMetafields: [material],
+    });
+
+    expect(result).toMatchObject({
+      kind: "submit",
+      payload: {
+        items: [
+          {
+            target_shop_integration_ids: ["shop_1"],
+            metafields_to_delete: ["material"],
+          },
+        ],
+      },
+    });
+  });
 });

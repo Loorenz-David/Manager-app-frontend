@@ -22,7 +22,7 @@ import type { PreOrderFormValues } from "../types";
  */
 export function PreOrderShopifySection(): React.JSX.Element {
   const surface = useSurface();
-  const { taskClientId, itemClientId } = useTaskCreationFormContext();
+  const { itemClientId } = useTaskCreationFormContext();
   const {
     control,
     setValue,
@@ -52,7 +52,6 @@ export function PreOrderShopifySection(): React.JSX.Element {
       itemCategoryId={null}
       productCategory={null}
       defaultTitle={null}
-      taskClientId={taskClientId}
       mode="submit"
       surfaceOpeners={{
         openShopPicker: (props: ShopifyShopPickerSheetSurfaceProps) =>

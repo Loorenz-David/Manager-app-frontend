@@ -8,7 +8,6 @@ type Value = {
   itemCategoryId: string | null;
   productCategory: string | null;
   defaultTitle: string | null;
-  taskClientId: string;
   mode: ShopifyProductSyncFormMode;
   surfaceOpeners: ShopifyProductSyncSurfaceOpeners;
   onCompleted?: () => void;
