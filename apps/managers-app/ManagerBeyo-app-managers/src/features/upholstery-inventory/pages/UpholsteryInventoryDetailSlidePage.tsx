@@ -12,7 +12,7 @@ import {
 } from "../providers/InventoryDetailProvider";
 import type { InventoryDetailSurfaceProps } from "../surfaces";
 import { InventoryDetailHeader } from "../components/InventoryDetailHeader";
-import { InventoryHistorySection } from "../components/InventoryHistorySection";
+import { InventoryHistoryTimeline } from "../components/InventoryHistoryTimeline";
 import { InventoryQuantityOverview } from "../components/InventoryQuantityOverview";
 
 function DetailContent(): React.JSX.Element {
@@ -54,7 +54,7 @@ function DetailContent(): React.JSX.Element {
           <ContentCard>
             <InventoryQuantityOverview />
             <div className="h-px bg-border" />
-            <InventoryHistorySection />
+            <InventoryHistoryTimeline inventoryId={controller.inventoryId} />
           </ContentCard>
         </div>
       </div>

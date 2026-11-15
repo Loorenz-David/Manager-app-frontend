@@ -1,9 +1,11 @@
 import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useUpholsteryPickerOptionQuery } from "@beyo/upholstery";
 import { useSurfaceStore } from "@/providers/SurfaceProvider";
 import type { UpholsteryInventoryId } from "@/types/common";
 
+import { upholsteryInventoryKeys } from "../api/upholstery-inventory-keys";
 import { useGetUpholsteryInventoryQuery } from "../api/use-get-upholstery-inventory-query";
 import { deriveInventoryCondition } from "../lib/condition";
 import {
@@ -47,6 +49,7 @@ export function useInventoryDetailController(
   inventoryId: UpholsteryInventoryId,
   prefill?: InventoryDetailPrefill,
 ) {
+  const queryClient = useQueryClient();
   const query = useGetUpholsteryInventoryQuery(inventoryId);
   const upholsteryQuery = useUpholsteryPickerOptionQuery(
     query.data?.upholstery_id ?? null,
@@ -58,7 +61,11 @@ export function useInventoryDetailController(
   }, [query.data, prefill, inventoryId]);
 
   async function refetch(): Promise<void> {
-    await query.refetch();
+    // Invalidating the detail(id) prefix refetches the detail query and the
+    // history timeline nested under it, so pull-to-refresh refreshes both.
+    await queryClient.invalidateQueries({
+      queryKey: upholsteryInventoryKeys.detail(inventoryId),
+    });
   }
 
   function openStoredAmountEditor(): void {

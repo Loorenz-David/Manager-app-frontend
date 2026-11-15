@@ -5,6 +5,7 @@ import type { TaskStep } from "../types";
 import {
   hasNoAvailableUpholstery,
   hasNoUpholsterySelected,
+  isMarkedWithoutUpholstery,
   isUpholsteryWarningSection,
 } from "./step-transition-guards";
 
@@ -80,5 +81,35 @@ describe("hasNoUpholsterySelected", () => {
     expect(hasNoUpholsterySelected(stepWithRequirementStates(["ordered"]))).toBe(
       false,
     );
+  });
+});
+
+function stepWithUpholsteryFlag(
+  canHaveUpholstery: boolean | undefined,
+  states: string[] = [],
+): TaskStep {
+  const step = stepWithRequirementStates(states);
+  return {
+    ...step,
+    item: { ...step.item, can_have_upholstery: canHaveUpholstery },
+  } as unknown as TaskStep;
+}
+
+describe("items marked as having no upholstery", () => {
+  it("is not the same as upholstery that is still unassigned", () => {
+    expect(hasNoUpholsterySelected(stepWithUpholsteryFlag(false))).toBe(false);
+    expect(hasNoUpholsterySelected(stepWithUpholsteryFlag(true))).toBe(true);
+    // a payload without the flag keeps the previous behaviour
+    expect(hasNoUpholsterySelected(stepWithUpholsteryFlag(undefined))).toBe(true);
+  });
+
+  it("never reports missing fabric for a None item", () => {
+    expect(isMarkedWithoutUpholstery(stepWithUpholsteryFlag(false))).toBe(true);
+    expect(
+      hasNoAvailableUpholstery(stepWithUpholsteryFlag(false, ["needs_ordering"])),
+    ).toBe(false);
+    expect(
+      hasNoAvailableUpholstery(stepWithUpholsteryFlag(true, ["needs_ordering"])),
+    ).toBe(true);
   });
 });

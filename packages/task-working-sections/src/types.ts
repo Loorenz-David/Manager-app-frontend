@@ -144,6 +144,10 @@ export const ItemSnapshotSchema = z
     quantity: z.number(),
     item_position: z.string().nullable(),
     item_zone: z.string().nullable(),
+    // `false` = the item was explicitly marked as having no upholstery ("None") —
+    // not the same as upholstery that has not been assigned yet. Optional so
+    // payloads from servers that predate the field still parse.
+    can_have_upholstery: z.boolean().optional(),
     upholstery_requirement: z.array(UpholsteryRequirementSchema),
   })
   .nullable();

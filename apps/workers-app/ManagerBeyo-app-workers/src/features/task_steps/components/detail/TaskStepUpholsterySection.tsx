@@ -44,7 +44,11 @@ export function TaskStepUpholsterySection(): React.JSX.Element | null {
       </SectionLabel>
 
       {entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No upholstery selected.</p>
+        <p className="text-sm text-muted-foreground">
+          {step.item.can_have_upholstery === false
+            ? "This item has no upholstery."
+            : "No upholstery selected."}
+        </p>
       ) : (
         <div className="flex flex-col gap-2">
           {entries.map((entry) => (

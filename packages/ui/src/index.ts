@@ -77,6 +77,7 @@ export * from "./components/primitives/switch";
 export * from "./components/primitives/swipeable-row";
 export * from "./components/primitives/textarea";
 export * from "./components/primitives/ticking-timer";
+export * from "./components/primitives/timeline";
 export * from "./components/primitives/user-pill";
 export * from "./components/primitives/vertical-scroll-area";
 export * from "./components/primitives/working-section-shortcut-bar";
