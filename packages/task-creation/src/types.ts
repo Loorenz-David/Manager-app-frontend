@@ -4,7 +4,7 @@ import { CustomerFieldsSchema } from "@beyo/customers";
 import { DateOnlySchema } from "@beyo/lib";
 import type { ItemCategoryPickerOption } from "@beyo/item-categories";
 import { ItemIssuesFieldsSchema } from "@beyo/item-issues";
-import { ItemPricingFieldsSchema } from "@beyo/item-economics";
+import { ItemPricingFieldsSchema, resolveTotalMinor } from "@beyo/item-economics";
 import {
   ItemDetailsFieldsSchema,
   type ItemLookupResult,
@@ -27,6 +27,8 @@ import {
   type WorkingSectionOption,
   type WorkingSectionPickerOption,
 } from "@beyo/working-sections";
+
+import { resolvePreorderShopifyTarget } from "./lib/preorder-shopify-target";
 
 function addSeatLocationIssue(
   item: {
@@ -304,6 +306,24 @@ export const PreOrderFormSchema = z
         code: z.ZodIssueCode.custom,
         message: "Select at least one inventory location.",
         path: ["inventoryQuantities"],
+      });
+    }
+
+    // The expected sale price becomes the Shopify product's price, which the
+    // backend requires: without it the whole create request is refused (422)
+    // and the task is not created either. Only when a product will actually
+    // be sent — the same rule buildShopifyPreorderSection applies.
+    if (
+      resolvePreorderShopifyTarget(data) &&
+      resolveTotalMinor(
+        data.item_pricing.expected_sale_price_per_piece,
+        data.item.quantity,
+      ) == null
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enter an expected sale price. It becomes the Shopify price.",
+        path: ["item_pricing", "expected_sale_price_per_piece"],
       });
     }
 

@@ -235,6 +235,50 @@ function detailServerCode(detail: unknown): string | undefined {
   return typeof code === "string" ? code : undefined;
 }
 
+const MAX_DESCRIBED_VALIDATION_ISSUES = 3;
+
+/**
+ * The user-facing message for a `{ detail }` body. A string is shown as-is. An
+ * array is FastAPI's request-validation list (`[{ loc, msg }]`, a 422 the
+ * request schema raised before any service ran); naming the rejected fields
+ * turns an opaque failure into one that says what the request was missing.
+ * Anything else has nothing readable to show.
+ */
+function describeDetail(detail: unknown): string {
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (!Array.isArray(detail)) {
+    return "Request failed.";
+  }
+
+  const issues = detail.flatMap((entry) => {
+    if (typeof entry !== "object" || entry === null) {
+      return [];
+    }
+    const { loc, msg } = entry as { loc?: unknown; msg?: unknown };
+    if (typeof msg !== "string") {
+      return [];
+    }
+    // `loc` starts with where the value came from ("body", "query", ...),
+    // which says nothing to a reader; the rest is the field path.
+    const path = Array.isArray(loc)
+      ? loc
+          .slice(1)
+          .filter((part) => typeof part === "string" || typeof part === "number")
+          .join(".")
+      : "";
+    return [path ? `${path}: ${msg}` : msg];
+  });
+
+  if (issues.length === 0) {
+    return "Request failed.";
+  }
+  const shown = issues.slice(0, MAX_DESCRIBED_VALIDATION_ISSUES).join("; ");
+  const remaining = issues.length - MAX_DESCRIBED_VALIDATION_ISSUES;
+  return `Invalid request (${shown}${remaining > 0 ? `; ${remaining} more` : ""}).`;
+}
+
 async function errorFromResponse(response: Response): Promise<ApiRequestError> {
   let body: unknown;
   try {
@@ -268,7 +312,7 @@ async function errorFromResponse(response: Response): Promise<ApiRequestError> {
     return new ApiRequestError(
       response.status,
       errorCode(response.status, serverCode),
-      typeof detail === "string" ? detail : "Request failed.",
+      describeDetail(detail),
       { serverCode, details: detail },
     );
   }

@@ -219,6 +219,8 @@ function needAdjustedTitle(record: InventoryHistoryChildRecord): string {
   switch (record.trigger) {
     case "task_deleted":
       return "Task deleted, need released";
+    case "task_finished":
+      return "Task finished, unordered need released";
     case "upholstery_swapped":
       return "Upholstery swapped, need released";
     case "item_upholstery_deleted":

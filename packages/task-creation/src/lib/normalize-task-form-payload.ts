@@ -17,6 +17,7 @@ import {
   type TaskNoteComposerValue,
 } from "@beyo/task-notes";
 
+import { resolvePreorderShopifyTarget } from "./preorder-shopify-target";
 import { toShopifyProductDescription } from "./to-shopify-product-description";
 
 type BaseIds = {
@@ -263,9 +264,11 @@ export function normalizeReturnFormPayload(
  * Builds the optional `shopify_preorder` request section
  * (HANDOFF_TO_FRONTEND_task_preorder_shopify_product_20260727). Returns
  * undefined when the form has no complete Shopify selection — the endpoint
- * then behaves exactly as before. When an expected sale price exists, `price`
- * is derived from the exact same integer minor-unit total sent on `item` and
- * converted to a decimal string. The item's quantity is also sent separately
+ * then behaves exactly as before. `price` is derived from the exact same
+ * integer minor-unit total sent on `item` and converted to a decimal string.
+ * The backend requires it on every Shopify product (a missing one is a 422), so
+ * `PreOrderFormSchema` refuses to submit without it whenever this section will
+ * be sent; both decide that with `resolvePreorderShopifyTarget`. The item's quantity is also sent separately
  * as the string-valued `custom.quantity` metafield; it does not affect the
  * independently selected inventory quantities.
  *
@@ -288,17 +291,13 @@ export function buildShopifyPreorderSection(
   values: PreOrderFormValues,
   { imageClientId }: { imageClientId?: string | null } = {},
 ): Record<string, unknown> | undefined {
-  const shopIntegrationId = values.shopIntegrationIds?.[0];
+  const shopIntegrationId = resolvePreorderShopifyTarget(values);
   const expectedSalePriceMinor = resolveTotalMinor(
     values.item_pricing.expected_sale_price_per_piece,
     values.item.quantity,
   );
 
-  if (
-    !shopIntegrationId ||
-    values.has_shopify_shops === false ||
-    values.shopify_inventory_unavailable_for === shopIntegrationId
-  ) {
+  if (!shopIntegrationId) {
     return undefined;
   }
 
@@ -308,10 +307,6 @@ export function buildShopifyPreorderSection(
       location_id: entry.locationId,
       quantity: entry.quantity > 0 ? entry.quantity : 1,
     }));
-
-  if (inventory.length === 0) {
-    return undefined;
-  }
 
   const description = toShopifyProductDescription(values.note_content);
 

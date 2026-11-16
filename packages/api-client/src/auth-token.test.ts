@@ -132,7 +132,41 @@ describe('detail-only API errors', () => {
     await expect(apiClient.post('/api/v1/invalid', z.object({}), {})).rejects.toMatchObject({
       status: 422,
       code: 'unprocessable',
+      message: 'Invalid request (quantity: required).',
       details: detail,
+    });
+  });
+
+  it('names the rejected fields of a FastAPI validation 422, without the body prefix', async () => {
+    const detail = [
+      { type: 'missing', loc: ['body', 'shopify_preorder', 'product', 'price'], msg: 'Field required' },
+      { type: 'int_parsing', loc: ['body', 'shopify_preorder', 'inventory', 0, 'quantity'], msg: 'Input should be a valid integer' },
+      { loc: ['body', 'a'], msg: 'x' },
+      { loc: ['body', 'b'], msg: 'y' },
+    ];
+    server.use(
+      http.put(`${API_ORIGIN}/api/v1/tasks`, () => HttpResponse.json({ detail }, { status: 422 })),
+    );
+    const { apiClient } = await import('./api-client');
+
+    await expect(apiClient.put('/api/v1/tasks', z.object({}), {})).rejects.toMatchObject({
+      status: 422,
+      message:
+        'Invalid request (shopify_preorder.product.price: Field required; '
+        + 'shopify_preorder.inventory.0.quantity: Input should be a valid integer; a: x; 1 more).',
+    });
+  });
+
+  it('keeps the generic message when a detail array has nothing readable', async () => {
+    server.use(
+      http.post(`${API_ORIGIN}/api/v1/invalid`, () =>
+        HttpResponse.json({ detail: [{ loc: ['body'] }, 'oops'] }, { status: 422 }),
+      ),
+    );
+    const { apiClient } = await import('./api-client');
+
+    await expect(apiClient.post('/api/v1/invalid', z.object({}), {})).rejects.toMatchObject({
+      message: 'Request failed.',
     });
   });
 });

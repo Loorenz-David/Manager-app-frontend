@@ -112,6 +112,12 @@ function buildSubmittableValues(
       major_category: "wood" as const,
       ...overrides.item,
     },
+    // A Shopify product needs a price (the schema refuses without one).
+    item_pricing: {
+      ...defaults.item_pricing,
+      expected_sale_price_per_piece: 4000,
+      ...overrides.item_pricing,
+    },
     customer: {
       ...defaults.customer,
       display_name: "Ada",

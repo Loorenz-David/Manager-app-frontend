@@ -26,6 +26,8 @@ vi.mock("react-hook-form", async (importOriginal) => {
           ...defaults,
           has_shopify_shops: mocks.withShopify,
           item: { ...defaults.item, major_category: "wood", item_category_id: "cat-1" },
+          // A Shopify product needs a price (the schema refuses without one).
+          item_pricing: { ...defaults.item_pricing, expected_sale_price_per_piece: 4000 },
           customer: { ...defaults.customer, display_name: "Ada", customer_type: "private", primary_phone_number: "+46700000000" },
           shopIntegrationIds: mocks.withShopify ? ["shop-1"] : [],
           inventoryQuantities: mocks.withShopify

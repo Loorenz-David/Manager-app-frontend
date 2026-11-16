@@ -34,6 +34,8 @@ function setup(inventoryQuantities: PreOrderFormValues["inventoryQuantities"] = 
       defaultValues: {
         ...defaults,
         item: { ...defaults.item, major_category: "wood", item_category_id: "cat-1" },
+        // A Shopify product needs a price; these tests are about inventory.
+        item_pricing: { ...defaults.item_pricing, expected_sale_price_per_piece: 4000 },
         customer: {
           ...defaults.customer,
           display_name: "Ada", customer_type: "private",

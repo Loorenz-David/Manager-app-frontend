@@ -103,10 +103,61 @@ describe("inline item pricing schemas", () => {
     ).toBe(true);
   });
 
-  it("keeps both Pre-order prices optional", () => {
-    expect(PreOrderFormSchema.safeParse(buildPreOrderValues()).success).toBe(
-      true,
+  it("keeps both Pre-order prices optional when no Shopify product is sent", () => {
+    const values = buildPreOrderValues({
+      has_shopify_shops: false,
+      shopIntegrationIds: [],
+      inventoryQuantities: [],
+    });
+
+    expect(PreOrderFormSchema.safeParse(values).success).toBe(true);
+  });
+
+  // Production 2026-11-16: a pre-order with a shop and locations but no sale
+  // price was refused by the backend's required `product.price` (422), and
+  // the task was not created either.
+  it("requires the expected sale price when a Shopify product will be sent", () => {
+    const values = buildPreOrderValues();
+    expect(buildShopifyPreorderSection(values)).toBeDefined();
+
+    const result = PreOrderFormSchema.safeParse(values);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues).toContainEqual(
+      expect.objectContaining({
+        path: ["item_pricing", "expected_sale_price_per_piece"],
+        message: "Enter an expected sale price. It becomes the Shopify price.",
+      }),
     );
+  });
+
+  it("accepts a Shopify pre-order with a sale price (purchase cost still optional), and sends it", () => {
+    const values = buildPreOrderValues({
+      item_pricing: { purchase_cost_per_piece: null, expected_sale_price_per_piece: 4000 },
+    });
+
+    expect(PreOrderFormSchema.safeParse(values).success).toBe(true);
+    expect(buildShopifyPreorderSection(values)?.product).toHaveProperty("price");
+  });
+
+  // Owner decision 2026-11-16: 0 is a legitimate Shopify price. Only an empty
+  // price blocks submission.
+  it("accepts a sale price of 0 for a Shopify pre-order and sends it as 0.00", () => {
+    const values = buildPreOrderValues({
+      item_pricing: { purchase_cost_per_piece: null, expected_sale_price_per_piece: 0 },
+    });
+
+    expect(PreOrderFormSchema.safeParse(values).success).toBe(true);
+    expect(buildShopifyPreorderSection(values)?.product).toMatchObject({ price: "0.00" });
+  });
+
+  it("does not require a price when the selected shop has no usable locations", () => {
+    const values = buildPreOrderValues({
+      shopify_inventory_unavailable_for: "shop-1",
+      inventoryQuantities: [],
+    });
+
+    expect(buildShopifyPreorderSection(values)).toBeUndefined();
+    expect(PreOrderFormSchema.safeParse(values).success).toBe(true);
   });
 
   it("allows a complete Pre-order without Shopify when there are no shops", () => {
