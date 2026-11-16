@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useDisableSlideDismiss } from "@beyo/hooks";
 import { useSurfaceHeader } from "@beyo/hooks";
 import { useSurfaceProps } from "@beyo/hooks";
 import { useSurfaceStore } from "@beyo/ui";
@@ -157,6 +158,9 @@ function buildTextAnnotation(
 
 export function ImageEditorPage(): React.JSX.Element {
   const header = useSurfaceHeader();
+  // Drawing strokes are horizontal drags too; the swipe-to-close gesture would
+  // hijack them and dismiss the editor mid-stroke. Close via the header only.
+  useDisableSlideDismiss();
   const {
     image,
     isDirectCaptureSession,

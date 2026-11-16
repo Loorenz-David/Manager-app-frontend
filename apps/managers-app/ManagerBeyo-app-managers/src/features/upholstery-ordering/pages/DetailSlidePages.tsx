@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, EllipsisVertical } from "lucide-react";
 import { PullToRefresh, SearchBar, useScrollVisibility } from "@beyo/ui";
 import { cn } from "@beyo/lib";
 
@@ -20,13 +20,20 @@ import { toOrderCardViewModel } from "../lib/upholstery-ordering-dto";
 import { upholsteryOrderingKeys } from "../api/upholstery-ordering-keys";
 import {
   UPHOLSTERY_CREATE_ORDER_SLIDE_ID,
+  UPHOLSTERY_ORDER_ACTIONS_SHEET_ID,
   UPHOLSTERY_RECEIVE_ORDER_SLIDE_ID,
   type CreateOrderSurfaceProps,
+  type OrderActionsSurfaceProps,
   type OrderDetailSurfaceProps,
   type ReceiveOrderSurfaceProps,
   type ShortageDetailSurfaceProps,
 } from "../surfaces";
-import type { OrderCardViewModel, OrderRow, PaginatedRows } from "../types";
+import {
+  isOrderAmountEditable,
+  type OrderCardViewModel,
+  type OrderRow,
+  type PaginatedRows,
+} from "../types";
 
 const HEADER_INDICATOR_OFFSET = 132;
 const CONTENT_TOP_OFFSET_CLASS = "pt-[136px]";
@@ -171,6 +178,21 @@ function DetailPage({ mode }: { mode: DetailMode }): React.JSX.Element {
               {aggregate}
             </p>
           </div>
+          {mode === "order" && liveOrder && isOrderAmountEditable(liveOrder.state) ? (
+            <button
+              aria-label="Order actions"
+              className="flex size-10 shrink-0 items-center justify-center rounded-full"
+              data-testid="upholstery-order-detail-actions"
+              type="button"
+              onClick={() =>
+                surface.open(UPHOLSTERY_ORDER_ACTIONS_SHEET_ID, {
+                  order: liveOrder,
+                } satisfies OrderActionsSurfaceProps)
+              }
+            >
+              <EllipsisVertical aria-hidden="true" className="size-5" />
+            </button>
+          ) : null}
         </div>
         <div
           className={cn(

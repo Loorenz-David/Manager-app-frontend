@@ -226,7 +226,7 @@ export type ServerToClientEvents = {
   "upholstery:inventory-updated": (payload: { client_id: string }) => void;
   "upholstery:inventory-deleted": (payload: { client_id: string }) => void;
   // `client_id` is the upholstery order's id; `state` is its state after the
-  // command (create_upholstery_order / receive_upholstery_order).
+  // command (create_upholstery_order / receive_upholstery_order / update_upholstery_order_amount).
   "upholstery:order-created": (payload: {
     client_id: string;
     state: string;
@@ -234,6 +234,13 @@ export type ServerToClientEvents = {
   "upholstery:order-received": (payload: {
     client_id: string;
     state: string;
+  }) => void;
+  // update_upholstery_order_amount: the order's amount changed (state may become
+  // `received` when cut to what already arrived).
+  "upholstery:order-updated": (payload: {
+    client_id: string;
+    state: string;
+    order_amount_meters: number;
   }) => void;
   "task:note-created": (payload: { client_id: string; note_ids: string[] }) => void;
   "task:note-updated": (payload: { client_id: string; note_id: string }) => void;

@@ -307,6 +307,15 @@ export function getHistoryRecordTitle(record: InventoryHistoryChildRecord): stri
           : "Order received",
         orderAmount(record, "received"),
       );
+    case "order_amount_changed": {
+      // quantity_meters is the signed delta of the order's amount.
+      const quantity = toDecimal(record.quantity_meters);
+      if (!quantity || quantity.isZero()) return "Order amount changed";
+      const formatted = formatMeters(absAmount(record.quantity_meters));
+      return quantity.isNegative()
+        ? `Order reduced by ${formatted}`
+        : `Order increased by ${formatted}`;
+    }
     case "surplus_added":
       return withAmount("Surplus added", absAmount(record.quantity_meters));
     case "stored_set": {

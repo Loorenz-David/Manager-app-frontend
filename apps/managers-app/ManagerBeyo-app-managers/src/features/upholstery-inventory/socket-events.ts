@@ -5,7 +5,7 @@ import type { UpholsteryId } from "@/types/common";
 import { upholsteryInventoryKeys } from "./api/upholstery-inventory-keys";
 
 /**
- * Requirement state changes and order create/receive move inventory totals
+ * Requirement state changes and order create/receive/amount edits move inventory totals
  * (and add history entries) without emitting `upholstery:inventory-updated`
  * for each inventory, and their payloads don't name the inventory. Refresh
  * every open inventory detail; history is nested under detail(id).
@@ -87,6 +87,10 @@ export const upholsterySocketEvents: SocketEventHandlers = {
   },
 
   "upholstery:order-received": (_payload, ctx) => {
+    invalidateInventoryDetails(ctx);
+  },
+
+  "upholstery:order-updated": (_payload, ctx) => {
     invalidateInventoryDetails(ctx);
   },
 };

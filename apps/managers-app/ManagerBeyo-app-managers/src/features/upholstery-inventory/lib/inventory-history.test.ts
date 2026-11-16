@@ -42,6 +42,12 @@ describe("getHistoryRecordTitle", () => {
     expect(
       title({ movement_type: "need_adjusted", trigger: "task_finished", quantity_meters: "-1.500" }),
     ).toBe("Task finished, unordered need released");
+    expect(
+      title({ movement_type: "order_amount_changed", trigger: "order_amount_changed", quantity_meters: "-1.500" }),
+    ).toBe(`Order reduced by 1.5 m`);
+    expect(
+      title({ movement_type: "order_amount_changed", trigger: "order_amount_changed", quantity_meters: "2.000" }),
+    ).toBe(`Order increased by 2 m`);
     expect(title({ movement_type: "reserved_for_use", trigger: "step_transition" })).toBe(
       "Reserved for production",
     );

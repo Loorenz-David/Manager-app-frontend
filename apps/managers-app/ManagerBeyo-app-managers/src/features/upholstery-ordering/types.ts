@@ -43,6 +43,17 @@ export const ACTIVE_ORDER_STATES = [
   "partially_received",
 ] as const satisfies readonly UpholsteryOrderState[];
 
+/** Closed orders: the backend refuses an amount change (`update_upholstery_order_amount`). */
+export const CLOSED_ORDER_STATES = [
+  "received",
+  "cancelled",
+  "failed",
+] as const satisfies readonly UpholsteryOrderState[];
+
+export function isOrderAmountEditable(state: UpholsteryOrderState): boolean {
+  return !(CLOSED_ORDER_STATES as readonly UpholsteryOrderState[]).includes(state);
+}
+
 export const OrderNeedRowSchema = z.object({
   upholstery_id: z.string(),
   upholstery_name: z.string().nullable(),
@@ -140,6 +151,19 @@ export type ReceiveUpholsteryOrderInput = {
 export type ReceiveUpholsteryOrderResponse = {
   client_id: string;
   state: UpholsteryOrderState;
+};
+
+export type UpdateUpholsteryOrderAmountInput = {
+  client_id: string;
+  /** Meters as a 3-dp decimal string, so no float rounding reaches the backend. */
+  order_amount_meters: string;
+};
+
+export type UpdateUpholsteryOrderAmountResponse = {
+  client_id: string;
+  state: UpholsteryOrderState;
+  order_amount_meters: number;
+  received_amount_meters: number | null;
 };
 
 export type ShortageCardViewModel = {

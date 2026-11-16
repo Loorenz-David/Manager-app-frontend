@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import { Ellipsis, Pencil, X } from "lucide-react";
 
+import { useDisableSlideDismiss } from "@beyo/hooks";
 import { useSurface } from "@beyo/hooks";
 import { useSurfaceHeader } from "@beyo/hooks";
 import { useSurfaceProps } from "@beyo/hooks";
@@ -32,6 +33,9 @@ function clampIndex(index: number, imageCount: number): number {
 
 export function ImageFullscreenViewerPage(): React.JSX.Element {
   const header = useSurfaceHeader();
+  // Carousel swipes and pinch-zoom panning are horizontal drags; the
+  // swipe-to-close gesture would collide with them. Close via the header only.
+  useDisableSlideDismiss();
   const surface = useSurface();
   const {
     images: initialImages = [],

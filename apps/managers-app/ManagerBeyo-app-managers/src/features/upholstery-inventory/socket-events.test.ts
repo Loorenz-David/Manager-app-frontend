@@ -22,6 +22,10 @@ describe("upholstery inventory socket events", () => {
     ],
     ["upholstery:order-created", { client_id: "uor_1", state: "ordered" }],
     ["upholstery:order-received", { client_id: "uor_1", state: "received" }],
+    [
+      "upholstery:order-updated",
+      { client_id: "uor_1", state: "ordered", order_amount_meters: 3 },
+    ],
   ] as const)(
     "%s invalidates every inventory detail (and its history)",
     (eventName, payload) => {

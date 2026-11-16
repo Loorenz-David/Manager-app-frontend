@@ -5,6 +5,8 @@ const sourceHandlers = vi.hoisted(() => ({
   task: vi.fn(),
   itemRequirement: vi.fn(),
   upholsteryRequirement: vi.fn(),
+  inventoryOrderUpdated: vi.fn(),
+  orderingOrderUpdated: vi.fn(),
 }));
 
 vi.mock("@beyo/cases", () => ({ caseSocketEvents: {} }));
@@ -34,6 +36,12 @@ vi.mock("@/features/upholstery-inventory/socket-events", () => ({
   upholsterySocketEvents: {
     "item:upholstery-requirement-state-changed":
       sourceHandlers.upholsteryRequirement,
+    "upholstery:order-updated": sourceHandlers.inventoryOrderUpdated,
+  },
+}));
+vi.mock("@/features/upholstery-ordering/socket-events", () => ({
+  upholsteryOrderingSocketEvents: {
+    "upholstery:order-updated": sourceHandlers.orderingOrderUpdated,
   },
 }));
 vi.mock("@beyo/realtime", async () => {
@@ -66,5 +74,16 @@ describe("socketRegistry", () => {
       payload,
       ctx,
     );
+  });
+
+  it("runs both the inventory and the ordering order-updated handlers", () => {
+    const handler = socketRegistry["upholstery:order-updated"];
+    const payload = { client_id: "uor_1", state: "ordered", order_amount_meters: 3 };
+    const ctx = {} as Parameters<NonNullable<typeof handler>>[1];
+
+    handler?.(payload, ctx);
+
+    expect(sourceHandlers.inventoryOrderUpdated).toHaveBeenCalledWith(payload, ctx);
+    expect(sourceHandlers.orderingOrderUpdated).toHaveBeenCalledWith(payload, ctx);
   });
 });

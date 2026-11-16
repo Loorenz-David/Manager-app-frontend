@@ -26,6 +26,8 @@ import type {
   OrdersCount,
   PaginatedRows,
   ReceiveUpholsteryOrderInput,
+  UpdateUpholsteryOrderAmountInput,
+  UpdateUpholsteryOrderAmountResponse,
   UpholsteryOrderState,
 } from "../types";
 
@@ -80,6 +82,15 @@ const ReceiveUpholsteryOrderResponseSchema = ApiEnvelopeSchema(
   z.object({
     client_id: z.string(),
     state: UpholsteryOrderStateSchema,
+  }),
+).extend({ ok: z.literal(true) });
+
+const UpdateUpholsteryOrderAmountResponseSchema = ApiEnvelopeSchema(
+  z.object({
+    client_id: z.string(),
+    state: UpholsteryOrderStateSchema,
+    order_amount_meters: z.number(),
+    received_amount_meters: z.number().nullable(),
   }),
 ).extend({ ok: z.literal(true) });
 
@@ -198,6 +209,18 @@ export async function receiveUpholsteryOrder(
     "/api/v1/upholstery-orders/receive",
     ReceiveUpholsteryOrderResponseSchema,
     input,
+  );
+  return response.data;
+}
+
+export async function updateUpholsteryOrderAmount({
+  client_id,
+  order_amount_meters,
+}: UpdateUpholsteryOrderAmountInput): Promise<UpdateUpholsteryOrderAmountResponse> {
+  const response = await apiClient.patch(
+    `/api/v1/upholstery-orders/${client_id}/amount`,
+    UpdateUpholsteryOrderAmountResponseSchema,
+    { order_amount_meters },
   );
   return response.data;
 }
