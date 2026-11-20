@@ -80,6 +80,45 @@ export function startsInIgnoredRegion(
   return false;
 }
 
+/** Input types that never show a text caret — focusing one is not "typing". */
+const NON_TEXT_INPUT_TYPES = new Set([
+  "button",
+  "checkbox",
+  "color",
+  "file",
+  "hidden",
+  "image",
+  "radio",
+  "range",
+  "reset",
+  "submit",
+]);
+
+/**
+ * Whether the user is currently typing in a text field (focused, editable
+ * input / textarea / contenteditable). While they are, a horizontal finger
+ * slide is the OS caret-move gesture (drag along the text to reposition the
+ * cursor), so swipe-to-dismiss and slide navigation must stand down. Once the
+ * field blurs, the gestures work again — checked per touch, no state kept.
+ */
+export function isTextEntryFocused(): boolean {
+  const element =
+    typeof document === "undefined" ? null : document.activeElement;
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.isContentEditable) return true;
+  if (element instanceof HTMLTextAreaElement) {
+    return !element.disabled && !element.readOnly;
+  }
+  if (element instanceof HTMLInputElement) {
+    return (
+      !element.disabled &&
+      !element.readOnly &&
+      !NON_TEXT_INPUT_TYPES.has(element.type)
+    );
+  }
+  return false;
+}
+
 /**
  * iOS-style interactive dismiss: the panel tracks the finger on a
  * horizontal-dominant touch drag and, on release, finishes closing when the
@@ -139,6 +178,11 @@ export function useSlideToDismiss({
         mode = "rejected";
         return;
       }
+      // Typing in a field: a horizontal slide moves the caret, not the panel.
+      if (isTextEntryFocused()) {
+        mode = "rejected";
+        return;
+      }
       const touch = event.touches[0];
       mode = "pending";
       startX = touch.clientX;
@@ -165,6 +209,12 @@ export function useSlideToDismiss({
         if (Math.max(Math.abs(dx), Math.abs(dy)) < AXIS_LOCK_DISTANCE) return;
         if (Math.abs(dy) >= Math.abs(dx)) {
           // Vertical-dominant: native scrolling owns this touch.
+          mode = "rejected";
+          return;
+        }
+        // A field may have gained focus after touchstart (e.g. long-press
+        // into the caret loupe): still the caret's gesture, never ours.
+        if (isTextEntryFocused()) {
           mode = "rejected";
           return;
         }

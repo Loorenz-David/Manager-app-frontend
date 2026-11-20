@@ -4,7 +4,10 @@ import type { RefObject } from 'react';
 
 import { transitions } from '@beyo/lib';
 
-import { startsInIgnoredRegion } from '../../surfaces/use-slide-to-dismiss';
+import {
+  isTextEntryFocused,
+  startsInIgnoredRegion,
+} from '../../surfaces/use-slide-to-dismiss';
 import { findNearestScroller } from './find-nearest-scroller';
 import { slideStackPose } from './slide-stack.variants';
 import type {
@@ -210,6 +213,11 @@ export function useSlideStackDrag({
         mode = 'rejected';
         return;
       }
+      // Typing in a field: a horizontal slide moves the caret, not the pane.
+      if (isTextEntryFocused()) {
+        mode = 'rejected';
+        return;
+      }
       const touch = event.touches[0];
       mode = 'pending';
       touchId = touch.identifier ?? -1;
@@ -250,6 +258,11 @@ export function useSlideStackDrag({
         // touchstart finalized a pending navigation): never drag a pane that
         // is on its way out.
         if (!isActiveRef.current()) {
+          mode = 'rejected';
+          return;
+        }
+        // A field may have gained focus after touchstart: the caret owns it.
+        if (isTextEntryFocused()) {
           mode = 'rejected';
           return;
         }

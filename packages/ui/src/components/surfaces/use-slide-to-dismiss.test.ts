@@ -255,6 +255,67 @@ describe("useSlideToDismiss", () => {
     expect(onPointerCancel).not.toHaveBeenCalled();
   });
 
+  it("stands down while a text field is focused (caret-move gesture), and resumes after blur", () => {
+    const { result, onDismiss } = setup();
+    const input = document.createElement("input");
+    input.type = "text";
+    panel.appendChild(input);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+
+    startOn(input, 50, 100);
+    const caretSlide = move(300, 104, 50); // well past threshold
+    end();
+
+    expect(result.current.x.get()).toBe(0);
+    expect(onDismiss).not.toHaveBeenCalled();
+    // The caret keeps the touch: we never claimed it.
+    expect(caretSlide.defaultPrevented).toBe(false);
+
+    input.blur();
+    start(50, 100);
+    move(300, 104, 1050);
+    end();
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
+  it("stands down for a focused textarea or contenteditable", () => {
+    const { onDismiss } = setup();
+    const textarea = document.createElement("textarea");
+    panel.appendChild(textarea);
+    textarea.focus();
+    start(50, 100);
+    move(300, 104, 50);
+    end();
+
+    const editable = document.createElement("div");
+    editable.contentEditable = "true";
+    // jsdom does not implement isContentEditable.
+    Object.defineProperty(editable, "isContentEditable", { value: true });
+    editable.tabIndex = 0;
+    panel.appendChild(editable);
+    editable.focus();
+    start(50, 100);
+    move(300, 104, 100);
+    end();
+
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("still dismisses when a non-text control (checkbox) holds focus", () => {
+    const { onDismiss } = setup();
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    panel.appendChild(checkbox);
+    checkbox.focus();
+
+    start(50, 100);
+    move(300, 104, 50);
+    end();
+
+    expect(onDismiss).toHaveBeenCalledOnce();
+  });
+
   it("still dismisses for drags outside the opted-out region", () => {
     const { onDismiss } = setup();
     const region = document.createElement("div");
