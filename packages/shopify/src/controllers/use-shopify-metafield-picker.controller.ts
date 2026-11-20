@@ -19,6 +19,7 @@ import {
   findDimensionTextMirrorFields,
   toDimensionTextMirrorValue,
 } from "../lib/shopify-dimension-text-mirror";
+import { resolveWidthExtensionMirrorUpdates } from "../lib/shopify-width-extension-mirror";
 import { createMetafieldFieldIdentity } from "../lib/shopify-metafield-identity";
 import {
   belongsToMetafieldStep,
@@ -367,21 +368,45 @@ export function useShopifyMetafieldPickerController({
     [allSavedFields, isEditMode, reorderAction],
   );
 
+  const valueForField = useCallback(
+    (field: ShopifyMetafieldField) =>
+      draftValues[field.identity] ??
+      value.find(
+        (entry) =>
+          entry.shopIntegrationId === field.shopIntegrationId &&
+          entry.shopifyMetafieldDefinitionId ===
+            field.shopifyMetafieldDefinitionId,
+      )?.value ??
+      "",
+    [draftValues, value],
+  );
+
   const updateFieldValue = useCallback(
     (field: ShopifyMetafieldField, nextValue: string) => {
-      // TEMPORARY: see shopify-dimension-text-mirror.ts.
-      const mirrorValue = toDimensionTextMirrorValue(nextValue);
+      // TEMPORARY: see shopify-dimension-text-mirror.ts and
+      // shopify-width-extension-mirror.ts.
+      const candidates = [
+        ...activeFields,
+        ...allSavedFields,
+        ...categorySearchResults,
+        ...searchResults,
+      ];
+      const mirrorUpdates =
+        resolveWidthExtensionMirrorUpdates(
+          field,
+          nextValue,
+          candidates,
+          valueForField,
+        ) ??
+        findDimensionTextMirrorFields(field, candidates).map(
+          (mirror): [ShopifyMetafieldField, string] => [
+            mirror,
+            toDimensionTextMirrorValue(nextValue),
+          ],
+        );
       const updates: Array<[ShopifyMetafieldField, string]> = [
         [field, nextValue],
-        ...findDimensionTextMirrorFields(field, [
-          ...activeFields,
-          ...allSavedFields,
-          ...categorySearchResults,
-          ...searchResults,
-        ]).map((mirror): [ShopifyMetafieldField, string] => [
-          mirror,
-          mirrorValue,
-        ]),
+        ...mirrorUpdates,
       ];
       setDraftValues((drafts) => ({
         ...drafts,
@@ -420,20 +445,8 @@ export function useShopifyMetafieldPickerController({
       onChange,
       searchResults,
       value,
+      valueForField,
     ],
-  );
-
-  const valueForField = useCallback(
-    (field: ShopifyMetafieldField) =>
-      draftValues[field.identity] ??
-      value.find(
-        (entry) =>
-          entry.shopIntegrationId === field.shopIntegrationId &&
-          entry.shopifyMetafieldDefinitionId ===
-            field.shopifyMetafieldDefinitionId,
-      )?.value ??
-      "",
-    [draftValues, value],
   );
 
   const toggleEditMode = useCallback(() => {

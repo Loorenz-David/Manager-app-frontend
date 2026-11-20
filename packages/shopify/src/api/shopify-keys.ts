@@ -60,4 +60,6 @@ export const shopifyKeys = {
   itemProduct: (itemClientId: string) =>
     [...shopifyKeys.itemProducts(), itemClientId] as const,
   missing: () => [...shopifyKeys.all, "missing"] as const,
+  skuSuggestion: (itemCategoryId: string, dateCode: string) =>
+    [...shopifyKeys.all, "sku-suggestion", itemCategoryId, dateCode] as const,
 };

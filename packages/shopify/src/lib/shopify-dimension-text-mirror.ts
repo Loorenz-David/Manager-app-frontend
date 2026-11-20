@@ -19,9 +19,16 @@ const MEASURES: Array<[measure: string, pattern: RegExp]> = [
   ["diameter", /diameter/i],
 ];
 
-function measureOf(field: ShopifyMetafieldField): string | null {
+const EXTENSION_WORD = /exten|ilägg|förläng/i;
+
+export function measureOf(field: ShopifyMetafieldField): string | null {
   const label = `${field.name} ${field.key}`;
   return MEASURES.find(([, pattern]) => pattern.test(label))?.[0] ?? null;
+}
+
+// Table extension (leaf) fields: "Extension Dimension", "Extension Quantity".
+export function isExtensionMetafield(field: ShopifyMetafieldField): boolean {
+  return EXTENSION_WORD.test(`${field.name} ${field.key}`);
 }
 
 export function findDimensionTextMirrorFields(
@@ -29,6 +36,9 @@ export function findDimensionTextMirrorFields(
   candidates: ShopifyMetafieldField[],
 ): ShopifyMetafieldField[] {
   if (source.type !== "dimension") return [];
+  // An extension's size is not a dimension of the piece itself; it only feeds
+  // the composed Width text (see shopify-width-extension-mirror.ts).
+  if (isExtensionMetafield(source)) return [];
   const sourceMeasure = measureOf(source);
   const seen = new Set<string>();
   return candidates.filter((field) => {

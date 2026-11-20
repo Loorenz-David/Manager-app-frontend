@@ -163,3 +163,51 @@ describe("useShopifyMetafieldPickerController step filtering", () => {
     expect(mocks.reorderPreference).toHaveBeenCalledWith({ preferenceClientId: "preference-second", sequenceOrder: 0 });
   });
 });
+
+describe("useShopifyMetafieldPickerController table width rule", () => {
+  const tableFields = [
+    { ...preference("Width Dimension", "width_dimension", 0), type: "dimension" },
+    preference("Width", "totalwidth", 1),
+    { ...preference("Extension Dimension", "extension_dimension", 2), type: "dimension" },
+    {
+      ...preference("Extension Quantity", "extension_quantity", 3),
+      validations: [{ name: "choices", value: '["1","2","3"]' }],
+    },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.categoryQuery.mockReturnValue({ data: { pages: [page(tableFields, [])] }, isPending: false, fetchStatus: "idle" });
+    mocks.searchQuery.mockReturnValue({ data: undefined, hasNextPage: false, isFetching: false, isFetchingNextPage: false, fetchNextPage: mocks.fetchNextPage });
+  });
+
+  it("writes base width plus every extension into the Width text field", async () => {
+    const onChange = vi.fn();
+    const entry = (key: string, type: string, value: string) => ({
+      shopIntegrationId: "shop-1", shopifyMetafieldDefinitionId: key, namespace: "custom", key, type, value,
+    });
+    const value = [
+      entry("width_dimension", "dimension", "100"),
+      entry("extension_dimension", "dimension", "50"),
+    ];
+    const { result } = renderHook(() => useShopifyMetafieldPickerController({
+      step: "metafields",
+      shopIntegrationIds: selectedShops,
+      itemCategoryId: "category-1",
+      value,
+      onChange,
+    }));
+
+    await waitFor(() => expect(result.current.activeFields).toHaveLength(4));
+    const quantity = result.current.activeFields.find((field) => field.key === "extension_quantity")!;
+    act(() => result.current.updateFieldValue(quantity, "2"));
+
+    expect(onChange).toHaveBeenLastCalledWith(expect.arrayContaining([
+      expect.objectContaining({ key: "extension_quantity", value: "2" }),
+      expect.objectContaining({ key: "totalwidth", value: "100 + 50 + 50 cm" }),
+    ]));
+    expect(result.current.valueForField(
+      result.current.activeFields.find((field) => field.key === "totalwidth")!,
+    )).toBe("100 + 50 + 50 cm");
+  });
+});

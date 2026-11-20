@@ -603,3 +603,10 @@ export type GetShopifyWebhookHistoryParams = {
   limit?: number;
   offset?: number;
 };
+
+export const ItemSkuSuggestionSchema = z.object({
+  sku: z.string().nullable(),
+  prefix: z.string().nullable(),
+  sequence: z.number().int().nullable(),
+});
+export type ItemSkuSuggestion = z.infer<typeof ItemSkuSuggestionSchema>;
